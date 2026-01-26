@@ -57,7 +57,11 @@ function getMockProject(type) {
 		getCachebusterSignatureType: noop,
 		getCustomTasks: () => [],
 		hasBuildManifest: () => false,
-		getWorkspace: () => "workspace",
+		getWorkspace: () => {
+			return {
+				getName: () => "workspace"
+			};
+		},
 		isFrameworkProject: () => false,
 		sealWorkspace: noop,
 		createNewWorkspaceVersion: noop,
@@ -94,6 +98,7 @@ test.beforeEach(async (t) => {
 			};
 		},
 		getRequiredDependenciesCallback: t.context.getRequiredDependenciesCallbackStub,
+		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false),
 	};
 
 	t.context.graph = {
@@ -115,18 +120,34 @@ test.beforeEach(async (t) => {
 		setTasks: sinon.stub(),
 		startTask: sinon.stub(),
 		endTask: sinon.stub(),
+		skipTask: sinon.stub(),
 		verbose: sinon.stub(),
 		perf: sinon.stub(),
 		isLevelEnabled: sinon.stub().returns(true),
 	};
 
-	t.context.cache = {
+	t.context.buildCache = {
 		setTasks: sinon.stub(),
+		prepareTaskExecutionAndValidateCache: sinon.stub().resolves(false),
+		recordTaskResult: sinon.stub().resolves(),
+		allTasksCompleted: sinon.stub().resolves([]),
 	};
 
 	t.context.resourceFactory = {
 		createReaderCollection: sinon.stub()
-			.returns("reader collection")
+			.returns({getName: () => "reader collection"}),
+		createMonitor: sinon.stub().callsFake((resource) => {
+			// Return a MonitoredReader-like object with both getName and getResourceRequests
+			if (resource && typeof resource.getName === "function") {
+				const name = resource.getName();
+				return {
+					constructor: {name: "MonitoredReader"},
+					getName: () => name,
+					getResourceRequests: sinon.stub().returns([])
+				};
+			}
+			return resource;
+		})
 	};
 
 	t.context.TaskRunner = await esmock("../../../lib/build/TaskRunner.js", {
@@ -140,7 +161,7 @@ test.afterEach.always((t) => {
 });
 
 test("Missing parameters", (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	t.throws(() => {
 		new TaskRunner({
 			graph,
@@ -158,7 +179,7 @@ test("Missing parameters", (t) => {
 			taskUtil,
 			taskRepository,
 			log: projectBuildLogger,
-			cache,
+			buildCache,
 			buildConfig
 		});
 	}, {
@@ -170,7 +191,7 @@ test("Missing parameters", (t) => {
 			graph,
 			taskRepository,
 			log: projectBuildLogger,
-			cache,
+			buildCache,
 			buildConfig
 		});
 	}, {
@@ -182,7 +203,7 @@ test("Missing parameters", (t) => {
 			graph,
 			taskUtil,
 			log: projectBuildLogger,
-			cache,
+			buildCache,
 			buildConfig
 		});
 	}, {
@@ -206,7 +227,7 @@ test("Missing parameters", (t) => {
 			taskUtil,
 			taskRepository,
 			log: projectBuildLogger,
-			cache,
+			buildCache,
 		});
 	}, {
 		message: "TaskRunner: One or more mandatory parameters not provided"
@@ -214,9 +235,10 @@ test("Missing parameters", (t) => {
 });
 
 test("_initTasks: Project of type 'application'", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const taskRunner = new TaskRunner({
-		project: getMockProject("application"), graph, taskUtil, taskRepository, log: projectBuildLogger, buildConfig
+		project: getMockProject("application"), graph, taskUtil, taskRepository,
+		log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 	t.deepEqual(taskRunner._taskExecutionOrder, [
@@ -238,9 +260,10 @@ test("_initTasks: Project of type 'application'", async (t) => {
 });
 
 test("_initTasks: Project of type 'library'", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const taskRunner = new TaskRunner({
-		project: getMockProject("library"), graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project: getMockProject("library"), graph, taskUtil, taskRepository,
+		log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 
@@ -264,13 +287,13 @@ test("_initTasks: Project of type 'library'", async (t) => {
 });
 
 test("_initTasks: Project of type 'library' (framework project)", async (t) => {
-	const {graph, taskUtil, taskRepository, projectBuildLogger, TaskRunner, cache} = t.context;
+	const {graph, taskUtil, taskRepository, projectBuildLogger, TaskRunner, buildCache} = t.context;
 
 	const project = getMockProject("library");
 	project.isFrameworkProject = () => true;
 
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 
@@ -294,10 +317,10 @@ test("_initTasks: Project of type 'library' (framework project)", async (t) => {
 });
 
 test("_initTasks: Project of type 'theme-library'", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const taskRunner = new TaskRunner({
 		project: getMockProject("theme-library"), graph, taskUtil, taskRepository,
-		log: projectBuildLogger, cache, buildConfig
+		log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 
@@ -311,13 +334,13 @@ test("_initTasks: Project of type 'theme-library'", async (t) => {
 });
 
 test("_initTasks: Project of type 'theme-library' (framework project)", async (t) => {
-	const {graph, taskUtil, taskRepository, projectBuildLogger, cache, TaskRunner} = t.context;
+	const {graph, taskUtil, taskRepository, projectBuildLogger, buildCache, TaskRunner} = t.context;
 
 	const project = getMockProject("theme-library");
 	project.isFrameworkProject = () => true;
 
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 
@@ -331,9 +354,10 @@ test("_initTasks: Project of type 'theme-library' (framework project)", async (t
 });
 
 test("_initTasks: Project of type 'module'", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const taskRunner = new TaskRunner({
-		project: getMockProject("module"), graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project: getMockProject("module"), graph, taskUtil, taskRepository,
+		log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 
@@ -341,9 +365,10 @@ test("_initTasks: Project of type 'module'", async (t) => {
 });
 
 test("_initTasks: Unknown project type", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const taskRunner = new TaskRunner({
-		project: getMockProject("pony"), graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project: getMockProject("pony"), graph, taskUtil, taskRepository,
+		log: projectBuildLogger, buildCache, buildConfig
 	});
 	const err = await t.throwsAsync(taskRunner._initTasks());
 
@@ -351,14 +376,14 @@ test("_initTasks: Unknown project type", async (t) => {
 });
 
 test("_initTasks: Custom tasks", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("application");
 	project.getCustomTasks = () => [
 		{name: "myTask", afterTask: "minify"},
 		{name: "myOtherTask", beforeTask: "replaceVersion"}
 	];
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 	t.deepEqual(taskRunner._taskExecutionOrder, [
@@ -382,14 +407,14 @@ test("_initTasks: Custom tasks", async (t) => {
 });
 
 test("_initTasks: Custom tasks with no standard tasks", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("module");
 	project.getCustomTasks = () => [
 		{name: "myTask"},
 		{name: "myOtherTask", beforeTask: "myTask"}
 	];
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 	t.deepEqual(taskRunner._taskExecutionOrder, [
@@ -399,14 +424,14 @@ test("_initTasks: Custom tasks with no standard tasks", async (t) => {
 });
 
 test("_initTasks: Custom tasks with no standard tasks and second task defining no before-/afterTask", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("module");
 	project.getCustomTasks = () => [
 		{name: "myTask"},
 		{name: "myOtherTask"}
 	];
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	const err = await t.throwsAsync(async () => {
 		await taskRunner._initTasks();
@@ -418,13 +443,13 @@ test("_initTasks: Custom tasks with no standard tasks and second task defining n
 });
 
 test("_initTasks: Custom tasks with both, before- and afterTask reference", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("application");
 	project.getCustomTasks = () => [
 		{name: "myTask", beforeTask: "minify", afterTask: "replaceVersion"}
 	];
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	const err = await t.throwsAsync(async () => {
 		await taskRunner._initTasks();
@@ -436,13 +461,13 @@ test("_initTasks: Custom tasks with both, before- and afterTask reference", asyn
 });
 
 test("_initTasks: Custom tasks with no before-/afterTask reference", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("application");
 	project.getCustomTasks = () => [
 		{name: "myTask"}
 	];
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	const err = await t.throwsAsync(async () => {
 		await taskRunner._initTasks();
@@ -454,13 +479,13 @@ test("_initTasks: Custom tasks with no before-/afterTask reference", async (t) =
 });
 
 test("_initTasks: Custom tasks without name", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("application");
 	project.getCustomTasks = () => [
 		{name: ""}
 	];
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	const err = await t.throwsAsync(async () => {
 		await taskRunner._initTasks();
@@ -471,13 +496,13 @@ test("_initTasks: Custom tasks without name", async (t) => {
 });
 
 test("_initTasks: Custom task with name of standard tasks", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("application");
 	project.getCustomTasks = () => [
 		{name: "replaceVersion", afterTask: "minify"}
 	];
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	const err = await t.throwsAsync(async () => {
 		await taskRunner._initTasks();
@@ -489,7 +514,7 @@ test("_initTasks: Custom task with name of standard tasks", async (t) => {
 });
 
 test("_initTasks: Multiple custom tasks with same name", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("application");
 	project.getCustomTasks = () => [
 		{name: "myTask", afterTask: "minify"},
@@ -497,7 +522,7 @@ test("_initTasks: Multiple custom tasks with same name", async (t) => {
 		{name: "myTask", afterTask: "minify"}
 	];
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 	t.deepEqual(taskRunner._taskExecutionOrder, [
@@ -522,13 +547,13 @@ test("_initTasks: Multiple custom tasks with same name", async (t) => {
 });
 
 test("_initTasks: Custom tasks with unknown beforeTask", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("application");
 	project.getCustomTasks = () => [
 		{name: "myTask", beforeTask: "unknownTask"}
 	];
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	const err = await t.throwsAsync(async () => {
 		await taskRunner._initTasks();
@@ -540,13 +565,13 @@ test("_initTasks: Custom tasks with unknown beforeTask", async (t) => {
 });
 
 test("_initTasks: Custom tasks with unknown afterTask", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("application");
 	project.getCustomTasks = () => [
 		{name: "myTask", afterTask: "unknownTask"}
 	];
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	const err = await t.throwsAsync(async () => {
 		await taskRunner._initTasks();
@@ -558,14 +583,14 @@ test("_initTasks: Custom tasks with unknown afterTask", async (t) => {
 });
 
 test("_initTasks: Custom tasks is unknown", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	graph.getExtension.returns(undefined);
 	const project = getMockProject("application");
 	project.getCustomTasks = () => [
 		{name: "myTask", afterTask: "minify"}
 	];
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	const err = await t.throwsAsync(async () => {
 		await taskRunner._initTasks();
@@ -577,13 +602,13 @@ test("_initTasks: Custom tasks is unknown", async (t) => {
 });
 
 test("_initTasks: Custom tasks with removed beforeTask", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("application");
 	project.getCustomTasks = () => [
 		{name: "myTask", beforeTask: "removedTask"}
 	];
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	const err = await t.throwsAsync(async () => {
 		await taskRunner._initTasks();
@@ -596,12 +621,16 @@ test("_initTasks: Custom tasks with removed beforeTask", async (t) => {
 });
 
 test("_initTasks: Create dependencies reader for all dependencies", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, resourceFactory, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, resourceFactory, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("application");
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
+	// Dependencies reader is now created lazily via getDependenciesReader
+	// Use forceUpdate=true to bypass the cache shortcut and actually trigger graph traversal
+	const readerPromise = taskRunner.getDependenciesReader(new Set(["dep.a", "dep.b"]), true);
+	// Verify traverseBreadthFirst was called
 	t.is(graph.traverseBreadthFirst.callCount, 1, "ProjectGraph#traverseBreadthFirst called once");
 	t.is(graph.traverseBreadthFirst.getCall(0).args[0], "project.b",
 		"ProjectGraph#traverseBreadthFirst called with correct project name for start");
@@ -628,21 +657,23 @@ test("_initTasks: Create dependencies reader for all dependencies", async (t) =>
 	});
 	await traversalCallback({
 		project: {
-			getName: () => "transitive.dep.a",
-			getReader: () => "transitive.dep.a reader",
+			getName: () => "dep.c",
+			getReader: () => "dep.c reader",
 		}
 	});
+	// Now wait for the reader to be created
+	await readerPromise;
 	t.is(resourceFactory.createReaderCollection.callCount, 1, "createReaderCollection got called once");
 	t.deepEqual(resourceFactory.createReaderCollection.getCall(0).args[0], {
-		name: "Dependency reader collection of project project.b",
+		name: "Reduced dependency reader collection of project project.b",
 		readers: [
-			"dep.a reader", "dep.b reader", "transitive.dep.a reader"
+			"dep.a reader", "dep.b reader", "dep.c reader"
 		]
 	}, "createReaderCollection got called with correct arguments");
 });
 
 test("Custom task is called correctly", async (t) => {
-	const {sinon, graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {sinon, graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const taskStub = sinon.stub();
 	const specVersionGteStub = sinon.stub().returns(false);
 	const mockSpecVersion = {
@@ -654,7 +685,8 @@ test("Custom task is called correctly", async (t) => {
 	graph.getExtension.returns({
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
-		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub
+		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
 	});
 	t.context.taskUtil.getInterface.returns("taskUtil interface");
 	const project = getMockProject("module");
@@ -663,39 +695,39 @@ test("Custom task is called correctly", async (t) => {
 	];
 
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 
 	t.truthy(taskRunner._tasks["myTask"], "Custom tasks has been added to task map");
 	t.deepEqual(taskRunner._tasks["myTask"].requiredDependencies, new Set(["dep.a", "dep.b"]),
 		"Custom tasks requires all dependencies by default");
-	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependenciesReader").resolves("dependencies");
+	const createDependencyReaderStub = sinon.stub(taskRunner, "getDependenciesReader")
+		.resolves({getName: () => "dependencies"});
 	await taskRunner._tasks["myTask"].task();
 
-	t.is(specVersionGteStub.callCount, 2, "SpecificationVersion#gte got called twice");
+	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
+	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
-	t.is(specVersionGteStub.getCall(1).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on second call");
+	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
+		"SpecificationVersion#gte got called with correct arguments on second call (differential updates check)");
 
-	t.is(createDependencyReaderStub.callCount, 1, "_createDependenciesReader got called once");
+	t.is(createDependencyReaderStub.callCount, 1, "getDependenciesReader got called once");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
 		new Set(["dep.a", "dep.b"]),
-		"_createDependenciesReader got called with correct arguments");
+		"getDependenciesReader got called with correct arguments");
 
 	t.is(taskStub.callCount, 1, "Task got called once");
 	t.is(taskStub.getCall(0).args.length, 1, "Task got called with one argument");
-	t.deepEqual(taskStub.getCall(0).args[0], {
-		workspace: "workspace",
-		dependencies: "dependencies",
-		options: {
-			projectName: "project.b",
-			projectNamespace: "project/b",
-			configuration: "configuration",
-		},
-		taskUtil: "taskUtil interface"
-	}, "Task got called with one argument");
+	const taskArgs = taskStub.getCall(0).args[0];
+	t.is(taskArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
+	t.is(taskArgs.dependencies.constructor.name, "MonitoredReader", "dependencies is MonitoredReader");
+	t.is(taskArgs.taskUtil, "taskUtil interface", "taskUtil is correct");
+	t.is(taskArgs.options.projectName, "project.b", "projectName is correct");
+	t.is(taskArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
+	t.is(taskArgs.options.configuration, "configuration", "configuration is correct");
 
 	t.is(taskUtil.getInterface.callCount, 1, "taskUtil#getInterface got called once");
 	t.is(taskUtil.getInterface.getCall(0).args[0], mockSpecVersion,
@@ -703,7 +735,7 @@ test("Custom task is called correctly", async (t) => {
 });
 
 test("Custom task with legacy spec version", async (t) => {
-	const {sinon, graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {sinon, graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const taskStub = sinon.stub();
 	const specVersionGteStub = sinon.stub().returns(false);
 	const mockSpecVersion = {
@@ -714,7 +746,8 @@ test("Custom task with legacy spec version", async (t) => {
 	graph.getExtension.returns({
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
-		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub
+		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
 	});
 	t.context.taskUtil.getInterface.returns(undefined); // simulating no taskUtil for old specVersion
 	const project = getMockProject("module");
@@ -723,7 +756,7 @@ test("Custom task with legacy spec version", async (t) => {
 	];
 
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 
@@ -731,31 +764,31 @@ test("Custom task with legacy spec version", async (t) => {
 	t.deepEqual(taskRunner._tasks["myTask"].requiredDependencies, new Set(["dep.a", "dep.b"]),
 		"Custom tasks requires all dependencies by default");
 
-	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependenciesReader").resolves("dependencies");
+	const createDependencyReaderStub = sinon.stub(taskRunner, "getDependenciesReader")
+		.resolves({getName: () => "dependencies"});
 	await taskRunner._tasks["myTask"].task();
 
-	t.is(specVersionGteStub.callCount, 2, "SpecificationVersion#gte got called twice");
+	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
+	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
-	t.is(specVersionGteStub.getCall(1).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on second call");
+	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
+		"SpecificationVersion#gte got called with correct arguments on second call (differential updates check)");
 
-	t.is(createDependencyReaderStub.callCount, 1, "_createDependenciesReader got called once");
+	t.is(createDependencyReaderStub.callCount, 1, "getDependenciesReader got called once");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
 		new Set(["dep.a", "dep.b"]),
-		"_createDependenciesReader got called with correct arguments");
+		"getDependenciesReader got called with correct arguments");
 
 	t.is(taskStub.callCount, 1, "Task got called once");
 	t.is(taskStub.getCall(0).args.length, 1, "Task got called with one argument");
-	t.deepEqual(taskStub.getCall(0).args[0], {
-		workspace: "workspace",
-		dependencies: "dependencies",
-		options: {
-			projectName: "project.b",
-			projectNamespace: "project/b",
-			configuration: "configuration",
-		}
-	}, "Task got called with one argument");
+	const taskArgs = taskStub.getCall(0).args[0];
+	t.is(taskArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
+	t.is(taskArgs.dependencies.constructor.name, "MonitoredReader", "dependencies is MonitoredReader");
+	t.is(taskArgs.options.projectName, "project.b", "projectName is correct");
+	t.is(taskArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
+	t.is(taskArgs.options.configuration, "configuration", "configuration is correct");
 
 	t.is(taskUtil.getInterface.callCount, 1, "taskUtil#getInterface got called once");
 	t.is(taskUtil.getInterface.getCall(0).args[0], mockSpecVersion,
@@ -763,7 +796,7 @@ test("Custom task with legacy spec version", async (t) => {
 });
 
 test("Custom task with legacy spec version and requiredDependenciesCallback", async (t) => {
-	const {sinon, graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {sinon, graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const taskStub = sinon.stub();
 	const specVersionGteStub = sinon.stub().returns(false);
 	const mockSpecVersion = {
@@ -775,7 +808,8 @@ test("Custom task with legacy spec version and requiredDependenciesCallback", as
 	graph.getExtension.returns({
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
-		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub
+		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
 	});
 	t.context.taskUtil.getInterface.returns(undefined); // simulating no taskUtil for old specVersion
 	const project = getMockProject("module");
@@ -784,7 +818,7 @@ test("Custom task with legacy spec version and requiredDependenciesCallback", as
 	];
 
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 
@@ -803,31 +837,31 @@ test("Custom task with legacy spec version and requiredDependenciesCallback", as
 		}
 	}, "requiredDependenciesCallback got called with expected arguments");
 
-	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependenciesReader").resolves("dependencies");
+	const createDependencyReaderStub = sinon.stub(taskRunner, "getDependenciesReader")
+		.resolves({getName: () => "dependencies"});
 	await taskRunner._tasks["myTask"].task();
 
-	t.is(specVersionGteStub.callCount, 2, "SpecificationVersion#gte got called twice");
+	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
+	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
-	t.is(specVersionGteStub.getCall(1).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on second call");
+	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
+		"SpecificationVersion#gte got called with correct arguments on second call (differential updates check)");
 
-	t.is(createDependencyReaderStub.callCount, 1, "_createDependenciesReader got called once");
+	t.is(createDependencyReaderStub.callCount, 1, "getDependenciesReader got called once");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
 		new Set(["dep.b"]),
-		"_createDependenciesReader got called with correct arguments");
+		"getDependenciesReader got called with correct arguments");
 
 	t.is(taskStub.callCount, 1, "Task got called once");
 	t.is(taskStub.getCall(0).args.length, 1, "Task got called with one argument");
-	t.deepEqual(taskStub.getCall(0).args[0], {
-		workspace: "workspace",
-		dependencies: "dependencies",
-		options: {
-			projectName: "project.b",
-			projectNamespace: "project/b",
-			configuration: "configuration",
-		}
-	}, "Task got called with one argument");
+	const taskArgs = taskStub.getCall(0).args[0];
+	t.is(taskArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
+	t.is(taskArgs.dependencies.constructor.name, "MonitoredReader", "dependencies is MonitoredReader");
+	t.is(taskArgs.options.projectName, "project.b", "projectName is correct");
+	t.is(taskArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
+	t.is(taskArgs.options.configuration, "configuration", "configuration is correct");
 
 	t.is(taskUtil.getInterface.callCount, 1, "taskUtil#getInterface got called once");
 	t.is(taskUtil.getInterface.getCall(0).args[0], mockSpecVersion,
@@ -835,7 +869,7 @@ test("Custom task with legacy spec version and requiredDependenciesCallback", as
 });
 
 test("Custom task with specVersion 3.0", async (t) => {
-	const {sinon, graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {sinon, graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const taskStub = sinon.stub();
 	const specVersionGteStub = sinon.stub().returns(true);
 	const mockSpecVersion = {
@@ -850,7 +884,8 @@ test("Custom task with specVersion 3.0", async (t) => {
 	graph.getExtension.returns({
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
-		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub
+		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
 	});
 
 	const project = getMockProject("module");
@@ -859,7 +894,7 @@ test("Custom task with specVersion 3.0", async (t) => {
 	];
 
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 
@@ -895,14 +930,17 @@ test("Custom task with specVersion 3.0", async (t) => {
 	t.truthy(taskRunner._tasks["myTask"], "Custom tasks has been added to task map");
 	t.deepEqual(taskRunner._tasks["myTask"].requiredDependencies, new Set(["dep.b"]),
 		"Custom tasks requires all dependencies by default");
-	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependenciesReader").resolves("dependencies");
+	const createDependencyReaderStub = sinon.stub(taskRunner, "getDependenciesReader")
+		.resolves({getName: () => "dependencies"});
 	await taskRunner._tasks["myTask"].task();
 
-	t.is(specVersionGteStub.callCount, 2, "SpecificationVersion#gte got called twice");
+	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
+	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
-	t.is(specVersionGteStub.getCall(1).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on second call");
+	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
+		"SpecificationVersion#gte got called with correct arguments on second call (differential updates check)");
 
 	t.is(taskUtil.getInterface.callCount, 2, "taskUtil#getInterface got called twice");
 	t.is(taskUtil.getInterface.getCall(0).args[0], mockSpecVersion,
@@ -910,29 +948,26 @@ test("Custom task with specVersion 3.0", async (t) => {
 	t.is(taskUtil.getInterface.getCall(1).args[0], mockSpecVersion,
 		"taskUtil#getInterface got called with correct argument on second call");
 
-	t.is(createDependencyReaderStub.callCount, 1, "_createDependenciesReader got called once");
+	t.is(createDependencyReaderStub.callCount, 1, "getDependenciesReader got called once");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
 		new Set(["dep.b"]),
-		"_createDependenciesReader got called with correct arguments");
+		"getDependenciesReader got called with correct arguments");
 
 	t.is(taskStub.callCount, 1, "Task got called once");
 	t.is(taskStub.getCall(0).args.length, 1, "Task got called with one argument");
-	t.deepEqual(taskStub.getCall(0).args[0], {
-		workspace: "workspace",
-		dependencies: "dependencies",
-		log: "group logger",
-		taskUtil,
-		options: {
-			projectName: "project.b",
-			projectNamespace: "project/b",
-			taskName: "myTask", // specVersion 3.0 feature
-			configuration: "configuration",
-		},
-	}, "Task got called with one argument");
+	const taskArgs = taskStub.getCall(0).args[0];
+	t.is(taskArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
+	t.is(taskArgs.dependencies.constructor.name, "MonitoredReader", "dependencies is MonitoredReader");
+	t.is(taskArgs.log, "group logger", "log is correct");
+	t.deepEqual(taskArgs.taskUtil, taskUtil, "taskUtil is correct");
+	t.is(taskArgs.options.projectName, "project.b", "projectName is correct");
+	t.is(taskArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
+	t.is(taskArgs.options.taskName, "myTask", "taskName is correct");
+	t.is(taskArgs.options.configuration, "configuration", "configuration is correct");
 });
 
 test("Custom task with specVersion 3.0 and no requiredDependenciesCallback", async (t) => {
-	const {sinon, graph, taskUtil, taskRepository, projectBuildLogger, cache, TaskRunner} = t.context;
+	const {sinon, graph, taskUtil, taskRepository, projectBuildLogger, buildCache, TaskRunner} = t.context;
 	const taskStub = sinon.stub();
 	const specVersionGteStub = sinon.stub().returns(true);
 	const mockSpecVersion = {
@@ -946,7 +981,8 @@ test("Custom task with specVersion 3.0 and no requiredDependenciesCallback", asy
 		getName: () => "custom task name",
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
-		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub
+		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
 	});
 
 	const project = getMockProject("module");
@@ -955,45 +991,45 @@ test("Custom task with specVersion 3.0 and no requiredDependenciesCallback", asy
 	];
 
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 
 	t.truthy(taskRunner._tasks["myTask"], "Custom tasks has been added to task map");
 	t.deepEqual(taskRunner._tasks["myTask"].requiredDependencies, new Set(),
 		"Custom tasks requires no dependencies by default");
-	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependenciesReader").resolves("dependencies");
+	const createDependencyReaderStub = sinon.stub(taskRunner, "getDependenciesReader")
+		.resolves({getName: () => "dependencies"});
 	await taskRunner._tasks["myTask"].task();
 
-	t.is(specVersionGteStub.callCount, 2, "SpecificationVersion#gte got called twice");
+	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
+	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
-	t.is(specVersionGteStub.getCall(1).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on second call");
+	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
+		"SpecificationVersion#gte got called with correct arguments on second call (differential updates check)");
 
 	t.is(taskUtil.getInterface.callCount, 1, "taskUtil#getInterface got called once");
 	t.is(taskUtil.getInterface.getCall(0).args[0], mockSpecVersion,
 		"taskUtil#getInterface got called with correct argument on first call");
 
-	t.is(createDependencyReaderStub.callCount, 0, "_createDependenciesReader did not get called");
+	t.is(createDependencyReaderStub.callCount, 0, "getDependenciesReader did not get called");
 
 	t.is(taskStub.callCount, 1, "Task got called once");
 	t.is(taskStub.getCall(0).args.length, 1, "Task got called with one argument");
-	t.deepEqual(taskStub.getCall(0).args[0], {
-		workspace: "workspace",
-		log: "group logger",
-		taskUtil,
-		options: {
-			projectName: "project.b",
-			projectNamespace: "project/b",
-			taskName: "myTask", // specVersion 3.0 feature
-			configuration: "configuration",
-		},
-	}, "Task got called with one argument");
+	const taskArgs = taskStub.getCall(0).args[0];
+	t.is(taskArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
+	t.is(taskArgs.log, "group logger", "log is correct");
+	t.deepEqual(taskArgs.taskUtil, taskUtil, "taskUtil is correct");
+	t.is(taskArgs.options.projectName, "project.b", "projectName is correct");
+	t.is(taskArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
+	t.is(taskArgs.options.taskName, "myTask", "taskName is correct");
+	t.is(taskArgs.options.configuration, "configuration", "configuration is correct");
 });
 
 test("Multiple custom tasks with same name are called correctly", async (t) => {
-	const {sinon, graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {sinon, graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const taskStubA = sinon.stub();
 	const taskStubB = sinon.stub();
 	const taskStubC = sinon.stub();
@@ -1025,25 +1061,29 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 		getName: () => "Task Name A",
 		getTask: () => taskStubA,
 		getSpecVersion: () => mockSpecVersionA,
-		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub
+		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
 	});
 	graph.getExtension.onSecondCall().returns({
 		getName: () => "Task Name B",
 		getTask: () => taskStubB,
 		getSpecVersion: () => mockSpecVersionB,
-		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub
+		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
 	});
 	graph.getExtension.onThirdCall().returns({
 		getName: () => "Task Name C",
 		getTask: () => taskStubC,
 		getSpecVersion: () => mockSpecVersionC,
-		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub
+		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
 	});
 	graph.getExtension.onCall(3).returns({
 		getName: () => "Task Name D",
 		getTask: () => taskStubD,
 		getSpecVersion: () => mockSpecVersionD,
-		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub
+		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
 	});
 	const project = getMockProject("module");
 	project.getCustomTasks = () => [
@@ -1053,7 +1093,7 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 		{name: "myTask", afterTask: "myTask", configuration: "bird"}
 	];
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 
@@ -1089,7 +1129,8 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 		"myTask--2",
 	], "Correct order of custom tasks");
 
-	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependenciesReader").resolves("dependencies");
+	const createDependencyReaderStub = sinon.stub(taskRunner, "getDependenciesReader")
+		.resolves({getName: () => "dependencies"});
 	await taskRunner.runTasks();
 
 	t.is(projectBuildLogger.setTasks.callCount, 1, "ProjectBuildLogger#setTask got called once");
@@ -1127,75 +1168,64 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 	t.is(taskUtil.getInterface.getCall(4).args[0], mockSpecVersionB,
 		"taskUtil#getInterface got called with correct argument on fifth call");
 
-	t.is(createDependencyReaderStub.callCount, 3, "_createDependenciesReader got called three times");
+	t.is(createDependencyReaderStub.callCount, 4, "getDependenciesReader got called four times");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
-		new Set(["dep.b"]),
-		"_createDependenciesReader got called with correct arguments on first call");
-	t.deepEqual(createDependencyReaderStub.getCall(1).args[0],
-		new Set(["dep.a"]),
-		"_createDependenciesReader got called with correct arguments on second call");
-	t.deepEqual(createDependencyReaderStub.getCall(2).args[0],
 		new Set(["dep.a", "dep.b"]),
-		"_createDependenciesReader got called with correct arguments on third call");
+		"getDependenciesReader got called with correct arguments on first call (runTasks init)");
+	t.deepEqual(createDependencyReaderStub.getCall(1).args[0],
+		new Set(["dep.b"]),
+		"getDependenciesReader got called with correct arguments on second call (Task A)");
+	t.deepEqual(createDependencyReaderStub.getCall(2).args[0],
+		new Set(["dep.a"]),
+		"getDependenciesReader got called with correct arguments on third call (Task D)");
+	t.deepEqual(createDependencyReaderStub.getCall(3).args[0],
+		new Set(["dep.a", "dep.b"]),
+		"getDependenciesReader got called with correct arguments on fourth call (Task B)");
 
 	t.is(taskStubA.callCount, 1, "Task A got called once");
 	t.is(taskStubA.getCall(0).args.length, 1, "Task A got called with one argument");
-	t.deepEqual(taskStubA.getCall(0).args[0], {
-		workspace: "workspace",
-		dependencies: "dependencies",
-		taskUtil,
-		options: {
-			projectName: "project.b",
-			projectNamespace: "project/b",
-			configuration: "cat",
-		}
-	}, "Task A got called with one argument");
+	const taskAArgs = taskStubA.getCall(0).args[0];
+	t.is(taskAArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
+	t.is(taskAArgs.dependencies.constructor.name, "MonitoredReader", "dependencies is MonitoredReader");
+	t.is(taskAArgs.options.projectName, "project.b", "projectName is correct");
+	t.is(taskAArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
+	t.is(taskAArgs.options.configuration, "cat", "configuration is correct");
 
 	t.is(taskStubB.callCount, 1, "Task B got called once");
 	t.is(taskStubB.getCall(0).args.length, 1, "Task B got called with one argument");
-	t.deepEqual(taskStubB.getCall(0).args[0], {
-		workspace: "workspace",
-		dependencies: "dependencies",
-		taskUtil,
-		options: {
-			projectName: "project.b",
-			projectNamespace: "project/b",
-			configuration: "dog",
-		}
-	}, "Task B got called with one argument");
+	const taskBArgs = taskStubB.getCall(0).args[0];
+	t.is(taskBArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
+	t.is(taskBArgs.dependencies.constructor.name, "MonitoredReader", "dependencies is MonitoredReader");
+	t.is(taskBArgs.options.projectName, "project.b", "projectName is correct");
+	t.is(taskBArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
+	t.is(taskBArgs.options.configuration, "dog", "configuration is correct");
 
 	t.is(taskStubC.callCount, 1, "Task C got called once");
 	t.is(taskStubC.getCall(0).args.length, 1, "Task C got called with one argument");
-	t.deepEqual(taskStubC.getCall(0).args[0], {
-		workspace: "workspace",
-		log: "group logger",
-		taskUtil,
-		options: {
-			projectName: "project.b",
-			projectNamespace: "project/b",
-			taskName: "myTask--3",
-			configuration: "bird",
-		}
-	}, "Task C got called with one argument");
+	const taskCArgs = taskStubC.getCall(0).args[0];
+	t.is(taskCArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
+	t.is(taskCArgs.log, "group logger", "log is correct");
+	t.deepEqual(taskCArgs.taskUtil, taskUtil, "taskUtil is correct");
+	t.is(taskCArgs.options.projectName, "project.b", "projectName is correct");
+	t.is(taskCArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
+	t.is(taskCArgs.options.taskName, "myTask--3", "taskName is correct");
+	t.is(taskCArgs.options.configuration, "bird", "configuration is correct");
 
 	t.is(taskStubD.callCount, 1, "Task D got called once");
 	t.is(taskStubD.getCall(0).args.length, 1, "Task D got called with one argument");
-	t.deepEqual(taskStubD.getCall(0).args[0], {
-		workspace: "workspace",
-		dependencies: "dependencies",
-		log: "group logger",
-		taskUtil,
-		options: {
-			projectName: "project.b",
-			projectNamespace: "project/b",
-			taskName: "myTask--4",
-			configuration: "bird",
-		}
-	}, "Task D got called with one argument");
+	const taskDArgs = taskStubD.getCall(0).args[0];
+	t.is(taskDArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
+	t.is(taskDArgs.dependencies.constructor.name, "MonitoredReader", "dependencies is MonitoredReader");
+	t.is(taskDArgs.log, "group logger", "log is correct");
+	t.deepEqual(taskDArgs.taskUtil, taskUtil, "taskUtil is correct");
+	t.is(taskDArgs.options.projectName, "project.b", "projectName is correct");
+	t.is(taskDArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
+	t.is(taskDArgs.options.taskName, "myTask--4", "taskName is correct");
+	t.is(taskDArgs.options.configuration, "bird", "configuration is correct");
 });
 
 test("Custom task: requiredDependenciesCallback returns unknown dependency", async (t) => {
-	const {sinon, graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {sinon, graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const taskStub = sinon.stub();
 	const specVersionGteStub = sinon.stub().returns(true);
 	const mockSpecVersion = {
@@ -1211,7 +1241,8 @@ test("Custom task: requiredDependenciesCallback returns unknown dependency", asy
 		getName: () => "custom.task.a",
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
-		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub
+		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
 	});
 
 	const project = getMockProject("module");
@@ -1220,7 +1251,7 @@ test("Custom task: requiredDependenciesCallback returns unknown dependency", asy
 	];
 
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await t.throwsAsync(taskRunner._initTasks(), {
 		message:
@@ -1232,7 +1263,7 @@ test("Custom task: requiredDependenciesCallback returns unknown dependency", asy
 
 
 test("Custom task: requiredDependenciesCallback returns Array instead of Set", async (t) => {
-	const {sinon, graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {sinon, graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const taskStub = sinon.stub();
 	const specVersionGteStub = sinon.stub().returns(true);
 	const mockSpecVersion = {
@@ -1248,7 +1279,8 @@ test("Custom task: requiredDependenciesCallback returns Array instead of Set", a
 		getName: () => "custom.task.a",
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
-		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub
+		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
 	});
 
 	const project = getMockProject("module");
@@ -1257,7 +1289,7 @@ test("Custom task: requiredDependenciesCallback returns Array instead of Set", a
 	];
 
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await t.throwsAsync(taskRunner._initTasks(), {
 		message:
@@ -1267,7 +1299,7 @@ test("Custom task: requiredDependenciesCallback returns Array instead of Set", a
 });
 
 test("Custom task attached to a disabled task", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache, sinon, customTask} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache, sinon, customTask} = t.context;
 
 	const project = getMockProject("application");
 	const customTaskFnStub = sinon.stub();
@@ -1280,7 +1312,7 @@ test("Custom task attached to a disabled task", async (t) => {
 	customTask.getTask = () => customTaskFnStub;
 
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 
 	await taskRunner.runTasks();
@@ -1307,7 +1339,7 @@ test("Custom task attached to a disabled task", async (t) => {
 });
 
 test.serial("_addTask", async (t) => {
-	const {sinon, graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {sinon, graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 
 	const taskStub = sinon.stub();
 	taskRepository.getTask.withArgs("standardTask").resolves({
@@ -1316,7 +1348,7 @@ test.serial("_addTask", async (t) => {
 
 	const project = getMockProject("module");
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 
@@ -1337,24 +1369,20 @@ test.serial("_addTask", async (t) => {
 	t.is(taskRepository.getTask.getCall(0).args[0], "standardTask",
 		"taskRepository#getTask got called with correct argument");
 	t.is(taskStub.callCount, 1, "Task got called once");
-	t.deepEqual(taskStub.getCall(0).args[0], {
-		workspace: "workspace",
-		// No dependencies
-		options: {
-			projectName: "project.b",
-			projectNamespace: "project/b"
-		},
-		taskUtil
-	}, "Task got called with correct arguments");
+	const taskCallArgs = taskStub.getCall(0).args[0];
+	t.is(taskCallArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
+	t.is(taskCallArgs.options.projectName, "project.b", "projectName is correct");
+	t.is(taskCallArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
+	t.is(taskCallArgs.taskUtil, taskUtil, "taskUtil is correct");
 });
 
 test.serial("_addTask with options", async (t) => {
-	const {sinon, graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {sinon, graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const taskStub = sinon.stub();
 	const project = getMockProject("module");
 
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 
@@ -1372,33 +1400,31 @@ test.serial("_addTask with options", async (t) => {
 	t.truthy(taskRunner._tasks["standardTask"].task, "Task function got set correctly");
 	t.deepEqual(taskRunner._taskExecutionOrder, ["standardTask"], "Task got added to execution order");
 
-	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependenciesReader").resolves("dependencies");
-	await taskRunner._tasks["standardTask"].task({
-		workspace: "workspace",
-		dependencies: "dependencies",
-	});
+	// Warm the cache (normally done by runTasks)
+	await taskRunner.getDependenciesReader(new Set(["dep.a", "dep.b"]), true);
+	const createDependencyReaderStub = sinon.stub(taskRunner, "getDependenciesReader")
+		.resolves({getName: () => "dependencies"});
+	// Call the task wrapper without parameters (it creates workspace/dependencies internally)
+	await taskRunner._tasks["standardTask"].task();
 
 	t.is(taskRepository.getTask.callCount, 0, "taskRepository#getTask did not get called");
-	t.is(createDependencyReaderStub.callCount, 0, "_createDependenciesReader did not get called");
+	t.is(createDependencyReaderStub.callCount, 0, "getDependenciesReader did not get called (using cached reader)");
 
 	t.is(taskStub.callCount, 1, "Task got called once");
-	t.deepEqual(taskStub.getCall(0).args[0], {
-		workspace: "workspace",
-		dependencies: taskRunner._allDependenciesReader,
-		options: {
-			projectName: "project.b",
-			projectNamespace: "project/b",
-			myTaskOption: "cat"
-		},
-		taskUtil
-	}, "Task got called with correct arguments");
+	const taskCallArgs = taskStub.getCall(0).args[0];
+	t.is(taskCallArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
+	t.is(taskCallArgs.dependencies.constructor.name, "MonitoredReader", "dependencies is MonitoredReader");
+	t.is(taskCallArgs.options.projectName, "project.b", "projectName is correct");
+	t.is(taskCallArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
+	t.is(taskCallArgs.options.myTaskOption, "cat", "myTaskOption is correct");
+	t.is(taskCallArgs.taskUtil, taskUtil, "taskUtil is correct");
 });
 
 test("_addTask: Duplicate task", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("module");
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 
@@ -1416,10 +1442,10 @@ test("_addTask: Duplicate task", async (t) => {
 });
 
 test("_addTask: Task already added to execution order", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("module");
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 
@@ -1435,13 +1461,13 @@ test("_addTask: Task already added to execution order", async (t) => {
 });
 
 test("getRequiredDependencies: Custom Task", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("module");
 	project.getCustomTasks = () => [
 		{name: "myTask"}
 	];
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	t.deepEqual(await taskRunner.getRequiredDependencies(), new Set([]),
 		"Project with custom task >= specVersion 3.0 and no requiredDependenciesCallback " +
@@ -1449,72 +1475,72 @@ test("getRequiredDependencies: Custom Task", async (t) => {
 });
 
 test("getRequiredDependencies: Default application", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("application");
 	project.getBundles = () => [];
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	t.deepEqual(await taskRunner.getRequiredDependencies(), new Set([]),
 		"Default application project does not require dependencies");
 });
 
 test("getRequiredDependencies: Default component", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("component");
 	project.getBundles = () => [];
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	t.deepEqual(await taskRunner.getRequiredDependencies(), new Set([]),
 		"Default component project does not require dependencies");
 });
 
 test("getRequiredDependencies: Default library", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("library");
 	project.getBundles = () => [];
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	t.deepEqual(await taskRunner.getRequiredDependencies(), new Set(["dep.a", "dep.b"]),
 		"Default library project requires dependencies");
 });
 
 test("getRequiredDependencies: Default theme-library", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("theme-library");
 
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	t.deepEqual(await taskRunner.getRequiredDependencies(), new Set(["dep.a", "dep.b"]),
 		"Default theme-library project requires dependencies");
 });
 
 test("getRequiredDependencies: Default module", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("module");
 
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	t.deepEqual(await taskRunner.getRequiredDependencies(), new Set([]),
 		"Default module project does not require dependencies");
 });
 
-test("_createDependenciesReader", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, resourceFactory, projectBuildLogger, cache} = t.context;
+test("getDependenciesReader", async (t) => {
+	const {graph, taskUtil, taskRepository, TaskRunner, resourceFactory, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("module");
 
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 	graph.traverseBreadthFirst.reset(); // Ignore the call in initTask
 	resourceFactory.createReaderCollection.reset(); // Ignore the call in initTask
-	resourceFactory.createReaderCollection.returns("custom reader collection");
-	const res = await taskRunner._createDependenciesReader(new Set(["dep.a"]));
+	resourceFactory.createReaderCollection.returns({getName: () => "custom reader collection"});
+	const res = await taskRunner.getDependenciesReader(new Set(["dep.a"]));
 
 	t.is(graph.traverseBreadthFirst.callCount, 1, "ProjectGraph#traverseBreadthFirst got called once");
 	t.is(graph.traverseBreadthFirst.getCall(0).args[0], "project.b",
@@ -1561,42 +1587,45 @@ test("_createDependenciesReader", async (t) => {
 			"dep.a reader", "dep.b reader", "dep.c reader"
 		]
 	}, "createReaderCollection got called with correct arguments");
-	t.is(res, "custom reader collection", "Returned expected value");
+	t.is(res.getName(), "custom reader collection", "Returned expected value");
 });
 
-test("_createDependenciesReader: All dependencies required", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, resourceFactory, projectBuildLogger, cache} = t.context;
+test("getDependenciesReader: All dependencies required", async (t) => {
+	const {graph, taskUtil, taskRepository, TaskRunner, resourceFactory, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("module");
 
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
-	graph.traverseBreadthFirst.reset(); // Ignore the call in initTask
-	resourceFactory.createReaderCollection.reset(); // Ignore the call in initTask
-	resourceFactory.createReaderCollection.returns("custom reader collection");
-	const res = await taskRunner._createDependenciesReader(new Set(["dep.a", "dep.b"]));
+	// Initialize the cache by calling getDependenciesReader with a subset first to avoid the shortcut
+	// Then call with forceUpdate to populate the cache
+	const cachedReader = await taskRunner.getDependenciesReader(new Set(["dep.a", "dep.b"]), true);
+	graph.traverseBreadthFirst.reset(); // Ignore the call in init
+	resourceFactory.createReaderCollection.reset(); // Ignore the call in init
+	resourceFactory.createReaderCollection.returns({getName: () => "custom reader collection"});
+	const res = await taskRunner.getDependenciesReader(new Set(["dep.a", "dep.b"]));
 	t.is(graph.traverseBreadthFirst.callCount, 0, "ProjectGraph#traverseBreadthFirst did not get called again");
 	t.is(resourceFactory.createReaderCollection.callCount, 0, "createReaderCollection did not get called again");
-	t.is(res, "reader collection", "Shared (all-)dependency reader returned");
+	t.is(res, cachedReader, "Shared (all-)dependency reader returned");
 });
 
-test("_createDependenciesReader: No dependencies required", async (t) => {
-	const {graph, taskUtil, taskRepository, TaskRunner, resourceFactory, projectBuildLogger, cache} = t.context;
+test("getDependenciesReader: No dependencies required", async (t) => {
+	const {graph, taskUtil, taskRepository, TaskRunner, resourceFactory, projectBuildLogger, buildCache} = t.context;
 	const project = getMockProject("module");
 
 	const taskRunner = new TaskRunner({
-		project, graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildCache, buildConfig
 	});
 	await taskRunner._initTasks();
 	graph.traverseBreadthFirst.reset(); // Ignore the call in initTask
 	resourceFactory.createReaderCollection.reset(); // Ignore the call in initTask
-	resourceFactory.createReaderCollection.returns("custom reader collection");
-	const res = await taskRunner._createDependenciesReader(new Set());
+	resourceFactory.createReaderCollection.returns({getName: () => "custom reader collection"});
+	const res = await taskRunner.getDependenciesReader(new Set());
 	t.is(graph.traverseBreadthFirst.callCount, 1, "ProjectGraph#traverseBreadthFirst got called once");
 	t.is(resourceFactory.createReaderCollection.callCount, 1, "createReaderCollection got called once");
 	t.deepEqual(resourceFactory.createReaderCollection.getCall(0).args[0].readers, [],
 		"createReaderCollection got called with no readers");
-	t.is(res, "custom reader collection", "Shared (all-)dependency reader returned");
+	t.is(res.getName(), "custom reader collection", "Shared (all-)dependency reader returned");
 });
 
