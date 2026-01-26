@@ -102,7 +102,6 @@
 		"mime-types": "^2.1.35",
 		"parseurl": "^1.3.3",
 		"portscanner": "^2.2.0",
-		"replacestream": "^4.0.3",
 		"router": "^2.2.0",
 		"spdy": "^4.0.2",
 		"yesno": "^0.4.0"
