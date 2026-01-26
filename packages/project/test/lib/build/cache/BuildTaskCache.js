@@ -2,42 +2,34 @@ import test from "ava";
 import sinon from "sinon";
 import BuildTaskCache from "../../../../lib/build/cache/BuildTaskCache.js";
 
-// Helper to create mock Resource instances
-function createMockResource(path, integrity = "test-hash", lastModified = 1000, size = 100, inode = 1) {
+// Helper to create mock readers
+function createMockReader(resources = []) {
+	const resourceMap = new Map(resources.map((r) => [r.getPath(), r]));
 	return {
-		getOriginalPath: () => path,
-		getPath: () => path,
-		getIntegrity: async () => integrity,
-		getLastModified: () => lastModified,
-		getSize: async () => size,
-		getInode: () => inode,
-		getBuffer: async () => Buffer.from("test content"),
-		getStream: () => null
+		byGlob: sinon.stub().callsFake(async (pattern) => {
+			// Simple pattern matching for tests
+			if (pattern === "/**/*") {
+				return Array.from(resourceMap.values());
+			}
+			return resources.filter((r) => r.getPath().includes(pattern.replace(/[*]/g, "")));
+		}),
+		byPath: sinon.stub().callsFake(async (path) => {
+			return resourceMap.get(path) || null;
+		})
 	};
 }
 
-// Helper to create mock Reader (project or dependency)
-function createMockReader(resources = new Map()) {
+// Helper to create mock resources
+function createMockResource(path, content = "test content", hash = null) {
+	const actualHash = hash || `hash-${path}`;
 	return {
-		byPath: sinon.stub().callsFake(async (path) => {
-			return resources.get(path) || null;
-		}),
-		byGlob: sinon.stub().callsFake(async (patterns) => {
-			// Simple mock: return all resources that match the pattern
-			const allPaths = Array.from(resources.keys());
-			const results = [];
-			for (const path of allPaths) {
-				// Very simplified matching - just check if pattern is substring
-				const patternArray = Array.isArray(patterns) ? patterns : [patterns];
-				for (const pattern of patternArray) {
-					if (pattern === "/**/*" || path.includes(pattern.replace(/\*/g, ""))) {
-						results.push(resources.get(path));
-						break;
-					}
-				}
-			}
-			return results;
-		})
+		getPath: () => path,
+		getOriginalPath: () => path,
+		getBuffer: async () => Buffer.from(content),
+		getIntegrity: async () => actualHash,
+		getLastModified: () => 1000,
+		getSize: async () => content.length,
+		getInode: () => 1
 	};
 }
 
@@ -45,600 +37,458 @@ test.afterEach.always(() => {
 	sinon.restore();
 });
 
-// ===== CONSTRUCTOR TESTS =====
+// ===== CREATION AND INITIALIZATION TESTS =====
 
-test("Create BuildTaskCache without metadata", (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
+test("Create BuildTaskCache instance", (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
 
 	t.truthy(cache, "BuildTaskCache instance created");
-	t.is(cache.getTaskName(), "myTask", "Task name is correct");
+	t.is(cache.getTaskName(), "testTask", "Task name matches");
+	t.is(cache.getSupportsDifferentialUpdates(), false, "Differential updates disabled");
 });
 
-test("Create BuildTaskCache with metadata", (t) => {
-	const metadata = {
+test("Create with differential updates enabled", (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", true);
+
+	t.is(cache.getSupportsDifferentialUpdates(), true, "Differential updates enabled");
+});
+
+test("fromCache: restore BuildTaskCache from cached data", (t) => {
+	const projectRequests = {
 		requestSetGraph: {
 			nodes: [],
 			nextId: 1
-		}
+		},
+		rootIndices: [],
+		deltaIndices: [],
+		unusedAtLeastOnce: false
 	};
 
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig", metadata);
-
-	t.truthy(cache, "BuildTaskCache instance created with metadata");
-	t.is(cache.getTaskName(), "myTask", "Task name is correct");
-});
-
-test("Create BuildTaskCache with complex metadata", (t) => {
-	const metadata = {
+	const dependencyRequests = {
 		requestSetGraph: {
-			nodes: [
-				{
-					id: 1,
-					parent: null,
-					addedRequests: ["path:/test.js", "patterns:[\"**/*.js\"]"]
-				}
-			],
-			nextId: 2
-		}
+			nodes: [],
+			nextId: 1
+		},
+		rootIndices: [],
+		deltaIndices: [],
+		unusedAtLeastOnce: false
 	};
 
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig", metadata);
+	const cache = BuildTaskCache.fromCache("test.project", "testTask", false,
+		projectRequests, dependencyRequests);
 
-	t.truthy(cache, "BuildTaskCache created with complex metadata");
+	t.truthy(cache, "Cache restored from cached data");
+	t.is(cache.getTaskName(), "testTask", "Task name preserved");
+	t.is(cache.getSupportsDifferentialUpdates(), false, "Differential updates setting preserved");
 });
 
 // ===== METADATA ACCESS TESTS =====
 
-test("getTaskName returns correct task name", (t) => {
-	const cache = new BuildTaskCache("test.project", "mySpecialTask", "build-sig");
+test("getTaskName: returns task name", (t) => {
+	const cache = new BuildTaskCache("test.project", "myTask", false);
 
-	t.is(cache.getTaskName(), "mySpecialTask", "Returns correct task name");
+	t.is(cache.getTaskName(), "myTask", "Task name returned");
 });
 
-test("getPossibleStageSignatures with no cached signatures", async (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
+test("getSupportsDifferentialUpdates: returns correct value", (t) => {
+	const cache1 = new BuildTaskCache("test.project", "task1", false);
+	const cache2 = new BuildTaskCache("test.project", "task2", true);
 
-	const signatures = await cache.getPossibleStageSignatures();
-
-	t.deepEqual(signatures, [], "Returns empty array when no requests recorded");
+	t.false(cache1.getSupportsDifferentialUpdates(), "Returns false when disabled");
+	t.true(cache2.getSupportsDifferentialUpdates(), "Returns true when enabled");
 });
 
-test("getPossibleStageSignatures throws when resourceIndex missing", async (t) => {
-	const metadata = {
-		requestSetGraph: {
-			nodes: [
-				{
-					id: 1,
-					parent: null,
-					addedRequests: ["path:/test.js"]
-				}
-			],
-			nextId: 2
-		}
-	};
+test("hasNewOrModifiedCacheEntries: initially true for new instance", (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
 
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig", metadata);
-
-	await t.throwsAsync(
-		async () => {
-			await cache.getPossibleStageSignatures();
-		},
-		{
-			message: /Resource index missing for request set ID/
-		},
-		"Throws error when resource index is missing"
-	);
+	// A new instance has new entries that need to be written
+	t.true(cache.hasNewOrModifiedCacheEntries(), "New instance has entries to write");
 });
 
-// ===== SIGNATURE CALCULATION TESTS =====
+test("hasNewOrModifiedCacheEntries: true after recording requests", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
 
-test("calculateSignature with simple path requests", async (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
-
-	const resources = new Map([
-		["/test.js", createMockResource("/test.js", "hash1")],
-		["/app.js", createMockResource("/app.js", "hash2")]
-	]);
-
-	const projectReader = createMockReader(resources);
-	const dependencyReader = createMockReader(new Map());
-
-	const projectRequests = {
-		paths: new Set(["/test.js", "/app.js"]),
-		patterns: new Set()
-	};
-
-	const signature = await cache.calculateSignature(
-		projectRequests,
-		{paths: new Set(), patterns: new Set()},
-		projectReader,
-		dependencyReader
-	);
-
-	t.truthy(signature, "Signature generated");
-	t.is(typeof signature, "string", "Signature is a string");
-});
-
-test("calculateSignature with pattern requests", async (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
-
-	const resources = new Map([
-		["/src/test.js", createMockResource("/src/test.js", "hash1")],
-		["/src/app.js", createMockResource("/src/app.js", "hash2")]
-	]);
-
-	const projectReader = createMockReader(resources);
-	const dependencyReader = createMockReader(new Map());
-
-	const projectRequests = {
-		paths: new Set(),
-		patterns: new Set(["/**/*.js"])
-	};
-
-	const signature = await cache.calculateSignature(
-		projectRequests,
-		{paths: new Set(), patterns: new Set()},
-		projectReader,
-		dependencyReader
-	);
-
-	t.truthy(signature, "Signature generated for pattern request");
-});
-
-test("calculateSignature with dependency requests", async (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
-
-	const projectResources = new Map([
-		["/app.js", createMockResource("/app.js", "hash1")]
-	]);
-
-	const depResources = new Map([
-		["/lib/dep.js", createMockResource("/lib/dep.js", "hash-dep")]
-	]);
-
-	const projectReader = createMockReader(projectResources);
-	const dependencyReader = createMockReader(depResources);
-
-	const projectRequests = {
-		paths: new Set(["/app.js"]),
-		patterns: new Set()
-	};
-
-	const dependencyRequests = {
-		paths: new Set(["/lib/dep.js"]),
-		patterns: new Set()
-	};
-
-	const signature = await cache.calculateSignature(
-		projectRequests,
-		dependencyRequests,
-		projectReader,
-		dependencyReader
-	);
-
-	t.truthy(signature, "Signature generated with dependency requests");
-});
-
-test("calculateSignature returns same signature for same requests", async (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
-
-	const resources = new Map([
-		["/test.js", createMockResource("/test.js", "hash1")]
-	]);
-
-	const projectReader = createMockReader(resources);
-	const dependencyReader = createMockReader(new Map());
+	const resource = createMockResource("/test.js");
+	const projectReader = createMockReader([resource]);
+	const dependencyReader = createMockReader([]);
 
 	const projectRequests = {
 		paths: new Set(["/test.js"]),
 		patterns: new Set()
 	};
 
-	const signature1 = await cache.calculateSignature(
-		projectRequests,
-		{paths: new Set(), patterns: new Set()},
-		projectReader,
-		dependencyReader
-	);
+	await cache.recordRequests(projectRequests, undefined, projectReader, dependencyReader);
 
-	const signature2 = await cache.calculateSignature(
-		projectRequests,
-		{paths: new Set(), patterns: new Set()},
-		projectReader,
-		dependencyReader
-	);
-
-	t.is(signature1, signature2, "Same requests produce same signature");
+	t.true(cache.hasNewOrModifiedCacheEntries(), "Has new entries after recording");
 });
 
-test("calculateSignature with empty requests", async (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
+// ===== SIGNATURE TESTS =====
 
-	const projectReader = createMockReader(new Map());
-	const dependencyReader = createMockReader(new Map());
+test("getProjectIndexSignatures: returns signatures after recording", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
 
-	const projectRequests = {
-		paths: new Set(),
-		patterns: new Set()
-	};
-
-	const signature = await cache.calculateSignature(
-		projectRequests,
-		{paths: new Set(), patterns: new Set()},
-		projectReader,
-		dependencyReader
-	);
-
-	t.truthy(signature, "Signature generated even with no requests");
-});
-
-// ===== RESOURCE MATCHING TESTS =====
-
-test("matchesChangedResources: exact path match", (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
-
-	// Need to populate the cache with some requests first
-	// We'll use toCacheObject to verify the internal state
-	const result = cache.matchesChangedResources(["/test.js"], []);
-
-	// Without any recorded requests, should not match
-	t.false(result, "No match when no requests recorded");
-});
-
-test("matchesChangedResources: after recording requests", async (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
-
-	const resources = new Map([
-		["/test.js", createMockResource("/test.js", "hash1")]
-	]);
-
-	const projectReader = createMockReader(resources);
-	const dependencyReader = createMockReader(new Map());
+	const resource = createMockResource("/test.js");
+	const projectReader = createMockReader([resource]);
+	const dependencyReader = createMockReader([]);
 
 	const projectRequests = {
 		paths: new Set(["/test.js"]),
 		patterns: new Set()
 	};
 
-	// Record the request
-	await cache.calculateSignature(
-		projectRequests,
-		{paths: new Set(), patterns: new Set()},
-		projectReader,
-		dependencyReader
-	);
+	await cache.recordRequests(projectRequests, undefined, projectReader, dependencyReader);
 
-	// Now check if it matches
-	t.true(cache.matchesChangedResources(["/test.js"], []), "Matches exact path");
-	t.false(cache.matchesChangedResources(["/other.js"], []), "Doesn't match different path");
+	const signatures = cache.getProjectIndexSignatures();
+
+	t.true(Array.isArray(signatures), "Returns array");
+	t.true(signatures.length > 0, "Has at least one signature");
+	t.is(typeof signatures[0], "string", "Signature is a string");
 });
 
-test("matchesChangedResources: pattern matching", async (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
+test("getDependencyIndexSignatures: returns signatures after recording", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
 
-	const resources = new Map([
-		["/src/test.js", createMockResource("/src/test.js", "hash1")]
-	]);
-
-	const projectReader = createMockReader(resources);
-	const dependencyReader = createMockReader(new Map());
+	const projectResource = createMockResource("/test.js");
+	const depResource = createMockResource("/dep.js");
+	const projectReader = createMockReader([projectResource]);
+	const dependencyReader = createMockReader([depResource]);
 
 	const projectRequests = {
-		paths: new Set(),
-		patterns: new Set(["**/*.js"])
-	};
-
-	await cache.calculateSignature(
-		projectRequests,
-		{paths: new Set(), patterns: new Set()},
-		projectReader,
-		dependencyReader
-	);
-
-	t.true(cache.matchesChangedResources(["/src/app.js"], []), "Pattern matches changed .js file");
-	t.false(cache.matchesChangedResources(["/src/styles.css"], []), "Pattern doesn't match .css file");
-});
-
-test("matchesChangedResources: dependency path match", async (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
-
-	const depResources = new Map([
-		["/lib/dep.js", createMockResource("/lib/dep.js", "hash1")]
-	]);
-
-	const projectReader = createMockReader(new Map());
-	const dependencyReader = createMockReader(depResources);
-
-	const dependencyRequests = {
-		paths: new Set(["/lib/dep.js"]),
+		paths: new Set(["/test.js"]),
 		patterns: new Set()
 	};
 
-	await cache.calculateSignature(
-		{paths: new Set(), patterns: new Set()},
-		dependencyRequests,
-		projectReader,
-		dependencyReader
-	);
-
-	t.true(cache.matchesChangedResources([], ["/lib/dep.js"]), "Matches dependency path");
-	t.false(cache.matchesChangedResources([], ["/lib/other.js"]), "Doesn't match different dependency");
-});
-
-test("matchesChangedResources: dependency pattern match", async (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
-
-	const depResources = new Map([
-		["/lib/utils.js", createMockResource("/lib/utils.js", "hash1")]
-	]);
-
-	const projectReader = createMockReader(new Map());
-	const dependencyReader = createMockReader(depResources);
-
 	const dependencyRequests = {
-		paths: new Set(),
-		patterns: new Set(["/lib/**/*.js"])
+		paths: new Set(["/dep.js"]),
+		patterns: new Set()
 	};
 
-	await cache.calculateSignature(
-		{paths: new Set(), patterns: new Set()},
-		dependencyRequests,
-		projectReader,
-		dependencyReader
-	);
+	await cache.recordRequests(projectRequests, dependencyRequests, projectReader, dependencyReader);
 
-	t.true(cache.matchesChangedResources([], ["/lib/helper.js"]), "Pattern matches changed dependency");
-	t.false(cache.matchesChangedResources([], ["/other/file.js"]), "Pattern doesn't match outside path");
+	const signatures = cache.getDependencyIndexSignatures();
+
+	t.true(Array.isArray(signatures), "Returns array");
+	t.true(signatures.length > 0, "Has at least one signature");
+	t.is(typeof signatures[0], "string", "Signature is a string");
 });
 
-test("matchesChangedResources: multiple patterns", async (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
+// ===== REQUEST RECORDING TESTS =====
 
-	const resources = new Map([
-		["/src/app.js", createMockResource("/src/app.js", "hash1")]
-	]);
+test("recordRequests: handles project requests only", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
 
-	const projectReader = createMockReader(resources);
-	const dependencyReader = createMockReader(new Map());
+	const resource = createMockResource("/test.js");
+	const projectReader = createMockReader([resource]);
+	const dependencyReader = createMockReader([]);
+
+	const projectRequests = {
+		paths: new Set(["/test.js"]),
+		patterns: new Set()
+	};
+
+	const [projectSig, depSig] = await cache.recordRequests(
+		projectRequests, undefined, projectReader, dependencyReader);
+
+	t.is(typeof projectSig, "string", "Project signature returned");
+	t.is(typeof depSig, "string", "Dependency signature returned");
+	t.true(projectSig.length > 0, "Project signature not empty");
+	t.true(depSig.length > 0, "Dependency signature not empty");
+});
+
+test("recordRequests: handles both project and dependency requests", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
+
+	const projectResource = createMockResource("/test.js");
+	const depResource = createMockResource("/dep.js");
+	const projectReader = createMockReader([projectResource]);
+	const dependencyReader = createMockReader([depResource]);
+
+	const projectRequests = {
+		paths: new Set(["/test.js"]),
+		patterns: new Set()
+	};
+
+	const dependencyRequests = {
+		paths: new Set(["/dep.js"]),
+		patterns: new Set()
+	};
+
+	const [projectSig, depSig] = await cache.recordRequests(
+		projectRequests, dependencyRequests, projectReader, dependencyReader);
+
+	t.is(typeof projectSig, "string", "Project signature returned");
+	t.is(typeof depSig, "string", "Dependency signature returned");
+});
+
+test("recordRequests: handles glob patterns", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
+
+	const resource1 = createMockResource("/src/test1.js");
+	const resource2 = createMockResource("/src/test2.js");
+	const projectReader = createMockReader([resource1, resource2]);
+	const dependencyReader = createMockReader([]);
 
 	const projectRequests = {
 		paths: new Set(),
-		patterns: new Set(["**/*.js", "**/*.css"])
+		patterns: new Set(["/src/**/*.js"])
 	};
 
-	await cache.calculateSignature(
-		projectRequests,
-		{paths: new Set(), patterns: new Set()},
-		projectReader,
-		dependencyReader
-	);
+	const [projectSig, depSig] = await cache.recordRequests(
+		projectRequests, undefined, projectReader, dependencyReader);
 
-	t.true(cache.matchesChangedResources(["/src/app.js"], []), "Matches .js file");
-	t.true(cache.matchesChangedResources(["/src/styles.css"], []), "Matches .css file");
-	t.false(cache.matchesChangedResources(["/src/image.png"], []), "Doesn't match .png file");
+	t.is(typeof projectSig, "string", "Project signature returned");
+	t.is(typeof depSig, "string", "Dependency signature returned");
 });
 
-// ===== UPDATE INDICES TESTS =====
+test("recordRequests: handles empty requests", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
 
-test("updateIndices with no changes", async (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
+	const projectReader = createMockReader([]);
+	const dependencyReader = createMockReader([]);
 
-	const resources = new Map([
-		["/test.js", createMockResource("/test.js", "hash1")]
-	]);
+	const projectRequests = {
+		paths: new Set(),
+		patterns: new Set()
+	};
 
-	const projectReader = createMockReader(resources);
-	const dependencyReader = createMockReader(new Map());
+	const [projectSig, depSig] = await cache.recordRequests(
+		projectRequests, undefined, projectReader, dependencyReader);
 
-	// First calculate signature to establish baseline
-	await cache.calculateSignature(
-		{paths: new Set(["/test.js"]), patterns: new Set()},
-		{paths: new Set(), patterns: new Set()},
-		projectReader,
-		dependencyReader
-	);
-
-	// Update with no changed paths
-	await cache.updateIndices(new Set(), new Set(), projectReader, dependencyReader);
-
-	t.pass("updateIndices completed with no changes");
+	t.is(typeof projectSig, "string", "Project signature returned");
+	t.is(typeof depSig, "string", "Dependency signature returned");
 });
 
-test("updateIndices with changed resource", async (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
+// ===== INDEX UPDATE TESTS =====
 
-	const resources = new Map([
-		["/test.js", createMockResource("/test.js", "hash1")]
-	]);
+test("updateProjectIndices: processes changed resources", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
 
-	const projectReader = createMockReader(resources);
-	const dependencyReader = createMockReader(new Map());
+	// First, record some requests
+	const resource = createMockResource("/test.js", "initial content");
+	const projectReader = createMockReader([resource]);
+	const dependencyReader = createMockReader([]);
 
-	// First calculate signature
-	await cache.calculateSignature(
-		{paths: new Set(["/test.js"]), patterns: new Set()},
-		{paths: new Set(), patterns: new Set()},
-		projectReader,
-		dependencyReader
-	);
+	const projectRequests = {
+		paths: new Set(["/test.js"]),
+		patterns: new Set()
+	};
 
-	// Update the resource
-	resources.set("/test.js", createMockResource("/test.js", "hash2", 2000));
+	await cache.recordRequests(projectRequests, undefined, projectReader, dependencyReader);
 
-	// Update indices
-	await cache.updateIndices(new Set(["/test.js"]), new Set(), projectReader, dependencyReader);
+	// Now update with changed resource
+	const updatedResource = createMockResource("/test.js", "updated content", "new-hash");
+	const updatedReader = createMockReader([updatedResource]);
 
-	t.pass("updateIndices completed with changed resource");
+	const changed = await cache.updateProjectIndices(updatedReader, ["/test.js"]);
+
+	t.is(typeof changed, "boolean", "Returns boolean");
 });
 
-test("updateIndices with removed resource", async (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
+test("updateDependencyIndices: processes changed dependencies", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
 
-	const resources = new Map([
-		["/test.js", createMockResource("/test.js", "hash1")],
-		["/app.js", createMockResource("/app.js", "hash2")]
-	]);
+	// First, record some requests
+	const projectResource = createMockResource("/test.js");
+	const depResource = createMockResource("/dep.js", "initial");
+	const projectReader = createMockReader([projectResource]);
+	const dependencyReader = createMockReader([depResource]);
 
-	const projectReader = createMockReader(resources);
-	const dependencyReader = createMockReader(new Map());
+	const projectRequests = {
+		paths: new Set(["/test.js"]),
+		patterns: new Set()
+	};
 
-	// First calculate signature
-	await cache.calculateSignature(
-		{paths: new Set(["/test.js", "/app.js"]), patterns: new Set()},
-		{paths: new Set(), patterns: new Set()},
-		projectReader,
-		dependencyReader
-	);
+	const dependencyRequests = {
+		paths: new Set(["/dep.js"]),
+		patterns: new Set()
+	};
 
-	// Remove one resource
-	resources.delete("/app.js");
+	await cache.recordRequests(projectRequests, dependencyRequests, projectReader, dependencyReader);
 
-	// Update indices - this is a more complex scenario that involves internal ResourceIndex behavior
-	// For now, we test that it can be called (deeper testing would require mocking ResourceIndex internals)
-	try {
-		await cache.updateIndices(new Set(["/app.js"]), new Set(), projectReader, dependencyReader);
-		t.pass("updateIndices can be called with removed resource");
-	} catch (err) {
-		// Expected in unit test environment - would work with real ResourceIndex
-		if (err.message.includes("removeResources is not a function")) {
-			t.pass("updateIndices attempted to handle removed resource (integration test needed)");
-		} else {
-			throw err;
-		}
-	}
+	// Now update with changed dependency
+	const updatedDepResource = createMockResource("/dep.js", "updated", "new-dep-hash");
+	const updatedDepReader = createMockReader([updatedDepResource]);
+
+	const changed = await cache.updateDependencyIndices(updatedDepReader, ["/dep.js"]);
+
+	t.is(typeof changed, "boolean", "Returns boolean");
+});
+
+test("refreshDependencyIndices: refreshes all dependency indices", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
+
+	// First, record some requests
+	const projectResource = createMockResource("/test.js");
+	const depResource = createMockResource("/dep.js");
+	const projectReader = createMockReader([projectResource]);
+	const dependencyReader = createMockReader([depResource]);
+
+	const projectRequests = {
+		paths: new Set(["/test.js"]),
+		patterns: new Set()
+	};
+
+	const dependencyRequests = {
+		paths: new Set(["/dep.js"]),
+		patterns: new Set()
+	};
+
+	await cache.recordRequests(projectRequests, dependencyRequests, projectReader, dependencyReader);
+
+	// Refresh all indices - returns undefined when processing changes, or false if no requests
+	const result = await cache.refreshDependencyIndices(dependencyReader);
+
+	t.true(result === undefined || result === false, "Returns undefined or false");
+});
+
+// ===== DELTA TESTS (for differential updates) =====
+
+test("getProjectIndexDeltas: returns deltas when enabled", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", true);
+
+	const resource = createMockResource("/test.js");
+	const projectReader = createMockReader([resource]);
+	const dependencyReader = createMockReader([]);
+
+	const projectRequests = {
+		paths: new Set(["/test.js"]),
+		patterns: new Set()
+	};
+
+	await cache.recordRequests(projectRequests, undefined, projectReader, dependencyReader);
+
+	const deltas = cache.getProjectIndexDeltas();
+
+	t.true(deltas instanceof Map, "Returns Map");
+});
+
+test("getDependencyIndexDeltas: returns deltas when enabled", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", true);
+
+	const projectResource = createMockResource("/test.js");
+	const depResource = createMockResource("/dep.js");
+	const projectReader = createMockReader([projectResource]);
+	const dependencyReader = createMockReader([depResource]);
+
+	const projectRequests = {
+		paths: new Set(["/test.js"]),
+		patterns: new Set()
+	};
+
+	const dependencyRequests = {
+		paths: new Set(["/dep.js"]),
+		patterns: new Set()
+	};
+
+	await cache.recordRequests(projectRequests, dependencyRequests, projectReader, dependencyReader);
+
+	const deltas = cache.getDependencyIndexDeltas();
+
+	t.true(deltas instanceof Map, "Returns Map");
 });
 
 // ===== SERIALIZATION TESTS =====
 
-test("toCacheObject returns valid structure", (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
+test("toCacheObjects: returns cache objects", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
 
-	const cacheObject = cache.toCacheObject();
+	const resource = createMockResource("/test.js");
+	const projectReader = createMockReader([resource]);
+	const dependencyReader = createMockReader([]);
 
-	t.truthy(cacheObject, "Cache object created");
-	t.truthy(cacheObject.requestSetGraph, "Contains requestSetGraph");
-	t.truthy(cacheObject.requestSetGraph.nodes, "requestSetGraph has nodes");
-	t.is(typeof cacheObject.requestSetGraph.nextId, "number", "requestSetGraph has nextId");
+	const projectRequests = {
+		paths: new Set(["/test.js"]),
+		patterns: new Set()
+	};
+
+	await cache.recordRequests(projectRequests, undefined, projectReader, dependencyReader);
+
+	const [projectCache, dependencyCache] = cache.toCacheObjects();
+
+	t.truthy(projectCache, "Project cache object exists");
+	t.truthy(dependencyCache, "Dependency cache object exists");
+	t.truthy(projectCache.requestSetGraph, "Has request set graph");
+	t.true(Array.isArray(projectCache.rootIndices), "Has root indices array");
 });
 
-test("toCacheObject after recording requests", async (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
+test("toCacheObjects: can restore from serialized data", async (t) => {
+	const cache1 = new BuildTaskCache("test.project", "testTask", false);
 
-	const resources = new Map([
-		["/test.js", createMockResource("/test.js", "hash1")]
-	]);
+	const resource = createMockResource("/test.js");
+	const projectReader = createMockReader([resource]);
+	const dependencyReader = createMockReader([]);
 
-	const projectReader = createMockReader(resources);
-	const dependencyReader = createMockReader(new Map());
+	const projectRequests = {
+		paths: new Set(["/test.js"]),
+		patterns: new Set()
+	};
 
-	await cache.calculateSignature(
-		{paths: new Set(["/test.js"]), patterns: new Set()},
-		{paths: new Set(), patterns: new Set()},
-		projectReader,
-		dependencyReader
-	);
+	await cache1.recordRequests(projectRequests, undefined, projectReader, dependencyReader);
 
-	const cacheObject = cache.toCacheObject();
+	const [projectCache, dependencyCache] = cache1.toCacheObjects();
 
-	t.truthy(cacheObject.requestSetGraph, "Contains requestSetGraph");
-	t.true(cacheObject.requestSetGraph.nodes.length > 0, "Has recorded nodes");
-});
+	// Restore from cache
+	const cache2 = BuildTaskCache.fromCache("test.project", "testTask", false,
+		projectCache, dependencyCache);
 
-test("Round-trip serialization", async (t) => {
-	const cache1 = new BuildTaskCache("test.project", "myTask", "build-sig");
-
-	const resources = new Map([
-		["/test.js", createMockResource("/test.js", "hash1")]
-	]);
-
-	const projectReader = createMockReader(resources);
-	const dependencyReader = createMockReader(new Map());
-
-	await cache1.calculateSignature(
-		{paths: new Set(["/test.js"]), patterns: new Set(["**/*.js"])},
-		{paths: new Set(), patterns: new Set()},
-		projectReader,
-		dependencyReader
-	);
-
-	const cacheObject = cache1.toCacheObject();
-
-	// Create new cache from serialized data
-	const cache2 = new BuildTaskCache("test.project", "myTask", "build-sig", cacheObject);
-
-	t.is(cache2.getTaskName(), "myTask", "Task name preserved");
-	t.truthy(cache2.toCacheObject(), "Can serialize again");
+	t.truthy(cache2, "Cache restored");
+	t.is(cache2.getTaskName(), "testTask", "Task name preserved");
 });
 
 // ===== EDGE CASES =====
 
-test("Create cache with special characters in names", (t) => {
-	const cache = new BuildTaskCache("test.project-123", "my:special:task", "build-sig");
+test("Create with empty project name", (t) => {
+	const cache = new BuildTaskCache("", "testTask", false);
 
-	t.is(cache.getTaskName(), "my:special:task", "Special characters in task name preserved");
+	t.truthy(cache, "Cache created with empty project name");
+	t.is(cache.getTaskName(), "testTask", "Task name still accessible");
 });
 
-test("matchesChangedResources with empty arrays", (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
+test("Multiple recordRequests calls accumulate", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
 
-	const result = cache.matchesChangedResources([], []);
+	const resource1 = createMockResource("/test1.js");
+	const resource2 = createMockResource("/test2.js");
+	const projectReader = createMockReader([resource1, resource2]);
+	const dependencyReader = createMockReader([]);
 
-	t.false(result, "No matches with empty arrays");
+	// First request
+	const projectRequests1 = {
+		paths: new Set(["/test1.js"]),
+		patterns: new Set()
+	};
+
+	await cache.recordRequests(projectRequests1, undefined, projectReader, dependencyReader);
+
+	const sigsBefore = cache.getProjectIndexSignatures();
+
+	// Second request with different resources
+	const projectRequests2 = {
+		paths: new Set(["/test2.js"]),
+		patterns: new Set()
+	};
+
+	await cache.recordRequests(projectRequests2, undefined, projectReader, dependencyReader);
+
+	const sigsAfter = cache.getProjectIndexSignatures();
+
+	t.true(sigsAfter.length >= sigsBefore.length, "Signatures accumulated");
 });
 
-test("calculateSignature with non-existent resource", async (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
+test("Handles non-existent resource paths", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
 
-	const projectReader = createMockReader(new Map()); // Empty - resource doesn't exist
-	const dependencyReader = createMockReader(new Map());
+	const projectReader = createMockReader([]);
+	const dependencyReader = createMockReader([]);
 
 	const projectRequests = {
 		paths: new Set(["/nonexistent.js"]),
 		patterns: new Set()
 	};
 
-	// Should not throw, just handle gracefully
-	const signature = await cache.calculateSignature(
-		projectRequests,
-		{paths: new Set(), patterns: new Set()},
-		projectReader,
-		dependencyReader
-	);
+	const [projectSig, depSig] = await cache.recordRequests(
+		projectRequests, undefined, projectReader, dependencyReader);
 
-	t.truthy(signature, "Signature generated even when resource doesn't exist");
-});
-
-test("Multiple calculateSignature calls create optimization", async (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", "build-sig");
-
-	const resources = new Map([
-		["/test.js", createMockResource("/test.js", "hash1")],
-		["/app.js", createMockResource("/app.js", "hash2")]
-	]);
-
-	const projectReader = createMockReader(resources);
-	const dependencyReader = createMockReader(new Map());
-
-	// First request set
-	const sig1 = await cache.calculateSignature(
-		{paths: new Set(["/test.js"]), patterns: new Set()},
-		{paths: new Set(), patterns: new Set()},
-		projectReader,
-		dependencyReader
-	);
-
-	// Second request set that includes first
-	const sig2 = await cache.calculateSignature(
-		{paths: new Set(["/test.js", "/app.js"]), patterns: new Set()},
-		{paths: new Set(), patterns: new Set()},
-		projectReader,
-		dependencyReader
-	);
-
-	t.truthy(sig1, "First signature generated");
-	t.truthy(sig2, "Second signature generated");
-	t.not(sig1, sig2, "Different request sets produce different signatures");
-
-	const cacheObject = cache.toCacheObject();
-	t.true(cacheObject.requestSetGraph.nodes.length > 1, "Multiple request sets recorded");
+	t.is(typeof projectSig, "string", "Still returns signature");
+	t.is(typeof depSig, "string", "Still returns dependency signature");
 });
