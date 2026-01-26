@@ -313,7 +313,27 @@ test.serial("Build theme.library.e project multiple times", async (t) => {
 		assertions: {
 			projects: {"theme.library.e": {
 				skippedTasks: ["buildThemes"]
+				// NOTE: buildThemes currently gets NOT skipped -> TODO: fix
 			}},
+		}
+	});
+
+	// Check if library.css does NOT contain the imported rule anymore
+	t.false(
+		(await fs.readFile(
+			`${destPath}/resources/theme/library/e/themes/my_theme/library.css`, {encoding: "utf8"}
+		)).includes(`.someOtherNewClass`),
+		"Build dest should NOT contain the rule in library.css anymore"
+	);
+
+	// Delete the imported less file
+	await fs.rm(`${fixtureTester.fixturePath}/src/theme/library/e/themes/my_theme/newImportFile.less`);
+
+	// #8 build (with cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}, // -> everything should be skipped
 		}
 	});
 });
