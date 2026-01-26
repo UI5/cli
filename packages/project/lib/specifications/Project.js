@@ -384,7 +384,7 @@ class Project extends Specification {
 	_initStageMetadata() {
 		this.#stages = [];
 		// Initialize with an empty stage for use without stages (i.e. without build cache)
-		this.#currentStage = new Stage(INITIAL_STAGE_ID, this._createWriter());
+		this.#currentStage = new Stage(INITIAL_STAGE_ID, this._createWriter(INITIAL_STAGE_ID));
 		this.#currentStageId = INITIAL_STAGE_ID;
 		this.#currentStageReadIndex = -1;
 		this.#currentStageReaders = new Map();
@@ -407,7 +407,7 @@ class Project extends Specification {
 		this._initStageMetadata();
 		for (let i = 0; i < stageIds.length; i++) {
 			const stageId = stageIds[i];
-			const newStage = new Stage(stageId, this._createWriter());
+			const newStage = new Stage(stageId, this._createWriter(stageId));
 			this.#stages.push(newStage);
 		}
 	}
