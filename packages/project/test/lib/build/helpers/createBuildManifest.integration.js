@@ -51,7 +51,7 @@ test("Create project from application project providing a build manifest", async
 		getVersions: async () => ({a: "a", b: "b"})
 	};
 
-	const metadata = await createBuildManifest(inputProject, buildConfig, taskRepository);
+	const metadata = await createBuildManifest(inputProject, buildConfig, taskRepository, "yyy");
 	const m = new Module({
 		id: "build-descr-application.a.id",
 		version: "2.0.0",
@@ -83,7 +83,7 @@ test("Create project from library project providing a build manifest", async (t)
 		getVersions: async () => ({a: "a", b: "b"})
 	};
 
-	const metadata = await createBuildManifest(inputProject, buildConfig, taskRepository);
+	const metadata = await createBuildManifest(inputProject, buildConfig, taskRepository, "zzz");
 	const m = new Module({
 		id: "build-descr-library.e.id",
 		version: "2.0.0",

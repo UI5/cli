@@ -74,12 +74,14 @@ test("Standard build", async (t) => {
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
-			}
+			},
+			supportsDifferentialUpdates: true,
 		},
 		replaceBuildtime: {
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
-			}
+			},
+			supportsDifferentialUpdates: true,
 		},
 		generateJsdoc: {
 			requiresDependencies: true,
@@ -98,6 +100,7 @@ test("Standard build", async (t) => {
 					"!**/*.support.js",
 				]
 			}
+			supportsDifferentialUpdates: true,
 		},
 		generateLibraryManifest: {},
 		enhanceManifest: {},
@@ -211,12 +214,14 @@ test("Standard build with legacy spec version", (t) => {
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
-			}
+			},
+			supportsDifferentialUpdates: true,
 		},
 		replaceBuildtime: {
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
-			}
+			},
+			supportsDifferentialUpdates: true,
 		},
 		generateJsdoc: {
 			requiresDependencies: true,
@@ -235,6 +240,7 @@ test("Standard build with legacy spec version", (t) => {
 					"!**/*.support.js",
 				]
 			}
+			supportsDifferentialUpdates: true,
 		},
 		generateLibraryManifest: {},
 		enhanceManifest: {},
@@ -337,12 +343,14 @@ test("Custom bundles", async (t) => {
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
-			}
+			},
+			supportsDifferentialUpdates: true,
 		},
 		replaceBuildtime: {
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
-			}
+			},
+			supportsDifferentialUpdates: true,
 		},
 		generateJsdoc: {
 			requiresDependencies: true,
@@ -361,6 +369,7 @@ test("Custom bundles", async (t) => {
 					"!**/*.support.js",
 				]
 			}
+			supportsDifferentialUpdates: true,
 		},
 		generateLibraryManifest: {},
 		enhanceManifest: {},
@@ -489,7 +498,8 @@ test("Minification excludes", (t) => {
 				"!**/*.support.js",
 				"!/resources/**.html",
 			]
-		}
+		},
+		supportsDifferentialUpdates: true,
 	}, "Correct minify task definition");
 });
 
@@ -514,7 +524,8 @@ test("Minification excludes not applied for legacy specVersion", (t) => {
 				"/resources/**/*.js",
 				"!**/*.support.js",
 			]
-		}
+		},
+		supportsDifferentialUpdates: true,
 	}, "Correct minify task definition");
 });
 
@@ -681,12 +692,14 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
-			}
+			},
+			supportsDifferentialUpdates: true,
 		},
 		replaceBuildtime: {
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
-			}
+			},
+			supportsDifferentialUpdates: true,
 		},
 		generateJsdoc: {
 			requiresDependencies: true,
@@ -705,6 +718,7 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 					"!**/*.support.js",
 				]
 			}
+			supportsDifferentialUpdates: true,
 		},
 		generateLibraryManifest: {},
 		enhanceManifest: {},
