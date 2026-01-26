@@ -1,0 +1,66 @@
+<mxfile host="65bd71144e">
+    <diagram name="Web Components Flow" id="webcomponents-flow">
+        <mxGraphModel dx="657" dy="650" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="step1" value="Step 1: Metadata Extraction" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#01579B;fontSize=14;fontStyle=1;verticalAlign=top;align=center;" parent="1" vertex="1">
+                    <mxGeometry x="80" y="60" width="280" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="step1-content" value="Load custom-elements.json&#xa;Extract component metadata:&#xa;• Properties&#xa;• Events&#xa;• Slots&#xa;• Tag names" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="100" y="90" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step2" value="Step 2: Transform to UI5 Metadata" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=14;fontStyle=1;verticalAlign=top;align=center;" parent="1" vertex="1">
+                    <mxGeometry x="80" y="220" width="280" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="step2-content" value="Transform WC → UI5 format:&#xa;• Properties → UI5 properties&#xa;• Slots → Aggregations&#xa;• Events → UI5 events&#xa;• Generate scoped tag names&#xa;• Define attribute/property mappings" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="100" y="250" width="240" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="step3" value="Step 3: Generate UI5 Control Wrappers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=14;fontStyle=1;verticalAlign=top;align=center;" parent="1" vertex="1">
+                    <mxGeometry x="80" y="400" width="280" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="step3-content" value="Generate UI5 control wrappers:&#xa;&#xa;• Extend sap.ui.core.webc.WebComponent&#xa;• Define UI5 metadata (properties, aggregations, events)&#xa;• Use absolute paths for dependencies&#xa;• Output to thirdparty/ namespace&#xa;• Application-ready controls" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="100" y="430" width="240" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="step4" value="Step 4: Generate Package Exports" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#6A1B9A;fontSize=14;fontStyle=1;verticalAlign=top;align=center;" parent="1" vertex="1">
+                    <mxGeometry x="80" y="580" width="280" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="step4-content" value="Create package dependency hub:&lt;br&gt;&lt;br&gt;• Declare base package dependencies&lt;br&gt;• Ensure correct loading order&lt;br&gt;• Prevent &#39;module not found&#39; errors&lt;br&gt;• Provide file for UI5 loader resolution&lt;br&gt;• Enable future library initialization" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="100" y="600" width="240" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="output" value="&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;Output Structure" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=14;fontStyle=1;verticalAlign=top;align=left;" parent="1" vertex="1">
+                    <mxGeometry x="440" y="60" width="320" height="370" as="geometry"/>
+                </mxCell>
+                <mxCell id="output-native" value="Native Bundle:&#xa;thirdparty/MessageStrip.js&#xa;&#xa;• AMD-wrapped Web Component&#xa;• Tree-shaken dependencies&#xa;• Ready for UI5 loader" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=11;align=left;verticalAlign=top;spacingLeft=10;" parent="1" vertex="1">
+                    <mxGeometry x="460" y="100" width="280" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="output-wrapper" value="UI5 Control Wrapper:&#xa;thirdparty/@ui5/webcomponents/dist/MessageStrip.js&#xa;&#xa;• Extends sap.ui.core.webc.WebComponent&#xa;• UI5 metadata &amp; lifecycle&#xa;• Depends on package export" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECB3;strokeColor=#F57C00;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;" parent="1" vertex="1">
+                    <mxGeometry x="460" y="220" width="280" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="output-package" value="Package Export:&#xa;thirdparty/@ui5/webcomponents.js&#xa;&#xa;• Declares base dependencies&#xa;• Ensures loading order&#xa;• Prevents &#39;module not found&#39; errors" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#6A1B9A;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;" parent="1" vertex="1">
+                    <mxGeometry x="460" y="320" width="280" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=3;strokeColor=#01579B;endArrow=classic;endFill=1;" parent="1" source="step1" target="step2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=3;strokeColor=#01579B;endArrow=classic;endFill=1;" parent="1" source="step2" target="step3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=3;strokeColor=#01579B;endArrow=classic;endFill=1;" parent="1" source="step3" target="step4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#757575;endArrow=classic;endFill=1;dashed=1;" parent="1" source="step3" target="output" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="400" y="470"/>
+                            <mxPoint x="400" y="170"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="legend" value="Why Package Exports Matter&#xa;&#xa;Loading chain when using MessageStrip:&#xa;1. Load control wrapper (MessageStrip.js)&#xa;2. Wrapper depends on package export (@ui5/webcomponents.js)&#xa;3. Package export depends on base package (@ui5/webcomponents-base.js)&#xa;4. Base loads native bundle (MessageStrip.js)&#xa;&#xa;Without package exports:&#xa;❌ UI5 loader error: Cannot find @ui5/webcomponents.js&#xa;❌ No way to declare base dependencies&#xa;❌ Wrong loading order breaks controls&#xa;&#xa;With package exports:&#xa;✅ All modules resolve correctly&#xa;✅ Base packages load first&#xa;✅ Controls work as expected" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFDE7;strokeColor=#F57F17;fontSize=10;align=left;verticalAlign=top;fontStyle=2;spacingLeft=22;" parent="1" vertex="1">
+                    <mxGeometry x="410" y="460" width="340" height="240" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
