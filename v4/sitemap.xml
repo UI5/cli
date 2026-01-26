@@ -2,137 +2,137 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://ui5.github.io/cli/v4/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/Guidelines/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/indexJsdoc/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/Benchmarking/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/Builder/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/CLI/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/CodeAnalysis/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/Configuration/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/ESSupport/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/FAQ/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/FileSystem/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/GettingStarted/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/OpenUI5/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/Overview/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/Privacy/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/Project/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/SAPUI5/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/Server/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/Troubleshooting/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/Workspace/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/extensibility/CustomServerMiddleware/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/extensibility/CustomTasks/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/pages/extensibility/ProjectShims/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/updates/migrate-v1/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/updates/migrate-v2/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/updates/migrate-v3/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://ui5.github.io/cli/v4/updates/migrate-v4/</loc>
-         <lastmod>2026-01-23</lastmod>
+         <lastmod>2026-01-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
