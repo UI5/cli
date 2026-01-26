@@ -56,7 +56,7 @@ export default class SharedHashTree extends HashTree {
 		}
 
 		for (const resource of resources) {
-			this.registry.scheduleUpsert(resource, newIndexTimestamp);
+			this.registry.scheduleUpsert(resource, newIndexTimestamp, this);
 		}
 	}
 
@@ -98,6 +98,11 @@ export default class SharedHashTree extends HashTree {
 		const derived = new SharedHashTree(additionalResources, this.registry, {
 			_root: derivedRoot
 		});
+
+		// Register the derived tree with parent tree reference
+		if (this.registry) {
+			this.registry.register(derived, this);
+		}
 
 		return derived;
 	}

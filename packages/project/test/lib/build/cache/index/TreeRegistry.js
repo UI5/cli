@@ -232,7 +232,7 @@ test("deriveTree - shared nodes are the same reference", (t) => {
 	t.is(file1, file2, "Shared resource nodes should be same reference");
 });
 
-test("deriveTree - updates to shared nodes visible in all trees", async (t) => {
+test("deriveTree - updates to shared nodes visible in all sub-trees", async (t) => {
 	const registry = new TreeRegistry();
 	const resources = [
 		{path: "shared/file.js", integrity: "original"}
@@ -255,6 +255,26 @@ test("deriveTree - updates to shared nodes visible in all trees", async (t) => {
 	// Both should see the update (same node)
 	t.is(node1Before.integrity, "updated", "Tree1 node should be updated");
 	t.is(node2Before.integrity, "updated", "Tree2 node should be updated (same reference)");
+});
+
+test("deriveTree - updates to sub-tree nodes are not visible in parents", async (t) => {
+	const registry = new TreeRegistry();
+	const sharedResources = [
+		{path: "shared/file.js", integrity: "original"}
+	];
+	const uniqueResources = [
+		{path: "unique/file.js", integrity: "original"}
+	];
+
+	const tree1 = new SharedHashTree(sharedResources, registry);
+	const tree2 = tree1.deriveTree(uniqueResources);
+
+	// Update via tree2.upsertResources to ensure it's scoped to tree2
+	await tree2.upsertResources([createMockResource("unique/file.js", "updated", Date.now(), 1024, 555)], Date.now());
+	await registry.flush();
+
+	t.deepEqual(tree1.getResourcePaths(), ["/shared/file.js"], "Parent tree should not have unique resource");
+	t.is(tree2.getResourceByPath("/unique/file.js").integrity, "updated", "Derived tree should see its own update");
 });
 
 test("deriveTree - multiple levels of derivation", async (t) => {
