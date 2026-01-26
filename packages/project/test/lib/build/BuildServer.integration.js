@@ -99,30 +99,47 @@ test.serial("Serve application.a, request library resource", async (t) => {
 
 	// Change a source file in library.a
 	const changedFilePath = `${fixtureTester.fixturePath}/node_modules/collection/library.a/src/library/a/.library`;
-	await fs.appendFile(changedFilePath, `\n<!-- Test -->\n`);
+	await fs.writeFile(
+		changedFilePath,
+		(await fs.readFile(changedFilePath, {encoding: "utf8"})).replace(
+			`<documentation>Library A</documentation>`,
+			`<documentation>Library A (updated #1)</documentation>`
+		)
+	);
 
 	await setTimeout(500); // Wait for the file watcher to detect and propagate the change
 
 	// #3 request with cache and changes
-	const res = await fixtureTester.requestResource("/resources/library/a/.library", {
+	const dotLibraryResource = await fixtureTester.requestResource("/resources/library/a/.library", {
 		projects: {
 			"library.a": {
 				skippedTasks: [
-					"enhanceManifest",
 					"escapeNonAsciiCharacters",
 					"minify",
-					// Note: replaceCopyright is skipped because no copyright is configured in the project
 					"replaceBuildtime",
-					"replaceCopyright",
-					"replaceVersion",
 				]
 			}
 		}
 	});
 
-	// Check whether the changed file is in the destPath
-	const servedFileContent = await res.getString();
-	t.true(servedFileContent.includes(`<!-- Test -->`), "Resource contains changed file content");
+	// Check whether the changed file is served
+	const servedFileContent = await dotLibraryResource.getString();
+	t.true(
+		servedFileContent.includes(`<documentation>Library A (updated #1)</documentation>`),
+		"Resource contains changed file content"
+	);
+
+	// #4 request with cache (no changes)
+	const manifestResource = await fixtureTester.requestResource("/resources/library/a/manifest.json", {
+		projects: {}
+	});
+
+	// Check whether the manifest is served correctly with changed .library content reflected
+	const manifestContent = JSON.parse(await manifestResource.getString());
+	t.is(
+		manifestContent["sap.app"]["description"], "Library A (updated #1)",
+		"Manifest reflects changed .library content"
+	);
 });
 
 function getFixturePath(fixtureName) {
