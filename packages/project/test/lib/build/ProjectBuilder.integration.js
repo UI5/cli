@@ -139,6 +139,44 @@ test.serial("Build application.a project multiple times", async (t) => {
 			projects: {}
 		}
 	});
+
+	// Change a source file with existing source map in application.a
+	const fileWithSourceMapPath =
+		`${fixtureTester.fixturePath}/webapp/thirdparty/scriptWithSourceMap.js`;
+	const fileWithSourceMapContent = await fs.readFile(fileWithSourceMapPath, {encoding: "utf8"});
+	await fs.writeFile(
+		fileWithSourceMapPath,
+		fileWithSourceMapContent.replace(
+			`This is a script with a source map.`,
+			`This is a CHANGED script with a source map.`
+		)
+	);
+	const sourceMapPath = `${fixtureTester.fixturePath}/webapp/thirdparty/scriptWithSourceMap.js.map`;
+	const sourceMapContent = await fs.readFile(sourceMapPath, {encoding: "utf8"});
+	await fs.writeFile(
+		sourceMapPath,
+		sourceMapContent.replace(
+			`This is a script with a source map.`,
+			`This is a CHANGED script with a source map.`
+		)
+	);
+
+	// #9 build (with cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"enhanceManifest",
+						"escapeNonAsciiCharacters",
+						"generateFlexChangesBundle",
+						"replaceCopyright"
+					]
+				}
+			}
+		}
+	});
 });
 
 test.serial("Build library.d project multiple times", async (t) => {
