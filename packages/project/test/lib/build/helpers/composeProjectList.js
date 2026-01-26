@@ -224,9 +224,9 @@ test.serial("createDependencyLists: include all", async (t) => {
 		excludeDependencyRegExp: [],
 		excludeDependencyTree: [],
 		expectedIncludedDependencies: [
-			"library.d", "library.b", "library.c",
-			"library.d-depender", "library.a", "library.g",
-			"library.e", "library.f"
+			"library.d", "library.b", "library.a",
+			"library.e", "library.c", "library.f",
+			"library.d-depender", "library.g"
 		],
 		expectedExcludedDependencies: []
 	});
@@ -239,7 +239,7 @@ test.serial("createDependencyLists: includeDependencyTree has lower priority tha
 		excludeDependency: ["library.f"],
 		excludeDependencyRegExp: ["^library\\.[acd]$"],
 		expectedIncludedDependencies: ["library.b"],
-		expectedExcludedDependencies: ["library.f", "library.d", "library.c", "library.a"]
+		expectedExcludedDependencies: ["library.f", "library.d", "library.a", "library.c"]
 	});
 });
 
@@ -249,7 +249,7 @@ test.serial("createDependencyLists: excludeDependencyTree has lower priority tha
 		includeDependency: ["library.f"],
 		includeDependencyRegExp: ["^library\\.[acd]$"],
 		excludeDependencyTree: ["library.f"],
-		expectedIncludedDependencies: ["library.f", "library.d", "library.c", "library.a"],
+		expectedIncludedDependencies: ["library.f", "library.d", "library.a", "library.c"],
 		expectedExcludedDependencies: ["library.b"]
 	});
 });
@@ -261,8 +261,8 @@ test.serial("createDependencyLists: include all, exclude tree and include single
 		includeDependencyRegExp: ["^library\\.[acd]$"],
 		excludeDependencyTree: ["library.f"],
 		expectedIncludedDependencies: [
-			"library.f", "library.d", "library.c", "library.a", "library.d-depender",
-			"library.g", "library.e"
+			"library.f", "library.d", "library.a", "library.c", "library.e",
+			"library.d-depender", "library.g"
 		],
 		expectedExcludedDependencies: ["library.b"]
 	});
@@ -287,7 +287,7 @@ test.serial("createDependencyLists: defaultIncludeDependency/RegExp has lower pr
 		excludeDependency: ["library.f"],
 		excludeDependencyRegExp: ["^library\\.[acd](-depender)?$"],
 		expectedIncludedDependencies: ["library.b"],
-		expectedExcludedDependencies: ["library.f", "library.d", "library.c", "library.d-depender", "library.a"]
+		expectedExcludedDependencies: ["library.f", "library.d", "library.a", "library.c", "library.d-depender"]
 	});
 });
 test.serial("createDependencyLists: include all and defaultIncludeDependency/RegExp", async (t) => {
@@ -297,8 +297,8 @@ test.serial("createDependencyLists: include all and defaultIncludeDependency/Reg
 		defaultIncludeDependencyRegExp: ["^library\\.d$"],
 		excludeDependency: ["library.f"],
 		excludeDependencyRegExp: ["^library\\.[acd](-depender)?$"],
-		expectedIncludedDependencies: ["library.b", "library.g", "library.e"],
-		expectedExcludedDependencies: ["library.f", "library.d", "library.c", "library.d-depender", "library.a"]
+		expectedIncludedDependencies: ["library.b", "library.e", "library.g"],
+		expectedExcludedDependencies: ["library.f", "library.d", "library.a", "library.c", "library.d-depender"]
 	});
 });
 

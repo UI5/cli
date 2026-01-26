@@ -480,7 +480,7 @@ test("_parseConfiguration: Get copyright", async (t) => {
 	const {projectInput} = t.context;
 	const project = await (new Library().init(projectInput));
 
-	t.is(project.getCopyright(), "Some fancy copyright", "Copyright was read correctly");
+	t.is(project.getCopyright(), "${copyright}", "Copyright was read correctly");
 });
 
 test("_parseConfiguration: Copyright already configured", async (t) => {

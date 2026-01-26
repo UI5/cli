@@ -17,7 +17,6 @@ class BuildContext {
 		cssVariables = false,
 		jsdoc = false,
 		createBuildManifest = false,
-		useCache = false,
 		outputStyle = OutputStyleEnum.Default,
 		includedTasks = [], excludedTasks = [],
 	} = {}) {
@@ -72,7 +71,6 @@ class BuildContext {
 			outputStyle,
 			includedTasks,
 			excludedTasks,
-			useCache,
 		};
 		this._buildSignatureBase = getBaseSignature(this._buildConfig);
 
