@@ -274,7 +274,9 @@ class ResourceRequestManager {
 					matchedResources.push(value);
 				}
 			} else {
-				const globMatches = micromatch(resourcePaths, value);
+				const globMatches = micromatch(resourcePaths, value, {
+					dot: true
+				});
 				for (const match of globMatches) {
 					if (!matchedResources.includes(match)) {
 						matchedResources.push(match);
