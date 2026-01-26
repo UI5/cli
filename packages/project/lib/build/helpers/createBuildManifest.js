@@ -16,18 +16,18 @@ function getSortedTags(project) {
 	return Object.fromEntries(entities);
 }
 
-export default async function(project, graph, buildConfig, taskRepository, signature) {
+export default async function(project, buildConfig, taskRepository, signature) {
 	if (!project) {
 		throw new Error(`Missing parameter 'project'`);
-	}
-	if (!graph) {
-		throw new Error(`Missing parameter 'graph'`);
 	}
 	if (!buildConfig) {
 		throw new Error(`Missing parameter 'buildConfig'`);
 	}
 	if (!taskRepository) {
 		throw new Error(`Missing parameter 'taskRepository'`);
+	}
+	if (!signature) {
+		throw new Error(`Missing parameter 'signature'`);
 	}
 
 	const projectName = project.getName();
