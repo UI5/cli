@@ -585,9 +585,7 @@ test.serial("_writeResults: Create build manifest", async (t) => {
 	t.is(createBuildManifestStub.callCount, 1, "createBuildManifest got called once");
 	t.is(createBuildManifestStub.getCall(0).args[0], mockProject,
 		"createBuildManifest got called with correct project");
-	t.is(createBuildManifestStub.getCall(0).args[1], graph,
-		"createBuildManifest got called with correct graph");
-	t.deepEqual(createBuildManifestStub.getCall(0).args[2], {
+	t.deepEqual(createBuildManifestStub.getCall(0).args[1], {
 		createBuildManifest: true,
 		outputStyle: OutputStyleEnum.Default,
 		cssVariables: false,
@@ -595,11 +593,10 @@ test.serial("_writeResults: Create build manifest", async (t) => {
 		includedTasks: [],
 		jsdoc: false,
 		selfContained: false,
-		useCache: false,
 	}, "createBuildManifest got called with correct build configuration");
-	t.is(createBuildManifestStub.getCall(0).args[3], taskRepository,
+	t.is(createBuildManifestStub.getCall(0).args[2], taskRepository,
 		"createBuildManifest got called with correct taskRepository");
-	t.is(createBuildManifestStub.getCall(0).args[4], "build-signature",
+	t.is(createBuildManifestStub.getCall(0).args[3], "build-signature",
 		"createBuildManifest got called with correct buildSignature");
 
 	t.is(createResourceStub.callCount, 1, "One resource has been created");

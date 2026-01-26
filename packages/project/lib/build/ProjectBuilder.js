@@ -468,7 +468,7 @@ class ProjectBuilder {
 				default: createBuildManifest
 			} = await import("./helpers/createBuildManifest.js");
 			const buildManifest = await createBuildManifest(
-				project, this._graph, buildConfig, this._buildContext.getTaskRepository(),
+				project, buildConfig, this._buildContext.getTaskRepository(),
 				projectBuildContext.getBuildSignature());
 			await target.write(resourceFactory.createResource({
 				path: `/.ui5/build-manifest.json`,
