@@ -120,6 +120,14 @@ class ProjectBuilder {
 		this.#log = new BuildLogger("ProjectBuilder");
 	}
 
+	/**
+	 * Propagate resource changes through the build context
+	 *
+	 * @public
+	 * @param {Array} changes Array of resource changes to propagate
+	 * @returns {Promise<void>} Promise resolving when changes have been propagated
+	 * @throws {Error} If a build is currently running
+	 */
 	resourcesChanged(changes) {
 		if (this.#buildIsRunning) {
 			throw new Error(`Unable to safely propagate resource changes. Build is currently running.`);
@@ -127,6 +135,18 @@ class ProjectBuilder {
 		return this._buildContext.propagateResourceChanges(changes);
 	}
 
+	/**
+	 * Build projects without writing to a target directory
+	 *
+	 * @public
+	 * @param {object} parameters Parameters
+	 * @param {boolean} [parameters.includeRootProject=true] Whether to include the root project
+	 * @param {Array.<string|RegExp>} [parameters.includedDependencies=[]] List of dependencies to include
+	 * @param {Array.<string|RegExp>} [parameters.excludedDependencies=[]] List of dependencies to exclude
+	 * @param {AbortSignal} [parameters.signal] Signal to abort the build
+	 * @param {Function} [projectBuiltCallback] Callback invoked after each project is built
+	 * @returns {Promise<string[]>} Promise resolving with array of processed project names
+	 */
 	async build({
 		includeRootProject = true,
 		includedDependencies = [], excludedDependencies = [],
@@ -201,6 +221,17 @@ class ProjectBuilder {
 		await Promise.all(pWrites);
 	}
 
+	/**
+	 * Determine which projects should be built based on filter criteria
+	 *
+	 * @param {boolean} includeRootProject Whether to include the root project
+	 * @param {Array.<string|RegExp>} includedDependencies Dependencies to include
+	 * @param {Array.<string|RegExp>} excludedDependencies Dependencies to exclude
+	 * @param {@ui5/project/build/ProjectBuilder~DependencyIncludes} [dependencyIncludes]
+	 *   Alternative dependency configuration
+	 * @returns {string[]} Array of project names to build
+	 * @throws {Error} If creating a build manifest with multiple projects
+	 */
 	_determineRequestedProjects(includeRootProject, includedDependencies, excludedDependencies, dependencyIncludes) {
 		// Get project filter function based on include/exclude params
 		// (also logs some info to console)
@@ -228,6 +259,15 @@ class ProjectBuilder {
 		return requestedProjects;
 	}
 
+	/**
+	 * Internal build implementation that orchestrates the actual build process
+	 *
+	 * @param {string[]} requestedProjects Array of project names to build
+	 * @param {Function} [projectBuiltCallback] Callback invoked after each project is built
+	 * @param {AbortSignal} [signal] Signal to abort the build
+	 * @returns {Promise<string[]>} Promise resolving with array of processed project names
+	 * @throws {Error} If a build is already running
+	 */
 	async #build(requestedProjects, projectBuiltCallback, signal) {
 		if (this.#buildIsRunning) {
 			throw new Error("A build is already running");
@@ -314,6 +354,13 @@ class ProjectBuilder {
 		return processedProjectNames;
 	}
 
+	/**
+	 * Build a single project
+	 *
+	 * @param {object} projectBuildContext Build context for the project
+	 * @param {AbortSignal} [signal] Signal to abort the build
+	 * @returns {Promise<Array>} Promise resolving with array of changed resources
+	 */
 	async _buildProject(projectBuildContext, signal) {
 		const project = projectBuildContext.getProject();
 		const projectName = project.getName();
@@ -326,6 +373,17 @@ class ProjectBuilder {
 		return changedResources;
 	}
 
+	/**
+	 * Create a filter function to determine which projects should be built
+	 *
+	 * @param {object} parameters Parameters
+	 * @param {boolean} [parameters.includeRootProject=true] Whether to include the root project
+	 * @param {@ui5/project/build/ProjectBuilder~DependencyIncludes} [parameters.dependencyIncludes]
+	 *   Dependency configuration
+	 * @param {Array.<string|RegExp>} [parameters.explicitIncludes] Explicit dependencies to include
+	 * @param {Array.<string|RegExp>} [parameters.explicitExcludes] Explicit dependencies to exclude
+	 * @returns {Function} Filter function that takes a project name and returns boolean
+	 */
 	_createProjectFilter({
 		includeRootProject = true,
 		dependencyIncludes,
@@ -375,6 +433,13 @@ class ProjectBuilder {
 		};
 	}
 
+	/**
+	 * Write build results for a project to the target destination
+	 *
+	 * @param {object} projectBuildContext Build context for the project
+	 * @param {@ui5/fs/adapters/FileSystem} target Target adapter to write to
+	 * @returns {Promise<void>} Promise resolving when write is complete
+	 */
 	async _writeResults(projectBuildContext, target) {
 		const project = projectBuildContext.getProject();
 		const taskUtil = projectBuildContext.getTaskUtil();
@@ -458,12 +523,23 @@ class ProjectBuilder {
 		}
 	}
 
+	/**
+	 * Execute cleanup tasks for all build contexts
+	 *
+	 * @param {boolean} [force] Whether to force cleanup execution
+	 * @returns {Promise<void>} Promise resolving when cleanup is complete
+	 */
 	async _executeCleanupTasks(force) {
 		this.#log.info("Executing cleanup tasks...");
 
 		await this._buildContext.executeCleanupTasks(force);
 	}
 
+	/**
+	 * Register signal handlers for cleanup on process termination
+	 *
+	 * @returns {object} Map of signal names to their handlers
+	 */
 	_registerCleanupSigHooks() {
 		const that = this;
 		function createListener(exitCode) {
@@ -505,6 +581,11 @@ class ProjectBuilder {
 		return processSignals;
 	}
 
+	/**
+	 * Remove previously registered signal handlers
+	 *
+	 * @param {object} signals Map of signal names to their handlers
+	 */
 	_deregisterCleanupSigHooks(signals) {
 		for (const signal of Object.keys(signals)) {
 			process.removeListener(signal, signals[signal]);
@@ -514,7 +595,6 @@ class ProjectBuilder {
 	/**
 	 * Calculates the elapsed build time and returns a prettified output
 	 *
-	 * @private
 	 * @param {Array} startTime Array provided by <code>process.hrtime()</code>
 	 * @returns {string} Difference between now and the provided time array as formatted string
 	 */
