@@ -1,0 +1,33 @@
+{
+	"name": "@ui5/npm-integration-poc",
+	"version": "0.1.0",
+	"description": "Proof of Concept: NPM module integration into UI5 applications",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"scenario:esm": "node scenarios/01-esm-integration.js",
+		"scenario:cjs": "node scenarios/02-cjs-integration.js",
+		"scenario:webcomponents": "node scenarios/03-webcomponents-integration.js",
+		"build:all": "npm run scenario:esm && npm run scenario:cjs && npm run scenario:webcomponents"
+	},
+	"dependencies": {
+		"@rollup/plugin-commonjs": "^28.0.2",
+		"@rollup/plugin-json": "^6.1.0",
+		"@rollup/plugin-node-resolve": "^15.3.0",
+		"@rollup/plugin-replace": "^6.0.1",
+		"@rollup/plugin-terser": "^0.4.4",
+		"lodash": "^4.17.23",
+		"nanoid": "^5.1.6",
+		"rollup": "^4.24.4",
+		"rollup-plugin-polyfill-node": "^0.13.0"
+	},
+	"devDependencies": {
+		"@ui5/cli": "^5.0.0-alpha.2",
+		"@ui5/webcomponents": "^2.6.0",
+		"http-server": "^14.1.1",
+		"lodash": "^4.17.21",
+		"lodash-es": "^4.17.21",
+		"nanoid": "^5.0.9",
+		"ui5-tooling-modules": "^3.34.2"
+	}
+}

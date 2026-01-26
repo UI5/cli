@@ -1,0 +1,20 @@
+{
+	"name": "consolidated-app",
+	"version": "1.0.0",
+	"description": "Consolidated UI5 App with NPM modules",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build:tooling-modules": "ui5 build --clean-dest --config ui5-tooling-modules.yaml",
+		"build:webc-reuse": "ui5 build --clean-dest --dest dist-webc-reuse --config ui5-webc-reuse.yaml",
+		"build:standalone": "ui5 build --clean-dest --dest dist-standalone --config ui5-webc-standalone.yaml",
+		"serve:tooling-modules": "ui5 serve --port 8081 --open index.html --config ui5-tooling-modules.yaml",
+		"serve:webc-reuse": "ui5 serve --port 8082 --open index.html --config ui5-webc-reuse.yaml",
+		"serve:standalone": "ui5 serve --port 8083 --open index.html --config ui5-webc-standalone.yaml"
+	},
+	"dependencies": {
+		"validator": "^13.15.26",
+		"ui5-tooling-modules": "^3.34.2",
+		"@ui5/webcomponents": "^2.6.0"
+	}
+}
