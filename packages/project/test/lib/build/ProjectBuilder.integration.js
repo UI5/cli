@@ -246,7 +246,23 @@ test.serial("Build library.d project multiple times", async (t) => {
 		}
 	});
 
-	// TODO: Change copyright in ui5.yaml and expect that a full rebuild is triggered
+	// Update copyright in ui5.yaml (should trigger a full rebuild of the project)
+	const ui5YamlPath = `${fixtureTester.fixturePath}/ui5.yaml`;
+	await fs.writeFile(
+		ui5YamlPath,
+		(await fs.readFile(ui5YamlPath, {encoding: "utf8"})).replace(
+			"copyright: Some fancy copyright",
+			"copyright: Some updated fancy copyright"
+		)
+	);
+
+	// #5 build (with cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"library.d": {}}
+		}
+	});
 });
 
 test.serial("Build theme.library.e project multiple times", async (t) => {
