@@ -51,6 +51,170 @@ test("SharedHashTree - creates tree with resources", (t) => {
 });
 
 // ============================================================================
+// SharedHashTree fromCache Tests
+// ============================================================================
+
+test("SharedHashTree.fromCache - restores tree from cache data", (t) => {
+	const registry = new TreeRegistry();
+
+	// Create original tree
+	const tree1 = new SharedHashTree([
+		{path: "a.js", integrity: "hash-a", size: 100, lastModified: 1000, inode: 1},
+		{path: "b.js", integrity: "hash-b", size: 200, lastModified: 2000, inode: 2}
+	], registry);
+
+	// Serialize tree
+	const cacheData = tree1.toCacheObject();
+
+	// Restore from cache
+	const registry2 = new TreeRegistry();
+	const tree2 = SharedHashTree.fromCache(cacheData, registry2);
+
+	t.truthy(tree2, "Should create tree from cache");
+	t.is(tree2.getRootHash(), tree1.getRootHash(), "Root hash should match");
+	t.true(tree2.hasPath("a.js"), "Should have a.js");
+	t.true(tree2.hasPath("b.js"), "Should have b.js");
+});
+
+test("SharedHashTree.fromCache - registers with provided registry", (t) => {
+	const registry1 = new TreeRegistry();
+	const tree1 = new SharedHashTree([
+		{path: "a.js", integrity: "hash-a"}
+	], registry1);
+
+	const cacheData = tree1.toCacheObject();
+
+	const registry2 = new TreeRegistry();
+	t.is(registry2.getTreeCount(), 0, "Registry should be empty initially");
+
+	SharedHashTree.fromCache(cacheData, registry2);
+
+	t.is(registry2.getTreeCount(), 1, "Tree should be registered with new registry");
+});
+
+test("SharedHashTree.fromCache - throws on unsupported version", (t) => {
+	const registry = new TreeRegistry();
+
+	const invalidCacheData = {
+		version: 999,
+		root: {
+			type: "directory",
+			hash: "some-hash",
+			children: {}
+		}
+	};
+
+	const error = t.throws(() => {
+		SharedHashTree.fromCache(invalidCacheData, registry);
+	}, {
+		instanceOf: Error
+	});
+
+	t.is(error.message, "Unsupported version: 999", "Should throw error for unsupported version");
+});
+
+test("SharedHashTree.fromCache - preserves tree structure", (t) => {
+	const registry = new TreeRegistry();
+
+	// Create tree with nested structure
+	const tree1 = new SharedHashTree([
+		{path: "src/components/Button.js", integrity: "hash-button", size: 300, lastModified: 3000, inode: 3},
+		{path: "src/utils/helper.js", integrity: "hash-helper", size: 400, lastModified: 4000, inode: 4},
+		{path: "test/button.test.js", integrity: "hash-test", size: 500, lastModified: 5000, inode: 5}
+	], registry);
+
+	const cacheData = tree1.toCacheObject();
+
+	const registry2 = new TreeRegistry();
+	const tree2 = SharedHashTree.fromCache(cacheData, registry2);
+
+	// Verify all paths exist
+	t.true(tree2.hasPath("src/components/Button.js"), "Should have Button.js");
+	t.true(tree2.hasPath("src/utils/helper.js"), "Should have helper.js");
+	t.true(tree2.hasPath("test/button.test.js"), "Should have test file");
+
+	// Verify structure matches
+	const paths1 = tree1.getResourcePaths().sort();
+	const paths2 = tree2.getResourcePaths().sort();
+	t.deepEqual(paths2, paths1, "Resource paths should match");
+});
+
+test("SharedHashTree.fromCache - preserves resource metadata", (t) => {
+	const registry = new TreeRegistry();
+
+	const tree1 = new SharedHashTree([
+		{path: "file.js", integrity: "hash-abc123", size: 12345, lastModified: 9999, inode: 7777}
+	], registry);
+
+	const cacheData = tree1.toCacheObject();
+
+	const registry2 = new TreeRegistry();
+	const tree2 = SharedHashTree.fromCache(cacheData, registry2);
+
+	const node1 = tree1.root.children.get("file.js");
+	const node2 = tree2.root.children.get("file.js");
+
+	t.is(node2.integrity, node1.integrity, "Should preserve integrity");
+	t.is(node2.size, node1.size, "Should preserve size");
+	t.is(node2.lastModified, node1.lastModified, "Should preserve lastModified");
+	t.is(node2.inode, node1.inode, "Should preserve inode");
+});
+
+test("SharedHashTree.fromCache - accepts indexTimestamp option", (t) => {
+	const registry = new TreeRegistry();
+
+	const tree1 = new SharedHashTree([
+		{path: "a.js", integrity: "hash-a"}
+	], registry, {indexTimestamp: 5000});
+
+	const cacheData = tree1.toCacheObject();
+
+	const registry2 = new TreeRegistry();
+	const tree2 = SharedHashTree.fromCache(cacheData, registry2, {indexTimestamp: 5000});
+
+	t.is(tree2.getIndexTimestamp(), 5000, "Should accept and use indexTimestamp option");
+});
+
+test("SharedHashTree.fromCache - restored tree can be modified", async (t) => {
+	const registry = new TreeRegistry();
+
+	const tree1 = new SharedHashTree([
+		{path: "a.js", integrity: "hash-a"}
+	], registry);
+
+	const cacheData = tree1.toCacheObject();
+
+	const registry2 = new TreeRegistry();
+	const tree2 = SharedHashTree.fromCache(cacheData, registry2);
+
+	const originalHash = tree2.getRootHash();
+
+	// Modify restored tree
+	await tree2.upsertResources([
+		createMockResource("b.js", "hash-b", Date.now(), 1024, 1)
+	], Date.now());
+	await registry2.flush();
+
+	const newHash = tree2.getRootHash();
+	t.not(newHash, originalHash, "Hash should change after modification");
+	t.true(tree2.hasPath("b.js"), "Should have new resource");
+});
+
+test("SharedHashTree.fromCache - handles empty tree", (t) => {
+	const registry = new TreeRegistry();
+
+	const tree1 = new SharedHashTree([], registry);
+	const cacheData = tree1.toCacheObject();
+
+	const registry2 = new TreeRegistry();
+	const tree2 = SharedHashTree.fromCache(cacheData, registry2);
+
+	t.truthy(tree2, "Should create tree from empty cache");
+	t.is(tree2.getResourcePaths().length, 0, "Should have no resources");
+	t.truthy(tree2.getRootHash(), "Should have root hash even when empty");
+});
+
+// ============================================================================
 // SharedHashTree upsertResources Tests
 // ============================================================================
 
@@ -497,13 +661,13 @@ test("SharedHashTree - registry tracks per-tree statistics", async (t) => {
 	const result = await registry.flush();
 
 	t.is(result.treeStats.size, 2, "Should have stats for 2 trees");
-	// Each tree sees additions for resources added by any tree (since all trees get all resources)
+	// Each tree only sees additions for resources added to itself (not to other independent trees)
 	const stats1 = result.treeStats.get(tree1);
 	const stats2 = result.treeStats.get(tree2);
 
-	// Both c.js and d.js are added to both trees
-	t.deepEqual(stats1.added.sort(), ["c.js", "d.js"], "Tree1 should see both additions");
-	t.deepEqual(stats2.added.sort(), ["c.js", "d.js"], "Tree2 should see both additions");
+	// c.js is only added to tree1, d.js is only added to tree2
+	t.deepEqual(stats1.added.sort(), ["c.js"], "Tree1 should see c.js addition");
+	t.deepEqual(stats2.added.sort(), ["d.js"], "Tree2 should see d.js addition");
 });
 
 test("SharedHashTree - unregister removes tree from coordination", async (t) => {
