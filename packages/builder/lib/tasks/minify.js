@@ -33,7 +33,13 @@ export default async function({
 }) {
 	let resources;
 	if (changedProjectResourcePaths) {
-		resources = await Promise.all(changedProjectResourcePaths.map((resource) => workspace.byPath(resource)));
+		resources = await Promise.all(
+			changedProjectResourcePaths
+				// Filtering out non-JS resources such as .map files
+				// FIXME: The changed resources should rather be matched against the provided pattern
+				.filter((resourcePath) => resourcePath.endsWith(".js"))
+				.map((resource) => workspace.byPath(resource))
+		);
 	} else {
 		resources = await workspace.byGlob(pattern);
 	}
