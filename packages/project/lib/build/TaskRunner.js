@@ -191,7 +191,7 @@ class TaskRunner {
 			task = async (log) => {
 				options.projectName = this._project.getName();
 				options.projectNamespace = this._project.getNamespace();
-				// TODO: Apply cache and stage handling for custom tasks as well
+
 				const cacheInfo = await this._buildCache.prepareTaskExecutionAndValidateCache(taskName);
 				if (cacheInfo === true) {
 					this._log.skipTask(taskName);
@@ -305,9 +305,9 @@ class TaskRunner {
 
 		// Tasks can provide an optional callback to tell build process which dependencies they require
 		const requiredDependenciesCallback = await task.getRequiredDependenciesCallback();
-		const getBuildSignatureCallback = await task.getBuildSignatureCallback();
-		const getExpectedOutputCallback = await task.getExpectedOutputCallback();
-		const differentialUpdateCallback = await task.getDifferentialUpdateCallback();
+		// const buildSignatureCallback = await task.getBuildSignatureCallback();
+		// const expectedOutputCallback = await task.getExpectedOutputCallback();
+		const supportsDifferentialUpdatesCallback = await task.getSupportsDifferentialUpdatesCallback();
 		const specVersion = task.getSpecVersion();
 		let requiredDependencies;
 
@@ -370,6 +370,10 @@ class TaskRunner {
 				}
 			});
 		}
+		let supportsDifferentialUpdates = false;
+		if (specVersion.gte("5.0") && supportsDifferentialUpdatesCallback && supportsDifferentialUpdatesCallback()) {
+			supportsDifferentialUpdates = true;
+		}
 
 		this._tasks[newTaskName] = {
 			task: this._createCustomTaskWrapper({
@@ -379,9 +383,7 @@ class TaskRunner {
 				taskName: newTaskName,
 				taskConfiguration: taskDef.configuration,
 				provideDependenciesReader,
-				getBuildSignatureCallback,
-				getExpectedOutputCallback,
-				differentialUpdateCallback,
+				supportsDifferentialUpdates,
 				getDependenciesReaderCb: () => {
 					// Create the dependencies reader on-demand
 					return this.getDependenciesReader(requiredDependencies);
@@ -417,9 +419,17 @@ class TaskRunner {
 	}
 
 	_createCustomTaskWrapper({
-		project, taskUtil, getDependenciesReaderCb, provideDependenciesReader, task, taskName, taskConfiguration
+		project, taskUtil, getDependenciesReaderCb, provideDependenciesReader, supportsDifferentialUpdates,
+		task, taskName, taskConfiguration
 	}) {
 		return async () => {
+			const cacheInfo = await this._buildCache.prepareTaskExecutionAndValidateCache(taskName);
+			if (cacheInfo === true) {
+				this._log.skipTask(taskName);
+				return;
+			}
+			const usingCache = !!(supportsDifferentialUpdates && cacheInfo);
+
 			/* Custom Task Interface
 				Parameters:
 					{Object} parameters Parameters
@@ -442,14 +452,21 @@ class TaskRunner {
 				Returns:
 					{Promise<undefined>} Promise resolving with undefined once data has been written
 			*/
+			const workspace = createMonitor(this._project.getWorkspace());
 			const params = {
-				workspace: project.getWorkspace(),
+				workspace,
 				options: {
 					projectName: project.getName(),
 					projectNamespace: project.getNamespace(),
 					configuration: taskConfiguration,
 				}
 			};
+			if (usingCache) {
+				params.changedProjectResourcePaths = cacheInfo.changedProjectResourcePaths;
+				if (provideDependenciesReader) {
+					params.changedDependencyResourcePaths = cacheInfo.changedDependencyResourcePaths;
+				}
+			}
 			const specVersion = task.getSpecVersion();
 			const taskUtilInterface = taskUtil.getInterface(specVersion);
 			// Interface is undefined if specVersion does not support taskUtil
@@ -463,12 +480,19 @@ class TaskRunner {
 				params.log = getLogger(`builder:custom-task:${taskName}`);
 			}
 
+			let dependencies;
 			if (provideDependenciesReader) {
-				params.dependencies = await getDependenciesReaderCb();
+				dependencies = createMonitor(await getDependenciesReaderCb());
+				params.dependencies = dependencies;
 			}
-			this._log.startTask(taskName, false);
+			this._log.startTask(taskName, usingCache);
 			await taskFunction(params);
 			this._log.endTask(taskName);
+			await this._buildCache.recordTaskResult(taskName,
+				workspace.getResourceRequests(),
+				dependencies?.getResourceRequests(),
+				usingCache ? cacheInfo : undefined,
+				supportsDifferentialUpdates);
 		};
 	}
 
