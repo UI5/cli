@@ -150,22 +150,22 @@ class ComponentProject extends Project {
 		throw new Error(`_getTestReader must be implemented by subclass ${this.constructor.name}`);
 	}
 
-	_createWriter() {
+	_createWriter(stageId) {
 		// writer is always of style "buildtime"
 		const namespaceWriter = resourceFactory.createAdapter({
-			name: `Namespace writer for project ${this.getName()}`,
+			name: `Namespace writer for project ${this.getName()}, stage ${stageId}`,
 			virBasePath: "/",
 			project: this
 		});
 
 		const generalWriter = resourceFactory.createAdapter({
-			name: `General writer for project ${this.getName()}`,
+			name: `General writer for project ${this.getName()}, stage ${stageId}`,
 			virBasePath: "/",
 			project: this
 		});
 
 		const collection = resourceFactory.createWriterCollection({
-			name: `Writers for project ${this.getName()}`,
+			name: `Writers for project ${this.getName()}, stage ${stageId}`,
 			writerMapping: {
 				[`/resources/${this._namespace}/`]: namespaceWriter,
 				[`/test-resources/${this._namespace}/`]: namespaceWriter,
