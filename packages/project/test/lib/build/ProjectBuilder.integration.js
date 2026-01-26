@@ -204,8 +204,8 @@ test.serial("Build library.d project multiple times", async (t) => {
 	await fs.writeFile(
 		changedFilePath,
 		(await fs.readFile(changedFilePath, {encoding: "utf8"})).replace(
-			`<copyright>Some fancy copyright</copyright>`,
-			`<copyright>Some new fancy copyright</copyright>`
+			`<documentation>Library D</documentation>`,
+			`<documentation>Library D (updated #1)</documentation>`
 		)
 	);
 
@@ -213,21 +213,29 @@ test.serial("Build library.d project multiple times", async (t) => {
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true},
 		assertions: {
-			projects: {"library.d": {}}
+			projects: {"library.d": {
+				skippedTasks: [
+					"buildThemes",
+					"escapeNonAsciiCharacters",
+					"minify",
+					"replaceBuildtime",
+				]
+			}}
 		}
 	});
 
-	// Check whether the changed file is in the destPath
+	// Check whether the changes are in the destPath
 	const builtFileContent = await fs.readFile(`${destPath}/resources/library/d/.library`, {encoding: "utf8"});
 	t.true(
-		builtFileContent.includes(`<copyright>Some new fancy copyright</copyright>`),
+		builtFileContent.includes(`<documentation>Library D (updated #1)</documentation>`),
 		"Build dest contains changed file content"
 	);
-	// Check whether the updated copyright replacement took place
-	const builtSomeJsContent = await fs.readFile(`${destPath}/resources/library/d/some.js`, {encoding: "utf8"});
+
+	// Check whether the manifest.json was updated with the new documentation
+	const manifestContent = await fs.readFile(`${destPath}/resources/library/d/manifest.json`, {encoding: "utf8"});
 	t.true(
-		builtSomeJsContent.includes(`Some new fancy copyright`),
-		"Build dest contains updated copyright in some.js"
+		manifestContent.includes(`"Library D (updated #1)"`),
+		"Build dest contains updated description in manifest.json"
 	);
 
 	// #4 build (with cache, no changes)
@@ -237,6 +245,8 @@ test.serial("Build library.d project multiple times", async (t) => {
 			projects: {}
 		}
 	});
+
+	// TODO: Change copyright in ui5.yaml and expect that a full rebuild is triggered
 });
 
 test.serial("Build theme.library.e project multiple times", async (t) => {
