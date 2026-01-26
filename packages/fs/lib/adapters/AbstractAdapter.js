@@ -96,7 +96,7 @@ class AbstractAdapter extends AbstractReaderWriter {
 	 * @returns {boolean} True if path is excluded, otherwise false
 	 */
 	_isPathExcluded(virPath) {
-		return micromatch(virPath, this._excludes).length > 0;
+		return micromatch(virPath, this._excludes, {dot: true}).length > 0;
 	}
 
 	/**
