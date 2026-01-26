@@ -69,6 +69,13 @@ test.beforeEach(async (t) => {
 				project: getMockProject("library", "c")
 			});
 		},
+		traverseDependenciesDepthFirst: sinon.stub().callsFake(function* (includeRoot) {
+			if (includeRoot) {
+				yield {project: getMockProject("application", "a")};
+			}
+			yield {project: getMockProject("library", "b")};
+			yield {project: getMockProject("library", "c")};
+		}),
 		getProject: sinon.stub().callsFake((projectName) => {
 			return getMockProject(...projectName.split("."));
 		})
@@ -102,20 +109,22 @@ test("build", async (t) => {
 	const builder = new ProjectBuilder({graph, taskRepository});
 
 	const filterProjectStub = sinon.stub().returns(true);
-	const getProjectFilterStub = sinon.stub(builder, "_getProjectFilter").resolves(filterProjectStub);
+	sinon.stub(builder, "_createProjectFilter").returns(filterProjectStub);
 
 	const requiresBuildStub = sinon.stub().returns(true);
-	const runTasksStub = sinon.stub().resolves();
+	const possiblyRequiresBuildStub = sinon.stub().returns(true);
+	const prepareProjectBuildAndValidateCacheStub = sinon.stub().resolves(false);
+	const buildProjectStub = sinon.stub().resolves();
+	const writeBuildCacheStub = sinon.stub().resolves();
 	const projectBuildContextMock = {
-		getTaskRunner: () => {
-			return {
-				runTasks: runTasksStub,
-			};
-		},
+		possiblyRequiresBuild: possiblyRequiresBuildStub,
+		prepareProjectBuildAndValidateCache: prepareProjectBuildAndValidateCacheStub,
+		buildProject: buildProjectStub,
+		writeBuildCache: writeBuildCacheStub,
 		requiresBuild: requiresBuildStub,
 		getProject: sinon.stub().returns(getMockProject("library"))
 	};
-	const createRequiredBuildContextsStub = sinon.stub(builder, "_createRequiredBuildContexts")
+	const getRequiredProjectContextsStub = sinon.stub(builder._buildContext, "getRequiredProjectContexts")
 		.resolves(new Map().set("project.a", projectBuildContextMock));
 
 	const registerCleanupSigHooksStub = sinon.stub(builder, "_registerCleanupSigHooks").returns("cleanup sig hooks");
@@ -124,28 +133,21 @@ test("build", async (t) => {
 	const deregisterCleanupSigHooksStub = sinon.stub(builder, "_deregisterCleanupSigHooks");
 	const executeCleanupTasksStub = sinon.stub(builder, "_executeCleanupTasks").resolves();
 
-	await builder.build({
+	await builder.buildToTarget({
 		destPath: "dest/path",
 		includedDependencies: ["dep a"],
 		excludedDependencies: ["dep b"]
 	});
 
-	t.is(getProjectFilterStub.callCount, 1, "_getProjectFilter got called once");
-	t.deepEqual(getProjectFilterStub.getCall(0).args[0], {
-		explicitIncludes: ["dep a"],
-		explicitExcludes: ["dep b"],
-		dependencyIncludes: undefined
-	}, "_getProjectFilter got called with correct arguments");
-
-	t.is(createRequiredBuildContextsStub.callCount, 1, "_createRequiredBuildContexts got called once");
-	t.deepEqual(createRequiredBuildContextsStub.getCall(0).args[0], [
+	t.is(getRequiredProjectContextsStub.callCount, 1, "getRequiredProjectContexts got called once");
+	t.deepEqual(getRequiredProjectContextsStub.getCall(0).args[0], [
 		"project.a", "project.b", "project.c"
-	], "_createRequiredBuildContexts got called with correct arguments");
+	], "getRequiredProjectContexts got called with correct arguments");
 
-	t.is(requiresBuildStub.callCount, 1, "ProjectBuildContext#requiresBuild got called once");
+	t.is(possiblyRequiresBuildStub.callCount, 1, "ProjectBuildContext#possiblyRequiresBuild got called once");
 	t.is(registerCleanupSigHooksStub.callCount, 1, "_registerCleanupSigHooksStub got called once");
 
-	t.is(runTasksStub.callCount, 1, "TaskRunner#runTasks got called once");
+	t.is(buildProjectStub.callCount, 1, "ProjectBuildContext#buildProject got called once");
 
 	t.is(writeResultsStub.callCount, 1, "_writeResults got called once");
 	t.is(writeResultsStub.getCall(0).args[0], projectBuildContextMock,
@@ -153,18 +155,20 @@ test("build", async (t) => {
 	t.is(writeResultsStub.getCall(0).args[1]._fsBasePath, path.resolve("dest/path") + path.sep,
 		"_writeResults got called with correct second argument");
 
+	t.is(writeBuildCacheStub.callCount, 1, "writeBuildCache got called once");
+
 	t.is(deregisterCleanupSigHooksStub.callCount, 1, "_deregisterCleanupSigHooks got called once");
 	t.is(deregisterCleanupSigHooksStub.getCall(0).args[0], "cleanup sig hooks",
 		"_deregisterCleanupSigHooks got called with correct arguments");
 	t.is(executeCleanupTasksStub.callCount, 1, "_executeCleanupTasksStub got called once");
 });
 
-test("build: Missing dest parameter", async (t) => {
+test("build: Conflicting dependency parameters", async (t) => {
 	const {graph, taskRepository, ProjectBuilder} = t.context;
 
 	const builder = new ProjectBuilder({graph, taskRepository});
 
-	const err = await t.throwsAsync(builder.build({
+	const err = await t.throwsAsync(builder.buildToTarget({
 		destPath: "dest/path",
 		dependencyIncludes: "dependencyIncludes",
 		includedDependencies: ["dep a"],
@@ -182,7 +186,7 @@ test("build: Too many dependency parameters", async (t) => {
 
 	const builder = new ProjectBuilder({graph, taskRepository});
 
-	const err = await t.throwsAsync(builder.build({
+	const err = await t.throwsAsync(builder.buildToTarget({
 		includedDependencies: ["dep a"],
 		excludedDependencies: ["dep b"]
 	}));
@@ -200,8 +204,8 @@ test("build: createBuildManifest in conjunction with dependencies", async (t) =>
 	});
 
 	const filterProjectStub = sinon.stub().returns(true);
-	sinon.stub(builder, "_getProjectFilter").resolves(filterProjectStub);
-	const err = await t.throwsAsync(builder.build({
+	sinon.stub(builder, "_createProjectFilter").returns(filterProjectStub);
+	const err = await t.throwsAsync(builder.buildToTarget({
 		destPath: "dest/path",
 		includedDependencies: ["dep a"]
 	}));
@@ -218,20 +222,18 @@ test("build: Failure", async (t) => {
 	const builder = new ProjectBuilder({graph, taskRepository});
 
 	const filterProjectStub = sinon.stub().returns(true);
-	sinon.stub(builder, "_getProjectFilter").resolves(filterProjectStub);
+	sinon.stub(builder, "_createProjectFilter").returns(filterProjectStub);
 
-	const requiresBuildStub = sinon.stub().returns(true);
-	const runTasksStub = sinon.stub().rejects(new Error("Some Error"));
+	const possiblyRequiresBuildStub = sinon.stub().returns(true);
+	const prepareProjectBuildAndValidateCacheStub = sinon.stub().resolves(false);
+	const buildProjectStub = sinon.stub().rejects(new Error("Some Error"));
 	const projectBuildContextMock = {
-		requiresBuild: requiresBuildStub,
-		getTaskRunner: () => {
-			return {
-				runTasks: runTasksStub
-			};
-		},
+		possiblyRequiresBuild: possiblyRequiresBuildStub,
+		prepareProjectBuildAndValidateCache: prepareProjectBuildAndValidateCacheStub,
+		buildProject: buildProjectStub,
 		getProject: sinon.stub().returns(getMockProject("library"))
 	};
-	sinon.stub(builder, "_createRequiredBuildContexts")
+	sinon.stub(builder._buildContext, "getRequiredProjectContexts")
 		.resolves(new Map().set("project.a", projectBuildContextMock));
 
 	sinon.stub(builder, "_registerCleanupSigHooks").returns("cleanup sig hooks");
@@ -239,7 +241,7 @@ test("build: Failure", async (t) => {
 	const deregisterCleanupSigHooksStub = sinon.stub(builder, "_deregisterCleanupSigHooks");
 	const executeCleanupTasksStub = sinon.stub(builder, "_executeCleanupTasks").resolves();
 
-	const err = await t.throwsAsync(builder.build({
+	const err = await t.throwsAsync(builder.buildToTarget({
 		destPath: "dest/path",
 		includedDependencies: ["dep a"],
 		excludedDependencies: ["dep b"]
@@ -281,45 +283,35 @@ test.serial("build: Multiple projects", async (t) => {
 	const builder = new ProjectBuilder({graph, taskRepository});
 
 	const filterProjectStub = sinon.stub().returns(true).onFirstCall().returns(false);
-	const getProjectFilterStub = sinon.stub(builder, "_getProjectFilter").resolves(filterProjectStub);
+	sinon.stub(builder, "_createProjectFilter").returns(filterProjectStub);
 
-	const requiresBuildAStub = sinon.stub().returns(true);
-	const requiresBuildBStub = sinon.stub().returns(false);
-	const requiresBuildCStub = sinon.stub().returns(true);
-	const getBuildMetadataStub = sinon.stub().returns({
-		timestamp: "2022-07-28T12:00:00.000Z",
-		age: "xx days"
-	});
-	const runTasksStub = sinon.stub().resolves();
+	const buildProjectAStub = sinon.stub().resolves();
+	const buildProjectBStub = sinon.stub().resolves();
+	const buildProjectCStub = sinon.stub().resolves();
+	const writeBuildCacheStub = sinon.stub().resolves();
+
 	const projectBuildContextMockA = {
-		getTaskRunner: () => {
-			return {
-				runTasks: runTasksStub
-			};
-		},
-		requiresBuild: requiresBuildAStub,
+		possiblyRequiresBuild: sinon.stub().returns(true),
+		prepareProjectBuildAndValidateCache: sinon.stub().resolves(false),
+		buildProject: buildProjectAStub,
+		writeBuildCache: writeBuildCacheStub,
 		getProject: sinon.stub().returns(getMockProject("library", "a"))
 	};
 	const projectBuildContextMockB = {
-		getTaskRunner: () => {
-			return {
-				runTasks: runTasksStub
-			};
-		},
-		getBuildMetadata: getBuildMetadataStub,
-		requiresBuild: requiresBuildBStub,
+		possiblyRequiresBuild: sinon.stub().returns(false),
+		prepareProjectBuildAndValidateCache: sinon.stub().resolves(false),
+		buildProject: buildProjectBStub,
+		writeBuildCache: writeBuildCacheStub,
 		getProject: sinon.stub().returns(getMockProject("library", "b"))
 	};
 	const projectBuildContextMockC = {
-		getTaskRunner: () => {
-			return {
-				runTasks: runTasksStub
-			};
-		},
-		requiresBuild: requiresBuildCStub,
+		possiblyRequiresBuild: sinon.stub().returns(true),
+		prepareProjectBuildAndValidateCache: sinon.stub().resolves(false),
+		buildProject: buildProjectCStub,
+		writeBuildCache: writeBuildCacheStub,
 		getProject: sinon.stub().returns(getMockProject("library", "c"))
 	};
-	const createRequiredBuildContextsStub = sinon.stub(builder, "_createRequiredBuildContexts")
+	const getRequiredProjectContextsStub = sinon.stub(builder._buildContext, "getRequiredProjectContexts")
 		.resolves(new Map()
 			.set("project.a", projectBuildContextMockA)
 			.set("project.b", projectBuildContextMockB)
@@ -332,30 +324,22 @@ test.serial("build: Multiple projects", async (t) => {
 	const executeCleanupTasksStub = sinon.stub(builder, "_executeCleanupTasks").resolves();
 
 	setLogLevel("verbose");
-	await builder.build({
+	await builder.buildToTarget({
 		destPath: path.join("dest", "path"),
 		dependencyIncludes: "dependencyIncludes"
 	});
 	setLogLevel("info");
 
-	t.is(getProjectFilterStub.callCount, 1, "_getProjectFilter got called once");
-	t.deepEqual(getProjectFilterStub.getCall(0).args[0], {
-		explicitIncludes: [],
-		explicitExcludes: [],
-		dependencyIncludes: "dependencyIncludes"
-	}, "_getProjectFilter got called with correct arguments");
-
-	t.is(createRequiredBuildContextsStub.callCount, 1, "_createRequiredBuildContexts got called once");
-	t.deepEqual(createRequiredBuildContextsStub.getCall(0).args[0], [
+	t.is(getRequiredProjectContextsStub.callCount, 1, "getRequiredProjectContexts got called once");
+	t.deepEqual(getRequiredProjectContextsStub.getCall(0).args[0], [
 		"project.b", "project.c"
-	], "_createRequiredBuildContexts got called with correct arguments");
+	], "getRequiredProjectContexts got called with correct arguments");
 
-	t.is(requiresBuildAStub.callCount, 1, "TaskRunner#requiresBuild got called once times for library.a");
-	t.is(requiresBuildBStub.callCount, 1, "TaskRunner#requiresBuild got called once times for library.b");
-	t.is(requiresBuildCStub.callCount, 1, "TaskRunner#requiresBuild got called once times for library.c");
 	t.is(registerCleanupSigHooksStub.callCount, 1, "_registerCleanupSigHooksStub got called once");
 
-	t.is(runTasksStub.callCount, 2, "TaskRunner#runTasks got called twice"); // library.b does not require a build
+	t.is(buildProjectAStub.callCount, 1, "buildProject got called once for library.a");
+	t.is(buildProjectBStub.callCount, 0, "buildProject not called for library.b (possiblyRequiresBuild = false)");
+	t.is(buildProjectCStub.callCount, 1, "buildProject got called once for library.c");
 
 	t.is(writeResultsStub.callCount, 2, "_writeResults got called twice"); // library.a has not been requested
 	t.is(writeResultsStub.getCall(0).args[0], projectBuildContextMockB,
@@ -396,47 +380,10 @@ test.serial("build: Multiple projects", async (t) => {
 		"BuildLogger#skipProjectBuild got called with expected argument");
 });
 
-test("_createRequiredBuildContexts", async (t) => {
-	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
+// _createRequiredBuildContexts is now part of BuildContext, not ProjectBuilder
+// This logic is tested through integration tests
 
-	const builder = new ProjectBuilder({graph, taskRepository});
-
-	const requiresBuildStub = sinon.stub().returns(true);
-	const getRequiredDependenciesStub = sinon.stub()
-		.returns(new Set())
-		.onFirstCall().returns(new Set(["project.b"])); // required dependency of project.a
-
-	const projectBuildContextMock = {
-		requiresBuild: requiresBuildStub,
-		getTaskRunner: () => {
-			return {
-				getRequiredDependencies: getRequiredDependenciesStub
-			};
-		}
-	};
-	const createProjectContextStub = sinon.stub(builder._buildContext, "createProjectContext")
-		.returns(projectBuildContextMock);
-	const projectBuildContexts = await builder._createRequiredBuildContexts(["project.a", "project.c"]);
-
-	t.is(requiresBuildStub.callCount, 3, "TaskRunner#requiresBuild got called three times");
-	t.is(getRequiredDependenciesStub.callCount, 3, "TaskRunner#getRequiredDependencies got called three times");
-
-	t.deepEqual(Object.fromEntries(projectBuildContexts), {
-		"project.a": projectBuildContextMock,
-		"project.b": projectBuildContextMock, // is a required dependency of project.a
-		"project.c": projectBuildContextMock,
-	}, "Returned expected project build contexts");
-
-	t.is(createProjectContextStub.callCount, 3, "BuildContext#createProjectContextStub got called three times");
-	t.is(createProjectContextStub.getCall(0).args[0].project.getName(), "project.a",
-		"First call to BuildContext#createProjectContextStub with expected project");
-	t.is(createProjectContextStub.getCall(1).args[0].project.getName(), "project.c",
-		"Second call to BuildContext#createProjectContextStub with expected project");
-	t.is(createProjectContextStub.getCall(2).args[0].project.getName(), "project.b",
-		"Third call to BuildContext#createProjectContextStub with expected project");
-});
-
-test.serial("_getProjectFilter with dependencyIncludes", async (t) => {
+test.serial("_createProjectFilter with dependencyIncludes", async (t) => {
 	const {graph, taskRepository, sinon} = t.context;
 	const composeProjectListStub = sinon.stub().returns({
 		includedDependencies: ["project.b", "project.c"],
@@ -448,7 +395,7 @@ test.serial("_getProjectFilter with dependencyIncludes", async (t) => {
 
 	const builder = new ProjectBuilder({graph, taskRepository});
 
-	const filterProject = await builder._getProjectFilter({
+	const filterProject = builder._createProjectFilter({
 		dependencyIncludes: "dependencyIncludes",
 		explicitIncludes: "explicitIncludes",
 		explicitExcludes: "explicitExcludes",
@@ -467,7 +414,7 @@ test.serial("_getProjectFilter with dependencyIncludes", async (t) => {
 	t.false(filterProject("project.e"), "project.e is not allowed");
 });
 
-test.serial("_getProjectFilter with explicit include/exclude", async (t) => {
+test.serial("_createProjectFilter with explicit include/exclude", async (t) => {
 	const {graph, taskRepository, sinon} = t.context;
 	const composeProjectListStub = sinon.stub().returns({
 		includedDependencies: ["project.b", "project.c"],
@@ -479,7 +426,7 @@ test.serial("_getProjectFilter with explicit include/exclude", async (t) => {
 
 	const builder = new ProjectBuilder({graph, taskRepository});
 
-	const filterProject = await builder._getProjectFilter({
+	const filterProject = builder._createProjectFilter({
 		explicitIncludes: "explicitIncludes",
 		explicitExcludes: "explicitExcludes",
 	});
@@ -610,6 +557,7 @@ test.serial("_writeResults: Create build manifest", async (t) => {
 	const getTagStub = sinon.stub().returns(false).onFirstCall().returns(true);
 	const projectBuildContextMock = {
 		getProject: () => mockProject,
+		getBuildSignature: () => "build-signature",
 		getTaskUtil: () => {
 			return {
 				isRootProject: () => true,
@@ -637,7 +585,9 @@ test.serial("_writeResults: Create build manifest", async (t) => {
 	t.is(createBuildManifestStub.callCount, 1, "createBuildManifest got called once");
 	t.is(createBuildManifestStub.getCall(0).args[0], mockProject,
 		"createBuildManifest got called with correct project");
-	t.deepEqual(createBuildManifestStub.getCall(0).args[1], {
+	t.is(createBuildManifestStub.getCall(0).args[1], graph,
+		"createBuildManifest got called with correct graph");
+	t.deepEqual(createBuildManifestStub.getCall(0).args[2], {
 		createBuildManifest: true,
 		outputStyle: OutputStyleEnum.Default,
 		cssVariables: false,
@@ -645,7 +595,12 @@ test.serial("_writeResults: Create build manifest", async (t) => {
 		includedTasks: [],
 		jsdoc: false,
 		selfContained: false,
+		useCache: false,
 	}, "createBuildManifest got called with correct build configuration");
+	t.is(createBuildManifestStub.getCall(0).args[3], taskRepository,
+		"createBuildManifest got called with correct taskRepository");
+	t.is(createBuildManifestStub.getCall(0).args[4], "build-signature",
+		"createBuildManifest got called with correct buildSignature");
 
 	t.is(createResourceStub.callCount, 1, "One resource has been created");
 	t.deepEqual(createResourceStub.getCall(0).args[0], {
