@@ -294,7 +294,10 @@ export default class ProjectBuildCache {
 	 */
 	async #importStages(stageSignatures) {
 		const stageNames = Object.keys(stageSignatures);
-		this.#project.initStages(stageNames);
+		if (this.#project.getStage()?.getId() === "initial") {
+			// Only initialize stages once
+			this.#project.initStages(stageNames);
+		}
 		const importedStages = await Promise.all(stageNames.map(async (stageName) => {
 			const stageSignature = stageSignatures[stageName];
 			const stageCache = await this.#findStageCache(stageName, [stageSignature]);
@@ -416,10 +419,10 @@ export default class ProjectBuildCache {
 		const stageCache = await this.#findStageCache(stageName, stageSignatures);
 		const oldStageSig = this.#currentStageSignatures.get(stageName)?.join("-");
 		if (stageCache) {
+			this.#project.setStage(stageName, stageCache.stage);
+
 			// Check whether the stage actually changed
 			if (stageCache.signature !== oldStageSig) {
-				this.#project.setStage(stageName, stageCache.stage);
-
 				// Store new stage signature for later use in result stage signature calculation
 				this.#currentStageSignatures.set(stageName, stageCache.signature.split("-"));
 
