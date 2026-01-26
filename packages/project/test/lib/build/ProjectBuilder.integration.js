@@ -351,7 +351,6 @@ test.serial("Build theme.library.e project multiple times", async (t) => {
 		assertions: {
 			projects: {"theme.library.e": {
 				skippedTasks: ["buildThemes"]
-				// NOTE: buildThemes currently gets NOT skipped -> TODO: fix
 			}},
 		}
 	});
