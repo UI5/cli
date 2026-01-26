@@ -1,0 +1,87 @@
+<mxfile host="65bd71144e">
+    <diagram name="Transformation Pipeline" id="transformation-pipeline">
+        <mxGraphModel dx="657" dy="272" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="esm-label" value="ESM Package (nanoid)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=12;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="80" y="80" width="180" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="esm-rollup" value="Rollup Input" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="80" y="160" width="180" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="esm-resolve" value="node-resolve&#xa;Find in node_modules" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="80" y="240" width="180" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="esm-output" value="AMD Output&#xa;sap.ui.define()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#6A1B9A;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="80" y="330" width="180" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="esm-result" value="thirdparty/nanoid.js" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="80" y="420" width="180" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="cjs-label" value="CJS Package (lodash)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=12;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="320" y="80" width="180" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="cjs-rollup" value="Rollup Input" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="320" y="160" width="180" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="cjs-commonjs" value="commonjs plugin&#xa;Transform require()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="320" y="240" width="180" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="cjs-output" value="AMD Output&#xa;sap.ui.define()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#6A1B9A;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="320" y="330" width="180" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="cjs-result" value="thirdparty/lodash.js" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="320" y="420" width="180" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="wc-label" value="Web Component&#xa;@ui5/webcomponents" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=12;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="560" y="80" width="180" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="wc-rollup" value="Rollup Input" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="560" y="170" width="180" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="wc-plugin" value="ui5-webcomponents plugin&#xa;Extract metadata,&#xa;generate wrappers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="560" y="250" width="180" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="wc-result1" value="thirdparty/MessageStrip.js" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="560" y="420" width="180" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="esm-arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#01579B;endArrow=classic;endFill=1;" parent="1" source="esm-label" target="esm-rollup" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="esm-arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#01579B;endArrow=classic;endFill=1;" parent="1" source="esm-rollup" target="esm-resolve" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="esm-arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#01579B;endArrow=classic;endFill=1;" parent="1" source="esm-resolve" target="esm-output" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="esm-arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#01579B;endArrow=classic;endFill=1;" parent="1" source="esm-output" target="esm-result" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="cjs-arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#01579B;endArrow=classic;endFill=1;" parent="1" source="cjs-label" target="cjs-rollup" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="cjs-arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#01579B;endArrow=classic;endFill=1;" parent="1" source="cjs-rollup" target="cjs-commonjs" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="cjs-arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#01579B;endArrow=classic;endFill=1;" parent="1" source="cjs-commonjs" target="cjs-output" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="cjs-arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#01579B;endArrow=classic;endFill=1;" parent="1" source="cjs-output" target="cjs-result" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="wc-arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#01579B;endArrow=classic;endFill=1;" parent="1" source="wc-label" target="wc-rollup" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="wc-arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#01579B;endArrow=classic;endFill=1;" parent="1" source="wc-rollup" target="wc-plugin" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="wc-arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#01579B;endArrow=classic;endFill=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="wc-plugin" target="wc-result1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="650" y="350" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
