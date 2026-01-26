@@ -40,7 +40,7 @@ test.afterEach.always(async (t) => {
 // Note: This test should be the first test to run, as it covers initial build scenarios, which are not reproducible
 // once the BuildServer has been started and built a project at least once.
 // This is independent of caching on file-system level, which is isolated per test via tmp folders.
-test.serial.only("Serve application.a, initial file changes", async (t) => {
+test.serial("Serve application.a, initial file changes", async (t) => {
 	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
 
 	await fixtureTester.serveProject();
