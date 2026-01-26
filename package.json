@@ -63,5 +63,10 @@
 		"local-web-server": "^5.4.0",
 		"open-cli": "^8.0.0",
 		"traverse": "^0.6.11"
+	},
+	"overrides": {
+		"pacote@19": {
+			"tar": "^7.5.6"
+		}
 	}
 }
