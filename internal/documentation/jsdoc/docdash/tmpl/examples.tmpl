@@ -1,0 +1,17 @@
+<?js
+    var data = obj;
+    var self = this;
+
+    data.forEach(function(example) {
+        if (example.caption) {
+    ?>
+*<?js= example.caption ?>*
+
+    <?js } ?>
+```
+<?js= self.htmlsafe(example.code) ?>
+```
+
+<?js
+    });
+?>

@@ -58,7 +58,7 @@ const log = getLogger("builder:processors:bundlers:moduleBundler");
  * 		Excludes should be marked with a leading exclamation mark '!'. The order of filters is relevant; a later
  *		exclusion overrides an earlier inclusion, and vice versa.
  *
- * <caption>List of modules as glob patterns that should be in- or excluded</caption>
+ * <i>Example:</i>
  *
  * ```js
  * // Includes everything from "some/path/to/module/",

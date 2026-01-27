@@ -55,7 +55,7 @@ function getCreatorOptions(projectName) {
  * Therefore it is also not supported in combination with self-contained build.
  * </p>
  *
- * <caption>sample resources.json</caption>
+ * <i>sample resources.json</i>
  *
  * ```js
  * const resourcesJson = {
