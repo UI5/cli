@@ -12,8 +12,6 @@ import ProjectBuildCache from "../cache/ProjectBuildCache.js";
  * @memberof @ui5/project/build/helpers
  */
 class ProjectBuildContext {
-	#initialPrepareRun = true;
-
 	/**
 	 * Creates a new ProjectBuildContext instance
 	 *
@@ -268,13 +266,6 @@ class ProjectBuildContext {
 			await this.getTaskRunner().getRequiredDependencies(),
 			true, // Force creation of new reader since project readers might have changed during their (re-)build
 		);
-		if (this.#initialPrepareRun) {
-			this.#initialPrepareRun = false;
-			// If this is the first build of the project, the dependency indices must be refreshed
-			// Later builds of the same project during the same overall build can reuse the existing indices
-			// (they will be updated based on input via #dependencyResourcesChanged)
-			await this.getBuildCache().refreshDependencyIndices(depReader);
-		}
 		const boolOrChangedPaths = await this.getBuildCache().prepareProjectBuildAndValidateCache(depReader);
 		if (Array.isArray(boolOrChangedPaths)) {
 			// Cache can be used, but some resources have changed

@@ -54,6 +54,7 @@ export default class ProjectBuildCache {
 	#writtenResultResourcePaths = [];
 
 	#cacheState = CACHE_STATES.INITIALIZING;
+	#dependencyIndicesInitialized = false;
 
 	/**
 	 * Creates a new ProjectBuildCache instance
@@ -95,20 +96,6 @@ export default class ProjectBuildCache {
 		return cache;
 	}
 
-	async refreshDependencyIndices(dependencyReader) {
-		if (this.#cacheState === CACHE_STATES.EMPTY) {
-			// No need to update indices for empty cache
-			return false;
-		}
-		const updateStart = performance.now();
-		await this.#refreshDependencyIndices(dependencyReader);
-		if (log.isLevelEnabled("perf")) {
-			log.perf(
-				`Refreshed dependency indices for project ${this.#project.getName()} ` +
-				`in ${(performance.now() - updateStart).toFixed(2)} ms`);
-		}
-	}
-
 	/**
 	 * Sets the dependency reader for accessing dependency resources
 	 *
@@ -124,6 +111,17 @@ export default class ProjectBuildCache {
 	async prepareProjectBuildAndValidateCache(dependencyReader) {
 		this.#currentProjectReader = this.#project.getReader();
 		this.#currentDependencyReader = dependencyReader;
+
+		if (!this.#dependencyIndicesInitialized) {
+			const updateStart = performance.now();
+			await this._initDependencyIndices(dependencyReader);
+			if (log.isLevelEnabled("perf")) {
+				log.perf(
+					`Initialized dependency indices for project ${this.#project.getName()} ` +
+					`in ${(performance.now() - updateStart).toFixed(2)} ms`);
+			}
+			this.#dependencyIndicesInitialized = true;
+		}
 
 		if (this.#cacheState === CACHE_STATES.INITIALIZING) {
 			throw new Error(`Project ${this.#project.getName()} build cache unexpectedly not yet initialized.`);
@@ -189,12 +187,18 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Refresh dependency indices for all tasks
+	 * Initialize dependency indices for all tasks. This only needs to be called once per build.
+	 * Later builds of the same project during the same overall build can reuse the existing indices
+	 * (they will be updated based on input via dependencyResourcesChanged)
 	 *
 	 * @param {@ui5/fs/AbstractReader} dependencyReader Reader for dependency resources
 	 * @returns {Promise<void>}
 	 */
-	async #refreshDependencyIndices(dependencyReader) {
+	async _initDependencyIndices(dependencyReader) {
+		if (this.#cacheState === CACHE_STATES.EMPTY) {
+			// No need to update indices for empty cache
+			return false;
+		}
 		let depIndicesChanged = false;
 		await Promise.all(Array.from(this.#taskCache.values()).map(async (taskCache) => {
 			const changed = await taskCache.refreshDependencyIndices(dependencyReader);
