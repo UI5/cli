@@ -50,9 +50,12 @@ test.serial("Serve application.a, initial file changes", async (t) => {
 	await fs.appendFile(changedFilePath, `\ntest("initial change");\n`);
 
 	// Request the changed resource immediately
-	const resourceRequestPromise = fixtureTester.requestResource("/test.js", {
-		projects: {
-			"application.a": {}
+	const resourceRequestPromise = fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
 		}
 	});
 	// Directly change the source file again, which should abort the current build and trigger a new one
@@ -74,15 +77,21 @@ test.serial("Serve application.a, request application resource", async (t) => {
 
 	// #1 request with empty cache
 	await fixtureTester.serveProject();
-	await fixtureTester.requestResource("/test.js", {
-		projects: {
-			"application.a": {}
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
 		}
 	});
 
 	// #2 request with cache
-	await fixtureTester.requestResource("/test.js", {
-		projects: {}
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {}
+		}
 	});
 
 	// Change a source file in application.a
@@ -92,16 +101,19 @@ test.serial("Serve application.a, request application resource", async (t) => {
 	await setTimeout(500); // Wait for the file watcher to detect and propagate the change
 
 	// #3 request with cache and changes
-	const res = await fixtureTester.requestResource("/test.js", {
-		projects: {
-			"application.a": {
-				skippedTasks: [
-					"escapeNonAsciiCharacters",
-					// Note: replaceCopyright is skipped because no copyright is configured in the project
-					"replaceCopyright",
-					"enhanceManifest",
-					"generateFlexChangesBundle",
-				]
+	const res = await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"escapeNonAsciiCharacters",
+						// Note: replaceCopyright is skipped because no copyright is configured in the project
+						"replaceCopyright",
+						"enhanceManifest",
+						"generateFlexChangesBundle",
+					]
+				}
 			}
 		}
 	});
@@ -116,15 +128,21 @@ test.serial("Serve application.a, request library resource", async (t) => {
 
 	// #1 request with empty cache
 	await fixtureTester.serveProject();
-	await fixtureTester.requestResource("/resources/library/a/.library", {
-		projects: {
-			"library.a": {}
+	await fixtureTester.requestResource({
+		resource: "/resources/library/a/.library",
+		assertions: {
+			projects: {
+				"library.a": {}
+			}
 		}
 	});
 
 	// #2 request with cache
-	await fixtureTester.requestResource("/resources/library/a/.library", {
-		projects: {}
+	await fixtureTester.requestResource({
+		resource: "/resources/library/a/.library",
+		assertions: {
+			projects: {}
+		}
 	});
 
 	// Change a source file in library.a
@@ -140,14 +158,17 @@ test.serial("Serve application.a, request library resource", async (t) => {
 	await setTimeout(500); // Wait for the file watcher to detect and propagate the change
 
 	// #3 request with cache and changes
-	const dotLibraryResource = await fixtureTester.requestResource("/resources/library/a/.library", {
-		projects: {
-			"library.a": {
-				skippedTasks: [
-					"escapeNonAsciiCharacters",
-					"minify",
-					"replaceBuildtime",
-				]
+	const dotLibraryResource = await fixtureTester.requestResource({
+		resource: "/resources/library/a/.library",
+		assertions: {
+			projects: {
+				"library.a": {
+					skippedTasks: [
+						"escapeNonAsciiCharacters",
+						"minify",
+						"replaceBuildtime",
+					]
+				}
 			}
 		}
 	});
@@ -160,8 +181,11 @@ test.serial("Serve application.a, request library resource", async (t) => {
 	);
 
 	// #4 request with cache (no changes)
-	const manifestResource = await fixtureTester.requestResource("/resources/library/a/manifest.json", {
-		projects: {}
+	const manifestResource = await fixtureTester.requestResource({
+		resource: "/resources/library/a/manifest.json",
+		assertions: {
+			projects: {}
+		}
 	});
 
 	// Check whether the manifest is served correctly with changed .library content reflected
@@ -169,6 +193,78 @@ test.serial("Serve application.a, request library resource", async (t) => {
 	t.is(
 		manifestContent["sap.app"]["description"], "Library A (updated #1)",
 		"Manifest reflects changed .library content"
+	);
+});
+
+test.serial("Serve application.a, request application resource AND library resource", async (t) => {
+	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
+
+	// #1 request with empty cache
+	await fixtureTester.serveProject();
+	await fixtureTester.requestResources({
+		resources: ["/test.js", "/resources/library/a/.library"],
+		assertions: {
+			projects: {
+				"library.a": {},
+				"application.a": {}
+			}
+		}
+	});
+
+	// #2 request with cache
+	await fixtureTester.requestResources({
+		resources: ["/test.js", "/resources/library/a/.library"],
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// Change a source file in application.a and library.a
+	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
+	await fs.appendFile(changedFilePath, `\ntest("line added");\n`);
+	const changedFilePath2 = `${fixtureTester.fixturePath}/node_modules/collection/library.a/src/library/a/.library`;
+	await fs.writeFile(
+		changedFilePath2,
+		(await fs.readFile(changedFilePath2, {encoding: "utf8"})).replace(
+			`<documentation>Library A</documentation>`,
+			`<documentation>Library A (updated #1)</documentation>`
+		)
+	);
+
+	await setTimeout(500); // Wait for the file watcher to detect and propagate the changes
+
+	// #3 request with cache and changes
+	const [resource1, resource2] = await fixtureTester.requestResources({
+		resources: ["/test.js", "/resources/library/a/.library"],
+		assertions: {
+			projects: {
+				"library.a": {
+					skippedTasks: [
+						"escapeNonAsciiCharacters",
+						"minify",
+						"replaceBuildtime",
+					]
+				},
+				"application.a": {
+					skippedTasks: [
+						"escapeNonAsciiCharacters",
+						// Note: replaceCopyright is skipped because no copyright is configured in the project
+						"replaceCopyright",
+						"enhanceManifest",
+						"generateFlexChangesBundle",
+					]
+				}
+			}
+		}
+	});
+
+	// Check whether the changed files contain the correct contents
+	const resource1FileContent = await resource1.getString();
+	const resource2FileContent = await resource2.getString();
+	t.true(resource1FileContent.includes(`test("line added");`), "Resource contains changed file content");
+	t.true(
+		resource2FileContent.includes(`<documentation>Library A (updated #1)</documentation>`),
+		"Resource contains changed file content"
 	);
 });
 
@@ -229,7 +325,7 @@ class FixtureTester {
 		this._reader = this.buildServer.getReader();
 	}
 
-	async requestResource(resource, assertions = {}) {
+	async requestResource({resource, assertions = {}}) {
 		this._sinon.resetHistory();
 		const res = await this._reader.byPath(resource);
 		// Apply assertions if provided
@@ -237,6 +333,16 @@ class FixtureTester {
 			this._assertBuild(assertions);
 		}
 		return res;
+	}
+
+	async requestResources({resources, assertions = {}}) {
+		this._sinon.resetHistory();
+		const returnedResources = await Promise.all(resources.map((resource) => this._reader.byPath(resource)));
+		// Apply assertions if provided
+		if (assertions) {
+			this._assertBuild(assertions);
+		}
+		return returnedResources;
 	}
 
 	_assertBuild(assertions) {
