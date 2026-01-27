@@ -193,6 +193,8 @@ class FixtureTester {
 
 		// Public
 		this.fixturePath = getTmpPath(fixtureName);
+		this.buildServer = null;
+		this.graph = null;
 	}
 
 	async _initialize() {
@@ -206,25 +208,25 @@ class FixtureTester {
 	}
 
 	async teardown() {
-		if (this._buildServer) {
-			await this._buildServer.destroy();
+		if (this.buildServer) {
+			await this.buildServer.destroy();
 		}
 	}
 
 	async serveProject({graphConfig = {}, config = {}} = {}) {
 		await this._initialize();
 
-		const graph = await graphFromPackageDependencies({
+		const graph = this.graph = await graphFromPackageDependencies({
 			...graphConfig,
 			cwd: this.fixturePath,
 		});
 
 		// Execute the build
-		this._buildServer = await graph.serve(config);
-		this._buildServer.on("error", (err) => {
+		this.buildServer = await graph.serve(config);
+		this.buildServer.on("error", (err) => {
 			this._t.fail(`Build server error: ${err.message}`);
 		});
-		this._reader = this._buildServer.getReader();
+		this._reader = this.buildServer.getReader();
 	}
 
 	async requestResource(resource, assertions = {}) {

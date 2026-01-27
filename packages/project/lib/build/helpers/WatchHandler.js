@@ -11,9 +11,6 @@ const log = getLogger("build:helpers:WatchHandler");
  */
 class WatchHandler extends EventEmitter {
 	#closeCallbacks = [];
-	#sourceChanges = new Map();
-	#ready = false;
-	#fileChangeHandlerTimeout;
 
 	constructor() {
 		super();
@@ -22,35 +19,46 @@ class WatchHandler extends EventEmitter {
 	async watch(projects) {
 		const readyPromises = [];
 		for (const project of projects) {
-			const paths = project.getSourcePaths();
-			log.verbose(`Watching source paths: ${paths.join(", ")}`);
+			readyPromises.push(this._watchProject(project));
+		}
+		await Promise.all(readyPromises);
+	}
 
-			const watcher = chokidar.watch(paths, {
-				ignoreInitial: true,
-			});
-			this.#closeCallbacks.push(async () => {
-				await watcher.close();
-			});
-			watcher.on("all", (event, filePath) => {
-				if (event === "addDir") {
-					// Ignore directory creation events
-					return;
-				}
-				this.#handleWatchEvents(event, filePath, project).catch((err) => {
-					this.emit("error", err);
-				});
-			});
-			const {promise, resolve: ready} = Promise.withResolvers();
-			readyPromises.push(promise);
-			watcher.on("ready", () => {
-				this.#ready = true;
-				ready();
-			});
-			watcher.on("error", (err) => {
+	async _watchProject(project) {
+		let ready = false;
+		const paths = project.getSourcePaths();
+		log.verbose(`Watching source paths: ${paths.join(", ")}`);
+
+		const watcher = chokidar.watch(paths, {
+			ignoreInitial: true,
+		});
+		this.#closeCallbacks.push(async () => {
+			await watcher.close();
+		});
+		watcher.on("all", (event, filePath) => {
+			if (!ready) {
+				// Ignore events before ready
+				return;
+			}
+			if (event === "addDir") {
+				// Ignore directory creation events
+				return;
+			}
+			this.#handleWatchEvents(event, filePath, project).catch((err) => {
 				this.emit("error", err);
 			});
-		}
-		return await Promise.all(readyPromises);
+		});
+		const {promise, resolve} = Promise.withResolvers();
+
+		watcher.on("ready", () => {
+			ready = true;
+			resolve();
+		});
+		watcher.on("error", (err) => {
+			this.emit("error", err);
+		});
+
+		return promise;
 	}
 
 	async destroy() {
@@ -60,46 +68,9 @@ class WatchHandler extends EventEmitter {
 	}
 
 	async #handleWatchEvents(eventType, filePath, project) {
-		log.verbose(`File changed: ${eventType} ${filePath}`);
-		await this.#fileChanged(project, filePath);
-		this.emit("change", eventType, filePath, project);
-	}
-
-	#fileChanged(project, filePath) {
-		// Collect changes (grouped by project), then trigger callbacks
 		const resourcePath = project.getVirtualPath(filePath);
-		const projectName = project.getName();
-		if (!this.#sourceChanges.has(projectName)) {
-			this.#sourceChanges.set(projectName, new Set());
-		}
-		this.#sourceChanges.get(projectName).add(resourcePath);
-
-		this.#processQueue();
-	}
-
-	#processQueue() {
-		if (!this.#ready || !this.#sourceChanges.size) {
-			// Prevent premature processing
-			return;
-		}
-
-		// Trigger change event debounced
-		if (this.#fileChangeHandlerTimeout) {
-			clearTimeout(this.#fileChangeHandlerTimeout);
-		}
-		this.#fileChangeHandlerTimeout = setTimeout(async () => {
-			this.#fileChangeHandlerTimeout = null;
-
-			const sourceChanges = this.#sourceChanges;
-			// Reset file changes
-			this.#sourceChanges = new Map();
-
-			try {
-				this.emit("batchedChanges", sourceChanges);
-			} catch (err) {
-				this.emit("error", err);
-			}
-		}, 100);
+		log.verbose(`File changed: ${eventType} ${filePath} (as ${resourcePath} in project '${project.getName()}')`);
+		this.emit("change", eventType, resourcePath, project);
 	}
 }
 

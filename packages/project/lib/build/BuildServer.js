@@ -38,6 +38,7 @@ class BuildServer extends EventEmitter {
 	#projectBuilder;
 	#watchHandler;
 	#rootProjectName;
+	#resourceChangeQueue = new Map();
 	#projectBuildStatus = new Map();
 	#pendingBuildRequest = new Set();
 	#activeBuild = null;
@@ -115,20 +116,9 @@ class BuildServer extends EventEmitter {
 		watchHandler.on("error", (err) => {
 			this.emit("error", err);
 		});
-		watchHandler.on("change", (eventType, filePath, project) => {
-			log.verbose(`Source change detected: ${eventType} ${filePath} in project '${project.getName()}'`);
-			this.#projectResourceChangedLive(project, ["add", "unlink", "unlinkDir"].includes(eventType));
-		});
-		watchHandler.on("batchedChanges", (changes) => {
-			log.verbose(`Received batched source changes for projects: ${[...changes.keys()].join(", ")}`);
-			if (this.#activeBuild) {
-				log.verbose("Waiting for active build to finish before processing batched source changes");
-				this.#activeBuild.finally(() => {
-					this.#batchResourceChanges(changes);
-				});
-			} else {
-				this.#batchResourceChanges(changes);
-			}
+		watchHandler.on("change", (eventType, resourcePath, project) => {
+			log.verbose(`Source change detected: ${eventType} ${resourcePath} in project '${project.getName()}'`);
+			this._projectResourceChanged(project, resourcePath, ["add", "unlink", "unlinkDir"].includes(eventType));
 		});
 	}
 
@@ -257,33 +247,47 @@ class BuildServer extends EventEmitter {
 	 * we abort all active builds affecting the changed project or any of its dependents.
 	 *
 	 * @param {@ui5/project/specifications/Project} project Project where the resource change occurred
+	 * @param {string} filePath Path of the affected file
 	 * @param {boolean} fileAddedOrRemoved Whether a file was added or removed
 	 */
-	#projectResourceChangedLive(project, fileAddedOrRemoved) {
+	_projectResourceChanged(project, filePath, fileAddedOrRemoved) {
+		// First, invalidate all potentially affected projects (which also aborts any running builds)
 		for (const {project: affectedProject} of this.#graph.traverseDependents(project.getName(), true)) {
 			const projectBuildStatus = this.#projectBuildStatus.get(affectedProject.getName());
-			projectBuildStatus.abortBuild(new AbortBuildError(`Source change in project '${project.getName()}'`));
+			projectBuildStatus.invalidate(`Source change in project '${project.getName()}'`);
 			if (fileAddedOrRemoved) {
 				// Reset any cached readers in case files were added or removed
 				projectBuildStatus.resetReaderCache();
 			}
 		}
-	}
 
-	#batchResourceChanges(changes) {
-		// Inform project builder
-		const affectedProjects = this.#projectBuilder.resourcesChanged(changes);
-
-		for (const projectName of affectedProjects) {
-			log.verbose(`Invalidating built project '${projectName}' due to source changes`);
-			const projectBuildStatus = this.#projectBuildStatus.get(projectName);
-			projectBuildStatus.invalidate();
+		// Enqueue resource change for processing before next build
+		const queuedChanges = this.#resourceChangeQueue.get(project.getName());
+		if (queuedChanges) {
+			queuedChanges.add(filePath);
+		} else {
+			this.#resourceChangeQueue.set(project.getName(), new Set([filePath]));
 		}
-		this.#triggerRequestQueue();
 
-		const changedResourcePaths = [...changes.values()].flat();
-		this.emit("sourcesChanged", changedResourcePaths);
+		// : Emit event debounced
+		// Emit change event immediately so that consumers can react to it (like browser reloading)
+		// const changedResourcePaths = [...changes.values()].flat();
+		// this.emit("sourcesChanged", changedResourcePaths);
 	}
+
+	#flushResourceChanges() {
+		if (this.#resourceChangeQueue.size === 0) {
+			return;
+		}
+		const changes = this.#resourceChangeQueue;
+		this.#resourceChangeQueue = new Map();
+
+		// Inform project builder
+		// This is essential so that the project builder can determine changed resources as it does not
+		// use file watchers or check for all changed files by itself
+		this.#projectBuilder.resourcesChanged(changes);
+	}
+
 	/**
 	 * Enqueues a project for building and returns a promise that resolves with its reader
 	 *
@@ -351,6 +355,9 @@ class BuildServer extends EventEmitter {
 				return this.#projectBuildStatus.get(projectName).getAbortSignal();
 			}));
 
+			// Process any queued resource changes (must be done before starting the build)
+			this.#flushResourceChanges();
+
 			// Set active build to prevent concurrent builds
 			const buildPromise = this.#activeBuild = this.#projectBuilder.build({
 				includeRootProject: buildRootProject,
@@ -363,11 +370,13 @@ class BuildServer extends EventEmitter {
 			}).catch((err) => {
 				if (err instanceof AbortBuildError) {
 					log.info("Build aborted");
+					log.verbose(`Projects affected by abort: ${projectsToBuild.join(", ")}`);
 					// Build was aborted - do not log as error
 					// Re-queue any outstanding projects
 					for (const projectName of projectsToBuild) {
 						const projectBuildStatus = this.#projectBuildStatus.get(projectName);
 						if (!projectBuildStatus.isFresh()) {
+							log.verbose(`Re-enqueueing project '${projectName}' after aborted build`);
 							this.#pendingBuildRequest.add(projectName);
 						}
 					}
@@ -376,9 +385,11 @@ class BuildServer extends EventEmitter {
 					// Build failed - reject promises for projects that weren't built
 					for (const projectName of projectsToBuild) {
 						const projectBuildStatus = this.#projectBuildStatus.get(projectName);
-						projectBuildStatus.rejectReaderRequestes(err);
+						projectBuildStatus.rejectReaderRequests(err);
 					}
 					// Re-throw to be handled by caller
+					// TODO: rather emit 'error' event for the BuildServer and continue processing the queue?
+					// Currently, this.#activeBuild will not be cleared.
 					throw err;
 				}
 			});
@@ -389,6 +400,11 @@ class BuildServer extends EventEmitter {
 			this.#activeBuild = null;
 			if (signal.aborted) {
 				log.verbose(`Build aborted for projects: ${projectsToBuild.join(", ")}`);
+				// Do not continue processing the queue if the build was aborted, but re-trigger processing debounced
+				// to ensure that any source changes are properly queued before the next build.
+				// This is also essential to re-trigger the build in case all resources changes have already been
+				// processed while the build was still aborting. Otherwise the build would not be re-triggered.
+				this.#triggerRequestQueue();
 				return;
 			}
 		}
@@ -398,6 +414,7 @@ class BuildServer extends EventEmitter {
 const PROJECT_STATES = Object.freeze({
 	INITIAL: "initial",
 	INVALIDATED: "invalidated",
+	// TODO: New state BUILDING
 	FRESH: "fresh",
 });
 
@@ -407,10 +424,14 @@ class ProjectBuildStatus {
 	#reader;
 	#abortController = new AbortController();
 
-	invalidate() {
+	invalidate(reason = "Project invalidated") {
+		if (this.#state === PROJECT_STATES.INVALIDATED) {
+			// Already invalidated
+			return;
+		}
 		this.#state = PROJECT_STATES.INVALIDATED;
 		// Ensure any running build is aborted. Then reset the abort controller
-		this.#abortController.abort(new AbortBuildError("Project invalidated"));
+		this.#abortController.abort(new AbortBuildError(reason));
 		this.#abortController = new AbortController();
 	}
 
@@ -448,7 +469,7 @@ class ProjectBuildStatus {
 		this.#readerQueue.push(promiseResolvers);
 	}
 
-	rejectReaderRequestes(error) {
+	rejectReaderRequests(error) {
 		this.#state = PROJECT_STATES.INVALIDATED;
 		for (const {reject} of this.#readerQueue) {
 			reject(error);

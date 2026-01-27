@@ -125,7 +125,7 @@ class ProjectBuilder {
 	 *
 	 * @public
 	 * @param {Array} changes Array of resource changes to propagate
-	 * @returns {Promise<void>} Promise resolving when changes have been propagated
+	 * @returns {Set<string>} Names of projects potentially affected by the resource changes
 	 * @throws {Error} If a build is currently running
 	 */
 	resourcesChanged(changes) {
