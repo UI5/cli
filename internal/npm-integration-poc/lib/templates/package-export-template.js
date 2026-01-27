@@ -5,40 +5,6 @@
  */
 
 /**
- * Generate package export with relative paths (for gen/ namespace)
- *
- * @param packageInfo
- */
-export function generatePackageExportGen(packageInfo) {
-	const {packageName, version, chunkName} = packageInfo;
-
-	return `/*!
- * UI5 WebComponents Package Export
- */
-sap.ui.define([
-	"../../../${chunkName || packageName.split("/").pop()}"
-], function(WebCPackage) {
-	"use strict";
-
-	// Re-export package object
-	const pkg = Object.assign({}, WebCPackage);
-
-	// Export UI5 metadata
-	pkg["_ui5metadata"] = {
-		"name": "@ui5/${packageName.split("/").pop()}",
-		"version": "${version}",
-		"dependencies": ["sap.ui.core"],
-		"types": [],
-		"interfaces": [],
-		"controls": [],
-		"elements": []
-	};
-
-	return pkg;
-});`;
-}
-
-/**
  * Generate package export with absolute paths (for thirdparty/ namespace)
  *
  * @param packageInfo
