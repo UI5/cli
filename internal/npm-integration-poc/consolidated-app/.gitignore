@@ -1,0 +1,21 @@
+# Build output directories
+dist/
+dist-webc-reuse/
+dist-standalone/
+
+# Generated webcomponents
+webapp/gen/
+webapp/@ui5/
+
+# Dependencies
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# UI5 Tooling
+.ui5-tooling-modules/
+
+# Coverage
+coverage/

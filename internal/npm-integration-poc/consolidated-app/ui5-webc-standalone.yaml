@@ -1,0 +1,41 @@
+specVersion: "4.0"
+metadata:
+  name: consolidated-app
+type: application
+framework:
+  name: SAPUI5
+  version: "1.120.0"
+  libraries:
+    - name: sap.m
+    - name: sap.ui.core
+    - name: sap.ui.layout
+    - name: sap.ui.webc.main
+    - name: themelib_sap_horizon
+builder:
+  customTasks:
+    - name: webc-standalone-task
+      afterTask: replaceVersion
+      configuration:
+        enabled: true
+server:
+  customMiddleware:
+    - name: webc-standalone-middleware
+      beforeMiddleware: serveResources
+      configuration:
+        debug: true
+---
+specVersion: "4.0"
+kind: extension
+type: task
+metadata:
+  name: webc-standalone-task
+task:
+  path: ui5-task-webc-standalone.js
+---
+specVersion: "4.0"
+kind: extension
+type: server-middleware
+metadata:
+  name: webc-standalone-middleware
+middleware:
+  path: ui5-middleware-webc-standalone.js

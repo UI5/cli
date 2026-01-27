@@ -1,0 +1,119 @@
+<mvc:View
+	controllerName="com.example.app.controller.Main"
+	xmlns:mvc="sap.ui.core.mvc"
+	xmlns="sap.m"
+	xmlns:l="sap.ui.layout"
+	xmlns:f="sap.ui.layout.form"
+	xmlns:webc="sap.ui.webc.main"
+	xmlns:wcgen="com.example.app.thirdparty.@ui5.webcomponents.dist"
+	displayBlock="true">
+	
+	<App id="app">
+		<Page title="NPM Integration PoC - Form Validation Demo">
+			<content>
+			<l:VerticalLayout class="sapUiContentPadding" width="100%">
+				
+				<!-- Info Panel -->
+				<MessageStrip
+					text="This app demonstrates NPM package integration: validator.js (CJS) for validation and @ui5/webcomponents Button"
+					type="Information"
+					showIcon="true"
+					class="sapUiSmallMarginBottom" />
+				
+				<!-- Bundled MessageStrip (from @ui5/webcomponents via ui5-tooling-modules) -->
+				<wcgen:MessageStrip
+					id="bundledMessageStrip"
+					text="🎉 This MessageStrip is bundled from @ui5/webcomponents! Click the button again to hide."
+					type="Success"
+					visible="false"
+					class="sapUiSmallMarginBottom" />
+				
+				<!-- Form -->
+				<f:SimpleForm
+					id="form"
+					editable="true"
+					layout="ResponsiveGridLayout"
+					labelSpanXL="3"
+					labelSpanL="3"
+					labelSpanM="3"
+					labelSpanS="12"
+					adjustLabelSpan="false"
+					emptySpanXL="4"
+					emptySpanL="4"
+					emptySpanM="4"
+					emptySpanS="0"
+					columnsXL="1"
+					columnsL="1"
+					columnsM="1"
+					singleContainerFullSize="false">
+					
+					<f:content>
+						<Label text="Email" required="true" />
+						<Input
+							id="emailInput"
+							value="{/email}"
+							placeholder="Enter email address"
+							type="Email"
+							valueState="{/emailState}"
+							valueStateText="{/emailStateText}" />
+						
+						<Label text="Website URL" />
+						<Input
+							id="urlInput"
+							value="{/url}"
+							placeholder="Enter website URL"
+							type="Url"
+							valueState="{/urlState}"
+							valueStateText="{/urlStateText}" />
+						
+						<Label text="Comment" />
+						<TextArea
+							id="commentInput"
+							value="{/comment}"
+							placeholder="Enter your comment (will be sanitized)"
+							rows="4"
+							width="100%" />
+					</f:content>
+				</f:SimpleForm>
+				
+				<!-- Buttons -->
+				<Toolbar>
+					<ToolbarSpacer />
+					<Button
+						text="UI5 Validate"
+						press="onValidate"
+						type="Emphasized"
+						icon="sap-icon://accept" />
+					<Button
+						text="Reset"
+						press="onReset"
+						type="Default" />
+					<!-- Web Component Button -->
+					<webc:Button id="wcButton" design="Emphasized" icon="activate" click="onWebComponentClick" text="Web Component Validate" />
+				</Toolbar>
+				
+				<!-- Result Panel -->
+				<Panel
+					id="resultPanel"
+					headerText="Validation Results"
+					visible="false"
+					class="sapUiSmallMarginTop">
+					<content>
+						<VBox class="sapUiSmallMargin">
+							<Label text="Email Status:" class="sapUiTinyMarginBottom" />
+							<Text id="emailResult" class="sapUiSmallMarginBottom" />
+							
+							<Label text="URL Status:" class="sapUiTinyMarginBottom" />
+							<Text id="urlResult" class="sapUiSmallMarginBottom" />
+							
+							<Label text="Sanitized Comment:" class="sapUiTinyMarginBottom" />
+							<Text id="sanitizedResult" />
+						</VBox>
+					</content>
+				</Panel>
+				
+			</l:VerticalLayout>
+		</content>
+	</Page>
+	</App>
+</mvc:View>

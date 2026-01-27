@@ -1,0 +1,46 @@
+<mxfile host="65bd71144e">
+    <diagram name="Architecture Overview" id="architecture-overview">
+        <mxGraphModel dx="657" dy="272" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="container" value="UI5 Tooling NPM Integration" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#01579B;fontSize=16;fontStyle=1;verticalAlign=top;align=center;" parent="1" vertex="1">
+                    <mxGeometry x="80" y="80" width="640" height="280" as="geometry"/>
+                </mxCell>
+                <mxCell id="scanner" value="Scanner&#xa;&#xa;Dependency&#xa;Detection" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=12;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="120" y="160" width="140" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="bundler" value="Bundler&#xa;&#xa;Rollup.js&#xa;Transform" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=12;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="320" y="160" width="140" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="writer" value="Writer&#xa;&#xa;Workspace/&#xa;Cache" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=12;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="520" y="160" width="140" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#01579B;endArrow=classic;endFill=1;" parent="1" source="scanner" target="bundler" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=3;strokeColor=#01579B;endArrow=classic;endFill=1;" parent="1" source="bundler" target="writer" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="input1" value="package.json" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#424242;" parent="1" vertex="1">
+                    <mxGeometry x="150" y="300" width="80" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="input2" value="ESM/CJS → AMD" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#424242;" parent="1" vertex="1">
+                    <mxGeometry x="340" y="300" width="100" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="input3" value="resources/{namespace}/thirdparty/" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#424242;" parent="1" vertex="1">
+                    <mxGeometry x="520" y="300" width="140" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#757575;endArrow=classic;endFill=1;dashed=1;" parent="1" source="scanner" target="input1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#757575;endArrow=classic;endFill=1;dashed=1;" parent="1" source="bundler" target="input2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#757575;endArrow=classic;endFill=1;dashed=1;" parent="1" source="writer" target="input3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

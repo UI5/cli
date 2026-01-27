@@ -1,0 +1,36 @@
+{
+	"_version": "1.0.0",
+	"sap.app": {
+		"id": "com.example.app",
+		"type": "application",
+		"title": "NPM Integration PoC",
+		"description": "Demo app using NPM packages and UI5 Web Components",
+		"applicationVersion": {
+			"version": "1.0.0"
+		}
+	},
+	"sap.ui": {
+		"technology": "UI5",
+		"deviceTypes": {
+			"desktop": true,
+			"tablet": true,
+			"phone": true
+		}
+	},
+	"sap.ui5": {
+		"rootView": {
+			"viewName": "com.example.app.view.Main",
+			"type": "XML",
+			"id": "main"
+		},
+		"dependencies": {
+			"minUI5Version": "1.96.0",
+			"libs": {
+				"sap.m": {},
+				"sap.ui.core": {},
+				"sap.ui.layout": {},
+				"sap.ui.webc.main": {}
+			}
+		}
+	}
+}

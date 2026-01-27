@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company
+# SPDX-License-Identifier: Apache-2.0
+
+version = 1
+SPDX-PackageName = "@ui5/npm-integration-poc"
+SPDX-PackageSupplier = "SAP SE <opensource@sap.com>"
+SPDX-PackageDownloadLocation = "https://github.com/SAP/ui5-cli"
+
+[[annotations]]
+path = ["node_modules/**", "examples/**", "consolidated-app/webapp/thirdparty/**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "none"
+SPDX-License-Identifier = "CC0-1.0"
