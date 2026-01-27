@@ -304,11 +304,10 @@ class ProjectBuilder {
 		}
 
 		const cleanupSigHooks = this._registerCleanupSigHooks();
+		const pCacheWrites = [];
 		try {
 			const startTime = process.hrtime();
-			const pCacheWrites = [];
 			while (queue.length) {
-				signal?.throwIfAborted();
 				const projectBuildContext = queue.shift();
 				const project = projectBuildContext.getProject();
 				const projectName = project.getName();
@@ -327,6 +326,7 @@ class ProjectBuilder {
 						await this._buildProject(projectBuildContext);
 					}
 				}
+				signal?.throwIfAborted();
 
 				if (projectBuiltCallback && requestedProjects.includes(projectName)) {
 					projectBuiltCallback(projectName, project, projectBuildContext);
@@ -337,16 +337,12 @@ class ProjectBuilder {
 					pCacheWrites.push(projectBuildContext.writeBuildCache());
 				}
 			}
-			await Promise.all(pCacheWrites);
 			this.#log.info(`Build succeeded in ${this._getElapsedTime(startTime)}`);
 		} catch (err) {
-			if (err.name === "AbortError") {
-				this.#log.info(`Build aborted. Reason: ${err.message}`);
-			} else {
-				this.#log.error(`Build failed`);
-			}
+			this.#log.error(`Build failed`);
 			throw err;
 		} finally {
+			await Promise.all(pCacheWrites);
 			this._deregisterCleanupSigHooks(cleanupSigHooks);
 			await this._executeCleanupTasks();
 			this.#buildIsRunning = false;
