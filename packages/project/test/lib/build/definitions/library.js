@@ -68,7 +68,8 @@ test("Standard build", async (t) => {
 			options: {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
-			}
+			},
+			supportsDifferentialUpdates: true,
 		},
 		replaceVersion: {
 			options: {
@@ -208,7 +209,8 @@ test("Standard build with legacy spec version", (t) => {
 			options: {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
-			}
+			},
+			supportsDifferentialUpdates: true,
 		},
 		replaceVersion: {
 			options: {
@@ -337,7 +339,8 @@ test("Custom bundles", async (t) => {
 			options: {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
-			}
+			},
+			supportsDifferentialUpdates: true,
 		},
 		replaceVersion: {
 			options: {
@@ -686,7 +689,8 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 			options: {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
-			}
+			},
+			supportsDifferentialUpdates: true,
 		},
 		replaceVersion: {
 			options: {

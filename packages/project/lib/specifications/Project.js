@@ -47,11 +47,11 @@ class Project extends Specification {
 	async init(parameters) {
 		await super.init(parameters);
 
-		this._initStageMetadata();
 		this._buildManifest = parameters.buildManifest;
 
 		await this._configureAndValidatePaths(this._config);
 		await this._parseConfiguration(this._config, this._buildManifest);
+		this._initStageMetadata();
 
 		return this;
 	}
