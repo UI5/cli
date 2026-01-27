@@ -5,33 +5,6 @@
  */
 
 /**
- * Generate UI5 control wrapper with relative paths (for gen/ namespace)
- *
- * @param metadata
- * @param options
- */
-export function generateUI5ControlGen(metadata, options) {
-	const {componentName, ui5Metadata} = metadata;
-
-	return `/*!
- * UI5 WebComponent Wrapper
- */
-sap.ui.define([
-	"sap/ui/core/webc/WebComponent",
-	"../../../@ui5/webcomponents",
-	"../../../${componentName}"
-], function(WebComponent) {
-	"use strict";
-
-	const ${componentName} = WebComponent.extend("@ui5.webcomponents.dist.${componentName}", {
-		metadata: ${JSON.stringify(ui5Metadata, null, 2)}
-	});
-
-	return ${componentName};
-});`;
-}
-
-/**
  * Generate UI5 control wrapper with absolute paths (for thirdparty/ namespace)
  *
  * @param metadata

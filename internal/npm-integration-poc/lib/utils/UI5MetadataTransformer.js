@@ -33,8 +33,8 @@ export class UI5MetadataTransformer {
 			qualifiedNamespace: `${qualifiedNamespace}.${thirdpartyNamespace}.@ui5.webcomponents`,
 			tag: scopedTag,
 			interfaces: [],
-			properties: this.transformProperties(webComponentMetadata.properties, namespace, thirdpartyNamespace),
-			aggregations: this.transformSlots(webComponentMetadata.slots, namespace, thirdpartyNamespace),
+			properties: this.transformProperties(webComponentMetadata.properties),
+			aggregations: this.transformSlots(webComponentMetadata.slots),
 			associations: {},
 			events: this.transformEvents(webComponentMetadata.events),
 			getters: [],
@@ -79,10 +79,8 @@ export class UI5MetadataTransformer {
 	 * Transform properties
 	 *
 	 * @param properties
-	 * @param namespace
-	 * @param thirdpartyNamespace
 	 */
-	transformProperties(properties, namespace, thirdpartyNamespace) {
+	transformProperties(properties) {
 		const ui5Properties = {};
 
 		for (const prop of properties) {
@@ -112,10 +110,8 @@ export class UI5MetadataTransformer {
 	 * Transform slots to aggregations
 	 *
 	 * @param slots
-	 * @param namespace
-	 * @param thirdpartyNamespace
 	 */
-	transformSlots(slots, namespace, thirdpartyNamespace) {
+	transformSlots(slots) {
 		const ui5Aggregations = {
 			content: {
 				type: "sap.ui.core.Control",
