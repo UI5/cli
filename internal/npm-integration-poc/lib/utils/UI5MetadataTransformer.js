@@ -38,7 +38,7 @@ export class UI5MetadataTransformer {
 			associations: {},
 			events: this.transformEvents(webComponentMetadata.events),
 			getters: [],
-			methods: this.transformMethods(webComponentMetadata.methods),
+			methods: [],
 			defaultAggregation: this.findDefaultAggregation(webComponentMetadata.slots)
 		};
 	}
@@ -148,34 +148,11 @@ export class UI5MetadataTransformer {
 			ui5Events[event.name] = {
 				allowPreventDefault: false,
 				enableEventBubbling: false,
-				parameters: this.transformEventParameters(event.type?.references || [])
+				parameters: {}
 			};
 		}
 
 		return ui5Events;
-	}
-
-	/**
-	 * Transform event parameters
-	 *
-	 * @param references
-	 */
-	transformEventParameters(references) {
-		const parameters = {};
-		// For now, return empty parameters
-		// Could be extended to parse detail object structure
-		return parameters;
-	}
-
-	/**
-	 * Transform methods
-	 *
-	 * @param methods
-	 */
-	transformMethods(methods) {
-		// For now, return empty array
-		// Methods are typically not exposed in UI5 metadata
-		return [];
 	}
 
 	/**

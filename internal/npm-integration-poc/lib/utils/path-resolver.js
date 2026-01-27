@@ -68,19 +68,4 @@ export class PathResolver {
 		if (!facadeModuleId) return null;
 		return facadeModuleId.replace(/^.*\/node_modules\//, "").replace(/\.js$/, "");
 	}
-
-	/**
-	 * Transform relative paths to absolute namespace paths
-	 *
-	 * @param code
-	 */
-	toAbsolutePaths(code) {
-		return code
-			.replace(/"\.\.\/..\/..\/@ui5\/webcomponents"/g, `"${this.namespace}/${this.thirdpartyNamespace}/@ui5/webcomponents"`)
-			.replace(/"\.\.\/..\/..\/@ui5\/webcomponents-base"/g, `"${this.namespace}/${this.thirdpartyNamespace}/@ui5/webcomponents-base"`)
-			.replace(/"\.\.\/..\/..\//g, `"${this.namespace}/${this.thirdpartyNamespace}/`)
-			.replace(/@ui5\.webcomponents/g, `${this.qualifiedNamespace}.${this.thirdpartyNamespace}.@ui5.webcomponents`)
-			.replace(/namespace:"@ui5\/webcomponents"/g, `namespace:"${this.namespace}/${this.thirdpartyNamespace}/@ui5/webcomponents"`)
-			.replace(/qualifiedNamespace:"@ui5\.webcomponents"/g, `qualifiedNamespace:"${this.qualifiedNamespace}.${this.thirdpartyNamespace}.@ui5.webcomponents"`);
-	}
 }

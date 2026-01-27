@@ -18,7 +18,7 @@ export class ThirdpartyGenerator {
 	 * @param $metadata
 	 * @param log
 	 */
-	generateControlWrappers($metadata, log) {
+	generateControlWrappers($metadata, log = null) {
 		const wrappers = new Map();
 
 		for (const [, controlMeta] of Object.entries($metadata.controls || {})) {
@@ -36,9 +36,7 @@ export class ThirdpartyGenerator {
 			const path = `${this.pathResolver.thirdpartyNamespace}/@ui5/webcomponents/dist/${componentName}`;
 			wrappers.set(path, thirdpartyCode);
 
-			if (log) {
-				log.info(`✅ Generated thirdparty wrapper: ${path}`);
-			}
+			log?.info(`✅ Generated thirdparty wrapper: ${path}`);
 		}
 
 		return wrappers;
@@ -50,7 +48,7 @@ export class ThirdpartyGenerator {
 	 * @param $metadata
 	 * @param log
 	 */
-	generatePackageExports($metadata, log) {
+	generatePackageExports($metadata, log = null) {
 		const exports = new Map();
 
 		for (const [fileName, packageMeta] of Object.entries($metadata.packages || {})) {
@@ -68,20 +66,9 @@ export class ThirdpartyGenerator {
 			const path = `${this.pathResolver.thirdpartyNamespace}/${fileName.replace(/\.js$/, "")}`;
 			exports.set(path, thirdpartyCode);
 
-			if (log) {
-				log.info(`✅ Generated thirdparty package: ${path}`);
-			}
+			log?.info(`✅ Generated thirdparty package: ${path}`);
 		}
 
 		return exports;
-	}
-
-	/**
-	 * Transform gen/ wrapper to thirdparty/ wrapper by replacing paths
-	 *
-	 * @param genCode
-	 */
-	transformGenToThirdparty(genCode) {
-		return this.pathResolver.toAbsolutePaths(genCode);
 	}
 }
