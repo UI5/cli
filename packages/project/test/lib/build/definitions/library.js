@@ -99,7 +99,7 @@ test("Standard build", async (t) => {
 					"/resources/**/*.js",
 					"!**/*.support.js",
 				]
-			}
+			},
 			supportsDifferentialUpdates: true,
 		},
 		generateLibraryManifest: {},
@@ -239,7 +239,7 @@ test("Standard build with legacy spec version", (t) => {
 					"/resources/**/*.js",
 					"!**/*.support.js",
 				]
-			}
+			},
 			supportsDifferentialUpdates: true,
 		},
 		generateLibraryManifest: {},
@@ -368,7 +368,7 @@ test("Custom bundles", async (t) => {
 					"/resources/**/*.js",
 					"!**/*.support.js",
 				]
-			}
+			},
 			supportsDifferentialUpdates: true,
 		},
 		generateLibraryManifest: {},
@@ -717,7 +717,7 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 					"/resources/**/*.js",
 					"!**/*.support.js",
 				]
-			}
+			},
 			supportsDifferentialUpdates: true,
 		},
 		generateLibraryManifest: {},
