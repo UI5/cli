@@ -43,12 +43,11 @@ export default function ui5WebComponentsPlugin(options = {}) {
 			// Initialize $metadata container
 			$metadata.controls = $metadata.controls || {};
 			$metadata.packages = $metadata.packages || {};
-			$metadata.chunks = $metadata.chunks || {};
 
 			log.info("🔧 UI5 WebComponents plugin initialized");
 		},
 
-		resolveId(source, importer, options) {
+		resolveId(source) {
 			// Detect web component imports
 			if (source.startsWith("@ui5/webcomponents/dist/")) {
 				const componentPath = source.replace("@ui5/webcomponents/", "");
@@ -97,7 +96,7 @@ export default function ui5WebComponentsPlugin(options = {}) {
 			return null;
 		},
 
-		generateBundle(outputOptions, bundle) {
+		generateBundle(_outputOptions, bundle) {
 			log.info("📦 Generating UI5 wrappers...");
 
 			// Get package version

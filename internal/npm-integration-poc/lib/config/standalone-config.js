@@ -15,7 +15,6 @@ const require = createRequire(import.meta.url);
 export const DEFAULT_CONFIG = {
 	namespace: "com/example/app",
 	thirdpartyNamespace: "thirdparty",
-	scoping: false,
 	scopeSuffix: null,
 	framework: {
 		name: "SAPUI5",
