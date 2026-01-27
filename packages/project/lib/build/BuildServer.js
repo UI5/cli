@@ -5,6 +5,13 @@ import WatchHandler from "./helpers/WatchHandler.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("build:BuildServer");
 
+class AbortBuildError extends Error {
+	constructor(message) {
+		super(message);
+		this.name = "AbortBuildError";
+	}
+};
+
 /**
  * Development server that provides access to built project resources with automatic rebuilding
  *
@@ -255,7 +262,7 @@ class BuildServer extends EventEmitter {
 	#projectResourceChangedLive(project, fileAddedOrRemoved) {
 		for (const {project: affectedProject} of this.#graph.traverseDependents(project.getName(), true)) {
 			const projectBuildStatus = this.#projectBuildStatus.get(affectedProject.getName());
-			projectBuildStatus.abortBuild("Source files changed");
+			projectBuildStatus.abortBuild(new AbortBuildError(`Source change in project '${project.getName()}'`));
 			if (fileAddedOrRemoved) {
 				// Reset any cached readers in case files were added or removed
 				projectBuildStatus.resetReaderCache();
@@ -353,13 +360,9 @@ class BuildServer extends EventEmitter {
 				// Project has been built and result can be used
 				const projectBuildStatus = this.#projectBuildStatus.get(projectName);
 				projectBuildStatus.setReader(project.getReader({style: "runtime"}));
-			});
-
-			try {
-				const builtProjects = await buildPromise;
-				this.emit("buildFinished", builtProjects);
-			} catch (err) {
-				if (err.name === "AbortError") {
+			}).catch((err) => {
+				if (err instanceof AbortBuildError) {
+					log.info("Build aborted");
 					// Build was aborted - do not log as error
 					// Re-queue any outstanding projects
 					for (const projectName of projectsToBuild) {
@@ -378,10 +381,12 @@ class BuildServer extends EventEmitter {
 					// Re-throw to be handled by caller
 					throw err;
 				}
-			} finally {
-				// Clear active build
-				this.#activeBuild = null;
-			}
+			});
+
+			const builtProjects = await buildPromise;
+			this.emit("buildFinished", builtProjects);
+			// Clear active build
+			this.#activeBuild = null;
 			if (signal.aborted) {
 				log.verbose(`Build aborted for projects: ${projectsToBuild.join(", ")}`);
 				return;
@@ -405,7 +410,7 @@ class ProjectBuildStatus {
 	invalidate() {
 		this.#state = PROJECT_STATES.INVALIDATED;
 		// Ensure any running build is aborted. Then reset the abort controller
-		this.#abortController.abort();
+		this.#abortController.abort(new AbortBuildError("Project invalidated"));
 		this.#abortController = new AbortController();
 	}
 
