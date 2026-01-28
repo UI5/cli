@@ -179,6 +179,73 @@ test.serial("Build application.a project multiple times", async (t) => {
 	});
 });
 
+// eslint-disable-next-line ava/no-skip-test -- tag handling to be implemented
+test.serial.skip("Build application.a (custom task and tag handling)", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+
+	// #1 build (no cache, no changes, with custom tasks)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// Create new file which should get tagged as "OmitFromBuildResult" by a custom task
+	await fs.writeFile(`${fixtureTester.fixturePath}/webapp/fileToBeOmitted.js`,
+		`console.log("this file should be ommited in the build result")`);
+
+	// #2 build (with cache, with changes, with custom tasks)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"escapeNonAsciiCharacters",
+						// Note: replaceCopyright is skipped because no copyright is configured in the project
+						"replaceCopyright",
+						"enhanceManifest",
+						"generateFlexChangesBundle",
+					]
+				}
+			}
+		}
+	});
+
+	// Check that fileToBeOmitted.js is not in dist
+	await t.throwsAsync(fs.readFile(`${destPath}/fileToBeOmitted.js`, {encoding: "utf8"}));
+
+	// #3 build (with cache, no changes, with custom tasks)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// Check that fileToBeOmitted.js is not in dist again --> FIXME: Currently failing here
+	await t.throwsAsync(fs.readFile(`${destPath}/fileToBeOmitted.js`, {encoding: "utf8"}));
+
+	// Delete the file again
+	await fs.rm(`${fixtureTester.fixturePath}/webapp/fileToBeOmitted.js`);
+
+	// #4 build (with cache, with changes, with custom tasks)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {} // -> everything should be skipped (due to very first build)
+		}
+	});
+});
+
 test.serial("Build library.d project multiple times", async (t) => {
 	const fixtureTester = new FixtureTester(t, "library.d");
 	const destPath = fixtureTester.destPath;
@@ -397,6 +464,85 @@ test.serial("Build theme.library.e project multiple times", async (t) => {
 		config: {destPath, cleanDest: true},
 		assertions: {
 			projects: {}, // -> everything should be skipped
+		}
+	});
+});
+
+test.serial("Build component.a project multiple times", async (t) => {
+	const fixtureTester = new FixtureTester(t, "component.a");
+	const destPath = fixtureTester.destPath;
+
+
+	// #1 build (no cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"component.a": {}
+			}
+		}
+	});
+
+	// #2 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// Change a source file in component.a
+	const changedFilePath = `${fixtureTester.fixturePath}/src/test.js`;
+	await fs.appendFile(changedFilePath, `\ntest("line added");\n`);
+
+	// #3 build (with cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"component.a": {
+					skippedTasks: [
+						"escapeNonAsciiCharacters",
+						// Note: replaceCopyright is skipped because no copyright is configured in the project
+						"replaceCopyright",
+						"enhanceManifest",
+						"generateFlexChangesBundle",
+					]
+				}
+			}
+		}
+	});
+
+	// Check whether the changed file is in the destPath
+	const builtFileContent = await fs.readFile(`${destPath}/resources/id1/test.js`, {encoding: "utf8"});
+	t.true(builtFileContent.includes(`test("line added");`), "Build dest contains changed file content");
+
+	// #4 build (with cache, no changes, with dependencies)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+			}
+		}
+	});
+
+	// #5 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// #6 build (with cache, no changes, with dependencies)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {}
 		}
 	});
 });
