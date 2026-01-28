@@ -31,6 +31,27 @@ class Task extends Extension {
 		return (await this._getImplementation()).determineRequiredDependencies;
 	}
 
+	/**
+	* @public
+	*/
+	async getBuildSignatureCallback() {
+		return (await this._getImplementation()).determineBuildSignature;
+	}
+
+	/**
+	* @public
+	*/
+	async getSupportsDifferentialUpdatesCallback() {
+		return (await this._getImplementation()).supportsDifferentialUpdates;
+	}
+
+	/**
+	* @public
+	*/
+	async getExpectedOutputCallback() {
+		return (await this._getImplementation()).determineExpectedOutput;
+	}
+
 	/* === Internals === */
 	/**
 	 * @private
