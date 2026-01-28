@@ -1,14 +1,29 @@
 import test from "ava";
 import sinon from "sinon";
+import esmock from "esmock";
 import OutputStyleEnum from "../../../../lib/build/helpers/ProjectBuilderOutputStyle.js";
+
+test.beforeEach(async (t) => {
+	t.context.ProjectBuildContextCreateStub = sinon.stub().callsFake(async () => {
+		return {}; // Explicitly returning empty object to show uniqueness
+	});
+	t.context.CacheManagerCreate = sinon.stub().returns({});
+	t.context.BuildContext = await esmock("../../../../lib/build/helpers/BuildContext.js", {
+		"../../../../lib/build/helpers/ProjectBuildContext.js": {
+			create: t.context.ProjectBuildContextCreateStub
+		},
+		"../../../../lib/build/cache/CacheManager.js": {
+			create: t.context.CacheManagerCreate
+		}
+	});
+});
 
 test.afterEach.always((t) => {
 	sinon.restore();
 });
 
-import BuildContext from "../../../../lib/build/helpers/BuildContext.js";
-
 test("Missing parameters", (t) => {
+	const {BuildContext} = t.context;
 	const error1 = t.throws(() => {
 		new BuildContext();
 	});
@@ -23,6 +38,8 @@ test("Missing parameters", (t) => {
 });
 
 test("getRootProject", (t) => {
+	const {BuildContext} = t.context;
+
 	const rootProjectStub = sinon.stub()
 		.onFirstCall().returns({getType: () => "library"})
 		.returns("pony");
@@ -33,6 +50,8 @@ test("getRootProject", (t) => {
 });
 
 test("getGraph", (t) => {
+	const {BuildContext} = t.context;
+
 	const graph = {
 		getRoot: () => ({getType: () => "library"}),
 	};
@@ -42,6 +61,8 @@ test("getGraph", (t) => {
 });
 
 test("getTaskRepository", (t) => {
+	const {BuildContext} = t.context;
+
 	const graph = {
 		getRoot: () => ({getType: () => "library"}),
 	};
@@ -51,6 +72,8 @@ test("getTaskRepository", (t) => {
 });
 
 test("getBuildConfig: Default values", (t) => {
+	const {BuildContext} = t.context;
+
 	const graph = {
 		getRoot: () => ({getType: () => "library"}),
 	};
@@ -68,6 +91,8 @@ test("getBuildConfig: Default values", (t) => {
 });
 
 test("getBuildConfig: Custom values", (t) => {
+	const {BuildContext} = t.context;
+
 	const buildContext = new BuildContext({
 		getRoot: () => {
 			return {
@@ -96,6 +121,8 @@ test("getBuildConfig: Custom values", (t) => {
 });
 
 test("createBuildManifest not supported for type application", (t) => {
+	const {BuildContext} = t.context;
+
 	const err = t.throws(() => {
 		new BuildContext({
 			getRoot: () => {
@@ -113,6 +140,8 @@ test("createBuildManifest not supported for type application", (t) => {
 });
 
 test("createBuildManifest not supported for type module", (t) => {
+	const {BuildContext} = t.context;
+
 	const err = t.throws(() => {
 		new BuildContext({
 			getRoot: () => {
@@ -130,6 +159,8 @@ test("createBuildManifest not supported for type module", (t) => {
 });
 
 test("createBuildManifest not supported for self-contained build", (t) => {
+	const {BuildContext} = t.context;
+
 	const err = t.throws(() => {
 		new BuildContext({
 			getRoot: () => {
@@ -148,6 +179,8 @@ test("createBuildManifest not supported for self-contained build", (t) => {
 });
 
 test("createBuildManifest supported for css-variables build", (t) => {
+	const {BuildContext} = t.context;
+
 	t.notThrows(() => {
 		new BuildContext({
 			getRoot: () => {
@@ -163,6 +196,8 @@ test("createBuildManifest supported for css-variables build", (t) => {
 });
 
 test("createBuildManifest supported for jsdoc build", (t) => {
+	const {BuildContext} = t.context;
+
 	t.notThrows(() => {
 		new BuildContext({
 			getRoot: () => {
@@ -178,6 +213,8 @@ test("createBuildManifest supported for jsdoc build", (t) => {
 });
 
 test("outputStyle='Namespace' supported for type application", (t) => {
+	const {BuildContext} = t.context;
+
 	t.notThrows(() => {
 		new BuildContext({
 			getRoot: () => {
@@ -192,6 +229,8 @@ test("outputStyle='Namespace' supported for type application", (t) => {
 });
 
 test("outputStyle='Flat' not supported for type theme-library", (t) => {
+	const {BuildContext} = t.context;
+
 	const err = t.throws(() => {
 		new BuildContext({
 			getRoot: () => {
@@ -210,6 +249,8 @@ test("outputStyle='Flat' not supported for type theme-library", (t) => {
 });
 
 test("outputStyle='Flat' not supported for type module", (t) => {
+	const {BuildContext} = t.context;
+
 	const err = t.throws(() => {
 		new BuildContext({
 			getRoot: () => {
@@ -228,6 +269,8 @@ test("outputStyle='Flat' not supported for type module", (t) => {
 });
 
 test("outputStyle='Flat' not supported for createBuildManifest build", (t) => {
+	const {BuildContext} = t.context;
+
 	const err = t.throws(() => {
 		new BuildContext({
 			getRoot: () => {
@@ -246,6 +289,8 @@ test("outputStyle='Flat' not supported for createBuildManifest build", (t) => {
 });
 
 test("getOption", (t) => {
+	const {BuildContext} = t.context;
+
 	const graph = {
 		getRoot: () => ({getType: () => "library"}),
 	};
@@ -260,23 +305,25 @@ test("getOption", (t) => {
 		"(not exposed as build option)");
 });
 
-test("createProjectContext", async (t) => {
-	const graph = {
-		getRoot: () => ({getType: () => "library"}),
-	};
-	const buildContext = new BuildContext(graph, "taskRepository");
-	const projectBuildContext = await buildContext.createProjectContext({
-		project: {
-			getName: () => "project",
-			getType: () => "type",
-		},
-	});
+test("getProjectContext", async (t) => {
+	const {BuildContext} = t.context;
 
-	t.deepEqual(buildContext._projectBuildContexts, [projectBuildContext],
-		"Project build context has been added to internal array");
+	const rootProjectStub = sinon.stub()
+		.returns({getType: () => "library", getRootPath: () => ""});
+	const graph = {getRoot: rootProjectStub, getProject: () => "project"};
+
+	const buildContext = new BuildContext(graph, "taskRepository");
+	const projectBuildContext = await buildContext.getProjectContext("project");
+	t.is(t.context.ProjectBuildContextCreateStub.callCount, 1);
+
+	const projectBuildContext2 = await buildContext.getProjectContext("project");
+	t.is(t.context.ProjectBuildContextCreateStub.callCount, 1);
+	t.is(projectBuildContext, projectBuildContext2);
 });
 
 test("executeCleanupTasks", async (t) => {
+	const {BuildContext} = t.context;
+
 	const graph = {
 		getRoot: () => ({getType: () => "library"}),
 	};
@@ -284,12 +331,8 @@ test("executeCleanupTasks", async (t) => {
 
 	const executeCleanupTasks = sinon.stub().resolves();
 
-	buildContext._projectBuildContexts.push({
-		executeCleanupTasks
-	});
-	buildContext._projectBuildContexts.push({
-		executeCleanupTasks
-	});
+	buildContext._projectBuildContexts.set("project", {executeCleanupTasks});
+	buildContext._projectBuildContexts.set("project2", {executeCleanupTasks});
 
 	await buildContext.executeCleanupTasks();
 
