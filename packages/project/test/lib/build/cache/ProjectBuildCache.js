@@ -436,7 +436,7 @@ test("prepareProjectBuildAndValidateCache: returns false for empty cache", async
 	t.is(result, false, "Returns false for empty cache");
 });
 
-test("_initDependencyIndices: updates dependency indices", async (t) => {
+test("_refreshDependencyIndices: updates dependency indices", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 
@@ -504,7 +504,7 @@ test("_initDependencyIndices: updates dependency indices", async (t) => {
 		byPath: sinon.stub().resolves(null)
 	};
 
-	await cache._initDependencyIndices(mockDependencyReader);
+	await cache._refreshDependencyIndices(mockDependencyReader);
 
 	t.pass("Dependency indices refreshed");
 });

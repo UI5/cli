@@ -160,7 +160,7 @@ export default class BuildTaskCache {
 	 *
 	 * @public
 	 * @param {module:@ui5/fs.AbstractReader} dependencyReader Reader for accessing dependency resources
-	 * @returns {Promise<boolean>} True if any index has changed
+	 * @returns {Promise<void>}
 	 */
 	refreshDependencyIndices(dependencyReader) {
 		return this.#dependencyRequestManager.refreshIndices(dependencyReader);

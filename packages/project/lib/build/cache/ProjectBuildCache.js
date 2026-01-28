@@ -11,13 +11,18 @@ import ResourceIndex from "./index/ResourceIndex.js";
 import {firstTruthy} from "./utils.js";
 const log = getLogger("build:cache:ProjectBuildCache");
 
-export const CACHE_STATES = Object.freeze({
-	INITIALIZING: "initializing",
-	INITIALIZED: "initialized",
-	EMPTY: "empty",
-	REQUIRES_VALIDATION: "requires_validation",
+export const INDEX_STATES = Object.freeze({
+	RESTORING_PROJECT_INDICES: "restoring_project_indices",
+	RESTORING_DEPENDENCY_INDICES: "restoring_dependency_indices",
+	INITIAL: "initial",
 	FRESH: "fresh",
-	INVALIDATED: "invalidated",
+	REQUIRES_UPDATE: "requires_update",
+});
+
+export const RESULT_CACHE_STATES = Object.freeze({
+	PENDING_VALIDATION: "pending_validation",
+	NO_CACHE: "no_cache",
+	FRESH_AND_IN_USE: "fresh_and_in_use",
 });
 
 /**
@@ -53,8 +58,9 @@ export default class ProjectBuildCache {
 	#changedDependencyResourcePaths = [];
 	#writtenResultResourcePaths = [];
 
-	#cacheState = CACHE_STATES.INITIALIZING;
-	#dependencyIndicesInitialized = false;
+	#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
+	#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
+	// #dependencyIndicesInitialized = false;
 
 	/**
 	 * Creates a new ProjectBuildCache instance
@@ -104,53 +110,74 @@ export default class ProjectBuildCache {
 	 *
 	 * @public
 	 * @param {@ui5/fs/AbstractReader} dependencyReader Reader for dependency resources
-	 * @returns {Promise<string[]|false|undefined>}
-	 *   Undefined if no cache has been found, false if cache is empty,
-	 *   or an array of changed resource paths
+	 * @returns {Promise<string[]|boolean>}
+	 *  Array of changed resource paths since last build, true if cache is fresh, false
+	 *  if cache is empty
 	 */
 	async prepareProjectBuildAndValidateCache(dependencyReader) {
 		this.#currentProjectReader = this.#project.getReader();
 		this.#currentDependencyReader = dependencyReader;
 
-		if (!this.#dependencyIndicesInitialized) {
+		if (this.#combinedIndexState === INDEX_STATES.INITIAL) {
+			log.verbose(`Project ${this.#project.getName()} has an empty index cache, skipping change processing.`);
+			return false;
+		}
+
+		if (this.#combinedIndexState === INDEX_STATES.RESTORING_DEPENDENCY_INDICES) {
 			const updateStart = performance.now();
-			await this._initDependencyIndices(dependencyReader);
+			await this._refreshDependencyIndices(dependencyReader);
 			if (log.isLevelEnabled("perf")) {
 				log.perf(
 					`Initialized dependency indices for project ${this.#project.getName()} ` +
 					`in ${(performance.now() - updateStart).toFixed(2)} ms`);
 			}
-			this.#dependencyIndicesInitialized = true;
+			this.#combinedIndexState = INDEX_STATES.FRESH;
+
+			// After initializing dependency indices, the result cache must be validated
+			// This should be it's initial state anyways, so we just verify it here
+			if (this.#resultCacheState !== RESULT_CACHE_STATES.PENDING_VALIDATION) {
+				throw new Error(`Unexpected result cache state after restoring dependency indices ` +
+					`for project ${this.#project.getName()}: ${this.#resultCacheState}`);
+			}
 		}
 
-		if (this.#cacheState === CACHE_STATES.INITIALIZING) {
-			throw new Error(`Project ${this.#project.getName()} build cache unexpectedly not yet initialized.`);
+		if (this.#combinedIndexState === INDEX_STATES.REQUIRES_UPDATE) {
+			const flushStart = performance.now();
+			const changesDetected = await this.#flushPendingChanges();
+			if (changesDetected) {
+				this.#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
+			}
+			if (log.isLevelEnabled("perf")) {
+				log.perf(
+					`Flushed pending changes for project ${this.#project.getName()} ` +
+						`in ${(performance.now() - flushStart).toFixed(2)} ms`);
+			}
+			this.#combinedIndexState = INDEX_STATES.FRESH;
 		}
-		if (this.#cacheState === CACHE_STATES.EMPTY) {
-			log.verbose(`Project ${this.#project.getName()} has empty cache, skipping change processing.`);
-			return false;
+
+		if (this.#resultCacheState === RESULT_CACHE_STATES.PENDING_VALIDATION) {
+			log.verbose(`Project ${this.#project.getName()} cache requires validation due to detected changes.`);
+			const findStart = performance.now();
+			const changedResourcesOrFalse = await this.#findResultCache();
+			if (log.isLevelEnabled("perf")) {
+				log.perf(
+					`Validated result cache for project ${this.#project.getName()} ` +
+					`in ${(performance.now() - findStart).toFixed(2)} ms`);
+			}
+			if (changedResourcesOrFalse) {
+				this.#resultCacheState = RESULT_CACHE_STATES.FRESH_AND_IN_USE;
+			} else {
+				this.#resultCacheState = RESULT_CACHE_STATES.NO_CACHE;
+			}
+			return changedResourcesOrFalse;
 		}
-		const flushStart = performance.now();
-		await this.#flushPendingChanges();
-		if (log.isLevelEnabled("perf")) {
-			log.perf(
-				`Flushed pending changes for project ${this.#project.getName()} ` +
-					`in ${(performance.now() - flushStart).toFixed(2)} ms`);
-		}
-		const findStart = performance.now();
-		const changedResources = await this.#findResultCache();
-		if (log.isLevelEnabled("perf")) {
-			log.perf(
-				`Validated result cache for project ${this.#project.getName()} ` +
-				`in ${(performance.now() - findStart).toFixed(2)} ms`);
-		}
-		return changedResources;
+		return this.isFresh();
 	}
 
 	/**
 	 * Processes changed resources since last build, updating indices and invalidating tasks as needed
 	 *
-	 * @returns {Promise<void>}
+	 * @returns {Promise<boolean>}
 	 */
 	async #flushPendingChanges() {
 		if (this.#changedProjectSourcePaths.length === 0 &&
@@ -174,16 +201,16 @@ export default class ProjectBuildCache {
 			}));
 		}
 
-		if (sourceIndexChanged || depIndicesChanged) {
-			// Relevant resources have changed, mark the cache as invalidated
-			this.#cacheState = CACHE_STATES.INVALIDATED;
-		} else {
-			log.verbose(`No relevant resource changes detected for project ${this.#project.getName()}`);
-		}
-
 		// Reset pending changes
 		this.#changedProjectSourcePaths = [];
 		this.#changedDependencyResourcePaths = [];
+
+		if (sourceIndexChanged || depIndicesChanged) {
+			// Relevant resources have changed, mark the cache as invalidated
+			return true;
+		} else {
+			log.verbose(`No relevant resource changes detected for project ${this.#project.getName()}`);
+		}
 	}
 
 	/**
@@ -194,25 +221,10 @@ export default class ProjectBuildCache {
 	 * @param {@ui5/fs/AbstractReader} dependencyReader Reader for dependency resources
 	 * @returns {Promise<void>}
 	 */
-	async _initDependencyIndices(dependencyReader) {
-		if (this.#cacheState === CACHE_STATES.EMPTY) {
-			// No need to update indices for empty cache
-			return false;
-		}
-		let depIndicesChanged = false;
+	async _refreshDependencyIndices(dependencyReader) {
 		await Promise.all(Array.from(this.#taskCache.values()).map(async (taskCache) => {
-			const changed = await taskCache.refreshDependencyIndices(dependencyReader);
-			if (changed) {
-				depIndicesChanged = true;
-			}
+			await taskCache.refreshDependencyIndices(dependencyReader);
 		}));
-		if (depIndicesChanged) {
-			// Relevant resources have changed, mark the cache as invalidated
-			this.#cacheState = CACHE_STATES.INVALIDATED;
-		} else if (this.#cacheState === CACHE_STATES.INITIALIZING) {
-			// Dependency index is up-to-date. Set cache state to initialized (if it was still initializing)
-			this.#cacheState = CACHE_STATES.INITIALIZED;
-		}
 		// Reset pending dependency changes since indices are fresh now anyways
 		this.#changedDependencyResourcePaths = [];
 	}
@@ -224,7 +236,8 @@ export default class ProjectBuildCache {
 	 * @returns {boolean} True if the cache is fresh
 	 */
 	isFresh() {
-		return this.#cacheState === CACHE_STATES.FRESH;
+		return this.#combinedIndexState === INDEX_STATES.FRESH &&
+			this.#resultCacheState === RESULT_CACHE_STATES.FRESH_AND_IN_USE;
 	}
 
 	/**
@@ -234,30 +247,15 @@ export default class ProjectBuildCache {
 	 * If found, creates a reader for the cached stage and sets it as the project's
 	 * result stage.
 	 *
-	 * @returns {Promise<string[]|undefined>}
-	 *   Array of resource paths written by the cached result stage, or undefined if no cache found
+	 * @returns {Promise<string[]|false>}
+	 *   Array of resource paths written by the cached result stage (empty if the result stage remains unchanged),
+	 *   or false if no cache found
 	 */
 	async #findResultCache() {
-		if (this.#cacheState === CACHE_STATES.REQUIRES_VALIDATION && this.#currentResultSignature) {
-			log.verbose(
-				`Project ${this.#project.getName()} cache requires validation but no changes have been detected. ` +
-				`Continuing with current result stage: ${this.#currentResultSignature}`);
-			this.#cacheState = CACHE_STATES.FRESH;
-			return [];
-		}
-
-		if (![
-			CACHE_STATES.REQUIRES_VALIDATION, CACHE_STATES.INVALIDATED, CACHE_STATES.INITIALIZED
-		].includes(this.#cacheState)) {
-			log.verbose(`Project ${this.#project.getName()} cache state is ${this.#cacheState}, ` +
-				`skipping result cache validation.`);
-			return;
-		}
 		const resultSignatures = this.#getPossibleResultStageSignatures();
 		if (resultSignatures.includes(this.#currentResultSignature)) {
 			log.verbose(
 				`Project ${this.#project.getName()} result stage signature unchanged: ${this.#currentResultSignature}`);
-			this.#cacheState = CACHE_STATES.FRESH;
 			return [];
 		}
 
@@ -274,7 +272,7 @@ export default class ProjectBuildCache {
 			log.verbose(
 				`No cached stage found for project ${this.#project.getName()}. Searched with ` +
 				`${resultSignatures.length} possible signatures.`);
-			return;
+			return false;
 		}
 		const [resultSignature, resultMetadata] = res;
 		log.verbose(`Found result cache with signature ${resultSignature}`);
@@ -286,7 +284,6 @@ export default class ProjectBuildCache {
 			`Using cached result stage for project ${this.#project.getName()} with index signature ${resultSignature}`);
 		this.#currentResultSignature = resultSignature;
 		this.#cachedResultSignature = resultSignature;
-		this.#cacheState = CACHE_STATES.FRESH;
 		return writtenResourcePaths;
 	}
 
@@ -685,7 +682,9 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Records changed source files of the project and marks cache as requiring validation
+	 * Records changed source files of the project and marks cache as requiring validation.
+	 * This method must not be called during creation of the ProjectBuildCache or while the project is being built to
+	 * avoid inconsistent result and cache corruption.
 	 *
 	 * @public
 	 * @param {string[]} changedPaths Changed project source file paths
@@ -696,14 +695,16 @@ export default class ProjectBuildCache {
 				this.#changedProjectSourcePaths.push(resourcePath);
 			}
 		}
-		if (this.#cacheState !== CACHE_STATES.EMPTY) {
-			// If there is a cache, mark it as requiring validation
-			this.#cacheState = CACHE_STATES.REQUIRES_VALIDATION;
+		if (this.#combinedIndexState !== INDEX_STATES.INITIAL) {
+			// If there is an index cache, mark it as requiring update
+			this.#combinedIndexState = INDEX_STATES.REQUIRES_UPDATE;
 		}
 	}
 
 	/**
-	 * Records changed dependency resources and marks cache as requiring validation
+	 * Records changed dependency resources and marks cache as requiring validation.
+	 * This method must not be called during creation of the ProjectBuildCache or while the project is being built to
+	 * avoid inconsistent result and cache corruption.
 	 *
 	 * @public
 	 * @param {string[]} changedPaths Changed dependency resource paths
@@ -714,9 +715,9 @@ export default class ProjectBuildCache {
 				this.#changedDependencyResourcePaths.push(resourcePath);
 			}
 		}
-		if (this.#cacheState !== CACHE_STATES.EMPTY) {
-			// If there is a cache, mark it as requiring validation
-			this.#cacheState = CACHE_STATES.REQUIRES_VALIDATION;
+		if (this.#combinedIndexState !== INDEX_STATES.INITIAL) {
+			// If there is an index cache, mark it as requiring update
+			this.#combinedIndexState = INDEX_STATES.REQUIRES_UPDATE;
 		}
 	}
 
@@ -749,7 +750,10 @@ export default class ProjectBuildCache {
 	 */
 	async allTasksCompleted() {
 		this.#project.useResultStage();
-		this.#cacheState = CACHE_STATES.FRESH;
+		if (this.#combinedIndexState === INDEX_STATES.INITIAL) {
+			this.#combinedIndexState = INDEX_STATES.FRESH;
+		}
+		this.#resultCacheState = RESULT_CACHE_STATES.FRESH_AND_IN_USE;
 		const changedPaths = this.#writtenResultResourcePaths;
 
 		this.#currentResultSignature = this.#getResultStageSignature();
@@ -817,20 +821,22 @@ export default class ProjectBuildCache {
 
 			if (changedPaths.length) {
 				// Relevant resources have changed, mark the cache as invalidated
-				this.#cacheState = CACHE_STATES.INVALIDATED;
+				// this.#resultCacheState = RESULT_CACHE_STATES.INVALIDATED;
 			} else {
 				// Source index is up-to-date, awaiting dependency indices validation
 				// Status remains at initializing
-				this.#cacheState = CACHE_STATES.INITIALIZING;
+				// this.#resultCacheState = RESULT_CACHE_STATES.INITIALIZING;
 				this.#cachedSourceSignature = resourceIndex.getSignature();
 			}
 			this.#sourceIndex = resourceIndex;
 			// Since all source files are part of the result, declare any detected changes as newly written resources
 			this.#writtenResultResourcePaths = changedPaths;
+			// Now awaiting initialization of dependency indices
+			this.#combinedIndexState = INDEX_STATES.RESTORING_DEPENDENCY_INDICES;
 		} else {
 			// No index cache found, create new index
 			this.#sourceIndex = await ResourceIndex.create(resources, Date.now());
-			this.#cacheState = CACHE_STATES.EMPTY;
+			this.#combinedIndexState = INDEX_STATES.INITIAL;
 		}
 	}
 
@@ -838,7 +844,7 @@ export default class ProjectBuildCache {
 	 * Updates the source index with changed resource paths
 	 *
 	 * @param {string[]} changedResourcePaths Array of changed resource paths
-	 * @returns {Promise<boolean>} True if index was updated
+	 * @returns {Promise<boolean>} True if changes were detected, false otherwise
 	 */
 	async #updateSourceIndex(changedResourcePaths) {
 		const sourceReader = this.#project.getSourceReader();
@@ -877,9 +883,10 @@ export default class ProjectBuildCache {
 	 * Stores all cache data to persistent storage
 	 *
 	 * This method:
-	 * 1. Stores the result stage with all resources
-	 * 2. Writes the resource index and task metadata
-	 * 3. Stores all stage caches from the queue
+	 * 1. Stores the signatures of all stages that lead to the current build result
+	 * 2. Writes all pending task stage caches to persistent storage
+	 * 3. Writes task request metadata to persistent storage
+	 * 4. Writes the source resource index to persistent storage
 	 *
 	 * @public
 	 * @returns {Promise<void>}
@@ -889,8 +896,8 @@ export default class ProjectBuildCache {
 		await Promise.all([
 			this.#writeResultCache(),
 
-			this.#writeTaskStageCaches(),
-			this.#writeTaskMetadataCaches(),
+			this.#writeTaskStageCache(),
+			this.#writeTaskRequestCache(),
 
 			this.#writeSourceIndex(),
 		]);
@@ -902,11 +909,8 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Writes the result metadata to persistent cache storage
-	 *
-	 * Collects all resources from the result stage (excluding source reader),
-	 * stores their content via the cache manager, and writes stage metadata
-	 * including resource information.
+	 * Stores the signatures of all stages that lead to the current build result. This can be used to
+	 * recreate the build result
 	 *
 	 * @returns {Promise<void>}
 	 */
@@ -934,7 +938,7 @@ export default class ProjectBuildCache {
 	 *
 	 * @returns {Promise<void>}
 	 */
-	async #writeTaskStageCaches() {
+	async #writeTaskStageCache() {
 		if (!this.#stageCache.hasPendingCacheQueue()) {
 			return;
 		}
@@ -1001,11 +1005,11 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Writes task metadata caches to persistent storage
+	 * Writes task request metadata to persistent storage
 	 *
 	 * @returns {Promise<void>}
 	 */
-	async #writeTaskMetadataCaches() {
+	async #writeTaskRequestCache() {
 		// Store task caches
 		for (const [taskName, taskCache] of this.#taskCache) {
 			if (taskCache.hasNewOrModifiedCacheEntries()) {
