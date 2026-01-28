@@ -418,7 +418,7 @@ test("ResourceRequestGraph: toCacheObject exports graph structure", (t) => {
 	t.deepEqual(exportedNode2.addedRequests, ["path:b.js"]);
 });
 
-test("ResourceRequestGraph: fromCacheObject reconstructs graph", (t) => {
+test("ResourceRequestGraph: fromCache reconstructs graph", (t) => {
 	const graph1 = new ResourceRequestGraph();
 
 	const set1 = [new Request("path", "a.js")];
@@ -432,7 +432,7 @@ test("ResourceRequestGraph: fromCacheObject reconstructs graph", (t) => {
 
 	// Export and reconstruct
 	const exported = graph1.toCacheObject();
-	const graph2 = ResourceRequestGraph.fromCacheObject(exported);
+	const graph2 = ResourceRequestGraph.fromCache(exported);
 
 	// Verify reconstruction
 	t.is(graph2.nodes.size, 2);

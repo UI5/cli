@@ -68,7 +68,7 @@ class ResourceRequestManager {
 	static fromCache(projectName, taskName, useDifferentialUpdate, {
 		requestSetGraph, rootIndices, deltaIndices, unusedAtLeastOnce
 	}) {
-		const requestGraph = ResourceRequestGraph.fromCacheObject(requestSetGraph);
+		const requestGraph = ResourceRequestGraph.fromCache(requestSetGraph);
 		const resourceRequestManager = new ResourceRequestManager(
 			projectName, taskName, useDifferentialUpdate, requestGraph, unusedAtLeastOnce);
 		const registries = new Map();
@@ -134,12 +134,12 @@ class ResourceRequestManager {
 	 *
 	 * @public
 	 * @param {module:@ui5/fs.AbstractReader} reader Reader for accessing project resources
-	 * @returns {Promise<boolean>} True if any changes were detected, false otherwise
+	 * @returns {Promise<void>}
 	 */
 	async refreshIndices(reader) {
 		if (this.#requestGraph.getSize() === 0) {
 			// No requests recorded -> No updates necessary
-			return false;
+			return;
 		}
 
 		const resourceCache = new Map();
@@ -164,6 +164,8 @@ class ResourceRequestManager {
 				await resourceIndex.upsertResources(resourcesToUpdate);
 			}
 		}
+
+		await this.#flushTreeChangesWithoutDiffTracking();
 	}
 
 	/**
