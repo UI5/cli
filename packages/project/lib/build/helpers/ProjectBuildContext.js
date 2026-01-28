@@ -258,7 +258,7 @@ class ProjectBuildContext {
 	 * Creates a dependency reader and validates the cache state against current resources.
 	 * Must be called before buildProject().
 	 *
-	 * @returns {Promise<true|false|undefined>}
+	 * @returns {Promise<true|false>}
 	 *   True if a valid cache was found and is being used. False otherwise (indicating a build is required).
 	 */
 	async prepareProjectBuildAndValidateCache() {

@@ -661,7 +661,7 @@ export default class ResourceRequestGraph {
 	 * @param {number} metadata.nextId Next available node ID
 	 * @returns {ResourceRequestGraph} Reconstructed graph instance
 	 */
-	static fromCacheObject(metadata) {
+	static fromCache(metadata) {
 		const graph = new ResourceRequestGraph();
 
 		// Restore nextId
