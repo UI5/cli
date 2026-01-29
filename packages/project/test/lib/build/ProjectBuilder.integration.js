@@ -241,7 +241,7 @@ test.serial.skip("Build application.a (custom task and tag handling)", async (t)
 		graphConfig: {rootConfigPath: "ui5-customTask.yaml"},
 		config: {destPath, cleanDest: true},
 		assertions: {
-			projects: {} // -> everything should be skipped (due to very first build)
+			projects: {} // everything should be skipped (already done in very first build)
 		}
 	});
 });
@@ -545,6 +545,87 @@ test.serial("Build component.a project multiple times", async (t) => {
 			projects: {}
 		}
 	});
+});
+
+test.serial("Build module.b project multiple times", async (t) => {
+	const fixtureTester = new FixtureTester(t, "module.b");
+	const destPath = fixtureTester.destPath;
+
+
+	// #1 build (no cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		},
+	});
+
+	// #2 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// Add new folder (with files)
+	await fs.mkdir(`${fixtureTester.fixturePath}/newFolder`, {recursive: true});
+	await fs.writeFile(`${fixtureTester.fixturePath}/newFolder/newFile.js`,
+		`console.log("This is a new file in a new folder.");`
+	);
+	// Update path mapping of ui5.yaml to include new folder
+	await fs.writeFile(`${fixtureTester.fixturePath}/ui5.yaml`,
+		`---
+specVersion: "5.0"
+type: module
+metadata:
+  name: module.b
+resources:
+  configuration:
+    paths:
+      /resources/b/module/dev/: dev
+      /resources/b/module/newFolder/: newFolder`
+	);
+
+	// #3 build (no cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// Check whether the added file is in the destPath
+	const builtFileContent = await fs.readFile(`${destPath}/resources/b/module/newFolder/newFile.js`,
+		{encoding: "utf8"});
+	t.true(builtFileContent.includes(`console.log("This is a new file in a new folder.");`),
+		"Build dest contains changed file content");
+
+	// Delete the new folder and its contents again
+	await fs.rm(`${fixtureTester.fixturePath}/newFolder`, {recursive: true, force: true});
+	// Remove the path mapping from ui5.yaml again (Revert to original)
+	await fs.writeFile(`${fixtureTester.fixturePath}/ui5.yaml`,
+		`---
+specVersion: "5.0"
+type: module
+metadata:
+  name: module.b
+resources:
+  configuration:
+    paths:
+      /resources/b/module/dev/: dev`
+	);
+
+	// #4 build (no cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {} // everything should be skipped (already done in very first build)
+		},
+	});
+
+	// Check that the added file is NOT in the destPath anymore
+	await t.throwsAsync(fs.readFile(`${destPath}/resources/b/module/newFolder/newFile.js`, {encoding: "utf8"}));
 });
 
 function getFixturePath(fixtureName) {
