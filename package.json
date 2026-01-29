@@ -53,13 +53,13 @@
 	},
 	"overrides": {
 		"pacote@<=20": {
-			"tar": "^7.5.6"
+			"tar": "^7.5.7"
 		},
 		"cacache@18": {
-			"tar": "^7.5.6"
+			"tar": "^7.5.7"
 		},
 		"node-gyp@10": {
-			"tar": "^7.5.6"
+			"tar": "^7.5.7"
 		}
 	},
 	"workspaces": [
