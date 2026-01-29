@@ -1,0 +1,9 @@
+---
+specVersion: "5.0"
+type: module
+metadata:
+  name: module.b
+resources:
+  configuration:
+    paths:
+      /resources/b/module/dev/: dev
