@@ -3,35 +3,32 @@
  *
  * Demonstrates bundling a pure ESM-only package (nanoid v5+) for UI5 consumption
  * nanoid is a modern ESM-only package that cannot be used directly with require()
+ *
+ * Compares: Custom Rollup bundler vs ui5-tooling-modules
  */
 
 import {
 	createRollupConfig,
 	generateAMDBundle,
-	writeScenarioOutput,
-	printBundleInfo,
-	printScenarioHeader
+	printScenarioHeader,
+	runDualBundling
 } from "./shared-config.js";
 
-printScenarioHeader(1, "ESM Integration - nanoid (Pure ESM)", "Pure ESM-only package → UI5 AMD module");
+const SCENARIO_NAME = "01-esm-integration";
+const PACKAGE_NAME = "nanoid";
 
-async function bundleNanoid() {
-	console.log("\n📦 Bundling nanoid (Pure ESM-only package)...\n");
+printScenarioHeader(1, "ESM Integration - nanoid (Pure ESM)", "Pure ESM-only package → UI5 AMD module\nCompares: Custom Rollup vs ui5-tooling-modules");
 
-	try {
-		const config = createRollupConfig("nanoid");
-		const code = await generateAMDBundle(config);
-
-		printBundleInfo(code, "nanoid");
-
-		const outputFile = await writeScenarioOutput("01-esm-integration", "nanoid.js", code);
-		console.log(`\n💾 Saved to: ${outputFile}`);
-
-		return code;
-	} catch (error) {
-		console.error("❌ Error:", error.message);
-		throw error;
-	}
+try {
+	await runDualBundling({
+		scenarioName: SCENARIO_NAME,
+		packageNames: PACKAGE_NAME,
+		customBundler: async (pkg) => {
+			const config = createRollupConfig(pkg);
+			return await generateAMDBundle(config);
+		},
+	});
+} catch (error) {
+	console.error("❌ Error:", error.message);
+	throw error;
 }
-
-bundleNanoid();
