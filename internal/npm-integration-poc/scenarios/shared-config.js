@@ -10,6 +10,7 @@ import commonjs from "@rollup/plugin-commonjs";
 import {mkdir, writeFile} from "fs/promises";
 import {dirname, join} from "path";
 import {fileURLToPath} from "url";
+import ui5AmdExportsPlugin from "../lib/plugins/rollup-plugin-ui5-amd-exports.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -49,7 +50,8 @@ export async function generateAMDBundle(config) {
 		format: "amd",
 		amd: {
 			define: "sap.ui.define"
-		}
+		},
+		plugins: [ui5AmdExportsPlugin()]
 	});
 
 	return output[0].code;
@@ -68,7 +70,8 @@ export async function generateAMDBundleWithOutput(config) {
 		format: "amd",
 		amd: {
 			define: "sap.ui.define"
-		}
+		},
+		plugins: [ui5AmdExportsPlugin()]
 	});
 
 	return output;
