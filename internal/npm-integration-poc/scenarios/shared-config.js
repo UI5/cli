@@ -18,8 +18,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  *
  * @param input
  * @param extraPlugins
+ * @param options Additional rollup options (e.g., external)
  */
-export function createRollupConfig(input, extraPlugins = []) {
+export function createRollupConfig(input, extraPlugins = [], options = {}) {
 	return {
 		input,
 		plugins: [
@@ -31,7 +32,8 @@ export function createRollupConfig(input, extraPlugins = []) {
 				transformMixedEsModules: true
 			}),
 			...extraPlugins
-		]
+		],
+		...options
 	};
 }
 
@@ -51,6 +53,25 @@ export async function generateAMDBundle(config) {
 	});
 
 	return output[0].code;
+}
+
+/**
+ * Generate AMD bundle with full output (for multi-chunk scenarios)
+ *
+ * @param config
+ * @returns {Promise<Array>} Full output array with all chunks
+ */
+export async function generateAMDBundleWithOutput(config) {
+	const bundle = await rollup(config);
+
+	const {output} = await bundle.generate({
+		format: "amd",
+		amd: {
+			define: "sap.ui.define"
+		}
+	});
+
+	return output;
 }
 
 /**
