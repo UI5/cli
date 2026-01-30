@@ -8,47 +8,45 @@
  * - proxy-from-env (proxy configuration)
  *
  * All transitive dependencies are automatically bundled by Rollup.
+ *
+ * Compares: Custom Rollup bundler vs ui5-tooling-modules
  */
 
 import {
 	createRollupConfig,
 	generateAMDBundle,
-	writeScenarioOutput,
-	printBundleInfo,
-	printScenarioHeader
+	printScenarioHeader,
+	runDualBundling
 } from "./shared-config.js";
 
-printScenarioHeader(5, "Transitive Dependencies - axios (HTTP Client)", "HTTP client with transitive deps → UI5 AMD module");
+const SCENARIO_NAME = "05-transitive-axios";
+const PACKAGE_NAME = "axios";
 
-async function bundleAxios() {
-	console.log("\n📦 Bundling axios (HTTP client with transitive deps)...\n");
-	console.log("   Transitive dependencies:");
-	console.log("   - form-data → asynckit, combined-stream, mime-types");
-	console.log("   - follow-redirects");
-	console.log("   - proxy-from-env\n");
+printScenarioHeader(5, "Transitive Dependencies - axios (HTTP Client)", "HTTP client with transitive deps → UI5 AMD module\nCompares: Custom Rollup vs ui5-tooling-modules");
 
-	try {
-		const config = createRollupConfig("axios");
-		const code = await generateAMDBundle(config);
+console.log("\n   Transitive dependencies:");
+console.log("   - form-data → asynckit, combined-stream, mime-types");
+console.log("   - follow-redirects");
+console.log("   - proxy-from-env");
 
-		printBundleInfo(code, "axios");
+try {
+	const result = await runDualBundling({
+		scenarioName: SCENARIO_NAME,
+		packageNames: PACKAGE_NAME,
+		customBundler: async (pkg) => {
+			const config = createRollupConfig(pkg);
+			return await generateAMDBundle(config);
+		}
+	});
 
-		// Check what's included in the bundle
-		console.log("\n📊 Bundle analysis:");
-		console.log(`   - Contains Axios class: ${code.includes("Axios") ? "✅" : "❌"}`);
-		console.log(`   - Contains interceptors: ${code.includes("interceptors") ? "✅" : "❌"}`);
-		console.log(`   - Contains request method: ${code.includes(".request") ? "✅" : "❌"}`);
-		console.log(`   - Contains XMLHttpRequest: ${code.includes("XMLHttpRequest") ? "✅" : "❌"}`);
-		console.log(`   - Browser-compatible: ${code.includes("XMLHttpRequest") && !code.includes("require('http')") ? "✅" : "⚠️ (may need polyfills)"}`);
-
-		const outputFile = await writeScenarioOutput("05-transitive-axios", "axios.js", code);
-		console.log(`\n💾 Saved to: ${outputFile}`);
-
-		return code;
-	} catch (error) {
-		console.error("❌ Error:", error.message);
-		throw error;
-	}
+	// Bundle analysis on custom output
+	const code = result.custom.results[0]?.code || "";
+	console.log("\n📊 Bundle analysis (custom):");
+	console.log(`   - Contains Axios class: ${code.includes("Axios") ? "✅" : "❌"}`);
+	console.log(`   - Contains interceptors: ${code.includes("interceptors") ? "✅" : "❌"}`);
+	console.log(`   - Contains XMLHttpRequest: ${code.includes("XMLHttpRequest") ? "✅" : "❌"}`);
+	console.log(`   - Browser-compatible: ${code.includes("XMLHttpRequest") && !code.includes("require('http')") ? "✅" : "⚠️"}`);
+} catch (error) {
+	console.error("❌ Error:", error.message);
+	throw error;
 }
-
-bundleAxios();

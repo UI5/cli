@@ -22,7 +22,6 @@
 		"lodash": "^4.17.23",
 		"nanoid": "^5.1.6",
 		"rollup": "^4.24.4",
-		"rollup-plugin-polyfill-node": "^0.13.0",
 		"sinon": "^21.0.1"
 	},
 	"devDependencies": {
@@ -32,6 +31,7 @@
 		"lodash": "^4.17.21",
 		"lodash-es": "^4.17.21",
 		"nanoid": "^5.0.9",
-		"ui5-tooling-modules": "^3.34.2"
+		"rollup-plugin-polyfill-node": "^0.13.0",
+		"ui5-tooling-modules": "^3.34.3"
 	}
 }
