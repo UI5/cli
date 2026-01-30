@@ -5,13 +5,14 @@
  * Uses the custom rollup-plugin-ui5-webcomponents.js with metadata extraction
  */
 
-import {rollup} from "rollup";
-import {nodeResolve} from "@rollup/plugin-node-resolve";
-import commonjs from "@rollup/plugin-commonjs";
 import {mkdir, writeFile} from "fs/promises";
 import path from "path";
 import {fileURLToPath} from "url";
-import {printScenarioHeader} from "./shared-config.js";
+import {
+	createRollupConfig,
+	generateAMDBundleWithOutput,
+	printScenarioHeader
+} from "./shared-config.js";
 import ui5WebComponentsPlugin from "../lib/plugins/rollup-plugin-ui5-webcomponents.js";
 import {DEFAULT_CONFIG, createPluginOptions} from "../lib/config/standalone-config.js";
 import {ThirdpartyGenerator} from "../lib/utils/thirdparty-generator.js";
@@ -27,23 +28,18 @@ async function bundleWebComponents() {
 	const $metadata = {};
 
 	try {
-		// Use shared configuration (DRY principle)
+		// Create plugin with metadata collection
 		const plugin = ui5WebComponentsPlugin(createPluginOptions(console, $metadata));
 
-		const bundle = await rollup({
-			input: "@ui5/webcomponents/dist/MessageStrip.js",
-			plugins: [
-				nodeResolve({browser: true, preferBuiltins: false}),
-				commonjs(),
-				plugin
-			],
-			external: [/^sap\//]
-		});
+		// Use shared configuration (DRY principle)
+		const config = createRollupConfig(
+			"@ui5/webcomponents/dist/MessageStrip.js",
+			[plugin],
+			{external: [/^sap\//]}
+		);
 
-		const {output} = await bundle.generate({
-			format: "amd",
-			amd: {define: "sap.ui.define"}
-		});
+		// Generate bundle with full output (needed for chunks)
+		const output = await generateAMDBundleWithOutput(config);
 
 		console.log("\n✅ Bundle generated successfully!\n");
 
