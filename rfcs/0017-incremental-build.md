@@ -17,15 +17,15 @@ This concept aims at adding incremental build support to UI5 CLI. It should be p
 
 ## Motivation
 
-The current build process is slow, especially for large projects. This is because on every build all resources of a project need to be processed. However, this is often not necessary, since only few resources might have been changed between builds. An incremental build would detect those changes and only process resources where needed, reusing previous build results. This should speed up the build process significantly.
+The current build process for UI5 projects can be rather slow. For a large project, like some of the framework internal libraries, a full build can take several minutes. On every build, usually all of the project's need to be processed by executing a series of build tasks. Often however, only few resources have actually changed in-between builds. By adding advanced caching functionality to the build process, UI5 CLI would become capable of performing incremental builds, detecting which resources changed and only processing those changes. Reusing previous build results whenever possible. This enhancement should speed up the build process for UI5 projects significantly.
 
-It has also become increasingly common for UI5 projects to use [custom build tasks](https://sap.github.io/ui5-tooling/stable/pages/extensibility/CustomTasks/). Examples include custom tasks for TypeScript compilation, or for consuming third-party libraries.
+It has also become increasingly common for UI5 projects to use [custom build tasks](https://sap.github.io/ui5-tooling/stable/pages/extensibility/CustomTasks/). Popular examples include the community-maintained custom tasks for TypeScript compilation ([`ui5-tooling-transpile`](https://github.com/ui5-community/ui5-ecosystem-showcase/tree/main/packages/ui5-tooling-transpile)), or for consuming third-party libraries ([`ui5-tooling-modules`](https://github.com/ui5-community/ui5-ecosystem-showcase/tree/main/packages/ui5-tooling-modules)).
 
-These tasks can greatly enhance the development experience with UI5. However, when working on projects that depend on projects using such custom tasks, it can become cumbersome to set up a good development environment. This is because the current UI5 CLI server does not execute custom tasks (or any tasks at all), and instead relies on [custom middleware](https://sap.github.io/ui5-tooling/stable/pages/extensibility/CustomServerMiddleware/) for things like the mentioned examples.
+These tasks can greatly enhance the development experience with UI5. However, when working on projects that depend on projects using such custom tasks, it can become cumbersome to set up a good development environment. In part, this is due to the current UI5 CLI-development server not executing build tasks, and instead relying on middleware (including [custom middleware](https://sap.github.io/ui5-tooling/stable/pages/extensibility/CustomServerMiddleware/)) to process resources during development. For this, only (custom-)middleware defined on the current root project is used. This means that the root project often also needs to configure custom middleware *for its dependencies*, if those need any.
 
-However, only custom middleware defined for the current root project is used by the server. This means that the root project often needs to configure custom middleware *for its dependencies*.
+By enhancing the UI5 CLI-server to **execute an incremental build** before starting the development server for a project, any custom tasks defined in dependencies are executed automatically, solving the above problem. The performance gain achieved through the incremental build feature, enables us to replace most middleware with their task counterparts while maintaining a similar or even improved development experience.
 
-By enhancing the UI5 CLI server to execute build tasks before serving a project's resources, this problem can be solved. And by making use of an incremental build feature, the server can efficiently re-process resources when needed, hopefully preventing negative impacts on the server's performance.
+This greatly simplifies the configuration of UI5 projects, especially when working with multiple inter-dependent projects. It also simplifies the development of UI5 CLI extensions, as custom tasks can now be used in more scenarios without requiring custom middleware implementations.
 
 ## Detailed design
 
@@ -33,17 +33,21 @@ By enhancing the UI5 CLI server to execute build tasks before serving a project'
 
 The current build process executes all build tasks for the required projects one by one. Tasks are reading and writing resources from- and to a `workspace` entity, which is a representation of the virtual file system of `@ui5/fs` for the current project. A `workspace` currently consists of a `reader` and a `writer`. The reader is usually connected to the sources of the project and the writer is an in-memory object, collecting the output of the build tasks before it is finally written to the target output directory.
 
-This setup allows a build task to always access to the result of a previous task, which may have altered a source file or added additional resources.
+With this setup, a build task can always access the result of the previous tasks, as well as the project's sources, through a single interface.
 
 ![Diagram illustrating the current build flow](./resources/0017-incremental-build/Current_Build.png)
 
 ### Incremental Build Cache
 
-For the incremental build cache feature, a new entity `Build Task Cache` shall be created, which is managed by a `Project Build Cache`. In addition, the current concept of the project-`workspace` shall be extended to allow for `writer stages` (which can each have multiple `versions`). These stages build upon each other. Essentially, instead of one writer being shared across all tasks, each task is assigned it's own writer stage. And each task reads from the combined stages of the preceding tasks.
+For the incremental build cache, a new entity `Build Task Cache` shall be created, managed by a new entity `Project Build Cache`. In addition, the current concept of the project-`workspace` shall be extended to allow for `stage writers`. These stages build upon each other. Essentially, instead of one writer being shared across all tasks, each task is assigned its own stage. And each task reads from the combined stages of the preceding tasks.
+
+![Diagram illustrating the central build components with the Project Build Cache and Build Task Cache](./resources/0017-incremental-build/Build_Overview.png)
 
 This shall enable the following workflow:
 
 **1. Action: A project build is started**
+
+*(see diagram below, "Initial Build")*
 
 1. Task A, Task B and Task C are executed in sequence, writing their results into individual writer stages.
 1. _Task outputs are written to a content-addressable store and "stage cache" metadata is serialized to disk._
@@ -54,26 +58,38 @@ _The project has been built and a cache has been stored._
 
 **2. Action: A source file is modified, a new build is started**
 
+*(see diagram below, "Successive Build")*
+
 1. _The cache metadata is read from disk, enabling the build to determine the relevant changes and access cached content from the content-addressable store._
 	* Valid cached stages are imported into the `Project` as "stage readers"
 1. The build determines which tasks need to be executed using the imported cache and information about the modified source files.
 	* In this example, it is determined that Task A and Task C need to be executed since they requested the modified resource in their previous execution.
 1. Task A is executed. The output is written into a **new writer** of the associated stage.
-	* Since Task A communicated that it supports "differential builds", the task is provided with a list of changed resources, allowing it to determine which resources need to processed again, skipping stale resources.
+	* Since Task A communicated that it supports `differential builds`, the task is provided with a list of changed resources, allowing it to determine which resources need to processed again, skipping stale resources.
 	* In this example, Task A decided to only process the changed resources and ignores the others.
 	* **Note: Task A can't access the cached stage reader.** It can only access the combined resources of all previous writer stages, just like in a regular build.
 1. _New task outputs are combined with the cached outputs and the new stage metadata is serialized to disk_
 1. The `Project Build Cache` determines whether the resources produced in this latest execution of Task A are relevant for Task B. If yes, the content of those resources is compared to the cached content of the resources Task B has received during its last execution. In this example, the output of Task A is not relevant for Task B and it is skipped.
 1. Task C is executed (assuming that relevant resources have changed) and has access to the full stage (cache reader and new writer) of Task A, as well as the cached stage of Task B. This allows it to access all resources produced in all previous executions of Task A and Task B.
-	* Task C does not support "differential builds". The output of Task C is written into a **new writer** of the associated stage.
+	* Task C does not support `differential builds`. The output of Task C is written into a **new writer** of the associated stage.
 1. _New task outputs are stored in the content-addressable store and stage metadata is serialized to disk_
 1. The build finishes. The combined resources of all stages and the source reader are written to the target output directory.
 
 ![Diagram illustrating an initial and a successive build leveraging the build cache](./resources/0017-incremental-build/Build_With_Cache.png)
 
+![Simplified Activity Diagram of the Incremental Build](./resources/0017-incremental-build/Overview_Activity_Diagram.png)
+
 #### Project Build Cache
 
-The `Project Build Cache` is responsible for managing the build cache of a single project. It handles the import and export of the cache to and from disk, as well as determining whether a new build of the project is required (e.g. due to the lack of an existing cache or based on source- or dependency file changes).
+The `Project Build Cache` is responsible for managing the build cache of a single project. It handles the (de-)serialization of the cache to- and from disk, as well as determining whether a new build of the project is required (e.g. due to the lack of an existing cache or based on source- or dependency file changes).
+
+It also manages the individual `Build Task Cache` instances for each task in the build process, allowing them to track which resources have been read and written during their execution.
+
+In order to detect changes in a project's sources, a [Hash Tree](#hash-tree) is used to efficiently store and compare metadata of all source files. This allows quick detection of changed source files since the last build. The root hash of this tree is referred to as the project's `source-index signature`. Together with the signatures of all relevant dependency-indices, a cache key can be generated to look up an existing result cache for the project's current state. If found, it can be used to skip the build of the project altogether.
+
+Similarly, each task's input resources are tracked using two hash trees (one for project-internal resources and one for dependency resources). The root hashes of both trees can be combined to form a stage cache key.
+
+See also: [Cache Creation](#cache-creation).
 
 #### Build Task Cache
 
@@ -81,37 +97,46 @@ The `Build Task Cache` is responsible for managing the cache information for a s
 
 Later during a re-build, it can use this information to determine whether the task needs to be re-executed based on changes to the relevant input resources.
 
-The Project Build Cache uses this information to determine whether a changed resource _potentially_ affects a given task. This does not mean that the task must be re-executed right away, but only that it might need to be re-executed. The actual decision is deferred until the task is about to be executed. At that point, the task can compare the content of the relevant input resources to determine whether they have actually changed.
+The Project Build Cache uses this information to determine whether a changed resource _potentially_ affects a given task. This does not mean that the task must be re-executed right away, but only that it might need to be re-executed. The actual decision is deferred until the task is about to be executed. Only at that point, the task can compare the content of the relevant input resources with its cache, and determine whether (and which) relevant resources have changed.
 
-All necessary metadata stored in the `Build Task Cache` is serialized to disk as part of the [Build Task Cache](#build-task-cache).
-
-![Diagram illustrating the central build components with the Project Build Cache and Build Task Cache](./resources/0017-incremental-build/Build_Overview.png)
+All necessary metadata stored in the `Build Task Cache` is serialized to disk as part of the [Task Metadata](#task-metadata).
 
 #### Project
 
-The existing `Project` super-class shall be extended to support the new concept of `stages`.
+The existing `Project` super-class shall be extended to support the new concept of `stage writers`.
 
 Already before, it was responsible for creating the `workspace` for a build, which consisted of a single `reader` (providing access to the project's sources) and a `writer` (storing all resources that have been newly produced or changed by the build in memory).
 
-Now, it shall contain multiple `stages`, one for each task in the build process. Each stage may consist of a writer, and optionally a reader (if the stage has been imported from a previous build cache).
+Now, each `Project` instance shall feature multiple `stages`. One for each task in the build process. Each stage holds either either a `writer` or a `cached writer` (if the stage has been restored from cache). Cached-writers are read-only.
 
-During the project build, and before executing a task, the Project Build Cache shall set the correct stage in the Project.
-Whenever changing the stage, a new writer version for that stage shall be created. Once a `workspace` is requested from the project, it will provide a `reader` that combines the sources of the project with all resources from the preceding writer stages, and a `writer` that corresponds to the current stage's latest version.
+During the project build, and before executing a task, the `Project Build Cache` shall set the correct stage in the Project. E.g. before executing the `replaceCopyright` task, the Project's stage is set to `task/replaceCopyright`.
 
-Stages have an explicit order, based on the order they have been created/used. Stages shall be named using the following schema: `<type>/<name>`, where `<type>` is the type of the stage (e.g. `tasks`) and `<name>` is the name of the entity creating the stage (e.g. the task name).
+Whenever progressing to a new stage, the stage is initialized with an empty writer. The `Project Build Cache` can replace this writer with a `cached writer`, in case a previous execution of the task has been cached and the cache is still valid.
+
+Once a `workspace` is requested from the `Project` instance, it will create one using a `reader` that combines the writers of all previous stages stages (as well as the project's sources), and the writer of the current stage.
+
+Stages have an explicit order, defined during their initialization. Stages shall be named using the following schema: `<type>/<name>`, where `<type>` is the type of the stage (e.g. `tasks`) and `<name>` is the name of the entity creating the stage (e.g. the task name).
 
 ![Diagram illustrating project stages](./resources/0017-incremental-build/Project_Stages.png)
+
+#### Project Builder
+
+The `Project Builder` shall be enhanced to:
+
+1. Before building a project, allow the `Project Build Cache` to prepare the build by importing any existing cache from disk (see [Cache Import](#cache-import)) and comparing it with the current source files to determine which files have changed since the last build.
+2. If a cache can be used, skip the build of a project
+3. After building a project, allow the `Project Build Cache` to serialize the updated cache to disk (see [Cache Creation](#cache-creation)).
 
 #### Task Runner
 
 The `Task Runner` shall be enhanced to:
 
-1. Request the build signature of any tasks implementing the `determineBuildSignature` method at the beginning of the build process. These signatures are then incorporated into the overall build signature of the project (see [Cache Creation](#cache-creation)).
+1. Request the build signature of any tasks implementing the `determineBuildSignature` method at the beginning of the build process (see [Build Task API Changes](#build-task-api-changes)). These signatures are then incorporated into the overall build signature of the project (see [Cache Creation](#cache-creation)).
 2. Before executing each task, allow the `Project Build Cache` to prepare the task execution and to determine whether the task needs to be executed or can be skipped based due to valid cache data.
 3. _[TODO: Revisit this idea] Before executing a task, call the `determineExpectedOutput` method if provided. This allows the task to specify which resources it expects to write during its execution. The `Project Build Cache` can then use this information to detect and remove stale output resources that were produced in a previous execution of the task, but are no longer produced in the current execution._
-4. Execute the task, optionally providing it with a list of changed resource paths since the last execution. This can be used by tasks supporting "differential builds", to only process changed resources (see [Build Task API Changes](#build-task-api-changes) below).
-5. After a task has been executed, allow the `Project Build Cache` to update the cache using information on which resources have been read during the task's execution as well as the output resources. _(to be discussed: also the set of resources expected to be written (as provided by the `determineExpectedOutput` method?)._
-	* The resources read by a task are determined by providing the task with instances of the `workspace`-reader/writer and `dependencies`-reader that have been wrapped in ["Monitored Reader"](#monitored-reader) instances. They are responsible for observing which resources are being accessed during the task's execution.
+4. Execute the task, optionally providing it with a list of changed resource paths since the last execution. This can be used by tasks supporting `differential build`, to only process changed resources (see [Build Task API Changes](#build-task-api-changes) below).
+5. After a task has been executed, allow the `Project Build Cache` to update the cache using information on which resources have been read during the task's execution as well as its output resources. _(to be discussed: also the set of resources expected to be written (as provided by the `determineExpectedOutput` method?)._
+	* The resources read by a task are determined by providing the task with instances of the `workspace`- and `dependencies`-reader/writer that have been wrapped in ["Monitored Reader"](#monitored-reader) instances. They are responsible for observing which resources are being accessed during the task's execution.
 	* The `Project Build Cache` will then:
 		* Update the metadata in the respective `Build Task Cache` with the set of resources read by the task ("resource requests")
 		* Compile a new "signature" for the task's input resources and store this, along with the project's current stage instance, in the in-memory Stage Cache of the `Project Build Cache` (mapping a stage signature to an earlier cached stage instance).
@@ -130,7 +155,7 @@ Build tasks can now optionally support "differential builds" by implementing the
 	* Returns: `undefined` or an arbitrary string representing the build signature for the task. This can be used to incorporate task-specific configuration files (e.g. tsconfig.json for a TypeScript compilation task) into the build signature of the project, causing the cache to be invalidated if those files change. The string shouldn't be a hash value (the build signature hash is calculated later on). If `undefined` is returned, or if the method is not implemented, it is assumed that the task's cache remains valid until relevant input-resources change.
 	* This method is called once at the beginning of every build. The return value used to calculate a unique signature for the task based on its configuration. This signature is then incorporated into the overall build signature of the project (see [Cache Creation](#cache-creation) below).
 	* Might return a list of file paths that shall be watched for changes (when running in watch mode). On change, the build signature is recalculated and the cache invalidated if it has changed.
-* **async determineExpectedOutput({workspace, dependencies, cacheUtil, log, options})**: _TODO: revisit this concept_
+* **async determineExpectedOutput({workspace, dependencies, cacheUtil, log, options})**: _**TODO: revisit this concept**_
 	* `workspace`: Reader to access resources of the project's workspace (read only)
 	* `dependencies`: Reader to access resources of the project's dependencies
 	* `cacheUtil`: Same as above
@@ -143,119 +168,29 @@ These methods took some inspiration from to the existing [`determineRequiredDepe
 
 #### Monitored Reader
 
-A `MonitoredReader` is a wrapper around a `Reader` or `Writer` instance that observes which resources are being accessed during its usage. It records the paths of resources that are read or written, along with the respective [`Resource`](https://ui5.github.io/cli/stable/api/@ui5_fs_Resource.html) instance. It also records which glob patterns have been used to request resources.
+A `MonitoredReader` is a wrapper around a `Reader` or `Writer` instance that observes which resources are being accessed during its usage. It records the requested paths as well as glob patterns that have been used to request resources.
 
-### Cache Creation
+This information is used in the [`Resource Request Graph`](#resource-request-graph).
 
-The build cache shall be serialized onto disk in order to use it in successive UI5 CLI executions. This will be done using a **Content-Addressable Store (CAS)** model, which separates file content from metadata. This ensures that each unique piece of content is stored only once on disk, greatly reducing disk space usage and improving I/O performance.
+#### Resource Request Graph
 
-Every project has its own cache metadata. This allows for reuse of a project's cache across multiple consuming projects. For example, the `sap.ui.core` library could be built once and the build cache can then be reused in the build of multiple applications.
+A graph recording the request sets of a build task across multiple executions.
 
-The cache consists of several components:
-1. A global **object store (the CAS)** where all file contents are stored, named by a hash of their content.
-2. Per-project metadata:
-	* Build Manifest: Contains overall information about the build, it's unique [`build signature`](#build-signature) and the executed tasks
-	* Index Cache: Stores metadata of **all** source files of the project, as well as the [`index signatures`](#index-signature) of relevant dependencies.
-	* Build Task Caches: Stores all resource requests of a build task as well as the metadata of all relevant resources read during its last execution
-	* Stage Caches: Maps a given [`index signature`](#index-signature) to a set of resource metadata. The metadata can be used to access resources from the content-addressable store.
+It optimizes storage of multiple related request sets by storing deltas rather than full copies of each unique request set. Each node stores only the requests added relative to its parent.
 
-### Build Manifest
+This is particularly efficient when request sets have significant overlap. The graph automatically finds the best parent for a new request set in order to minimize the delta size.
 
-````jsonc
-{
-	"project": {
-		"specVersion": "5.0",
-		"type": "application",
-		"metadata": {
-			"name": "project.namespace"
-		}
-	},
-	"buildManifest": { // Build Manifest Configuration
-		"manifestVersion": "1.0",
-		"timestamp": "2025-11-24T13:43:24.612Z",
-		"signature": "bb3a3262d893fcb9adf16bff63f", // <-- New "signature" attribute, uniquely identifying the build
-		"versions": {
-			"builderVersion": "5.0.0",
-			"projectVersion": "5.0.0",
-			"fsVersion": "5.0.0"
-		},
-		"buildConfig": {
-			"selfContained": false,
-			"cssVariables": false,
-			"jsdoc": false,
-			"createBuildManifest": false,
-			"outputStyle": "Default",
-			"includedTasks": [],
-			"excludedTasks": []
-		},
-		"version": "1.0.0",
-		"namespace": "project/namespace",
-		"tags": {
-			"/resources/project/namespace/Component-dbg.js": {
-				"ui5:IsDebugVariant": true
-			},
-			"/resources/project/namespace/Component.js": {
-				"ui5:HasDebugVariant": true
-			}
-		}
-	}
-}
-````
+At runtime, each unique (materialized) request set references a [`Shared Hash Tree`](#shared-hash-tree) representing the resources currently matching the request set.
 
-The concept of a `build-manifest.json` has already been explored in [RFC 0011 Reuse Build Results](https://github.com/SAP/ui5-tooling/pull/612) and found an implementation for consumption of pre-built UI5 framework libraries in [UI5 3.0](https://github.com/UI5/cli/pull/612).
+#### Hash Tree
 
-This concept reuses and extends the `build-manifest.json` idea to also include incremental build cache information. In addition to a new `signature` attribute, the `buildManifest` section now also defines version `1.0` and contains the list of executed tasks (in-order) in the `taskList` attribute.
+By using hash trees, it is possible to efficiently store and compare metadata of a large number of resources. This is particularly useful for tracking changes in source files or task input resources.
 
-#### Differentiation with Pre-Built Projects
+A hash tree is a tree data structure where each leaf node represents a resource and contains its metadata (e.g. path, size, last modified time, integrity hash). Each non-leaf node contains a hash that is derived from the hashes of its child nodes. The root node's hash represents the overall state of all resources in the tree.
 
-To differentiate between a pre-built project (as introduced in RFC 0011) and a project with incremental build cache support, the presence of the `cache` section can be checked. Only if this section is present, the project can be used for incremental builds. Otherwise, it is "only" a pre-built project that can be used to speed up builds of dependent projects.
+When a resource changes, only the hashes along the path from the changed leaf node to the root need to be updated. This makes it efficient to update the tree and compute a new root hash.
 
-There are major differences in how those two types of build manifests are handled:
-
-**1. Timing**
-
-* For pre-built projects, the build manifest is taken into account immediately during the creation of the dependency graph and instantiation of the project class as it replaces the `ui5.yaml`.
-* For projects with incremental build cache support, the build manifest is only retrieved during the build of a project. Changing build parameters may lead to a different cache and therefore a different build manifest being used.
-
-**2. Content**
-
-* Pre-built projects only contain information about the final build result (i.e. the resources produced by the build).
-	* The original source files are not part of the pre-built project.
-	* All required resources are included in the pre-built project itself.
-* Projects with incremental build cache support contain detailed metadata about the build process itself, including information about source files, tasks, and intermediate build stages.
-	* All resources referenced in build manifest (except for the project sources) need to be available in the local content-addressable store in order to use them during the build.
-
-**3. Usage**
-
-* Pre-built projects are primarily used to avoid rebuilding dependencies that have already been built. They can not be built again.
-* Projects with incremental build cache support _can_ be rebuilt, if required.
-
-#### Build Signature
-
-The build signature is used to distinguish different builds of the same project. It is mainly calculated based on the **build configuration** of a project. But it also incorporates information that depends on the UI5 CLI version (specifically an internal `BUILD_SIG_VERSION` integer constant), as well as optional signatures provided by custom tasks.
-
-This signature is used to easily tell whether an existing cache can be used in a given build execution or not. For example, a "jsdoc"-build leads to a different build signature than a regular project build. Therefore, two independent cache entries will be created on disk.
-
-The signature is a simple hash (represented as a hexadecimal string, to allow usage in directory and file names).
-
-A mechanism shall be created for custom tasks to provide a signature as well. This allows the incorporation of task-specific configuration files (e.g. tsconfig.json for a TypeScript compilation task) into the build signature.
-
-### Index Cache
-
-```jsonc
-{
-	"indexTimestamp": 1764688556165,
-	"indexTree": { /* Serialized hash tree */ },
-	"taskList": [ // <-- New "taskList" attribute, defining the order of executed tasks
-		"replaceCopyright",
-		"minify",
-	]
-}
-```
-
-The index provides metadata for all source files of the project. This allows the UI5 CLI to quickly determine whether source files have changed since the last build.
-
-The metadata is represented as a **hash tree**, making updates efficient and allowing the generation a single "index signature" representing the current state of all indexed resources.
+![Hash_Tree](./resources/0017-incremental-build/Hash_Tree.png)
 
 The integrity of a source file shall be calculated based on its raw content. A SHA256 hash should be used for this purpose. Internally, the hash shall be stored in Base64 format to reduce the size of stored metadata. A library like [ssri](https://github.com/npm/ssri) may be used for this purpose, allowing easy interoperability with [cacache](#cacache) (see below).
 
@@ -266,17 +201,96 @@ When comparing the stored metadata with a current source file, the following att
 
 If **any** of these attributes differ, the file may be modified. Requiring the computation of the integrity hash to confirm a file change.
 
-The index timestamp represents the last time the index has been updated. This allows quick invalidation if source files have a modification time later than this timestamp.
+Each hash tree also contains an "index timestamp", representing the last time the index has been updated from disk. This allows quick invalidation if source files have a modification time later than this timestamp.
 
-Additionally, it shall also be used to protect against race conditions such as those described in [Racy Git](https://git-scm.com/docs/racy-git), where a file could be modified so quickly (and in parallel to the creation of the index) that its timestamp doesn't change. In such cases, the modification timestamp would be equal to the index timestamp. Therefore, if a file has a modification time equal to the index timestamp, its integrity must be compared to the stored integrity to determine whether it has changed.
+Additionally, this timestamp shall be used to protect against race conditions such as those described in [Racy Git](https://git-scm.com/docs/racy-git), where a file could be modified so quickly (and in parallel to the creation of the index) that its timestamp doesn't change. In such cases, the modification timestamp would be equal to the index timestamp. Therefore, if a file has a modification time equal to the index timestamp, its integrity must be compared to the stored integrity to determine whether it has changed.
+
+#### Shared Hash Tree
+
+A `Shared Hash Tree` is a specialized form of a hash tree that allows multiple entities (e.g. different request sets) to share common subtrees. This reduces redundancy and saves storage space when many request sets have overlapping resources.
+
+Shared Hash Trees are managed by a `Tree Registry`. Changes made to any Shared Hash Tree are queued in the Tree Registry and applied in batch when requested. This ensures consistency across all trees and optimizes performance by minimizing redundant hash calculations.
+
+![Shared Hash Tree](./resources/0017-incremental-build/Shared_Hash_Tree.png)
+
+### Cache Creation
+
+The build cache shall be serialized onto disk in order to use it in successive UI5 CLI executions. This will be done using a **Content-Addressable Storage (CAS)** model, which separates file content from metadata and a **dedicated metadata storage**. The CAS ensures that each unique file content is stored only once on disk, greatly reducing disk space usage and improving I/O performance.
+
+Each project build has its own global metadata cache. This allows for reuse of a project's cache across multiple consuming projects. For example, the `sap.ui.core` library could be built once and the build cache can then be reused in the build of multiple applications that reference the project. A "project build" is defined through its [`build signature`](#build-signature).
+
+The cache consists of the following components:
+1. A global CAS where all file contents are stored, identified by their content-integrity hash.
+2. Metadata per project build (identified by its build signature), consisting of:
+	* [Index Cache](#index-cache): Serialized [Hash Tree](#hash-tree) of all **source** files of the project, as well as a list of all build task names executed during the build.
+	* Task Metadata: Stores all resource requests of a build task, as well as serialized [Shared Hash Trees](#shared-hash-tree) representing the input resources of the task during its last execution.
+	* Stage Metadata: Contains the resource metadata for a given stage. The metadata can be used to access the resource content in the content-addressable store. This allows to restore the output of a task, or the final build result of a project (by combining multiple stages).
+	* Result Metadata: Maps a set of stage metadata that produced a final build result for a given project state (represented by the project's source index signature and the signatures of relevant dependencies).
+
+![Cache Overview Diagram](./resources/0017-incremental-build/Cache_Overview.png)
+
+#### Differentiation with Pre-Built Projects
+
+A project with an incremental build cache can be seen as similar to "pre-built projects" (as introduced in RFC 0011).
+
+However, there are major differences in how those two types of project states are handled:
+
+**1. Timing**
+
+* For pre-built projects, the provided build manifest is taken into account immediately during the creation of the dependency graph and instantiation of the `Project` class (since it replaces the `ui5.yaml`).
+* For projects with incremental build cache support, no build manifest exists. The presence and validity of a cache can only be validated at a later time during the build process. Potentially only after dependencies have already been processed.
+
+**2. Content**
+
+* Pre-built projects only contain information about the final build result (i.e. the resources produced by the build).
+	* The original source files are not part of the pre-built project.
+	* All required resources are included in the pre-built project itself.
+* Projects with incremental build cache support contain detailed metadata about the build process itself, including information about source files, tasks, and intermediate build stages.
+
+**3. Usage**
+
+* Pre-built projects are primarily used to distribute an already built state of a project, allowing consumers to skip rebuilding the project altogether. They can not be built again. A prime example for this is the future distribution of pre-built UI5 framework libraries via npm packages.
+* Projects with incremental build cache support are designed to improve the build time during a re-build of the project. The potentially large cache is not intended to be distributed alongside the project, but rather stored locally on the developer's machine or build server.
+
+#### Build Signature
+
+The build signature is used to distinguish different builds of the same project. It is mainly calculated based on the **build configuration** of a project. But it also incorporates information that depends on the UI5 CLI version (specifically an internal `BUILD_SIG_VERSION` integer constant), as well as optional signatures provided by custom tasks.
+
+This signature is used to easily tell whether an existing cache can be used in a given build execution or not. For example, a "jsdoc"-build leads to a different build signature than a regular project build. Therefore, two independent cache entries will be created on disk.
+
+The signature is a simple hash (represented as a hexadecimal string, to allow usage in directory and file names).
+
+A mechanism shall be created for custom tasks to provide a signature as well. This allows the incorporation of task-specific configuration files (e.g. tsconfig.json for a TypeScript compilation task) into the build signature (see [Build Task API Changes](#build-task-api-changes)).
+
+### Index Cache
+
+```jsonc
+{
+	"indexTimestamp": 1764688556165,
+	"indexTree": { /* Serialized hash tree */ },
+	"taskList": [ // <-- Task list, defining the order of executed tasks and whether they support differential builds
+		["replaceCopyright", 1],
+		["minify", 1],
+		["generateComponentPreload", 0],
+	]
+}
+```
+
+The index provides metadata for all **source** files of the project. This allows the UI5 CLI to quickly determine whether source files have changed since the last build. It's key is simply the current [build signature](#build-signature) of the project build.
+
+The metadata is represented as a [`Hash Tree`](#hash-tree), making updates efficient and allowing the generation a single "project-index signature" representing the current state of all indexed resources.
+
+The index cache also contains a list of tasks executed during the build, along with information whether they support `differential builds`. This is used to efficiently de-serialize cached Build Task metadata
 
 #### Index Signature
 
-A unique hash, typically the root hash of a **hash tree**. It represents the current state of a given set of resources (e.g. all sources of a project, or the input resources of a build task). Any change to any of the resources will lead to a different index signature.
+An index signature (e.g. the "source-index signature") is referring to the unique root hash of one of the (shared-) hash trees. It represents the current state of a given set of resources (e.g. all sources of a project, or the input resources of a build task). Any change to any of the resources will lead to a different index signature.
 
-These signatures can be used to quickly check whether a cache exists by looking up a stage cache using the index signature as key.
+These signatures are used to quickly check whether a cache exists by using them as cache keys.
 
-### Build Task Cache
+### Task Metadata
+
+**Example 1**
 
 ```jsonc
 {
@@ -300,6 +314,8 @@ These signatures can be used to quickly check whether a cache exists by looking 
 	"deltaIndices": []
 }
 ```
+
+**Example 2 (with deltas)**
 
 ```jsonc
 {
@@ -339,7 +355,11 @@ These signatures can be used to quickly check whether a cache exists by looking 
 }
 ```
 
-### Stage Cache
+Stores the resource request information of a build task, along with serialized [Shared Hash Trees](#shared-hash-tree) representing the input resources of the task during its last execution.
+
+The resource requests are stored in a serialized [`Resource Request Graph`](#resource-request-graph). For Shared Hash Trees, only the root tree is serialized. The additions of the derived trees are stored as "delta indices". Later this can be used to reconstruct (and correctly derive) all Shared Hash Trees in memory.
+
+### Stage Metadata
 
 ```jsonc
 	"resourceMetadata": {
@@ -352,19 +372,37 @@ These signatures can be used to quickly check whether a cache exists by looking 
 	}
 ```
 
-Stores the metadata of all resources for a given "stage". This metadata can be used to access the resource content from the content-addressable store.
+Stores the metadata of all resources for a given "stage" (i.e. all resources written by a single build task). This metadata can be used to access the resource content from the content-addressable store.
 
-Stage cache metadata is keyed using the project's [build signature](#build-signature), the stage name, and the index signature of the input resources for that stage.
+For build tasks, the stage metadata is keyed using the the signature of the project-index and the dependency-index that produced the output. Both signatures are combined using a `-` separator. I.e. `<project-index-signature>-<dependency-index-signature>`. If a task did not consume any project- or any dependency-resources, that index signature is replaced with an `X` placeholder.
 
-Each stage usually corresponds to the execution of a task. The contained metadata represents all resources **written** by that task during its execution.  The metadata includes the `lastModified`, `size` and `integrity` of each resource. This information is required for determining whether subsequent tasks need to be re-executed.
+The contained metadata represents all resources **written** by that task during its execution. It includes the `lastModified`, `size` and `integrity` of each resource. This information is required for determining whether subsequent tasks need to be re-executed.
 
-Stages can also be cached for other entities that tasks. Therefore, stage names for tasks must be prefixed with `task/`.
+### Result Metadata
 
-One such example is the "result" stage, which uses the index signature of a project (combined with the index signatures of relevant dependencies) as its key and stores the metadata for all resources produced by the project's build.
+```jsonc
+{
+	"stageSignatures": {
+		"task/escapeNonAsciiCharacters": "614d99a15456009ffcaf88a2e22d4dfedc516eded4ebdcdcf3aeee9e724e6ec7-X",
+		"task/replaceCopyright": "e1e95e8939eda1c44075578e0c434b82b747b56220a58cc86f6db2c808c1c1f8-X",
+		"task/replaceVersion": "564593c13f783c6d27fb24739b63bd79115f719b4fa4e54a3ca7a0c47ac4c9f6-X",
+		"task/replaceBuildtime": "d4f21ef86ef20170714457fbcbce6acaa7e2092d54be4f7298e404f30499d7ce-X",
+		"task/generateLibraryManifest": "5b04940ceb72b0e739e291550129671b4d7a97a843cf04d7678d8f489344e944-X",
+		"task/enhanceManifest": "cf1c319946bf577df0450cdb9662a5c216c231164ce3a814dea0a50291266eca-X",
+		"task/generateLibraryPreload": "dea7afdd9c4bcfd0cb0aa905764046cdcae7e20c39261b0d8da11cb2a8acfd5a-X",
+		"task/generateBundle": "9817778bd77caa6ed268e65d8ea2268251b607d34cefa3e1d3665bd5148c0af6-82a660a818563004b4ba5dbcfe49a57407eb096b31ac414b8e5fd32dc9cd5376",
+		"task/buildThemes": "c027e3e5bcb1577c3d0d3c5004d3821a0c948903d6032be2c1508542719cf023-66198298279add82baab3a781dfbf1dde8e87605fb19d9c2982770c8f7a11f3c"
+	}
+}
+```
+
+Result metadata is stored by forming a key using the current source-index signature, combined with the signatures of the dependency-indices of all the project's stages. The dependency signatures are concatenated and a hash is calculated over the resulting string. The final key is then formed as `<source-index-signature>-<dependency-signature-hash>`.
+
+The metadata then maps this key to the [Stage Metadata](#stage-metadata) of all stages that produced the final build result for this project state. This ultimately allows to recreate the full build output of the project by combining those stages with the current sources.
 
 ### Cache Directory Structure
 
-The directory structure is flat and efficient. A global `cas` directory stores all unique file contents from all builds, while project-specific directories contain only their lightweight metadata.
+A global `cas` directory stores all unique file contents from all builds, while project-specific directories contain only their lightweight metadata.
 
 ```
 ~/.ui5/buildCache/
@@ -373,28 +411,17 @@ The directory structure is flat and efficient. A global `cas` directory stores a
 │   ├── d41d8cd98f00b204e9899998ecf8427e  (Content of another file)
 │   └── ... (all other unique file contents)
 │
-└── buildManifests/
-    ├── app-name
-    │   ├── bb3a3262d893fcb9adf16bff63f.json
-    │   └── gh3a4162d456fcbgrebsdf345df.json
-    └── @openui5
-        ├── sap.m
-        │   ├── sfeg2g62d893fcb9adf16bfffex.json
-        │   └── xy3a3262d893fc4gdfss6esfesw.json
-        └── sap.ui.core
-            └── fh3a3262d893fcb3adf16bff63f.json
 ├── index/
 ├── stageMetadata/
-└── taskMetadata/
+├── taskMetadata/
+└── resultMetadata/
 ```
 
 A new `buildCache` directory shall be added to the ~/.ui5/ directory. The location of this directory can be configured using the [`UI5_DATA_DIR` environment variable](https://ui5.github.io/cli/stable/pages/Troubleshooting/#environment-variable-ui5_data_dir).
 
 The `cas` directory contains files named by their content hash. Each file contains the raw content of a resource produced during a build. Ideally a library like [`cacache`](#cacache) should be used to manage the content-addressable store. In this case, the actual directory structure might differ from what is depicted above.
 
-The `buildManifests` directory contains one build manifest file per project build cache. The directory structure is derived from the project's package name (Project ID). The files are named by the [build signature](#build-signature).
-
-Instead of storing the index cache, stage caches and build task caches as separate files on disk, they shall also be stored in a database such as LevelDB or SQLite. This allows for faster access and reduces the number of files on disk.
+Instead of storing the index cache, stage caches and build task caches as separate files on disk, they may also be stored in a database such as LevelDB or SQLite. This might allow for faster access and reduces the number of files on disk.
 
 ![Diagram illustrating the creation of a build cache](./resources/0017-incremental-build/Create_Cache.png)
 
@@ -404,25 +431,15 @@ The [`cacache`](https://github.com/npm/cacache) library is a well-established co
 
 It allows to store and retrieve files using a unique key. Files can also be retrieved directly by their content hash ("digest").
 
-In this concept, cacache will be used to store the content of resources produced during the build. The content shall be **compressed** to reduce disk space usage. The key for each resources should follow this schema:
-
-```
-<build signature>|<stage name>|<virtual resource path>
-```
-
-The [build signature](#build-signature) binds the entry to the current project build cache. The stage name and resource path correspond to a task's **output** resource metadata as defined in the [`stages`](#stages) section of the `build-manifest.json`.
-
-This naming schema should allow for easy retrieval of resources based on the metadata stored in the build manifest.
-
-At the same time, this also enables the cacache-internal garbage collection to identify unused entries. If a task execution produces new content for a resource, the cacache entry will be updated to point to the new content hash. Eventually, the old content hash will no longer be referenced by any cache entry and can be cleaned up during [garbage collection](#garbage-collection).
+In this concept, cacache will be used to store the content of resources produced during the build. The content shall be **compressed** to reduce disk space usage. The key for each resources is it's integrity hash.
 
 ### Cache Import
 
-Before building a project, UI5 CLI shall check for an existing cache by calculating the [build signature](#build-signature) for the current build, and searching the [cache directory structure](#cache-directory-structure) for a matching build manifest.
+Before building a project, UI5 CLI shall check for an existing index cache by calculating the [build signature](#build-signature) for the current build, and searching the [cache directory structure](#cache-directory-structure) for a matching index cache.
 
-If a build manifest is found it is imported by the `Project Build Cache`
-1. Check the source files of the project against the `index` section of the build manifest to determine which files have changed since the last build
-2. Create `Build Task Cache` instances using the metadata from the `tasks` section of the build manifest
+The cache is then used to:
+1. Check the source files of the project against the de-serialized hash tree to determine which files have changed since the last build
+2. Restore `Build Task Cache` instances using the respective Task Metadata Cache
 3. Provide the `Project` with readers for the cached `writer stages` (i.e. tasks outputs)
 	* When the build process needs to access a cached resource, it can access them using those readers. Internally, they will use the resource metadata from the build manifest to find the corresponding resource content hash, and then reads the file from the global `cas` store
 
@@ -440,7 +457,7 @@ If the task ends up being executed, it might produce new resources. After the ex
 
 After a *project* has finished building, a list of all the modified resource is compiled and passed to the `Project Build Cache` instances of all depending projects (i.e. projects that depend on the current project and therefore might use the modified resources).
 
-![Activity Diagram illustrating how a build cache is used when building a project](./resources/0017-incremental-build/Activity_Diagram.png)
+![Activity Diagram illustrating how a build cache is used when building a project](./resources/0017-incremental-build/Overview_Activity_Diagram.png)
 
 ### Concurrency
 
@@ -497,6 +514,10 @@ The server may implement live-reload functionality to inform connected clients a
 This is an essential feature, since after saving an edited file, the user might not know when the build has finished and the changes are available in the browser. Although the server should also pause all incoming requests until the build has finished, an automatic refresh of the page improves the developer experience significantly.
 
 For this purpose, a script is to be injected into the served HTML pages that establishes a connection to the server and listens for change notifications. Upon receiving a notification, the script should trigger a page reload to reflect the latest changes. The endpoint should be secured using a token-based mechanism to prevent unauthorized access.
+
+### Sequence Diagram
+
+![Sequence Diagram illustrating build flow with the incremental build](./resources/0017-incremental-build/Sequence_Diagram.png)
 
 ## Integration in UI5 CLI
 
