@@ -5,7 +5,7 @@ repo_url: 'https://github.com/UI5/cli'
 edit_uri: ./edit/v4/docs
 docs_dir: 'docs' # default
 site_dir: 'site' # default
-copyright: '© Copyright 2025, SAP SE and UI5 CLI Contributors'
+copyright: '© Copyright 2026, SAP SE and UI5 CLI Contributors'
 nav:
     - Home: index.md
     - Getting Started: pages/GettingStarted.md
