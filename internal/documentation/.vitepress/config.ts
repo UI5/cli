@@ -296,6 +296,7 @@ function guide() {
 			}
 
 			function appendToTree(tree, file, treePath, index) {
+				// If it's the last leaf
 				if (treePath.length - 1 === index) {
 					tree.items.push({
 						text: treePath[index].replace("module-", ""),
@@ -303,7 +304,10 @@ function guide() {
 					});
 					return;
 				}
+
+				// All functions below call appendToTree recursively to create the tree structure
 				let found = false;
+				// Checks if the leaf does already exist and adds new leafs to it
 				for (const treeItem of tree.items) {
 					if (treeItem.text === treePath[index]) {
 						appendToTree(treeItem, file, treePath, index+1);
@@ -311,6 +315,7 @@ function guide() {
 						break;
 					}
 				}
+				// Creates a new leaf for the entry and adds leafs inside of it
 				if (!found) {
 					let newItem = {
 						text: treePath[index].replace("module-", ""),
@@ -322,14 +327,19 @@ function guide() {
 				}
 			}
 
-			tree.items = tree.items[0].items; // Display items inside @ui5 as root
+			// Display items inside @ui5 as root
+			tree.items = tree.items[0].items;
 
 			const moveIndex = [];
 
 			for (let index = 0; index < tree.items.length; index++) {
 				const treeItem = tree.items[index];
+
+				// Adds @ui5 prefix to all leafs in the first level
 				if (!treeItem.link) treeItem.text = "@ui5/" + treeItem.text;
 
+				// Finds leafs that have a similar name in first level e.g. @ui5/sever and server
+				// It adds all found items into moveIndex so that they can later be moved into the corresponding package leaf as main
 				if (treeItem.link) {
 					let to;
 					for (let index2 = 0; index2 < tree.items.length; index2++) {
@@ -347,6 +357,8 @@ function guide() {
 				}
 			}
 
+			// Iterates through the moveIndex and moves the items
+			// Reverse is that it adds main to the beginning instead of the end
 			for (const moveItem of moveIndex) {
 				const item = tree.items[moveItem.from];
 				item.text = "main";
