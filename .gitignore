@@ -69,3 +69,5 @@ internal/documentation/.vitepress/cache
 internal/documentation/dist
 internal/documentation/schema/*
 internal/documentation/docs/api
+internal/documentation/jsdoc/docdash/tmpl
+internal/documentation/jsdoc/docdash/publish.js
