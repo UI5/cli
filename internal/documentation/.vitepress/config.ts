@@ -350,10 +350,12 @@ function guide() {
 						}
 					}
 
-					moveIndex.push({
-						from: index,
-						to: to
-					});
+					if (to !== undefined && to !== null) {
+						moveIndex.push({
+							from: index,
+							to: to
+						});
+					}
 				}
 			}
 
@@ -362,9 +364,7 @@ function guide() {
 			for (const moveItem of moveIndex) {
 				const item = tree.items[moveItem.from];
 				item.text = "main";
-				tree.items[moveItem.to].items = tree.items[moveItem.to].items.reverse();
-				tree.items[moveItem.to].items.push(item);
-				tree.items[moveItem.to].items = tree.items[moveItem.to].items.reverse();
+				tree.items[moveItem.to].items.unshift(item);
 				delete tree.items[moveItem.from];
 			}
 
