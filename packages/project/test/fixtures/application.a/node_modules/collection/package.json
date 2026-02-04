@@ -8,11 +8,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "collection": {
-    "modules": {
-      "library.a": "./library.a",
-      "library.b": "./library.b",
-      "library.c": "./library.c"
-    }
-  }
+  "workspaces": [
+    "library.a",
+    "library.b",
+    "library.c"
+  ]
 }
