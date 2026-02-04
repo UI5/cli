@@ -1,0 +1,12 @@
+specVersion: "2.1"
+metadata:
+  name: application.a.collection.dependency.shim
+kind: extension
+type: project-shim
+shims:
+  collections:
+    collection:
+      modules:
+        "library.a": "./library.a"
+        "library.b": "./library.b"
+        "library.c": "./library.c"
