@@ -1,5 +1,9 @@
 {
   "name": "module.b",
   "version": "1.0.0",
-  "description": "Custom UI5 module"
+  "description": "Custom UI5 module",
+  "dependencies": {
+    "library.d": "file:../library.d",
+	"collection": "file:../collection"
+  }
 }
