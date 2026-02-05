@@ -556,7 +556,7 @@ test.serial("Build module.b project multiple times", async (t) => {
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true},
 		assertions: {
-			projects: {}
+			projects: {} // FIXME: Currently not correct
 		},
 	});
 
@@ -626,6 +626,19 @@ resources:
 
 	// Check that the added file is NOT in the destPath anymore
 	await t.throwsAsync(fs.readFile(`${destPath}/resources/b/module/newFolder/newFile.js`, {encoding: "utf8"}));
+
+	// #5 build (with cache, no changes, with dependencies)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+			}
+		},
+	});
 });
 
 function getFixturePath(fixtureName) {
