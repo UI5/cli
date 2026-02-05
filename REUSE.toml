@@ -9,9 +9,3 @@ path = "**"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 SAP SE or an SAP affiliate company and UI5 CLI contributors"
 SPDX-License-Identifier = "Apache-2.0"
-
-[[annotations]]
-path = "internal/documentation/jsdoc/docdash/**"
-precedence = "aggregate"
-SPDX-FileCopyrightText = "Copyright (c) 2016 Clement Moron clenemt@gmail.com and the contributors to docdash"
-SPDX-License-Identifier = "Apache-2.0"
