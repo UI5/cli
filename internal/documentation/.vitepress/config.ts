@@ -5,6 +5,10 @@ import { defineConfig } from "vitepress";
 // markdown
 import MarkdownItImplicitFigures from "markdown-it-implicit-figures";
 
+// api docs
+import * as path from "node:path";
+import * as fs from "node:fs";
+
 export default defineConfig({
 
   // Would be set in CI job via CLI arguments. For local development, it's just root.
@@ -36,30 +40,30 @@ export default defineConfig({
     ]
   ],
 
-  themeConfig: {
+	themeConfig: {
 
 
-    logo: {
-      light: "/images/Logo_B_RGB.png",
-      dark: "/images/Logo_O_RGB.png"
-    },
-    externalLinkIcon: false,
-    outline: [1, 3],
+		logo: {
+			light: "/images/Logo_B_RGB.png",
+			dark: "/images/Logo_O_RGB.png"
+		},
+		externalLinkIcon: false,
+		outline: [1, 3],
 
-    nav: nav(),
+		nav: nav(),
 
-    sidebar: {
-      "/": guide(),
-    },
+		sidebar: {
+			"/": guide(),
+		},
 
-    socialLinks: [
+		socialLinks: [
 
-      { icon: "github", link: "https://github.com/UI5/cli" },
-    ],
+			{ icon: "github", link: "https://github.com/UI5/cli" },
+		],
 
-    footer: {
+		footer: {
 
-      message: `
+			message: `
         &copy; Copyright ${new Date().getFullYear()}, SAP SE and UI5 CLI Contributors <br/>
           <a style="margin:25px"href="https://www.sap.com/corporate/en/legal/impressum.html">Legal Disclosure</a>
           <a  style="margin:25px" href="https://www.sap.com/corporate/en/legal/terms-of-use.html">Terms of Use</a>
@@ -68,222 +72,304 @@ export default defineConfig({
     `,
 
 
-    },
+		},
 
-    search: {
-      provider: "local",
-      //hotKeys: [], // disable hotkeys to avoid search while using UI5 web components input
-    },
+		search: {
+			provider: "local",
+			//hotKeys: [], // disable hotkeys to avoid search while using UI5 web components input
+		},
+	},
 
-
-
-  },
-
-  markdown: {
-    // Configure the Markdown-it instance
-    config: (md) => {
-      // https://www.npmjs.com/package/markdown-it-implicit-figures
-      md.use(MarkdownItImplicitFigures, {
-        figcaption: true,
-      });
-    },
-  },
+	markdown: {
+		// Configure the Markdown-it instance
+		config: (md) => {
+			// https://www.npmjs.com/package/markdown-it-implicit-figures
+			md.use(MarkdownItImplicitFigures, {
+				figcaption: true,
+			});
+		},
+	},
 
 
-  vite: {
-    build: {
-      chunkSizeWarningLimit: 4000, // chunk for local search index dominates
-    }
-  }
+	vite: {
+		build: {
+			chunkSizeWarningLimit: 4000, // chunk for local search index dominates
+		},
+	}
 });
 
 function nav() {
-  return [
-    {
+	return [
+		{
 
-      text: 'V5',
-      items: [
-        {
-          text: 'V4',
-          link: `/../v4/`,
-          target: "_self"
-        },
-        {
-          text: 'V3',
-          link: `/../v3/`,
-          target: "_self"
-        },
-        {
-          text: 'V2',
-          link: `/../v2/`,
-          target: "_self"
-        }
-      ]
-    },
-  ];
+			text: 'V5',
+			items: [
+				{
+					text: 'V4',
+					link: `/../v4/`,
+					target: "_self"
+				},
+				{
+					text: 'V3',
+					link: `/../v3/`,
+					target: "_self"
+				},
+				{
+					text: 'V2',
+					link: `/../v2/`,
+					target: "_self"
+				}
+			]
+		},
+	];
 }
 
 function guide() {
 
-  return [
+	return [
 
-    {
-      text: "Introduction",
-      collapsed: false,
+		{
+			text: "Introduction",
+			collapsed: false,
 
-      items: [
+			items: [
 
-        {
-          text: "Home",
-          link: "/",
-        },
-        {
-          text: "Getting Started",
-          link: "/pages/GettingStarted",
-        },
+				{
+					text: "Home",
+					link: "/",
+				},
+				{
+					text: "Getting Started",
+					link: "/pages/GettingStarted",
+				},
 
-      ],
+			],
 
-    },
-    {
-      text: "UI5 CLI",
-      collapsed: true,
-      link: "/pages/CLI",
+		},
+		{
+			text: "UI5 CLI",
+			collapsed: true,
+			link: "/pages/CLI",
 
 
-    },
-    {
-      text: "Configuration",
-      collapsed: true,
+		},
+		{
+			text: "Configuration",
+			collapsed: true,
 
-      link: "/pages/Configuration",
+			link: "/pages/Configuration",
 
-    },
-    {
-      text: "Development",
-      collapsed: false,
-      items: [
-        {
-          text: "Overview",
-          link: "/pages/Overview",
-        },
-        {
-          text: "OpenUI5",
-          link: "/pages/OpenUI5",
-        },
-        {
-          text: "SAPUI5",
-          link: "/pages/SAPUI5",
-        },
-        {
-          text: "Workspace",
-          link: "/pages/Workspace",
-        },
+		},
+		{
+			text: "Development",
+			collapsed: false,
+			items: [
+				{
+					text: "Overview",
+					link: "/pages/Overview",
+				},
+				{
+					text: "OpenUI5",
+					link: "/pages/OpenUI5",
+				},
+				{
+					text: "SAPUI5",
+					link: "/pages/SAPUI5",
+				},
+				{
+					text: "Workspace",
+					link: "/pages/Workspace",
+				},
 
-      ],
-    },
+			],
+		},
 
-    {
-      text: "Extensibility",
-      collapsed: false,
-      items: [
-        {
-          text: "Custom Tasks",
-          link: "/pages/extensibility/CustomTasks",
-        },
-        {
-          text: "Custom Server Middleware",
-          link: "/pages/extensibility/CustomServerMiddleware",
-        },
-        {
-          text: "Project Shims",
-          link: "/pages/extensibility/ProjectShims",
-        },
-      ],
-    },
-    {
-      text: "Modules",
-      collapsed: false,
-      items: [
-        {
-          text: "Server",
-          link: "/pages/Server",
-        },
-        {
-          text: "Builder",
-          link: "/pages/Builder",
-        },
-        {
-          text: "Project",
-          link: "/pages/Project",
-        },
-        {
-          text: "File System",
-          link: "/pages/FileSystem",
-        },
-      ],
-    },
-    {
-      text: "FAQ",
-      collapsed: false,
-      link: "/pages/FAQ",
+		{
+			text: "Extensibility",
+			collapsed: false,
+			items: [
+				{
+					text: "Custom Tasks",
+					link: "/pages/extensibility/CustomTasks",
+				},
+				{
+					text: "Custom Server Middleware",
+					link: "/pages/extensibility/CustomServerMiddleware",
+				},
+				{
+					text: "Project Shims",
+					link: "/pages/extensibility/ProjectShims",
+				},
+			],
+		},
+		{
+			text: "Modules",
+			collapsed: false,
+			items: [
+				{
+					text: "Server",
+					link: "/pages/Server",
+				},
+				{
+					text: "Builder",
+					link: "/pages/Builder",
+				},
+				{
+					text: "Project",
+					link: "/pages/Project",
+				},
+				{
+					text: "File System",
+					link: "/pages/FileSystem",
+				},
+			],
+		},
+		{
+			text: "FAQ",
+			collapsed: false,
+			link: "/pages/FAQ",
 
-    },
-    {
-      text: "Upgrade Guides",
-      collapsed: false,
-      items: [
-        {
-          text: "Migrate to v5",
-          link: "/updates/migrate-v5",
-        },
-        {
-          text: "Migrate to v4",
-          link: "/updates/migrate-v4",
-        },
-        {
-          text: "Migrate to v3",
-          link: "/updates/migrate-v3",
-        },
-        {
-          text: "Migrate to v2",
-          link: "/updates/migrate-v2",
-        },
-        {
-          text: "Migrate to v1",
-          link: "/updates/migrate-v1",
-        },
-      ],
-    },
-    {
-      text: "Miscellaneous",
-      collapsed: false,
-      items: [
-        {
-          text: "Troubleshooting",
-          link: "/pages/Troubleshooting",
-        },
-        {
-          text: "Benchmarking",
-          link: "/pages/Benchmarking",
-        },
-        {
-          text: "ECMAScript Support",
-          link: "/pages/ESSupport",
-        },
-        {
-          text: "Code Analysis",
-          link: "/pages/CodeAnalysis",
-        },
-      ],
-    },
-    {
-      text: "API Reference",
-      link: "/api/index.html",
-      target: "_blank"
+		},
+		{
+			text: "Upgrade Guides",
+			collapsed: false,
+			items: [
+				{
+					text: "Migrate to v5",
+					link: "/updates/migrate-v5",
+				},
+				{
+					text: "Migrate to v4",
+					link: "/updates/migrate-v4",
+				},
+				{
+					text: "Migrate to v3",
+					link: "/updates/migrate-v3",
+				},
+				{
+					text: "Migrate to v2",
+					link: "/updates/migrate-v2",
+				},
+				{
+					text: "Migrate to v1",
+					link: "/updates/migrate-v1",
+				},
+			],
+		},
+		{
+			text: "Miscellaneous",
+			collapsed: false,
+			items: [
+				{
+					text: "Troubleshooting",
+					link: "/pages/Troubleshooting",
+				},
+				{
+					text: "Benchmarking",
+					link: "/pages/Benchmarking",
+				},
+				{
+					text: "ECMAScript Support",
+					link: "/pages/ESSupport",
+				},
+				{
+					text: "Code Analysis",
+					link: "/pages/CodeAnalysis",
+				},
+			],
+		},
+		(() => {
+			// This function builds the tree for the api docs
+			const tree = {
+				text: "API",
+				collapsed: false,
+				items: [{
+					text: "@ui5",
+					items: []
+				}]
+			}
 
-    },
+			for (let file of fs.readdirSync(path.join("docs", "api"))) {
+				file = file.replace(".md", "");
+				const treePath = file.replace("module-", "").split("_");
+				appendToTree(tree, file, treePath, 0);
+			}
 
-  ];
+			function appendToTree(tree, file, treePath, index) {
+				// If it's the last leaf
+				if (treePath.length - 1 === index) {
+					tree.items.push({
+						text: treePath[index].replace("module-", ""),
+						link: "/api/" + file
+					});
+					return;
+				}
+
+				// All functions below call appendToTree recursively to create the tree structure
+				let found = false;
+				// Checks if the leaf does already exist and adds new leafs to it
+				for (const treeItem of tree.items) {
+					if (treeItem.text === treePath[index]) {
+						appendToTree(treeItem, file, treePath, index+1);
+						found = true;
+						break;
+					}
+				}
+				// Creates a new leaf for the entry and adds leafs inside of it
+				if (!found) {
+					let newItem = {
+						text: treePath[index].replace("module-", ""),
+						collapsed: treePath[index] !== "@ui5",
+						items: []
+					}
+					appendToTree(newItem, file, treePath, index+1);
+					tree.items.push(newItem);
+				}
+			}
+
+			// Display items inside @ui5 as root
+			tree.items = tree.items[0].items;
+
+			const moveIndex = [];
+
+			for (let index = 0; index < tree.items.length; index++) {
+				const treeItem = tree.items[index];
+
+				// Adds @ui5 prefix to all leafs in the first level
+				if (!treeItem.link) treeItem.text = "@ui5/" + treeItem.text;
+
+				// Finds leafs that have a similar name in first level e.g. @ui5/sever and server
+				// It adds all found items into moveIndex so that they can later be moved into the corresponding package leaf as main
+				if (treeItem.link) {
+					let to;
+					for (let index2 = 0; index2 < tree.items.length; index2++) {
+						const item = tree.items[index2];
+						if (!item.link && item.text.replace("@ui5/", "") === treeItem.text.replace("@ui5/", "")) {
+							to = index2;
+							break;
+						}
+					}
+
+					if (to !== undefined && to !== null) {
+						moveIndex.push({
+							from: index,
+							to: to
+						});
+					}
+				}
+			}
+
+			// Iterates through the moveIndex and moves the items
+			// Reverse is that it adds main to the beginning instead of the end
+			for (const moveItem of moveIndex) {
+				const item = tree.items[moveItem.from];
+				item.text = "main";
+				tree.items[moveItem.to].items.unshift(item);
+				delete tree.items[moveItem.from];
+			}
+
+			return tree;
+		})()
+	];
 }
 
