@@ -44,7 +44,6 @@
 		"pacote": "^21.0.4"
 	},
 	"devDependencies": {
-		,
 		"eslint": "^9.39.1"
 	}
 }
