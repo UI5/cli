@@ -56,7 +56,7 @@ jobs:
       run: npm run check-licenses
 
     - name: Perform dependency check
-      run: npm run depcheck
+      run: npm run knip
 
     - name: Run unit tests
       run: npm run coverage
