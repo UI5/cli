@@ -24,7 +24,7 @@
 	"scripts": {
 		"start": "vitepress dev --open",
 		"lint": "eslint .",
-		"depcheck": "depcheck --ignores @ui5/documentation,vitepress,jsdoc,open-cli,handlebars,@types/node,@ui5/webcomponents,autoprefixer,cssnano,@theme/components,docdash",
+		"depcheck": "",
 		"dev": "vitepress dev",
 		"build:vitepress": "vitepress build",
 		"build:assets": "sh -c 'DEST_DIR=${1:-./dist}; cp -r ./docs/images \"$DEST_DIR/images\"' --",

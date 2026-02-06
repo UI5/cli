@@ -29,14 +29,14 @@
 		"npm": ">= 8"
 	},
 	"scripts": {
-		"test": "npm run lint && npm run coverage && npm run depcheck",
+		"test": "npm run lint && npm run coverage",
 		"lint": "eslint ./",
 		"unit": "rimraf test/tmp && ava",
 		"unit-verbose": "rimraf test/tmp && cross-env UI5_LOG_LVL=verbose ava --verbose --serial",
 		"unit-watch": "npm run unit -- --watch",
 		"unit-inspect": "cross-env UI5_LOG_LVL=verbose ava debug --break",
 		"coverage": "rimraf test/tmp && nyc ava --node-arguments=\"--experimental-loader=@istanbuljs/esm-loader-hook\"",
-		"depcheck": "depcheck --ignores @ui5/logger,rimraf,@istanbuljs/esm-loader-hook,cross-env"
+		"depcheck": ""
 	},
 	"files": [
 		"CHANGELOG.md",
@@ -57,7 +57,6 @@
 		"@istanbuljs/esm-loader-hook": "^0.3.0",
 		"ava": "^6.4.1",
 		"cross-env": "^10.0.0",
-		"depcheck": "^1.4.7",
 		"eslint": "^9.36.0",
 		"nyc": "^17.1.0",
 		"rimraf": "^6.0.1",

@@ -16,13 +16,12 @@
 		"unit-watch": "node --test --watch 'test/e2e/**/*.js'",
 		"coverage": "node --test --experimental-test-coverage 'test/e2e/**/*.js'",
 		"lint": "eslint .",
-		"depcheck": "depcheck"
+		"depcheck": ""
 	},
 	"dependencies": {
 		"js-yaml": "^4.1.1"
 	},
 	"devDependencies": {
-		"depcheck": "^1.4.7",
 		"eslint": "^9.39.1"
 	}
 }

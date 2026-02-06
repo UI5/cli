@@ -28,7 +28,7 @@
 		"lint:commit": "commitlint",
 		"unit": "npm run unit --workspaces --if-present",
 		"coverage": "npm run coverage --workspaces --if-present",
-		"depcheck": "depcheck --ignores @ui5/builder,@ui5/cli,@ui5/fs,@ui5/logger,@ui5/project,@ui5/server,local-web-server,@commitlint/config-conventional,husky && npm run depcheck --workspaces --if-present",
+		"depcheck": "knip --config .knip/knip.ts",
 		"check-licenses": "licensee --errors-only",
 		"schema-generate": "npm run schema-generate --workspace=@ui5/documentation",
 		"generate-cli-doc": "npm run generate-cli-doc --workspace=@ui5/documentation"
@@ -41,13 +41,13 @@
 		"@commitlint/cli": "^20.1.0",
 		"@commitlint/config-conventional": "^20.0.0",
 		"@eslint/js": "^9.8.0",
-		"depcheck": "^1.4.7",
 		"eslint": "^9.35.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^15.1.0",
 		"eslint-plugin-jsdoc": "^61.1.0",
 		"globals": "^16.4.0",
 		"husky": "^9.1.7",
+		"knip": "^5.83.0",
 		"licensee": "^11.1.1",
 		"local-web-server": "^5.4.0"
 	},
