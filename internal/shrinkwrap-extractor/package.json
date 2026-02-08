@@ -45,6 +45,6 @@
 	},
 	"devDependencies": {
 		"depcheck": "^1.4.7",
-		"eslint": "^9.39.1"
+		"eslint": "^10.0.0"
 	}
 }

@@ -92,7 +92,7 @@
 		"ava": "^6.4.1",
 		"cross-env": "^7.0.3",
 		"depcheck": "^1.4.7",
-		"eslint": "^9.36.0",
+		"eslint": "^10.0.0",
 		"esmock": "^2.7.3",
 		"istanbul-lib-coverage": "^3.2.2",
 		"istanbul-lib-instrument": "^6.0.3",
