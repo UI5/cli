@@ -85,6 +85,12 @@ jobs:
       working-directory: internal/documentation
       run: npm run generate-cli-doc
 
+    - name: Vitepress build
+      working-directory: internal/documentation
+      run: |
+        npm run build:vitepress
+        npm run build:assets
+
     - name: Check shrinkwrap integrity
       working-directory: internal/shrinkwrap-extractor
       run: npm run test
