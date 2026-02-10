@@ -54,14 +54,14 @@ test("Standard build", (t) => {
 				copyright: "copyright",
 				pattern: "/resources/**/*.{less,theme}"
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
 			options: {
 				version: "version",
 				pattern: "/resources/**/*.{less,theme}"
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		buildThemes: {
 			requiresDependencies: true,
@@ -117,14 +117,14 @@ test("Standard build for non root project", (t) => {
 				copyright: "copyright",
 				pattern: "/resources/**/*.{less,theme}"
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
 			options: {
 				version: "version",
 				pattern: "/resources/**/*.{less,theme}"
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		buildThemes: {
 			requiresDependencies: true,

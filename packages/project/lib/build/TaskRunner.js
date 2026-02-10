@@ -195,7 +195,7 @@ class TaskRunner {
 	 * @param {object} [parameters] Task parameters
 	 * @param {boolean} [parameters.requiresDependencies=false]
 	 *   Whether the task requires access to project dependencies
-	 * @param {boolean} [parameters.supportsDifferentialUpdates=false]
+	 * @param {boolean} [parameters.supportsDifferentialBuilds=false]
 	 *   Whether the task supports differential updates using cache
 	 * @param {object} [parameters.options={}] Options to pass to the task
 	 * @param {Function|null} [parameters.taskFunction]
@@ -203,7 +203,7 @@ class TaskRunner {
 	 * @returns {void}
 	 */
 	_addTask(taskName, {
-		requiresDependencies = false, supportsDifferentialUpdates = false, options = {}, taskFunction
+		requiresDependencies = false, supportsDifferentialBuilds = false, options = {}, taskFunction
 	} = {}) {
 		if (this._tasks[taskName]) {
 			throw new Error(`Failed to add duplicate task ${taskName} for project ${this._project.getName()}`);
@@ -227,7 +227,7 @@ class TaskRunner {
 					this._log.skipTask(taskName);
 					return;
 				}
-				const usingCache = !!(supportsDifferentialUpdates && cacheInfo);
+				const usingCache = !!(supportsDifferentialBuilds && cacheInfo);
 				const workspace = createMonitor(this._project.getWorkspace());
 				const params = {
 					workspace,
@@ -262,7 +262,7 @@ class TaskRunner {
 					workspace.getResourceRequests(),
 					dependencies?.getResourceRequests(),
 					usingCache ? cacheInfo : undefined,
-					supportsDifferentialUpdates);
+					supportsDifferentialBuilds);
 			};
 		}
 		this._tasks[taskName] = {
@@ -351,7 +351,7 @@ class TaskRunner {
 		const requiredDependenciesCallback = await task.getRequiredDependenciesCallback();
 		// const buildSignatureCallback = await task.getBuildSignatureCallback();
 		// const expectedOutputCallback = await task.getExpectedOutputCallback();
-		const supportsDifferentialUpdatesCallback = await task.getSupportsDifferentialUpdatesCallback();
+		const supportsDifferentialBuildsCallback = await task.getSupportsDifferentialBuildsCallback();
 		const specVersion = task.getSpecVersion();
 		let requiredDependencies;
 
@@ -414,9 +414,9 @@ class TaskRunner {
 				}
 			});
 		}
-		let supportsDifferentialUpdates = false;
-		if (specVersion.gte("5.0") && supportsDifferentialUpdatesCallback && supportsDifferentialUpdatesCallback()) {
-			supportsDifferentialUpdates = true;
+		let supportsDifferentialBuilds = false;
+		if (specVersion.gte("5.0") && supportsDifferentialBuildsCallback && supportsDifferentialBuildsCallback()) {
+			supportsDifferentialBuilds = true;
 		}
 
 		this._tasks[newTaskName] = {
@@ -427,7 +427,7 @@ class TaskRunner {
 				taskName: newTaskName,
 				taskConfiguration: taskDef.configuration,
 				provideDependenciesReader,
-				supportsDifferentialUpdates,
+				supportsDifferentialBuilds,
 				getDependenciesReaderCb: () => {
 					// Create the dependencies reader on-demand
 					return this.getDependenciesReader(requiredDependencies);
@@ -479,7 +479,7 @@ class TaskRunner {
 	 *   Callback to get dependencies reader on-demand
 	 * @param {boolean} parameters.provideDependenciesReader
 	 *   Whether to provide dependencies reader to the task
-	 * @param {boolean} parameters.supportsDifferentialUpdates
+	 * @param {boolean} parameters.supportsDifferentialBuilds
 	 *   Whether the task supports differential updates
 	 * @param {@ui5/project/specifications/Extension} parameters.task Task extension instance
 	 * @param {string} parameters.taskName Runtime name of the task (may include suffix)
@@ -487,7 +487,7 @@ class TaskRunner {
 	 * @returns {Function} Async wrapper function for the custom task
 	 */
 	_createCustomTaskWrapper({
-		project, taskUtil, getDependenciesReaderCb, provideDependenciesReader, supportsDifferentialUpdates,
+		project, taskUtil, getDependenciesReaderCb, provideDependenciesReader, supportsDifferentialBuilds,
 		task, taskName, taskConfiguration
 	}) {
 		return async () => {
@@ -496,7 +496,7 @@ class TaskRunner {
 				this._log.skipTask(taskName);
 				return;
 			}
-			const usingCache = !!(supportsDifferentialUpdates && cacheInfo);
+			const usingCache = !!(supportsDifferentialBuilds && cacheInfo);
 
 			/* Custom Task Interface
 				Parameters:
@@ -560,7 +560,7 @@ class TaskRunner {
 				workspace.getResourceRequests(),
 				dependencies?.getResourceRequests(),
 				usingCache ? cacheInfo : undefined,
-				supportsDifferentialUpdates);
+				supportsDifferentialBuilds);
 		};
 	}
 
