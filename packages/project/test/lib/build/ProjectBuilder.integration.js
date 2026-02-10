@@ -677,6 +677,67 @@ resources:
 	});
 });
 
+test.serial("Build race condition: file modified during active build", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+	await fixtureTester._initialize();
+	const testFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
+	const originalContent = await fs.readFile(testFilePath, {encoding: "utf8"});
+
+	// #1 Build with race condition triggered by custom task
+	// The custom task (configured in ui5-race-condition.yaml) modifies test.js during the build,
+	// after the source index is created but before tasks that process test.js execute.
+	// This creates a race condition where the cached content hash no longer matches the actual file.
+	//
+	// Expected behavior:
+	// - Build should detect that source file hash changed during execution
+	// - Build should fail with an error OR mark cache as invalid
+	//
+	// FIXME: Current behavior:
+	// - Build succeeds without detecting the race condition
+	// - Cache is written with inconsistent data (index hash != processed content hash)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-race-condition.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// Verify the race condition occurred: the modification made by the custom task is in the output
+	const builtFileContent = await fs.readFile(`${destPath}/test.js`, {encoding: "utf8"});
+	t.true(
+		builtFileContent.includes(`RACE CONDITION MODIFICATION`),
+		"Build output contains the modification made during build"
+	);
+
+	// #2 Revert the source file to original content
+	await fs.writeFile(testFilePath, originalContent);
+
+	// #3 Build again after reverting the source
+	// FIXME: The cache should be invalidated because the previous build had a race condition,
+	// but currently it's reused (projects: {}). Once proper validation is implemented,
+	// this should trigger a full rebuild: {"application.a": {}}
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-race-condition.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {} // Current: cache reused | Expected: {"application.a": {}}
+		}
+	});
+
+	// FIXME: Due to incorrect cache reuse from build #1, the output still contains the modification
+	// even though the source was reverted. This demonstrates the cache corruption issue.
+	// Expected: finalBuiltContent should NOT contain "RACE CONDITION MODIFICATION"
+	const finalBuiltContent = await fs.readFile(`${destPath}/test.js`, {encoding: "utf8"});
+	t.true(
+		finalBuiltContent.includes(`RACE CONDITION MODIFICATION`),
+		"Build output incorrectly contains the modification due to corrupted cache"
+	);
+});
+
 function getFixturePath(fixtureName) {
 	return fileURLToPath(new URL(`../../fixtures/${fixtureName}`, import.meta.url));
 }
