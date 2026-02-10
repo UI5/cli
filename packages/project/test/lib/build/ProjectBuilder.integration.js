@@ -556,7 +556,7 @@ test.serial("Build module.b project multiple times", async (t) => {
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true},
 		assertions: {
-			projects: {} // FIXME: Currently not correct
+			projects: {"module.b": {}}
 		},
 	});
 
@@ -568,26 +568,22 @@ test.serial("Build module.b project multiple times", async (t) => {
 		}
 	});
 
-	// Add new folder (with files)
-	await fs.mkdir(`${fixtureTester.fixturePath}/newFolder`, {recursive: true});
-	await fs.writeFile(`${fixtureTester.fixturePath}/newFolder/newFile.js`,
-		`console.log("This is a new file in a new folder.");`
-	);
-	// Update path mapping of ui5.yaml to include new folder
-	await fs.writeFile(`${fixtureTester.fixturePath}/ui5.yaml`,
-		`---
-specVersion: "5.0"
-type: module
-metadata:
-  name: module.b
-resources:
-  configuration:
-    paths:
-      /resources/b/module/dev/: dev
-      /resources/b/module/newFolder/: newFolder`
-	);
+	// Remove a source file in module.b
+	await fs.rm(`${fixtureTester.fixturePath}/dev/devTools.js`);
 
 	// #3 build (no cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"module.b": {}}
+		}
+	});
+
+	// Check that the removed file is NOT in the destPath anymore
+	// (dist output should be totally empty: no source files -> no build result)
+	await t.throwsAsync(fs.readFile(`${destPath}/resources/b/module/dev/devTools.js`, {encoding: "utf8"}));
+
+	// #4 build (with cache, no changes)
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true},
 		assertions: {
@@ -595,39 +591,21 @@ resources:
 		}
 	});
 
-	// Check whether the added file is in the destPath
-	const builtFileContent = await fs.readFile(`${destPath}/resources/b/module/newFolder/newFile.js`,
-		{encoding: "utf8"});
-	t.true(builtFileContent.includes(`console.log("This is a new file in a new folder.");`),
-		"Build dest contains changed file content");
 
-	// Delete the new folder and its contents again
-	await fs.rm(`${fixtureTester.fixturePath}/newFolder`, {recursive: true, force: true});
-	// Remove the path mapping from ui5.yaml again (Revert to original)
-	await fs.writeFile(`${fixtureTester.fixturePath}/ui5.yaml`,
-		`---
-specVersion: "5.0"
-type: module
-metadata:
-  name: module.b
-resources:
-  configuration:
-    paths:
-      /resources/b/module/dev/: dev`
-	);
+	// Add a new file in module.b
+	await fs.mkdir(`${fixtureTester.fixturePath}/dev/newFolder`, {recursive: true});
+	await fs.writeFile(`${fixtureTester.fixturePath}/dev/newFolder/newFile.js`,
+		`console.log("this is a new file which should be included in the build result")`);
 
-	// #4 build (no cache, with changes)
+	// #5 build (no cache, with changes)
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true},
 		assertions: {
-			projects: {} // everything should be skipped (already done in very first build)
+			projects: {"module.b": {}}
 		},
 	});
 
-	// Check that the added file is NOT in the destPath anymore
-	await t.throwsAsync(fs.readFile(`${destPath}/resources/b/module/newFolder/newFile.js`, {encoding: "utf8"}));
-
-	// #5 build (with cache, no changes, with dependencies)
+	// #6 build (with cache, no changes, with dependencies)
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
@@ -695,17 +673,25 @@ class FixtureTester {
 
 	_assertBuild(assertions) {
 		const {projects = {}} = assertions;
-		const eventArgs = this._t.context.projectBuildStatusEventStub.args.map((args) => args[0]);
 
 		const projectsInOrder = [];
 		const seenProjects = new Set();
 		const tasksByProject = {};
 
-		for (const event of eventArgs) {
+		// Extract build status to identify built projects and their order
+		const buildStatusEvents = this._t.context.buildStatusEventStub.args.map((args) => args[0]);
+		for (const event of buildStatusEvents) {
 			if (!seenProjects.has(event.projectName)) {
-				projectsInOrder.push(event.projectName);
 				seenProjects.add(event.projectName);
+				if (event.status === "project-build-start") {
+					projectsInOrder.push(event.projectName);
+				}
 			}
+		}
+
+		// Extract task status to identify skipped & executed tasks per project
+		const projectBuildStatusEvents = this._t.context.projectBuildStatusEventStub.args.map((args) => args[0]);
+		for (const event of projectBuildStatusEvents) {
 			if (!tasksByProject[event.projectName]) {
 				tasksByProject[event.projectName] = {executed: [], skipped: []};
 			}
