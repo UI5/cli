@@ -17,7 +17,7 @@ This concept aims at adding incremental build support to UI5 CLI. It should be p
 
 ## Motivation
 
-The current build process for UI5 projects can be rather slow. For a large project, like some of the framework internal libraries, a full build can take several minutes. On every build, usually all of the project's need to be processed by executing a series of build tasks. Often however, only few resources have actually changed in-between builds. By adding advanced caching functionality to the build process, UI5 CLI would become capable of performing incremental builds, detecting which resources changed and only processing those changes. Reusing previous build results whenever possible. This enhancement should speed up the build process for UI5 projects significantly.
+The current build process for UI5 projects can be rather slow. For a large project, like some of the framework internal libraries, a full build can take several minutes. On every build, usually all of the projects need to be processed by executing a series of build tasks. Often however, only few resources have actually changed in-between builds. By adding advanced caching functionality to the build process, UI5 CLI would become capable of performing incremental builds, detecting which resources changed and only processing those changes. Reusing previous build results whenever possible. This enhancement should speed up the build process for UI5 projects significantly.
 
 It has also become increasingly common for UI5 projects to use [custom build tasks](https://sap.github.io/ui5-tooling/stable/pages/extensibility/CustomTasks/). Popular examples include the community-maintained custom tasks for TypeScript compilation ([`ui5-tooling-transpile`](https://github.com/ui5-community/ui5-ecosystem-showcase/tree/main/packages/ui5-tooling-transpile)), or for consuming third-party libraries ([`ui5-tooling-modules`](https://github.com/ui5-community/ui5-ecosystem-showcase/tree/main/packages/ui5-tooling-modules)).
 
@@ -29,9 +29,13 @@ This greatly simplifies the configuration of UI5 projects, especially when worki
 
 ## Detailed design
 
+### Sequence Diagram
+
+![Sequence Diagram illustrating build flow with the incremental build](./resources/0017-incremental-build/Sequence_Diagram.png)
+
 ### Current Build
 
-The current build process executes all build tasks for the required projects one by one. Tasks are reading and writing resources from- and to a `workspace` entity, which is a representation of the virtual file system of `@ui5/fs` for the current project. A `workspace` currently consists of a `reader` and a `writer`. The reader is usually connected to the sources of the project and the writer is an in-memory object, collecting the output of the build tasks before it is finally written to the target output directory.
+The current build process executes all build tasks for the required projects one by one. Tasks are reading and writing resources from and to a `workspace` entity, which is a representation of the virtual file system of `@ui5/fs` for the current project. A `workspace` currently consists of a single `reader` and a `writer`. While the reader is usually connected to the sources of the project, the writer is an in-memory object, collecting the output of the build tasks before it is finally written to the target output directory.
 
 With this setup, a build task can always access the result of the previous tasks, as well as the project's sources, through a single interface.
 
@@ -95,11 +99,11 @@ See also: [Cache Creation](#cache-creation).
 
 The `Build Task Cache` is responsible for managing the cache information for a single build task within a project. It keeps track of which resources have been read and written by the task during previous executions.
 
-Later during a re-build, it can use this information to determine whether the task needs to be re-executed based on changes to the relevant input resources.
+Later during a rebuild, it can use this information to determine whether the task needs to be re-executed based on changes to the relevant input resources.
 
 The Project Build Cache uses this information to determine whether a changed resource _potentially_ affects a given task. This does not mean that the task must be re-executed right away, but only that it might need to be re-executed. The actual decision is deferred until the task is about to be executed. Only at that point, the task can compare the content of the relevant input resources with its cache, and determine whether (and which) relevant resources have changed.
 
-All necessary metadata stored in the `Build Task Cache` is serialized to disk as part of the [Task Metadata](#task-metadata).
+All necessary metadata stored in the `Build Task Cache` is serialized to disk as part of the [Build Task Metadata](#build-task-metadata).
 
 #### Project
 
@@ -115,7 +119,7 @@ Whenever progressing to a new stage, the stage is initialized with an empty writ
 
 Once a `workspace` is requested from the `Project` instance, it will create one using a `reader` that combines the writers of all previous stages stages (as well as the project's sources), and the writer of the current stage.
 
-Stages have an explicit order, defined during their initialization. Stages shall be named using the following schema: `<type>/<name>`, where `<type>` is the type of the stage (e.g. `tasks`) and `<name>` is the name of the entity creating the stage (e.g. the task name).
+Stages have an explicit order, defined during their initialization. Stages shall be named using the following schema: `<type>/<name>`, where `<type>` is the type of the stage (e.g. `task`) and `<name>` is the name of the entity creating the stage (e.g. the task name).
 
 ![Diagram illustrating project stages](./resources/0017-incremental-build/Project_Stages.png)
 
@@ -132,7 +136,7 @@ The `Project Builder` shall be enhanced to:
 The `Task Runner` shall be enhanced to:
 
 1. Request the build signature of any tasks implementing the `determineBuildSignature` method at the beginning of the build process (see [Build Task API Changes](#build-task-api-changes)). These signatures are then incorporated into the overall build signature of the project (see [Cache Creation](#cache-creation)).
-2. Before executing each task, allow the `Project Build Cache` to prepare the task execution and to determine whether the task needs to be executed or can be skipped based due to valid cache data.
+2. Before executing each task, allow the `Project Build Cache` to prepare the task execution and determine whether the task needs to be executed or can be skipped based due to valid cache data.
 3. _[TODO: Revisit this idea] Before executing a task, call the `determineExpectedOutput` method if provided. This allows the task to specify which resources it expects to write during its execution. The `Project Build Cache` can then use this information to detect and remove stale output resources that were produced in a previous execution of the task, but are no longer produced in the current execution._
 4. Execute the task, optionally providing it with a list of changed resource paths since the last execution. This can be used by tasks supporting `differential build`, to only process changed resources (see [Build Task API Changes](#build-task-api-changes) below).
 5. After a task has been executed, allow the `Project Build Cache` to update the cache using information on which resources have been read during the task's execution as well as its output resources. _(to be discussed: also the set of resources expected to be written (as provided by the `determineExpectedOutput` method?)._
@@ -147,7 +151,7 @@ The `Task Runner` shall be enhanced to:
 
 Build tasks can now optionally support "differential builds" by implementing the following new features.
 
-* **supportsDifferentialUpdates()**: Returns `true` if the task supports differential builds, i.e. if it can process only a subset of changed resources instead of all resources. If this method is not implemented, it is assumed that the task does not support differential builds.
+* **supportsDifferentialBuilds()**: Returns `true` if the task supports differential builds, i.e. if it can process only a subset of changed resources instead of all resources. If this method is not implemented, it is assumed that the task does not support differential builds.
 	* If a task supports differential builds, it will be provided with a list of changed resource paths since its last execution.
 * **async determineBuildSignature({log, options})**
 	* `log`: A logger instance scoped to the task
@@ -156,7 +160,7 @@ Build tasks can now optionally support "differential builds" by implementing the
 	* This method is called once at the beginning of every build. The return value used to calculate a unique signature for the task based on its configuration. This signature is then incorporated into the overall build signature of the project (see [Cache Creation](#cache-creation) below).
 	* Might return a list of file paths that shall be watched for changes (when running in watch mode). On change, the build signature is recalculated and the cache invalidated if it has changed.
 * **async determineExpectedOutput({workspace, dependencies, cacheUtil, log, options})**: _**TODO: revisit this concept**_
-	* `workspace`: Reader to access resources of the project's workspace (read only)
+	* `workspace`: Reader to access resources of the project's `workspace` (read only)
 	* `dependencies`: Reader to access resources of the project's dependencies
 	* `cacheUtil`: Same as above
 	* `log`: A logger instance scoped to the task
@@ -164,7 +168,7 @@ Build tasks can now optionally support "differential builds" by implementing the
 	* Returns: A set of resource paths which the task anticipates to write (output) in a clean run. That is, without cache. In case the task ends up writing fewer resources or resources outside of this set, an error will be produced. In case of a cache hit, the task may write fewer resources than declared here. If `undefined` is returned, or if the method is not implemented, it is assumed that the task's output is always the same as in the previous execution. Therefore, no stale output detection will be performed.
 	* This method is called right before the task is being executed. It is used to detect stale output resources that were produced in a previous execution of the task, but are no longer produced in the current execution. Such stale resources must be removed from the build output to avoid inconsistencies.
 
-These methods took some inspiration from to the existing [`determineRequiredDependencies` method](https://github.com/UI5/cli/blob/main/rfcs/0012-UI5-Tooling-Extension-API-3.md#new-api-2) ([docs](https://ui5.github.io/cli/stable/pages/extensibility/CustomTasks/#required-dependencies)).
+These methods took some inspiration from the existing [`determineRequiredDependencies` method](https://github.com/UI5/cli/blob/main/rfcs/0012-UI5-Tooling-Extension-API-3.md#new-api-2) ([docs](https://ui5.github.io/cli/stable/pages/extensibility/CustomTasks/#required-dependencies)).
 
 #### Monitored Reader
 
@@ -192,7 +196,7 @@ When a resource changes, only the hashes along the path from the changed leaf no
 
 ![Hash_Tree](./resources/0017-incremental-build/Hash_Tree.png)
 
-The integrity of a source file shall be calculated based on its raw content. A SHA256 hash should be used for this purpose. Internally, the hash shall be stored in Base64 format to reduce the size of stored metadata. A library like [ssri](https://github.com/npm/ssri) may be used for this purpose, allowing easy interoperability with [cacache](#cacache) (see below).
+The integrity hash of a source file shall be calculated based on its raw content. A SHA256 hash should be used for this purpose. Internally, the hash shall be stored in Base64 format to reduce the size of stored metadata. A library like [ssri](https://github.com/npm/ssri) may be used for this purpose, allowing easy interoperability with [cacache](#cacache) (see below).
 
 When comparing the stored metadata with a current source file, the following attributes should be considered before computing a resource's integrity hash:
 * `lastModified`: Modification time
@@ -250,7 +254,7 @@ However, there are major differences in how those two types of project states ar
 **3. Usage**
 
 * Pre-built projects are primarily used to distribute an already built state of a project, allowing consumers to skip rebuilding the project altogether. They can not be built again. A prime example for this is the future distribution of pre-built UI5 framework libraries via npm packages.
-* Projects with incremental build cache support are designed to improve the build time during a re-build of the project. The potentially large cache is not intended to be distributed alongside the project, but rather stored locally on the developer's machine or build server.
+* Projects with incremental build cache support are designed to improve the build time during a rebuild of the project. The potentially large cache is not intended to be distributed alongside the project, but rather stored locally on the developer's machine or build server.
 
 #### Build Signature
 
@@ -268,7 +272,7 @@ A mechanism shall be created for custom tasks to provide a signature as well. Th
 {
 	"indexTimestamp": 1764688556165,
 	"indexTree": { /* Serialized hash tree */ },
-	"taskList": [ // <-- Task list, defining the order of executed tasks and whether they support differential builds
+	"taskList": [ // <-- Task list, defining the order of executed tasks and whether they support differential builds or not (1 or 0)
 		["replaceCopyright", 1],
 		["minify", 1],
 		["generateComponentPreload", 0],
@@ -278,9 +282,9 @@ A mechanism shall be created for custom tasks to provide a signature as well. Th
 
 The index provides metadata for all **source** files of the project. This allows the UI5 CLI to quickly determine whether source files have changed since the last build. It's key is simply the current [build signature](#build-signature) of the project build.
 
-The metadata is represented as a [`Hash Tree`](#hash-tree), making updates efficient and allowing the generation a single "project-index signature" representing the current state of all indexed resources.
+The metadata is represented as a [`Hash Tree`](#hash-tree), making updates efficient and allowing the generation of a single "project-index signature" representing the current state of all indexed resources.
 
-The index cache also contains a list of tasks executed during the build, along with information whether they support `differential builds`. This is used to efficiently de-serialize cached Build Task metadata
+The index cache also contains a list of tasks executed during the build, along with information whether they support `differential builds`. This is used to efficiently de-serialize cached [Build Task Metadata](#build-task-metadata).
 
 #### Index Signature
 
@@ -288,7 +292,7 @@ An index signature (e.g. the "source-index signature") is referring to the uniqu
 
 These signatures are used to quickly check whether a cache exists by using them as cache keys.
 
-### Task Metadata
+### Build Task Metadata
 
 **Example 1**
 
@@ -357,7 +361,7 @@ These signatures are used to quickly check whether a cache exists by using them 
 
 Stores the resource request information of a build task, along with serialized [Shared Hash Trees](#shared-hash-tree) representing the input resources of the task during its last execution.
 
-The resource requests are stored in a serialized [`Resource Request Graph`](#resource-request-graph). For Shared Hash Trees, only the root tree is serialized. The additions of the derived trees are stored as "delta indices". Later this can be used to reconstruct (and correctly derive) all Shared Hash Trees in memory.
+The resource requests are stored in a serialized [`Resource Request Graph`](#resource-request-graph). For Shared Hash Trees, only the root tree is serialized. The additions of the derived trees are stored as "delta indices". Later, this can be used to reconstruct (and correctly derive) all Shared Hash Trees in memory.
 
 ### Stage Metadata
 
@@ -431,7 +435,7 @@ The [`cacache`](https://github.com/npm/cacache) library is a well-established co
 
 It allows to store and retrieve files using a unique key. Files can also be retrieved directly by their content hash ("digest").
 
-In this concept, cacache will be used to store the content of resources produced during the build. The content shall be **compressed** to reduce disk space usage. The key for each resources is it's integrity hash.
+In this concept, cacache will be used to store the content of resources produced during the build. The content shall be **compressed** to reduce disk space usage. The key for each resources is its integrity hash.
 
 ### Cache Import
 
@@ -439,9 +443,9 @@ Before building a project, UI5 CLI shall check for an existing index cache by ca
 
 The cache is then used to:
 1. Check the source files of the project against the de-serialized hash tree to determine which files have changed since the last build
-2. Restore `Build Task Cache` instances using the respective Task Metadata Cache
+2. Restore `Build Task Cache` instances using the respective [Build Task Metadata](#build-task-metadata) Cache
 3. Provide the `Project` with readers for the cached `writer stages` (i.e. tasks outputs)
-	* When the build process needs to access a cached resource, it can access them using those readers. Internally, they will use the resource metadata from the build manifest to find the corresponding resource content hash, and then reads the file from the global `cas` store
+	* When the build process needs to access a cached resource, it can access them using those readers. Internally, resources are provided through first looking up their metadata in the corresponding [Stage Metadata](#stage-metadata) cache to find the corresponding resource content hash. Using this hash, the resource content can be read from the global `cas` store
 
 This allows executing individual tasks and providing them with the results of all preceding tasks without the overhead of creating numerous file system readers or managing physical copies of files for each build stage.
 
@@ -455,17 +459,13 @@ Note this important differentiation: A Build Task Cache can be *potentially* or 
 
 If the task ends up being executed, it might produce new resources. After the execution has finished and the new resources have been written to the writer stage, it should be checked whether the content of those resources has actually changed right away. If not, they must not lead to the invalidation of any following tasks. If they have changed, the relevant Build Task Cache instances will be notified about the changed resources and might *potentially* invalidate themselves.
 
-After a *project* has finished building, a list of all the modified resource is compiled and passed to the `Project Build Cache` instances of all depending projects (i.e. projects that depend on the current project and therefore might use the modified resources).
-
-![Activity Diagram illustrating how a build cache is used when building a project](./resources/0017-incremental-build/Overview_Activity_Diagram.png)
+After a *project* has finished building, a list of all modified resource is compiled and passed to the `Project Build Cache` instances of all depending projects (i.e. projects that depend on the current project and therefore might use the modified resources).
 
 ### Concurrency
 
-Since the build manifest expects to find all resources of a build in the content-addressable store, it is important to ensure that concurrent builds of the same project do not interfere with each other.
+TODO
 
-Updating the build manifest and writing resources to the content-addressable store must be done atomically. This means that either all resources and the manifest are written successfully, or none at all. This prevents scenarios where a build is interrupted (e.g. due to a crash or user cancellation) and leaves the cache in an inconsistent state.
-
-This can be achieved by creating a lock for the build signature. When starting the build, a shared or "read lock" should be acquired. This allows multiple builds of the same project to run concurrently, as long as they are only reading from the cache. Only when updating, i.e. writing new resources to the content-addressable store and updating the build manifest, an exclusive or "write lock" should be acquired. This prevents other builds from reading or writing to the cache while it is being updated.
+This can be achieved by creating a lock for the build signature. When starting the build, a shared or "read lock" should be acquired. This allows multiple builds of the same project to run concurrently, as long as they are only reading from the cache. Only when updating, i.e. writing new resources to the content-addressable store and updating the metadata cache, an exclusive or "write lock" should be acquired. This prevents other builds from reading or writing to the cache while it is being updated.
 
 ### Garbage Collection
 
@@ -489,13 +489,13 @@ The watch mode shall be used by the server to automatically rebuild projects whe
 
 #### Error Handling
 
-If a task execution fails in watch mode, the error shall be logged but the watch mode shall stay active in anticipation of further changes. The process shall not crash or stop. This shall be a configuration option.
+If a task execution fails in watch mode, the error shall be logged but the watch mode shall remain active in anticipation of further changes. The process shall not crash or stop. This shall be a configuration option.
 
 If some tasks have executed successfully before the error occurred, their results shall be kept in the cache and used for subsequent builds. Only the failed task and any downstream tasks shall be re-executed on the next build.
 
 ### Server Integration
 
-The UI5 CLI server shall integrate the incremental build as a mean to pre-process projects before serving the build result. It shall use the watch mode to automatically rebuild the projects when source files are modified, so that always the latest resources are served.
+The UI5 CLI server shall integrate the incremental build as a means to pre-process projects before serving the build result. It shall use the watch mode to automatically rebuild the projects when source files are modified, so that always the latest resources are served.
 
 Middleware like `serveThemes` (used for compiling LESS resources to CSS) would become obsolete with this, since the `buildThemes` task will be executed instead.
 
@@ -514,10 +514,6 @@ The server may implement live-reload functionality to inform connected clients a
 This is an essential feature, since after saving an edited file, the user might not know when the build has finished and the changes are available in the browser. Although the server should also pause all incoming requests until the build has finished, an automatic refresh of the page improves the developer experience significantly.
 
 For this purpose, a script is to be injected into the served HTML pages that establishes a connection to the server and listens for change notifications. Upon receiving a notification, the script should trigger a page reload to reflect the latest changes. The endpoint should be secured using a token-based mechanism to prevent unauthorized access.
-
-### Sequence Diagram
-
-![Sequence Diagram illustrating build flow with the incremental build](./resources/0017-incremental-build/Sequence_Diagram.png)
 
 ## Integration in UI5 CLI
 
