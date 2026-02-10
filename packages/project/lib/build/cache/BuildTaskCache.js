@@ -30,7 +30,7 @@ const log = getLogger("build:cache:BuildTaskCache");
 export default class BuildTaskCache {
 	#projectName;
 	#taskName;
-	#supportsDifferentialUpdates;
+	#supportsDifferentialBuilds;
 
 	#projectRequestManager;
 	#dependencyRequestManager;
@@ -41,22 +41,22 @@ export default class BuildTaskCache {
 	 * @public
 	 * @param {string} projectName Name of the project this task belongs to
 	 * @param {string} taskName Name of the task this cache manages
-	 * @param {boolean} supportsDifferentialUpdates Whether the task supports differential updates
+	 * @param {boolean} supportsDifferentialBuilds Whether the task supports differential updates
 	 * @param {ResourceRequestManager} [projectRequestManager] Optional pre-existing project request manager from cache
 	 * @param {ResourceRequestManager} [dependencyRequestManager]
 	 * 	Optional pre-existing dependency request manager from cache
 	 */
-	constructor(projectName, taskName, supportsDifferentialUpdates, projectRequestManager, dependencyRequestManager) {
+	constructor(projectName, taskName, supportsDifferentialBuilds, projectRequestManager, dependencyRequestManager) {
 		this.#projectName = projectName;
 		this.#taskName = taskName;
-		this.#supportsDifferentialUpdates = supportsDifferentialUpdates;
+		this.#supportsDifferentialBuilds = supportsDifferentialBuilds;
 		log.verbose(`Initializing BuildTaskCache for task "${taskName}" of project "${this.#projectName}" ` +
-			`(supportsDifferentialUpdates=${supportsDifferentialUpdates})`);
+			`(supportsDifferentialBuilds=${supportsDifferentialBuilds})`);
 
 		this.#projectRequestManager = projectRequestManager ??
-			new ResourceRequestManager(projectName, taskName, supportsDifferentialUpdates);
+			new ResourceRequestManager(projectName, taskName, supportsDifferentialBuilds);
 		this.#dependencyRequestManager = dependencyRequestManager ??
-			new ResourceRequestManager(projectName, taskName, supportsDifferentialUpdates);
+			new ResourceRequestManager(projectName, taskName, supportsDifferentialBuilds);
 	}
 
 	/**
@@ -68,17 +68,17 @@ export default class BuildTaskCache {
 	 * @public
 	 * @param {string} projectName Name of the project
 	 * @param {string} taskName Name of the task
-	 * @param {boolean} supportsDifferentialUpdates Whether the task supports differential updates
+	 * @param {boolean} supportsDifferentialBuilds Whether the task supports differential updates
 	 * @param {object} projectRequests Cached project request manager data
 	 * @param {object} dependencyRequests Cached dependency request manager data
 	 * @returns {BuildTaskCache} Restored task cache instance
 	 */
-	static fromCache(projectName, taskName, supportsDifferentialUpdates, projectRequests, dependencyRequests) {
+	static fromCache(projectName, taskName, supportsDifferentialBuilds, projectRequests, dependencyRequests) {
 		const projectRequestManager = ResourceRequestManager.fromCache(projectName, taskName,
-			supportsDifferentialUpdates, projectRequests);
+			supportsDifferentialBuilds, projectRequests);
 		const dependencyRequestManager = ResourceRequestManager.fromCache(projectName, taskName,
-			supportsDifferentialUpdates, dependencyRequests);
-		return new BuildTaskCache(projectName, taskName, supportsDifferentialUpdates,
+			supportsDifferentialBuilds, dependencyRequests);
+		return new BuildTaskCache(projectName, taskName, supportsDifferentialBuilds,
 			projectRequestManager, dependencyRequestManager);
 	}
 
@@ -103,8 +103,8 @@ export default class BuildTaskCache {
 	 * @public
 	 * @returns {boolean} True if differential updates are supported
 	 */
-	getSupportsDifferentialUpdates() {
-		return this.#supportsDifferentialUpdates;
+	getSupportsDifferentialBuilds() {
+		return this.#supportsDifferentialBuilds;
 	}
 
 	/**

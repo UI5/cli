@@ -44,13 +44,13 @@ test("Create BuildTaskCache instance", (t) => {
 
 	t.truthy(cache, "BuildTaskCache instance created");
 	t.is(cache.getTaskName(), "testTask", "Task name matches");
-	t.is(cache.getSupportsDifferentialUpdates(), false, "Differential updates disabled");
+	t.is(cache.getSupportsDifferentialBuilds(), false, "Differential updates disabled");
 });
 
 test("Create with differential updates enabled", (t) => {
 	const cache = new BuildTaskCache("test.project", "testTask", true);
 
-	t.is(cache.getSupportsDifferentialUpdates(), true, "Differential updates enabled");
+	t.is(cache.getSupportsDifferentialBuilds(), true, "Differential updates enabled");
 });
 
 test("fromCache: restore BuildTaskCache from cached data", (t) => {
@@ -79,7 +79,7 @@ test("fromCache: restore BuildTaskCache from cached data", (t) => {
 
 	t.truthy(cache, "Cache restored from cached data");
 	t.is(cache.getTaskName(), "testTask", "Task name preserved");
-	t.is(cache.getSupportsDifferentialUpdates(), false, "Differential updates setting preserved");
+	t.is(cache.getSupportsDifferentialBuilds(), false, "Differential updates setting preserved");
 });
 
 // ===== METADATA ACCESS TESTS =====
@@ -90,12 +90,12 @@ test("getTaskName: returns task name", (t) => {
 	t.is(cache.getTaskName(), "myTask", "Task name returned");
 });
 
-test("getSupportsDifferentialUpdates: returns correct value", (t) => {
+test("getSupportsDifferentialBuilds: returns correct value", (t) => {
 	const cache1 = new BuildTaskCache("test.project", "task1", false);
 	const cache2 = new BuildTaskCache("test.project", "task2", true);
 
-	t.false(cache1.getSupportsDifferentialUpdates(), "Returns false when disabled");
-	t.true(cache2.getSupportsDifferentialUpdates(), "Returns true when enabled");
+	t.false(cache1.getSupportsDifferentialBuilds(), "Returns false when disabled");
+	t.true(cache2.getSupportsDifferentialBuilds(), "Returns true when enabled");
 });
 
 test("hasNewOrModifiedCacheEntries: initially true for new instance", (t) => {

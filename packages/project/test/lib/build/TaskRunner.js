@@ -98,7 +98,7 @@ test.beforeEach(async (t) => {
 			};
 		},
 		getRequiredDependenciesCallback: t.context.getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false),
+		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false),
 	};
 
 	t.context.graph = {
@@ -686,7 +686,7 @@ test("Custom task is called correctly", async (t) => {
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
+		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
 	});
 	t.context.taskUtil.getInterface.returns("taskUtil interface");
 	const project = getMockProject("module");
@@ -747,7 +747,7 @@ test("Custom task with legacy spec version", async (t) => {
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
+		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
 	});
 	t.context.taskUtil.getInterface.returns(undefined); // simulating no taskUtil for old specVersion
 	const project = getMockProject("module");
@@ -809,7 +809,7 @@ test("Custom task with legacy spec version and requiredDependenciesCallback", as
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
+		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
 	});
 	t.context.taskUtil.getInterface.returns(undefined); // simulating no taskUtil for old specVersion
 	const project = getMockProject("module");
@@ -885,7 +885,7 @@ test("Custom task with specVersion 3.0", async (t) => {
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
+		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
 	});
 
 	const project = getMockProject("module");
@@ -982,7 +982,7 @@ test("Custom task with specVersion 3.0 and no requiredDependenciesCallback", asy
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
+		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
 	});
 
 	const project = getMockProject("module");
@@ -1062,28 +1062,28 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 		getTask: () => taskStubA,
 		getSpecVersion: () => mockSpecVersionA,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
+		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
 	});
 	graph.getExtension.onSecondCall().returns({
 		getName: () => "Task Name B",
 		getTask: () => taskStubB,
 		getSpecVersion: () => mockSpecVersionB,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
+		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
 	});
 	graph.getExtension.onThirdCall().returns({
 		getName: () => "Task Name C",
 		getTask: () => taskStubC,
 		getSpecVersion: () => mockSpecVersionC,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
+		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
 	});
 	graph.getExtension.onCall(3).returns({
 		getName: () => "Task Name D",
 		getTask: () => taskStubD,
 		getSpecVersion: () => mockSpecVersionD,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
+		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
 	});
 	const project = getMockProject("module");
 	project.getCustomTasks = () => [
@@ -1242,7 +1242,7 @@ test("Custom task: requiredDependenciesCallback returns unknown dependency", asy
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
+		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
 	});
 
 	const project = getMockProject("module");
@@ -1280,7 +1280,7 @@ test("Custom task: requiredDependenciesCallback returns Array instead of Set", a
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialUpdatesCallback: sinon.stub().returns(() => false)
+		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
 	});
 
 	const project = getMockProject("module");
