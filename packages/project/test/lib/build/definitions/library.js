@@ -69,20 +69,20 @@ test("Standard build", async (t) => {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		replaceBuildtime: {
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		generateJsdoc: {
 			requiresDependencies: true,
@@ -101,7 +101,7 @@ test("Standard build", async (t) => {
 					"!**/*.support.js",
 				]
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		generateLibraryManifest: {},
 		enhanceManifest: {},
@@ -210,20 +210,20 @@ test("Standard build with legacy spec version", (t) => {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		replaceBuildtime: {
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		generateJsdoc: {
 			requiresDependencies: true,
@@ -242,7 +242,7 @@ test("Standard build with legacy spec version", (t) => {
 					"!**/*.support.js",
 				]
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		generateLibraryManifest: {},
 		enhanceManifest: {},
@@ -340,20 +340,20 @@ test("Custom bundles", async (t) => {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		replaceBuildtime: {
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		generateJsdoc: {
 			requiresDependencies: true,
@@ -372,7 +372,7 @@ test("Custom bundles", async (t) => {
 					"!**/*.support.js",
 				]
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		generateLibraryManifest: {},
 		enhanceManifest: {},
@@ -502,7 +502,7 @@ test("Minification excludes", (t) => {
 				"!/resources/**.html",
 			]
 		},
-		supportsDifferentialUpdates: true,
+		supportsDifferentialBuilds: true,
 	}, "Correct minify task definition");
 });
 
@@ -528,7 +528,7 @@ test("Minification excludes not applied for legacy specVersion", (t) => {
 				"!**/*.support.js",
 			]
 		},
-		supportsDifferentialUpdates: true,
+		supportsDifferentialBuilds: true,
 	}, "Correct minify task definition");
 });
 
@@ -690,20 +690,20 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		replaceBuildtime: {
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		generateJsdoc: {
 			requiresDependencies: true,
@@ -722,7 +722,7 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 					"!**/*.support.js",
 				]
 			},
-			supportsDifferentialUpdates: true,
+			supportsDifferentialBuilds: true,
 		},
 		generateLibraryManifest: {},
 		enhanceManifest: {},

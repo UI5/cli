@@ -20,7 +20,7 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("replaceCopyright", {
-		supportsDifferentialUpdates: true,
+		supportsDifferentialBuilds: true,
 		options: {
 			copyright: project.getCopyright(),
 			pattern: "/**/*.{js,json}"
@@ -28,7 +28,7 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("replaceVersion", {
-		supportsDifferentialUpdates: true,
+		supportsDifferentialBuilds: true,
 		options: {
 			version: project.getVersion(),
 			pattern: "/**/*.{js,json}"
@@ -43,7 +43,7 @@ export default function({project, taskUtil, getTask}) {
 	}
 
 	tasks.set("minify", {
-		supportsDifferentialUpdates: true,
+		supportsDifferentialBuilds: true,
 		options: {
 			pattern: minificationPattern
 		}
