@@ -551,7 +551,6 @@ test.serial("Build module.b project multiple times", async (t) => {
 	const fixtureTester = new FixtureTester(t, "module.b");
 	const destPath = fixtureTester.destPath;
 
-
 	// #1 build (no cache, no changes)
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true},
@@ -567,6 +566,7 @@ test.serial("Build module.b project multiple times", async (t) => {
 			projects: {}
 		}
 	});
+
 
 	// Remove a source file in module.b
 	await fs.rm(`${fixtureTester.fixturePath}/dev/devTools.js`);
@@ -605,7 +605,65 @@ test.serial("Build module.b project multiple times", async (t) => {
 		},
 	});
 
-	// #6 build (with cache, no changes, with dependencies)
+	// Check whether the added file is in the destPath
+	const newFile = await fs.readFile(`${destPath}/resources/b/module/dev/newFolder/newFile.js`,
+		{encoding: "utf8"});
+	t.true(newFile.includes(`this is a new file which should be included in the build result`),
+		"Build dest contains correct file content");
+
+
+	// Add a new path mapping:
+	const originalUi5Yaml = await fs.readFile(`${fixtureTester.fixturePath}/ui5.yaml`, {encoding: "utf8"}); // for later
+	const newFileName = "someOtherNewFile.js";
+	const newFolderName = "newPathmapping";
+	const virtualPath = `/resources/b/module/${newFolderName}/`;
+	await fs.writeFile(`${fixtureTester.fixturePath}/ui5.yaml`,
+		`---
+specVersion: "5.0"
+type: module
+metadata:
+  name: module.b
+resources:
+  configuration:
+    paths:
+      /resources/b/module/dev/: dev
+      ${virtualPath}: ${newFolderName}`
+	);
+
+	// Create a resource for this new path mapping:
+	await fs.mkdir(`${fixtureTester.fixturePath}/${newFolderName}`, {recursive: true});
+	await fs.writeFile(`${fixtureTester.fixturePath}/${newFolderName}/${newFileName}`,
+		`console.log("this is a new file which should be included in the build result via the new path mapping")`);
+
+	// #6 build (no cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"module.b": {}}
+		},
+	});
+
+	// Check whether the added file is in the destPath
+	const someOtherNewFile = await fs.readFile(`${destPath}${virtualPath}${newFileName}`,
+		{encoding: "utf8"});
+	t.true(someOtherNewFile.includes(`via the new path mapping`), "Build dest contains correct file content");
+
+	// Remove the path mapping again (revert original ui5.yaml):
+	await fs.writeFile(`${fixtureTester.fixturePath}/ui5.yaml`, originalUi5Yaml);
+
+	// #7 build (with cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {} // -> cache can be reused
+		},
+	});
+
+	// Check that the added resource of the path mapping is NOT in the destPath anymore:
+	await t.throwsAsync(fs.readFile(`${destPath}${virtualPath}${newFileName}`,
+		{encoding: "utf8"}));
+
+	// #8 build (with cache, no changes, with dependencies)
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
