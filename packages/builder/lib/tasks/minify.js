@@ -16,6 +16,8 @@ import fsInterface from "@ui5/fs/fsInterface";
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
+ * @param {string[]} [parameters.changedProjectResourcePaths] Set of changed resource paths within the project.
+ * This is only set if a cache is used and changes have been detected.
  * @param {object} parameters.options Options
  * @param {string} parameters.options.pattern Pattern to locate the files to be processed
  * @param {boolean} [parameters.options.omitSourceMapResources=false] Whether source map resources shall
@@ -26,9 +28,24 @@ import fsInterface from "@ui5/fs/fsInterface";
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 export default async function({
-	workspace, taskUtil, options: {pattern, omitSourceMapResources = false, useInputSourceMaps = true
-	}}) {
-	const resources = await workspace.byGlob(pattern);
+	workspace, taskUtil, changedProjectResourcePaths,
+	options: {pattern, omitSourceMapResources = false, useInputSourceMaps = true}
+}) {
+	let resources;
+	if (changedProjectResourcePaths) {
+		resources = await Promise.all(
+			changedProjectResourcePaths
+				// Filtering out non-JS resources such as .map files
+				// FIXME: The changed resources should rather be matched against the provided pattern
+				.filter((resourcePath) => resourcePath.endsWith(".js"))
+				.map((resource) => workspace.byPath(resource))
+		);
+	} else {
+		resources = await workspace.byGlob(pattern);
+	}
+	if (resources.length === 0) {
+		return;
+	}
 	const processedResources = await minifier({
 		resources,
 		fs: fsInterface(workspace),
@@ -36,7 +53,7 @@ export default async function({
 		options: {
 			addSourceMappingUrl: !omitSourceMapResources,
 			readSourceMappingUrl: !!useInputSourceMaps,
-			useWorkers: !!taskUtil,
+			useWorkers: !process.env.UI5_CLI_NO_WORKERS && !!taskUtil,
 		}
 	});
 

@@ -68,7 +68,7 @@ class ReaderCollectionPrioritized extends AbstractReader {
 	 * @returns {Promise<@ui5/fs/Resource|null>}
 	 *   Promise resolving to a single resource or <code>null</code> if no resource is found
 	 */
-	_byPath(virPath, options, trace) {
+	async _byPath(virPath, options, trace) {
 		const that = this;
 		const byPath = (i) => {
 			if (i > this._readers.length - 1) {

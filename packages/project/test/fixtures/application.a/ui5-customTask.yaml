@@ -1,0 +1,17 @@
+---
+specVersion: "5.0"
+type: application
+metadata:
+  name: application.a
+builder:
+  customTasks:
+    - name: example-task
+      afterTask: minify
+---
+specVersion: "5.0"
+kind: extension
+type: task
+metadata:
+  name: example-task
+task:
+  path: task.example.js

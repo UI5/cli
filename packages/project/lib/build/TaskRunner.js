@@ -1,28 +1,31 @@
 import {getLogger} from "@ui5/logger";
 import composeTaskList from "./helpers/composeTaskList.js";
-import {createReaderCollection} from "@ui5/fs/resourceFactory";
+import {createReaderCollection, createMonitor} from "@ui5/fs/resourceFactory";
 
 /**
  * TaskRunner
  *
- * @private
+ * Manages the execution of build tasks for a project, including task composition,
+ * dependency management, and custom task integration.
+ *
  * @hideconstructor
  */
 class TaskRunner {
 	/**
 	 * Constructor
 	 *
-	 * @param {object} parameters
-	 * @param {object} parameters.graph
-	 * @param {object} parameters.project
+	 * @param {object} parameters Parameters
+	 * @param {@ui5/project/graph/ProjectGraph} parameters.graph Project graph instance
+	 * @param {@ui5/project/specifications/Project} parameters.project Project instance
 	 * @param {@ui5/logger/loggers/ProjectBuild} parameters.log Logger to use
+	 * @param {@ui5/project/build/cache/ProjectBuildCache} parameters.buildCache Build cache instance
 	 * @param {@ui5/project/build/helpers/TaskUtil} parameters.taskUtil TaskUtil instance
 	 * @param {@ui5/builder/tasks/taskRepository} parameters.taskRepository Task repository
 	 * @param {@ui5/project/build/ProjectBuilder~BuildConfiguration} parameters.buildConfig
 	 * 			Build configuration
 	 */
-	constructor({graph, project, log, taskUtil, taskRepository, buildConfig}) {
-		if (!graph || !project || !log || !taskUtil || !taskRepository || !buildConfig) {
+	constructor({graph, project, log, buildCache, taskUtil, taskRepository, buildConfig}) {
+		if (!graph || !project || !log || !buildCache || !taskUtil || !taskRepository || !buildConfig) {
 			throw new Error("TaskRunner: One or more mandatory parameters not provided");
 		}
 		this._project = project;
@@ -31,10 +34,21 @@ class TaskRunner {
 		this._taskRepository = taskRepository;
 		this._buildConfig = buildConfig;
 		this._log = log;
+		this._buildCache = buildCache;
 
 		this._directDependencies = new Set(this._taskUtil.getDependencies());
 	}
 
+	/**
+	 * Initializes the task list based on the project type
+	 *
+	 * This method:
+	 * 1. Loads the appropriate build definition for the project type
+	 * 2. Adds all standard tasks from the definition
+	 * 3. Adds any custom tasks configured for the project
+	 *
+	 * @returns {Promise<void>}
+	 */
 	async _initTasks() {
 		if (this._tasks) {
 			return;
@@ -79,30 +93,28 @@ class TaskRunner {
 		}
 
 		await this._addCustomTasks();
-
-		// Create readers for *all* dependencies
-		const depReaders = [];
-		await this._graph.traverseBreadthFirst(project.getName(), async function({project: dep}) {
-			if (dep.getName() === project.getName()) {
-				// Ignore project itself
-				return;
-			}
-			depReaders.push(dep.getReader());
-		});
-
-		this._allDependenciesReader = createReaderCollection({
-			name: `Dependency reader collection of project ${project.getName()}`,
-			readers: depReaders
-		});
 	}
 
 	/**
-	 * Takes a list of tasks which should be executed from the available task list of the current builder
+	 * Executes all configured tasks for the project
 	 *
-	 * @returns {Promise} Returns promise resolving once all tasks have been executed
+	 * This method:
+	 * 1. Initializes the task list if not already done
+	 * 2. Ensures dependency reader is ready
+	 * 3. Composes the final list of tasks to execute based on build configuration
+	 * 4. Executes each task in order, respecting cache and abort signals
+	 * 5. Returns the list of changed resources after all tasks complete
+	 *
+	 * @public
+	 * @param {AbortSignal} [signal] Abort signal to cancel task execution
+	 * @returns {Promise<string[]>} Array of changed resource paths since the last build
 	 */
-	async runTasks() {
+	async runTasks(signal) {
 		await this._initTasks();
+
+		// Ensure cached dependencies reader is initialized and up-to-date (TODO: improve this lifecycle)
+		await this.getDependenciesReader(this._directDependencies);
+
 		const tasksToRun = composeTaskList(Object.keys(this._tasks), this._buildConfig);
 		const allTasks = this._taskExecutionOrder.filter((taskName) => {
 			// There might be a numeric suffix in case a custom task is configured multiple times.
@@ -120,22 +132,33 @@ class TaskRunner {
 		});
 
 		this._log.setTasks(allTasks);
+		this._buildCache.setTasks(allTasks);
 		for (const taskName of allTasks) {
+			signal?.throwIfAborted();
 			const taskFunction = this._tasks[taskName].task;
 
 			if (typeof taskFunction === "function") {
 				await this._executeTask(taskName, taskFunction);
 			}
 		}
+		return await this._buildCache.allTasksCompleted();
 	}
 
 	/**
-	 * First compiles a list of all tasks that will be executed, then a list of all direct project
-	 * dependencies that those tasks require access to.
+	 * Determines which project dependencies are required by the tasks that will be executed
 	 *
-	 * @returns {Set<string>} Returns a set containing the names of all required direct project dependencies
+	 * This method:
+	 * 1. Initializes the task list if needed
+	 * 2. Composes the list of tasks that will be executed
+	 * 3. Collects all dependencies required by those tasks
+	 *
+	 * @public
+	 * @returns {Promise<Set<string>>} Set containing the names of all required direct project dependencies
 	 */
 	async getRequiredDependencies() {
+		if (this._requiredDependencies) {
+			return this._requiredDependencies;
+		}
 		await this._initTasks();
 		const tasksToRun = composeTaskList(Object.keys(this._tasks), this._buildConfig);
 		const allTasks = this._taskExecutionOrder.filter((taskName) => {
@@ -150,7 +173,7 @@ class TaskRunner {
 			const taskWithoutSuffixCounter = taskName.replace(/--\d+$/, "");
 			return tasksToRun.includes(taskWithoutSuffixCounter);
 		});
-		return allTasks.reduce((requiredDependencies, taskName) => {
+		this._requiredDependencies = allTasks.reduce((requiredDependencies, taskName) => {
 			if (this._tasks[taskName].requiredDependencies.size) {
 				this._log.verbose(`Task ${taskName} for project ${this._project.getName()} requires dependencies`);
 			}
@@ -159,20 +182,29 @@ class TaskRunner {
 			}
 			return requiredDependencies;
 		}, new Set());
+		return this._requiredDependencies;
 	}
 
 	/**
 	 * Adds an executable task to the builder
 	 *
-	 * The order this function is being called defines the build order. FIFO.
+	 * The order this function is called defines the build order (FIFO).
+	 * Tasks can be explicitly skipped by setting taskFunction to null.
 	 *
-	 * @param {string} taskName Name of the task which should be in the list availableTasks.
-	 * @param {object} [parameters]
-	 * @param {boolean} [parameters.requiresDependencies]
-	 * @param {object} [parameters.options]
-	 * @param {Function} [parameters.taskFunction]
+	 * @param {string} taskName Name of the task to add
+	 * @param {object} [parameters] Task parameters
+	 * @param {boolean} [parameters.requiresDependencies=false]
+	 *   Whether the task requires access to project dependencies
+	 * @param {boolean} [parameters.supportsDifferentialBuilds=false]
+	 *   Whether the task supports differential updates using cache
+	 * @param {object} [parameters.options={}] Options to pass to the task
+	 * @param {Function|null} [parameters.taskFunction]
+	 *   Task function to execute, or null to explicitly skip the task
+	 * @returns {void}
 	 */
-	_addTask(taskName, {requiresDependencies = false, options = {}, taskFunction} = {}) {
+	_addTask(taskName, {
+		requiresDependencies = false, supportsDifferentialBuilds = false, options = {}, taskFunction
+	} = {}) {
 		if (this._tasks[taskName]) {
 			throw new Error(`Failed to add duplicate task ${taskName} for project ${this._project.getName()}`);
 		}
@@ -190,20 +222,47 @@ class TaskRunner {
 				options.projectName = this._project.getName();
 				options.projectNamespace = this._project.getNamespace();
 
+				const cacheInfo = await this._buildCache.prepareTaskExecutionAndValidateCache(taskName);
+				if (cacheInfo === true) {
+					this._log.skipTask(taskName);
+					return;
+				}
+				const usingCache = !!(supportsDifferentialBuilds && cacheInfo);
+				const workspace = createMonitor(this._project.getWorkspace());
 				const params = {
-					workspace: this._project.getWorkspace(),
+					workspace,
 					taskUtil: this._taskUtil,
-					options
+					options,
 				};
 
+				let dependencies;
 				if (requiresDependencies) {
-					params.dependencies = this._allDependenciesReader;
+					dependencies = createMonitor(this._cachedDependenciesReader);
+					params.dependencies = dependencies;
 				}
-
+				if (usingCache) {
+					params.changedProjectResourcePaths = cacheInfo.changedProjectResourcePaths;
+					if (requiresDependencies) {
+						params.changedDependencyResourcePaths = cacheInfo.changedDependencyResourcePaths;
+					}
+				}
 				if (!taskFunction) {
-					taskFunction = (await this._taskRepository.getTask(taskName)).task;
+					const {task} = await this._taskRepository.getTask(taskName);
+					taskFunction = task;
 				}
-				return taskFunction(params);
+				this._log.startTask(taskName, usingCache);
+				this._taskStart = performance.now();
+				await taskFunction(params);
+				if (this._log.isLevelEnabled("perf")) {
+					this._log.perf(
+						`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
+				}
+				this._log.endTask(taskName);
+				await this._buildCache.recordTaskResult(taskName,
+					workspace.getResourceRequests(),
+					dependencies?.getResourceRequests(),
+					usingCache ? cacheInfo : undefined,
+					supportsDifferentialBuilds);
 			};
 		}
 		this._tasks[taskName] = {
@@ -214,8 +273,11 @@ class TaskRunner {
 	}
 
 	/**
+	 * Adds all custom tasks configured for the project
 	 *
-	 * @private
+	 * Processes custom tasks in the order they are defined in the project configuration.
+	 *
+	 * @returns {Promise<void>}
 	 */
 	async _addCustomTasks() {
 		const projectCustomTasks = this._project.getCustomTasks();
@@ -228,10 +290,21 @@ class TaskRunner {
 		}
 	}
 	/**
-	 * Adds custom tasks to execute
+	 * Adds a single custom task to the task execution order
 	 *
-	 * @private
-	 * @param {object} taskDef
+	 * This method:
+	 * 1. Validates the custom task definition
+	 * 2. Loads the task extension from the project graph
+	 * 3. Determines required dependencies via callback if provided
+	 * 4. Creates a wrapper function for the custom task
+	 * 5. Inserts the task at the correct position based on beforeTask/afterTask configuration
+	 *
+	 * @param {object} taskDef Custom task definition from project configuration
+	 * @param {string} taskDef.name Name of the custom task
+	 * @param {string} [taskDef.beforeTask] Name of task to insert before
+	 * @param {string} [taskDef.afterTask] Name of task to insert after
+	 * @param {object} [taskDef.configuration] Custom task configuration
+	 * @returns {Promise<void>}
 	 */
 	async _addCustomTask(taskDef) {
 		const project = this._project;
@@ -276,6 +349,9 @@ class TaskRunner {
 
 		// Tasks can provide an optional callback to tell build process which dependencies they require
 		const requiredDependenciesCallback = await task.getRequiredDependenciesCallback();
+		// const buildSignatureCallback = await task.getBuildSignatureCallback();
+		// const expectedOutputCallback = await task.getExpectedOutputCallback();
+		const supportsDifferentialBuildsCallback = await task.getSupportsDifferentialBuildsCallback();
 		const specVersion = task.getSpecVersion();
 		let requiredDependencies;
 
@@ -338,6 +414,10 @@ class TaskRunner {
 				}
 			});
 		}
+		let supportsDifferentialBuilds = false;
+		if (specVersion.gte("5.0") && supportsDifferentialBuildsCallback && supportsDifferentialBuildsCallback()) {
+			supportsDifferentialBuilds = true;
+		}
 
 		this._tasks[newTaskName] = {
 			task: this._createCustomTaskWrapper({
@@ -347,9 +427,10 @@ class TaskRunner {
 				taskName: newTaskName,
 				taskConfiguration: taskDef.configuration,
 				provideDependenciesReader,
-				getDependenciesReader: () => {
+				supportsDifferentialBuilds,
+				getDependenciesReaderCb: () => {
 					// Create the dependencies reader on-demand
-					return this._createDependenciesReader(requiredDependencies);
+					return this.getDependenciesReader(requiredDependencies);
 				},
 			}),
 			requiredDependencies
@@ -381,10 +462,42 @@ class TaskRunner {
 		}
 	}
 
+	/**
+	 * Creates a wrapper function for executing a custom task
+	 *
+	 * The wrapper:
+	 * 1. Validates cache and determines if task can be skipped
+	 * 2. Prepares workspace and dependencies readers
+	 * 3. Builds the parameter object for the custom task interface
+	 * 4. Executes the custom task function
+	 * 5. Records the task result in the build cache
+	 *
+	 * @param {object} parameters Parameters
+	 * @param {@ui5/project/specifications/Project} parameters.project Project instance
+	 * @param {@ui5/project/build/helpers/TaskUtil} parameters.taskUtil TaskUtil instance
+	 * @param {Function} parameters.getDependenciesReaderCb
+	 *   Callback to get dependencies reader on-demand
+	 * @param {boolean} parameters.provideDependenciesReader
+	 *   Whether to provide dependencies reader to the task
+	 * @param {boolean} parameters.supportsDifferentialBuilds
+	 *   Whether the task supports differential updates
+	 * @param {@ui5/project/specifications/Extension} parameters.task Task extension instance
+	 * @param {string} parameters.taskName Runtime name of the task (may include suffix)
+	 * @param {object} [parameters.taskConfiguration] Task configuration from ui5.yaml
+	 * @returns {Function} Async wrapper function for the custom task
+	 */
 	_createCustomTaskWrapper({
-		project, taskUtil, getDependenciesReader, provideDependenciesReader, task, taskName, taskConfiguration
+		project, taskUtil, getDependenciesReaderCb, provideDependenciesReader, supportsDifferentialBuilds,
+		task, taskName, taskConfiguration
 	}) {
-		return async function() {
+		return async () => {
+			const cacheInfo = await this._buildCache.prepareTaskExecutionAndValidateCache(taskName);
+			if (cacheInfo === true) {
+				this._log.skipTask(taskName);
+				return;
+			}
+			const usingCache = !!(supportsDifferentialBuilds && cacheInfo);
+
 			/* Custom Task Interface
 				Parameters:
 					{Object} parameters Parameters
@@ -407,14 +520,21 @@ class TaskRunner {
 				Returns:
 					{Promise<undefined>} Promise resolving with undefined once data has been written
 			*/
+			const workspace = createMonitor(this._project.getWorkspace());
 			const params = {
-				workspace: project.getWorkspace(),
+				workspace,
 				options: {
 					projectName: project.getName(),
 					projectNamespace: project.getNamespace(),
 					configuration: taskConfiguration,
 				}
 			};
+			if (usingCache) {
+				params.changedProjectResourcePaths = cacheInfo.changedProjectResourcePaths;
+				if (provideDependenciesReader) {
+					params.changedDependencyResourcePaths = cacheInfo.changedDependencyResourcePaths;
+				}
+			}
 			const specVersion = task.getSpecVersion();
 			const taskUtilInterface = taskUtil.getInterface(specVersion);
 			// Interface is undefined if specVersion does not support taskUtil
@@ -428,36 +548,60 @@ class TaskRunner {
 				params.log = getLogger(`builder:custom-task:${taskName}`);
 			}
 
+			let dependencies;
 			if (provideDependenciesReader) {
-				params.dependencies = await getDependenciesReader();
+				dependencies = createMonitor(await getDependenciesReaderCb());
+				params.dependencies = dependencies;
 			}
-			return taskFunction(params);
+			this._log.startTask(taskName, usingCache);
+			await taskFunction(params);
+			this._log.endTask(taskName);
+			await this._buildCache.recordTaskResult(taskName,
+				workspace.getResourceRequests(),
+				dependencies?.getResourceRequests(),
+				usingCache ? cacheInfo : undefined,
+				supportsDifferentialBuilds);
 		};
 	}
 
 	/**
-	 * Adds progress related functionality to task function.
+	 * Executes a task function with performance tracking
 	 *
-	 * @private
+	 * Wraps task execution with performance measurements and logging.
+	 *
 	 * @param {string} taskName Name of the task
-	 * @param {Function} taskFunction Function which executed the task
+	 * @param {Function} taskFunction Function which executes the task
 	 * @param {object} taskParams Base parameters for all tasks
-	 * @returns {Promise} Resolves when task has finished
+	 * @returns {Promise<void>} Resolves when task has finished
 	 */
 	async _executeTask(taskName, taskFunction, taskParams) {
-		this._log.startTask(taskName);
 		this._taskStart = performance.now();
 		await taskFunction(taskParams, this._log);
 		if (this._log.isLevelEnabled("perf")) {
+			// FIXME: Standard tasks are currently additionally measured within taskFunction (See _addTask).
+			// The measurement here includes the time for checking whether the task can be skipped via cache.
 			this._log.perf(`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
 		}
-		this._log.endTask(taskName);
 	}
 
-	async _createDependenciesReader(requiredDirectDependencies) {
-		if (requiredDirectDependencies.size === this._directDependencies.size) {
+	/**
+	 * Creates a reader collection for the specified project dependencies
+	 *
+	 * This method:
+	 * 1. Returns a cached reader if all direct dependencies are requested and available
+	 * 2. Resolves transitive dependencies for the requested dependency names
+	 * 3. Creates a reader collection containing readers for all required dependencies
+	 * 4. Caches the reader if it covers all direct dependencies
+	 *
+	 * @public
+	 * @param {Set<string>} dependencyNames Set of dependency project names to include
+	 * @param {boolean} [forceUpdate=false] Force creation of a new reader even if cached
+	 * @returns {Promise<@ui5/fs/ReaderCollection>} Reader collection for the requested dependencies
+	 */
+	async getDependenciesReader(dependencyNames, forceUpdate = false) {
+		if (!forceUpdate && dependencyNames.size === this._directDependencies.size && this._cachedDependenciesReader) {
 			// Shortcut: If all direct dependencies are required, just return the already created reader
-			return this._allDependenciesReader;
+			return this._cachedDependenciesReader;
 		}
 		const rootProject = this._project;
 
@@ -465,8 +609,8 @@ class TaskRunner {
 		const readers = [];
 
 		// Add transitive dependencies to set of required dependencies
-		const requiredDependencies = new Set(requiredDirectDependencies);
-		for (const projectName of requiredDirectDependencies) {
+		const requiredDependencies = new Set(dependencyNames);
+		for (const projectName of dependencyNames) {
 			this._graph.getTransitiveDependencies(projectName).forEach((depName) => {
 				requiredDependencies.add(depName);
 			});
@@ -480,10 +624,15 @@ class TaskRunner {
 		});
 
 		// Create a reader collection for that
-		return createReaderCollection({
+		const reader = createReaderCollection({
 			name: `Reduced dependency reader collection of project ${rootProject.getName()}`,
 			readers
 		});
+
+		if (dependencyNames.size === this._directDependencies.size) {
+			this._cachedDependenciesReader = reader;
+		}
+		return reader;
 	}
 }
 

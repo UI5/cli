@@ -13,6 +13,8 @@ import OutputStyleEnum from "./helpers/ProjectBuilderOutputStyle.js";
  */
 class ProjectBuilder {
 	#log;
+	#buildIsRunning = false;
+
 	/**
 	 * Build Configuration
 	 *
@@ -119,6 +121,43 @@ class ProjectBuilder {
 	}
 
 	/**
+	 * Propagate resource changes through the build context
+	 *
+	 * @public
+	 * @param {Array} changes Array of resource changes to propagate
+	 * @returns {Set<string>} Names of projects potentially affected by the resource changes
+	 * @throws {Error} If a build is currently running
+	 */
+	resourcesChanged(changes) {
+		if (this.#buildIsRunning) {
+			throw new Error(`Unable to safely propagate resource changes. Build is currently running.`);
+		}
+		return this._buildContext.propagateResourceChanges(changes);
+	}
+
+	/**
+	 * Build projects without writing to a target directory
+	 *
+	 * @public
+	 * @param {object} parameters Parameters
+	 * @param {boolean} [parameters.includeRootProject=true] Whether to include the root project
+	 * @param {Array.<string|RegExp>} [parameters.includedDependencies=[]] List of dependencies to include
+	 * @param {Array.<string|RegExp>} [parameters.excludedDependencies=[]] List of dependencies to exclude
+	 * @param {AbortSignal} [parameters.signal] Signal to abort the build
+	 * @param {Function} [projectBuiltCallback] Callback invoked after each project is built
+	 * @returns {Promise<string[]>} Promise resolving with array of processed project names
+	 */
+	async build({
+		includeRootProject = true,
+		includedDependencies = [], excludedDependencies = [],
+		signal,
+	}, projectBuiltCallback) {
+		const requestedProjects = this._determineRequestedProjects(
+			includeRootProject, includedDependencies, excludedDependencies);
+		return await this.#build(requestedProjects, projectBuiltCallback, signal);
+	}
+
+	/**
 	 * Executes a project build, including all necessary or requested dependencies
 	 *
 	 * @public
@@ -136,14 +175,15 @@ class ProjectBuilder {
 	 *   part of the build result. If this is provided, the other mentioned parameters are ignored.
 	 * @returns {Promise} Promise resolving once the build has finished
 	 */
-	async build({
+	async buildToTarget({
 		destPath, cleanDest = false,
 		includedDependencies = [], excludedDependencies = [],
-		dependencyIncludes
+		dependencyIncludes,
 	}) {
 		if (!destPath) {
 			throw new Error(`Missing parameter 'destPath'`);
 		}
+
 		if (dependencyIncludes) {
 			if (includedDependencies.length || excludedDependencies.length) {
 				throw new Error(
@@ -151,13 +191,52 @@ class ProjectBuilder {
 					"with parameters 'includedDependencies' or 'excludedDependencies");
 			}
 		}
-		const rootProjectName = this._graph.getRoot().getName();
-		this.#log.info(`Preparing build for project ${rootProjectName}`);
-		this.#log.info(`  Target directory: ${destPath}`);
+		this.#log.info(`Target directory: ${destPath}`);
+		const requestedProjects = this._determineRequestedProjects(
+			true, includedDependencies, excludedDependencies, dependencyIncludes);
 
+		if (cleanDest) {
+			this.#log.info(`Cleaning target directory...`);
+			await rmrf(destPath);
+		}
+
+		let fsTarget;
+		if (!process.env.UI5_BUILD_NO_WRITE_DEST) {
+			fsTarget = resourceFactory.createAdapter({
+				fsBasePath: destPath,
+				virBasePath: "/"
+			});
+		}
+		const pWrites = [];
+		await this.#build(requestedProjects, (projectName, project, projectBuildContext) => {
+			if (!fsTarget) {
+				// Nothing to write to
+				return;
+			}
+			// Only write requested projects to target
+			// (excluding dependencies that were required to be built, but not requested)
+			this.#log.verbose(`Writing out files for project ${projectName}...`);
+			pWrites.push(this._writeResults(projectBuildContext, fsTarget));
+		});
+		await Promise.all(pWrites);
+	}
+
+	/**
+	 * Determine which projects should be built based on filter criteria
+	 *
+	 * @param {boolean} includeRootProject Whether to include the root project
+	 * @param {Array.<string|RegExp>} includedDependencies Dependencies to include
+	 * @param {Array.<string|RegExp>} excludedDependencies Dependencies to exclude
+	 * @param {@ui5/project/build/ProjectBuilder~DependencyIncludes} [dependencyIncludes]
+	 *   Alternative dependency configuration
+	 * @returns {string[]} Array of project names to build
+	 * @throws {Error} If creating a build manifest with multiple projects
+	 */
+	_determineRequestedProjects(includeRootProject, includedDependencies, excludedDependencies, dependencyIncludes) {
 		// Get project filter function based on include/exclude params
 		// (also logs some info to console)
-		const filterProject = await this._getProjectFilter({
+		const filterProject = this._createProjectFilter({
+			includeRootProject,
 			explicitIncludes: includedDependencies,
 			explicitExcludes: excludedDependencies,
 			dependencyIncludes
@@ -177,18 +256,30 @@ class ProjectBuilder {
 			}
 		}
 
-		const projectBuildContexts = await this._createRequiredBuildContexts(requestedProjects);
-		const cleanupSigHooks = this._registerCleanupSigHooks();
-		const fsTarget = resourceFactory.createAdapter({
-			fsBasePath: destPath,
-			virBasePath: "/"
-		});
+		return requestedProjects;
+	}
 
-		const queue = [];
-		const alreadyBuilt = [];
+	/**
+	 * Internal build implementation that orchestrates the actual build process
+	 *
+	 * @param {string[]} requestedProjects Array of project names to build
+	 * @param {Function} [projectBuiltCallback] Callback invoked after each project is built
+	 * @param {AbortSignal} [signal] Signal to abort the build
+	 * @returns {Promise<string[]>} Promise resolving with array of processed project names
+	 * @throws {Error} If a build is already running
+	 */
+	async #build(requestedProjects, projectBuiltCallback, signal) {
+		if (this.#buildIsRunning) {
+			throw new Error("A build is already running");
+		}
+		this.#buildIsRunning = true;
+		this.#log.info(`Preparing build for projects: ${requestedProjects.join(", ")}`);
+		const projectBuildContexts = await this._buildContext.getRequiredProjectContexts(requestedProjects);
 
 		// Create build queue based on graph depth-first search to ensure correct build order
-		await this._graph.traverseDepthFirst(async ({project}) => {
+		const queue = [];
+		const processedProjectNames = [];
+		for (const {project} of this._graph.traverseDependenciesDepthFirst(true)) {
 			const projectName = project.getName();
 			const projectBuildContext = projectBuildContexts.get(projectName);
 			if (projectBuildContext) {
@@ -196,128 +287,106 @@ class ProjectBuilder {
 				//	=> This project needs to be built or, in case it has already
 				//		been built, it's build result needs to be written out (if requested)
 				queue.push(projectBuildContext);
-				if (!projectBuildContext.requiresBuild()) {
-					alreadyBuilt.push(projectName);
-				}
+				processedProjectNames.push(projectName);
 			}
-		});
+		}
 
 		this.#log.setProjects(queue.map((projectBuildContext) => {
 			return projectBuildContext.getProject().getName();
 		}));
-		if (queue.length > 1) { // Do not log if only the root project is being built
-			this.#log.info(`Processing ${queue.length} projects`);
-			if (alreadyBuilt.length) {
-				this.#log.info(`  Reusing build results of ${alreadyBuilt.length} projects`);
-				this.#log.info(`  Building ${queue.length - alreadyBuilt.length} projects`);
-			}
 
-			if (this.#log.isLevelEnabled("verbose")) {
-				this.#log.verbose(`  Required projects:`);
-				this.#log.verbose(`    ${queue
-					.map((projectBuildContext) => {
-						const projectName = projectBuildContext.getProject().getName();
-						let msg;
-						if (alreadyBuilt.includes(projectName)) {
-							const buildMetadata = projectBuildContext.getBuildMetadata();
-							const ts = new Date(buildMetadata.timestamp).toUTCString();
-							msg = `*> ${projectName} /// already built at ${ts}`;
-						} else {
-							msg = `=> ${projectName}`;
-						}
-						return msg;
-					})
-					.join("\n    ")}`);
-			}
-		}
-
-		if (cleanDest) {
-			this.#log.info(`Cleaning target directory...`);
-			await rmrf(destPath);
-		}
-		const startTime = process.hrtime();
-		try {
-			const pWrites = [];
-			for (const projectBuildContext of queue) {
+		const alreadyBuilt = [];
+		for (const projectBuildContext of queue) {
+			if (!projectBuildContext.possiblyRequiresBuild()) {
 				const projectName = projectBuildContext.getProject().getName();
-				const projectType = projectBuildContext.getProject().getType();
+				alreadyBuilt.push(projectName);
+			}
+		}
+
+		const cleanupSigHooks = this._registerCleanupSigHooks();
+		const pCacheWrites = [];
+		try {
+			const startTime = process.hrtime();
+			while (queue.length) {
+				const projectBuildContext = queue.shift();
+				const project = projectBuildContext.getProject();
+				const projectName = project.getName();
+				const projectType = project.getType();
 				this.#log.verbose(`Processing project ${projectName}...`);
 
 				// Only build projects that are not already build (i.e. provide a matching build manifest)
 				if (alreadyBuilt.includes(projectName)) {
 					this.#log.skipProjectBuild(projectName, projectType);
 				} else {
-					this.#log.startProjectBuild(projectName, projectType);
-					await projectBuildContext.getTaskRunner().runTasks();
-					this.#log.endProjectBuild(projectName, projectType);
+					const usesCache = await projectBuildContext.prepareProjectBuildAndValidateCache();
+					if (usesCache) {
+						this.#log.skipProjectBuild(projectName, projectType);
+						alreadyBuilt.push(projectName);
+					} else {
+						await this._buildProject(projectBuildContext);
+					}
 				}
-				if (!requestedProjects.includes(projectName) || !!process.env.UI5_BUILD_NO_WRITE_DEST) {
-					// Project has not been requested or writing is disabled
-					//	=> Its resources shall not be part of the build result
-					continue;
+				signal?.throwIfAborted();
+
+				if (projectBuiltCallback && requestedProjects.includes(projectName)) {
+					projectBuiltCallback(projectName, project, projectBuildContext);
 				}
 
-				this.#log.verbose(`Writing out files...`);
-				pWrites.push(this._writeResults(projectBuildContext, fsTarget));
+				if (!alreadyBuilt.includes(projectName) && !process.env.UI5_BUILD_NO_WRITE_CACHE) {
+					this.#log.verbose(`Triggering cache update for project ${projectName}...`);
+					pCacheWrites.push(projectBuildContext.writeBuildCache());
+				}
 			}
-			await Promise.all(pWrites);
 			this.#log.info(`Build succeeded in ${this._getElapsedTime(startTime)}`);
 		} catch (err) {
-			this.#log.error(`Build failed in ${this._getElapsedTime(startTime)}`);
+			this.#log.error(`Build failed`);
 			throw err;
 		} finally {
+			await Promise.all(pCacheWrites);
 			this._deregisterCleanupSigHooks(cleanupSigHooks);
 			await this._executeCleanupTasks();
+			this.#buildIsRunning = false;
 		}
+		return processedProjectNames;
 	}
 
-	async _createRequiredBuildContexts(requestedProjects) {
-		const requiredProjects = new Set(this._graph.getProjectNames().filter((projectName) => {
-			return requestedProjects.includes(projectName);
-		}));
+	/**
+	 * Build a single project
+	 *
+	 * @param {object} projectBuildContext Build context for the project
+	 * @param {AbortSignal} [signal] Signal to abort the build
+	 * @returns {Promise<Array>} Promise resolving with array of changed resources
+	 */
+	async _buildProject(projectBuildContext, signal) {
+		const project = projectBuildContext.getProject();
+		const projectName = project.getName();
+		const projectType = project.getType();
 
-		const projectBuildContexts = new Map();
+		this.#log.startProjectBuild(projectName, projectType);
+		const changedResources = await projectBuildContext.buildProject(signal);
+		this.#log.endProjectBuild(projectName, projectType);
 
-		for (const projectName of requiredProjects) {
-			this.#log.verbose(`Creating build context for project ${projectName}...`);
-			const projectBuildContext = this._buildContext.createProjectContext({
-				project: this._graph.getProject(projectName)
-			});
-
-			projectBuildContexts.set(projectName, projectBuildContext);
-
-			if (projectBuildContext.requiresBuild()) {
-				const taskRunner = projectBuildContext.getTaskRunner();
-				const requiredDependencies = await taskRunner.getRequiredDependencies();
-
-				if (requiredDependencies.size === 0) {
-					continue;
-				}
-				// This project needs to be built and required dependencies to be built as well
-				this._graph.getDependencies(projectName).forEach((depName) => {
-					if (projectBuildContexts.has(depName)) {
-						// Build context already exists
-						//	=> Dependency will be built
-						return;
-					}
-					if (!requiredDependencies.has(depName)) {
-						return;
-					}
-					// Add dependency to list of projects to build
-					requiredProjects.add(depName);
-				});
-			}
-		}
-
-		return projectBuildContexts;
+		return changedResources;
 	}
 
-	async _getProjectFilter({
+	/**
+	 * Create a filter function to determine which projects should be built
+	 *
+	 * @param {object} parameters Parameters
+	 * @param {boolean} [parameters.includeRootProject=true] Whether to include the root project
+	 * @param {@ui5/project/build/ProjectBuilder~DependencyIncludes} [parameters.dependencyIncludes]
+	 *   Dependency configuration
+	 * @param {Array.<string|RegExp>} [parameters.explicitIncludes] Explicit dependencies to include
+	 * @param {Array.<string|RegExp>} [parameters.explicitExcludes] Explicit dependencies to exclude
+	 * @returns {Function} Filter function that takes a project name and returns boolean
+	 */
+	_createProjectFilter({
+		includeRootProject = true,
 		dependencyIncludes,
 		explicitIncludes,
 		explicitExcludes
 	}) {
-		const {includedDependencies, excludedDependencies} = await composeProjectList(
+		const {includedDependencies, excludedDependencies} = composeProjectList(
 			this._graph,
 			dependencyIncludes || {
 				includeDependencyTree: explicitIncludes,
@@ -327,15 +396,13 @@ class ProjectBuilder {
 
 		if (includedDependencies.length) {
 			if (includedDependencies.length === this._graph.getSize() - 1) {
-				this.#log.info(`  Including all dependencies`);
+				this.#log.info(`  Requested all dependencies`);
 			} else {
-				this.#log.info(`  Requested dependencies:`);
-				this.#log.info(`    + ${includedDependencies.join("\n    + ")}`);
+				this.#log.info(`  Requested dependencies:\n    + ${includedDependencies.join("\n    + ")}`);
 			}
 		}
 		if (excludedDependencies.length) {
-			this.#log.info(`  Excluded dependencies:`);
-			this.#log.info(`    - ${excludedDependencies.join("\n    + ")}`);
+			this.#log.info(`  Excluded dependencies:\n    - ${excludedDependencies.join("\n    + ")}`);
 		}
 
 		const rootProjectName = this._graph.getRoot().getName();
@@ -345,8 +412,8 @@ class ProjectBuilder {
 					dep.test(projectName) : dep === projectName);
 			}
 
-			if (projectName === rootProjectName) {
-				// Always include the root project
+			if (includeRootProject && projectName === rootProjectName) {
+				// Include root project
 				return true;
 			}
 
@@ -362,6 +429,13 @@ class ProjectBuilder {
 		};
 	}
 
+	/**
+	 * Write build results for a project to the target destination
+	 *
+	 * @param {object} projectBuildContext Build context for the project
+	 * @param {@ui5/fs/adapters/FileSystem} target Target adapter to write to
+	 * @returns {Promise<void>} Promise resolving when write is complete
+	 */
 	async _writeResults(projectBuildContext, target) {
 		const project = projectBuildContext.getProject();
 		const taskUtil = projectBuildContext.getTaskUtil();
@@ -385,14 +459,16 @@ class ProjectBuilder {
 		const resources = await reader.byGlob("/**/*");
 
 		if (createBuildManifest) {
-			// Create and write a build manifest metadata file
+			// Create and write a build manifest metadata file+
 			const {
 				default: createBuildManifest
 			} = await import("./helpers/createBuildManifest.js");
-			const metadata = await createBuildManifest(project, buildConfig, this._buildContext.getTaskRepository());
+			const buildManifest = await createBuildManifest(
+				project, buildConfig, this._buildContext.getTaskRepository(),
+				projectBuildContext.getBuildSignature());
 			await target.write(resourceFactory.createResource({
 				path: `/.ui5/build-manifest.json`,
-				string: JSON.stringify(metadata, null, "\t")
+				string: JSON.stringify(buildManifest, null, "\t")
 			}));
 		}
 
@@ -443,12 +519,23 @@ class ProjectBuilder {
 		}
 	}
 
+	/**
+	 * Execute cleanup tasks for all build contexts
+	 *
+	 * @param {boolean} [force] Whether to force cleanup execution
+	 * @returns {Promise<void>} Promise resolving when cleanup is complete
+	 */
 	async _executeCleanupTasks(force) {
 		this.#log.info("Executing cleanup tasks...");
 
 		await this._buildContext.executeCleanupTasks(force);
 	}
 
+	/**
+	 * Register signal handlers for cleanup on process termination
+	 *
+	 * @returns {object} Map of signal names to their handlers
+	 */
 	_registerCleanupSigHooks() {
 		const that = this;
 		function createListener(exitCode) {
@@ -490,6 +577,11 @@ class ProjectBuilder {
 		return processSignals;
 	}
 
+	/**
+	 * Remove previously registered signal handlers
+	 *
+	 * @param {object} signals Map of signal names to their handlers
+	 */
 	_deregisterCleanupSigHooks(signals) {
 		for (const signal of Object.keys(signals)) {
 			process.removeListener(signal, signals[signal]);
@@ -499,7 +591,6 @@ class ProjectBuilder {
 	/**
 	 * Calculates the elapsed build time and returns a prettified output
 	 *
-	 * @private
 	 * @param {Array} startTime Array provided by <code>process.hrtime()</code>
 	 * @returns {string} Difference between now and the provided time array as formatted string
 	 */

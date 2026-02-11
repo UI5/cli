@@ -57,6 +57,7 @@
 	},
 	"dependencies": {
 		"@ui5/logger": "^5.0.0-alpha.2",
+		"async-mutex": "^0.5.0",
 		"clone": "^2.1.2",
 		"escape-string-regexp": "^5.0.0",
 		"globby": "^15.0.0",
@@ -64,7 +65,8 @@
 		"micromatch": "^4.0.8",
 		"minimatch": "^10.1.2",
 		"pretty-hrtime": "^1.0.3",
-		"random-int": "^3.1.0"
+		"random-int": "^3.1.0",
+		"ssri": "^13.0.0"
 	},
 	"devDependencies": {
 		"@istanbuljs/esm-loader-hook": "^0.3.0",

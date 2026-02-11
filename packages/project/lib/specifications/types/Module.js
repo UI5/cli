@@ -16,7 +16,6 @@ class Module extends Project {
 		super(parameters);
 
 		this._paths = null;
-		this._writer = null;
 	}
 
 	/* === Attributes === */
@@ -31,44 +30,39 @@ class Module extends Project {
 		throw new Error(`Projects of type module have more than one source path`);
 	}
 
+	getSourcePaths() {
+		return this._paths.map(({fsBasePath}) => {
+			return fsBasePath;
+		});
+	}
+
 	/* === Resource Access === */
 
-	/**
-	 * Get a [ReaderCollection]{@link @ui5/fs/ReaderCollection} for accessing all resources of the
-	 * project in the specified "style":
-	 *
-	 * <ul>
-	 * <li><b>buildtime:</b> Resource paths are always prefixed with <code>/resources/</code>
-	 *  or <code>/test-resources/</code> followed by the project's namespace.
-	 *  Any configured build-excludes are applied</li>
-	 * <li><b>dist:</b> Resource paths always match with what the UI5 runtime expects.
-	 *  This means that paths generally depend on the project type. Applications for example use a "flat"-like
-	 *  structure, while libraries use a "buildtime"-like structure.
-	 *  Any configured build-excludes are applied</li>
-	 * <li><b>runtime:</b> Resource paths always match with what the UI5 runtime expects.
-	 *  This means that paths generally depend on the project type. Applications for example use a "flat"-like
-	 *  structure, while libraries use a "buildtime"-like structure.
-	 *  This style is typically used for serving resources directly. Therefore, build-excludes are not applied</li>
-	 * <li><b>flat:</b> Resource paths are never prefixed and namespaces are omitted if possible. Note that
-	 *  project types like "theme-library", which can have multiple namespaces, can't omit them.
-	 *  Any configured build-excludes are applied</li>
-	 * </ul>
-	 *
-	 * If project resources have been changed through the means of a workspace, those changes
-	 * are reflected in the provided reader too.
-	 *
-	 * Resource readers always use POSIX-style paths.
-	 *
-	 * @public
-	 * @param {object} [options]
-	 * @param {string} [options.style=buildtime] Path style to access resources.
-	 *   Can be "buildtime", "dist", "runtime" or "flat"
-	 * @returns {@ui5/fs/ReaderCollection} A reader collection instance
-	 */
-	getReader({style = "buildtime"} = {}) {
+	_getStyledReader(style) {
 		// Apply builder excludes to all styles but "runtime"
 		const excludes = style === "runtime" ? [] : this.getBuilderResourcesExcludes();
 
+		return this._getReader(excludes);
+	}
+
+	// /**
+	//  * Get a resource reader/writer for accessing and modifying a project's resources
+	//  *
+	//  * @public
+	//  * @returns {@ui5/fs/ReaderCollection} A reader collection instance
+	//  */
+	// getWorkspace() {
+	// 	const excludes = this.getBuilderResourcesExcludes();
+	// 	const reader = this._getReader(excludes);
+
+	// 	const writer = this._createWriter();
+	// 	return resourceFactory.createWorkspace({
+	// 		reader,
+	// 		writer
+	// 	});
+	// }
+
+	_getReader(excludes) {
 		const readers = this._paths.map(({name, virBasePath, fsBasePath}) => {
 			return resourceFactory.createReader({
 				name,
@@ -81,40 +75,16 @@ class Module extends Project {
 		if (readers.length === 1) {
 			return readers[0];
 		}
-		const readerCollection = resourceFactory.createReaderCollection({
+		return resourceFactory.createReaderCollection({
 			name: `Reader collection for module project ${this.getName()}`,
 			readers
 		});
-		return resourceFactory.createReaderCollectionPrioritized({
-			name: `Reader/Writer collection for project ${this.getName()}`,
-			readers: [this._getWriter(), readerCollection]
-		});
 	}
 
-	/**
-	 * Get a resource reader/writer for accessing and modifying a project's resources
-	 *
-	 * @public
-	 * @returns {@ui5/fs/ReaderCollection} A reader collection instance
-	 */
-	getWorkspace() {
-		const reader = this.getReader();
-
-		const writer = this._getWriter();
-		return resourceFactory.createWorkspace({
-			reader,
-			writer
+	_createWriter() {
+		return resourceFactory.createAdapter({
+			virBasePath: "/"
 		});
-	}
-
-	_getWriter() {
-		if (!this._writer) {
-			this._writer = resourceFactory.createAdapter({
-				virBasePath: "/"
-			});
-		}
-
-		return this._writer;
 	}
 
 	/* === Internals === */

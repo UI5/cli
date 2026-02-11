@@ -127,6 +127,7 @@ async function _addSsl({app, key, cert}) {
  * 										are send for any requested <code>*.html</code> file
  * @param {boolean} [options.serveCSPReports=false] Enable CSP reports serving for request url
  * 										'/.ui5/csp/csp-reports.json'
+ * @param {Function} error Error callback. Will be called when an error occurs outside of request handling.
  * @returns {Promise<object>} Promise resolving once the server is listening.
  * 							It resolves with an object containing the <code>port</code>,
  * 							<code>h2</code>-flag and a <code>close</code> function,
@@ -135,7 +136,7 @@ async function _addSsl({app, key, cert}) {
 export async function serve(graph, {
 	port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
 	acceptRemoteConnections = false, sendSAPTargetCSP = false, simpleIndex = false, serveCSPReports = false
-}) {
+}, error) {
 	const rootProject = graph.getRoot();
 
 	const readers = [];
@@ -144,30 +145,51 @@ export async function serve(graph, {
 			// Ignore root project
 			return;
 		}
-		readers.push(dep.getReader({style: "runtime"}));
+		readers.push(dep.getSourceReader("runtime"));
 	});
 
 	const dependencies = createReaderCollection({
-		name: `Dependency reader collection for project ${rootProject.getName()}`,
+		name: `Dependency reader collection for sources of project ${rootProject.getName()}`,
 		readers
 	});
 
-	const rootReader = rootProject.getReader({style: "runtime"});
+	const rootReader = rootProject.getSourceReader("runtime");
 
 	// TODO change to ReaderCollection once duplicates are sorted out
 	const combo = new ReaderCollectionPrioritized({
-		name: "server - prioritize workspace over dependencies",
+		name: "Server: Reader for sources of all projects",
 		readers: [rootReader, dependencies]
 	});
-	const resources = {
+	const sources = {
 		rootProject: rootReader,
 		dependencies: dependencies,
 		all: combo
 	};
 
+	const initialBuildIncludedDependencies = [];
+	if (graph.getProject("sap.ui.core")) {
+		// Ensure sap.ui.core is always built initially (if present in the graph)
+		initialBuildIncludedDependencies.push("sap.ui.core");
+	}
+	const buildServer = await graph.serve({
+		initialBuildIncludedDependencies,
+		excludedTasks: ["minify"],
+	});
+
+	const resources = {
+		rootProject: buildServer.getRootReader(),
+		dependencies: buildServer.getDependenciesReader(),
+		all: buildServer.getReader(),
+	};
+
+	buildServer.on("error", async (err) => {
+		error(err);
+	});
+
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject,
+		sources,
 		resources,
 		options: {
 			sendSAPTargetCSP,
