@@ -25,29 +25,29 @@ A project can add custom tasks to the build by using the [Custom Tasks Extensibi
 
 All available standard tasks are documented [in the API reference](https://ui5.github.io/cli/v5/api/index.html). Search for `@ui5/builder/tasks/` to filter the API reference for all available tasks. The list below offers the actual order of their execution:
 
-| Task                           | Type `application` | Type `library` | Type `theme-library` |
-| ------------------------------ | :----------------: | :------------: | :------------------: |
-| escapeNonAsciiCharacters       | enabled          | enabled      |                      |
-| replaceCopyright               | enabled          | enabled      | enabled            |
-| replaceVersion                 | enabled          | enabled      | enabled            |
-| replaceBuildtime               |                    | enabled      |                      |
-| generateJsdoc                  |                    | *disabled* <sup>1</sup> |                      |
-| executeJsdocSdkTransformation  |                    | *disabled* <sup>1</sup> |                      |
-| minify                         | enabled          | enabled      |                      |
-| generateFlexChangesBundle      | enabled          | enabled      |                      |
-| generateLibraryManifest        |                    | enabled      |                      |
-| enhanceManifest                | enabled          | enabled      |                      |
-| generateComponentPreload       | enabled          | *disabled* <sup>2</sup> |                      |
-| generateLibraryPreload         |                    | enabled      |                      |
-| generateStandaloneAppBundle    | *disabled* <sup>3</sup>     |                |                      |
-| transformBootstrapHtml         | *disabled* <sup>3</sup>     |                |                      |
-| generateBundle                 | *disabled* <sup>4</sup>     | *disabled* <sup>4</sup> |                      |
-| buildThemes                    |                    | enabled      | enabled            |
-| generateThemeDesignerResources |                    | *disabled* <sup>4</sup> | *disabled* <sup>4</sup>       |
-| generateVersionInfo            | *disabled* <sup>1</sup>     |                |                      |
-| generateCachebusterInfo        | *disabled*         |                |                      |
-| generateApiIndex               | *disabled* <sup>1</sup>     |                |                      |
-| generateResourcesJson          | *disabled*         | *disabled*     | *disabled*           |
+| Task                           |   Type `application`    |     Type `library`      |  Type `theme-library`   |
+|--------------------------------|:-----------------------:|:-----------------------:|:-----------------------:|
+| escapeNonAsciiCharacters       |         enabled         |         enabled         |                         |
+| replaceCopyright               |         enabled         |         enabled         |         enabled         |
+| replaceVersion                 |         enabled         |         enabled         |         enabled         |
+| replaceBuildtime               |                         |         enabled         |                         |
+| generateJsdoc                  |                         | *disabled* <sup>1</sup> |                         |
+| executeJsdocSdkTransformation  |                         | *disabled* <sup>1</sup> |                         |
+| minify                         |         enabled         |         enabled         |                         |
+| generateFlexChangesBundle      |         enabled         |         enabled         |                         |
+| generateLibraryManifest        |                         |         enabled         |                         |
+| enhanceManifest                |         enabled         |         enabled         |                         |
+| generateComponentPreload       |         enabled         | *disabled* <sup>2</sup> |                         |
+| generateLibraryPreload         |                         |         enabled         |                         |
+| generateStandaloneAppBundle    | *disabled* <sup>3</sup> |                         |                         |
+| transformBootstrapHtml         | *disabled* <sup>3</sup> |                         |                         |
+| generateBundle                 | *disabled* <sup>4</sup> | *disabled* <sup>4</sup> |                         |
+| buildThemes                    |                         |         enabled         |         enabled         |
+| generateThemeDesignerResources |                         | *disabled* <sup>4</sup> | *disabled* <sup>4</sup> |
+| generateVersionInfo            | *disabled* <sup>1</sup> |                         |                         |
+| generateCachebusterInfo        |       *disabled*        |                         |                         |
+| generateApiIndex               | *disabled* <sup>1</sup> |                         |                         |
+| generateResourcesJson          |       *disabled*        |       *disabled*        |       *disabled*        |
 
 *Disabled tasks can be activated by certain build modes, the project configuration, or by using the `--include-task` [CLI parameter](./CLI.md#ui5-build). See footnotes where given*
 

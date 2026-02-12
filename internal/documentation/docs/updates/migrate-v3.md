@@ -178,31 +178,31 @@ The following processors have been removed:
 
 **Updated list of standard tasks:**
 
-| Task                      | Type `application` | Type `library` | Type `theme-library` |
-| ------------------------- | :----------------: | :------------: | :------------------: |
-| escapeNonAsciiCharacters  | enabled          | enabled      |                      |
-| replaceCopyright          | enabled          | enabled      | enabled            |
-| replaceVersion            | enabled          | enabled      | enabled            |
-| replaceBuildtime          |                    | enabled      |                      |
-| generateJsdoc             |                    | *disabled* <sup>1</sup> |                      |
-| executeJsdocSdkTransformation |                | *disabled* <sup>1</sup> |                      |
-| **ADDED:** minify         | enabled          | enabled      |                      |
-| generateFlexChangesBundle | enabled          | enabled      |                      |
-| **REMOVED:** ~~generateManifestBundle~~ | *~~disabled~~* | *~~disabled~~* |            |
-| generateLibraryManifest   |                    | enabled      |                      |
-| generateComponentPreload  | enabled          | *disabled* <sup>2</sup> |                      |
-| generateLibraryPreload    |                    | enabled      |                      |
-| generateStandaloneAppBundle | *disabled* <sup>3</sup>   |                |                      |
-| transformBootstrapHtml    | *disabled* <sup>3</sup>     |                |                      |
-| generateBundle            | *disabled* <sup>4</sup>     | *disabled* <sup>4</sup> |                      |
-| buildThemes               |                    | enabled      | enabled            |
-| generateThemeDesignerResources |               | *disabled* <sup>5</sup> | *disabled* <sup>5</sup>       |
-| **REMOVED:** ~~createDebugFiles~~ | *~~enabled~~* | *~~enabled~~* |                    | 
-| **REMOVED:** ~~uglify~~   | *~~enabled~~*      | *~~enabled~~*  |                      |
-| generateVersionInfo       | **disabled**       |                |                      |
-| generateCachebusterInfo   | *disabled*         |                |                      |
-| generateApiIndex          | *disabled* <sup>1</sup>     |                |                      |
-| generateResourcesJson     | *disabled*         | *disabled*     | *disabled*           |
+| Task                                    |   Type `application`    |     Type `library`      |  Type `theme-library`   |
+|-----------------------------------------|:-----------------------:|:-----------------------:|:-----------------------:|
+| escapeNonAsciiCharacters                |         enabled         |         enabled         |                         |
+| replaceCopyright                        |         enabled         |         enabled         |         enabled         |
+| replaceVersion                          |         enabled         |         enabled         |         enabled         |
+| replaceBuildtime                        |                         |         enabled         |                         |
+| generateJsdoc                           |                         | *disabled* <sup>1</sup> |                         |
+| executeJsdocSdkTransformation           |                         | *disabled* <sup>1</sup> |                         |
+| **ADDED:** minify                       |         enabled         |         enabled         |                         |
+| generateFlexChangesBundle               |         enabled         |         enabled         |                         |
+| **REMOVED:** ~~generateManifestBundle~~ |     *~~disabled~~*      |     *~~disabled~~*      |                         |
+| generateLibraryManifest                 |                         |         enabled         |                         |
+| generateComponentPreload                |         enabled         | *disabled* <sup>2</sup> |                         |
+| generateLibraryPreload                  |                         |         enabled         |                         |
+| generateStandaloneAppBundle             | *disabled* <sup>3</sup> |                         |                         |
+| transformBootstrapHtml                  | *disabled* <sup>3</sup> |                         |                         |
+| generateBundle                          | *disabled* <sup>4</sup> | *disabled* <sup>4</sup> |                         |
+| buildThemes                             |                         |         enabled         |         enabled         |
+| generateThemeDesignerResources          |                         | *disabled* <sup>5</sup> | *disabled* <sup>5</sup> |
+| **REMOVED:** ~~createDebugFiles~~       |      *~~enabled~~*      |      *~~enabled~~*      |                         |
+| **REMOVED:** ~~uglify~~                 |      *~~enabled~~*      |      *~~enabled~~*      |                         |
+| generateVersionInfo                     |      **disabled**       |                         |                         |
+| generateCachebusterInfo                 |       *disabled*        |                         |                         |
+| generateApiIndex                        | *disabled* <sup>1</sup> |                         |                         |
+| generateResourcesJson                   |       *disabled*        |       *disabled*        |       *disabled*        |
 
 *Disabled tasks can be activated by certain build modes, the project configuration, or by using the `--include-task` [CLI parameter](../pages/CLI.md#ui5-build). See footnotes where given* 
 
