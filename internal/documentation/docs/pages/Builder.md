@@ -27,22 +27,22 @@ All available standard tasks are documented [in the API reference](https://ui5.g
 
 | Task                           | Type `application` | Type `library` | Type `theme-library` |
 | ------------------------------ | :----------------: | :------------: | :------------------: |
-| escapeNonAsciiCharacters       | *enabled*          | *enabled*      |                      |
-| replaceCopyright               | *enabled*          | *enabled*      | *enabled*            |
-| replaceVersion                 | *enabled*          | *enabled*      | *enabled*            |
-| replaceBuildtime               |                    | *enabled*      |                      |
+| escapeNonAsciiCharacters       | enabled          | enabled      |                      |
+| replaceCopyright               | enabled          | enabled      | enabled            |
+| replaceVersion                 | enabled          | enabled      | enabled            |
+| replaceBuildtime               |                    | enabled      |                      |
 | generateJsdoc                  |                    | *disabled* <sup>1</sup> |                      |
 | executeJsdocSdkTransformation  |                    | *disabled* <sup>1</sup> |                      |
-| minify                         | *enabled*          | *enabled*      |                      |
-| generateFlexChangesBundle      | *enabled*          | *enabled*      |                      |
-| generateLibraryManifest        |                    | *enabled*      |                      |
-| enhanceManifest                | *enabled*          | *enabled*      |                      |
-| generateComponentPreload       | *enabled*          | *disabled* <sup>2</sup> |                      |
-| generateLibraryPreload         |                    | *enabled*      |                      |
+| minify                         | enabled          | enabled      |                      |
+| generateFlexChangesBundle      | enabled          | enabled      |                      |
+| generateLibraryManifest        |                    | enabled      |                      |
+| enhanceManifest                | enabled          | enabled      |                      |
+| generateComponentPreload       | enabled          | *disabled* <sup>2</sup> |                      |
+| generateLibraryPreload         |                    | enabled      |                      |
 | generateStandaloneAppBundle    | *disabled* <sup>3</sup>     |                |                      |
 | transformBootstrapHtml         | *disabled* <sup>3</sup>     |                |                      |
 | generateBundle                 | *disabled* <sup>4</sup>     | *disabled* <sup>4</sup> |                      |
-| buildThemes                    |                    | *enabled*      | *enabled*            |
+| buildThemes                    |                    | enabled      | enabled            |
 | generateThemeDesignerResources |                    | *disabled* <sup>4</sup> | *disabled* <sup>4</sup>       |
 | generateVersionInfo            | *disabled* <sup>1</sup>     |                |                      |
 | generateCachebusterInfo        | *disabled*         |                |                      |
