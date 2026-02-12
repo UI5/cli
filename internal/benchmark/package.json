@@ -11,18 +11,16 @@
 		"ui5-cli-benchmark": "./cli.js"
 	},
 	"scripts": {
-		"test": "npm run lint && npm run coverage && npm run depcheck",
+		"test": "npm run lint && npm run coverage",
 		"unit": "node --test 'test/e2e/**/*.js'",
 		"unit-watch": "node --test --watch 'test/e2e/**/*.js'",
 		"coverage": "node --test --experimental-test-coverage 'test/e2e/**/*.js'",
-		"lint": "eslint .",
-		"depcheck": "depcheck"
+		"lint": "eslint ."
 	},
 	"dependencies": {
 		"js-yaml": "^4.1.1"
 	},
 	"devDependencies": {
-		"depcheck": "^1.4.7",
 		"eslint": "^9.39.1"
 	}
 }

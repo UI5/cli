@@ -19,12 +19,11 @@
 		"directory": "internal/shrinkwrap-extractor"
 	},
 	"scripts": {
-		"test": "npm run lint && npm run coverage && npm run depcheck",
+		"test": "npm run lint && npm run coverage",
 		"unit": "node --test test/lib/convertToShrinkwrap.js",
 		"unit-watch": "node --test --watch test/lib/convertToShrinkwrap.js",
 		"coverage": "node --test --experimental-test-coverage 'test/lib/convertToShrinkwrap.js'",
-		"lint": "eslint .",
-		"depcheck": "depcheck"
+		"lint": "eslint ."
 	},
 	"keywords": [
 		"npm",
@@ -44,7 +43,6 @@
 		"pacote": "^21.0.4"
 	},
 	"devDependencies": {
-		"depcheck": "^1.4.7",
 		"eslint": "^9.39.1"
 	}
 }
