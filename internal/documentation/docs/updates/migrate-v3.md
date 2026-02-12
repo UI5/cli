@@ -184,35 +184,35 @@ The following processors have been removed:
 | replaceCopyright          | *enabled*          | *enabled*      | *enabled*            |
 | replaceVersion            | *enabled*          | *enabled*      | *enabled*            |
 | replaceBuildtime          |                    | *enabled*      |                      |
-| generateJsdoc             |                    | *disabled* ^1^ |                      |
-| executeJsdocSdkTransformation |                | *disabled* ^1^ |                      |
+| generateJsdoc             |                    | *disabled* <sup>1</sup> |                      |
+| executeJsdocSdkTransformation |                | *disabled* <sup>1</sup> |                      |
 | **ADDED:** minify         | *enabled*          | *enabled*      |                      |
 | generateFlexChangesBundle | *enabled*          | *enabled*      |                      |
 | **REMOVED:** ~~generateManifestBundle~~ | *~~disabled~~* | *~~disabled~~* |            |
 | generateLibraryManifest   |                    | *enabled*      |                      |
-| generateComponentPreload  | *enabled*          | *disabled* ^2^ |                      |
+| generateComponentPreload  | *enabled*          | *disabled* <sup>2</sup> |                      |
 | generateLibraryPreload    |                    | *enabled*      |                      |
-| generateStandaloneAppBundle | *disabled* ^3^   |                |                      |
-| transformBootstrapHtml    | *disabled* ^3^     |                |                      |
-| generateBundle            | *disabled* ^4^     | *disabled* ^4^ |                      |
+| generateStandaloneAppBundle | *disabled* <sup>3</sup>   |                |                      |
+| transformBootstrapHtml    | *disabled* <sup>3</sup>     |                |                      |
+| generateBundle            | *disabled* <sup>4</sup>     | *disabled* <sup>4</sup> |                      |
 | buildThemes               |                    | *enabled*      | *enabled*            |
-| generateThemeDesignerResources |               | *disabled* ^5^ | *disabled* ^5^       |
+| generateThemeDesignerResources |               | *disabled* <sup>5</sup> | *disabled* <sup>5</sup>       |
 | **REMOVED:** ~~createDebugFiles~~ | *~~enabled~~* | *~~enabled~~* |                    | 
 | **REMOVED:** ~~uglify~~   | *~~enabled~~*      | *~~enabled~~*  |                      |
 | generateVersionInfo       | **disabled**       |                |                      |
 | generateCachebusterInfo   | *disabled*         |                |                      |
-| generateApiIndex          | *disabled* ^1^     |                |                      |
+| generateApiIndex          | *disabled* <sup>1</sup>     |                |                      |
 | generateResourcesJson     | *disabled*         | *disabled*     | *disabled*           |
 
 *Disabled tasks can be activated by certain build modes, the project configuration, or by using the `--include-task` [CLI parameter](../pages/CLI.md#ui5-build). See footnotes where given* 
 
 ---
 
-^1^ Enabled in `jsdoc` build, which disables most of the other tasks  
-^2^ Enabled for projects defining a [component preload configuration](../pages/Configuration.md#component-preload-generation)  
-^3^ Enabled in `self-contained` build, which disables `generateComponentPreload` and `generateLibraryPreload`  
-^4^ Enabled for projects defining a [bundle configuration](../pages/Configuration.md#custom-bundling)  
-^5^ Can be enabled for framework projects via the `includeTask` option. For other projects, this task is skipped
+<sup>1</sup> Enabled in `jsdoc` build, which disables most of the other tasks  
+<sup>2</sup> Enabled for projects defining a [component preload configuration](../pages/Configuration.md#component-preload-generation)  
+<sup>3</sup> Enabled in `self-contained` build, which disables `generateComponentPreload` and `generateLibraryPreload`  
+<sup>4</sup> Enabled for projects defining a [bundle configuration](../pages/Configuration.md#custom-bundling)  
+<sup>5</sup> Can be enabled for framework projects via the `includeTask` option. For other projects, this task is skipped
 
 ## Removal of Standard Middleware
 
