@@ -43,7 +43,7 @@ All available standard tasks are documented [in the API reference](https://ui5.g
 | transformBootstrapHtml         | *disabled* <sup>3</sup> |                         |                         |
 | generateBundle                 | *disabled* <sup>4</sup> | *disabled* <sup>4</sup> |                         |
 | buildThemes                    |                         |         enabled         |         enabled         |
-| generateThemeDesignerResources |                         | *disabled* <sup>4</sup> | *disabled* <sup>4</sup> |
+| generateThemeDesignerResources |                         | *disabled* <sup>5</sup> | *disabled* <sup>5</sup> |
 | generateVersionInfo            | *disabled* <sup>1</sup> |                         |                         |
 | generateCachebusterInfo        |       *disabled*        |                         |                         |
 | generateApiIndex               | *disabled* <sup>1</sup> |                         |                         |
