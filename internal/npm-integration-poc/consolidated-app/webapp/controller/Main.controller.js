@@ -27,6 +27,11 @@ sap.ui.define([
 			console.log("   Available methods:", Object.keys(validator).slice(0, 10).join(", "), "...");
 			
 			console.log("✅ Chart.js loaded:", chartjs);
+
+			// Initialize chart after view is rendered
+			this.getView().addEventDelegate({
+				onAfterRendering: this._initChart.bind(this)
+			});
 		},
 
 		onValidate: function() {
@@ -92,6 +97,67 @@ sap.ui.define([
 			});
 			this.byId("resultPanel").setVisible(false);
 			MessageToast.show("Form reset");
+		},
+
+		_initChart: function() {
+			// Only init once
+			if (this._chartInitialized) return;
+			this._chartInitialized = true;
+
+			const canvas = document.getElementById("myChart");
+			if (!canvas) {
+				console.error("Chart canvas not found");
+				return;
+			}
+
+			// Chart.js v4+ requires explicit registration of components
+			const {Chart, BarController, BarElement, CategoryScale, LinearScale, Title, Tooltip, Legend} = chartjs;
+			Chart.register(BarController, BarElement, CategoryScale, LinearScale, Title, Tooltip, Legend);
+
+			// Generate random data
+			const labels = ["January", "February", "March", "April", "May", "June"];
+			const randomData = labels.map(() => Math.floor(Math.random() * 100));
+			const randomData2 = labels.map(() => Math.floor(Math.random() * 100));
+
+			// Create chart using Chart.js
+			this._chart = new Chart(canvas, {
+				type: "bar",
+				data: {
+					labels: labels,
+					datasets: [
+						{
+							label: "Sales 2025",
+							data: randomData,
+							backgroundColor: "rgba(54, 162, 235, 0.6)",
+							borderColor: "rgba(54, 162, 235, 1)",
+							borderWidth: 1
+						},
+						{
+							label: "Sales 2026",
+							data: randomData2,
+							backgroundColor: "rgba(255, 99, 132, 0.6)",
+							borderColor: "rgba(255, 99, 132, 1)",
+							borderWidth: 1
+						}
+					]
+				},
+				options: {
+					responsive: true,
+					plugins: {
+						title: {
+							display: true,
+							text: "Random Sales Data (Chart.js via NPM)"
+						}
+					},
+					scales: {
+						y: {
+							beginAtZero: true
+						}
+					}
+				}
+			});
+
+			console.log("✅ Chart.js chart rendered successfully");
 		},
 
 		onWebComponentClick: function() {

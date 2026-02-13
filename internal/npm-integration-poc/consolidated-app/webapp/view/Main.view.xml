@@ -6,6 +6,7 @@
 	xmlns:f="sap.ui.layout.form"
 	xmlns:webc="sap.ui.webc.main"
 	xmlns:wcgen="com.example.app.thirdparty.@ui5.webcomponents.dist"
+	xmlns:core="sap.ui.core"
 	displayBlock="true">
 	
 	<App id="app">
@@ -91,6 +92,16 @@
 					<!-- Web Component Button -->
 					<webc:Button id="wcButton" design="Emphasized" icon="activate" click="onWebComponentClick" text="Web Component Validate" />
 				</Toolbar>
+				
+				<!-- Chart.js Demo Panel -->
+				<Panel
+					id="chartPanel"
+					headerText="Chart.js Demo (Random Data)"
+					class="sapUiSmallMarginTop">
+					<content>
+						<core:HTML id="chartContainer" content="&lt;canvas id='myChart' width='400' height='200'&gt;&lt;/canvas&gt;" />
+					</content>
+				</Panel>
 				
 				<!-- Result Panel -->
 				<Panel
