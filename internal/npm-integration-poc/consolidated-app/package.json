@@ -15,6 +15,7 @@
 	"dependencies": {
 		"validator": "^13.15.26",
 		"ui5-tooling-modules": "^3.34.2",
-		"@ui5/webcomponents": "^2.6.0"
+		"@ui5/webcomponents": "^2.6.0",
+		"chart.js": "^4.5.1"
 	}
 }

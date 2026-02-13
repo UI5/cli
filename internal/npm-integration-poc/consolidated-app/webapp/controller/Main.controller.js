@@ -2,8 +2,9 @@ sap.ui.define([
 	"sap/ui/core/mvc/Controller",
 	"sap/ui/model/json/JSONModel",
 	"sap/m/MessageToast",
-	"validator" // NPM package (auto-bundled by ui5-tooling-modules)
-], function(Controller, JSONModel, MessageToast, validator) {
+	"thirdparty/validator", // NPM package (auto-bundled by ui5-tooling-modules)
+	"thirdparty/chart.js"
+], function(Controller, JSONModel, MessageToast, validator, chartjs) {
 	"use strict";
 
 	return Controller.extend("com.example.app.controller.Main", {
@@ -24,6 +25,8 @@ sap.ui.define([
 			// Log that validator is loaded
 			console.log("✅ Validator.js loaded:", typeof validator);
 			console.log("   Available methods:", Object.keys(validator).slice(0, 10).join(", "), "...");
+			
+			console.log("✅ Chart.js loaded:", chartjs);
 		},
 
 		onValidate: function() {
