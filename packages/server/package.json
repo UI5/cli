@@ -1,6 +1,6 @@
 {
 	"name": "@ui5/server",
-	"version": "5.0.0-alpha.2",
+	"version": "5.0.0-alpha.3",
 	"description": "UI5 CLI - Server",
 	"author": {
 		"name": "SAP SE",
@@ -86,9 +86,9 @@
 		"directory": "packages/server"
 	},
 	"dependencies": {
-		"@ui5/builder": "^5.0.0-alpha.2",
-		"@ui5/fs": "^5.0.0-alpha.2",
-		"@ui5/logger": "^5.0.0-alpha.2",
+		"@ui5/builder": "^5.0.0-alpha.3",
+		"@ui5/fs": "^5.0.0-alpha.3",
+		"@ui5/logger": "^5.0.0-alpha.3",
 		"body-parser": "^2.2.2",
 		"compression": "^1.8.1",
 		"cors": "^2.8.5",
@@ -108,7 +108,7 @@
 	},
 	"devDependencies": {
 		"@istanbuljs/esm-loader-hook": "^0.3.0",
-		"@ui5/project": "^5.0.0-alpha.2",
+		"@ui5/project": "^5.0.0-alpha.3",
 		"ava": "^6.4.1",
 		"cross-env": "^7.0.3",
 		"eslint": "^9.36.0",

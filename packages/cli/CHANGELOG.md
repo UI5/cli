@@ -4,6 +4,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v4.0.26...HEAD).
 
+## [5.0.0-alpha.3](https://github.com/UI5/cli/compare/cli-v5.0.0-alpha.2...cli-v5.0.0-alpha.3) (2026-02-13)
+
+
+### Performance Improvements
+
+* **cli:** Add CPU profiling support ([#1260](https://github.com/UI5/cli/issues/1260)) ([d73f6b4](https://github.com/UI5/cli/commit/d73f6b41ccb123ecb4357f6d3a178e900c070087))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.2 to ^5.0.0-alpha.3
+    * @ui5/fs bumped from ^5.0.0-alpha.2 to ^5.0.0-alpha.3
+    * @ui5/logger bumped from ^5.0.0-alpha.2 to ^5.0.0-alpha.3
+    * @ui5/project bumped from ^5.0.0-alpha.2 to ^5.0.0-alpha.3
+    * @ui5/server bumped from ^5.0.0-alpha.2 to ^5.0.0-alpha.3
+
 ## [5.0.0-alpha.2](https://github.com/UI5/cli/compare/cli-v5.0.0-alpha.1...cli-v5.0.0-alpha.2) (2025-12-15)
 
 
