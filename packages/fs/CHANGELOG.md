@@ -4,6 +4,20 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v4.0.2...HEAD).
 
+## [5.0.0-alpha.3](https://github.com/UI5/cli/compare/fs-v5.0.0-alpha.2...fs-v5.0.0-alpha.3) (2026-02-13)
+
+
+### Bug Fixes
+
+* Fix gray code blocks in Markdown ([1cdd610](https://github.com/UI5/cli/commit/1cdd61060bd592b5c5f573635444d5ba37a8dc98))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/logger bumped from ^5.0.0-alpha.2 to ^5.0.0-alpha.3
+
 ## [5.0.0-alpha.2](https://github.com/UI5/cli/compare/fs-v5.0.0-alpha.1...fs-v5.0.0-alpha.2) (2025-12-15)
 
 

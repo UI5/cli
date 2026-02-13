@@ -4,6 +4,27 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v4.0.11...HEAD).
 
+## [5.0.0-alpha.3](https://github.com/UI5/cli/compare/builder-v5.0.0-alpha.2...builder-v5.0.0-alpha.3) (2026-02-13)
+
+
+### Bug Fixes
+
+* Change Markdown syntax to [@example](https://github.com/example) in one place ([f7e2e73](https://github.com/UI5/cli/commit/f7e2e732570e3948d87c200ed5d64f65891a866d))
+* Fix gray code blocks in Markdown ([1cdd610](https://github.com/UI5/cli/commit/1cdd61060bd592b5c5f573635444d5ba37a8dc98))
+* Remove unnecessary space ([892ebca](https://github.com/UI5/cli/commit/892ebcadbd9ac4a3c0db84c7fb12c8c1e5daa1b6))
+
+
+### Dependencies
+
+* Bump escape-unicode from 0.2.0 to 0.3.0 ([#1160](https://github.com/UI5/cli/issues/1160)) ([90d07bd](https://github.com/UI5/cli/commit/90d07bdf9703e1072a8453a58302c00ac60ad83e))
+* Bump workerpool from 9.3.4 to 10.0.1 ([#1171](https://github.com/UI5/cli/issues/1171)) ([1f659b4](https://github.com/UI5/cli/commit/1f659b405038f91f6aa62d0cc29c32376e4e24d3))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/fs bumped from ^5.0.0-alpha.2 to ^5.0.0-alpha.3
+    * @ui5/logger bumped from ^5.0.0-alpha.2 to ^5.0.0-alpha.3
+  * devDependencies
+    * @ui5/project bumped from ^5.0.0-alpha.2 to ^5.0.0-alpha.3
+
 ## [5.0.0-alpha.2](https://github.com/UI5/cli/compare/builder-v5.0.0-alpha.1...builder-v5.0.0-alpha.2) (2025-12-15)
 
 
