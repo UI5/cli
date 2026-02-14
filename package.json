@@ -41,7 +41,7 @@
 		"@commitlint/cli": "^20.1.0",
 		"@commitlint/config-conventional": "^20.0.0",
 		"@eslint/js": "^9.8.0",
-		"eslint": "^9.35.0",
+		"eslint": "^10.0.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^15.1.0",
 		"eslint-plugin-jsdoc": "^62.5.4",
