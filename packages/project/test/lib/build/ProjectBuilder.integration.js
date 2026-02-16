@@ -207,7 +207,7 @@ test.serial.skip("Build application.a (custom task and tag handling)", async (t)
 
 	// Create new file which should get tagged as "OmitFromBuildResult" by a custom task
 	await fs.writeFile(`${fixtureTester.fixturePath}/webapp/fileToBeOmitted.js`,
-		`console.log("this file should be ommited in the build result")`);
+		`console.log("this file should be omitted in the build result")`);
 
 	// #2 build (with cache, with changes, with custom tasks)
 	await fixtureTester.buildProject({
@@ -254,6 +254,68 @@ test.serial.skip("Build application.a (custom task and tag handling)", async (t)
 		config: {destPath, cleanDest: true},
 		assertions: {
 			projects: {} // everything should be skipped (already done in very first build)
+		}
+	});
+});
+
+// eslint-disable-next-line ava/no-skip-test -- tag handling to be implemented
+test.serial.skip("Build application.a (multiple custom tasks)", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+
+	// This test should cover a scenario with multiple custom tasks.
+	// Specifically, a tag is set in custom-task-1 on a resource which is read in custom-task-0 and custom-task-2.
+	// The expected behavior is that the tag is not present in custom-task-0 (which runs before custom-task-1),
+	// but is present in custom-task-2 (which runs after custom-task-1).
+	// (for testing purposes, the custom tasks already check for this tag by themselves and handle errors accordingly)
+
+	// #1 build (no cache, no changes, with custom tasks)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-multiple-customTasks.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// #2 build (with cache, no changes, with custom tasks)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-multiple-customTasks.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+
+	// Create a new file to allow a new build:
+	// Logic of custom-task-1 will NOT handle this file, while custom-task-0 and 2 WILL DO it,
+	// resulting in custom-task-1 getting skipped (cache reuse).
+	// The test should then verify that the tag is still set and now readable for custom-task-0 AND 2.
+	// (as in #1 build, the custom tasks already check for this tag by themselves and handle errors accordingly)
+	await fs.cp(`${fixtureTester.fixturePath}/webapp/test.js`,
+		`${fixtureTester.fixturePath}/webapp/test2.js`);
+
+	// #3 build (with cache, with changes, with custom tasks)
+	// FIXME: Currently failing, because for custom-task-0 and 2 the tag is NOT set yet.
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-multiple-customTasks.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"custom-task-1", // SHOULD BE SKIPPED
+						// remaining skipped tasks don't matter here:
+						"enhanceManifest",
+						"escapeNonAsciiCharacters",
+						"generateFlexChangesBundle",
+						"replaceCopyright",
+					]
+				}
+			}
 		}
 	});
 });
