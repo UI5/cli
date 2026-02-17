@@ -103,6 +103,21 @@
 					</content>
 				</Panel>
 				
+				<!-- React Color Picker Panel -->
+				<Panel
+					id="colorPickerPanel"
+					headerText="React Color Picker (react-colorful)"
+					class="sapUiSmallMarginTop">
+					<content>
+						<core:HTML id="reactColorPicker" content="&lt;div id='react-colorpicker-root'&gt;&lt;/div&gt;" />
+						<HBox alignItems="Center" class="sapUiSmallMargin">
+							<Label text="Selected Color:" class="sapUiSmallMarginEnd" />
+							<Text id="selectedColorText" text="{/selectedColor}" />
+							<core:HTML content="&lt;div id='color-preview' style='width:24px;height:24px;border-radius:4px;margin-left:8px;border:1px solid #ccc'&gt;&lt;/div&gt;" />
+						</HBox>
+					</content>
+				</Panel>
+				
 				<!-- Result Panel -->
 				<Panel
 					id="resultPanel"

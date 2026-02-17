@@ -1,63 +1,102 @@
 /**
- * UI5 Custom Middleware: WebComponents Bundler (Standalone Plugin)
+ * UI5 Custom Middleware: WebComponents & NPM Modules Bundler (Standalone Plugin)
  *
- * Serves @ui5/webcomponents on-demand during development using
- * the custom standalone rollup-plugin-ui5-webcomponents.js
+ * Serves packages on-demand during development based on SCAN_RESULT configuration.
  */
 
 import ui5WebComponentsPlugin from "../lib/plugins/rollup-plugin-ui5-webcomponents.js";
 import {WebComponentsBundler} from "../lib/core/webcomponents-bundler.js";
 import {CacheWriter} from "../lib/core/output-writer.js";
-import {DEFAULT_CONFIG, createPluginOptions, createBundlerOptions} from "../lib/config/standalone-config.js";
+import {createPluginOptions, createBundlerOptions} from "../lib/config/standalone-config.js";
+import {createRollupConfig, generateAMDBundle} from "../scenarios/shared-config.js";
+import {
+	SCAN_RESULT,
+	getExternals,
+	getPathsMapping,
+	sanitizePackageName,
+	createDevelopmentPlugin
+} from "./bundler-config.js";
 
 /**
  * Custom middleware entry point
- *
- * @param root0
- * @param root0.log
  */
 export default function({log}) {
 	const $metadata = {};
 
-	// Create plugin instance
+	// WebComponents bundler setup
 	const plugin = ui5WebComponentsPlugin(createPluginOptions(log, $metadata));
-
-	// Create bundler with cache writer
 	const bundler = new WebComponentsBundler(createBundlerOptions(log, plugin));
-
 	const cacheWriter = new CacheWriter(bundler.pathResolver);
 
+	// NPM package cache
+	const npmCache = new Map();
+	const devPlugin = createDevelopmentPlugin();
+
 	return async function(req, res, next) {
-		// Handle requests for thirdparty/ webcomponents
-		if (!req.path.startsWith(`/${DEFAULT_CONFIG.thirdpartyNamespace}/`)) {
+		// Only handle /resources/thirdparty/ requests
+		if (!req.path.startsWith("/resources/thirdparty/")) {
 			return next();
 		}
 
-		log.info(`✅ Handling webcomponents request: ${req.path}`);
-
-		const modulePath = req.path.substring(1).replace(/\.js$/, "");
+		const modulePath = req.path.replace(/^\/resources\//, "").replace(/\.js$/, "");
+		const moduleName = modulePath.replace(/^thirdparty\//, "");
 
 		try {
-			let bundledCode = cacheWriter.get(modulePath);
+			// Check cache first
+			if (npmCache.has(modulePath)) {
+				log.info(`📋 Serving from cache: ${modulePath}`);
+				res.setHeader("Content-Type", "application/javascript");
+				return res.end(npmCache.get(modulePath));
+			}
+
+			let bundledCode;
+
+			// Find package in scan result by output name or sanitized name
+			const packageName = Object.keys(SCAN_RESULT).find((pkg) => {
+				const info = SCAN_RESULT[pkg];
+				const outputName = info.outputName || sanitizePackageName(pkg);
+				return outputName === moduleName;
+			});
+
+			if (packageName) {
+				const scanInfo = SCAN_RESULT[packageName];
+				const externals = getExternals(packageName);
+				const paths = getPathsMapping(packageName);
+
+				log.info(`📦 Bundling on-demand: ${packageName}`);
+
+				const entryPoint = scanInfo.entryPoints[0];
+				const config = createRollupConfig(entryPoint, [devPlugin], {
+					external: externals.length > 0 ? externals : undefined
+				});
+
+				const outputOptions = {
+					...scanInfo.outputOptions,
+					...(Object.keys(paths).length > 0 ? {paths} : {})
+				};
+
+				bundledCode = await generateAMDBundle(config, outputOptions);
+			}
+
+			// Try WebComponents as fallback
+			if (!bundledCode) {
+				bundledCode = cacheWriter.get(modulePath);
+				if (!bundledCode) {
+					log.info(`📦 Bundling webcomponent on-demand: ${modulePath}`);
+					const output = await bundler.bundle();
+					await bundler.processOutput(output, cacheWriter, $metadata);
+					bundledCode = cacheWriter.get(modulePath);
+				}
+			}
 
 			if (!bundledCode) {
-				log.info(`📦 Bundling webcomponent on-demand: ${modulePath}`);
-
-				const output = await bundler.bundle();
-				await bundler.processOutput(output, cacheWriter, $metadata);
-
-				bundledCode = cacheWriter.get(modulePath);
-
-				if (!bundledCode) {
-					log.warn(`⚠️ Module not found: ${modulePath}`);
-					log.info(`🔍 Available: ${JSON.stringify(cacheWriter.keys())}`);
-					return next();
-				}
-
-				log.info(`✅ Bundled and cached: ${modulePath}`);
-			} else {
-				log.info(`📋 Serving from cache: ${modulePath}`);
+				log.warn(`⚠️ Module not found: ${modulePath}`);
+				return next();
 			}
+
+			// Cache and serve
+			npmCache.set(modulePath, bundledCode);
+			log.info(`✅ Bundled: ${modulePath} (${(bundledCode.length / 1024).toFixed(1)} KB)`);
 
 			res.setHeader("Content-Type", "application/javascript");
 			res.end(bundledCode);

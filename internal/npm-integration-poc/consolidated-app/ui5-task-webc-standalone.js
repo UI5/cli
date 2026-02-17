@@ -1,16 +1,8 @@
 /**
  * UI5 Custom Task: WebComponents & NPM Modules Bundler (Standalone Plugin)
  *
- * Bundles:
- * 1. @ui5/webcomponents using rollup-plugin-ui5-webcomponents.js
- * 2. NPM dependencies from package.json using shared Rollup config
- *
  * Output: /resources/thirdparty/<module-name>.js
  */
-
-import {readFile} from "fs/promises";
-import {join, dirname} from "path";
-import {fileURLToPath} from "url";
 
 import ui5WebComponentsPlugin from "../lib/plugins/rollup-plugin-ui5-webcomponents.js";
 import {WebComponentsBundler} from "../lib/core/webcomponents-bundler.js";
@@ -18,34 +10,14 @@ import {WorkspaceWriter} from "../lib/core/output-writer.js";
 import {PathResolver} from "../lib/utils/path-resolver.js";
 import {DEFAULT_CONFIG, createPluginOptions, createBundlerOptions} from "../lib/config/standalone-config.js";
 import {createRollupConfig, generateAMDBundle} from "../scenarios/shared-config.js";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-/**
- * NPM packages to exclude from bundling (UI5 internal, dev deps, tooling)
- */
-const EXCLUDED_PACKAGES = [
-	"ui5-tooling-modules",
-	"@ui5/webcomponents",       // Handled separately by WebComponents bundler
-	"@ui5/webcomponents-base",
-	"@ui5/webcomponents-theming",
-	"@ui5/webcomponents-icons"
-];
-
-/**
- * Read and parse package.json dependencies
- *
- * @returns {Promise<string[]>} List of dependency names to bundle
- */
-async function getPackageDependencies() {
-	const packageJsonPath = join(__dirname, "package.json");
-	const packageJson = JSON.parse(await readFile(packageJsonPath, "utf-8"));
-
-	const dependencies = Object.keys(packageJson.dependencies || {});
-
-	// Filter out excluded packages
-	return dependencies.filter((dep) => !EXCLUDED_PACKAGES.includes(dep));
-}
+import {
+	SCAN_RESULT,
+	getBundleOrder,
+	getExternals,
+	getPathsMapping,
+	sanitizePackageName,
+	createProductionPlugin
+} from "./bundler-config.js";
 
 /**
  * Custom task entry point
@@ -54,7 +26,6 @@ async function getPackageDependencies() {
  * @param {object} parameters.workspace Workspace
  * @param {@ui5/logger/Logger} parameters.log Logger instance
  * @param {object} parameters.taskUtil TaskUtil instance
- * @param {object} parameters.options Options
  * @returns {Promise<undefined>} Promise resolving when task is complete
  */
 export default async function({workspace, log, taskUtil}) {
@@ -62,53 +33,57 @@ export default async function({workspace, log, taskUtil}) {
 
 	const {resourceFactory} = taskUtil;
 	const $metadata = {};
+	const productionPlugin = createProductionPlugin();
 
 	try {
 		// ========== 1. Bundle WebComponents ==========
 		log.info("📦 Phase 1: Bundling WebComponents...");
 
 		const plugin = ui5WebComponentsPlugin(createPluginOptions(log, $metadata));
-		const pathResolver = new PathResolver(
-			DEFAULT_CONFIG.namespace,
-			DEFAULT_CONFIG.thirdpartyNamespace
-		);
+		const pathResolver = new PathResolver(DEFAULT_CONFIG.namespace, DEFAULT_CONFIG.thirdpartyNamespace);
 		const workspaceWriter = new WorkspaceWriter(pathResolver, workspace, resourceFactory);
 		const bundler = new WebComponentsBundler(createBundlerOptions(log, plugin));
 
 		const output = await bundler.bundle("@ui5/webcomponents/dist/MessageStrip.js");
 		await bundler.processOutput(output, workspaceWriter, $metadata);
-
 		log.info("✅ WebComponents bundled successfully");
 
-		// ========== 2. Bundle NPM Packages ==========
-		log.info("📦 Phase 2: Bundling NPM packages from package.json...");
+		// ========== 2. Bundle NPM Packages from Scan Result ==========
+		log.info("📦 Phase 2: Bundling NPM packages from scan result...");
 
-		const dependencies = await getPackageDependencies();
-		log.info(`  Found ${dependencies.length} dependencies to bundle: ${dependencies.join(", ")}`);
+		const bundleOrder = getBundleOrder();
+		log.info(`  Bundle order: ${bundleOrder.join(" → ")}`);
 
-		for (const packageName of dependencies) {
+		for (const packageName of bundleOrder) {
+			const scanInfo = SCAN_RESULT[packageName];
+			const externals = getExternals(packageName);
+			const paths = getPathsMapping(packageName);
+			const outputName = scanInfo.outputName || sanitizePackageName(packageName);
+			const outputPath = `/resources/thirdparty/${outputName}.js`;
+
 			try {
-				// Reuse shared Rollup config and AMD generator (DRY)
-				const config = createRollupConfig(packageName);
-				const code = await generateAMDBundle(config);
-
-				// Sanitize package name for path (handle scoped packages)
-				const sanitizedName = packageName.replace(/^@/, "").replace(/\//g, "-");
-				const outputPath = `/resources/thirdparty/${sanitizedName}.js`;
-
-				const resource = resourceFactory.createResource({
-					path: outputPath,
-					string: code
+				// Use first entry point (packages typically have one main entry)
+				const entryPoint = scanInfo.entryPoints[0];
+				const config = createRollupConfig(entryPoint, [productionPlugin], {
+					external: externals.length > 0 ? externals : undefined
 				});
 
-				await workspace.write(resource);
-				log.info(`  ✅ ${packageName} → ${outputPath} (${(code.length / 1024).toFixed(1)} KB)`);
+				const outputOptions = {
+					...scanInfo.outputOptions,
+					...(Object.keys(paths).length > 0 ? {paths} : {})
+				};
+
+				const code = await generateAMDBundle(config, outputOptions);
+				await workspace.write(resourceFactory.createResource({path: outputPath, string: code}));
+
+				const externalsInfo = externals.length > 0 ? ` [ext: ${externals.join(", ")}]` : "";
+				log.info(`  ✅ ${packageName} → ${outputPath} (${(code.length / 1024).toFixed(1)} KB)${externalsInfo}`);
 			} catch (error) {
 				log.error(`  ❌ Failed to bundle ${packageName}: ${error.message}`);
 			}
 		}
 
-		log.info("✅ All NPM packages bundled successfully");
+		log.info("✅ All packages bundled successfully");
 	} catch (error) {
 		log.error(`❌ Error in bundler task: ${error.message}`);
 		log.error(error.stack);

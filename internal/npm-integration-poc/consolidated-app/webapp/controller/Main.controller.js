@@ -3,8 +3,9 @@ sap.ui.define([
 	"sap/ui/model/json/JSONModel",
 	"sap/m/MessageToast",
 	"thirdparty/validator", // NPM package (auto-bundled by ui5-tooling-modules)
-	"thirdparty/chart.js"
-], function(Controller, JSONModel, MessageToast, validator, chartjs) {
+	"thirdparty/chart.js",
+	"thirdparty/react-colorpicker"
+], function(Controller, JSONModel, MessageToast, validator, chartjs, ReactColorPicker) {
 	"use strict";
 
 	return Controller.extend("com.example.app.controller.Main", {
@@ -18,20 +19,23 @@ sap.ui.define([
 				emailState: "None",
 				emailStateText: "",
 				urlState: "None",
-				urlStateText: ""
+				urlStateText: "",
+				selectedColor: "#0854a0"
 			});
 			this.getView().setModel(oModel);
 
-			// Log that validator is loaded
-			console.log("✅ Validator.js loaded:", typeof validator);
-			console.log("   Available methods:", Object.keys(validator).slice(0, 10).join(", "), "...");
-			
-			console.log("✅ Chart.js loaded:", chartjs);
-
-			// Initialize chart after view is rendered
+			// Initialize chart and React components after view is rendered
 			this.getView().addEventDelegate({
-				onAfterRendering: this._initChart.bind(this)
+				onAfterRendering: this._initComponents.bind(this)
 			});
+		},
+
+		/**
+		 * Initialize all third-party components after view rendering
+		 */
+		_initComponents: function() {
+			this._initChart();
+			this._initReactColorPicker();
 		},
 
 		onValidate: function() {
@@ -93,7 +97,8 @@ sap.ui.define([
 				emailState: "None",
 				emailStateText: "",
 				urlState: "None",
-				urlStateText: ""
+				urlStateText: "",
+				selectedColor: "#0854a0"
 			});
 			this.byId("resultPanel").setVisible(false);
 			MessageToast.show("Form reset");
@@ -158,6 +163,41 @@ sap.ui.define([
 			});
 
 			console.log("✅ Chart.js chart rendered successfully");
+		},
+
+		/**
+		 * Initialize React Color Picker component
+		 */
+		_initReactColorPicker: function() {
+			// Only init once
+			if (this._colorPickerInitialized) return;
+			this._colorPickerInitialized = true;
+
+			const container = document.getElementById("react-colorpicker-root");
+			if (!container) {
+				console.error("React ColorPicker container not found");
+				return;
+			}
+
+			const oModel = this.getView().getModel();
+			const initialColor = oModel.getProperty("/selectedColor");
+
+			// Mount React Color Picker
+			this._colorPicker = ReactColorPicker.mountColorPicker(container, {
+				initialColor: initialColor,
+				onChange: (color) => {
+					// Update UI5 model when color changes
+					oModel.setProperty("/selectedColor", color);
+					
+					// Update the color preview
+					const preview = document.getElementById("color-preview");
+					if (preview) {
+						preview.style.backgroundColor = color;
+					}
+				}
+			});
+
+			console.log("✅ React ColorPicker mounted successfully");
 		},
 
 		onWebComponentClick: function() {

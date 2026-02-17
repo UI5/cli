@@ -48,9 +48,10 @@ export function createRollupConfig(input, extraPlugins = [], options = {}) {
 /**
  * Generate AMD bundle
  *
- * @param config
+ * @param config Rollup config
+ * @param outputOptions Additional output options (e.g., paths, exports)
  */
-export async function generateAMDBundle(config) {
+export async function generateAMDBundle(config, outputOptions = {}) {
 	const bundle = await rollup(config);
 
 	const {output} = await bundle.generate({
@@ -58,9 +59,11 @@ export async function generateAMDBundle(config) {
 		amd: {
 			define: "sap.ui.define"
 		},
-		plugins: [ui5AmdExportsPlugin()]
+		plugins: [ui5AmdExportsPlugin()],
+		...outputOptions
 	});
 
+	await bundle.close();
 	return output[0].code;
 }
 
