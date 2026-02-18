@@ -88,9 +88,9 @@ export default {
 
 				await assertValidation(t, config, [
 					{
-						dataPath: "/framework/name",
+						instancePath: "/framework/name",
 						keyword: "enum",
-						message: "should be equal to one of the allowed values",
+						message: "must be equal to one of the allowed values",
 						params: {
 							allowedValues: [
 								"OpenUI5",
@@ -99,16 +99,16 @@ export default {
 						}
 					},
 					{
-						dataPath: "/framework/version",
+						instancePath: "/framework/version",
 						keyword: "errorMessage",
 						message: "Not a valid version according to the Semantic Versioning specification (https://semver.org/)",
 						params: {
 							errors: [
 								{
-									dataPath: "/framework/version",
+									instancePath: "/framework/version",
 									keyword: "pattern",
 									message:
-										"should match pattern \"^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)" +
+										"must match pattern \"^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)" +
 										"(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*" +
 										"[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$\"",
 									params: {
@@ -122,41 +122,41 @@ export default {
 						}
 					},
 					{
-						dataPath: "/framework/libraries/0",
+						instancePath: "/framework/libraries/0",
 						keyword: "type",
-						message: "should be object",
+						message: "must be object",
 						params: {
 							type: "object",
 						}
 					},
 					{
-						dataPath: "/framework/libraries/1",
-						keyword: "additionalProperties",
-						message: "should NOT have additional properties",
-						params: {
-							additionalProperty: "library",
-						}
-					},
-					{
-						dataPath: "/framework/libraries/1",
+						instancePath: "/framework/libraries/1",
 						keyword: "required",
-						message: "should have required property 'name'",
+						message: "must have required property 'name'",
 						params: {
 							missingProperty: "name",
 						}
 					},
 					{
-						dataPath: "/framework/libraries/2/optional",
+						instancePath: "/framework/libraries/1",
+						keyword: "additionalProperties",
+						message: "must NOT have additional properties",
+						params: {
+							additionalProperty: "library",
+						}
+					},
+					{
+						instancePath: "/framework/libraries/2/optional",
 						keyword: "type",
-						message: "should be boolean",
+						message: "must be boolean",
 						params: {
 							type: "boolean"
 						}
 					},
 					{
-						dataPath: "/framework/libraries/3/development",
+						instancePath: "/framework/libraries/3/development",
 						keyword: "type",
-						message: "should be boolean",
+						message: "must be boolean",
 						params: {
 							type: "boolean"
 						}
@@ -174,9 +174,9 @@ export default {
 					"framework": {}
 				}, [
 					{
-						dataPath: "/framework",
+						instancePath: "/framework",
 						keyword: "required",
-						message: "should have required property 'name'",
+						message: "must have required property 'name'",
 						params: {
 							missingProperty: "name"
 						}
@@ -211,23 +211,23 @@ export default {
 						}
 					}, [
 						{
-							dataPath: "/framework/libraries/0",
+							instancePath: "/framework/libraries/0",
 							keyword: "errorMessage",
 							message: "Either \"development\" or \"optional\" can be true, but not both",
 							params: {
 								errors: [
 									{
-										dataPath: "/framework/libraries/0",
+										instancePath: "/framework/libraries/0",
 										keyword: "additionalProperties",
-										message: "should NOT have additional properties",
+										message: "must NOT have additional properties",
 										params: {
 											additionalProperty: "development",
 										}
 									},
 									{
-										dataPath: "/framework/libraries/0",
+										instancePath: "/framework/libraries/0",
 										keyword: "additionalProperties",
-										message: "should NOT have additional properties",
+										message: "must NOT have additional properties",
 										params: {
 											additionalProperty: "optional",
 										}
@@ -236,17 +236,17 @@ export default {
 							}
 						},
 						{
-							dataPath: "/framework/libraries/1/optional",
+							instancePath: "/framework/libraries/1/optional",
 							keyword: "type",
-							message: "should be boolean",
+							message: "must be boolean",
 							params: {
 								type: "boolean",
 							}
 						},
 						{
-							dataPath: "/framework/libraries/1/development",
+							instancePath: "/framework/libraries/1/development",
 							keyword: "type",
-							message: "should be boolean",
+							message: "must be boolean",
 							params: {
 								type: "boolean",
 							}

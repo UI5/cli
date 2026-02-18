@@ -62,11 +62,11 @@ export default {
 					}, [
 						{
 							keyword: "additionalProperties",
-							dataPath: "/builder/bundles/0/bundleOptions",
+							instancePath: "/builder/bundles/0/bundleOptions",
 							params: {
 								additionalProperty: "usePredefineCalls",
 							},
-							message: "should NOT have additional properties",
+							message: "must NOT have additional properties",
 						},
 					]);
 				});
@@ -94,46 +94,46 @@ export default {
 				}, [
 					{
 						keyword: "type",
-						dataPath: "/builder/bundles/0/bundleOptions/optimize",
+						instancePath: "/builder/bundles/0/bundleOptions/optimize",
 						params: {
 							type: "boolean",
 						},
-						message: "should be boolean"
+						message: "must be boolean"
 					},
 					{
 						keyword: "type",
-						dataPath:
+						instancePath:
 							"/builder/bundles/0/bundleOptions/decorateBootstrapModule",
 						params: {
 							type: "boolean",
 						},
-						message: "should be boolean"
+						message: "must be boolean"
 					},
 					{
 						keyword: "type",
-						dataPath:
+						instancePath:
 							"/builder/bundles/0/bundleOptions/addTryCatchRestartWrapper",
 						params: {
 							type: "boolean",
 						},
-						message: "should be boolean"
+						message: "must be boolean"
 					},
 					{
 						keyword: "type",
-						dataPath:
+						instancePath:
 							"/builder/bundles/0/bundleOptions/numberOfParts",
 						params: {
 							type: "number",
 						},
-						message: "should be number"
+						message: "must be number"
 					},
 					{
 						keyword: "type",
-						dataPath: "/builder/bundles/0/bundleOptions/sourceMap",
+						instancePath: "/builder/bundles/0/bundleOptions/sourceMap",
 						params: {
 							type: "boolean",
 						},
-						message: "should be boolean"
+						message: "must be boolean"
 					}
 				]);
 			});
@@ -187,11 +187,11 @@ export default {
 					}, [
 						{
 							keyword: "additionalProperties",
-							dataPath: "/builder/bundles/0/bundleOptions",
+							instancePath: "/builder/bundles/0/bundleOptions",
 							params: {
 								additionalProperty: "debugMode",
 							},
-							message: "should NOT have additional properties",
+							message: "must NOT have additional properties",
 						},
 					]);
 				});
@@ -220,55 +220,55 @@ export default {
 				}, [
 					{
 						keyword: "type",
-						dataPath: "/builder/bundles/0/bundleOptions/optimize",
+						instancePath: "/builder/bundles/0/bundleOptions/optimize",
 						params: {
 							type: "boolean",
 						},
-						message: "should be boolean"
+						message: "must be boolean"
 					},
 					{
 						keyword: "type",
-						dataPath:
+						instancePath:
 							"/builder/bundles/0/bundleOptions/decorateBootstrapModule",
 						params: {
 							type: "boolean",
 						},
-						message: "should be boolean"
+						message: "must be boolean"
 					},
 					{
 						keyword: "type",
-						dataPath:
+						instancePath:
 							"/builder/bundles/0/bundleOptions/addTryCatchRestartWrapper",
 						params: {
 							type: "boolean",
 						},
-						message: "should be boolean"
+						message: "must be boolean"
 					},
 					{
 						keyword: "type",
-						dataPath:
+						instancePath:
 							"/builder/bundles/0/bundleOptions/usePredefineCalls",
 						params: {
 							type: "boolean",
 						},
-						message: "should be boolean"
+						message: "must be boolean"
 					},
 					{
 						keyword: "type",
-						dataPath:
+						instancePath:
 							"/builder/bundles/0/bundleOptions/numberOfParts",
 						params: {
 							type: "number",
 						},
-						message: "should be number"
+						message: "must be number"
 					},
 					{
 						keyword: "type",
-						dataPath: "/builder/bundles/0/bundleOptions/sourceMap",
+						instancePath: "/builder/bundles/0/bundleOptions/sourceMap",
 						params: {
 							type: "boolean",
 						},
-						message: "should be boolean"
+						message: "must be boolean"
 					}
 				]);
 			});
