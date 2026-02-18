@@ -10,7 +10,7 @@ import {createInstrumenter} from "istanbul-lib-instrument";
 const rSchemaName = new RegExp(/sourceURL=([^\s]*)/);
 const rRootDataUndefined = /\n(?:\s)*if \(rootData === undefined\) rootData = data;/g;
 const rEnsureErrorArray = /\n(?:\s)*if \(vErrors === null\) vErrors = \[err\];(?:\s)*else vErrors\.push\(err\);/g;
-const rDataPathOrEmptyString = /dataPath: \(dataPath \|\| ''\)/g;
+const rInstancePathOrEmptyString = /instancePath: \(instancePath \|\| ''\)/g;
 
 function hash(content) {
 	return crypto.createHash("sha1").update(content).digest("hex").substr(0, 16);
@@ -23,9 +23,12 @@ function randomCoverageVar() {
 class AjvCoverage {
 	constructor(ajv, options = {}) {
 		this.ajv = ajv;
-		this.ajv._opts.processCode = this._processCode.bind(this);
+		// In ajv v8, processCode is replaced with code.process
+		this.ajv.opts.code = this.ajv.opts.code || {};
+		this.ajv.opts.code.process = this._processCode.bind(this);
 		if (options.meta === true) {
-			this.ajv._metaOpts.processCode = this._processCode.bind(this);
+			this.ajv._metaOpts.code = this.ajv._metaOpts.code || {};
+			this.ajv._metaOpts.code.process = this._processCode.bind(this);
 		}
 		this._processFileName = options.processFileName;
 		this._includes = options.includes;
@@ -110,7 +113,7 @@ class AjvCoverage {
 		} else {
 			// Probably a definition of a schema that is compiled separately
 			// Try to find the schema that is currently compiling
-			const schemas = Object.entries(this.ajv._schemas);
+			const schemas = Object.entries(this.ajv.schemas);
 			const compilingSchemas = schemas.filter(([, schema]) => schema.compiling);
 			if (compilingSchemas.length > 0) {
 				// Last schema is the current one
@@ -137,7 +140,8 @@ class AjvCoverage {
 	static insertIgnoreComments(code) {
 		code = code.replace(rRootDataUndefined, "\n/* istanbul ignore next */$&");
 		code = code.replace(rEnsureErrorArray, "\n/* istanbul ignore next */$&");
-		code = code.replace(rDataPathOrEmptyString, "dataPath: (dataPath || /* istanbul ignore next */ '')");
+		code = code.replace(rInstancePathOrEmptyString,
+			"instancePath: (instancePath || /* istanbul ignore next */ '')");
 		return code;
 	}
 }

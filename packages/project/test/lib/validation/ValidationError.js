@@ -9,15 +9,15 @@ test.afterEach.always((t) => {
 
 test.serial("ValidationError constructor", (t) => {
 	const errors = [
-		{dataPath: "", keyword: "", message: "error1", params: {}},
-		{dataPath: "", keyword: "", message: "error2", params: {}}
+		{instancePath: "", keyword: "", message: "error1", params: {}},
+		{instancePath: "", keyword: "", message: "error2", params: {}}
 	];
 	const project = {id: "id"};
 	const schema = {schema: "schema"};
 	const data = {data: "data"};
 	const yaml = {path: "path", source: "source", documentIndex: 0};
 
-	const filteredErrors = [{dataPath: "", keyword: "", message: "error1", params: {}}];
+	const filteredErrors = [{instancePath: "", keyword: "", message: "error1", params: {}}];
 
 	const filterErrorsStub = sinon.stub(ValidationError, "filterErrors");
 	filterErrorsStub.returns(filteredErrors);
@@ -52,37 +52,37 @@ test.serial("ValidationError.filterErrors", (t) => {
 			keyword: "if"
 		},
 		{
-			dataPath: "dataPath1",
+			instancePath: "dataPath1",
 			keyword: "keyword1"
 		},
 		{
-			dataPath: "dataPath1",
+			instancePath: "dataPath1",
 			keyword: "keyword2"
 		},
 		{
-			dataPath: "dataPath3",
+			instancePath: "dataPath3",
 			keyword: "keyword2"
 		},
 		{
-			dataPath: "dataPath1",
+			instancePath: "dataPath1",
 			keyword: "keyword1"
 		},
 		{
-			dataPath: "dataPath1",
+			instancePath: "dataPath1",
 			keyword: "keyword1",
 			params: {
 				type: "foo"
 			}
 		},
 		{
-			dataPath: "dataPath4",
+			instancePath: "dataPath4",
 			keyword: "keyword5",
 			params: {
 				type: "foo"
 			}
 		},
 		{
-			dataPath: "dataPath6",
+			instancePath: "dataPath6",
 			keyword: "keyword6",
 			params: {
 				errors: [
@@ -96,7 +96,7 @@ test.serial("ValidationError.filterErrors", (t) => {
 			}
 		},
 		{
-			dataPath: "dataPath6",
+			instancePath: "dataPath6",
 			keyword: "keyword6",
 			params: {
 				errors: [
@@ -110,7 +110,7 @@ test.serial("ValidationError.filterErrors", (t) => {
 			}
 		},
 		{
-			dataPath: "dataPath6",
+			instancePath: "dataPath6",
 			keyword: "keyword6",
 			params: {
 				errors: [
@@ -127,33 +127,33 @@ test.serial("ValidationError.filterErrors", (t) => {
 
 	const expectedErrors = [
 		{
-			dataPath: "dataPath1",
+			instancePath: "dataPath1",
 			keyword: "keyword1"
 		},
 		{
-			dataPath: "dataPath1",
+			instancePath: "dataPath1",
 			keyword: "keyword2"
 		},
 		{
-			dataPath: "dataPath3",
+			instancePath: "dataPath3",
 			keyword: "keyword2"
 		},
 		{
-			dataPath: "dataPath1",
+			instancePath: "dataPath1",
 			keyword: "keyword1",
 			params: {
 				type: "foo"
 			}
 		},
 		{
-			dataPath: "dataPath4",
+			instancePath: "dataPath4",
 			keyword: "keyword5",
 			params: {
 				type: "foo"
 			}
 		},
 		{
-			dataPath: "dataPath6",
+			instancePath: "dataPath6",
 			keyword: "keyword6",
 			params: {
 				errors: [
@@ -167,7 +167,7 @@ test.serial("ValidationError.filterErrors", (t) => {
 			}
 		},
 		{
-			dataPath: "dataPath6",
+			instancePath: "dataPath6",
 			keyword: "keyword6",
 			params: {
 				errors: [
@@ -321,7 +321,7 @@ test.serial("ValidationError.getSourceExtract (Windows Line-Endings)", (t) => {
 });
 
 test.serial("ValidationError.analyzeYamlError: Property", (t) => {
-	const error = {dataPath: "/property3"};
+	const error = {instancePath: "/property3"};
 	const yaml = {
 		path: "/my-project/ui5.yaml",
 		source:
@@ -341,7 +341,7 @@ property5: value5
 });
 
 test.serial("ValidationError.analyzeYamlError: Nested property", (t) => {
-	const error = {dataPath: "/property2/property3"};
+	const error = {instancePath: "/property2/property3"};
 	const yaml = {
 		path: "/my-project/ui5.yaml",
 		source:
@@ -360,7 +360,7 @@ property3: value3
 });
 
 test.serial("ValidationError.analyzeYamlError: Array", (t) => {
-	const error = {dataPath: "/property/list/2/name"};
+	const error = {instancePath: "/property/list/2/name"};
 	const yaml = {
 		path: "/my-project/ui5.yaml",
 		source:
@@ -380,7 +380,7 @@ test.serial("ValidationError.analyzeYamlError: Array", (t) => {
 });
 
 test.serial("ValidationError.analyzeYamlError: Nested array", (t) => {
-	const error = {dataPath: "/items/2/subItems/1"};
+	const error = {instancePath: "/items/2/subItems/1"};
 	const yaml = {
 		path: "/my-project/ui5.yaml",
 		source:
@@ -405,7 +405,7 @@ test.serial("ValidationError.analyzeYamlError: Nested array", (t) => {
 });
 
 test.serial("ValidationError.analyzeYamlError: Nested array (Windows Line-Endings)", (t) => {
-	const error = {dataPath: "/items/2/subItems/1"};
+	const error = {instancePath: "/items/2/subItems/1"};
 	const yaml = {
 		path: "/my-project/ui5.yaml",
 		source:
@@ -429,7 +429,7 @@ test.serial("ValidationError.analyzeYamlError: Nested array (Windows Line-Ending
 });
 
 test.serial("ValidationError.analyzeYamlError: Array with square brackets (not supported)", (t) => {
-	const error = {dataPath: "/items/2"};
+	const error = {instancePath: "/items/2"};
 	const yaml = {
 		path: "/my-project/ui5.yaml",
 		source:
@@ -445,7 +445,7 @@ test.serial("ValidationError.analyzeYamlError: Array with square brackets (not s
 });
 
 test.serial("ValidationError.analyzeYamlError: Multiline array with square brackets (not supported)", (t) => {
-	const error = {dataPath: "/items/2"};
+	const error = {instancePath: "/items/2"};
 	const yaml = {
 		path: "/my-project/ui5.yaml",
 		source:
@@ -465,7 +465,7 @@ test.serial("ValidationError.analyzeYamlError: Multiline array with square brack
 });
 
 test.serial("ValidationError.analyzeYamlError: Nested property with comments", (t) => {
-	const error = {dataPath: "/property1/property2/property3/property4"};
+	const error = {instancePath: "/property1/property2/property3/property4"};
 	const yaml = {
 		path: "/my-project/ui5.yaml",
 		source:
@@ -485,7 +485,7 @@ test.serial("ValidationError.analyzeYamlError: Nested property with comments", (
 });
 
 test.serial("ValidationError.analyzeYamlError: Nested properties with same name", (t) => {
-	const error = {dataPath: "/property/property/property/property"};
+	const error = {instancePath: "/property/property/property/property"};
 	const yaml = {
 		path: "/my-project/ui5.yaml",
 		source:
@@ -505,7 +505,7 @@ test.serial("ValidationError.analyzeYamlError: Nested properties with same name"
 });
 
 test.serial("ValidationError.analyzeYamlError: Error keyword=required, no dataPath", (t) => {
-	const error = {dataPath: "", keyword: "required"};
+	const error = {instancePath: "", keyword: "required"};
 	const yaml = {
 		path: "/my-project/ui5.yaml",
 		source: ``,
@@ -519,7 +519,7 @@ test.serial("ValidationError.analyzeYamlError: Error keyword=required, no dataPa
 });
 
 test.serial("ValidationError.analyzeYamlError: Error keyword=required", (t) => {
-	const error = {dataPath: "/property2", keyword: "required"};
+	const error = {instancePath: "/property2", keyword: "required"};
 	const yaml = {
 		path: "/my-project/ui5.yaml",
 		source:
@@ -538,7 +538,7 @@ property2:
 
 test.serial("ValidationError.analyzeYamlError: Error keyword=additionalProperties", (t) => {
 	const error = {
-		dataPath: "/property2",
+		instancePath: "/property2",
 		keyword: "additionalProperties",
 		params: {
 			additionalProperty: "property3"
@@ -561,7 +561,7 @@ property2:
 });
 
 test.serial("ValidationError.analyzeYamlError: documentIndex=0 (Without leading separator)", (t) => {
-	const error = {dataPath: "/property3"};
+	const error = {instancePath: "/property3"};
 	const yaml = {
 		path: "/my-project/ui5.yaml",
 		source:
@@ -586,7 +586,7 @@ property5: value5document2`,
 });
 
 test.serial("ValidationError.analyzeYamlError: documentIndex=0 (With leading separator)", (t) => {
-	const error = {dataPath: "/property3"};
+	const error = {instancePath: "/property3"};
 	const yaml = {
 		path: "/my-project/ui5.yaml",
 		source:
@@ -612,7 +612,7 @@ property5: value5document2`,
 });
 
 test.serial("ValidationError.analyzeYamlError: documentIndex=0 (With leading separator and empty lines)", (t) => {
-	const error = {dataPath: "/property3"};
+	const error = {instancePath: "/property3"};
 	const yaml = {
 		path: "/my-project/ui5.yaml",
 		source:
@@ -642,7 +642,7 @@ property5: value5document2`,
 });
 
 test.serial("ValidationError.analyzeYamlError: documentIndex=2 (Without leading separator)", (t) => {
-	const error = {dataPath: "/property3"};
+	const error = {instancePath: "/property3"};
 	const yaml = {
 		path: "/my-project/ui5.yaml",
 		source:
@@ -674,7 +674,7 @@ property5: value5document3
 });
 
 test.serial("ValidationError.analyzeYamlError: documentIndex=2 (With leading separator)", (t) => {
-	const error = {dataPath: "/property3"};
+	const error = {instancePath: "/property3"};
 	const yaml = {
 		path: "/my-project/ui5.yaml",
 		source:
@@ -707,7 +707,7 @@ property5: value5document3
 });
 
 test.serial("ValidationError.analyzeYamlError: documentIndex=2 (With leading separator and empty lines)", (t) => {
-	const error = {dataPath: "/property3"};
+	const error = {instancePath: "/property3"};
 	const yaml = {
 		path: "/my-project/ui5.yaml",
 		source:
@@ -745,7 +745,7 @@ property5: value5document3
 });
 
 test.serial("ValidationError.analyzeYamlError: Invalid documentIndex=1 (With leading separator)", (t) => {
-	const error = {dataPath: "/property3"};
+	const error = {instancePath: "/property3"};
 	const yaml = {
 		path: "/my-project/ui5.yaml",
 		source:
@@ -766,7 +766,7 @@ property5: value5document1
 });
 
 test.serial("ValidationError.analyzeYamlError: Invalid documentIndex=1 (Without leading separator)", (t) => {
-	const error = {dataPath: "/property3"};
+	const error = {instancePath: "/property3"};
 	const yaml = {
 		path: "/my-project/ui5.yaml",
 		source:
@@ -787,7 +787,7 @@ property5: value5document1
 
 test.serial("ValidationError.formatMessage: keyword=type dataPath=", (t) => {
 	const error = {
-		dataPath: "",
+		instancePath: "",
 		keyword: "type",
 		message: "should be object",
 		params: {
@@ -804,7 +804,7 @@ test.serial("ValidationError.formatMessage: keyword=type dataPath=", (t) => {
 
 test.serial("ValidationError.formatMessage: keyword=type", (t) => {
 	const error = {
-		dataPath: "/foo",
+		instancePath: "/foo",
 		keyword: "type",
 		message: "should be object",
 		params: {
@@ -821,7 +821,7 @@ test.serial("ValidationError.formatMessage: keyword=type", (t) => {
 
 test.serial("ValidationError.formatMessage: keyword=required w/o dataPath", (t) => {
 	const error = {
-		dataPath: "",
+		instancePath: "",
 		keyword: "required",
 		message: "should have required property 'specVersion'",
 		params: {
@@ -839,7 +839,7 @@ test.serial("ValidationError.formatMessage: keyword=required w/o dataPath", (t) 
 test.serial("ValidationError.formatMessage: keyword=required", (t) => {
 	const error = {
 		keyword: "required",
-		dataPath: "/metadata",
+		instancePath: "/metadata",
 		schemaPath: "#/definitions/metadata/required",
 		params: {missingProperty: "name"},
 		message: "should have required property 'name'"
@@ -854,7 +854,7 @@ test.serial("ValidationError.formatMessage: keyword=required", (t) => {
 
 test.serial("ValidationError.formatMessage: keyword=errorMessage", (t) => {
 	const error = {
-		dataPath: "/specVersion",
+		instancePath: "/specVersion",
 		keyword: "errorMessage",
 		message:
 `Unsupported "specVersion"
@@ -864,7 +864,7 @@ For details, see: https://ui5.github.io/cli/pages/Configuration/#specification-v
 		params: {
 			errors: [
 				{
-					dataPath: "/specVersion",
+					instancePath: "/specVersion",
 					keyword: "enum",
 					message: "should be equal to one of the allowed values",
 					params: {
@@ -895,7 +895,7 @@ For details, see: https://ui5.github.io/cli/pages/Configuration/#specification-v
 test.serial("ValidationError.formatMessage: keyword=additionalProperties", (t) => {
 	const error = {
 		keyword: "additionalProperties",
-		dataPath: "/resources/configuration",
+		instancePath: "/resources/configuration",
 		schemaPath: "#/properties/configuration/additionalProperties",
 		params: {additionalProperty: "propertiesFileEncoding"},
 		message: "should NOT have additional properties"
@@ -912,7 +912,7 @@ test.serial("ValidationError.formatMessage: keyword=additionalProperties", (t) =
 test.serial("ValidationError.formatMessage: keyword=enum", (t) => {
 	const error = {
 		keyword: "enum",
-		dataPath: "/type",
+		instancePath: "/type",
 		schemaPath: "#/properties/type/enum",
 		params: {
 			allowedValues: ["application", "library", "theme-library", "module"]
