@@ -258,7 +258,7 @@ test.serial.skip("Build application.a (custom task and tag handling)", async (t)
 	});
 });
 
-// eslint-disable-next-line ava/no-skip-test -- tag handling to be implemented
+
 test.serial.skip("Build application.a (multiple custom tasks)", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
@@ -293,13 +293,14 @@ test.serial.skip("Build application.a (multiple custom tasks)", async (t) => {
 	// Create a new file to allow a new build:
 	// Logic of custom-task-1 will NOT handle this file, while custom-task-0 and 2 WILL DO it,
 	// resulting in custom-task-1 getting skipped (cache reuse).
-	// The test should then verify that the tag is still set and now readable for custom-task-0 AND 2.
+	// The test should then verify that the tag is still only readable for custom-task-2.
+	// This ensures that the build result is exactly the same with or without using the cache.
 	// (as in #1 build, the custom tasks already check for this tag by themselves and handle errors accordingly)
 	await fs.cp(`${fixtureTester.fixturePath}/webapp/test.js`,
 		`${fixtureTester.fixturePath}/webapp/test2.js`);
 
 	// #3 build (with cache, with changes, with custom tasks)
-	// FIXME: Currently failing, because for custom-task-0 and 2 the tag is NOT set yet.
+	// FIXME: Currently failing, because for custom-task-2 the tag is NOT set yet.
 	await fixtureTester.buildProject({
 		graphConfig: {rootConfigPath: "ui5-multiple-customTasks.yaml"},
 		config: {destPath, cleanDest: true},
