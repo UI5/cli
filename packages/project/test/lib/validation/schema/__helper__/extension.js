@@ -39,9 +39,9 @@ export default {
 					},
 					"resources": {}
 				}, additionalConfiguration), [{
-					dataPath: "",
+					instancePath: "",
 					keyword: "additionalProperties",
-					message: "should NOT have additional properties",
+					message: "must NOT have additional properties",
 					params: {
 						"additionalProperty": "resources"
 					}
@@ -58,9 +58,9 @@ export default {
 						},
 						"notAllowed": true
 					}, additionalConfiguration), [{
-						dataPath: "",
+						instancePath: "",
 						keyword: "additionalProperties",
-						message: "should NOT have additional properties",
+						message: "must NOT have additional properties",
 						params: {
 							additionalProperty: "notAllowed",
 						}
@@ -77,9 +77,9 @@ export default {
 						"name": {}
 					}
 				}, additionalConfiguration), [{
-					dataPath: "/metadata/name",
+					instancePath: "/metadata/name",
 					keyword: "type",
-					message: "should be string",
+					message: "must be string",
 					params: {
 						type: "string"
 					}
@@ -96,26 +96,26 @@ export default {
 						"name": {}
 					}
 				}, additionalConfiguration), [{
-					dataPath: "/metadata/name",
-					keyword: "type",
-					message: "should be string",
-					params: {
-						type: "string",
-					},
-				}, {
-					dataPath: "/metadata/name",
+					instancePath: "/metadata/name",
 					keyword: "errorMessage",
 					message: `Not a valid extension name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/stable/pages/Configuration/#name`,
 					params: {
 						errors: [{
-							dataPath: "/metadata/name",
+							instancePath: "/metadata/name",
 							keyword: "type",
-							message: "should be string",
+							message: "must be string",
 							params: {
 								type: "string",
 							}
 						}]
 					},
+				}, {
+					instancePath: "/metadata/name",
+					keyword: "type",
+					message: "must be string",
+					params: {
+						type: "string",
+					}
 				}]);
 			});
 		});
