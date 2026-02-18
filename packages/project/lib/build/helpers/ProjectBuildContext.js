@@ -338,7 +338,7 @@ class ProjectBuildContext {
 			return;
 		}
 		// Check whether the manifest can be used for this build
-		if (manifest.buildManifest.manifestVersion === "0.1" || manifest.buildManifest.manifestVersion === "0.2") {
+		if (manifest.manifestVersion === "0.1" || manifest.manifestVersion === "0.2") {
 			// Manifest version 0.1 and 0.2 are always used without further checks for legacy reasons
 			return manifest;
 		}
