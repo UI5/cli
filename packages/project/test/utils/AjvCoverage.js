@@ -7,7 +7,7 @@ import reports from "istanbul-reports";
 import libCoverage from "istanbul-lib-coverage";
 import {createInstrumenter} from "istanbul-lib-instrument";
 
-const rSchemaName = new RegExp(/sourceURL=([^\s]*)/);
+const rSchemaName = new RegExp(/sourceURL="?([^"\s]*)"?/);
 const rRootDataUndefined = /\n(?:\s)*if \(rootData === undefined\) rootData = data;/g;
 const rEnsureErrorArray = /\n(?:\s)*if \(vErrors === null\) vErrors = \[err\];(?:\s)*else vErrors\.push\(err\);/g;
 const rInstancePathOrEmptyString = /instancePath: \(instancePath \|\| ''\)/g;
