@@ -258,7 +258,7 @@ test.serial.skip("Build application.a (custom task and tag handling)", async (t)
 	});
 });
 
-
+// eslint-disable-next-line ava/no-skip-test -- tag handling to be implemented
 test.serial.skip("Build application.a (multiple custom tasks)", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
