@@ -188,8 +188,7 @@ test.serial("Build application.a project multiple times", async (t) => {
 	});
 });
 
-// eslint-disable-next-line ava/no-skip-test -- tag handling to be implemented
-test.serial.skip("Build application.a (custom task and tag handling)", async (t) => {
+test.serial("Build application.a (custom task and tag handling)", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
 
@@ -258,8 +257,7 @@ test.serial.skip("Build application.a (custom task and tag handling)", async (t)
 	});
 });
 
-// eslint-disable-next-line ava/no-skip-test -- tag handling to be implemented
-test.serial.skip("Build application.a (multiple custom tasks)", async (t) => {
+test.serial("Build application.a (multiple custom tasks)", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
 

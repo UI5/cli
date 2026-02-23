@@ -208,7 +208,7 @@ class ProjectBuilder {
 			});
 		}
 		const pWrites = [];
-		await this.#build(requestedProjects, (projectName, project, projectBuildContext) => {
+		await this.#build(requestedProjects, async (projectName, project, projectBuildContext) => {
 			if (!fsTarget) {
 				// Nothing to write to
 				return;
@@ -216,7 +216,7 @@ class ProjectBuilder {
 			// Only write requested projects to target
 			// (excluding dependencies that were required to be built, but not requested)
 			this.#log.verbose(`Writing out files for project ${projectName}...`);
-			pWrites.push(this._writeResults(projectBuildContext, fsTarget));
+			await this._writeResults(projectBuildContext, fsTarget, pWrites);
 		});
 		await Promise.all(pWrites);
 	}
@@ -329,13 +329,15 @@ class ProjectBuilder {
 				signal?.throwIfAborted();
 
 				if (projectBuiltCallback && requestedProjects.includes(projectName)) {
-					projectBuiltCallback(projectName, project, projectBuildContext);
+					await projectBuiltCallback(projectName, project, projectBuildContext);
 				}
 
 				if (!alreadyBuilt.includes(projectName) && !process.env.UI5_BUILD_NO_WRITE_CACHE) {
 					this.#log.verbose(`Triggering cache update for project ${projectName}...`);
 					pCacheWrites.push(projectBuildContext.writeBuildCache());
 				}
+
+				projectBuildContext.buildFinished();
 			}
 			this.#log.info(`Build succeeded in ${this._getElapsedTime(startTime)}`);
 		} catch (err) {
@@ -434,9 +436,10 @@ class ProjectBuilder {
 	 *
 	 * @param {object} projectBuildContext Build context for the project
 	 * @param {@ui5/fs/adapters/FileSystem} target Target adapter to write to
+	 * @param {Array<Promise>} deferredWork
 	 * @returns {Promise<void>} Promise resolving when write is complete
 	 */
-	async _writeResults(projectBuildContext, target) {
+	async _writeResults(projectBuildContext, target, deferredWork) {
 		const project = projectBuildContext.getProject();
 		const taskUtil = projectBuildContext.getTaskUtil();
 		const buildConfig = this._buildContext.getBuildConfig();
@@ -472,7 +475,21 @@ class ProjectBuilder {
 			}));
 		}
 
-		await Promise.all(resources.map((resource) => {
+		const resourcesToWrite = resources.filter((resource) => {
+			if (taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.OmitFromBuildResult)) {
+				this.#log.silly(`Skipping resource tagged as "OmitFromBuildResult": ` +
+					resource.getPath());
+				return false; // Skip this resource
+			}
+			return true;
+		});
+
+		deferredWork.push(
+			this._writeToDisk(resourcesToWrite, target, resources, taskUtil, project, isRootProject, outputStyle));
+	}
+
+	async _writeToDisk(resourcesToWrite, target, resources, taskUtil, project, isRootProject, outputStyle) {
+		await Promise.all(resourcesToWrite.map((resource) => {
 			if (taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.OmitFromBuildResult)) {
 				this.#log.silly(`Skipping write of resource tagged as "OmitFromBuildResult": ` +
 					resource.getPath());
@@ -483,12 +500,14 @@ class ProjectBuilder {
 
 		if (isRootProject &&
 			outputStyle === OutputStyleEnum.Flat &&
-			project.getType() !== "application" /* application type is with a default flat build output structure */) {
+			/* application type is with a default flat build output structure */
+			project.getType() !== "application") {
 			const namespace = project.getNamespace();
 			const libraryResourcesPrefix = `/resources/${namespace}/`;
 			const testResourcesPrefix = "/test-resources/";
 			const namespacedRegex = new RegExp(`/(resources|test-resources)/${namespace}`);
-			const processedResourcesSet = resources.reduce((acc, resource) => acc.add(resource.getPath()), new Set());
+			const processedResourcesSet = resources.reduce(
+				(acc, resource) => acc.add(resource.getPath()), new Set());
 
 			// If outputStyle === "Flat", then the FlatReader would have filtered
 			// some resources. We now need to get all of the available resources and
@@ -507,7 +526,8 @@ class ProjectBuilder {
 			skippedResources.forEach((resource) => {
 				if (resource.originalPath.startsWith(testResourcesPrefix)) {
 					this.#log.verbose(
-						`Omitting ${resource.originalPath} from build result. File is part of ${testResourcesPrefix}.`
+						`Omitting ${resource.originalPath} from build result. ` +
+					`File is part of ${testResourcesPrefix}.`
 					);
 				} else if (!resource.originalPath.startsWith(libraryResourcesPrefix)) {
 					this.#log.warn(
