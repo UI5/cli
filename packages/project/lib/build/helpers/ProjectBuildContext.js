@@ -1,4 +1,3 @@
-import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
 import ProjectBuildLogger from "@ui5/logger/internal/loggers/ProjectBuild";
 import TaskUtil from "./TaskUtil.js";
 import TaskRunner from "../TaskRunner.js";
@@ -40,11 +39,6 @@ class ProjectBuildContext {
 		this._queues = {
 			cleanup: []
 		};
-
-		this._resourceTagCollection = new ResourceTagCollection({
-			allowedTags: ["ui5:OmitFromBuildResult", "ui5:IsBundle"],
-			allowedNamespaces: ["build"]
-		});
 	}
 
 	/**
@@ -178,18 +172,8 @@ class ProjectBuildContext {
 		if (!resource.hasProject()) {
 			this._log.silly(`Associating resource ${resource.getPath()} with project ${this._project.getName()}`);
 			resource.setProject(this._project);
-			// throw new Error(
-			// 	`Unable to get tag collection for resource ${resource.getPath()}: ` +
-			// 	`Resource must be associated to a project`);
 		}
-		const projectCollection = resource.getProject().getResourceTagCollection();
-		if (projectCollection.acceptsTag(tag)) {
-			return projectCollection;
-		}
-		if (this._resourceTagCollection.acceptsTag(tag)) {
-			return this._resourceTagCollection;
-		}
-		throw new Error(`Could not find collection for resource ${resource.getPath()} and tag ${tag}`);
+		return resource.getProject().getResourceTagCollection(resource, tag);
 	}
 
 	/**
@@ -288,6 +272,11 @@ class ProjectBuildContext {
 		// Propagate changed paths to dependents
 		this.propagateResourceChanges(changedPaths);
 	}
+
+	buildFinished() {
+		this.getBuildCache().buildFinished();
+	}
+
 	/**
 	 * Informs the build cache about changed project source resources
 	 *

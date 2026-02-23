@@ -1,9 +1,5 @@
 import Specification from "./Specification.js";
-import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
-import {createWorkspace, createReaderCollectionPrioritized} from "@ui5/fs/resourceFactory";
-
-const INITIAL_STAGE_ID = "initial";
-const RESULT_STAGE_ID = "result";
+import ProjectResources from "../resources/ProjectResources.js";
 
 /**
  * Project
@@ -16,16 +12,7 @@ const RESULT_STAGE_ID = "result";
  * @hideconstructor
  */
 class Project extends Specification {
-	#stages = []; // Stages in order of creation
-
-	// State
-	#currentStage;
-	#currentStageReadIndex;
-	#currentStageId;
-
-	// Cache
-	#currentStageWorkspace;
-	#currentStageReaders; // Map to store the various reader styles
+	#projectResources;
 
 	constructor(parameters) {
 		super(parameters);
@@ -51,7 +38,15 @@ class Project extends Specification {
 
 		await this._configureAndValidatePaths(this._config);
 		await this._parseConfiguration(this._config, this._buildManifest);
-		this._initStageMetadata();
+
+		// Initialize ProjectResources with interface callbacks
+		this.#projectResources = new ProjectResources({
+			getName: () => this.getName(),
+			getStyledReader: (style) => this._getStyledReader(style),
+			createWriter: (stageId) => this._createWriter(stageId),
+			addReadersForWriter: (readers, writer, style) => this._addReadersForWriter(readers, writer, style),
+			buildManifest: this._buildManifest
+		});
 
 		return this;
 	}
@@ -246,6 +241,16 @@ class Project extends Specification {
 	/* === Resource Access === */
 
 	/**
+	 * Get the ProjectResources instance for this project.
+	 *
+	 * @public
+	 * @returns {@ui5/project/resources/ProjectResources} The ProjectResources instance
+	 */
+	getProjectResources() {
+		return this.#projectResources;
+	}
+
+	/**
 	 * Get a [ReaderCollection]{@link @ui5/fs/ReaderCollection} for accessing all resources of the
 	 * project in the specified "style":
 	 *
@@ -277,57 +282,19 @@ class Project extends Specification {
 	 *   Can be "buildtime", "dist", "runtime" or "flat"
 	 * @returns {@ui5/fs/ReaderCollection} A reader collection instance
 	 */
-	getReader({style = "buildtime"} = {}) {
-		let reader = this.#currentStageReaders.get(style);
-		if (reader) {
-			// Use cached reader
-			return reader;
-		}
-
-		const readers = [];
-		if (this.#currentStage) {
-			// Add current writer as highest priority reader
-			const currentWriter = this.#currentStage.getWriter();
-			if (currentWriter) {
-				this._addReadersForWriter(readers, currentWriter, style);
-			} else {
-				const currentReader = this.#currentStage.getCachedWriter();
-				if (currentReader) {
-					this._addReadersForWriter(readers, currentReader, style);
-				}
-			}
-		}
-		// Add readers for previous stages and source
-		readers.push(...this.#getReaders(style));
-
-		reader = createReaderCollectionPrioritized({
-			name: `Reader collection for stage '${this.#currentStageId}' of project ${this.getName()}`,
-			readers
-		});
-
-		this.#currentStageReaders.set(style, reader);
-		return reader;
+	getReader(options) {
+		return this.#projectResources.getReader(options);
 	}
 
-	#getReaders(style = "buildtime") {
-		const readers = [];
-
-		// Add writers for previous stages as readers
-		const stageReadIdx = this.#currentStageReadIndex;
-
-		// Collect writers from all relevant stages
-		for (let i = stageReadIdx; i >= 0; i--) {
-			this.#addReaderForStage(this.#stages[i], readers, style);
-		}
-
-		// Finally add the project's source reader
-		readers.push(this._getStyledReader(style));
-
-		return readers;
-	}
-
+	/**
+	 * Get the source reader for the project.
+	 *
+	 * @public
+	 * @param {string} [style=buildtime] Path style to access resources
+	 * @returns {@ui5/fs/ReaderCollection} A reader collection instance
+	 */
 	getSourceReader(style = "buildtime") {
-		return this._getStyledReader(style);
+		return this.#projectResources.getSourceReader(style);
 	}
 
 	/**
@@ -341,137 +308,7 @@ class Project extends Specification {
 	* @returns {@ui5/fs/DuplexCollection} DuplexCollection
 	*/
 	getWorkspace() {
-		if (this.#currentStageId === RESULT_STAGE_ID) {
-			throw new Error(
-				`Workspace of project ${this.getName()} is currently not available. ` +
-				`This might indicate that the project has already finished building ` +
-				`and its content can not be modified further. ` +
-				`Use method 'getReader' for read-only access`);
-		}
-		if (this.#currentStageWorkspace) {
-			return this.#currentStageWorkspace;
-		}
-		const reader = createReaderCollectionPrioritized({
-			name: `Reader collection for stage '${this.#currentStageId}' of project ${this.getName()}`,
-			readers: this.#getReaders(),
-		});
-		const writer = this.#currentStage.getWriter();
-		const workspace = createWorkspace({
-			reader,
-			writer
-		});
-		this.#currentStageWorkspace = workspace;
-		return workspace;
-	}
-
-	/**
-	 * Seal the workspace of the project, preventing further modifications.
-	 * This is typically called once the project has finished building. Resources from all stages will be used.
-	 *
-	 * A project can be unsealed by calling useStage() again.
-	 *
-	 */
-	useResultStage() {
-		this.#currentStage = null;
-		this.#currentStageId = RESULT_STAGE_ID;
-		this.#currentStageReadIndex = this.#stages.length - 1; // Read from all stages
-
-		// Unset "current" reader/writer. They will be recreated on demand
-		this.#currentStageReaders = new Map();
-		this.#currentStageWorkspace = null;
-	}
-
-	_initStageMetadata() {
-		this.#stages = [];
-		// Initialize with an empty stage for use without stages (i.e. without build cache)
-		this.#currentStage = new Stage(INITIAL_STAGE_ID, this._createWriter(INITIAL_STAGE_ID));
-		this.#currentStageId = INITIAL_STAGE_ID;
-		this.#currentStageReadIndex = -1;
-		this.#currentStageReaders = new Map();
-		this.#currentStageWorkspace = null;
-	}
-
-	#addReaderForStage(stage, readers, style = "buildtime") {
-		const writer = stage.getWriter();
-		if (writer) {
-			this._addReadersForWriter(readers, writer, style);
-		} else {
-			const reader = stage.getCachedWriter();
-			if (reader) {
-				this._addReadersForWriter(readers, reader, style);
-			}
-		}
-	}
-
-	initStages(stageIds) {
-		this._initStageMetadata();
-		for (let i = 0; i < stageIds.length; i++) {
-			const stageId = stageIds[i];
-			const newStage = new Stage(stageId, this._createWriter(stageId));
-			this.#stages.push(newStage);
-		}
-	}
-
-	getStage() {
-		return this.#currentStage;
-	}
-
-	useStage(stageId) {
-		if (stageId === this.#currentStage?.getId()) {
-			// Already using requested stage
-			return;
-		}
-
-		const stageIdx = this.#stages.findIndex((s) => s.getId() === stageId);
-
-		if (stageIdx === -1) {
-			throw new Error(`Stage '${stageId}' does not exist in project ${this.getName()}`);
-		}
-
-		const stage = this.#stages[stageIdx];
-		this.#currentStage = stage;
-		this.#currentStageId = stageId;
-		this.#currentStageReadIndex = stageIdx - 1; // Read from all previous stages
-
-		// Unset "current" reader/writer caches. They will be recreated on demand
-		this.#currentStageReaders = new Map();
-		this.#currentStageWorkspace = null;
-	}
-
-	setStage(stageId, stageOrCachedWriter) {
-		const stageIdx = this.#stages.findIndex((s) => s.getId() === stageId);
-		if (stageIdx === -1) {
-			throw new Error(`Stage '${stageId}' does not exist in project ${this.getName()}`);
-		}
-		if (!stageOrCachedWriter) {
-			throw new Error(
-				`Invalid stage or cache reader provided for stage '${stageId}' in project ${this.getName()}`);
-		}
-		const oldStage = this.#stages[stageIdx];
-		if (oldStage.getId() !== stageId) {
-			throw new Error(
-				`Stage ID mismatch for stage '${stageId}' in project ${this.getName()}`);
-		}
-		let newStage;
-		if (stageOrCachedWriter instanceof Stage) {
-			newStage = stageOrCachedWriter;
-			if (oldStage === newStage) {
-				// Same stage as before, nothing to do
-				return false; // Stored stage has not changed
-			}
-		} else {
-			newStage = new Stage(stageId, undefined, stageOrCachedWriter);
-		}
-		this.#stages[stageIdx] = newStage;
-
-		// If we are updating the current stage, make sure to update and reset all relevant references
-		if (oldStage === this.#currentStage) {
-			this.#currentStage = newStage;
-			// Unset "current" reader/writer. They might be outdated
-			this.#currentStageReaders = new Map();
-			this.#currentStageWorkspace = null;
-		}
-		return true; // Indicate that the stored stage has changed
+		return this.#projectResources.getWorkspace();
 	}
 
 	/* Overwritten in ComponentProject subclass */
@@ -479,15 +316,20 @@ class Project extends Specification {
 		readers.unshift(writer);
 	}
 
-	getResourceTagCollection() {
-		if (!this._resourceTagCollection) {
-			this._resourceTagCollection = new ResourceTagCollection({
-				allowedTags: ["ui5:IsDebugVariant", "ui5:HasDebugVariant"],
-				allowedNamespaces: ["project"],
-				tags: this.getBuildManifest()?.tags
-			});
-		}
-		return this._resourceTagCollection;
+	/**
+	 * Gets the appropriate resource tag collection for a resource and tag
+	 *
+	 * Determines which tag collection (project-specific or build-level) should be used
+	 * for the given resource and tag combination. Associates the resource with the current
+	 * project if not already associated.
+	 *
+	 * @param {@ui5/fs/Resource} resource Resource to get tag collection for
+	 * @param {string} tag Tag to check acceptance for
+	 * @returns {@ui5/fs/internal/ResourceTagCollection} Appropriate tag collection
+	 * @throws {Error} If no collection accepts the given tag
+	 */
+	getResourceTagCollection(resource, tag) {
+		return this.#projectResources.getResourceTagCollection(resource, tag);
 	}
 
 	/* === Internals === */
@@ -502,38 +344,6 @@ class Project extends Specification {
 	 * @param {object} config Configuration object
 	*/
 	async _parseConfiguration(config) {}
-}
-
-/**
- * A stage has either a writer or a reader, never both.
- * Consumers need to be able to differentiate between the two
- */
-class Stage {
-	#id;
-	#writer;
-	#cachedWriter;
-
-	constructor(id, writer, cachedWriter) {
-		if (writer && cachedWriter) {
-			throw new Error(
-				`Stage '${id}' cannot have both a writer and a cache reader`);
-		}
-		this.#id = id;
-		this.#writer = writer;
-		this.#cachedWriter = cachedWriter;
-	}
-
-	getId() {
-		return this.#id;
-	}
-
-	getWriter() {
-		return this.#writer;
-	}
-
-	getCachedWriter() {
-		return this.#cachedWriter;
-	}
 }
 
 export default Project;

@@ -36,6 +36,10 @@ export const RESULT_CACHE_STATES = Object.freeze({
  * @property {string} signature Signature of the cached stage
  * @property {@ui5/fs/AbstractReader} stage Reader for the cached stage
  * @property {string[]} writtenResourcePaths Array of resource paths written by the task
+ * @property {Map<string, Map<string, {string|number|boolean|undefined}>>} projectTagOperations
+ * Map of resource paths to their tags that were set or cleared during this stage's execution, for project tags
+ * @property {Map<string, Map<string, {string|number|boolean|undefined}>>} buildTagOperations
+ * Map of resource paths to their tags that were set or cleared during this stage's execution, for build tags
  */
 
 export default class ProjectBuildCache {
@@ -116,6 +120,7 @@ export default class ProjectBuildCache {
 	 */
 	async prepareProjectBuildAndValidateCache(dependencyReader) {
 		this.#currentProjectReader = this.#project.getReader();
+
 		this.#currentDependencyReader = dependencyReader;
 
 		if (this.#combinedIndexState === INDEX_STATES.INITIAL) {
@@ -295,9 +300,9 @@ export default class ProjectBuildCache {
 	 */
 	async #importStages(stageSignatures) {
 		const stageNames = Object.keys(stageSignatures);
-		if (this.#project.getStage()?.getId() === "initial") {
+		if (this.#project.getProjectResources().getStage()?.getId() === "initial") {
 			// Only initialize stages once
-			this.#project.initStages(stageNames);
+			this.#project.getProjectResources().initStages(stageNames);
 		}
 		const importedStages = await Promise.all(stageNames.map(async (stageName) => {
 			const stageSignature = stageSignatures[stageName];
@@ -308,13 +313,14 @@ export default class ProjectBuildCache {
 			}
 			return [stageName, stageCache];
 		}));
-		this.#project.useResultStage();
+		this.#project.getProjectResources().useResultStage();
 		const writtenResourcePaths = new Set();
 		for (const [stageName, stageCache] of importedStages) {
 			// Check whether the stage differs form the one currently in use
 			if (this.#currentStageSignatures.get(stageName)?.join("-") !== stageCache.signature) {
 				// Set stage
-				this.#project.setStage(stageName, stageCache.stage);
+				this.#project.getProjectResources().setStage(stageName, stageCache.stage,
+					stageCache.projectTagOperations, stageCache.buildTagOperations);
 
 				// Store signature for later use in result stage signature calculation
 				this.#currentStageSignatures.set(stageName, stageCache.signature.split("-"));
@@ -387,7 +393,7 @@ export default class ProjectBuildCache {
 		// Store current project reader (= state of the previous stage) for later use (e.g. in recordTaskResult)
 		this.#currentProjectReader = this.#project.getReader();
 		// Switch project to new stage
-		this.#project.useStage(stageName);
+		this.#project.getProjectResources().useStage(stageName);
 		log.verbose(`Preparing task execution for task ${taskName} in project ${this.#project.getName()}...`);
 		if (!taskCache) {
 			log.verbose(`No task cache found`);
@@ -420,7 +426,8 @@ export default class ProjectBuildCache {
 		const stageCache = await this.#findStageCache(stageName, stageSignatures);
 		const oldStageSig = this.#currentStageSignatures.get(stageName)?.join("-");
 		if (stageCache) {
-			this.#project.setStage(stageName, stageCache.stage);
+			this.#project.getProjectResources().setStage(stageName, stageCache.stage,
+				stageCache.projectTagOperations, stageCache.buildTagOperations);
 
 			// Check whether the stage actually changed
 			if (stageCache.signature !== oldStageSig) {
@@ -541,7 +548,7 @@ export default class ProjectBuildCache {
 				return;
 			}
 			log.verbose(`Found cached stage with signature ${stageSignature}`);
-			const {resourceMapping, resourceMetadata} = stageMetadata;
+			const {resourceMapping, resourceMetadata, projectTagOperations, buildTagOperations} = stageMetadata;
 			let writtenResourcePaths;
 			let stageReader;
 			if (resourceMapping) {
@@ -570,10 +577,13 @@ export default class ProjectBuildCache {
 				writtenResourcePaths = Object.keys(resourceMetadata);
 				stageReader = this.#createReaderForStageCache(stageName, stageSignature, resourceMetadata);
 			}
+
 			return {
 				signature: stageSignature,
 				stage: stageReader,
 				writtenResourcePaths,
+				projectTagOperations: tagOpsToMap(projectTagOperations),
+				buildTagOperations: tagOpsToMap(buildTagOperations),
 			};
 		}));
 		return stageCache;
@@ -610,10 +620,12 @@ export default class ProjectBuildCache {
 		const taskCache = this.#taskCache.get(taskName);
 
 		// Identify resources written by task
-		const stage = this.#project.getStage();
+		const stage = this.#project.getProjectResources().getStage();
 		const stageWriter = stage.getWriter();
 		const writtenResources = await stageWriter.byGlob("/**/*");
 		const writtenResourcePaths = writtenResources.map((res) => res.getOriginalPath());
+		const {projectTagOperations, buildTagOperations} =
+			this.#project.getProjectResources().getResourceTagOperations();
 
 		let stageSignature;
 		if (cacheInfo) {
@@ -654,8 +666,8 @@ export default class ProjectBuildCache {
 
 		// Store resulting stage in stage cache
 		this.#stageCache.addSignature(
-			this.#getStageNameForTask(taskName), stageSignature, this.#project.getStage(),
-			writtenResourcePaths);
+			this.#getStageNameForTask(taskName), stageSignature, this.#project.getProjectResources().getStage(),
+			writtenResourcePaths, projectTagOperations, buildTagOperations);
 
 		// Update task cache with new metadata
 		log.verbose(`Task ${taskName} produced ${writtenResourcePaths.length} resources`);
@@ -733,7 +745,7 @@ export default class ProjectBuildCache {
 	 */
 	async setTasks(taskNames) {
 		const stageNames = taskNames.map((taskName) => this.#getStageNameForTask(taskName));
-		this.#project.initStages(stageNames);
+		this.#project.getProjectResources().initStages(stageNames);
 
 		// TODO: Rename function? We simply use it to have a point in time right before the project is built
 	}
@@ -749,7 +761,7 @@ export default class ProjectBuildCache {
 	 * @returns {Promise<string[]>} Array of changed resource paths since the last build
 	 */
 	async allTasksCompleted() {
-		this.#project.useResultStage();
+		this.#project.getProjectResources().useResultStage();
 		if (this.#combinedIndexState === INDEX_STATES.INITIAL) {
 			this.#combinedIndexState = INDEX_STATES.FRESH;
 		}
@@ -761,6 +773,10 @@ export default class ProjectBuildCache {
 		// Reset updated resource paths
 		this.#writtenResultResourcePaths = [];
 		return changedPaths;
+	}
+
+	buildFinished() {
+		this.#project.getProjectResources().buildFinished();
 	}
 
 	/**
@@ -947,7 +963,8 @@ export default class ProjectBuildCache {
 			`with build signature ${this.#buildSignature}`);
 		const stageQueue = this.#stageCache.flushCacheQueue();
 		await Promise.all(stageQueue.map(async ([stageId, stageSignature]) => {
-			const {stage} = this.#stageCache.getCacheForSignature(stageId, stageSignature);
+			const {stage, projectTagOperations, buildTagOperations} =
+				this.#stageCache.getCacheForSignature(stageId, stageSignature);
 			const writer = stage.getWriter();
 
 			let metadata;
@@ -974,7 +991,8 @@ export default class ProjectBuildCache {
 				const resourceMetadata = await this.#writeStageResources(resources, stageId, stageSignature);
 				metadata = {resourceMetadata};
 			}
-
+			metadata.projectTagOperations = tagOpsToObject(projectTagOperations);
+			metadata.buildTagOperations = tagOpsToObject(buildTagOperations);
 			await this.#cacheManager.writeStageCache(
 				this.#project.getId(), this.#buildSignature, stageId, stageSignature, metadata);
 		}));
@@ -1182,4 +1200,24 @@ function createStageSignature(projectSignature, dependencySignature) {
  */
 function createDependencySignature(stageDependencySignatures) {
 	return crypto.createHash("sha256").update(stageDependencySignatures.join("")).digest("hex");
+}
+
+function tagOpsToMap(tagOps) {
+	const map = new Map();
+	for (const [resourcePath, tags] of Object.entries(tagOps)) {
+		map.set(resourcePath, new Map(Object.entries(tags)));
+	}
+	return map;
+}
+
+/**
+ * @param {Map<string, Map<string, {string|number|boolean|undefined}>>} tagOps
+ * Map of resource paths to their tag operations
+ */
+function tagOpsToObject(tagOps) {
+	const obj = Object.create(null);
+	for (const [resourcePath, tags] of tagOps.entries()) {
+		obj[resourcePath] = Object.fromEntries(tags.entries());
+	}
+	return obj;
 }
