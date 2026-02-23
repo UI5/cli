@@ -35,10 +35,10 @@ class TaskUtil {
 	 * 		This tag identifies resources that contain (i.e. bundle) multiple other resources
 	 * @property {string} IsDebugVariant
 	 * 		This tag identifies resources that are a debug variant (typically named with a "-dbg" suffix)
-	 * 		of another resource. This tag is part of the build manifest.
+	 * 		of another resource. This tag is visible to other projects
 	 * @property {string} HasDebugVariant
 	 * 		This tag identifies resources for which a debug variant has been created.
-	 * 		This tag is part of the build manifest.
+	 * 		This tag is visible to other projects
 	 */
 
 	/**
