@@ -105,23 +105,51 @@ The Project Build Cache uses this information to determine whether a changed res
 
 All necessary metadata stored in the `Build Task Cache` is serialized to disk as part of the [Build Task Metadata](#build-task-metadata).
 
+### Enhancements in Existing Components
+
 #### Project
 
-The existing `Project` super-class shall be extended to support the new concept of `stage writers`.
+The existing `Project` class shall be extended to support the new concept of `stage writers`. Specifically, resource handling shall be extracted into a new [`Project Resources`](#project-resources) class, responsible for managing the different resource readers and writers of a project. The `Project` class will delegate all resource-related operations to this new class. This shall also include the handling of [resource tags](#resource-tags).
 
-Already before, it was responsible for creating the `workspace` for a build, which consisted of a single `reader` (providing access to the project's sources) and a `writer` (storing all resources that have been newly produced or changed by the build in memory).
+Before the `Project` class was responsible for providing the project's `workspace`, to be used by build tasks. This `workspace` consisted of a single `reader` (providing access to the project's sources) and a `writer` for storing all resources that have been newly produced or changed by the build in memory.
 
-Now, each `Project` instance shall feature multiple `stages`. One for each task in the build process. Each stage holds either either a `writer` or a `cached writer` (if the stage has been restored from cache). Cached-writers are read-only.
+#### Project Resources
 
-During the project build, and before executing a task, the `Project Build Cache` shall set the correct stage in the Project. E.g. before executing the `replaceCopyright` task, the Project's stage is set to `task/replaceCopyright`.
+A new `Project Resources` class shall be created to manage the access to a project's resources and decouple this responsibility from the `Project` class. This class will be responsible for managing the different resource readers and writers of a project, including the handling of resource tags.
 
-Whenever progressing to a new stage, the stage is initialized with an empty writer. The `Project Build Cache` can replace this writer with a `cached writer`, in case a previous execution of the task has been cached and the cache is still valid.
+In order to support the incremental build, the `Project Resources` class shall manage multiple resource `stages`. One for each task in the build process. Each stage holds either either a `writer` or, in case the stage has been restored from cache, a `cached writer`. The latter being read-only. Additionally, each stage contains a two `ResourceTagCollection` instances for managing resource tags (see [resource tags](#resource-tags)).
 
-Once a `workspace` is requested from the `Project` instance, it will create one using a `reader` that combines the writers of all previous stages stages (as well as the project's sources), and the writer of the current stage.
+During the project build, and before executing a task, the `Project Build Cache` shall set the correct stage in the `Project Resources` instance. E.g. before executing the `replaceCopyright` task, the stage is set to `task/replaceCopyright`.
+
+Whenever progressing to a new stage, the stage is initialized with an empty writer and resource tag collection. The `Project Build Cache` can replace the writer with a `cached writer`, in case a previous execution of the task has been cached and the cache is still valid. Similarly, the resource tag collection is updated based on cached tag operations for the stage. Note that this includes clearing tags.
+
+Once a `workspace` is requested from the `Project Resources` instance, it will internally create a [DuplexCollection](https://ui5.github.io/cli/stable/api/@ui5_fs_DuplexCollection.html) using a `reader` that combines the writers of all previous stages stages (as well as the project's sources), and the writer of the current stage.
+
+When requesting the `resourceTagCollection` for a stage, the `Project Resources` instance will return a `Monitored Tag Collection` wrapper around the actual `Resource Tag Collection` of the stage. This allows to track all tag operations performed during a task's execution, and store them in the cache (see [Monitored Tag Collection](#monitored-tag-collection)). A notable difference to the handling of resources is that there is a single `Resource Tag Collection` per project, which is being cleared at the beginning of every build and then populated with the tags of each stage as the build progresses.
 
 Stages have an explicit order, defined during their initialization. Stages shall be named using the following schema: `<type>/<name>`, where `<type>` is the type of the stage (e.g. `task`) and `<name>` is the name of the entity creating the stage (e.g. the task name).
 
 ![Diagram illustrating project stages](./resources/0017-incremental-build/Project_Stages.png)
+
+#### Monitored Reader
+
+A `MonitoredReader` is a wrapper around a `Reader` or `Writer` instance that observes which resources are being accessed during its usage. It records the requested paths as well as glob patterns that have been used to request resources.
+
+This information is used in the [`Resource Request Graph`](#resource-request-graph).
+
+#### Monitored Tag Collection
+
+During build task execution, tasks may associate resources with "tags" (key value pairs). These tags are collected in shared `TagCollection` instances. Tags are differentiated between `build`-tags and `project`-tags. While `build`-tags are only available during an individual project's build (i.e. they are not accessible to builds of dependent projects), `project`-tags are shared across the entire build and can be accessed by all tasks of the project and its dependencies. This allows tasks to communicate information about resources to downstream tasks, even across project boundaries.
+
+To support caching of resource tags, a `Monitored Tag Collection` wrapper is introduced, following the same pattern established by the `Monitored Reader` for tracking resource access.
+
+It wraps a given `Resource Tag Collection` and intercepts all tag operations during a task's execution and records which tags have been set or cleared. This allows the `Project Build Cache` to capture and persist the tags produced by each task.
+
+Build tasks can access resource tags using the `Task Util` API, which internally retrieves the `Monitored Tag Collection` for the current stage from the current `Project` instance.
+
+After the task completes, the `Project Build Cache` retrieves the recorded tags from the `Monitored Tag Collection` and stores them as part of the stage metadata.
+
+Each `Project Resources` instance manages two `Resource Tag Collections`, one for `build`-tags and one for `project`-tags. The `build`-tags collection is cleared at the end of each project build and therefore not accessible to dependent projects.
 
 #### Project Builder
 
@@ -169,12 +197,6 @@ Build tasks can now optionally support "differential builds" by implementing the
 	* This method is called right before the task is being executed. It is used to detect stale output resources that were produced in a previous execution of the task, but are no longer produced in the current execution. Such stale resources must be removed from the build output to avoid inconsistencies.
 
 These methods took some inspiration from the existing [`determineRequiredDependencies` method](https://github.com/UI5/cli/blob/main/rfcs/0012-UI5-Tooling-Extension-API-3.md#new-api-2) ([docs](https://ui5.github.io/cli/stable/pages/extensibility/CustomTasks/#required-dependencies)).
-
-#### Monitored Reader
-
-A `MonitoredReader` is a wrapper around a `Reader` or `Writer` instance that observes which resources are being accessed during its usage. It records the requested paths as well as glob patterns that have been used to request resources.
-
-This information is used in the [`Resource Request Graph`](#resource-request-graph).
 
 #### Resource Request Graph
 
@@ -366,21 +388,67 @@ The resource requests are stored in a serialized [`Resource Request Graph`](#res
 ### Stage Metadata
 
 ```jsonc
+	"resourceMapping": {
+		"/resources/propject/namespace/": 0,
+		"/test-resources/propject/namespace/": 0,
+		"/": 1
+	},
+	"resourceMetadata": [
+		{
+			// Virtual paths written by the task during execution, mapped to their cache metadata
+			"/resources/project/namespace/Component.js": {
+				"lastModified": 176468853453,
+				"size": 4567,
+				"integrity": "sha256-EvQbHDId8MgpzlgZllZv3lKvbK/h0qDHRmzeU+bxPMo="
+			}
+			// Virtual paths written by the task during execution, mapped to their cache metadata
+			"/resources/project/namespace/Helper.js": {
+				"lastModified": 1770643600860,
+				"size": 473,
+				"integrity": "sha256-gd33pMM2gCTxqoYxZyUYSsCKLhO+lZfFXT7MKUl7DSM=""
+			}
+		},
+		{
+			// Virtual paths written by the task during execution, mapped to their cache metadata
+			"/index.html": {
+				"lastModified": 176468853453,
+				"size": 124,
+				"integrity": "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8="
+			}
+		}
+	],
+	"projectTagOperations": {
+		"/resources/project/namespace/Component.js": {
+			"ui5:HasDebugVariant": true, // Set tag
+		}
+	},
+	"buildTagOperations": {
+		"/resources/project/namespace/Component.js": {
+			"ui5:IsBundle": undefined, // Cleared tag
+		}
+	}
+```
+
+Stores the metadata of all resources for a given "stage" (i.e. all resources written by a single build task). This metadata can be used to access the resource content from the content-addressable store and to restore resource tag information.
+
+For build tasks, the stage metadata is keyed using the the signature of the project-index and the dependency-index that produced the output. Both signatures are combined using a `-` separator. I.e. `<project-index-signature>-<dependency-index-signature>`. If a task did not consume any project- or any dependency-resources, that index signature is replaced with an `X` placeholder.
+
+The contained metadata represents all resources **written** by that task during its execution. It includes the `lastModified`, `size` and `integrity` of each resource. This information is required for determining whether subsequent tasks need to be re-executed. It also contains information on resource tag operations, such as setting a tag to a value or clearing a tag.
+
+**Simplified Stage Metadata**
+
+For some project types where no path mapping is done (e.g. type `module`), the stage metadata can be simplified to just store a single `resourceMetadata` object, mapping virtual paths directly to their cache metadata, without the need for an additional `resourceMapping`:
+
+```jsonc
 	"resourceMetadata": {
 		// Virtual paths written by the task during execution, mapped to their cache metadata
-		"/resources/project/namespace/Component.js": {
+		"/resource/path/Example.js": {
 			"lastModified": 176468853453,
 			"size": 4567,
 			"integrity": "sha256-EvQbHDId8MgpzlgZllZv3lKvbK/h0qDHRmzeU+bxPMo="
 		}
 	}
 ```
-
-Stores the metadata of all resources for a given "stage" (i.e. all resources written by a single build task). This metadata can be used to access the resource content from the content-addressable store.
-
-For build tasks, the stage metadata is keyed using the the signature of the project-index and the dependency-index that produced the output. Both signatures are combined using a `-` separator. I.e. `<project-index-signature>-<dependency-index-signature>`. If a task did not consume any project- or any dependency-resources, that index signature is replaced with an `X` placeholder.
-
-The contained metadata represents all resources **written** by that task during its execution. It includes the `lastModified`, `size` and `integrity` of each resource. This information is required for determining whether subsequent tasks need to be re-executed.
 
 ### Result Metadata
 
