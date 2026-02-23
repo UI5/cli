@@ -9,6 +9,18 @@
         // This issue affects only the dev server. Production/CI builds are unaffected.
         //
         // Fix is available in VitePress 2.x with esbuild v0.25.x, but no stable release yet (only alpha).
-        "GHSA-67mh-4wv8-2f99|vitepress>vite>esbuild"
+        "GHSA-67mh-4wv8-2f99|vitepress>vite>esbuild",
+
+        // We fix this vulnerability in the production code by overrides for the production build,
+        // but the vulnerable version of minimatch is still used in development dependencies.
+        // The reasoning is that it's a transitive dependency with a version that way bellow the fixed one (v3 vs v10) and
+        // overriding such a version will break the development environment.
+        "GHSA-3ppc-4f35-3m26|@eslint/eslintrc>minimatch>",
+        "GHSA-3ppc-4f35-3m26|@istanbuljs/esm-loader-hook>test-exclude>minimatch",
+        "GHSA-3ppc-4f35-3m26|babel-plugin-istanbul>test-exclude>minimatch",
+        "GHSA-3ppc-4f35-3m26|eslint>@eslint/config-array>minimatch",
+        "GHSA-3ppc-4f35-3m26|js-beautify>editorconfig>minimatch",
+        "GHSA-3ppc-4f35-3m26|minimatch>",
+        "GHSA-3ppc-4f35-3m26|nyc>test-exclude>minimatch",
     ]
 }
