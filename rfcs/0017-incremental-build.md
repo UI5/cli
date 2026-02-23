@@ -563,6 +563,8 @@ If some tasks have executed successfully before the error occurred, their result
 
 ### Server Integration
 
+![Diagram illustrating the integration of the incremental build in the UI5 CLI server](./resources/0017-incremental-build/Server_Overview.png)
+
 The UI5 CLI server shall integrate the incremental build as a means to pre-process projects before serving the build result. It shall use the watch mode to automatically rebuild the projects when source files are modified, so that always the latest resources are served.
 
 Middleware like `serveThemes` (used for compiling LESS resources to CSS) would become obsolete with this, since the `buildThemes` task will be executed instead.
