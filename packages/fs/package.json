@@ -29,7 +29,8 @@
 		"./Resource": "./lib/Resource.js",
 		"./resourceFactory": "./lib/resourceFactory.js",
 		"./package.json": "./package.json",
-		"./internal/ResourceTagCollection": "./lib/ResourceTagCollection.js"
+		"./internal/ResourceTagCollection": "./lib/ResourceTagCollection.js",
+		"./internal/MonitoredResourceTagCollection": "./lib/MonitoredResourceTagCollection.js"
 	},
 	"engines": {
 		"node": "^22.20.0 || >=24.0.0",
