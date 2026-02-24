@@ -5,11 +5,13 @@
 	"type": "object",
 	"required": ["specVersion", "type", "metadata"],
 	"if": {
+		"type": "object",
 		"properties": {
 			"specVersion": { "enum": ["5.0"] }
 		}
 	},
 	"then": {
+		"type": "object",
 		"additionalProperties": false,
 		"properties": {
 			"specVersion": { "enum": ["5.0"] },

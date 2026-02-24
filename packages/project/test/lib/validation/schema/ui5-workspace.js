@@ -321,14 +321,6 @@ For details, see: https://ui5.github.io/cli/stable/pages/Workspace/#workspace-sp
 					type: "array",
 				},
 			},
-			{
-				instancePath: "/dependencyManagement/resolutions",
-				keyword: "additionalProperties",
-				message: "must NOT have additional properties",
-				params: {
-					additionalProperty: "path",
-				},
-			},
 		]
 	);
 });

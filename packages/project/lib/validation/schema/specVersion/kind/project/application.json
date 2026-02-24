@@ -5,11 +5,13 @@
 	"type": "object",
 	"required": ["specVersion", "type", "metadata"],
 	"if": {
+		"type": "object",
 		"properties": {
 			"specVersion": { "enum": ["4.0", "5.0"] }
 		}
 	},
 	"then": {
+		"type": "object",
 		"additionalProperties": false,
 		"properties": {
 			"specVersion": { "enum": ["4.0", "5.0"] },
@@ -42,11 +44,13 @@
 	},
 	"else": {
 		"if": {
+			"type": "object",
 			"properties": {
 				"specVersion": { "enum": ["3.2"] }
 			}
 		},
 		"then": {
+			"type": "object",
 			"additionalProperties": false,
 			"properties": {
 				"specVersion": { "enum": ["3.2"] },
@@ -80,11 +84,13 @@
 		"else": {
 
 			"if": {
+				"type": "object",
 				"properties": {
 					"specVersion": { "enum": ["3.0", "3.1"] }
 				}
 			},
 			"then": {
+				"type": "object",
 				"additionalProperties": false,
 				"properties": {
 					"specVersion": { "enum": ["3.0", "3.1"] },
@@ -117,11 +123,13 @@
 			},
 			"else": {
 				"if": {
+					"type": "object",
 					"properties": {
 						"specVersion": { "enum": ["2.6"] }
 					}
 				},
 				"then": {
+					"type": "object",
 					"additionalProperties": false,
 					"properties": {
 						"specVersion": { "enum": ["2.6"] },
@@ -154,11 +162,13 @@
 				},
 				"else": {
 					"if": {
+						"type": "object",
 						"properties": {
 							"specVersion": { "enum": ["2.5"] }
 						}
 					},
 					"then": {
+						"type": "object",
 						"additionalProperties": false,
 						"properties": {
 							"specVersion": { "enum": ["2.5"] },
@@ -191,11 +201,13 @@
 					},
 					"else": {
 						"if": {
+							"type": "object",
 							"properties": {
 								"specVersion": { "enum": ["2.4"] }
 							}
 						},
 						"then": {
+							"type": "object",
 							"additionalProperties": false,
 							"properties": {
 								"specVersion": { "enum": ["2.4"] },
@@ -228,11 +240,13 @@
 						},
 						"else": {
 							"if": {
+								"type": "object",
 								"properties": {
 									"specVersion": { "enum": ["2.3"] }
 								}
 							},
 							"then": {
+								"type": "object",
 								"additionalProperties": false,
 								"properties": {
 									"specVersion": { "enum": ["2.3"] },
@@ -265,11 +279,13 @@
 							},
 							"else": {
 								"if": {
+									"type": "object",
 									"properties": {
 										"specVersion": { "enum": ["2.1", "2.2"] }
 									}
 								},
 								"then": {
+									"type": "object",
 									"additionalProperties": false,
 									"properties": {
 										"specVersion": { "enum": ["2.1", "2.2"] },
