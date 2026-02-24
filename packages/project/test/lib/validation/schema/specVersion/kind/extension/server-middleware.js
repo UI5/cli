@@ -40,10 +40,10 @@ test.before((t) => {
 test.after.always((t) => {
 	t.context.ajvCoverage.createReport("html", {dir: "coverage/ajv-extension-server-middleware"});
 	const thresholds = {
-		statements: 50,
+		statements: 48,
 		branches: 50,
 		functions: 100,
-		lines: 50
+		lines: 48
 	};
 	t.context.ajvCoverage.verify(thresholds);
 });

@@ -31,7 +31,7 @@ class Validator {
 
 		ajvConfig = Object.assign({
 			allErrors: true,
-			jsonPointers: true,
+
 			loadSchema: Validator.loadSchema
 		}, ajvConfig);
 		this.ajv = new Ajv(ajvConfig);
