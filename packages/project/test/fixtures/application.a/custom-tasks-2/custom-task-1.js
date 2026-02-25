@@ -1,0 +1,25 @@
+let buildRanOnce;
+module.exports = async function ({
+	workspace, taskUtil,
+	options: {projectNamespace}
+}) {
+	console.log("Custom task 1 executed");
+
+	// Read a file to trigger execution of this task:
+	const testJS = await workspace.byPath(`/resources/${projectNamespace}/test.js`);
+
+	if (buildRanOnce != true) {
+		console.log("Flag NOT set -> We are in #1 Build still");
+		buildRanOnce = true;
+		const tag = taskUtil.getTag(testJS, taskUtil.STANDARD_TAGS.IsDebugVariant);
+		if (!tag) {
+			throw new Error("Tag set during #1 Build is not readable, which is UNEXPECTED.");
+		}
+	} else {
+		console.log("Flag set -> We are in #2 Build");
+		const tag = taskUtil.getTag(testJS, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
+		if (!tag) {
+			throw new Error("Tag set during #2 Build is not readable, which is UNEXPECTED.");
+		}
+	}
+};
