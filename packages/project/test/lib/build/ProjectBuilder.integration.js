@@ -319,6 +319,48 @@ test.serial("Build application.a (multiple custom tasks)", async (t) => {
 	});
 });
 
+test.serial.skip("Build application.a (multiple custom tasks 2)", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+
+	// This test should cover a scenario with multiple custom tasks.
+	// Specifically, it's invalidating the task cache by only modifying tags on resources,
+	// but not the resources themselves.
+
+	// #1 build (no cache, no changes, with custom tasks)
+	// During this build, "custom-task-0" sets the tag "isDebugVariant" to test.js.
+	// "custom-task-1" checks if it's able to read this tag.
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-multiple-customTasks-2.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+
+	// #2 build (with cache, no changes, with custom tasks)
+	// During this build, "custom-task-0" sets a different tag to test.js (namely "OmitFromBuildResult").
+	// "custom-task-1" again checks if it's able to read this different tag.
+	// It's expected that both custom tasks are not getting skipped during this build,
+	// even though any resources weren't modified.
+	// FIXME: Currently, the entire build is skipped and therefore the custom tasks are not executed.
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-multiple-customTasks-2.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"application.a": {} // TODO: add non-relevant skippedTasks here, once the tag handling works
+			}
+		}
+	});
+
+	// Check that test.js is omitted from build output:
+	await t.throwsAsync(fs.readFile(`${destPath}/test.js`, {encoding: "utf8"}));
+});
+
 test.serial("Build library.d project multiple times", async (t) => {
 	const fixtureTester = new FixtureTester(t, "library.d");
 	const destPath = fixtureTester.destPath;
