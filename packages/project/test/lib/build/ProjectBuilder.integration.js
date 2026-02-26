@@ -361,6 +361,90 @@ test.serial.skip("Build application.a (multiple custom tasks 2)", async (t) => {
 	await t.throwsAsync(fs.readFile(`${destPath}/test.js`, {encoding: "utf8"}));
 });
 
+test.serial.skip("Build application.a (dependency content changes)", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+
+	// This test should cover a scenario with an application depending on a library.
+	// Specifically, we're directly modifying the contents of the library
+	// which should have effects on the application because a custom task will detect it
+	// and modify the application's resources. The application is expected to get rebuilt.
+
+	// #1 build (no cache, no changes, no dependencies)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-dependency-change.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+
+	// #2 build (with cache, no changes, no dependencies)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-dependency-change.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+
+	// Change content of library.d (this will not affect application.a):
+	const someJsOfLibrary = `${fixtureTester.fixturePath}/node_modules/library.d/main/src/library/d/some.js`;
+	await fs.appendFile(someJsOfLibrary, `\ntest("line added");\n`);
+
+	// #3 build (with cache, with changes, with dependencies)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-dependency-change.yaml"},
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+			}
+		}
+	});
+
+	// Check if library contains correct changed content:
+	const builtFileContent = await fs.readFile(`${destPath}/resources/library/d/some.js`, {encoding: "utf8"});
+	t.true(builtFileContent.includes(`test("line added");`), "Build dest contains changed file content");
+
+
+	// Change content of library.d again (this time it affects application.a):
+	await fs.writeFile(`${fixtureTester.fixturePath}/node_modules/library.d/main/src/library/d/newLibraryFile.js`,
+		`console.log("SOME NEW CONTENT");`);
+
+	// #4 build (no cache, with changes, with dependencies)
+	// This build should execute the custom task "task.dependency-change.js" again which now detects "newLibraryFile.js"
+	// and modifies a resource of application.a (namely "test.js").
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-dependency-change.yaml"},
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {
+				"library.d": {},
+				"application.a": { // FIXME: currently failing (getting skipped entirely)
+					skippedTasks: [
+						"enhanceManifest",
+						"escapeNonAsciiCharacters",
+						"generateFlexChangesBundle",
+						"replaceCopyright",
+					]
+				},
+			}
+		}
+	});
+
+	// Check that application.a contains correct changed content (test.js):
+	const builtFileContent2 = await fs.readFile(`${destPath}/test.js`, {encoding: "utf8"});
+	t.true(builtFileContent2.includes(`console.log('something new');`), "Build dest contains changed file content");
+});
+
 test.serial("Build library.d project multiple times", async (t) => {
 	const fixtureTester = new FixtureTester(t, "library.d");
 	const destPath = fixtureTester.destPath;
