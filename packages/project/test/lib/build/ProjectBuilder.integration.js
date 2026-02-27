@@ -240,7 +240,7 @@ test.serial("Build application.a (custom task and tag handling)", async (t) => {
 		}
 	});
 
-	// Check that fileToBeOmitted.js is not in dist again --> FIXME: Currently failing here
+	// Check that fileToBeOmitted.js is not in dist again
 	await t.throwsAsync(fs.readFile(`${destPath}/fileToBeOmitted.js`, {encoding: "utf8"}));
 
 
@@ -298,7 +298,6 @@ test.serial("Build application.a (multiple custom tasks)", async (t) => {
 		`${fixtureTester.fixturePath}/webapp/test2.js`);
 
 	// #3 build (with cache, with changes, with custom tasks)
-	// FIXME: Currently failing, because for custom-task-2 the tag is NOT set yet.
 	await fixtureTester.buildProject({
 		graphConfig: {rootConfigPath: "ui5-multiple-customTasks.yaml"},
 		config: {destPath, cleanDest: true},
