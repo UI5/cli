@@ -80,8 +80,8 @@ class ValidationError extends Error {
 		}
 
 		let message = "Configuration ";
-		if (error.dataPath) {
-			message += chalk.underline(chalk.red(error.dataPath.substr(1))) + " ";
+		if (error.instancePath) {
+			message += chalk.underline(chalk.red(error.instancePath.substr(1))) + " ";
 		}
 
 		switch (error.keyword) {
@@ -107,7 +107,7 @@ class ValidationError extends Error {
 
 	static _findDuplicateError(error, errorIndex, errors) {
 		const foundIndex = errors.findIndex(($) => {
-			if ($.dataPath !== error.dataPath) {
+			if ($.instancePath !== error.instancePath) {
 				return false;
 			} else if ($.keyword !== error.keyword) {
 				return false;
@@ -131,13 +131,13 @@ class ValidationError extends Error {
 	}
 
 	static analyzeYamlError({error, yaml}) {
-		if (error.dataPath === "" && error.keyword === "required") {
+		if (error.instancePath === "" && error.keyword === "required") {
 			// There is no line/column for a missing required property on root level
 			return {line: -1, column: -1};
 		}
 
 		// Skip leading /
-		const objectPath = error.dataPath.substr(1).split("/");
+		const objectPath = error.instancePath.substr(1).split("/");
 
 		if (error.keyword === "additionalProperties") {
 			objectPath.push(error.params.additionalProperty);

@@ -21,6 +21,7 @@
 		}
 	},
 	"if": {
+		"type": "object",
 		"properties": {
 			"type": {"const": null}
 		},
@@ -29,6 +30,7 @@
 	"then": {},
 	"else": {
 		"if": {
+			"type": "object",
 			"properties": {
 				"type": {"const": "task"}
 			}
@@ -38,6 +40,7 @@
 		},
 		"else": {
 			"if": {
+				"type": "object",
 				"properties": {
 					"type": {"const": "server-middleware"}
 				}
@@ -47,6 +50,7 @@
 			},
 			"else": {
 				"if": {
+					"type": "object",
 					"properties": {
 						"type": {"const": "project-shim"}
 					}
