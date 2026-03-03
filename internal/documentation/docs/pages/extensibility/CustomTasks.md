@@ -391,7 +391,7 @@ export default async function({dependencies, log, options, taskUtil, workspace})
             }
             projectsVisited.add(projectName);
             const project = taskUtil.getProject(projectName);
-            const pkgResource = await project.getRootReader().byPath(../package.json");
+            const pkgResource = await project.getRootReader().byPath("../package.json");
             if (pkgResource) {
                 const pkg = JSON.parse(await pkgResource.getString())
 
