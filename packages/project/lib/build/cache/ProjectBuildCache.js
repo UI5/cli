@@ -64,7 +64,6 @@ export default class ProjectBuildCache {
 
 	#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
 	#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
-	// #dependencyIndicesInitialized = false;
 
 	/**
 	 * Creates a new ProjectBuildCache instance
@@ -547,7 +546,7 @@ export default class ProjectBuildCache {
 			if (!stageMetadata) {
 				return;
 			}
-			log.verbose(`Found cached stage with signature ${stageSignature}`);
+			log.verbose(`Found cached stage for task ${stageName} with signature ${stageSignature}`);
 			const {resourceMapping, resourceMetadata, projectTagOperations, buildTagOperations} = stageMetadata;
 			let writtenResourcePaths;
 			let stageReader;
@@ -854,6 +853,9 @@ export default class ProjectBuildCache {
 			this.#sourceIndex = await ResourceIndex.create(resources, Date.now());
 			this.#combinedIndexState = INDEX_STATES.INITIAL;
 		}
+		log.verbose(
+			`Initialized source index for project ${this.#project.getName()} ` +
+			`with signature ${this.#sourceIndex.getSignature()}`);
 	}
 
 	/**
@@ -880,7 +882,8 @@ export default class ProjectBuildCache {
 
 		if (removed.length || added.length || updated.length) {
 			log.verbose(`Source resource index for project ${this.#project.getName()} updated: ` +
-				`${removed.length} removed, ${added.length} added, ${updated.length} updated resources.`);
+				`${removed.length} removed, ${added.length} added, ${updated.length} updated resources. ` +
+				`New signature: ${this.#sourceIndex.getSignature()}`);
 			const changedPaths = [...removed, ...added, ...updated];
 			// Since all source files are part of the result, declare any detected changes as newly written resources
 			for (const resourcePath of changedPaths) {
@@ -936,7 +939,8 @@ export default class ProjectBuildCache {
 			// No changes to already cached result stage
 			return;
 		}
-		log.verbose(`Storing result metadata for project ${this.#project.getName()}`);
+		log.verbose(`Storing result metadata for project ${this.#project.getName()} ` +
+			`using result stage signature ${stageSignature}`);
 		const stageSignatures = Object.create(null);
 		for (const [stageName, stageSigs] of this.#currentStageSignatures.entries()) {
 			stageSignatures[stageName] = stageSigs.join("-");
