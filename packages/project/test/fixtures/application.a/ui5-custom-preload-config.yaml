@@ -1,0 +1,11 @@
+---
+specVersion: "5.0"
+type: application
+metadata:
+  name: application.a
+builder:
+  componentPreload:
+    namespaces:
+        - "id1"
+    excludes:
+        - "id1/thirdparty/scriptWithSourceMap.js"
