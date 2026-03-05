@@ -196,6 +196,88 @@ test.serial("Serve application.a, request library resource", async (t) => {
 	);
 });
 
+test.serial.skip("Serve library", async (t) => {
+	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "library.d");
+
+	// #1 request with empty cache
+	await fixtureTester.serveProject({
+		config: {
+			excludedTasks: ["minify"],
+		}
+	});
+	await fixtureTester.requestResource({
+		resource: "/resources/library/d/some.js",
+		assertions: {
+			projects: {
+				"library.d": {}
+			}
+		}
+	});
+
+	// #2 request with cache
+	await fixtureTester.requestResource({
+		resource: "/resources/library/d/some.js",
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// Change a source file in library.d
+	const changedFilePath = `${fixtureTester.fixturePath}/main/src/library/d/some.js`;
+	const originalContent = await fs.readFile(changedFilePath, {encoding: "utf8"});
+	await fs.writeFile(
+		changedFilePath,
+		originalContent.replace(
+			` */`,
+			` */\n// Test 1`
+		)
+	);
+
+	await setTimeout(500); // Wait for the file watcher to detect and propagate the change
+
+	// #3 request with cache and changes
+	const resourceContent1 = await fixtureTester.requestResource({
+		resource: "/resources/library/d/some.js",
+		assertions: {
+			projects: {
+				"library.d": {
+					skippedTasks: [
+						"buildThemes",
+						"enhanceManifest",
+						"escapeNonAsciiCharacters",
+						"replaceBuildtime",
+					]
+				}
+			}
+		}
+	});
+
+	// Check whether the changed file is served
+	const servedFileContent1 = await resourceContent1.getString();
+	t.true(
+		servedFileContent1.includes(`Test 1`),
+		"Resource contains changed file content"
+	);
+
+	// Restore original file content
+
+	await fs.writeFile(changedFilePath, originalContent);
+
+	// #4 request with cache (no changes)
+	const resourceContent2 = await fixtureTester.requestResource({
+		resource: "/resources/library/d/some.js",
+		assertions: {
+			projects: {}
+		}
+	});
+
+	const servedFileContent2 = await resourceContent2.getString();
+	t.false(
+		servedFileContent2.includes(`Test 1`),
+		"Resource does not contain changed file content"
+	);
+});
+
 test.serial("Serve application.a, request application resource AND library resource", async (t) => {
 	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
 
