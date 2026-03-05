@@ -4,6 +4,17 @@ The [UI5 Server](https://github.com/SAP/ui5-server) module provides server capab
 
 [**API Reference**](https://ui5.github.io/cli/v4/api/module-@ui5_server.html){: .md-button .sap-icon-initiative }
 
+!!! warning "Development Use Only"
+    The UI5 Server is intended for **local development purposes only**. It must not be exposed to untrusted parties or used as a public-facing web server.
+
+    The server does **not** implement safeguards against various network-based attacks — this is by design, as it is not meant to serve production traffic.
+
+    Please be aware of the following risks when using the server:
+
+    - **Custom middleware** from third parties can execute arbitrary code on your system and may introduce additional security vulnerabilities when the server is exposed to a network.
+    - **Proxy middleware** configured with credentials may enable unauthorized access to the target system for other parties on the same network.
+    - Using `--accept-remote-connections` makes the server reachable from all hosts on your network, which significantly increases the attack surface.
+
 ## Standard Middleware
 
 All available standard middleware are listed below in the order of their execution.
