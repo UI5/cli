@@ -52,28 +52,13 @@
 	},
 	"overrides": {
 		"pacote@<=20": {
-			"tar": "^7.5.7"
+			"tar": "^7.5.10"
 		},
 		"cacache@18": {
-			"tar": "^7.5.7"
+			"tar": "^7.5.10"
 		},
 		"node-gyp@10": {
-			"tar": "^7.5.7"
-		},
-		"@npmcli/arborist": {
-			"minimatch": "^10.2.2"
-		},
-		"@npmcli/map-workspaces": {
-			"minimatch": "^10.2.2"
-		},
-		"@tufjs/models": {
-			"minimatch": "^10.2.2"
-		},
-		"glob": {
-			"minimatch": "^10.2.2"
-		},
-		"ignore-walk": {
-			"minimatch": "^10.2.2"
+			"tar": "^7.5.10"
 		}
 	},
 	"workspaces": [
