@@ -561,6 +561,41 @@ function functionWithJSDoc(param) {return "test"}`;
 		"Build dest does contain source map reference");
 });
 
+test.serial("Build application.a (Custom Component preload configuration)", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+
+	// In this test, we're testing the behavior of a custom preload configuration
+	// which is defined in "ui5-custom-preload-config.yaml".
+	// This custom preload configuration generates a Component-preload.js similar to a default one.
+	// However, it will omit a resource ("scriptWithSourceMap.js") from the bundle.
+
+	// #1 build (no cache, no changes)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-custom-preload-config.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// Check that generated preload bundle doesn't contain the omitted file:
+	t.false((await fs.readFile(`${destPath}/Component-preload.js`, {encoding: "utf8"}))
+		.includes("id1/thirdparty/scriptWithSourceMap.js"));
+
+
+	// #2 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-custom-preload-config.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+});
+
 test.serial("Build library.d project multiple times", async (t) => {
 	const fixtureTester = new FixtureTester(t, "library.d");
 	const destPath = fixtureTester.destPath;
@@ -647,6 +682,41 @@ test.serial("Build library.d project multiple times", async (t) => {
 		config: {destPath, cleanDest: true},
 		assertions: {
 			projects: {"library.d": {}}
+		}
+	});
+});
+
+test.serial("Build library.d (Custom Library preload configuration)", async (t) => {
+	const fixtureTester = new FixtureTester(t, "library.d");
+	const destPath = fixtureTester.destPath;
+
+	// In this test, we're testing the behavior of a custom preload configuration
+	// which is defined in "ui5-custom-preload-config.yaml".
+	// This custom preload configuration generates a library-preload.js similar to a default one.
+	// However, it will omit a resource ("some.js") from the bundle.
+
+	// #1 build (no cache, no changes)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-custom-preload-config.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"library.d": {}
+			}
+		}
+	});
+
+	// Check that generated preload bundle doesn't contain the omitted file:
+	t.false((await fs.readFile(`${destPath}/resources/library/d/library-preload.js`, {encoding: "utf8"}))
+		.includes("library/d/some.js"));
+
+
+	// #2 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-custom-preload-config.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
 		}
 	});
 });
@@ -880,6 +950,41 @@ test.serial("Build component.a project multiple times", async (t) => {
 	// #6 build (with cache, no changes, with dependencies)
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {}
+		}
+	});
+});
+
+test.serial("Build component.a (Custom Component preload configuration)", async (t) => {
+	const fixtureTester = new FixtureTester(t, "component.a");
+	const destPath = fixtureTester.destPath;
+
+	// In this test, we're testing the behavior of a custom preload configuration
+	// which is defined in "ui5-custom-preload-config.yaml".
+	// This custom preload configuration generates a Component-preload.js similar to a default one.
+	// However, it will omit a resource ("test.js") from the bundle.
+
+	// #1 build (no cache, no changes)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-custom-preload-config.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"component.a": {}
+			}
+		}
+	});
+
+	// Check that generated preload bundle doesn't contain the omitted file:
+	t.false((await fs.readFile(`${destPath}/resources/id1/Component-preload.js`, {encoding: "utf8"}))
+		.includes("id1/test.js"));
+
+
+	// #2 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-custom-preload-config.yaml"},
+		config: {destPath, cleanDest: true},
 		assertions: {
 			projects: {}
 		}

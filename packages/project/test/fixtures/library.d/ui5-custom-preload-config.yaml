@@ -1,0 +1,15 @@
+---
+specVersion: "5.0"
+type: library
+metadata:
+  name: library.d
+  copyright: Some fancy copyright
+resources:
+  configuration:
+    paths:
+      src: main/src
+      test: main/test
+builder:
+  libraryPreload:
+    excludes:
+        - "library/d/some.js"
