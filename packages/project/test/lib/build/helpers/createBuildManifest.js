@@ -77,7 +77,7 @@ test("Missing parameter: signature", async (t) => {
 
 test("Create application from project with build manifest", async (t) => {
 	const project = await Specification.create(applicationProjectInput);
-	project.getResourceTagCollection().setTag("/resources/id1/foo.js", "ui5:HasDebugVariant");
+	project.getProjectResourceTagCollection().setTag("/resources/id1/foo.js", "ui5:HasDebugVariant");
 
 	const taskRepository = {
 		getVersions: async () => ({builderVersion: "<builder version>", fsVersion: "<builder fs version>"})
@@ -133,7 +133,7 @@ test("Create application from project with build manifest", async (t) => {
 
 test("Create library from project with build manifest", async (t) => {
 	const project = await Specification.create(libraryProjectInput);
-	project.getResourceTagCollection().setTag("/resources/library/d/foo.js", "ui5:HasDebugVariant");
+	project.getProjectResourceTagCollection().setTag("/resources/library/d/foo.js", "ui5:HasDebugVariant");
 
 	const taskRepository = {
 		getVersions: async () => ({builderVersion: "<builder version>", fsVersion: "<builder fs version>"})
