@@ -64,15 +64,26 @@ test("Missing parameter: taskRepository", async (t) => {
 	});
 });
 
+test("Missing parameter: signature", async (t) => {
+	const project = await Specification.create(applicationProjectInput);
+
+	const taskRepository = {
+		getVersions: async () => ({builderVersion: "<builder version>", fsVersion: "<builder fs version>"})
+	};
+	await t.throwsAsync(createBuildManifest(project, "buildConfig", taskRepository), {
+		message: "Missing parameter 'signature'"
+	});
+});
+
 test("Create application from project with build manifest", async (t) => {
 	const project = await Specification.create(applicationProjectInput);
-	project.getResourceTagCollection().setTag("/resources/id1/foo.js", "ui5:HasDebugVariant");
+	project.getProjectResourceTagCollection().setTag("/resources/id1/foo.js", "ui5:HasDebugVariant");
 
 	const taskRepository = {
 		getVersions: async () => ({builderVersion: "<builder version>", fsVersion: "<builder fs version>"})
 	};
 
-	const metadata = await createBuildManifest(project, "buildConfig", taskRepository);
+	const metadata = await createBuildManifest(project, "buildConfig", taskRepository, "yyy");
 
 	t.truthy(new Date(metadata.buildManifest.timestamp), "Timestamp is valid");
 	metadata.buildManifest.timestamp = "<timestamp>";
@@ -99,7 +110,8 @@ test("Create application from project with build manifest", async (t) => {
 			}
 		},
 		buildManifest: {
-			manifestVersion: "0.2",
+			manifestVersion: "1.0",
+			signature: "yyy",
 			buildConfig: "buildConfig",
 			namespace: "id1",
 			timestamp: "<timestamp>",
@@ -121,13 +133,13 @@ test("Create application from project with build manifest", async (t) => {
 
 test("Create library from project with build manifest", async (t) => {
 	const project = await Specification.create(libraryProjectInput);
-	project.getResourceTagCollection().setTag("/resources/library/d/foo.js", "ui5:HasDebugVariant");
+	project.getProjectResourceTagCollection().setTag("/resources/library/d/foo.js", "ui5:HasDebugVariant");
 
 	const taskRepository = {
 		getVersions: async () => ({builderVersion: "<builder version>", fsVersion: "<builder fs version>"})
 	};
 
-	const metadata = await createBuildManifest(project, "buildConfig", taskRepository);
+	const metadata = await createBuildManifest(project, "buildConfig", taskRepository, "zzz");
 
 	t.truthy(new Date(metadata.buildManifest.timestamp), "Timestamp is valid");
 	metadata.buildManifest.timestamp = "<timestamp>";
@@ -155,7 +167,8 @@ test("Create library from project with build manifest", async (t) => {
 			}
 		},
 		buildManifest: {
-			manifestVersion: "0.2",
+			manifestVersion: "1.0",
+			signature: "zzz",
 			buildConfig: "buildConfig",
 			namespace: "library/d",
 			timestamp: "<timestamp>",

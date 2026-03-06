@@ -21,9 +21,10 @@ export default function({resources, options: {pattern, replacement}}) {
 	return Promise.all(resources.map(async (resource) => {
 		const content = await resource.getString();
 		const newContent = content.replaceAll(pattern, replacement);
+		// only modify the resource's string if it was changed
 		if (content !== newContent) {
 			resource.setString(newContent);
+			return resource;
 		}
-		return resource;
 	}));
 }

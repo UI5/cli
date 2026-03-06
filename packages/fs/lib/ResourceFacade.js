@@ -46,6 +46,16 @@ class ResourceFacade {
 	}
 
 	/**
+	 * Gets the path original resource's path
+	 *
+	 * @public
+	 * @returns {string} (Virtual) path of the resource
+	 */
+	getOriginalPath() {
+		return this.#resource.getPath();
+	}
+
+	/**
 	 * Gets the resource name
 	 *
 	 * @public
@@ -129,14 +139,44 @@ class ResourceFacade {
 	 *
 	 * Repetitive calls of this function are only possible if new content has been set in the meantime (through
 	 * [setStream]{@link @ui5/fs/Resource#setStream}, [setBuffer]{@link @ui5/fs/Resource#setBuffer}
-	 * or [setString]{@link @ui5/fs/Resource#setString}). This
-	 * is to prevent consumers from accessing drained streams.
+	 * or [setString]{@link @ui5/fs/Resource#setString}).
+	 * This is to prevent subsequent consumers from accessing drained streams.
 	 *
 	 * @public
+	 * @deprecated Use asynchronous Resource.getStreamAsync() instead
 	 * @returns {stream.Readable} Readable stream for the resource content.
 	 */
 	getStream() {
 		return this.#resource.getStream();
+	}
+
+	/**
+	 * Gets a readable stream for the resource content.
+	 *
+	 * Repetitive calls of this function are only possible if new content has been set in the meantime (through
+	 * [setStream]{@link @ui5/fs/Resource#setStream}, [setBuffer]{@link @ui5/fs/Resource#setBuffer}
+	 * or [setString]{@link @ui5/fs/Resource#setString}).
+	 * This is to prevent subsequent consumers from accessing drained streams.
+	 *
+	 * For atomic operations, please use [modifyStream]{@link @ui5/fs/Resource#modifyStream}
+	 *
+	 * @public
+	 * @returns {Promise<stream.Readable>} Promise resolving with a readable stream for the resource content.
+	 */
+	async getStreamAsync() {
+		return this.#resource.getStreamAsync();
+	}
+
+	/**
+	 * Modifies the resource content by applying the given callback function.
+	 * The callback function receives a readable stream of the current content
+	 * and must return either a Buffer or a readable stream with the new content.
+	 * The resource content is locked during the modification to prevent concurrent access.
+	 *
+	 * @param {function(stream.Readable): (Buffer|stream.Readable|Promise<Buffer|stream.Readable>)} callback
+	 */
+	async modifyStream(callback) {
+		return this.#resource.modifyStream(callback);
 	}
 
 	/**
@@ -150,6 +190,14 @@ class ResourceFacade {
 		return this.#resource.setStream(stream);
 	}
 
+	getIntegrity() {
+		return this.#resource.getIntegrity();
+	}
+
+	getInode() {
+		return this.#resource.getInode();
+	}
+
 	/**
 	 * Gets the resources stat info.
 	 * Note that a resources stat information is not updated when the resource is being modified.
@@ -157,6 +205,7 @@ class ResourceFacade {
 	 * [fs.Stats]{@link https://nodejs.org/api/fs.html#fs_class_fs_stats} instance.
 	 *
 	 * @public
+	 * @deprecated Use dedicated APIs like Resource.getSize(), .isDirectory(), .getLastModified() instead
 	 * @returns {fs.Stats|object} Instance of [fs.Stats]{@link https://nodejs.org/api/fs.html#fs_class_fs_stats}
 	 *								or similar object
 	 */
@@ -165,13 +214,44 @@ class ResourceFacade {
 	}
 
 	/**
+	 * Checks whether the resource represents a directory.
+	 *
+	 * @public
+	 * @returns {boolean} True if resource is a directory
+	 */
+	isDirectory() {
+		return this.#resource.isDirectory();
+	}
+
+	/**
+	 * Gets the last modified timestamp of the resource.
+	 *
+	 * @public
+	 * @returns {number} Last modified timestamp (in milliseconds since UNIX epoch)
+	 */
+	getLastModified() {
+		return this.#resource.getLastModified();
+	}
+
+	/**
 	 * Size in bytes allocated by the underlying buffer.
 	 *
 	 * @see {TypedArray#byteLength}
-	 * @returns {Promise<number>} size in bytes, <code>0</code> if there is no content yet
+	 * @returns {Promise<number>} size in bytes, <code>0</code> if the resource has no content
 	 */
 	async getSize() {
 		return this.#resource.getSize();
+	}
+
+	/**
+	 * Checks whether the resource size can be determined without reading the entire content.
+	 * E.g. for buffer-based content or if the size has been provided when the resource was created.
+	 *
+	 * @public
+	 * @returns {boolean} True if size can be determined statically
+	 */
+	hasSize() {
+		return this.#resource.hasSize();
 	}
 
 	/**
