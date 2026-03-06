@@ -1,0 +1,39 @@
+specVersion: "4.0"
+metadata:
+  name: consolidated-app
+type: application
+framework:
+  name: SAPUI5
+  version: "1.120.0"
+  libraries:
+    - name: sap.m
+    - name: sap.ui.core
+    - name: sap.ui.layout
+    - name: sap.ui.webc.main
+    - name: themelib_sap_horizon
+builder:
+  customTasks:
+    - name: ui5-tooling-modules-task
+      afterTask: replaceVersion
+      configuration:
+        addToNamespace: true
+        debug: true
+        entryPoints:
+          - "@ui5/webcomponents/dist/MessageStrip"
+        pluginOptions:
+          webcomponents:
+            skip: false
+            namespace: false
+server:
+  customMiddleware:
+    - name: ui5-tooling-modules-middleware
+      afterMiddleware: compression
+      configuration:
+        addToNamespace: true
+        debug: true
+        entryPoints:
+          - "@ui5/webcomponents/dist/MessageStrip"
+        pluginOptions:
+          webcomponents:
+            skip: false
+            namespace: false
