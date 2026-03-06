@@ -792,7 +792,7 @@ class Resource {
 			isDirectory: this.#isDirectory,
 			byteSize: this.#isDirectory ? undefined : await this.getSize(),
 			lastModified: this.#lastModified,
-			integrity: this.#isDirectory ? undefined : await this.getIntegrity(),
+			integrity: this.#isDirectory ? undefined : (this.#contentType ? await this.getIntegrity() : undefined),
 			sourceMetadata: clone(this.#sourceMetadata)
 		};
 
