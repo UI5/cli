@@ -8,7 +8,7 @@ async function getVersion(pkg) {
 }
 
 function getSortedTags(project) {
-	const tags = project.getResourceTagCollection().getAllTags();
+	const tags = project.getProjectResourceTagCollection().getAllTags();
 	const entities = Object.entries(tags);
 	entities.sort(([keyA], [keyB]) => {
 		return keyA.localeCompare(keyB);

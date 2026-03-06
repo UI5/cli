@@ -391,6 +391,19 @@ class ProjectResources {
 		};
 	}
 
+	/**
+	 * Returns the project-level resource tag collection.
+	 *
+	 * This provides direct access to the collection holding project-level tags
+	 * (e.g. ui5:IsDebugVariant, ui5:HasDebugVariant), which is needed for
+	 * build manifest creation and reading.
+	 *
+	 * @returns {@ui5/fs/internal/ResourceTagCollection} The project-level resource tag collection
+	 */
+	getProjectResourceTagCollection() {
+		return this.#getProjectResourceTagCollection();
+	}
+
 	#getProjectResourceTagCollection() {
 		if (!this.#projectResourceTagCollection) {
 			this.#projectResourceTagCollection = new ResourceTagCollection({
