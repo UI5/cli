@@ -596,6 +596,108 @@ test.serial("Build application.a (Custom Component preload configuration)", asyn
 	});
 });
 
+test.serial("Build application.a (self-contained build)", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+
+	// We're executing a self-contained build including dependencies (as with "ui5 build self-contained --all")
+	// and testing if the output contains the expected self-contained bundle.
+	// Then, we're changing the content only of application.a
+	// and testing if the self-contained build output changes accordingly.
+
+	// #1 build (no cache, no changes)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5.yaml"},
+		config: {destPath, cleanDest: true, selfContained: "self-contained",
+			dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+				"application.a": {}
+			}
+		}
+	});
+
+	// Check that output contains the correct content:
+	const builtFileContent = await fs.readFile(`${destPath}/resources/sap-ui-custom.js`, {encoding: "utf8"});
+	t.true(builtFileContent.includes(`"id1/test.js":'function test(t){var o=t;console.log(o)}test();\\n'`));
+
+
+	// #2 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5.yaml"},
+		config: {destPath, cleanDest: true, selfContained: "self-contained",
+			dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {}
+		}
+	});
+
+
+	// Remove the file "test.js" from application.a:
+	await fs.rm(`${fixtureTester.fixturePath}/webapp/test.js`);
+
+	// #3 build (with cache, with changes)
+	// Dependencies should get skipped, application.a should get rebuilt:
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5.yaml"},
+		config: {destPath, cleanDest: true, selfContained: "self-contained",
+			dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"enhanceManifest",
+						"escapeNonAsciiCharacters",
+						"generateFlexChangesBundle",
+						"replaceCopyright",
+						"transformBootstrapHtml",
+					]
+				}
+			}
+		}
+	});
+
+	// Check that output contains the correct content (test.js should be missing):
+	const builtFileContent2 = await fs.readFile(`${destPath}/resources/sap-ui-custom.js`, {encoding: "utf8"});
+	t.false(builtFileContent2.includes(`"id1/test.js":`));
+
+
+	// #4 build (with cache, no changes)
+	// Run a self-contained build but with a different config which defines a custom preload.
+	// The build should run and the output should still contain the expected self-contained bundle
+	// (tasks "generateComponentPreload" and "generateLibraryPreload" should not get executed):
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-custom-preload-config.yaml"},
+		config: {destPath, cleanDest: true, selfContained: "self-contained",
+			dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// Check that output contains still the correct content:
+	const builtFileContent3 = await fs.readFile(`${destPath}/resources/sap-ui-custom.js`, {encoding: "utf8"});
+	t.false(builtFileContent3.includes(`"id1/test.js":`));
+
+
+	// #5 build (with cache, no changes)
+	// Run a self-contained build but without dependencies:
+	// (everything should get skipped)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5.yaml"},
+		config: {destPath, cleanDest: true, selfContained: "self-contained"},
+		assertions: {
+			projects: {}
+		}
+	});
+});
+
 test.serial("Build library.d project multiple times", async (t) => {
 	const fixtureTester = new FixtureTester(t, "library.d");
 	const destPath = fixtureTester.destPath;
