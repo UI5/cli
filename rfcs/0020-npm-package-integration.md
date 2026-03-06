@@ -160,44 +160,7 @@ The community package `ui5-tooling-modules` provides battle-tested patterns that
 
 Rather than implementing a separate scanning phase, NPM dependency detection is integrated directly into the existing `JSModuleAnalyzer` visitor pattern. This piggybacks on the AST traversal that already occurs for UI5 dependency analysis:
 
-```mermaid
-graph TD
-    A[UI5 Source Files] --> B[espree.parse]
-    B --> C{File type?}
-    C -->|JS/TS| D[JSModuleAnalyzer.visit]
-    C -->|XML| E[XMLTemplateAnalyzer]
-
-    D --> F[Detect thirdparty/* in AMD deps]
-    D --> G[Detect thirdparty/* in ESM imports]
-    E --> H[Detect xmlns:thirdparty.*]
-
-    F --> I[ResourceCollector.getNpmPackages]
-    G --> I
-    H --> I
-
-    I --> J[Validate against package.json]
-    J --> K{Found in dependencies?}
-    K -->|Yes| L[Queue for bundling]
-    K -->|devDependencies only| M[⚠️ Warn: move to dependencies]
-    K -->|Not found| N[❌ Error: package not declared]
-
-    L --> O[Rollup Resolution]
-    O --> P{Resolution Priority Cascade}
-    P --> Q[1. exports field]
-    Q --> R[2. browser field]
-    R --> S[3. module field]
-    S --> T[4. main field]
-    T --> U[5. index.js]
-
-    U --> V[Entry point resolved]
-
-    style A fill:#e7f3ff,stroke:#004085
-    style I fill:#fff3cd,stroke:#856404
-    style K fill:#fff3cd,stroke:#856404
-    style M fill:#fff3cd,stroke:#ffc107
-    style N fill:#f8d7da,stroke:#721c24
-    style V fill:#d4edda,stroke:#155724
-```
+![Dependency Scanning Activity Diagram](./resources/0020-npm-integration/dependency-scanning-activity.svg)
 
 * **Key insight**: Leverages existing espree AST parsing that already occurs for UI5 dependency analysis, requiring only pattern detection extensions to existing visitor logic.*
 
@@ -258,22 +221,7 @@ A critical design principle: the scanner only extracts **top-level NPM package n
 
 Rollup's default behavior is to discover and inline ALL dependencies into a single output bundle. The RFC uses two mechanisms to control this:
 
-```mermaid
-graph TD
-    A["Entry: 'react-dom'"] --> B[Rollup processes imports]
-    B --> C{Is an external package?}
-    C -->|YES| D[Preserve as AMD dependency]
-    C -->|NO| E[Inline into bundle]
-    D --> F[Apply paths mapping]
-    E --> G[Resolve + tree-shake]
-    F --> H["Output: sap.ui.define(['thirdparty/react'], ...)"]
-    G --> H
-
-    style C fill:#fff3cd,stroke:#856404
-    style D fill:#d4edda,stroke:#155724
-    style E fill:#d4edda,stroke:#155724
-    style H fill:#e7f3ff,stroke:#004085
-```
+![Rollup Bundling Behavior Diagram](./resources/0020-npm-integration/rollup-external-decision-activity.svg)
 
 
 #### 3.5.2 Plugin Chain
@@ -345,32 +293,7 @@ import { A } from 'pkg';
 
 The NPM bundling task integrates into the existing build pipeline as a standard task:
 
-```mermaid
-sequenceDiagram
-    participant Build as ui5 build
-    participant Bundle as generateBundle
-    participant NPM as bundleNpmPackages (NEW)
-    participant Preload as generateComponentPreload
-
-    Build->>Bundle: Execute existing bundle task
-    Bundle->>NPM: After bundle generation
-
-    Note over NPM: 1. Collect NPM packages<br/>from ResourceCollector
-    Note over NPM: 2. Read package.json
-    Note over NPM: 3. Topological sort
-
-    loop For each package
-        Note over NPM: Create Rollup config<br/>(entry, externals, paths)
-        Note over NPM: Execute Rollup<br/>(tree-shaken AMD bundle)
-        Note over NPM: Write to workspace<br/>(resources/thirdparty/*.js)
-    end
-
-    Note over NPM: 5. Rewrite source paths<br/>(if addToNamespace: true)
-
-    NPM->>Preload: Before component preload
-    Note over Preload: Includes thirdparty/ files
-    Preload->>Build: Continue remaining tasks
-```
+![NPM Build Task Diagram](./resources/0020-npm-integration/build-task-sequence.svg)
 
 **Why after `generateBundle`?** The scanner needs all source resources to be resolved and available. **Why before `generateComponentPreload`?** The generated NPM bundles must be included in the Component-preload.js for production deployment.
 
