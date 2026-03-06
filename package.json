@@ -65,6 +65,9 @@
 		"traverse": "^0.6.11"
 	},
 	"overrides": {
+		"local-web-server": {
+			"http-proxy-agent": "^7.0.0"
+		},
 		"pacote@19": {
 			"tar": "^7.5.7"
 		}
