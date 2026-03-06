@@ -14,11 +14,7 @@ function createMockProject(name = "test.project", id = "test-project-id") {
 		byPath: sinon.stub().resolves(null)
 	});
 
-	return {
-		getName: () => name,
-		getId: () => id,
-		getSourceReader: sinon.stub().callsFake(() => createReader()),
-		getReader: sinon.stub().callsFake(() => createReader()),
+	const projectResources = {
 		getStage: sinon.stub().returns({
 			getId: () => currentStage.id || "initial",
 			getWriter: sinon.stub().returns({
@@ -38,6 +34,19 @@ function createMockProject(name = "test.project", id = "test-project-id") {
 		useResultStage: sinon.stub().callsFake(() => {
 			currentStage = {id: "result"};
 		}),
+		getResourceTagOperations: sinon.stub().returns({
+			projectTagOperations: new Map(),
+			buildTagOperations: new Map(),
+		}),
+		buildFinished: sinon.stub(),
+	};
+
+	return {
+		getName: () => name,
+		getId: () => id,
+		getSourceReader: sinon.stub().callsFake(() => createReader()),
+		getReader: sinon.stub().callsFake(() => createReader()),
+		getProjectResources: () => projectResources,
 		_getCurrentStage: () => currentStage,
 		_getResultStageReader: () => resultStageReader
 	};
@@ -192,9 +201,9 @@ test("setTasks initializes project stages", async (t) => {
 
 	await cache.setTasks(["task1", "task2", "task3"]);
 
-	t.true(project.initStages.calledOnce, "initStages called once");
+	t.true(project.getProjectResources().initStages.calledOnce, "initStages called once");
 	t.deepEqual(
-		project.initStages.firstCall.args[0],
+		project.getProjectResources().initStages.firstCall.args[0],
 		["task/task1", "task/task2", "task/task3"],
 		"Stage names generated correctly"
 	);
@@ -207,7 +216,7 @@ test("setTasks with empty task list", async (t) => {
 
 	await cache.setTasks([]);
 
-	t.true(project.initStages.calledWith([]), "initStages called with empty array");
+	t.true(project.getProjectResources().initStages.calledWith([]), "initStages called with empty array");
 });
 
 test("allTasksCompleted switches to result stage", async (t) => {
@@ -217,7 +226,7 @@ test("allTasksCompleted switches to result stage", async (t) => {
 
 	const changedPaths = await cache.allTasksCompleted();
 
-	t.true(project.useResultStage.calledOnce, "useResultStage called");
+	t.true(project.getProjectResources().useResultStage.calledOnce, "useResultStage called");
 	t.true(Array.isArray(changedPaths), "Returns array of changed paths");
 	t.true(cache.isFresh(), "Cache is fresh after all tasks completed");
 });
@@ -277,7 +286,7 @@ test("prepareTaskExecutionAndValidateCache: task needs execution when no cache e
 	const canUseCache = await cache.prepareTaskExecutionAndValidateCache("myTask");
 
 	t.false(canUseCache, "Task cannot use cache");
-	t.true(project.useStage.calledWith("task/myTask"), "Project switched to task stage");
+	t.true(project.getProjectResources().useStage.calledWith("task/myTask"), "Project switched to task stage");
 });
 
 test("prepareTaskExecutionAndValidateCache: switches project to correct stage", async (t) => {
@@ -288,7 +297,7 @@ test("prepareTaskExecutionAndValidateCache: switches project to correct stage", 
 	await cache.setTasks(["task1", "task2"]);
 	await cache.prepareTaskExecutionAndValidateCache("task2");
 
-	t.true(project.useStage.calledWith("task/task2"), "Switched to task2 stage");
+	t.true(project.getProjectResources().useStage.calledWith("task/task2"), "Switched to task2 stage");
 });
 
 test("recordTaskResult: creates task cache", async (t) => {
@@ -595,5 +604,5 @@ test("Empty task list doesn't fail", async (t) => {
 
 	await cache.setTasks([]);
 
-	t.true(project.initStages.calledWith([]), "initStages called with empty array");
+	t.true(project.getProjectResources().initStages.calledWith([]), "initStages called with empty array");
 });

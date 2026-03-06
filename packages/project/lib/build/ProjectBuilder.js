@@ -485,16 +485,11 @@ class ProjectBuilder {
 		});
 
 		deferredWork.push(
-			this._writeToDisk(resourcesToWrite, target, resources, taskUtil, project, isRootProject, outputStyle));
+			this._writeToDisk(resourcesToWrite, target, resources, project, isRootProject, outputStyle));
 	}
 
-	async _writeToDisk(resourcesToWrite, target, resources, taskUtil, project, isRootProject, outputStyle) {
+	async _writeToDisk(resourcesToWrite, target, resources, project, isRootProject, outputStyle) {
 		await Promise.all(resourcesToWrite.map((resource) => {
-			if (taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.OmitFromBuildResult)) {
-				this.#log.silly(`Skipping write of resource tagged as "OmitFromBuildResult": ` +
-					resource.getPath());
-				return; // Skip target write for this resource
-			}
 			return target.write(resource);
 		}));
 

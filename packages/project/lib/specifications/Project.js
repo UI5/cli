@@ -332,6 +332,15 @@ class Project extends Specification {
 		return this.#projectResources.getResourceTagCollection(resource, tag);
 	}
 
+	/**
+	 * Returns the project-level resource tag collection
+	 *
+	 * @returns {@ui5/fs/internal/ResourceTagCollection} The project-level resource tag collection
+	 */
+	getProjectResourceTagCollection() {
+		return this.#projectResources.getProjectResourceTagCollection();
+	}
+
 	/* === Internals === */
 	/**
 	 * @private

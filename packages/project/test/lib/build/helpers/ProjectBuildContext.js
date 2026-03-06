@@ -126,33 +126,7 @@ test("executeCleanupTasks", (t) => {
 });
 
 test.serial("getResourceTagCollection", async (t) => {
-	const projectAcceptsTagStub = sinon.stub().returns(false);
-	projectAcceptsTagStub.withArgs("project-tag").returns(true);
-	const projectContextAcceptsTagStub = sinon.stub().returns(false);
-	projectContextAcceptsTagStub.withArgs("project-context-tag").returns(true);
-
-	class DummyResourceTagCollection {
-		constructor({allowedTags, allowedNamespaces}) {
-			t.deepEqual(allowedTags, [
-				"ui5:OmitFromBuildResult",
-				"ui5:IsBundle"
-			],
-			"Correct allowedTags parameter supplied");
-
-			t.deepEqual(allowedNamespaces, [
-				"build"
-			],
-			"Correct allowedNamespaces parameter supplied");
-		}
-		acceptsTag(tag) {
-			// Redirect to stub
-			return projectContextAcceptsTagStub(tag);
-		}
-	}
-
-	const ProjectBuildContext = await esmock("../../../../lib/build/helpers/ProjectBuildContext.js", {
-		"@ui5/fs/internal/ResourceTagCollection": DummyResourceTagCollection
-	});
+	const ProjectBuildContext = (await import("../../../../lib/build/helpers/ProjectBuildContext.js")).default;
 	const buildContext = {};
 	const project = {
 		getName: () => "project",
@@ -163,30 +137,24 @@ test.serial("getResourceTagCollection", async (t) => {
 		project
 	);
 
-	const fakeProjectCollection = {
-		acceptsTag: projectAcceptsTagStub
+	const fakeCollection = {
+		acceptsTag: sinon.stub().returns(true)
 	};
+	const getResourceTagCollectionStub = sinon.stub().returns(fakeCollection);
 	const fakeResource = {
 		getProject: () => {
 			return {
-				getResourceTagCollection: () => fakeProjectCollection
+				getResourceTagCollection: getResourceTagCollectionStub
 			};
 		},
 		getPath: () => "/resource/path",
 		hasProject: () => true
 	};
-	const collection1 = projectBuildContext.getResourceTagCollection(fakeResource, "project-tag");
-	t.is(collection1, fakeProjectCollection, "Returned tag collection of resource project");
-
-	const collection2 = projectBuildContext.getResourceTagCollection(fakeResource, "project-context-tag");
-	t.true(collection2 instanceof DummyResourceTagCollection,
-		"Returned tag collection of project build context");
-
-	t.throws(() => {
-		projectBuildContext.getResourceTagCollection(fakeResource, "not-accepted-tag");
-	}, {
-		message: `Could not find collection for resource /resource/path and tag not-accepted-tag`
-	});
+	const collection = projectBuildContext.getResourceTagCollection(fakeResource, "some-tag");
+	t.is(collection, fakeCollection, "Returned tag collection from resource's project");
+	t.is(getResourceTagCollectionStub.callCount, 1, "getResourceTagCollection called once");
+	t.is(getResourceTagCollectionStub.firstCall.args[0], fakeResource, "Called with resource");
+	t.is(getResourceTagCollectionStub.firstCall.args[1], "some-tag", "Called with tag");
 });
 
 test("getResourceTagCollection: Assigns project to resource if necessary", (t) => {
@@ -404,9 +372,7 @@ test("possiblyRequiresBuild: has build-manifest", (t) => {
 		getType: sinon.stub().returns("bar"),
 		getBuildManifest: () => {
 			return {
-				buildManifest: {
-					manifestVersion: "0.1"
-				},
+				manifestVersion: "0.1",
 				timestamp: "2022-07-28T12:00:00.000Z"
 			};
 		}
@@ -425,9 +391,7 @@ test.serial("getBuildMetadata", (t) => {
 		getType: sinon.stub().returns("bar"),
 		getBuildManifest: () => {
 			return {
-				buildManifest: {
-					manifestVersion: "0.1"
-				},
+				manifestVersion: "0.1",
 				timestamp: "2022-07-28T12:00:00.000Z"
 			};
 		}

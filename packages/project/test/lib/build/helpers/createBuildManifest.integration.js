@@ -45,7 +45,7 @@ const buildConfig = {
 
 test("Create project from application project providing a build manifest", async (t) => {
 	const inputProject = await Specification.create(applicationAConfig);
-	inputProject.getResourceTagCollection().setTag("/resources/id1/foo.js", "ui5:HasDebugVariant");
+	inputProject.getProjectResourceTagCollection().setTag("/resources/id1/foo.js", "ui5:HasDebugVariant");
 
 	const taskRepository = {
 		getVersions: async () => ({a: "a", b: "b"})
@@ -63,7 +63,7 @@ test("Create project from application project providing a build manifest", async
 	t.truthy(project, "Module was able to create project from build manifest metadata");
 	t.is(project.getName(), project.getName(), "Archive project has correct name");
 	t.is(project.getNamespace(), project.getNamespace(), "Archive project has correct namespace");
-	t.is(project.getResourceTagCollection().getTag("/resources/id1/foo.js", "ui5:HasDebugVariant"), true,
+	t.is(project.getProjectResourceTagCollection().getTag("/resources/id1/foo.js", "ui5:HasDebugVariant"), true,
 		"Archive project has correct tag");
 	t.is(project.getVersion(), "2.0.0", "Archive project has version from archive module");
 
@@ -77,7 +77,7 @@ test("Create project from application project providing a build manifest", async
 
 test("Create project from library project providing a build manifest", async (t) => {
 	const inputProject = await Specification.create(libraryEConfig);
-	inputProject.getResourceTagCollection().setTag("/resources/library/e/file.js", "ui5:HasDebugVariant");
+	inputProject.getProjectResourceTagCollection().setTag("/resources/library/e/file.js", "ui5:HasDebugVariant");
 
 	const taskRepository = {
 		getVersions: async () => ({a: "a", b: "b"})
@@ -95,7 +95,7 @@ test("Create project from library project providing a build manifest", async (t)
 	t.truthy(project, "Module was able to create project from build manifest metadata");
 	t.is(project.getName(), project.getName(), "Archive project has correct name");
 	t.is(project.getNamespace(), project.getNamespace(), "Archive project has correct namespace");
-	t.is(project.getResourceTagCollection().getTag("/resources/library/e/file.js", "ui5:HasDebugVariant"), true,
+	t.is(project.getProjectResourceTagCollection().getTag("/resources/library/e/file.js", "ui5:HasDebugVariant"), true,
 		"Archive project has correct tag");
 	t.is(project.getVersion(), "2.0.0", "Archive project has version from archive module");
 

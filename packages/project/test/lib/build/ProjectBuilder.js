@@ -122,7 +122,8 @@ test("build", async (t) => {
 		buildProject: buildProjectStub,
 		writeBuildCache: writeBuildCacheStub,
 		requiresBuild: requiresBuildStub,
-		getProject: sinon.stub().returns(getMockProject("library"))
+		getProject: sinon.stub().returns(getMockProject("library")),
+		buildFinished: sinon.stub()
 	};
 	const getRequiredProjectContextsStub = sinon.stub(builder._buildContext, "getRequiredProjectContexts")
 		.resolves(new Map().set("project.a", projectBuildContextMock));
@@ -295,21 +296,24 @@ test.serial("build: Multiple projects", async (t) => {
 		prepareProjectBuildAndValidateCache: sinon.stub().resolves(false),
 		buildProject: buildProjectAStub,
 		writeBuildCache: writeBuildCacheStub,
-		getProject: sinon.stub().returns(getMockProject("library", "a"))
+		getProject: sinon.stub().returns(getMockProject("library", "a")),
+		buildFinished: sinon.stub()
 	};
 	const projectBuildContextMockB = {
 		possiblyRequiresBuild: sinon.stub().returns(false),
 		prepareProjectBuildAndValidateCache: sinon.stub().resolves(false),
 		buildProject: buildProjectBStub,
 		writeBuildCache: writeBuildCacheStub,
-		getProject: sinon.stub().returns(getMockProject("library", "b"))
+		getProject: sinon.stub().returns(getMockProject("library", "b")),
+		buildFinished: sinon.stub()
 	};
 	const projectBuildContextMockC = {
 		possiblyRequiresBuild: sinon.stub().returns(true),
 		prepareProjectBuildAndValidateCache: sinon.stub().resolves(false),
 		buildProject: buildProjectCStub,
 		writeBuildCache: writeBuildCacheStub,
-		getProject: sinon.stub().returns(getMockProject("library", "c"))
+		getProject: sinon.stub().returns(getMockProject("library", "c")),
+		buildFinished: sinon.stub()
 	};
 	const getRequiredProjectContextsStub = sinon.stub(builder._buildContext, "getRequiredProjectContexts")
 		.resolves(new Map()
@@ -492,7 +496,9 @@ test("_writeResults", async (t) => {
 		write: sinon.stub().resolves()
 	};
 
-	await builder._writeResults(projectBuildContextMock, writerMock);
+	const deferredWork = [];
+	await builder._writeResults(projectBuildContextMock, writerMock, deferredWork);
+	await Promise.all(deferredWork);
 
 	t.is(getReaderStub.callCount, 1, "One reader requested");
 	t.deepEqual(getReaderStub.getCall(0).args[0], {
@@ -572,7 +578,9 @@ test.serial("_writeResults: Create build manifest", async (t) => {
 		write: sinon.stub().resolves()
 	};
 
-	await builder._writeResults(projectBuildContextMock, writerMock);
+	const deferredWork = [];
+	await builder._writeResults(projectBuildContextMock, writerMock, deferredWork);
+	await Promise.all(deferredWork);
 
 	t.is(getReaderStub.callCount, 1, "One reader requested");
 	t.deepEqual(getReaderStub.getCall(0).args[0], {
@@ -670,7 +678,9 @@ test.serial("_writeResults: Flat build output", async (t) => {
 		write: sinon.stub().resolves()
 	};
 
-	await builder._writeResults(projectBuildContextMock, writerMock);
+	const deferredWork = [];
+	await builder._writeResults(projectBuildContextMock, writerMock, deferredWork);
+	await Promise.all(deferredWork);
 
 	t.is(getReaderStub.callCount, 2, "One reader requested");
 	t.deepEqual(getReaderStub.getCall(0).args[0], {
