@@ -196,7 +196,7 @@ test.serial("Serve application.a, request library resource", async (t) => {
 	);
 });
 
-test.serial.skip("Serve library", async (t) => {
+test.serial("Serve library", async (t) => {
 	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "library.d");
 
 	// #1 request with empty cache
@@ -262,6 +262,8 @@ test.serial.skip("Serve library", async (t) => {
 	// Restore original file content
 
 	await fs.writeFile(changedFilePath, originalContent);
+
+	await setTimeout(500); // Wait for the file watcher to detect and propagate the change
 
 	// #4 request with cache (no changes)
 	const resourceContent2 = await fixtureTester.requestResource({
