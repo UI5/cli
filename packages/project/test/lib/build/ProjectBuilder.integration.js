@@ -698,6 +698,255 @@ test.serial("Build application.a (self-contained build)", async (t) => {
 	});
 });
 
+test.serial("Build application.a (Custom bundling)", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+
+	// In this test, we're testing the behavior of a custom bundling configuration
+	// which is defined in "ui5-custom-bundling.yaml".
+	// This config generates a custom bundle in various modes.
+	// The bundle includes resources by a filter ("Component.js" & "newFile.js") which are added at #3 and #4 build.
+
+	// #1 build with custom bundle configuration (with empty cache)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-custom-bundling.yaml"},
+		config: {destPath, cleanDest: false},
+		assertions: {
+			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+				"application.a": {}
+			}
+		}
+	});
+
+	// Verify that the custom bundle was created and contains the expected content:
+	const customBundlePath = `${destPath}/resources/custom-bundle.js`;
+	const customBundleContent = await fs.readFile(customBundlePath, {encoding: "utf8"});
+	t.false(customBundleContent.includes("sap.ui.predefine("),
+		"preload Mode: Custom bundle should not contain sap.ui.predefine() at this stage"
+	);
+	t.false(customBundleContent.includes("sap.ui.require.preload("),
+		"preload Mode: Custom bundle should not contain sap.ui.require.preload() at this stage"
+	);
+	// Verify that source map was created:
+	const sourceMapPath = `${destPath}/resources/custom-bundle.js.map`;
+	const sourceMapContent = JSON.parse(await fs.readFile(sourceMapPath, {encoding: "utf8"}));
+	t.true(sourceMapContent.sections.length === 0, "Source map file should not have content at this stage");
+
+
+	// #2 build with custom bundle (with cache, no changes)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-custom-bundling.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+
+	// Add a source file which is matched by the filter (UI5 Module):
+	const newComponentFilepath = `${fixtureTester.fixturePath}/webapp/Component.js`;
+	await fs.appendFile(newComponentFilepath,
+		`sap.ui.define(["sap/ui/core/UIComponent", "sap/ui/core/ComponentSupport"], (UIComponent) => {
+	"use strict";
+	return UIComponent.extend("id1.Component", {
+		metadata: {
+			manifest: "json",
+			interfaces: ["sap.ui.core.IAsyncContentCreation"],
+		}
+	});
+});`);
+
+	// #3 build with custom bundle (with cache, with changes)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-custom-bundling.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"enhanceManifest",
+						"escapeNonAsciiCharacters",
+						"generateFlexChangesBundle",
+						"replaceCopyright",
+					]
+				}
+			}
+		}
+	});
+
+	// Verify that the updated custom bundle contains the change:
+	// (the bundle should now contain sap.ui.predefine() due to the added UI5 module "Component.js")
+	const customBundleContent2 = await fs.readFile(customBundlePath, {encoding: "utf8"});
+	t.true(customBundleContent2.includes("sap.ui.predefine("),
+		"preload Mode: Custom bundle should contain sap.ui.predefine() now"
+	);
+	t.false(customBundleContent2.includes("sap.ui.require.preload("),
+		"preload Mode: Custom bundle should not contain sap.ui.require.preload() at this stage"
+	);
+	// Verify that source map was created and contains the change:
+	const sourceMapContent2 = JSON.parse(await fs.readFile(sourceMapPath, {encoding: "utf8"}));
+	t.true(sourceMapContent2.sections.length > 0, "Source map file should have content now");
+
+
+	// Add another source file which is matched by the filter (non-UI5 module):
+	const newTestFilepath = `${fixtureTester.fixturePath}/webapp/newFile.js`;
+	await fs.appendFile(newTestFilepath, `console.log("another source file");`);
+
+	// #4 build with custom bundle (with cache, with changes)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-custom-bundling.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"enhanceManifest",
+						"escapeNonAsciiCharacters",
+						"generateFlexChangesBundle",
+						"replaceCopyright",
+					]
+				}
+			}
+		}
+	});
+
+	// Verify that the custom bundle was created and contains the expected content:
+	// (the bundle should now contain sap.ui.require.preload() due to the added non-UI5 module "newFile.js")
+	const customBundleContent3 = await fs.readFile(customBundlePath, {encoding: "utf8"});
+	t.true(customBundleContent3.includes("sap.ui.predefine("),
+		"preload Mode: Custom bundle should contain sap.ui.predefine() still"
+	);
+	t.true(customBundleContent3.includes("sap.ui.require.preload("),
+		"preload Mode: Custom bundle should contain sap.ui.require.preload() now"
+	);
+	// Verify that source map was created and contains the change:
+	const sourceMapContent3 = JSON.parse(await fs.readFile(sourceMapPath, {encoding: "utf8"}));
+	t.true(sourceMapContent3.sections.length > 0, "Source map file should have content still");
+
+
+	// ----------------------------------------------------------------------------------
+	// ---------------------------- Test other bundle modes: ----------------------------
+	// ----------------------------------------------------------------------------------
+	// Switch to "raw" mode:
+	const ui5YamlContent = await fs.readFile(`${fixtureTester.fixturePath}/ui5-custom-bundling.yaml`);
+	await fs.writeFile(`${fixtureTester.fixturePath}/ui5-custom-bundling.yaml`,
+		ui5YamlContent.toString().replace(`- mode: preload`, `- mode: raw`));
+
+	// #5 build with custom bundle configuration (with empty cache)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-custom-bundling.yaml"},
+		config: {destPath, cleanDest: false},
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// Verify that the custom bundle was created and contains the expected content:
+	// (the bundle should contain sap.ui.define() now)
+	const customBundleContent4 = await fs.readFile(customBundlePath, {encoding: "utf8"});
+	t.false(customBundleContent4.includes("sap.ui.require.preload("),
+		"raw Mode: Custom bundle should not contain sap.ui.require.preload() anymore"
+	);
+	t.false(customBundleContent4.includes("sap.ui.predefine("),
+		"raw Mode: Custom bundle should not contain sap.ui.predefine() anymore"
+	);
+	t.true(customBundleContent4.includes("sap.ui.define("),
+		"raw Mode: Custom bundle should contain sap.ui.define() now"
+	);
+	t.true(customBundleContent4.includes(`console.log("another source file");`));
+	t.true(customBundleContent4.includes(`id1.Component`));
+	// Verify that source map was created and contains the change:
+	const sourceMapContent4 = JSON.parse(await fs.readFile(sourceMapPath, {encoding: "utf8"}));
+	t.true(sourceMapContent4.sections.length > 0, "Source map file should have content still");
+
+
+	// Switch to "require" mode:
+	const ui5YamlContent2 = await fs.readFile(`${fixtureTester.fixturePath}/ui5-custom-bundling.yaml`);
+	await fs.writeFile(`${fixtureTester.fixturePath}/ui5-custom-bundling.yaml`,
+		ui5YamlContent2.toString().replace(`- mode: raw`, `- mode: require`));
+
+	// #6 build with custom bundle configuration (with empty cache)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-custom-bundling.yaml"},
+		config: {destPath, cleanDest: false},
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// Verify that the custom bundle was created and contains the expected content:
+	// (the bundle should contain sap.ui.require() now)
+	const customBundleContent5 = await fs.readFile(customBundlePath, {encoding: "utf8"});
+	t.false(customBundleContent5.includes("sap.ui.require.preload("),
+		"require Mode: Custom bundle should not contain sap.ui.require.preload() anymore"
+	);
+	t.false(customBundleContent5.includes("sap.ui.predefine("),
+		"require Mode: Custom bundle should not contain sap.ui.predefine() anymore"
+	);
+	t.false(customBundleContent5.includes("sap.ui.define("),
+		"require Mode: Custom bundle should not contain sap.ui.define() anymore"
+	);
+	t.true(customBundleContent5.includes("sap.ui.require("),
+		"require Mode: Custom bundle should contain sap.ui.require() now"
+	);
+	t.true(customBundleContent5.includes(`id1/newFile`));
+	t.false(customBundleContent5.includes(`console.log("another source file");`));
+	t.true(customBundleContent5.includes(`id1/Component`));
+	// Verify that source map was created and contains the change:
+	const sourceMapContent5 = JSON.parse(await fs.readFile(sourceMapPath, {encoding: "utf8"}));
+	t.true(sourceMapContent5.sections.length > 0, "Source map file should have content still");
+
+
+	// Switch to "bundleInfo" mode:
+	const ui5YamlContent3 = await fs.readFile(`${fixtureTester.fixturePath}/ui5-custom-bundling.yaml`);
+	await fs.writeFile(`${fixtureTester.fixturePath}/ui5-custom-bundling.yaml`,
+		ui5YamlContent3.toString().replace(`- mode: require`, `- mode: bundleInfo`));
+
+	// #7 build with custom bundle configuration (with empty cache)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-custom-bundling.yaml"},
+		config: {destPath, cleanDest: false},
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// Verify that the custom bundle was created and contains the expected content:
+	// (the bundle should contain sap.ui.loader.config() now)
+	const customBundleContent6 = await fs.readFile(customBundlePath, {encoding: "utf8"});
+	t.false(customBundleContent6.includes("sap.ui.require.preload("),
+		"bundleInfo Mode: Custom bundle should not contain sap.ui.require.preload() anymore"
+	);
+	t.false(customBundleContent6.includes("sap.ui.predefine("),
+		"bundleInfo Mode: Custom bundle should not contain sap.ui.predefine() anymore"
+	);
+	t.false(customBundleContent6.includes("sap.ui.define("),
+		"bundleInfo Mode: Custom bundle should not contain sap.ui.define() anymore"
+	);
+	t.false(customBundleContent6.includes("sap.ui.require("),
+		"bundleInfo Mode: Custom bundle should not contain sap.ui.require() anymore"
+	);
+	t.true(customBundleContent6.includes("sap.ui.loader.config({bundlesUI5:{"),
+		"bundleInfo Mode: Custom bundle should contain sap.ui.loader.config() now"
+	);
+	t.true(customBundleContent6.includes(`id1/newFile`));
+	t.false(customBundleContent6.includes(`console.log("another source file");`));
+	t.true(customBundleContent6.includes(`id1/Component`));
+	// Verify that source map was created and contains the change:
+	const sourceMapContent6 = JSON.parse(await fs.readFile(sourceMapPath, {encoding: "utf8"}));
+	t.true(sourceMapContent6.sections.length > 0, "Source map file should have content still");
+});
+
 test.serial("Build library.d project multiple times", async (t) => {
 	const fixtureTester = new FixtureTester(t, "library.d");
 	const destPath = fixtureTester.destPath;
