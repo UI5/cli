@@ -443,7 +443,8 @@ export default class ProjectBuildCache {
 			}
 			return true; // No need to execute the task
 		} else {
-			log.verbose(`No cached stage found for task ${taskName} in project ${this.#project.getName()}`);
+			log.verbose(`No cached stage found for task ${taskName} in project ${this.#project.getName()}. ` +
+				`Attempting to find delta cached stage...`);
 			// TODO: Optimize this crazy thing
 			const projectDeltas = taskCache.getProjectIndexDeltas();
 			const depDeltas = taskCache.getDependencyIndexDeltas();
@@ -458,7 +459,7 @@ export default class ProjectBuildCache {
 			// Combine deltas of dependency stages with cached project signatures
 			const depDeltaSignatures = combineTwoArraysFast(
 				projectSignatures,
-				Array.from(projectDeltas.keys()),
+				Array.from(depDeltas.keys()),
 			).map((signaturePair) => {
 				return createStageSignature(...signaturePair);
 			});
@@ -477,8 +478,6 @@ export default class ProjectBuildCache {
 
 				// Check whether the stage actually changed
 				if (oldStageSig !== deltaStageCache.signature) {
-					this.#currentStageSignatures.set(stageName, [foundProjectSig, foundDepSig]);
-
 					// Cached stage likely differs from the previous one (if any)
 					// Add all resources written by the cached stage to the set of written/potentially changed resources
 					for (const resourcePath of deltaStageCache.writtenResourcePaths) {
@@ -492,9 +491,10 @@ export default class ProjectBuildCache {
 				const projectDeltaInfo = projectDeltas.get(foundProjectSig);
 				const dependencyDeltaInfo = depDeltas.get(foundDepSig);
 
-				const newSignature = createStageSignature(
-					projectDeltaInfo?.newSignature ?? foundProjectSig,
-					dependencyDeltaInfo?.newSignature ?? foundDepSig);
+				const newProjSig = projectDeltaInfo?.newSignature ?? foundProjectSig;
+				const newDepSig = dependencyDeltaInfo?.newSignature ?? foundDepSig;
+				const newSignature = createStageSignature(newProjSig, newDepSig);
+				this.#currentStageSignatures.set(stageName, [newProjSig, newDepSig]);
 
 				log.verbose(
 					`Using delta cached stage for task ${taskName} in project ${this.#project.getName()} ` +
@@ -1036,8 +1036,7 @@ export default class ProjectBuildCache {
 		for (const [taskName, taskCache] of this.#taskCache) {
 			if (taskCache.hasNewOrModifiedCacheEntries()) {
 				const [projectRequests, dependencyRequests] = taskCache.toCacheObjects();
-				log.verbose(`Storing task cache metadata for task ${taskName} in project ${this.#project.getName()} ` +
-					`with build signature ${this.#buildSignature}`);
+				log.verbose(`Storing task cache metadata for task ${taskName} in project ${this.#project.getName()}`);
 				const writes = [];
 				if (projectRequests) {
 					writes.push(this.#cacheManager.writeTaskMetadata(
