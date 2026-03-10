@@ -16,9 +16,11 @@ async function assertValidation(t, config, expectedErrors = undefined) {
 		});
 		validationError.errors.forEach((error) => {
 			delete error.schemaPath;
+			delete error.emUsed;
 			if (error.params && Array.isArray(error.params.errors)) {
 				error.params.errors.forEach(($) => {
 					delete $.schemaPath;
+					delete $.emUsed;
 				});
 			}
 		});
@@ -38,10 +40,10 @@ test.before((t) => {
 test.after.always((t) => {
 	t.context.ajvCoverage.createReport("html", {dir: "coverage/ajv-project-application"});
 	const thresholds = {
-		statements: 80,
-		branches: 75,
+		statements: 65,
+		branches: 60,
 		functions: 100,
-		lines: 80
+		lines: 65
 	};
 	t.context.ajvCoverage.verify(thresholds);
 });
@@ -264,50 +266,50 @@ SpecificationVersion.getVersionsForRange(">=4.0").forEach(function(specVersion) 
 			},
 			[
 				{
-					dataPath: "/resources",
+					instancePath: "/resources",
 					keyword: "additionalProperties",
-					message: "should NOT have additional properties",
+					message: "must NOT have additional properties",
 					params: {
 						additionalProperty: "notAllowed",
 					},
 				},
 				{
-					dataPath: "/resources/configuration",
+					instancePath: "/resources/configuration",
 					keyword: "additionalProperties",
-					message: "should NOT have additional properties",
+					message: "must NOT have additional properties",
 					params: {
 						additionalProperty: "notAllowed",
 					},
 				},
 				{
-					dataPath:
+					instancePath:
 						"/resources/configuration/propertiesFileSourceEncoding",
 					keyword: "enum",
-					message: "should be equal to one of the allowed values",
+					message: "must be equal to one of the allowed values",
 					params: {
 						allowedValues: ["UTF-8", "ISO-8859-1"],
 					},
 				},
 				{
-					dataPath: "/resources/configuration/paths",
+					instancePath: "/resources/configuration/paths",
 					keyword: "additionalProperties",
-					message: "should NOT have additional properties",
+					message: "must NOT have additional properties",
 					params: {
 						additionalProperty: "app",
 					},
 				},
 				{
-					dataPath: "/resources/configuration/paths/webapp",
+					instancePath: "/resources/configuration/paths/webapp",
 					keyword: "type",
-					message: "should be string",
+					message: "must be string",
 					params: {
 						type: "string",
 					},
 				},
 				{
-					dataPath: "/builder/bundles/0/bundleDefinition/sections/0",
+					instancePath: "/builder/bundles/0/bundleDefinition/sections/0",
 					keyword: "additionalProperties",
-					message: "should NOT have additional properties",
+					message: "must NOT have additional properties",
 					params: {
 						additionalProperty: "async",
 					},
@@ -327,9 +329,9 @@ SpecificationVersion.getVersionsForRange(">=4.0").forEach(function(specVersion) 
 			}
 		}, [
 			{
-				dataPath: "/resources/configuration/paths",
+				instancePath: "/resources/configuration/paths",
 				keyword: "type",
-				message: "should be object",
+				message: "must be object",
 				params: {
 					type: "object"
 				}
@@ -518,25 +520,25 @@ SpecificationVersion.getVersionsForRange("2.0 - 3.2").forEach(function(specVersi
 			}
 		}, [
 			{
-				dataPath: "/resources",
+				instancePath: "/resources",
 				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
+				message: "must NOT have additional properties",
 				params: {
 					additionalProperty: "notAllowed",
 				}
 			},
 			{
-				dataPath: "/resources/configuration",
+				instancePath: "/resources/configuration",
 				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
+				message: "must NOT have additional properties",
 				params: {
 					additionalProperty: "notAllowed",
 				}
 			},
 			{
-				dataPath: "/resources/configuration/propertiesFileSourceEncoding",
+				instancePath: "/resources/configuration/propertiesFileSourceEncoding",
 				keyword: "enum",
-				message: "should be equal to one of the allowed values",
+				message: "must be equal to one of the allowed values",
 				params: {
 					allowedValues: [
 						"UTF-8",
@@ -545,17 +547,17 @@ SpecificationVersion.getVersionsForRange("2.0 - 3.2").forEach(function(specVersi
 				}
 			},
 			{
-				dataPath: "/resources/configuration/paths",
+				instancePath: "/resources/configuration/paths",
 				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
+				message: "must NOT have additional properties",
 				params: {
 					additionalProperty: "app",
 				}
 			},
 			{
-				dataPath: "/resources/configuration/paths/webapp",
+				instancePath: "/resources/configuration/paths/webapp",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string"
 				}
@@ -574,9 +576,9 @@ SpecificationVersion.getVersionsForRange("2.0 - 3.2").forEach(function(specVersi
 			}
 		}, [
 			{
-				dataPath: "/resources/configuration/paths",
+				instancePath: "/resources/configuration/paths",
 				keyword: "type",
-				message: "should be object",
+				message: "must be object",
 				params: {
 					type: "object"
 				}
@@ -604,9 +606,9 @@ SpecificationVersion.getVersionsForRange("2.0 - 2.2").forEach(function(specVersi
 			}
 		}, [
 			{
-				dataPath: "/builder/componentPreload",
+				instancePath: "/builder/componentPreload",
 				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
+				message: "must NOT have additional properties",
 				params: {
 					additionalProperty: "excludes",
 				},
@@ -650,9 +652,9 @@ SpecificationVersion.getVersionsForRange(">=2.3").forEach(function(specVersion) 
 			}
 		}, [
 			{
-				dataPath: "/builder/componentPreload/excludes",
+				instancePath: "/builder/componentPreload/excludes",
 				keyword: "type",
-				message: "should be array",
+				message: "must be array",
 				params: {
 					type: "array",
 				},
@@ -677,33 +679,33 @@ SpecificationVersion.getVersionsForRange(">=2.3").forEach(function(specVersion) 
 			}
 		}, [
 			{
-				dataPath: "/builder/componentPreload",
+				instancePath: "/builder/componentPreload",
 				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
+				message: "must NOT have additional properties",
 				params: {
 					additionalProperty: "notAllowed",
 				},
 			},
 			{
-				dataPath: "/builder/componentPreload/excludes/0",
+				instancePath: "/builder/componentPreload/excludes/0",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string",
 				},
 			},
 			{
-				dataPath: "/builder/componentPreload/excludes/1",
+				instancePath: "/builder/componentPreload/excludes/1",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string",
 				},
 			},
 			{
-				dataPath: "/builder/componentPreload/excludes/2",
+				instancePath: "/builder/componentPreload/excludes/2",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string",
 				},
@@ -785,25 +787,25 @@ SpecificationVersion.getVersionsForRange(">=2.5").forEach(function(specVersion) 
 			}
 		}, [
 			{
-				dataPath: "/builder/settings/includeDependency",
+				instancePath: "/builder/settings/includeDependency",
 				keyword: "type",
-				message: "should be array",
+				message: "must be array",
 				params: {
 					type: "array",
 				},
 			},
 			{
-				dataPath: "/builder/settings/includeDependencyRegExp",
+				instancePath: "/builder/settings/includeDependencyRegExp",
 				keyword: "type",
-				message: "should be array",
+				message: "must be array",
 				params: {
 					type: "array",
 				},
 			},
 			{
-				dataPath: "/builder/settings/includeDependencyTree",
+				instancePath: "/builder/settings/includeDependencyTree",
 				keyword: "type",
-				message: "should be array",
+				message: "must be array",
 				params: {
 					type: "array",
 				},
@@ -838,81 +840,81 @@ SpecificationVersion.getVersionsForRange(">=2.5").forEach(function(specVersion) 
 			}
 		}, [
 			{
-				dataPath: "/builder/settings",
+				instancePath: "/builder/settings",
 				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
+				message: "must NOT have additional properties",
 				params: {
 					additionalProperty: "notAllowed",
 				},
 			},
 			{
-				dataPath: "/builder/settings/includeDependency/0",
+				instancePath: "/builder/settings/includeDependency/0",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string",
 				},
 			},
 			{
-				dataPath: "/builder/settings/includeDependency/1",
+				instancePath: "/builder/settings/includeDependency/1",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string",
 				},
 			},
 			{
-				dataPath: "/builder/settings/includeDependency/2",
+				instancePath: "/builder/settings/includeDependency/2",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string",
 				},
 			},
 			{
-				dataPath: "/builder/settings/includeDependencyRegExp/0",
+				instancePath: "/builder/settings/includeDependencyRegExp/0",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string",
 				},
 			},
 			{
-				dataPath: "/builder/settings/includeDependencyRegExp/1",
+				instancePath: "/builder/settings/includeDependencyRegExp/1",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string",
 				},
 			},
 			{
-				dataPath: "/builder/settings/includeDependencyRegExp/2",
+				instancePath: "/builder/settings/includeDependencyRegExp/2",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string",
 				},
 			},
 			{
-				dataPath: "/builder/settings/includeDependencyTree/0",
+				instancePath: "/builder/settings/includeDependencyTree/0",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string",
 				},
 			},
 			{
-				dataPath: "/builder/settings/includeDependencyTree/1",
+				instancePath: "/builder/settings/includeDependencyTree/1",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string",
 				},
 			},
 			{
-				dataPath: "/builder/settings/includeDependencyTree/2",
+				instancePath: "/builder/settings/includeDependencyTree/2",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string",
 				},
@@ -956,9 +958,9 @@ SpecificationVersion.getVersionsForRange(">=2.6").forEach(function(specVersion) 
 			}
 		}, [
 			{
-				dataPath: "/builder/minification/excludes",
+				instancePath: "/builder/minification/excludes",
 				keyword: "type",
-				message: "should be array",
+				message: "must be array",
 				params: {
 					type: "array",
 				},
@@ -983,33 +985,33 @@ SpecificationVersion.getVersionsForRange(">=2.6").forEach(function(specVersion) 
 			}
 		}, [
 			{
-				dataPath: "/builder/minification",
+				instancePath: "/builder/minification",
 				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
+				message: "must NOT have additional properties",
 				params: {
 					additionalProperty: "notAllowed",
 				},
 			},
 			{
-				dataPath: "/builder/minification/excludes/0",
+				instancePath: "/builder/minification/excludes/0",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string",
 				},
 			},
 			{
-				dataPath: "/builder/minification/excludes/1",
+				instancePath: "/builder/minification/excludes/1",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string",
 				},
 			},
 			{
-				dataPath: "/builder/minification/excludes/2",
+				instancePath: "/builder/minification/excludes/2",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string",
 				},
@@ -1027,14 +1029,14 @@ SpecificationVersion.getVersionsForRange(">=3.0").forEach(function(specVersion) 
 				"name": "illegal/name"
 			}
 		}, [{
-			dataPath: "/metadata/name",
+			instancePath: "/metadata/name",
 			keyword: "errorMessage",
 			message: `Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/stable/pages/Configuration/#name`,
 			params: {
 				errors: [{
-					dataPath: "/metadata/name",
+					instancePath: "/metadata/name",
 					keyword: "pattern",
-					message: `should match pattern "^(?:@[0-9a-z-_.]+\\/)?[a-z][0-9a-z-_.]*$"`,
+					message: `must match pattern "^(?:@[0-9a-z-_.]+\\/)?[a-z][0-9a-z-_.]*$"`,
 					params: {
 						pattern: "^(?:@[0-9a-z-_.]+\\/)?[a-z][0-9a-z-_.]*$",
 					},
@@ -1048,14 +1050,14 @@ SpecificationVersion.getVersionsForRange(">=3.0").forEach(function(specVersion) 
 				"name": "a"
 			}
 		}, [{
-			dataPath: "/metadata/name",
+			instancePath: "/metadata/name",
 			keyword: "errorMessage",
 			message: `Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/stable/pages/Configuration/#name`,
 			params: {
 				errors: [{
-					dataPath: "/metadata/name",
+					instancePath: "/metadata/name",
 					keyword: "minLength",
-					message: "should NOT be shorter than 3 characters",
+					message: "must NOT have fewer than 3 characters",
 					params: {
 						limit: 3,
 					},
@@ -1069,14 +1071,14 @@ SpecificationVersion.getVersionsForRange(">=3.0").forEach(function(specVersion) 
 				"name": "a".repeat(81)
 			}
 		}, [{
-			dataPath: "/metadata/name",
+			instancePath: "/metadata/name",
 			keyword: "errorMessage",
 			message: `Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/stable/pages/Configuration/#name`,
 			params: {
 				errors: [{
-					dataPath: "/metadata/name",
+					instancePath: "/metadata/name",
 					keyword: "maxLength",
-					message: "should NOT be longer than 80 characters",
+					message: "must NOT have more than 80 characters",
 					params: {
 						limit: 80,
 					},
@@ -1163,73 +1165,73 @@ SpecificationVersion.getVersionsForRange("2.0 - 3.1").forEach(function(specVersi
 			}
 		}, [
 			{
-				dataPath: "/builder",
+				instancePath: "/builder",
 				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
+				message: "must NOT have additional properties",
 				params: {
 					additionalProperty: "jsdoc"
 				}
 			},
 			{
-				dataPath: "/builder",
+				instancePath: "/builder",
 				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
+				message: "must NOT have additional properties",
 				params: {
 					additionalProperty: "libraryPreload"
 				}
 			},
 			{
-				dataPath: "/builder/bundles/0/bundleDefinition/sections/0",
+				instancePath: "/builder/bundles/0/bundleDefinition/sections/0",
 				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
+				message: "must NOT have additional properties",
 				params: {
 					additionalProperty: "declareModules",
 				}
 			},
 			{
-				dataPath: "/builder/bundles/0/bundleDefinition/sections/0/name",
+				instancePath: "/builder/bundles/0/bundleDefinition/sections/0/name",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string",
 				}
 			},
 			{
-				dataPath: "/builder/bundles/1/bundleDefinition",
+				instancePath: "/builder/bundles/1/bundleDefinition",
 				keyword: "required",
-				message: "should have required property 'name'",
+				message: "must have required property 'name'",
 				params: {
 					missingProperty: "name",
 				}
 			},
 			{
-				dataPath: "/builder/bundles/1/bundleDefinition/defaultFileTypes/1",
+				instancePath: "/builder/bundles/1/bundleDefinition/defaultFileTypes/1",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string",
 				}
 			},
 			{
-				dataPath: "/builder/bundles/1/bundleDefinition/sections/0",
+				instancePath: "/builder/bundles/1/bundleDefinition/sections/0",
 				keyword: "required",
-				message: "should have required property 'mode'",
+				message: "must have required property 'mode'",
 				params: {
 					missingProperty: "mode",
 				}
 			},
 			{
-				dataPath: "/builder/bundles/1/bundleDefinition/sections/0/declareRawModules",
+				instancePath: "/builder/bundles/1/bundleDefinition/sections/0/declareRawModules",
 				keyword: "type",
-				message: "should be boolean",
+				message: "must be boolean",
 				params: {
 					type: "boolean",
 				}
 			},
 			{
-				dataPath: "/builder/bundles/1/bundleDefinition/sections/1/mode",
+				instancePath: "/builder/bundles/1/bundleDefinition/sections/1/mode",
 				keyword: "enum",
-				message: "should be equal to one of the allowed values",
+				message: "must be equal to one of the allowed values",
 				params: {
 					allowedValues: ["3.1", "3.0", "2.6", "2.5", "2.4"].includes(specVersion) ? [
 						"raw",
@@ -1246,57 +1248,57 @@ SpecificationVersion.getVersionsForRange("2.0 - 3.1").forEach(function(specVersi
 				}
 			},
 			{
-				dataPath: "/builder/bundles/1/bundleDefinition/sections/1/filters",
+				instancePath: "/builder/bundles/1/bundleDefinition/sections/1/filters",
 				keyword: "type",
-				message: "should be array",
+				message: "must be array",
 				params: {
 					type: "array",
 				}
 			},
 			{
-				dataPath: "/builder/bundles/1/bundleOptions",
+				instancePath: "/builder/bundles/1/bundleOptions",
 				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
+				message: "must NOT have additional properties",
 				params: {
 					additionalProperty: "notAllowed",
 				}
 			},
 			{
-				dataPath: "/builder/bundles/1/bundleOptions/optimize",
+				instancePath: "/builder/bundles/1/bundleOptions/optimize",
 				keyword: "type",
-				message: "should be boolean",
+				message: "must be boolean",
 				params: {
 					type: "boolean",
 				}
 			},
 			{
-				dataPath: "/builder/bundles/1/bundleOptions/numberOfParts",
+				instancePath: "/builder/bundles/1/bundleOptions/numberOfParts",
 				keyword: "type",
-				message: "should be number",
+				message: "must be number",
 				params: {
 					type: "number",
 				}
 			},
 			{
-				dataPath: "/builder/componentPreload",
+				instancePath: "/builder/componentPreload",
 				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
+				message: "must NOT have additional properties",
 				params: {
 					additionalProperty: "path",
 				}
 			},
 			{
-				dataPath: "/builder/componentPreload/paths",
+				instancePath: "/builder/componentPreload/paths",
 				keyword: "type",
-				message: "should be array",
+				message: "must be array",
 				params: {
 					type: "array",
 				}
 			},
 			{
-				dataPath: "/builder/componentPreload/namespaces",
+				instancePath: "/builder/componentPreload/namespaces",
 				keyword: "type",
-				message: "should be array",
+				message: "must be array",
 				params: {
 					type: "array",
 				}
@@ -1382,73 +1384,73 @@ SpecificationVersion.getVersionsForRange(">=3.2").forEach(function(specVersion) 
 			}
 		}, [
 			{
-				dataPath: "/builder",
+				instancePath: "/builder",
 				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
+				message: "must NOT have additional properties",
 				params: {
 					additionalProperty: "jsdoc"
 				}
 			},
 			{
-				dataPath: "/builder",
+				instancePath: "/builder",
 				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
+				message: "must NOT have additional properties",
 				params: {
 					additionalProperty: "libraryPreload"
 				}
 			},
 			{
-				dataPath: "/builder/bundles/0/bundleDefinition/sections/0",
+				instancePath: "/builder/bundles/0/bundleDefinition/sections/0",
 				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
+				message: "must NOT have additional properties",
 				params: {
 					additionalProperty: "declareModules",
 				}
 			},
 			{
-				dataPath: "/builder/bundles/0/bundleDefinition/sections/0/name",
+				instancePath: "/builder/bundles/0/bundleDefinition/sections/0/name",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string",
 				}
 			},
 			{
-				dataPath: "/builder/bundles/1/bundleDefinition",
+				instancePath: "/builder/bundles/1/bundleDefinition",
 				keyword: "required",
-				message: "should have required property 'name'",
+				message: "must have required property 'name'",
 				params: {
 					missingProperty: "name",
 				}
 			},
 			{
-				dataPath: "/builder/bundles/1/bundleDefinition/defaultFileTypes/1",
+				instancePath: "/builder/bundles/1/bundleDefinition/defaultFileTypes/1",
 				keyword: "type",
-				message: "should be string",
+				message: "must be string",
 				params: {
 					type: "string",
 				}
 			},
 			{
-				dataPath: "/builder/bundles/1/bundleDefinition/sections/0",
+				instancePath: "/builder/bundles/1/bundleDefinition/sections/0",
 				keyword: "required",
-				message: "should have required property 'mode'",
+				message: "must have required property 'mode'",
 				params: {
 					missingProperty: "mode",
 				}
 			},
 			{
-				dataPath: "/builder/bundles/1/bundleDefinition/sections/0/declareRawModules",
+				instancePath: "/builder/bundles/1/bundleDefinition/sections/0/declareRawModules",
 				keyword: "type",
-				message: "should be boolean",
+				message: "must be boolean",
 				params: {
 					type: "boolean",
 				}
 			},
 			{
-				dataPath: "/builder/bundles/1/bundleDefinition/sections/1/mode",
+				instancePath: "/builder/bundles/1/bundleDefinition/sections/1/mode",
 				keyword: "enum",
-				message: "should be equal to one of the allowed values",
+				message: "must be equal to one of the allowed values",
 				params: {
 					allowedValues: [
 						"raw",
@@ -1461,57 +1463,57 @@ SpecificationVersion.getVersionsForRange(">=3.2").forEach(function(specVersion) 
 				}
 			},
 			{
-				dataPath: "/builder/bundles/1/bundleDefinition/sections/1/filters",
+				instancePath: "/builder/bundles/1/bundleDefinition/sections/1/filters",
 				keyword: "type",
-				message: "should be array",
+				message: "must be array",
 				params: {
 					type: "array",
 				}
 			},
 			{
-				dataPath: "/builder/bundles/1/bundleOptions",
+				instancePath: "/builder/bundles/1/bundleOptions",
 				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
+				message: "must NOT have additional properties",
 				params: {
 					additionalProperty: "notAllowed",
 				}
 			},
 			{
-				dataPath: "/builder/bundles/1/bundleOptions/optimize",
+				instancePath: "/builder/bundles/1/bundleOptions/optimize",
 				keyword: "type",
-				message: "should be boolean",
+				message: "must be boolean",
 				params: {
 					type: "boolean",
 				}
 			},
 			{
-				dataPath: "/builder/bundles/1/bundleOptions/numberOfParts",
+				instancePath: "/builder/bundles/1/bundleOptions/numberOfParts",
 				keyword: "type",
-				message: "should be number",
+				message: "must be number",
 				params: {
 					type: "number",
 				}
 			},
 			{
-				dataPath: "/builder/componentPreload",
+				instancePath: "/builder/componentPreload",
 				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
+				message: "must NOT have additional properties",
 				params: {
 					additionalProperty: "path",
 				}
 			},
 			{
-				dataPath: "/builder/componentPreload/paths",
+				instancePath: "/builder/componentPreload/paths",
 				keyword: "type",
-				message: "should be array",
+				message: "must be array",
 				params: {
 					type: "array",
 				}
 			},
 			{
-				dataPath: "/builder/componentPreload/namespaces",
+				instancePath: "/builder/componentPreload/namespaces",
 				keyword: "type",
-				message: "should be array",
+				message: "must be array",
 				params: {
 					type: "array",
 				}

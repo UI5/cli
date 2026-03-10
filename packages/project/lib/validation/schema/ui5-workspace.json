@@ -6,8 +6,8 @@
 	"$comment": "See https://ui5.github.io/cli/",
 	"type": "object",
 	"required": ["specVersion", "metadata", "dependencyManagement"],
+	"additionalProperties": false,
 	"properties": {
-		"additionalProperties": false,
 		"specVersion": {
 			"enum": ["workspace/1.0"],
 			"errorMessage": "Unsupported \"specVersion\"\nYour UI5 CLI installation might be outdated.\nSupported specification versions: \"workspace/1.0\"\nFor details, see: https://ui5.github.io/cli/stable/pages/Workspace/#workspace-specification-versions"
@@ -23,8 +23,8 @@
 		"metadata": {
 			"type": "object",
 			"required": ["name"],
+			"additionalProperties": false,
 			"properties": {
-				"additionalProperties": false,
 				"name": {
 					"type": "string",
 					"minLength": 3,
@@ -38,11 +38,11 @@
 		},
 		"dependencyManagement": {
 			"type": "object",
+			"additionalProperties": false,
 			"properties": {
-				"additionalProperties": false,
 				"resolutions": {
 					"type": "array",
-					"additionalProperties": false,
+
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
