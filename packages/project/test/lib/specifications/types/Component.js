@@ -358,7 +358,8 @@ test("Read and write resources outside of app namespace", async (t) => {
 	const workspace = project.getWorkspace();
 
 	await workspace.write(createResource({
-		path: "/resources/my-custom-bundle.js"
+		path: "/resources/my-custom-bundle.js",
+		string: "// some custom bundle content"
 	}));
 
 	const buildtimeReader = project.getReader({style: "buildtime"});

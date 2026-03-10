@@ -16,20 +16,22 @@ import ProjectBuildContext from "../../../../lib/build/helpers/ProjectBuildConte
 
 test("Missing parameters", (t) => {
 	t.throws(() => {
-		new ProjectBuildContext({
-			project: {
+		new ProjectBuildContext(
+			undefined,
+			{
 				getName: () => "project",
 				getType: () => "type",
-			},
-		});
+			}
+		);
 	}, {
 		message: `Missing parameter 'buildContext'`
 	}, "Correct error message");
 
 	t.throws(() => {
-		new ProjectBuildContext({
-			buildContext: "buildContext",
-		});
+		new ProjectBuildContext(
+			"buildContext",
+			undefined
+		);
 	}, {
 		message: `Missing parameter 'project'`
 	}, "Correct error message");
@@ -40,54 +42,61 @@ test("isRootProject: true", (t) => {
 		getName: () => "root project",
 		getType: () => "type",
 	};
-	const projectBuildContext = new ProjectBuildContext({
-		buildContext: {
-			getRootProject: () => rootProject
-		},
-		project: rootProject
-	});
+	const buildContext = {
+		getRootProject: () => rootProject
+	};
+	const projectBuildContext = new ProjectBuildContext(
+		buildContext,
+		rootProject
+	);
 
 	t.true(projectBuildContext.isRootProject(), "Correctly identified root project");
 });
 
 test("isRootProject: false", (t) => {
-	const projectBuildContext = new ProjectBuildContext({
-		buildContext: {
-			getRootProject: () => "root project"
-		},
-		project: {
-			getName: () => "not the root project",
-			getType: () => "type",
-		}
-	});
+	const buildContext = {
+		getRootProject: () => "root project"
+	};
+	const project = {
+		getName: () => "not the root project",
+		getType: () => "type",
+	};
+	const projectBuildContext = new ProjectBuildContext(
+		buildContext,
+		project
+	);
 
 	t.false(projectBuildContext.isRootProject(), "Correctly identified non-root project");
 });
 
 test("getBuildOption", (t) => {
 	const getOptionStub = sinon.stub().returns("pony");
-	const projectBuildContext = new ProjectBuildContext({
-		buildContext: {
-			getOption: getOptionStub
-		},
-		project: {
-			getName: () => "project",
-			getType: () => "type",
-		}
-	});
+	const buildContext = {
+		getOption: getOptionStub
+	};
+	const project = {
+		getName: () => "project",
+		getType: () => "type",
+	};
+	const projectBuildContext = new ProjectBuildContext(
+		buildContext,
+		project
+	);
 
 	t.is(projectBuildContext.getOption("option"), "pony", "Returned value is correct");
 	t.is(getOptionStub.getCall(0).args[0], "option", "getOption called with correct argument");
 });
 
 test("registerCleanupTask", (t) => {
-	const projectBuildContext = new ProjectBuildContext({
-		buildContext: {},
-		project: {
-			getName: () => "project",
-			getType: () => "type",
-		}
-	});
+	const buildContext = {};
+	const project = {
+		getName: () => "project",
+		getType: () => "type",
+	};
+	const projectBuildContext = new ProjectBuildContext(
+		buildContext,
+		project
+	);
 	projectBuildContext.registerCleanupTask("my task 1");
 	projectBuildContext.registerCleanupTask("my task 2");
 
@@ -96,13 +105,15 @@ test("registerCleanupTask", (t) => {
 });
 
 test("executeCleanupTasks", (t) => {
-	const projectBuildContext = new ProjectBuildContext({
-		buildContext: {},
-		project: {
-			getName: () => "project",
-			getType: () => "type",
-		}
-	});
+	const buildContext = {};
+	const project = {
+		getName: () => "project",
+		getType: () => "type",
+	};
+	const projectBuildContext = new ProjectBuildContext(
+		buildContext,
+		project
+	);
 	const task1 = sinon.stub().resolves();
 	const task2 = sinon.stub().resolves();
 	projectBuildContext.registerCleanupTask(task1);
@@ -115,65 +126,35 @@ test("executeCleanupTasks", (t) => {
 });
 
 test.serial("getResourceTagCollection", async (t) => {
-	const projectAcceptsTagStub = sinon.stub().returns(false);
-	projectAcceptsTagStub.withArgs("project-tag").returns(true);
-	const projectContextAcceptsTagStub = sinon.stub().returns(false);
-	projectContextAcceptsTagStub.withArgs("project-context-tag").returns(true);
-
-	class DummyResourceTagCollection {
-		constructor({allowedTags, allowedNamespaces}) {
-			t.deepEqual(allowedTags, [
-				"ui5:OmitFromBuildResult",
-				"ui5:IsBundle"
-			],
-			"Correct allowedTags parameter supplied");
-
-			t.deepEqual(allowedNamespaces, [
-				"build"
-			],
-			"Correct allowedNamespaces parameter supplied");
-		}
-		acceptsTag(tag) {
-			// Redirect to stub
-			return projectContextAcceptsTagStub(tag);
-		}
-	}
-
-	const ProjectBuildContext = await esmock("../../../../lib/build/helpers/ProjectBuildContext.js", {
-		"@ui5/fs/internal/ResourceTagCollection": DummyResourceTagCollection
-	});
-	const projectBuildContext = new ProjectBuildContext({
-		buildContext: {},
-		project: {
-			getName: () => "project",
-			getType: () => "type",
-		}
-	});
-
-	const fakeProjectCollection = {
-		acceptsTag: projectAcceptsTagStub
+	const ProjectBuildContext = (await import("../../../../lib/build/helpers/ProjectBuildContext.js")).default;
+	const buildContext = {};
+	const project = {
+		getName: () => "project",
+		getType: () => "type",
 	};
+	const projectBuildContext = new ProjectBuildContext(
+		buildContext,
+		project
+	);
+
+	const fakeCollection = {
+		acceptsTag: sinon.stub().returns(true)
+	};
+	const getResourceTagCollectionStub = sinon.stub().returns(fakeCollection);
 	const fakeResource = {
 		getProject: () => {
 			return {
-				getResourceTagCollection: () => fakeProjectCollection
+				getResourceTagCollection: getResourceTagCollectionStub
 			};
 		},
 		getPath: () => "/resource/path",
 		hasProject: () => true
 	};
-	const collection1 = projectBuildContext.getResourceTagCollection(fakeResource, "project-tag");
-	t.is(collection1, fakeProjectCollection, "Returned tag collection of resource project");
-
-	const collection2 = projectBuildContext.getResourceTagCollection(fakeResource, "project-context-tag");
-	t.true(collection2 instanceof DummyResourceTagCollection,
-		"Returned tag collection of project build context");
-
-	t.throws(() => {
-		projectBuildContext.getResourceTagCollection(fakeResource, "not-accepted-tag");
-	}, {
-		message: `Could not find collection for resource /resource/path and tag not-accepted-tag`
-	});
+	const collection = projectBuildContext.getResourceTagCollection(fakeResource, "some-tag");
+	t.is(collection, fakeCollection, "Returned tag collection from resource's project");
+	t.is(getResourceTagCollectionStub.callCount, 1, "getResourceTagCollection called once");
+	t.is(getResourceTagCollectionStub.firstCall.args[0], fakeResource, "Called with resource");
+	t.is(getResourceTagCollectionStub.firstCall.args[1], "some-tag", "Called with tag");
 });
 
 test("getResourceTagCollection: Assigns project to resource if necessary", (t) => {
@@ -181,13 +162,11 @@ test("getResourceTagCollection: Assigns project to resource if necessary", (t) =
 		getName: () => "project",
 		getType: () => "type",
 	};
-	const projectBuildContext = new ProjectBuildContext({
-		buildContext: {},
-		project: fakeProject,
-		log: {
-			silly: () => {}
-		}
-	});
+	const buildContext = {};
+	const projectBuildContext = new ProjectBuildContext(
+		buildContext,
+		fakeProject
+	);
 
 	const setProjectStub = sinon.stub();
 	const fakeResource = {
@@ -215,16 +194,17 @@ test("getProject", (t) => {
 		getType: () => "type",
 	};
 	const getProjectStub = sinon.stub().returns("pony");
-	const projectBuildContext = new ProjectBuildContext({
-		buildContext: {
-			getGraph: () => {
-				return {
-					getProject: getProjectStub
-				};
-			}
-		},
+	const buildContext = {
+		getGraph: () => {
+			return {
+				getProject: getProjectStub
+			};
+		}
+	};
+	const projectBuildContext = new ProjectBuildContext(
+		buildContext,
 		project
-	});
+	);
 
 	t.is(projectBuildContext.getProject("pony project"), "pony", "Returned correct value");
 	t.is(getProjectStub.callCount, 1, "ProjectGraph#getProject got called once");
@@ -240,16 +220,17 @@ test("getProject: No name provided", (t) => {
 		getType: () => "type",
 	};
 	const getProjectStub = sinon.stub().returns("pony");
-	const projectBuildContext = new ProjectBuildContext({
-		buildContext: {
-			getGraph: () => {
-				return {
-					getProject: getProjectStub
-				};
-			}
-		},
+	const buildContext = {
+		getGraph: () => {
+			return {
+				getProject: getProjectStub
+			};
+		}
+	};
+	const projectBuildContext = new ProjectBuildContext(
+		buildContext,
 		project
-	});
+	);
 
 	t.is(projectBuildContext.getProject(), project, "Returned correct value");
 	t.is(getProjectStub.callCount, 0, "ProjectGraph#getProject has not been called");
@@ -261,16 +242,17 @@ test("getDependencies", (t) => {
 		getType: () => "type",
 	};
 	const getDependenciesStub = sinon.stub().returns(["dep a", "dep b"]);
-	const projectBuildContext = new ProjectBuildContext({
-		buildContext: {
-			getGraph: () => {
-				return {
-					getDependencies: getDependenciesStub
-				};
-			}
-		},
+	const buildContext = {
+		getGraph: () => {
+			return {
+				getDependencies: getDependenciesStub
+			};
+		}
+	};
+	const projectBuildContext = new ProjectBuildContext(
+		buildContext,
 		project
-	});
+	);
 
 	t.deepEqual(projectBuildContext.getDependencies("pony project"), ["dep a", "dep b"], "Returned correct value");
 	t.is(getDependenciesStub.callCount, 1, "ProjectGraph#getDependencies got called once");
@@ -284,16 +266,17 @@ test("getDependencies: No name provided", (t) => {
 		getType: () => "type",
 	};
 	const getDependenciesStub = sinon.stub().returns(["dep a", "dep b"]);
-	const projectBuildContext = new ProjectBuildContext({
-		buildContext: {
-			getGraph: () => {
-				return {
-					getDependencies: getDependenciesStub
-				};
-			}
-		},
+	const buildContext = {
+		getGraph: () => {
+			return {
+				getDependencies: getDependenciesStub
+			};
+		}
+	};
+	const projectBuildContext = new ProjectBuildContext(
+		buildContext,
 		project
-	});
+	);
 
 	t.deepEqual(projectBuildContext.getDependencies(), ["dep a", "dep b"], "Returned correct value");
 	t.is(getDependenciesStub.callCount, 1, "ProjectGraph#getDependencies got called once");
@@ -302,20 +285,22 @@ test("getDependencies: No name provided", (t) => {
 });
 
 test("getTaskUtil", (t) => {
-	const projectBuildContext = new ProjectBuildContext({
-		buildContext: {},
-		project: {
-			getName: () => "project",
-			getType: () => "type",
-		}
-	});
+	const buildContext = {};
+	const project = {
+		getName: () => "project",
+		getType: () => "type",
+	};
+	const projectBuildContext = new ProjectBuildContext(
+		buildContext,
+		project
+	);
 
 	t.truthy(projectBuildContext.getTaskUtil(), "Returned a TaskUtil instance");
 	t.is(projectBuildContext.getTaskUtil(), projectBuildContext.getTaskUtil(), "Caches TaskUtil instance");
 });
 
 test.serial("getTaskRunner", async (t) => {
-	t.plan(3);
+	t.plan(4);
 	const project = {
 		getName: () => "project",
 		getType: () => "type",
@@ -325,10 +310,14 @@ test.serial("getTaskRunner", async (t) => {
 		constructor(params) {
 			t.true(params.log instanceof ProjectBuildLogger, "TaskRunner receives an instance of ProjectBuildLogger");
 			params.log = "log"; // replace log instance with string for deep comparison
+			t.is(params.buildCache, buildCache,
+				"TaskRunner receives the ProjectBuildCache instance");
+			params.buildCache = "buildCache"; // replace buildCache instance with string for deep comparison
 			t.deepEqual(params, {
 				graph: "graph",
 				project: project,
 				log: "log",
+				buildCache: "buildCache",
 				taskUtil: "taskUtil",
 				taskRepository: "taskRepository",
 				buildConfig: "buildConfig"
@@ -339,14 +328,18 @@ test.serial("getTaskRunner", async (t) => {
 		"../../../../lib/build/TaskRunner.js": TaskRunnerMock
 	});
 
-	const projectBuildContext = new ProjectBuildContext({
-		buildContext: {
-			getGraph: () => "graph",
-			getTaskRepository: () => "taskRepository",
-			getBuildConfig: () => "buildConfig",
-		},
-		project
-	});
+	const buildContext = {
+		getGraph: () => "graph",
+		getTaskRepository: () => "taskRepository",
+		getBuildConfig: () => "buildConfig",
+	};
+	const buildCache = {};
+	const projectBuildContext = new ProjectBuildContext(
+		buildContext,
+		project,
+		undefined,
+		buildCache,
+	);
 
 	projectBuildContext.getTaskUtil = () => "taskUtil";
 
@@ -354,76 +347,42 @@ test.serial("getTaskRunner", async (t) => {
 	t.is(projectBuildContext.getTaskRunner(), taskRunner, "Returns cached TaskRunner instance");
 });
 
-
-test.serial("createProjectContext", async (t) => {
-	t.plan(4);
-
-	const project = {
-		getName: sinon.stub().returns("foo"),
-		getType: sinon.stub().returns("bar"),
-	};
-	const taskRunner = {"task": "runner"};
-	class ProjectContextMock {
-		constructor({buildContext, project}) {
-			t.is(buildContext, testBuildContext, "Correct buildContext parameter");
-			t.is(project, project, "Correct project parameter");
-		}
-		getTaskUtil() {
-			return "taskUtil";
-		}
-		setTaskRunner(_taskRunner) {
-			t.is(_taskRunner, taskRunner);
-		}
-	}
-	const BuildContext = await esmock("../../../../lib/build/helpers/BuildContext.js", {
-		"../../../../lib/build/helpers/ProjectBuildContext.js": ProjectContextMock,
-		"../../../../lib/build/TaskRunner.js": {
-			create: sinon.stub().resolves(taskRunner)
-		}
-	});
-	const graph = {
-		getRoot: () => ({getType: () => "library"}),
-	};
-	const testBuildContext = new BuildContext(graph, "taskRepository");
-
-	const projectContext = await testBuildContext.createProjectContext({
-		project
-	});
-
-	t.true(projectContext instanceof ProjectContextMock,
-		"Project context is an instance of ProjectContextMock");
-	t.is(testBuildContext._projectBuildContexts[0], projectContext,
-		"BuildContext stored correct ProjectBuildContext");
-});
-
-test("requiresBuild: has no build-manifest", (t) => {
+test("possiblyRequiresBuild: has no build-manifest", (t) => {
 	const project = {
 		getName: sinon.stub().returns("foo"),
 		getType: sinon.stub().returns("bar"),
 		getBuildManifest: () => null
 	};
-	const projectBuildContext = new ProjectBuildContext({
-		buildContext: {},
-		project
-	});
-	t.true(projectBuildContext.requiresBuild(), "Project without build-manifest requires to be build");
+	const buildContext = {};
+	const buildCache = {
+		isFresh: sinon.stub().returns(false)
+	};
+	const projectBuildContext = new ProjectBuildContext(
+		buildContext,
+		project,
+		undefined,
+		buildCache
+	);
+	t.true(projectBuildContext.possiblyRequiresBuild(), "Project without build-manifest requires to be build");
 });
 
-test("requiresBuild: has build-manifest", (t) => {
+test("possiblyRequiresBuild: has build-manifest", (t) => {
 	const project = {
 		getName: sinon.stub().returns("foo"),
 		getType: sinon.stub().returns("bar"),
 		getBuildManifest: () => {
 			return {
+				manifestVersion: "0.1",
 				timestamp: "2022-07-28T12:00:00.000Z"
 			};
 		}
 	};
-	const projectBuildContext = new ProjectBuildContext({
-		buildContext: {},
+	const buildContext = {};
+	const projectBuildContext = new ProjectBuildContext(
+		buildContext,
 		project
-	});
-	t.false(projectBuildContext.requiresBuild(), "Project with build-manifest does not require to be build");
+	);
+	t.false(projectBuildContext.possiblyRequiresBuild(), "Project with build-manifest does not require to be build");
 });
 
 test.serial("getBuildMetadata", (t) => {
@@ -432,15 +391,17 @@ test.serial("getBuildMetadata", (t) => {
 		getType: sinon.stub().returns("bar"),
 		getBuildManifest: () => {
 			return {
+				manifestVersion: "0.1",
 				timestamp: "2022-07-28T12:00:00.000Z"
 			};
 		}
 	};
 	const getTimeStub = sinon.stub(Date.prototype, "getTime").callThrough().onFirstCall().returns(1659016800000);
-	const projectBuildContext = new ProjectBuildContext({
-		buildContext: {},
+	const buildContext = {};
+	const projectBuildContext = new ProjectBuildContext(
+		buildContext,
 		project
-	});
+	);
 
 	t.deepEqual(projectBuildContext.getBuildMetadata(), {
 		timestamp: "2022-07-28T12:00:00.000Z",
@@ -455,9 +416,10 @@ test("getBuildMetadata: has no build-manifest", (t) => {
 		getType: sinon.stub().returns("bar"),
 		getBuildManifest: () => null
 	};
-	const projectBuildContext = new ProjectBuildContext({
-		buildContext: {},
+	const buildContext = {};
+	const projectBuildContext = new ProjectBuildContext(
+		buildContext,
 		project
-	});
+	);
 	t.is(projectBuildContext.getBuildMetadata(), null, "Project has no build manifest");
 });
