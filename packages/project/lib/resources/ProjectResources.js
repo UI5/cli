@@ -362,7 +362,7 @@ class ProjectResources {
 	getResourceTagCollection(resource, tag) {
 		this.#applyCachedResourceTags();
 		const projectCollection = this.#getProjectResourceTagCollection();
-		if (projectCollection.acceptsTag(tag)) {
+		if (!tag || projectCollection.acceptsTag(tag)) {
 			if (!this.#monitoredProjectResourceTagCollection) {
 				this.#monitoredProjectResourceTagCollection = new MonitoredResourceTagCollection(projectCollection);
 			}
