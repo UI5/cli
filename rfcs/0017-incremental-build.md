@@ -91,7 +91,7 @@ It also manages the individual `Build Task Cache` instances for each task in the
 
 In order to detect changes in a project's sources, a [Hash Tree](#hash-tree) is used to efficiently store and compare metadata of all source files. This allows quick detection of changed source files since the last build. The root hash of this tree is referred to as the project's `source-index signature`. Together with the signatures of all relevant dependency-indices, a cache key can be generated to look up an existing result cache for the project's current state. If found, it can be used to skip the build of the project altogether.
 
-Similarly, each task's input resources are tracked using two hash trees (one for project-internal resources and one for dependency resources). The root hashes of both trees can be combined to form a stage cache key.
+Similarly, each task's input resources are tracked using two hash trees (one for project-internal resources and one for dependency resources). These trees include resource tags in their leaf node hashes, ensuring that tag changes are detected alongside content changes. The root hashes of both trees can be combined to form a stage cache key.
 
 See also: [Cache Creation](#cache-creation).
 
@@ -212,7 +212,9 @@ At runtime, each unique (materialized) request set references a [`Shared Hash Tr
 
 By using hash trees, it is possible to efficiently store and compare metadata of a large number of resources. This is particularly useful for tracking changes in source files or task input resources.
 
-A hash tree is a tree data structure where each leaf node represents a resource and contains its metadata (e.g. path, size, last modified time, integrity hash). Each non-leaf node contains a hash that is derived from the hashes of its child nodes. The root node's hash represents the overall state of all resources in the tree.
+A hash tree is a tree data structure where each leaf node represents a resource and contains its metadata (e.g. path, size, last modified time, integrity hash, and resource tags). Each non-leaf node contains a hash that is derived from the hashes of its child nodes. The root node's hash represents the overall state of all resources in the tree.
+
+Resource tags associated with a resource are included in the leaf node's hash calculation. This ensures that any change to a resource's tags — even without a change to its content — results in a different node hash, propagating up to a different root hash. This is important because tasks may depend not only on a resource's content, but also on its tags (e.g. `ui5:HasDebugVariant` or `ui5:IsBundle`). By incorporating tags into the hash, the index signature accurately reflects the full state of the resource set, including tag information, and correctly triggers cache invalidation when tags change.
 
 When a resource changes, only the hashes along the path from the changed leaf node to the root need to be updated. This makes it efficient to update the tree and compute a new root hash.
 
@@ -310,7 +312,7 @@ The index cache also contains a list of tasks executed during the build, along w
 
 #### Index Signature
 
-An index signature (e.g. the "source-index signature") is referring to the unique root hash of one of the (shared-) hash trees. It represents the current state of a given set of resources (e.g. all sources of a project, or the input resources of a build task). Any change to any of the resources will lead to a different index signature.
+An index signature (e.g. the "source-index signature") is referring to the unique root hash of one of the (shared-) hash trees. It represents the current state of a given set of resources (e.g. all sources of a project, or the input resources of a build task), including their associated resource tags. Any change to any of the resources or their tags will lead to a different index signature.
 
 These signatures are used to quickly check whether a cache exists by using them as cache keys.
 
@@ -433,7 +435,7 @@ Stores the metadata of all resources for a given "stage" (i.e. all resources wri
 
 For build tasks, the stage metadata is keyed using the the signature of the project-index and the dependency-index that produced the output. Both signatures are combined using a `-` separator. I.e. `<project-index-signature>-<dependency-index-signature>`. If a task did not consume any project- or any dependency-resources, that index signature is replaced with an `X` placeholder.
 
-The contained metadata represents all resources **written** by that task during its execution. It includes the `lastModified`, `size` and `integrity` of each resource. This information is required for determining whether subsequent tasks need to be re-executed. It also contains information on resource tag operations, such as setting a tag to a value or clearing a tag.
+The contained metadata represents all resources **written** by that task during its execution. It includes the `lastModified`, `size` and `integrity` of each resource. This information is required for determining whether subsequent tasks need to be re-executed. It also contains information on resource tag operations, such as setting a tag to a value or clearing a tag. These tag operations are applied when restoring a cached stage and are incorporated into the hash tree leaf nodes of downstream tasks' input resources, ensuring that tag changes are reflected in the index signatures used for cache invalidation.
 
 **Simplified Stage Metadata**
 
