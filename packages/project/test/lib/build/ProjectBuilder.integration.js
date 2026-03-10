@@ -186,6 +186,39 @@ test.serial("Build application.a project multiple times", async (t) => {
 			}
 		}
 	});
+
+
+	// Add a new file to application.a
+	await fs.writeFile(`${fixtureTester.fixturePath}/webapp/someNew.js`,
+		`console.log("SOME NEW CONTENT");\n`
+	);
+
+	// #10 build (with cache, with changes - someNew.js added)
+	// Tasks that don't depend on someNew.js can reuse their caches from build #9.
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"application.a": {
+				skippedTasks: [
+					"enhanceManifest",
+					"escapeNonAsciiCharacters",
+					"generateFlexChangesBundle",
+					"replaceCopyright",
+				]
+			}}
+		}
+	});
+
+	await fs.rm(`${fixtureTester.fixturePath}/webapp/someNew.js`);
+
+	// #11 build (with cache, with changes - someNew.js removed)
+	// Source state matches build #9's cached result -> cache reused, everything skipped
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {},
+		}
+	});
 });
 
 test.serial("Build application.a (custom task and tag handling)", async (t) => {
@@ -1028,11 +1061,58 @@ test.serial("Build library.d project multiple times", async (t) => {
 		)
 	);
 
+	await fs.writeFile(`${fixtureTester.fixturePath}/main/src/library/d/someNew.js`,
+		`console.log("SOME NEW CONTENT");\n`
+	);
+
 	// #5 build (with cache, with changes)
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true},
 		assertions: {
 			projects: {"library.d": {}}
+		}
+	});
+
+	await fs.rm(`${fixtureTester.fixturePath}/main/src/library/d/someNew.js`);
+
+	// #6 build (with cache, with changes - someNew.js removed)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"library.d": {
+				skippedTasks: [
+					"buildThemes",
+					"enhanceManifest",
+					"escapeNonAsciiCharacters",
+					"replaceBuildtime",
+				]
+			}},
+		}
+	});
+
+	// Re-add someNew.js (restores source state to match build #5)
+	await fs.writeFile(`${fixtureTester.fixturePath}/main/src/library/d/someNew.js`,
+		`console.log("SOME NEW CONTENT");\n`
+	);
+
+	// #7 build (with cache, with changes - someNew.js re-added)
+	// Source state now matches build #5's cached result -> cache reused
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {},
+		}
+	});
+
+	// Remove someNew.js again
+	await fs.rm(`${fixtureTester.fixturePath}/main/src/library/d/someNew.js`);
+
+	// #8 build (with cache, with changes - someNew.js removed again)
+	// Source state matches build #6's cached result -> cache reused, everything skipped
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {},
 		}
 	});
 });
@@ -1303,6 +1383,39 @@ test.serial("Build component.a project multiple times", async (t) => {
 		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
 			projects: {}
+		}
+	});
+
+
+	// Add a new file to component.a
+	await fs.writeFile(`${fixtureTester.fixturePath}/src/someNew.js`,
+		`console.log("SOME NEW CONTENT");\n`
+	);
+
+	// #7 build (with cache, with changes - someNew.js added)
+	// Tasks that don't depend on someNew.js can reuse their caches from build #3.
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"component.a": {
+				skippedTasks: [
+					"enhanceManifest",
+					"escapeNonAsciiCharacters",
+					"generateFlexChangesBundle",
+					"replaceCopyright",
+				]
+			}}
+		}
+	});
+
+	await fs.rm(`${fixtureTester.fixturePath}/src/someNew.js`);
+
+	// #8 build (with cache, with changes - someNew.js removed)
+	// Source state matches build #6's cached result -> cache reused, everything skipped
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {},
 		}
 	});
 });
