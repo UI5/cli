@@ -502,3 +502,130 @@ test("removeResources - cleans up deeply nested empty directories", async (t) =>
 	t.truthy(tree._findNode("a"), "Directory a should still exist (has sibling.js)");
 	t.truthy(tree.hasPath("a/sibling.js"), "Sibling file should still exist");
 });
+
+// ============================================================================
+// Resource Tags Tests
+// ============================================================================
+
+test("Different tags produce different root hashes", (t) => {
+	const resources1 = [
+		{path: "file1.js", integrity: "hash1", tags: {"ui5:HasDebugVariant": true}}
+	];
+
+	const resources2 = [
+		{path: "file1.js", integrity: "hash1", tags: {"ui5:IsBundle": true}}
+	];
+
+	const tree1 = new HashTree(resources1);
+	const tree2 = new HashTree(resources2);
+
+	t.not(tree1.getRootHash(), tree2.getRootHash(),
+		"Trees with different tags should have different root hashes");
+});
+
+test("Identical tags produce same root hash", (t) => {
+	const resources1 = [
+		{path: "file1.js", integrity: "hash1", tags: {"ui5:HasDebugVariant": true, "ui5:IsBundle": false}}
+	];
+
+	const resources2 = [
+		{path: "file1.js", integrity: "hash1", tags: {"ui5:HasDebugVariant": true, "ui5:IsBundle": false}}
+	];
+
+	const tree1 = new HashTree(resources1);
+	const tree2 = new HashTree(resources2);
+
+	t.is(tree1.getRootHash(), tree2.getRootHash(),
+		"Trees with identical tags should have same root hashes");
+});
+
+test("No tags is backward compatible (null, undefined, {} all produce same hash)", (t) => {
+	const treeNull = new HashTree([{path: "file1.js", integrity: "hash1", tags: null}]);
+	const treeUndefined = new HashTree([{path: "file1.js", integrity: "hash1"}]);
+	const treeEmpty = new HashTree([{path: "file1.js", integrity: "hash1", tags: {}}]);
+
+	t.is(treeNull.getRootHash(), treeUndefined.getRootHash(),
+		"null tags and undefined tags should produce same hash");
+	t.is(treeNull.getRootHash(), treeEmpty.getRootHash(),
+		"null tags and empty tags should produce same hash");
+});
+
+test("Tag key order does not affect hash", (t) => {
+	const resources1 = [
+		{path: "file1.js", integrity: "hash1", tags: {"b": true, "a": true}}
+	];
+
+	const resources2 = [
+		{path: "file1.js", integrity: "hash1", tags: {"a": true, "b": true}}
+	];
+
+	const tree1 = new HashTree(resources1);
+	const tree2 = new HashTree(resources2);
+
+	t.is(tree1.getRootHash(), tree2.getRootHash(),
+		"Tag key order should not affect the hash");
+});
+
+test("Upsert detects tag-only change (content unchanged, tags changed)", async (t) => {
+	const tree = new HashTree([
+		{path: "file1.js", integrity: "hash1", lastModified: 1000, size: 100, tags: {"ui5:HasDebugVariant": true}}
+	]);
+	const originalHash = tree.getRootHash();
+
+	// Upsert with same content but different tags
+	const resource = createMockResource("file1.js", "hash1", 1000, 100, 1);
+	resource.tags = {"ui5:HasDebugVariant": false};
+
+	const result = await tree.upsertResources([resource]);
+
+	t.deepEqual(result.updated, ["file1.js"], "Should report resource as updated due to tag change");
+	t.deepEqual(result.unchanged, [], "Should not report resource as unchanged");
+	t.not(tree.getRootHash(), originalHash, "Root hash should change after tag-only update");
+});
+
+test("Upsert reports unchanged when both content and tags are the same", async (t) => {
+	const tree = new HashTree([
+		{path: "file1.js", integrity: "hash1", lastModified: 1000, size: 100,
+			tags: {"ui5:HasDebugVariant": true}}
+	]);
+	const originalHash = tree.getRootHash();
+
+	const resource = createMockResource("file1.js", "hash1", 1000, 100, 1);
+	resource.tags = {"ui5:HasDebugVariant": true};
+
+	const result = await tree.upsertResources([resource]);
+
+	t.deepEqual(result.unchanged, ["file1.js"], "Should report resource as unchanged");
+	t.deepEqual(result.updated, [], "Should not report resource as updated");
+	t.is(tree.getRootHash(), originalHash, "Root hash should not change");
+});
+
+test("Serialization roundtrip preserves tags and root hash", (t) => {
+	const resources = [
+		{path: "file1.js", integrity: "hash1", tags: {"ui5:HasDebugVariant": true, "ui5:IsBundle": false}},
+		{path: "dir/file2.js", integrity: "hash2", tags: {"custom:tag": "value"}},
+		{path: "file3.js", integrity: "hash3"} // no tags
+	];
+
+	const tree = new HashTree(resources);
+	const originalHash = tree.getRootHash();
+
+	// Serialize and deserialize
+	const cacheObject = tree.toCacheObject();
+	const restored = HashTree.fromCache(cacheObject);
+
+	t.is(restored.getRootHash(), originalHash,
+		"Restored tree should have same root hash as original");
+
+	// Verify tags are preserved on individual nodes
+	const node1 = restored.getResourceByPath("file1.js");
+	t.deepEqual(node1.tags, {"ui5:HasDebugVariant": true, "ui5:IsBundle": false},
+		"Tags should be preserved after serialization roundtrip");
+
+	const node2 = restored.getResourceByPath("dir/file2.js");
+	t.deepEqual(node2.tags, {"custom:tag": "value"},
+		"Tags should be preserved for nested resources");
+
+	const node3 = restored.getResourceByPath("file3.js");
+	t.is(node3.tags, null, "Null tags should be preserved");
+});

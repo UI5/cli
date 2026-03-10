@@ -482,8 +482,8 @@ test("getAddedResources - returns added resources from derived tree", (t) => {
 
 	t.is(added.length, 2, "Should return 2 added resources");
 	t.deepEqual(added, [
-		{path: "/c.js", integrity: "hash-c", size: 100, lastModified: 1000, inode: 1},
-		{path: "/d.js", integrity: "hash-d", size: 200, lastModified: 2000, inode: 2}
+		{path: "/c.js", integrity: "hash-c", size: 100, lastModified: 1000, inode: 1, tags: null},
+		{path: "/d.js", integrity: "hash-d", size: 200, lastModified: 2000, inode: 2, tags: null}
 	], "Should return correct added resources with metadata");
 });
 

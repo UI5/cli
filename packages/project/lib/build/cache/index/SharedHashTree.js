@@ -127,7 +127,8 @@ export default class SharedHashTree extends HashTree {
 						integrity: node.integrity,
 						size: node.size,
 						lastModified: node.lastModified,
-						inode: node.inode
+						inode: node.inode,
+						tags: node.tags
 					});
 				}
 			} else {
@@ -163,7 +164,8 @@ export default class SharedHashTree extends HashTree {
 						integrity: node.integrity,
 						size: node.size,
 						lastModified: node.lastModified,
-						inode: node.inode
+						inode: node.inode,
+						tags: node.tags
 					});
 					return;
 				} else if (!baseNode && node.type === "directory") {

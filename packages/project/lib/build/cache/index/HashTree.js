@@ -10,7 +10,27 @@ import {matchResourceMetadataStrict} from "../utils.js";
  * @property {number} lastModified Last modification timestamp
  * @property {number|undefined} inode File inode identifier
  * @property {string} integrity Content hash
+ * @property {Object<string, *>|null} [tags] Resource tags (key-value pairs)
  */
+
+/**
+ * Compare two tag objects for equality.
+ * Treats null, undefined, and empty {} as equivalent (no tags).
+ *
+ * @param {Object<string, *>|null} a
+ * @param {Object<string, *>|null} b
+ * @returns {boolean}
+ */
+export function tagsEqual(a, b) {
+	const aEmpty = !a || Object.keys(a).length === 0;
+	const bEmpty = !b || Object.keys(b).length === 0;
+	if (aEmpty && bEmpty) return true;
+	if (aEmpty !== bEmpty) return false;
+	const aKeys = Object.keys(a).sort();
+	const bKeys = Object.keys(b).sort();
+	if (aKeys.length !== bKeys.length) return false;
+	return aKeys.every((key, i) => key === bKeys[i] && a[key] === b[key]);
+}
 
 /**
  * Directory-based Merkle Tree for efficient resource tracking with hierarchical structure.
@@ -142,7 +162,8 @@ export default class HashTree {
 			integrity: resourceData.integrity,
 			lastModified: resourceData.lastModified,
 			size: resourceData.size,
-			inode: resourceData.inode
+			inode: resourceData.inode,
+			tags: resourceData.tags || null
 		});
 
 		current.children.set(resourceName, resourceNode);
@@ -157,6 +178,7 @@ export default class HashTree {
 	 * @param {number} [resourceData.lastModified] - Last modified timestamp
 	 * @param {number} [resourceData.size] - File size in bytes
 	 * @param {number} [resourceData.inode] - File system inode number
+	 * @param {Object<string, *>|null} [resourceData.tags] - Resource tags (key-value pairs)
 	 * @private
 	 */
 	_insertResource(resourcePath, resourceData) {
@@ -189,7 +211,8 @@ export default class HashTree {
 			integrity: resourceData.integrity,
 			lastModified: resourceData.lastModified,
 			size: resourceData.size,
-			inode: resourceData.inode
+			inode: resourceData.inode,
+			tags: resourceData.tags || null
 		});
 
 		current.children.set(resourceName, resourceNode);
@@ -198,14 +221,25 @@ export default class HashTree {
 	/**
 	 * Compute hash for a node and all its children (recursive)
 	 *
+	 * For resource nodes, the hash incorporates the resource name, integrity, and tags
+	 * (when present). Tags are sorted by key for deterministic hashing.
+	 * Resources with no tags (null, undefined, or empty {}) produce the same hash
+	 * as tagless resources for backward compatibility.
+	 *
 	 * @param {TreeNode} node
 	 * @returns {Buffer}
 	 * @private
 	 */
 	_computeHash(node) {
 		if (node.type === "resource") {
-			// Resource hash
-			node.hash = this._hashData(`resource:${node.name}:${node.integrity}`);
+			// Resource hash — includes tags when present for cache invalidation
+			let hashInput = `resource:${node.name}:${node.integrity}`;
+			if (node.tags && Object.keys(node.tags).length > 0) {
+				const sortedKeys = Object.keys(node.tags).sort();
+				const tagString = sortedKeys.map((k) => `${k}=${String(node.tags[k])}`).join(",");
+				hashInput += `:tags(${tagString})`;
+			}
+			node.hash = this._hashData(hashInput);
 		} else {
 			// Directory hash - compute from sorted children
 			const childHashes = [];
@@ -305,7 +339,8 @@ export default class HashTree {
 	 * Applies operations immediately with optimized hash recomputation.
 	 *
 	 * Automatically creates missing parent directories during insertion.
-	 * Skips resources whose metadata hasn't changed (optimization).
+	 * Skips resources whose metadata and tags haven't changed (optimization).
+	 * A tag-only change (content unchanged but tags differ) is treated as an update.
 	 *
 	 * @param {Array<@ui5/fs/Resource>} resources - Array of Resource instances to upsert
 	 * @param {number} newIndexTimestamp Timestamp at which the provided resources have been indexed
@@ -333,7 +368,8 @@ export default class HashTree {
 					integrity: await resource.getIntegrity(),
 					lastModified: resource.getLastModified(),
 					size: await resource.getSize(),
-					inode: resource.getInode()
+					inode: resource.getInode(),
+					tags: resource.tags || null
 				};
 				this._insertResource(resourcePath, resourceData);
 
@@ -358,8 +394,12 @@ export default class HashTree {
 
 				const isUnchanged = await matchResourceMetadataStrict(resource, currentMetadata, this.#indexTimestamp);
 				if (isUnchanged) {
-					unchanged.push(resourcePath);
-					continue;
+					const currentTags = resource.tags || null;
+					if (tagsEqual(existingNode.tags, currentTags)) {
+						unchanged.push(resourcePath);
+						continue;
+					}
+					// Tags changed — fall through to update
 				}
 
 				// Update existing resource
@@ -367,6 +407,7 @@ export default class HashTree {
 				existingNode.lastModified = resource.getLastModified();
 				existingNode.size = await resource.getSize();
 				existingNode.inode = resource.getInode();
+				existingNode.tags = resource.tags || null;
 
 				this._computeHash(existingNode);
 				updated.push(resourcePath);

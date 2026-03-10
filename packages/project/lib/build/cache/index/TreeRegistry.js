@@ -1,5 +1,6 @@
 import path from "node:path/posix";
 import TreeNode from "./TreeNode.js";
+import {tagsEqual} from "./HashTree.js";
 import {matchResourceMetadataStrict} from "../utils.js";
 
 /**
@@ -159,7 +160,8 @@ export default class TreeRegistry {
 	 * - Group operations by parent directory for efficiency
 	 * - For inserts: only create in source tree and its derived trees
 	 * - For updates: apply to all trees that share the resource node
-	 * - Skip updates for resources with unchanged metadata
+	 * - Skip updates for resources with unchanged metadata and tags
+	 * - Detect tag-only changes and treat them as updates
 	 * - Track modified nodes to avoid duplicate updates to shared nodes
 	 *
 	 * Phase 3: Recompute directory hashes
@@ -313,7 +315,8 @@ export default class TreeRegistry {
 							integrity: await upsert.resource.getIntegrity(),
 							lastModified: upsert.resource.getLastModified(),
 							size: await upsert.resource.getSize(),
-							inode: upsert.resource.getInode()
+							inode: upsert.resource.getInode(),
+							tags: upsert.resource.tags || null
 						});
 						parentNode.children.set(upsert.resourceName, resourceNode);
 						modifiedNodes.add(resourceNode);
@@ -346,6 +349,7 @@ export default class TreeRegistry {
 								resourceNode.lastModified = upsert.resource.getLastModified();
 								resourceNode.size = await upsert.resource.getSize();
 								resourceNode.inode = upsert.resource.getInode();
+								resourceNode.tags = upsert.resource.tags ?? resourceNode.tags;
 								modifiedNodes.add(resourceNode);
 								dirModified = true;
 
@@ -356,11 +360,26 @@ export default class TreeRegistry {
 									updatedResources.push(upsert.fullPath);
 								}
 							} else {
-								// Track per-tree unchanged
-								treeStats.get(tree).unchanged.push(upsert.fullPath);
+								const currentTags = upsert.resource.tags || null;
+								if (!tagsEqual(resourceNode.tags, currentTags)) {
+									// Tags changed — treat as update
+									resourceNode.tags = currentTags;
+									modifiedNodes.add(resourceNode);
+									dirModified = true;
 
-								if (!unchangedResources.includes(upsert.fullPath)) {
-									unchangedResources.push(upsert.fullPath);
+									// Track per-tree update
+									treeStats.get(tree).updated.push(upsert.fullPath);
+
+									if (!updatedResources.includes(upsert.fullPath)) {
+										updatedResources.push(upsert.fullPath);
+									}
+								} else {
+									// Track per-tree unchanged
+									treeStats.get(tree).unchanged.push(upsert.fullPath);
+
+									if (!unchangedResources.includes(upsert.fullPath)) {
+										unchangedResources.push(upsert.fullPath);
+									}
 								}
 							}
 						} else {
