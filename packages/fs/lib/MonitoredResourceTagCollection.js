@@ -56,6 +56,10 @@ class MonitoredTagCollection {
 		return this.#tagCollection.getTag(resourcePathOrResource, tag);
 	}
 
+	getAllTagsForResource(resourcePath) {
+		return this.#tagCollection.getAllTagsForResource(resourcePath);
+	}
+
 	/**
 	 * Clear a tag from a resource and track the operation
 	 *

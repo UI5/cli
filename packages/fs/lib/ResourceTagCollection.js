@@ -96,6 +96,15 @@ class ResourceTagCollection {
 	getAllTags() {
 		return this._pathTags;
 	}
+	/**
+	 * Get all tags for all resources
+	 *
+	 * @param {string} resourcePath Path of the resource
+	 * @returns {object} Object mapping tags to their values for the given resource path
+	 */
+	getAllTagsForResource(resourcePath) {
+		return this._pathTags[resourcePath] || Object.create(null);
+	}
 
 	/**
 	 * Check if a tag is accepted by this collection
