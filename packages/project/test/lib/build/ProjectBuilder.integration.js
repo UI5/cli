@@ -489,7 +489,7 @@ test.serial("Build application.a (multiple custom tasks 2)", async (t) => {
 
 	// Modify file to trigger a new build
 	// (this is related to the custom tasks):
-	await fs.appendFile(`${fixtureTester.fixturePath}/webapp/test.js`, `console.log("NEW FILE");`);
+	await fs.appendFile(`${fixtureTester.fixturePath}/webapp/test.js`, `console.log("CHANGED FILE");`);
 
 	// #2 build (with cache, with changes, with custom tasks)
 	// During this build, "custom-task-0" sets a different tag to test.js (namely "OmitFromBuildResult").

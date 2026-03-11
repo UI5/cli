@@ -834,13 +834,8 @@ export default class ProjectBuildCache {
 				this.#taskCache.set(buildTaskCache.getTaskName(), buildTaskCache);
 			}
 
-			if (changedPaths.length) {
-				// Relevant resources have changed, mark the cache as invalidated
-				// this.#resultCacheState = RESULT_CACHE_STATES.INVALIDATED;
-			} else {
-				// Source index is up-to-date, awaiting dependency indices validation
-				// Status remains at initializing
-				// this.#resultCacheState = RESULT_CACHE_STATES.INITIALIZING;
+			if (!changedPaths.length) {
+				// Source index is up-to-date with no changes
 				this.#cachedSourceSignature = resourceIndex.getSignature();
 			}
 			this.#sourceIndex = resourceIndex;
