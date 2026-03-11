@@ -9,8 +9,8 @@
     "metadata",
     "dependencyManagement"
   ],
+  "additionalProperties": false,
   "properties": {
-    "additionalProperties": false,
     "specVersion": {
       "enum": [
         "workspace/1.0"
@@ -30,8 +30,8 @@
       "required": [
         "name"
       ],
+      "additionalProperties": false,
       "properties": {
-        "additionalProperties": false,
         "name": {
           "type": "string",
           "minLength": 3,
@@ -45,11 +45,10 @@
     },
     "dependencyManagement": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "additionalProperties": false,
         "resolutions": {
           "type": "array",
-          "additionalProperties": false,
           "items": {
             "type": "object",
             "additionalProperties": false,
