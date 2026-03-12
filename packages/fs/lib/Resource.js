@@ -882,6 +882,13 @@ class Resource {
 		return tree;
 	}
 
+	getTags() {
+		const project = this.getProject();
+		const collection = project?.getResourceTagCollection(this);
+		const tags = collection?.getAllTagsForResource(this) || null;
+		return tags;
+	}
+
 	/**
 	 * Returns source metadata which may contain information specific to the adapter that created the resource
 	 * Typically set by an adapter to store information for later retrieval.

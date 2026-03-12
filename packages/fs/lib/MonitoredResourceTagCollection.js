@@ -6,6 +6,7 @@
  */
 class MonitoredTagCollection {
 	#tagCollection;
+	#previousTagCollecction;
 	#tagOperations = new Map(); // resourcePath -> Map<key, value>
 
 	/**
@@ -15,6 +16,7 @@ class MonitoredTagCollection {
 	 */
 	constructor(tagCollection) {
 		this.#tagCollection = tagCollection;
+		this.#previousTagCollecction = tagCollection.clone();
 	}
 
 	/**
@@ -57,7 +59,7 @@ class MonitoredTagCollection {
 	}
 
 	getAllTagsForResource(resourcePath) {
-		return this.#tagCollection.getAllTagsForResource(resourcePath);
+		return this.#previousTagCollecction.getAllTagsForResource(resourcePath);
 	}
 
 	/**
@@ -71,7 +73,7 @@ class MonitoredTagCollection {
 		const resourcePath = this.#tagCollection._getPath(resourcePathOrResource);
 
 		// Track cleared tags during this task's execution
-		const resourceTags = this.#tagOperations.has(resourcePath);
+		const resourceTags = this.#tagOperations.get(resourcePath);
 		if (resourceTags) {
 			resourceTags.set(tag, undefined);
 		}
