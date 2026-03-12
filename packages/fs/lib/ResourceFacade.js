@@ -272,6 +272,10 @@ class ResourceFacade {
 		return this.#resource.getPathTree();
 	}
 
+	getTags() {
+		return this.#resource.getTags();
+	}
+
 	/**
 	 * Retrieve the project assigned to the resource
 	 * <br/>

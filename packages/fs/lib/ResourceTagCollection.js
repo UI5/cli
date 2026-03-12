@@ -99,11 +99,12 @@ class ResourceTagCollection {
 	/**
 	 * Get all tags for all resources
 	 *
-	 * @param {string} resourcePath Path of the resource
-	 * @returns {object} Object mapping tags to their values for the given resource path
+	 * @param {string|object} resourcePath Path of the resource
+	 * @returns {object|null} Object mapping tags to their values for the given resource path
 	 */
 	getAllTagsForResource(resourcePath) {
-		return this._pathTags[resourcePath] || Object.create(null);
+		resourcePath = this._getPath(resourcePath);
+		return this._pathTags[resourcePath] || null;
 	}
 
 	/**
@@ -183,6 +184,14 @@ class ResourceTagCollection {
 			throw new Error(
 				`Invalid Tag Value: Must be of type string, number or boolean but is ${type}`);
 		}
+	}
+
+	clone() {
+		return new ResourceTagCollection({
+			allowedTags: this._allowedTags,
+			allowedNamespaces: this._allowedNamespaces,
+			tags: JSON.parse(JSON.stringify(this._pathTags))
+		});
 	}
 }
 
