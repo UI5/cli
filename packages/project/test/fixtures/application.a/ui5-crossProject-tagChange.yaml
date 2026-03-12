@@ -1,0 +1,25 @@
+---
+specVersion: "5.0"
+type: application
+metadata:
+  name: application.a
+builder:
+  customTasks:
+    - name: dep-tag-reader
+      afterTask: minify
+---
+specVersion: "5.0"
+kind: extension
+type: task
+metadata:
+  name: dep-tag-setter
+task:
+  path: cross-project-tag-tasks/dep-tag-setter.js
+---
+specVersion: "5.0"
+kind: extension
+type: task
+metadata:
+  name: dep-tag-reader
+task:
+  path: cross-project-tag-tasks/dep-tag-reader.js
