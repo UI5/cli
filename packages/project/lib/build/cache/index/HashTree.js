@@ -369,7 +369,7 @@ export default class HashTree {
 					lastModified: resource.getLastModified(),
 					size: await resource.getSize(),
 					inode: resource.getInode(),
-					tags: resource.tags || null
+					tags: resource.getTags()
 				};
 				this._insertResource(resourcePath, resourceData);
 
@@ -394,7 +394,7 @@ export default class HashTree {
 
 				const isUnchanged = await matchResourceMetadataStrict(resource, currentMetadata, this.#indexTimestamp);
 				if (isUnchanged) {
-					const currentTags = resource.tags || null;
+					const currentTags = resource.getTags();
 					if (tagsEqual(existingNode.tags, currentTags)) {
 						unchanged.push(resourcePath);
 						continue;
@@ -407,7 +407,7 @@ export default class HashTree {
 				existingNode.lastModified = resource.getLastModified();
 				existingNode.size = await resource.getSize();
 				existingNode.inode = resource.getInode();
-				existingNode.tags = resource.tags || null;
+				existingNode.tags = resource.getTags();
 
 				this._computeHash(existingNode);
 				updated.push(resourcePath);

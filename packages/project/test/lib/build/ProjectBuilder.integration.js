@@ -636,6 +636,103 @@ test.serial.skip("Build application.a (dependency content changes)", async (t) =
 	t.true(builtFileContent2.includes(`console.log('something new');`), "Build dest contains changed file content");
 });
 
+// FIXME: This test may fail until runtime tag handling bugs are fixed.
+// It tests that a tag change on a dependency resource triggers a rebuild of the dependent project.
+test.serial.skip("Build application.a (cross-project tag change)", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+	await fixtureTester._initialize();
+
+	// Modify library.d's ui5.yaml at runtime to add the dep-tag-setter custom task
+	const libraryDYamlPath = `${fixtureTester.fixturePath}/node_modules/library.d/ui5.yaml`;
+	await fs.writeFile(libraryDYamlPath,
+		`---
+specVersion: "2.3"
+type: library
+metadata:
+  name: library.d
+  copyright: Some fancy copyright
+resources:
+  configuration:
+    paths:
+      src: main/src
+      test: main/test
+builder:
+  customTasks:
+    - name: dep-tag-setter
+      afterTask: minify
+`);
+
+	// #1 build (no cache, with all dependencies)
+	// dep-tag-setter sets project:FirstBuild on some.js
+	// dep-tag-reader verifies project:FirstBuild is present
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-crossProject-tagChange.yaml"},
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+				"application.a": {}
+			}
+		}
+	});
+
+	// #2 build (cache, no changes) → all skipped
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-crossProject-tagChange.yaml"},
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// Change source in library.d to trigger rebuild
+	const someJsPath = `${fixtureTester.fixturePath}/node_modules/library.d/main/src/library/d/some.js`;
+	await fs.appendFile(someJsPath, `\nconsole.log("tag change trigger");\n`);
+
+	// #3 build (cache, library.d source changed)
+	// library.d rebuilt → dep-tag-setter now sets project:SubsequentBuild (different tag than #1)
+	// library.d's index signature changes due to the tag change
+	// application.a rebuilt because its dependency index changed
+	// dep-tag-reader verifies project:SubsequentBuild is present
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-crossProject-tagChange.yaml"},
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {
+				"library.d": {
+					// FIXME: skippedTasks need empirical determination once runtime bugs are fixed
+					skippedTasks: [
+						"buildThemes",
+						"escapeNonAsciiCharacters",
+						"replaceBuildtime",
+					]
+				},
+				"application.a": {
+					// FIXME: skippedTasks need empirical determination once runtime bugs are fixed
+					skippedTasks: [
+						"escapeNonAsciiCharacters",
+						"generateFlexChangesBundle",
+						"replaceCopyright",
+					]
+				},
+			}
+		}
+	});
+
+	// #4 build (cache, no changes) → all skipped
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-crossProject-tagChange.yaml"},
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {}
+		}
+	});
+});
+
 test.serial("Build application.a (JSDoc build)", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;

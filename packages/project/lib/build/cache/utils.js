@@ -122,7 +122,7 @@ export async function createResourceIndex(resources, includeInode = false) {
 			integrity: await resource.getIntegrity(),
 			lastModified: resource.getLastModified(),
 			size: await resource.getSize(),
-			tags: resource.getProject()?.getResourceTagCollection(resource).getAllTagsForResource(resource),
+			tags: resource.getTags(),
 		};
 		if (includeInode) {
 			resourceMetadata.inode = resource.getInode();
