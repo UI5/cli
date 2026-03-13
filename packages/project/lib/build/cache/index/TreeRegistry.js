@@ -316,7 +316,7 @@ export default class TreeRegistry {
 							lastModified: upsert.resource.getLastModified(),
 							size: await upsert.resource.getSize(),
 							inode: upsert.resource.getInode(),
-							tags: upsert.resource.tags || null
+							tags: upsert.resource.getTags?.() ?? upsert.resource.tags ?? null
 						});
 						parentNode.children.set(upsert.resourceName, resourceNode);
 						modifiedNodes.add(resourceNode);
@@ -349,7 +349,7 @@ export default class TreeRegistry {
 								resourceNode.lastModified = upsert.resource.getLastModified();
 								resourceNode.size = await upsert.resource.getSize();
 								resourceNode.inode = upsert.resource.getInode();
-								resourceNode.tags = upsert.resource.tags ?? resourceNode.tags;
+								resourceNode.tags = upsert.resource.getTags?.() ?? upsert.resource.tags ?? resourceNode.tags;
 								modifiedNodes.add(resourceNode);
 								dirModified = true;
 
@@ -360,7 +360,7 @@ export default class TreeRegistry {
 									updatedResources.push(upsert.fullPath);
 								}
 							} else {
-								const currentTags = upsert.resource.tags || null;
+								const currentTags = upsert.resource.getTags?.() ?? upsert.resource.tags ?? null;
 								if (!tagsEqual(resourceNode.tags, currentTags)) {
 									// Tags changed — treat as update
 									resourceNode.tags = currentTags;

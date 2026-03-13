@@ -4,13 +4,18 @@ import HashTree from "../../../../../lib/build/cache/index/HashTree.js";
 
 // Helper to create mock Resource instances
 function createMockResource(path, integrity, lastModified, size, inode) {
-	return {
+	const resource = {
+		tags: null,
 		getOriginalPath: () => path,
 		getIntegrity: async () => integrity,
 		getLastModified: () => lastModified,
 		getSize: async () => size,
-		getInode: () => inode
+		getInode: () => inode,
+		getTags() {
+			return this.tags;
+		}
 	};
+	return resource;
 }
 
 test.afterEach.always((t) => {

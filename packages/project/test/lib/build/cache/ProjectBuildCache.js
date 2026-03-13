@@ -76,6 +76,7 @@ function createMockResource(path, integrity = "test-hash", lastModified = 1000, 
 		getLastModified: () => lastModified,
 		getSize: async () => size,
 		getInode: () => inode,
+		getTags: () => null,
 		getBuffer: async () => Buffer.from("test content"),
 		getStream: () => null
 	};
