@@ -623,12 +623,34 @@ export default class ProjectBuildCache {
 		const stageWriter = stage.getWriter();
 		const writtenResources = await stageWriter.byGlob("/**/*");
 		const writtenResourcePaths = writtenResources.map((res) => res.getOriginalPath());
-		const {projectTagOperations, buildTagOperations} =
+		let {projectTagOperations, buildTagOperations} =
 			this.#project.getProjectResources().getResourceTagOperations();
 
 		let stageSignature;
 		if (cacheInfo) {
-			// TODO: Update
+			// Merge tag operations from the previous stage cache with the current delta's tag operations.
+			// Delta builds only record tags set during the delta execution, so we need to include
+			// tags from the original full build. Current delta ops take precedence over previous ops.
+			if (cacheInfo.previousStageCache.projectTagOperations) {
+				projectTagOperations = new Map([
+					...cacheInfo.previousStageCache.projectTagOperations,
+					...projectTagOperations,
+				]);
+			}
+			if (cacheInfo.previousStageCache.buildTagOperations) {
+				buildTagOperations = new Map([
+					...cacheInfo.previousStageCache.buildTagOperations,
+					...buildTagOperations,
+				]);
+			}
+
+			// Import the previous stage cache's tag operations into the tag collections so that
+			// subsequent tasks can access them. Delta builds only record tags set during delta
+			// execution, so the previous build's tags must be imported explicitly.
+			this.#project.getProjectResources().importTagOperations(
+				cacheInfo.previousStageCache.projectTagOperations,
+				cacheInfo.previousStageCache.buildTagOperations);
+
 			stageSignature = cacheInfo.newSignature;
 			// Add resources from previous stage cache to current stage
 			let reader;

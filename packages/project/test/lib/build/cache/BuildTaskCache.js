@@ -29,7 +29,8 @@ function createMockResource(path, content = "test content", hash = null) {
 		getIntegrity: async () => actualHash,
 		getLastModified: () => 1000,
 		getSize: async () => content.length,
-		getInode: () => 1
+		getInode: () => 1,
+		getTags: () => null
 	};
 }
 
