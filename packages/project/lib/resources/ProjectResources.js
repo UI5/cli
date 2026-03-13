@@ -20,7 +20,6 @@ class ProjectResources {
 	#currentStage;
 	#currentStageReadIndex;
 	#lastTagCacheImportIndex;
-	#currentTagCacheImportIndex;
 	#currentStageId;
 
 	// Cache
@@ -201,7 +200,6 @@ class ProjectResources {
 		this.#currentStage = null;
 		this.#currentStageId = RESULT_STAGE_ID;
 		this.#currentStageReadIndex = this.#stages.length - 1; // Read from all stages
-		this.#currentTagCacheImportIndex = this.#stages.length - 1; // Import cached tags from all stages
 
 		// Unset "current" reader/writer. They will be recreated on demand
 		this.#currentStageReaders = new Map();
@@ -218,7 +216,6 @@ class ProjectResources {
 		this.#currentStageId = INITIAL_STAGE_ID;
 		this.#currentStageReadIndex = -1;
 		this.#lastTagCacheImportIndex = -1;
-		this.#currentTagCacheImportIndex = -1;
 		this.#currentStageReaders = new Map();
 		this.#currentStageWorkspace = null;
 		this.#projectResourceTagCollection = null;
@@ -284,7 +281,6 @@ class ProjectResources {
 		this.#currentStage = stage;
 		this.#currentStageId = stageId;
 		this.#currentStageReadIndex = stageIdx - 1; // Read from all previous stages
-		this.#currentTagCacheImportIndex = stageIdx; // Import cached tags from previous and current stages
 
 		// Unset "current" reader/writer caches. They will be recreated on demand
 		this.#currentStageReaders = new Map();
@@ -392,6 +388,34 @@ class ProjectResources {
 	}
 
 	/**
+	 * Imports tag operations into the underlying tag collections.
+	 *
+	 * This is used during delta builds to apply tag operations from a previous stage cache
+	 * that would otherwise be lost because the delta execution only records its own tag operations.
+	 *
+	 * @param {Map<string, Map<string, {string|number|boolean|undefined}>>} [projectTagOperations]
+	 * @param {Map<string, Map<string, {string|number|boolean|undefined}>>} [buildTagOperations]
+	 */
+	importTagOperations(projectTagOperations, buildTagOperations) {
+		if (projectTagOperations?.size) {
+			const projectTagCollection = this.#getProjectResourceTagCollection();
+			for (const [resourcePath, tags] of projectTagOperations.entries()) {
+				for (const [tag, value] of tags.entries()) {
+					projectTagCollection.setTag(resourcePath, tag, value);
+				}
+			}
+		}
+		if (buildTagOperations?.size) {
+			const buildTagCollection = this.#getBuildResourceTagCollection();
+			for (const [resourcePath, tags] of buildTagOperations.entries()) {
+				for (const [tag, value] of tags.entries()) {
+					buildTagCollection.setTag(resourcePath, tag, value);
+				}
+			}
+		}
+	}
+
+	/**
 	 * Returns the project-level resource tag collection.
 	 *
 	 * This provides direct access to the collection holding project-level tags
@@ -431,7 +455,7 @@ class ProjectResources {
 		const cachedProjectTagOps = [];
 		const cachedBuildTagOps = [];
 
-		for (let i = this.#lastTagCacheImportIndex + 1; i <= this.#currentTagCacheImportIndex; i++) {
+		for (let i = this.#lastTagCacheImportIndex + 1; i <= this.#currentStageReadIndex; i++) {
 			const projectTagOps = this.#stages[i].getCachedProjectTagOperations();
 			if (projectTagOps) {
 				cachedProjectTagOps.push(projectTagOps);
@@ -442,17 +466,7 @@ class ProjectResources {
 			}
 		}
 
-		// if (this.#currentStage) {
-		// 	const projectTagOps = this.#currentStage.getCachedProjectTagOperations();
-		// 	if (projectTagOps) {
-		// 		cachedProjectTagOps.push(projectTagOps);
-		// 	}
-		// 	const buildTagOps = this.#currentStage.getCachedBuildTagOperations();
-		// 	if (buildTagOps) {
-		// 		cachedBuildTagOps.push(buildTagOps);
-		// 	}
-		// }
-		this.#lastTagCacheImportIndex = this.#currentTagCacheImportIndex;
+		this.#lastTagCacheImportIndex = this.#currentStageReadIndex;
 
 		const projectTagOps = mergeMaps(...cachedProjectTagOps);
 		const buildTagOps = mergeMaps(...cachedBuildTagOps);

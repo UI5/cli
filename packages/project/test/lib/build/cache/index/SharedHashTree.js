@@ -10,7 +10,8 @@ function createMockResource(path, integrity, lastModified, size, inode) {
 		getIntegrity: async () => integrity,
 		getLastModified: () => lastModified,
 		getSize: async () => size,
-		getInode: () => inode
+		getInode: () => inode,
+		getTags: () => null
 	};
 }
 

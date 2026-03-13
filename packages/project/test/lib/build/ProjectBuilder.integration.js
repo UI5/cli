@@ -638,7 +638,7 @@ test.serial.skip("Build application.a (dependency content changes)", async (t) =
 
 // FIXME: This test may fail until runtime tag handling bugs are fixed.
 // It tests that a tag change on a dependency resource triggers a rebuild of the dependent project.
-test.serial.skip("Build application.a (cross-project tag change)", async (t) => {
+test.serial("Build application.a (cross-project tag change)", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
 	await fixtureTester._initialize();
@@ -668,7 +668,10 @@ builder:
 	// dep-tag-reader verifies project:FirstBuild is present
 	await fixtureTester.buildProject({
 		graphConfig: {rootConfigPath: "ui5-crossProject-tagChange.yaml"},
-		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		config: {
+			destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true},
+			excludedTasks: ["minify"],
+		},
 		assertions: {
 			projects: {
 				"library.d": {},
@@ -683,7 +686,10 @@ builder:
 	// #2 build (cache, no changes) → all skipped
 	await fixtureTester.buildProject({
 		graphConfig: {rootConfigPath: "ui5-crossProject-tagChange.yaml"},
-		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		config: {
+			destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true},
+			excludedTasks: ["minify"],
+		},
 		assertions: {
 			projects: {}
 		}
@@ -700,13 +706,17 @@ builder:
 	// dep-tag-reader verifies project:SubsequentBuild is present
 	await fixtureTester.buildProject({
 		graphConfig: {rootConfigPath: "ui5-crossProject-tagChange.yaml"},
-		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		config: {
+			destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true},
+			excludedTasks: ["minify"],
+		},
 		assertions: {
 			projects: {
 				"library.d": {
 					// FIXME: skippedTasks need empirical determination once runtime bugs are fixed
 					skippedTasks: [
 						"buildThemes",
+						"enhanceManifest",
 						"escapeNonAsciiCharacters",
 						"replaceBuildtime",
 					]
@@ -714,9 +724,12 @@ builder:
 				"application.a": {
 					// FIXME: skippedTasks need empirical determination once runtime bugs are fixed
 					skippedTasks: [
+						"enhanceManifest",
 						"escapeNonAsciiCharacters",
+						"generateComponentPreload",
 						"generateFlexChangesBundle",
 						"replaceCopyright",
+						"replaceVersion",
 					]
 				},
 			}
@@ -726,7 +739,10 @@ builder:
 	// #4 build (cache, no changes) → all skipped
 	await fixtureTester.buildProject({
 		graphConfig: {rootConfigPath: "ui5-crossProject-tagChange.yaml"},
-		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		config: {
+			destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true},
+			excludedTasks: ["minify"],
+		},
 		assertions: {
 			projects: {}
 		}
