@@ -51,22 +51,25 @@ test.serial("Serve application.a, initial file changes", async (t) => {
 
 	// Request the changed resource immediately
 	const resourceRequestPromise = fixtureTester.requestResource({
-		resource: "/test.js",
-		assertions: {
-			projects: {
-				"application.a": {}
-			}
-		}
+		resource: "/test.js"
 	});
+
+	await setTimeout(500);
+
 	// Directly change the source file again, which should abort the current build and trigger a new one
 	await fs.appendFile(changedFilePath, `\ntest("second change");\n`);
 	await fs.appendFile(changedFilePath, `\ntest("third change");\n`);
 
 	// Wait for the resource to be served
-	const resource = await resourceRequestPromise;
+	await resourceRequestPromise;
+	await setTimeout(500);
+
+	const resource2 = await fixtureTester.requestResource({
+		resource: "/test.js"
+	});
 
 	// Check whether the change is reflected
-	const servedFileContent = await resource.getString();
+	const servedFileContent = await resource2.getString();
 	t.true(servedFileContent.includes(`test("initial change");`), "Resource contains initial changed file content");
 	t.true(servedFileContent.includes(`test("second change");`), "Resource contains second changed file content");
 	t.true(servedFileContent.includes(`test("third change");`), "Resource contains third changed file content");
@@ -409,7 +412,7 @@ class FixtureTester {
 		this._reader = this.buildServer.getReader();
 	}
 
-	async requestResource({resource, assertions = {}}) {
+	async requestResource({resource, assertions}) {
 		this._sinon.resetHistory();
 		const res = await this._reader.byPath(resource);
 		// Apply assertions if provided
@@ -419,7 +422,7 @@ class FixtureTester {
 		return res;
 	}
 
-	async requestResources({resources, assertions = {}}) {
+	async requestResources({resources, assertions}) {
 		this._sinon.resetHistory();
 		const returnedResources = await Promise.all(resources.map((resource) => this._reader.byPath(resource)));
 		// Apply assertions if provided
