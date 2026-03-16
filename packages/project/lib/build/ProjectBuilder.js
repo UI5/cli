@@ -323,7 +323,7 @@ class ProjectBuilder {
 						this.#log.skipProjectBuild(projectName, projectType);
 						alreadyBuilt.push(projectName);
 					} else {
-						await this._buildProject(projectBuildContext);
+						await this._buildProject(projectBuildContext, signal);
 					}
 				}
 				signal?.throwIfAborted();
