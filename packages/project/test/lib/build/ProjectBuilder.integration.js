@@ -636,8 +636,6 @@ test.serial.skip("Build application.a (dependency content changes)", async (t) =
 	t.true(builtFileContent2.includes(`console.log('something new');`), "Build dest contains changed file content");
 });
 
-// FIXME: This test may fail until runtime tag handling bugs are fixed.
-// It tests that a tag change on a dependency resource triggers a rebuild of the dependent project.
 test.serial("Build application.a (cross-project tag change)", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
