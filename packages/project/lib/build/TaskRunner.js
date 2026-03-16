@@ -141,6 +141,7 @@ class TaskRunner {
 				await this._executeTask(taskName, taskFunction);
 			}
 		}
+		signal?.throwIfAborted();
 		return await this._buildCache.allTasksCompleted();
 	}
 
