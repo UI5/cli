@@ -118,7 +118,7 @@ test.serial("Build application.a project multiple times", async (t) => {
 	});
 
 
-	// #6 build (with cache, no changes, with custom tasks)
+	// #7 build (with cache, no changes, with custom tasks)
 	await fixtureTester.buildProject({
 		graphConfig: {rootConfigPath: "ui5-customTask.yaml"},
 		config: {destPath, cleanDest: true},
@@ -130,7 +130,7 @@ test.serial("Build application.a project multiple times", async (t) => {
 	});
 
 
-	// #7 build (with cache, no changes, with custom tasks)
+	// #8 build (with cache, no changes, with custom tasks)
 	await fixtureTester.buildProject({
 		graphConfig: {rootConfigPath: "ui5-customTask.yaml"},
 		config: {destPath, cleanDest: true},
@@ -140,7 +140,7 @@ test.serial("Build application.a project multiple times", async (t) => {
 	});
 
 
-	// #8 build (with cache, no changes, with dependencies)
+	// #9 build (with cache, no changes, with dependencies)
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
@@ -170,7 +170,7 @@ test.serial("Build application.a project multiple times", async (t) => {
 		)
 	);
 
-	// #9 build (with cache, with changes)
+	// #10 build (with cache, with changes)
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true},
 		assertions: {
@@ -193,8 +193,8 @@ test.serial("Build application.a project multiple times", async (t) => {
 		`console.log("SOME NEW CONTENT");\n`
 	);
 
-	// #10 build (with cache, with changes - someNew.js added)
-	// Tasks that don't depend on someNew.js can reuse their caches from build #9.
+	// #11 build (with cache, with changes - someNew.js added)
+	// Tasks that don't depend on someNew.js can reuse their caches from build #10.
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true},
 		assertions: {
@@ -211,8 +211,8 @@ test.serial("Build application.a project multiple times", async (t) => {
 
 	await fs.rm(`${fixtureTester.fixturePath}/webapp/someNew.js`);
 
-	// #11 build (with cache, with changes - someNew.js removed)
-	// Source state matches build #9's cached result -> cache reused, everything skipped
+	// #12 build (with cache, with changes - someNew.js removed)
+	// Source state matches build #10's cached result -> cache reused, everything skipped
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true},
 		assertions: {
@@ -335,6 +335,87 @@ test.serial("Build application.a (with various dependencies)", async (t) => {
 			}
 		}
 	});
+});
+
+test.serial("Build application.a (including only some dependencies)", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+
+	// In this test, we're testing the "dependencyIncludes" build option
+	// which allows to include only a subset of the dependencies of a project in the build.
+	// "application.a" has 4 dependencies defined: library.a, library.b, library.c and library.d.
+
+	// #1 build
+	// Only include library.a and library.b as dependencies, but not library.c and library.d:
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: false,
+			dependencyIncludes: {includeDependency: ["library.a", "library.b"]}},
+		assertions: {
+			projects: {
+				"library.a": {},
+				"library.b": {},
+				"application.a": {}
+			}
+		}
+	});
+
+	// Check that only the included dependencies are in the destPath:
+	await t.notThrowsAsync(fs.readFile(`${destPath}/resources/library/a/library-preload.js`,
+		{encoding: "utf8"}));
+	await t.notThrowsAsync(fs.readFile(`${destPath}/resources/library/b/library-preload.js`,
+		{encoding: "utf8"}));
+	await t.throwsAsync(fs.readFile(`${destPath}/resources/library/c/library-preload.js`,
+		{encoding: "utf8"}));
+	await t.throwsAsync(fs.readFile(`${destPath}/resources/library/d/library-preload.js`,
+		{encoding: "utf8"}));
+
+
+	// #2 build
+	// Exclude library.d as dependency, but include all other dependencies
+	// (builds of library.a and library.b can be reused from cache):
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: false,
+			dependencyIncludes: {includeAllDependencies: true, excludeDependency: ["library.d"]}},
+		assertions: {
+			projects: {
+				"library.c": {},
+			}
+		}
+	});
+
+	// Check that only the included dependencies are in the destPath:
+	await t.notThrowsAsync(fs.readFile(`${destPath}/resources/library/a/library-preload.js`,
+		{encoding: "utf8"}));
+	await t.notThrowsAsync(fs.readFile(`${destPath}/resources/library/b/library-preload.js`,
+		{encoding: "utf8"}));
+	await t.notThrowsAsync(fs.readFile(`${destPath}/resources/library/c/library-preload.js`,
+		{encoding: "utf8"}));
+	await t.throwsAsync(fs.readFile(`${destPath}/resources/library/d/library-preload.js`,
+		{encoding: "utf8"}));
+
+
+	// #3 build
+	// Include all dependencies (only library.d is built)
+	// (builds of library.a, library.b, and library.c can be reused from cache):
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: false,
+			dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {
+				"library.d": {},
+			}
+		}
+	});
+
+	// Check that all dependencies are in the destPath:
+	await t.notThrowsAsync(fs.readFile(`${destPath}/resources/library/a/library-preload.js`,
+		{encoding: "utf8"}));
+	await t.notThrowsAsync(fs.readFile(`${destPath}/resources/library/b/library-preload.js`,
+		{encoding: "utf8"}));
+	await t.notThrowsAsync(fs.readFile(`${destPath}/resources/library/c/library-preload.js`,
+		{encoding: "utf8"}));
+	await t.notThrowsAsync(fs.readFile(`${destPath}/resources/library/d/library-preload.js`,
+		{encoding: "utf8"}));
 });
 
 test.serial("Build application.a (custom task and tag handling)", async (t) => {
