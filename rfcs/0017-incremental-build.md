@@ -494,7 +494,8 @@ A global `cas` directory stores all unique file contents from all builds, while 
 ├── index/
 ├── stageMetadata/
 ├── taskMetadata/
-└── resultMetadata/
+├── resultMetadata/
+└── locks/
 ```
 
 A new `buildCache` directory shall be added to the ~/.ui5/ directory. The location of this directory can be configured using the [`UI5_DATA_DIR` environment variable](https://ui5.github.io/cli/stable/pages/Troubleshooting/#environment-variable-ui5_data_dir).
@@ -541,7 +542,9 @@ After a *project* has finished building, a list of all modified resources is com
 
 Parallel builds of the same project are not supported. A lock mechanism is used to ensure that only one build process is active at a time for a given project. This simplifies cache management and avoids the complexity of concurrent cache reads/writes and cross-project invalidation during parallel execution.
 
-For the cache specifically, this can be achieved by creating a lock for the build signature. When starting the build, a shared or "read lock" shall be acquired. This allows multiple processes to read from the cache concurrently. Only when updating, i.e. writing new resources to the content-addressable store and updating the metadata cache, shall an exclusive or "write lock" be acquired. This prevents other processes from reading or writing to the cache while it is being updated.
+For the cache specifically, this can be achieved by creating a lock for the build signature. When starting the build, a shared or "read lock" shall be acquired. This allows multiple processes to read from the cache concurrently. Only when updating, i.e. writing new resources to the content-addressable store and updating the metadata cache, shall an exclusive or "write lock" be acquired. This prevents other processes from reading or writing to the cache while it is being updated. It remains to be checked whether there is potential for deadlocks, in which case a more advanced locking mechanism is required. E.g. write-locking all projects that might require a build already at the beginning of the build rather than locking individual projects during the build execution. Alternatively, timeouts can be used to release and retry locks in case of deadlocks, at dynamically increasing time intervals.
+
+The lock files shall be stored in the [Cache Directory Structure](#cache-directory-structure) under a dedicated `locks` directory. Each lock file is named after the corresponding build signature and the type of lock (read or write).
 
 ### Garbage Collection
 
