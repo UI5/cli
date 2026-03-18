@@ -1,13 +1,13 @@
 <mxfile host="65bd71144e">
     <diagram name="Build Task Sequence" id="build-task-sequence">
-        <mxGraphModel dx="1400" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="1654" math="0" shadow="0">
+        <mxGraphModel dx="752" dy="399" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="1654" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
                 <mxCell id="11" value="ui5 build" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1.5;" parent="1" vertex="1">
                     <mxGeometry x="80" y="80" width="180" height="40" as="geometry"/>
                 </mxCell>
-                <mxCell id="12" value="generateBundle" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1.5;" parent="1" vertex="1">
+                <mxCell id="12" value="generateFlexChangesBundle" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1.5;" parent="1" vertex="1">
                     <mxGeometry x="320" y="80" width="180" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="13" value="bundleNpmPackages (NEW)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1.5;" parent="1" vertex="1">
@@ -105,7 +105,7 @@
                 <mxCell id="38" value="Write to workspace (resources/thirdparty/*.js)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" parent="1" vertex="1">
                     <mxGeometry x="520.5" y="496" width="300" height="36" as="geometry"/>
                 </mxCell>
-                <mxCell id="44" value="For each package/entry" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;endFill=1;strokeColor=#000000;align=center;verticalAlign=bottom;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" target="46" source="48">
+                <mxCell id="44" value="For each package/entry" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;endFill=1;strokeColor=#000000;align=center;verticalAlign=bottom;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="48" target="46" edge="1">
                     <mxGeometry x="-0.0509" relative="1" as="geometry">
                         <mxPoint x="670" y="390" as="targetPoint"/>
                         <mxPoint x="671" y="540" as="sourcePoint"/>
@@ -116,16 +116,16 @@
                         <mxPoint as="offset"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="47" value="" style="endArrow=none;dashed=1;strokeWidth=1.5;strokeColor=#000000;" edge="1" parent="1" source="13" target="46">
+                <mxCell id="47" value="" style="endArrow=none;dashed=1;strokeWidth=1.5;strokeColor=#000000;" parent="1" source="13" target="46" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <mxPoint x="670" y="120" as="sourcePoint"/>
                         <mxPoint x="670" y="760" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="46" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+                <mxCell id="46" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;" parent="1" vertex="1">
                     <mxGeometry x="665.5" y="380" width="10" height="10" as="geometry"/>
                 </mxCell>
-                <mxCell id="48" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+                <mxCell id="48" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;" parent="1" vertex="1">
                     <mxGeometry x="665.5" y="540" width="10" height="10" as="geometry"/>
                 </mxCell>
             </root>

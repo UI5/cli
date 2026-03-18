@@ -3,7 +3,7 @@
 - Issue: -
 - Affected components
    + [X] [ui5-builder](../packages/builder)
-   + [X] [ui5-server](../packages/server)
+   + [ ] [ui5-server](../packages/server)
    + [ ] [ui5-cli](../packages/cli)
    + [ ] [ui5-fs](../packages/fs)
    + [X] [ui5-project](../packages/project)
@@ -13,7 +13,7 @@
 
 ## 1. Summary
 
-Enable seamless integration of NPM packages (ESM, CJS, and UI5 Web Components) into UI5 applications and libraries by providing a built-in standard task and middleware that automatically transforms packages from their native format to UI5's AMD module format using Rollup.js.
+Enable seamless integration of NPM packages (ESM, CJS, and UI5 Web Components) into UI5 applications and libraries by providing a built-in standard build task that automatically transforms packages from their native format to UI5's AMD module format using Rollup.js.
 
 This RFC focuses on the implementation mechanics:
 
@@ -52,7 +52,7 @@ UI5 applications face significant challenges when consuming NPM packages:
 
 - **Out-of-the-Box Integration** — NPM packages work without configuration
 - **Build-Time Transformation** — Automatic bundling during `ui5 build`
-- **Dev-Time Support** — On-demand bundling during `ui5 serve`
+- **Dev-Time Support** — On-demand bundling during `ui5 serve` (deferred to [RFC 0017 Incremental Build](https://github.com/UI5/cli/blob/rfc-incremental-build/rfcs/0017-incremental-build.md))
 - **Standard Compliance** — Output follows UI5's AMD module format and naming conventions
 - **Web Component Support** — First-class `@ui5/webcomponents` integration with UI5 control wrappers
 - **Performance Optimization** — Package independence enables deduplication and browser caching
@@ -299,7 +299,7 @@ The NPM bundling task integrates into the existing build pipeline as a standard 
 
 ![NPM Build Task Diagram](./resources/0020-npm-integration/build-task-sequence.svg)
 
-**Why after `generateBundle`?** The scanner needs all source resources to be resolved and available. **Why before `generateComponentPreload`?** The generated NPM bundles must be included in the Component-preload.js for production deployment.
+**Why after `generateFlexChangesBundle`?** The scanner needs all source resources to be resolved and available. **Why before `generateComponentPreload`?** The generated NPM bundles must be included in the Component-preload.js for production deployment.
 
 #### 3.6.2 Task Interface
 
@@ -697,7 +697,7 @@ Patches are expected to be **temporary**. The recommended lifecycle:
    - Mitigation: Incremental builds (RFC 0017) will avoid rebundling unchanged packages
 
 4. **Complexity** — External dependency management requires understanding
-   - Mitigation: Auto-detection from `peerDependencies` in most cases; clear error messages
+   - Mitigation: Auto-detection via transitive dependency consolidation ([Section 3.8.3](#383-externals-discovery-via-transitive-dependency-consolidation)); clear error messages
 
 ---
 
