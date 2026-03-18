@@ -1,0 +1,134 @@
+<mxfile host="65bd71144e">
+    <diagram name="Build Task Sequence" id="build-task-sequence">
+        <mxGraphModel dx="752" dy="399" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="1654" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="11" value="ui5 build" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="80" y="80" width="180" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="12" value="generateFlexChangesBundle" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="320" y="80" width="180" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="13" value="bundleNpmPackages (NEW)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="560" y="80" width="220" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="14" value="generateComponentPreload" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=1.5;" parent="1" vertex="1">
+                    <mxGeometry x="840" y="80" width="220" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="20" value="" style="endArrow=none;dashed=1;strokeWidth=1.5;strokeColor=#000000;" parent="1" source="11" target="21" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="21" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="170" y="760" width="1" height="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="22" value="" style="endArrow=none;dashed=1;strokeWidth=1.5;strokeColor=#000000;" parent="1" source="12" target="23" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="23" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="410" y="760" width="1" height="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="24" value="" style="endArrow=none;dashed=1;strokeWidth=1.5;strokeColor=#000000;" parent="1" source="46" target="25" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="25" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="670" y="760" width="1" height="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="26" value="" style="endArrow=none;dashed=1;strokeWidth=1.5;strokeColor=#000000;" parent="1" source="14" target="27" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="27" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="950" y="760" width="1" height="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="30" value="Execute existing bundle task" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;endFill=1;strokeColor=#000000;align=center;verticalAlign=bottom;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="410" y="150" as="targetPoint"/>
+                        <mxPoint x="170" y="150" as="sourcePoint"/>
+                        <Array as="points">
+                            <mxPoint x="170" y="150"/>
+                            <mxPoint x="410" y="150"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="31" value="After bundle generation" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;endFill=1;strokeColor=#000000;align=center;verticalAlign=bottom;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="670" y="180" as="targetPoint"/>
+                        <mxPoint x="410" y="180" as="sourcePoint"/>
+                        <Array as="points">
+                            <mxPoint x="410" y="180"/>
+                            <mxPoint x="670" y="180"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="32" value="Collect NPM packages from ResourceCollector" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="530" y="220" width="280" height="42" as="geometry"/>
+                </mxCell>
+                <mxCell id="33" value="Read package.json" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="560" y="275" width="220" height="36" as="geometry"/>
+                </mxCell>
+                <mxCell id="34" value="Topological sort" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="570" y="330" width="200" height="36" as="geometry"/>
+                </mxCell>
+                <mxCell id="39" value="5) Rewrite source paths (if addToNamespace: true)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="520" y="575" width="320" height="42" as="geometry"/>
+                </mxCell>
+                <mxCell id="40" value="Before component preload" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;endFill=1;strokeColor=#000000;align=center;verticalAlign=bottom;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="950" y="660" as="targetPoint"/>
+                        <mxPoint x="670" y="660" as="sourcePoint"/>
+                        <Array as="points">
+                            <mxPoint x="670" y="660"/>
+                            <mxPoint x="950" y="660"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="41" value="Includes thirdparty/ files" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="845.5" y="680" width="210" height="36" as="geometry"/>
+                </mxCell>
+                <mxCell id="42" value="Continue remaining tasks" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;endFill=1;strokeColor=#000000;align=center;verticalAlign=bottom;" parent="1" edge="1">
+                    <mxGeometry x="0.1034" y="-10" relative="1" as="geometry">
+                        <mxPoint x="950" y="741" as="sourcePoint"/>
+                        <mxPoint x="170" y="740.9803682215073" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="950" y="740"/>
+                            <mxPoint x="170" y="740"/>
+                        </Array>
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="36" value="Create Rollup config (entry, externals, paths)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="520.5" y="400" width="300" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="37" value="Execute Rollup (tree-shaken AMD bundle)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="520.5" y="448" width="300" height="38" as="geometry"/>
+                </mxCell>
+                <mxCell id="38" value="Write to workspace (resources/thirdparty/*.js)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="520.5" y="496" width="300" height="36" as="geometry"/>
+                </mxCell>
+                <mxCell id="44" value="For each package/entry" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=classic;endFill=1;strokeColor=#000000;align=center;verticalAlign=bottom;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="48" target="46" edge="1">
+                    <mxGeometry x="-0.0509" relative="1" as="geometry">
+                        <mxPoint x="670" y="390" as="targetPoint"/>
+                        <mxPoint x="671" y="540" as="sourcePoint"/>
+                        <Array as="points">
+                            <mxPoint x="890" y="545"/>
+                            <mxPoint x="890" y="385"/>
+                        </Array>
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="47" value="" style="endArrow=none;dashed=1;strokeWidth=1.5;strokeColor=#000000;" parent="1" source="13" target="46" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="670" y="120" as="sourcePoint"/>
+                        <mxPoint x="670" y="760" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="46" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="665.5" y="380" width="10" height="10" as="geometry"/>
+                </mxCell>
+                <mxCell id="48" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;" parent="1" vertex="1">
+                    <mxGeometry x="665.5" y="540" width="10" height="10" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
