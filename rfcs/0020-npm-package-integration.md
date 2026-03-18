@@ -69,13 +69,15 @@ The solution consists of four phases working together:
 
 - **Phase 1: Integrated Dependency Analysis** — The existing `JSModuleAnalyzer` and `XMLTemplateAnalyzer` are extended to detect `thirdparty/*` patterns during their regular AST traversal. `espree.parse` walks the AST looking for `thirdparty/*` in AMD dependency arrays and ESM import statements, while `XMLTemplateAnalyzer` scans for `xmlns:thirdparty.*` declarations. `ResourceCollector` aggregates all detected NPM package names across all analyzed resources. **Key architectural decision**: This piggybacks on the AST parsing that already occurs for UI5 dependency analysis — no separate scanning phase is needed, eliminating duplicate parsing overhead. Output: a deduplicated set of NPM package names (e.g., `['chart.js', 'react', 'react-dom', '@ui5/webcomponents']`).
 
-- **Phase 2: Rollup Bundler** — Each detected NPM package is fed to the Rollup build pipeline as an entry point. Rollup resolves entry points and discovers transitive dependencies automatically via `@rollup/plugin-node-resolve`. The externals configuration prevents shared dependencies from being duplicated (e.g., `react` is external to `react-dom`'s bundle). The plugin transformation chain converts code through CJS -> ESM -> tree-shaken ESM -> AMD (`sap.ui.define`). External references are remapped via `paths` so that the UI5 module loader can resolve them at runtime (e.g., `'react'` -> `'thirdparty/react'`). Packages are bundled in topological order so that dependencies are available before dependents. Output: optimized AMD modules (e.g., `react.js` 19KB, `react-dom.js` 577KB with AMD dependency on `thirdparty/react`).
+- **Transitive Dependency Consolidation** — Before Rollup runs, each scanned package's full transitive dependency tree is enumerated by walking `package.json` `dependencies` fields recursively. Any transitive dependency appearing in two or more trees must be externalized — bundled as its own standalone AMD module rather than being inlined into each consumer's bundle. This produces an externals map (which deps to exclude per package) and may add newly-discovered shared packages to the bundle set (see [Section 3.8.3](#383-externals-discovery-via-transitive-dependency-consolidation)).
+
+- **Phase 2: Rollup Bundler** — Each package (from the augmented set) is fed to the Rollup build pipeline as an entry point, together with its externals list from Phase 1b. Rollup resolves entry points and discovers file-level dependencies automatically via `@rollup/plugin-node-resolve`. Externalized packages are excluded from inlining and their references are remapped via `paths` so that the UI5 module loader can resolve them at runtime (e.g., `'react'` -> `'thirdparty/react'`). The plugin transformation chain converts code through CJS -> ESM -> tree-shaken ESM -> AMD (`sap.ui.define`). Packages are bundled in topological order so that dependencies are available before dependents. Output: optimized AMD modules (e.g., `react.js` 19KB, `react-dom.js` 577KB with AMD dependency on `thirdparty/react`).
 
 - **Phase 3: Output Writer** — Bundled AMD modules are written to `resources/thirdparty/*.js` in the workspace. When `addToNamespace: true` (the default for Fiori Launchpad compatibility), source file paths are rewritten to include the component namespace prefix. Output: final files ready for deployment (e.g., `chart.js` as a standalone module, `react.js` and `react-dom.js` with AMD inter-dependencies, `@ui5/webcomponents/` with generated UI5 control wrappers).
 
 **Key Principles:**
 
-1. **Scan source only** — let Rollup discover transitive dependencies automatically
+1. **Scan source for direct refs only** — only extract top-level `thirdparty/*` package names from application code; discover shared transitive deps via `package.json` consolidation, then let Rollup handle file-level resolution
 2. **One package = one AMD module** — enables browser caching and deduplication
 3. **Externals for shared deps** — avoid duplicating common libraries (e.g., React)
 4. **Build-time transformation** — all bundling during `ui5 build` or `ui5 serve`
@@ -211,7 +213,9 @@ This prevents accidental bundling of packages not declared as project dependenci
 
 #### 3.4.5 "Let Rollup Handle the Rest"
 
-A critical design principle: the scanner only extracts **top-level NPM package names** from application source files. All further dependency resolution — transitive dependencies, version resolution, entry point discovery, file system traversal — is delegated entirely to Rollup and its `nodeResolve` plugin. This avoids reimplementing Node.js module resolution logic.
+A critical design principle: the scanner only extracts **top-level NPM package names** from application source files. All further **file-level** dependency resolution — entry point discovery, internal module imports, file system traversal — is delegated entirely to Rollup and its `nodeResolve` plugin. This avoids reimplementing Node.js module resolution logic.
+
+There is one exception: **externals discovery** runs before Rollup as a `package.json`-level analysis step. For each scanned package, the transitive dependency consolidation algorithm ([Section 3.8.3](#383-externals-discovery-via-transitive-dependency-consolidation)) enumerates transitive dependencies by walking `package.json` `dependencies` fields — it never reads source code. This step determines which packages should be external vs. inlined, producing the externals map that Rollup receives as configuration. Rollup then handles all file-level resolution within that constraint.
 
 ---
 
@@ -427,7 +431,50 @@ When packages A and B both depend on C, bundling without externals duplicates C 
 
 The externals + paths mechanism solves this: `react-dom` and `react-colorful` declare `react` as external, and their AMD output references `thirdparty/react` instead of inlining React's code.
 
-#### 3.8.3 Build Order Optimization
+#### 3.8.3 Externals Discovery via Transitive Dependency Consolidation
+
+The scanner ([Section 3.4](#34-dependency-scanning-strategy)) only finds packages explicitly referenced in application source via the `thirdparty/*` convention. But how does the build know *which* transitive dependencies must be externalized? The answer comes from **enumerating and consolidating transitive dependency trees** — a pre-Rollup analysis step that runs between scanning and bundling.
+
+**Step 1 — Enumerate**: For each scanned package, walk its `package.json` `dependencies` field recursively to build the full transitive dependency tree. This uses the same `node_modules` structure that Rollup would later traverse — but only reads `package.json` files, not source code.
+
+Example with scanned set `{react-colorful, react-dom, chart.js}`:
+
+| Scanned Package | Transitive Dependencies |
+|-----------------|------------------------|
+| `react-colorful` | `react`, `react-dom` |
+| `react-dom` | `react`, `scheduler` |
+| `chart.js` | *(none)* |
+
+**Step 2 — Consolidate**: Build an inverted index — for each transitive dependency, record which scanned packages depend on it.
+
+| Transitive Dep | Depended on by | Count |
+|----------------|---------------|-------|
+| `react` | `react-colorful`, `react-dom` | 2 |
+| `react-dom` | `react-colorful` | 1 |
+| `scheduler` | `react-dom` | 1 |
+
+**Step 3 — Decide**: Any transitive dependency appearing in **two or more** scanned packages' trees must be externalized — bundled as its own separate AMD module rather than inlined into each consumer. Dependencies appearing in only one tree are safe to inline (Rollup handles them automatically).
+
+| Transitive Dep | Count | Decision |
+|----------------|-------|----------|
+| `react` | 2 | **Externalize** — bundle as `thirdparty/react.js` |
+| `react-dom` | 1 | Inline into `react-colorful`'s bundle (but `react-dom` is also a scanned package, so it gets its own bundle anyway) |
+| `scheduler` | 1 | Inline into `react-dom`'s bundle |
+
+The output is two data structures:
+
+- **Externals map**: for each scanned package, the list of its transitive deps that must NOT be inlined. E.g., `{ "react-colorful": ["react"], "react-dom": ["react"], "chart.js": [] }`
+- **Additional bundle set**: transitive deps not in the original scan set but identified as shared — these must be bundled as standalone AMD modules too (e.g., if `react` was not explicitly scanned but appears in two or more trees, it gets added to the bundle list)
+
+This approach is more robust than relying solely on `peerDependencies` because:
+
+- Not all shared dependencies declare peer dependencies (e.g., `scheduler` inside `react-dom`)
+- It detects **actual sharing** based on the concrete dependency graph rather than declared intentions
+- It works identically regardless of whether the shared dep is a peer dependency, a regular dependency, or both
+
+**Relationship with "Let Rollup Handle the Rest" ([Section 3.4.5](#345-let-rollup-handle-the-rest))**: Rollup still handles all file-level resolution (entry points, internal imports, polyfills) during bundling. The consolidation step only determines *which packages* should be external vs. inlined — it reads `package.json` dependency metadata, not source code.
+
+#### 3.8.4 Build Order Optimization
 
 At **build time**, packages must be bundled in topological order (dependencies first) so that externals are resolved correctly:
 
