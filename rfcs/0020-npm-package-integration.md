@@ -9,7 +9,7 @@
    + [X] [ui5-project](../packages/project)
    + [ ] [ui5-logger](../packages/logger)
 
-# RFC 0020 NPM Package Integration — Implementation
+# RFC 0020 NPM Package Integration
 
 ## 1. Summary
 
@@ -55,7 +55,7 @@ UI5 applications face significant challenges when consuming NPM packages:
 - **Dev-Time Support** — On-demand bundling during `ui5 serve` (deferred to [RFC 0017 Incremental Build](https://github.com/UI5/cli/blob/rfc-incremental-build/rfcs/0017-incremental-build.md))
 - **Standard Compliance** — Output follows UI5's AMD module format and naming conventions
 - **Web Component Support** — First-class `@ui5/webcomponents` integration with UI5 control wrappers
-- **Performance Optimization** — Package independence enables deduplication and browser caching
+- **Performance Optimization** — Shared transitive dependencies are extracted into standalone AMD modules (see [3.8.3](#383-externals-discovery-via-transitive-dependency-consolidation)), avoiding duplicate code across bundles and enabling the browser to cache common dependencies (e.g., `react`) once rather than re-downloading them inside every consuming package
 
 ---
 
@@ -123,21 +123,27 @@ Every scenario runs **dual bundling**: the custom Rollup pipeline and `ui5-tooli
 
 | Scenario | Package | Format | What It Validates |
 |----------|---------|--------|-------------------|
-| ESM Integration | `nanoid` | Pure ESM | ESM-only package -> clean AMD
+| ESM Integration | `nanoid` | Pure ESM | ESM-only package -> clean AMD |
 | CJS Integration | `lodash` | Pure CJS | CJS -> ESM -> AMD via `commonjs` plugin |
-| Web Components | `@ui5/webomponents` | ESM + Custom Elements Manifest | Metadata extraction, UI5 wrapper generation, tag 
-| Complex Package | `sinon` | Mixed deps | Deep dependency trees, tree-shaking effe |
+| Web Components | `@ui5/webcomponents` | ESM + Custom Elements Manifest | Metadata extraction, UI5 wrapper generation, tag name scoping |
+| Complex Package | `sinon` | Mixed deps | Deep dependency trees, tree-shaking effectiveness |
 | Transitive Deps | `axios` | Transitive | Auto-resolution of transitive dependency chains |
-| Consolidated App | chart.js, lidator, React ecosystem | Mixed | Externals, paths mapping, topological ordering, full pipeline |
+| Consolidated App | chart.js, validator, React ecosystem | Mixed | Externals, paths mapping, topological ordering, full pipeline |
 
 
 ### 3.3 Reusable Patterns from `ui5-tooling-modules`
 
-The community package `ui5-tooling-modules` provides battle-tested patterns that inform this RFC's design. This section maps each reusable pattern to its RFC integration point.
+The community package [`ui5-tooling-modules`](https://www.npmjs.com/package/ui5-tooling-modules) provides battle-tested patterns that inform this RFC's design. Understanding how it works is essential context for the design choices in this RFC.
+
+**How `ui5-tooling-modules` detects NPM packages (heuristic approach):**  `ui5-tooling-modules` uses **bare package names** in developer source code — e.g., `sap.ui.define(["chart.js"], function(chartjs) { ... })`. At build time, its `scan()` function reads every JS/TS/JSX/TSX/XML source file, parses the AST, and extracts **all** dependency strings from `sap.ui.define`, `sap.ui.require`, ES6 `import`, and XML `xmlns` attributes. For each extracted dependency name, it calls `require.resolve()` (with `.js`, `.cjs`, `.mjs` extension probing) to determine whether the name corresponds to an installed NPM package. If resolution succeeds and the resolved path falls within a declared dependency's `node_modules` subtree, the dependency is treated as an NPM package and bundled. If resolution fails, the dependency is assumed to be a UI5-internal module and skipped. This heuristic-based approach means there is **no syntactic distinction** in developer source code between a UI5 module reference and an NPM package reference — the build tool determines the boundary implicitly via filesystem probing at build time.
+
+Notably, `ui5-tooling-modules` also uses a `thirdparty/` namespace — but only at **build output** time. When `addToNamespace: true` (its default since recent versions), the `rewriteDep()` function in its task rewrites bare package references to `{projectNamespace}/thirdparty/{packageName}` in all source files after bundling. So the final deployed output uses the same `thirdparty/` convention that this RFC proposes — the difference is that this RFC makes the convention explicit in developer-authored source code (see [3.4.2](#342-the-thirdparty-convention) for rationale).
+
+This section maps each reusable pattern to its RFC integration point.
 
 | # | Pattern | Reuse Strategy |
 |---|---------|----------------|
-| 1 | Dependency scanning | **Redesign**: integrate into JSModuleAnalyzer's existing AST traversal instead of standalone regex scan. Same detection logic (`thirdparty/*` convention), different execution model (single-pass AST vs. multi-pass regex). |
+| 1 | Dependency scanning | **Redesign**: integrate into JSModuleAnalyzer's existing AST traversal instead of a standalone scan phase. Detection logic changes from heuristic `require.resolve()` probing (ui5-tooling-modules) to explicit `thirdparty/*` prefix matching (this RFC). Execution model shifts from multi-pass file reads to single-pass AST piggyback. |
 | 2 | Module resolution | **Delegate**: let `@rollup/plugin-node-resolve` handle primary resolution. Adopt the `ERR_PACKAGE_PATH_NOT_EXPORTED` fallback and PNPM symlink handling as supplementary logic. |
 | 3 | Rollup plugin ecosystem | **Adopt directly**: these plugins handle real-world edge cases discovered through production usage. Add to the core plugin chain alongside `nodeResolve`, `commonjs`, `nodePolyfills`, and `replace`. |
 | 4 | Namespace management | Integrated strategy places NPM bundles under `/resources/{namespace}/thirdparty/`, enabling Fiori Launchpad deployment. |
@@ -148,10 +154,11 @@ The community package `ui5-tooling-modules` provides battle-tested patterns that
 
 | Aspect | ui5-tooling-modules | This RFC |
 |--------|---------------------|----------|
-| **Scanning** | Standalone regex scan (`scan()`) — reads all files separately | Integrated into JSModuleAnalyzer — piggybacks on existing AST parse |
+| **Scanning** | Standalone scan (`scan()`) — reads all files separately, probes every dep via `require.resolve()` | Integrated into JSModuleAnalyzer — piggybacks on existing AST parse, detects `thirdparty/*` prefix |
 | **Architecture** | Custom task/middleware extension (external dependency) | Standard built-in task in `taskRepository.js` |
 | **Default namespace** | `addToNamespace: false` | `addToNamespace: true` (FLP-compatible) |
 | **devDependencies** | Included via `legacyDependencyResolution` | Excluded by default; explicit `additionalDependencies` list |
+| **Import convention** | Bare package names in source (`"chart.js"`) — NPM vs. UI5 determined by `require.resolve()` probing at build time | Explicit `thirdparty/` prefix in source (`"thirdparty/chart.js"`) — NPM packages identified by deterministic pattern match and a match against `package.json` dependency field, no filesystem probing |
 | **Plugin chain** | 7 custom plugins + core plugins | Same plugins, integrated into standard build pipeline |
 
 ---
@@ -164,7 +171,7 @@ Rather than implementing a separate scanning phase, NPM dependency detection is 
 
 ![Dependency Scanning Activity Diagram](./resources/0020-npm-integration/dependency-scanning-activity.svg)
 
-* **Key insight**: Leverages existing espree AST parsing that already occurs for UI5 dependency analysis, requiring only pattern detection extensions to existing visitor logic.*
+*__Key insight__: Leverages existing espree AST parsing that already occurs for UI5 dependency analysis, requiring only pattern detection extensions to existing visitor logic.*
 
 **Integration points** (extensions to existing classes):
 
@@ -193,7 +200,79 @@ XML xmlns attribute            ->  NPM package name
 
 The transformation is **deterministic and algorithmic**: strip the `thirdparty/` prefix for JS, or convert dots to slashes for XML. No configuration mapping is needed.
 
-#### 3.4.3 Edge Cases
+**Rationale — why the `thirdparty/` prefix is needed:**
+
+The alternative — used by `ui5-tooling-modules` — is to cover existing usage of thirdparties in applications (e.g., `"chart.js"`) and have the build tool determine at build time whether each dependency string refers to an NPM package or a UI5 module by probing the filesystem via `require.resolve()`. This RFC introduces the explicit `thirdparty/` prefix instead.
+
+**Reasoning:**
+- `require.resolve()` results depend on the `node_modules` tree shape, which varies between package manager runs, hoisting strategies, and OS case sensitivity. An explicit prefix means the set of NPM packages is determined by source code alone — not by the filesystem state at build time.
+
+- UI5's own framework already uses a `thirdparty/` folder for third-party libraries (e.g., `sap/ui/thirdparty/jqueryui`). Extending this convention to application-level NPM packages is a natural fit. As noted in [3.3](#33-reusable-patterns-from-ui5-tooling-modules), `ui5-tooling-modules` itself rewrites to `thirdparty/` paths at build output time — this RFC simply moves the convention from build-output-only to developer-authored source code, making the NPM boundary explicit at authoring time rather than implicit at build time.
+
+**Semantic meaning of the `thirdparty/` prefix:**
+
+The `thirdparty/` prefix is not merely a namespace — it carries **semantic meaning** about the module format:
+
+| Import Pattern | Module Format | Source | Example |
+|----------------|---------------|--------|---------|
+| `"react"` | Raw NPM package (ESM/CJS) — consumed directly from `node_modules/` | The consuming code understands the raw format | `import React from "react"` in a TS file compiled externally |
+| `"thirdparty/react"` | **UI5 AMD-wrapped** — the package has been transformed by the Rollup pipeline and placed in the output `thirdparty/` folder | `sap.ui.define(['thirdparty/react'], ...)` | Build output: `resources/thirdparty/react.js` |
+| `"sap/ui/thirdparty/jquery"` | UI5 framework-bundled third-party — pre-wrapped by the UI5 SDK team | Part of the UI5 runtime | Always available, no build step needed |
+
+This distinction is critical: a bare `"react"` import means "I need the raw package from `node_modules/`", while `"thirdparty/react"` means "I need the UI5 AMD-transformed version that the build pipeline produces". The `thirdparty/` prefix is a contract: the referenced module **will exist as a UI5 AMD module** in the `thirdparty/` output folder after the build runs.
+
+#### 3.4.3 TypeScript and the `thirdparty/*` Convention
+
+**Key constraint: UI5 CLI does not directly support TypeScript.** TypeScript sources must be compiled to JavaScript before analysis can occur. There are two approaches:
+
+- **[`ui5-tooling-transpile`](https://github.com/ui5-community/ui5-ecosystem-showcase/tree/main/packages/ui5-tooling-transpile)** — a custom task and middleware that runs **within** the `ui5 build` / `ui5 serve` pipeline. It compiles TS -> JS as a build task, producing `sap.ui.define` (AMD) output. **Task ordering in `ui5.yaml` is critical**: the transpile task must be configured to run before the bundling tasks (e.g., `beforeTask: generateComponentPreload`), so that `.js` files are in the workspace when `JSModuleAnalyzer` is triggered.
+- **`tsc`** — runs **externally**, before `ui5 build` / `ui5 serve`. It cannot produce `sap.ui.define` output, so ESM imports are preserved in the emitted `.js` files. The UI5 build pipeline then processes these `.js` files.
+
+**How this affects imports in TypeScript source:**
+
+The `thirdparty/` prefix in an import path passes through any transpiler unchanged — neither `ui5-tooling-transpile` nor `tsc` needs to understand the convention. In both cases, the `.js` output preserves the `thirdparty/*` reference, which `JSModuleAnalyzer` detects when triggered by the bundling or NPM integration task.
+
+**Pattern A: ESM imports with `ui5-tooling-transpile` (or plain `tsc`)**
+
+The developer writes standard ESM imports in TypeScript using the `thirdparty/` prefix:
+
+```typescript
+// Developer writes (in .ts):
+import validator from "thirdparty/validator";
+```
+
+The NPM integration task will detect the `thirdparty/*` module reference in the compiled `.js` output (via `JSModuleAnalyzer`), bundle the package, and place it in the correct output folder with the correct namespace.
+
+> **Task ordering**: When using `ui5-tooling-transpile`, the transpile task must be configured to run **before** the bundling/NPM integration tasks in `ui5.yaml` (e.g., `beforeTask: generateComponentPreload`). This ensures `.ts` files are compiled to `.js` and written to the workspace before `JSModuleAnalyzer` parses them. When using `tsc`, the compiled `.js` files are already present when the pipeline starts.
+
+**IntelliSense**: TypeScript cannot resolve `"thirdparty/validator"` for type information out of the box, since no such module exists in `node_modules/`. The fix is a `tsconfig.json` paths mapping:
+
+```jsonc
+{
+  "compilerOptions": {
+    "paths": {
+      "thirdparty/*": ["./node_modules/*"],
+      "thirdparty/@ui5/*": ["./node_modules/@ui5/*"]
+    }
+  }
+}
+```
+
+This tells TypeScript: resolve types for `thirdparty/validator` from `node_modules/validator`. The `thirdparty/` prefix is stripped during type lookup, restoring full IntelliSense, type checking, and go-to-definition — while the emitted `.js` preserves the `thirdparty/` prefix for the UI5 build phase to discover.
+
+**Pattern B: Plain JavaScript (no TypeScript)**
+
+No type resolution concern. The `thirdparty/*` convention works directly:
+
+```javascript
+sap.ui.define(["thirdparty/validator"], function(validator) {
+    validator.isEmail("test@example.com"); // works at runtime
+});
+```
+
+> **Note**: The `tsconfig.json` `paths` mapping in Pattern A is a **project-level configuration concern**, not a UI5 CLI concern. Since UI5 CLI does not execute the TypeScript compiler, the paths configuration belongs to the TypeScript toolchain setup. Future work could include scaffolding this config via `ui5 init` or documenting it as a recommended setup step.
+
+#### 3.4.4 Edge Cases
 
 | Edge Case | Description | Handling |
 |-----------|-------------|----------|
@@ -203,7 +282,7 @@ The transformation is **deterministic and algorithmic**: strip the `thirdparty/`
 | **Wildcard ignore patterns** | Test files, spec files should not trigger bundling | Configurable scan include/exclude patterns (default: `webapp/**/*.{js,ts,xml}` excluding `test/**`) |
 | **App-local modules** | Files that look like NPM packages but are local to the app | Only trigger on `thirdparty/*` prefix; app-local modules use relative or `sap/*` paths |
 
-#### 3.4.4 Link with package.json
+#### 3.4.5 Link with package.json
 
 After scanning produces a list of NPM package names, each name is validated against the project's `package.json`:
 
@@ -211,7 +290,7 @@ As described in [3.4.1 (Integrated into Existing AST Parsing)](#341-design-integ
 
 This prevents accidental bundling of packages not declared as project dependencies and catches typos early.
 
-#### 3.4.5 "Let Rollup Handle the Rest"
+#### 3.4.6 "Let Rollup Handle the Rest"
 
 A critical design principle: the scanner only extracts **top-level NPM package names** from application source files. All further **file-level** dependency resolution — entry point discovery, internal module imports, file system traversal — is delegated entirely to Rollup and its `nodeResolve` plugin. This avoids reimplementing Node.js module resolution logic.
 
@@ -234,20 +313,20 @@ Each plugin transforms code at a specific stage. The order is critical — each 
 
 **Plugin Summary Table:**
 
-| Plugin | Purpose | Source |
-|--------|---------|--------|
-| `@rollup/plugin-node-resolve` | Resolve NPM package paths using package.json fields (exports -> browser -> module -> main) | Rollup ecosystem |
-| `pnpm-resolve` | Follow PNPM symlinks to real file paths | ui5-tooling-modules |
-| `skip-assets` | Skip CSS/image/font imports that Rollup cannot bundle | ui5-tooling-modules |
-| `@rollup/plugin-commonjs` | Convert CJS (`require`/`module.exports`) to ESM for tree-shaking | Rollup ecosystem |
-| `rollup-plugin-polyfill-node` | Browser polyfills for Node.js built-ins (`path`, `buffer`, `events`, `stream`, `util`) | Community plugin |
-| `@rollup/plugin-replace` | Static replacement of `process.env.NODE_ENV` -> `"production"` enabling dead-code elimination | Rollup ecosystem |
-| `dynamic-imports` | Preserve dynamic `import()` calls or convert to Rollup chunks | ui5-tooling-modules |
-| `transform-top-level-this` | Normalize UMD `this` references to `undefined` (ES module semantics) | ui5-tooling-modules |
-| `import-meta` | Transform `import.meta.url` to browser-compatible code | ui5-tooling-modules |
-| `inject-esmodule` | Add `__esModule` flag for CJS/ESM default export interop | ui5-tooling-modules |
-| Rollup AMD output | Built-in: `format: "amd"` with `amd.define: "sap.ui.define"` | Rollup core |
-| `ui5-amd-exports` (custom) | Transform Rollup's `['exports']` dependency pattern to UI5-compatible `return exports` pattern | PoC custom plugin |
+| Plugin | Purpose | Why Needed | Source |
+|--------|---------|------------|--------|
+| `@rollup/plugin-node-resolve` | Resolve NPM package paths using package.json fields (exports -> browser -> module -> main) | Rollup does not resolve bare specifiers (e.g., `import x from 'lodash'`) by default — it only understands relative paths. This plugin implements the Node.js module resolution algorithm so Rollup can locate packages in `node_modules/`. | Rollup ecosystem |
+| `pnpm-resolve` | Follow PNPM symlinks to real file paths via custom `resolveModule()` with `realpathSync()` | PNPM uses a content-addressable store (`.pnpm/`) with symlinks instead of hoisting. `@rollup/plugin-node-resolve` alone cannot resolve transitive dependencies through PNPM's nested symlink chains. This plugin bridges the gap by routing both relative and bare specifier imports through PNPM-aware resolution. | ui5-tooling-modules |
+| `skip-assets` | Replace CSS imports with empty strings so Rollup can process packages containing `import './styles.css'` statements | NPM packages frequently include side-effect CSS imports. Rollup only understands JavaScript — it fails with a parse error on CSS syntax. This plugin intercepts files matching configured extensions (currently `["css"]`) and returns an empty string, stripping the import while allowing the bundle to succeed. | ui5-tooling-modules |
+| `@rollup/plugin-commonjs` | Convert CJS (`require`/`module.exports`) to ESM for tree-shaking | Rollup natively understands only ESM. Without this plugin, any CJS package (the majority of the NPM ecosystem) would fail to bundle. The plugin rewrites `require()` calls and `module.exports` patterns to ESM equivalents, enabling Rollup's tree-shaking to eliminate unused code. | Rollup ecosystem |
+| `rollup-plugin-polyfill-node` | Browser polyfills for Node.js built-ins (`path`, `buffer`, `events`, `stream`, `util`) | Many NPM packages depend on Node.js core modules that do not exist in the browser. Without polyfills, packages like `axios` or `crypto`-using libraries would fail at runtime with "module not found" errors. | Community plugin |
+| `@rollup/plugin-replace` | Static replacement of `process.env.NODE_ENV` -> `"production"` enabling dead-code elimination | Many packages contain `if (process.env.NODE_ENV !== 'production')` development-only code blocks (warnings, assertions, verbose logging). Replacing `process.env.NODE_ENV` with `"production"` at build time lets Rollup's tree-shaker eliminate these dead branches, significantly reducing bundle size. | Rollup ecosystem |
+| `dynamic-imports` | Preserve native `import()` calls or let Rollup convert them to chunks, configurable per package | When Rollup converts to AMD, it transforms `import()` expressions into AMD-style dynamic loading. However, UI5's `sap.ui.define` runtime does not support AMD-style dynamic imports. This plugin preserves the original `import()` syntax (based on a configurable allowlist) so the browser's native dynamic import mechanism is used at runtime instead. | ui5-tooling-modules |
+| `transform-top-level-this` | Replace top-level `this` with `exports` in non-ESM modules | UMD modules use patterns like `(function(root) { root.Lib = ... })(this)` where top-level `this` refers to the global object. In Rollup's ES module context, top-level `this` becomes `undefined`, breaking the UMD factory. This plugin detects non-ESM modules with top-level `this` and replaces them with `exports`, preserving UMD self-assignment behavior in the AMD output. | ui5-tooling-modules |
+| `import-meta` | Transform `import.meta.url` -> `sap.ui.require.toUrl()` and emit co-located assets as prebuilt chunks | Modern ESM packages use `import.meta.url` to locate co-located assets (templates, WASM files, workers). This API does not exist in AMD context. The plugin resolves `new URL('file', import.meta.url)` by emitting referenced files as prebuilt chunks, and replaces `import.meta.url` with `sap.ui.require.toUrl()` — bridging ESM asset resolution to UI5's module URL system. | ui5-tooling-modules |
+| `inject-esmodule` | Create proxy entry modules that merge named + default exports and set `__esModule` flag | When `@rollup/plugin-commonjs` converts CJS to ESM, consuming code (e.g., Babel-compiled) uses `_interopRequireDefault` which checks for `__esModule` to decide import wrapping. Without this flag, the interop layer double-wraps exports (`{default: {default: actual}}`). This plugin ensures consistent CJS<->ESM default export interop by explicitly defining `__esModule: true` on the merged export object. | ui5-tooling-modules |
+| Rollup AMD output | Built-in: `format: "amd"` with `amd.define: "sap.ui.define"` | Rollup natively supports AMD output format. The `amd.define` option remaps the `define()` call to `sap.ui.define()`, making the output directly consumable by UI5's module loader without post-processing. | Rollup core |
+| `ui5-amd-exports` (custom) | Transform Rollup's `['exports']` dependency pattern to UI5-compatible `return exports` pattern | Rollup's AMD output uses an `'exports'` dependency that UI5's `sap.ui.define` does not recognize. Without this plugin, modules that export values would fail to load. See [Section 3.5.3](#353-the-ui5amdexports-transform) for the detailed transformation. | PoC custom plugin |
 
 #### 3.5.3 The `ui5AmdExports` Transform
 
@@ -384,8 +463,6 @@ For PNPM, `preserveSymlinks: false` (the Rollup default) ensures symlinks are fo
 
 #### 3.7.2 Resolution Priority
 
-The `nodeResolve` plugin follows this priority when resolving a package:
-
 The `nodeResolve` plugin follows this priority waterfall (see also the resolution cascade in [3.4.1](#341-design-integrated-into-existing-ast-parsing)): **exports** (highest priority, modern packages) -> **browser** (browser-specific overrides) -> **module** (ESM entry, preferred for tree-shaking) -> **main** (CJS entry, fallback) -> **index.js** (convention-based fallback). The exports field supports conditional resolution with `browser` > `import` > `require` > `default` priority.
 
 With `browser: true` configured, the resolution prefers browser-specific builds. This is critical for packages like `axios` that provide separate browser and Node.js entry points.
@@ -472,7 +549,7 @@ This approach is more robust than relying solely on `peerDependencies` because:
 - It detects **actual sharing** based on the concrete dependency graph rather than declared intentions
 - It works identically regardless of whether the shared dep is a peer dependency, a regular dependency, or both
 
-**Relationship with "Let Rollup Handle the Rest" ([Section 3.4.5](#345-let-rollup-handle-the-rest))**: Rollup still handles all file-level resolution (entry points, internal imports, polyfills) during bundling. The consolidation step only determines *which packages* should be external vs. inlined — it reads `package.json` dependency metadata, not source code.
+**Relationship with "Let Rollup Handle the Rest" ([Section 3.4.6](#346-let-rollup-handle-the-rest))**: Rollup still handles all file-level resolution (entry points, internal imports, polyfills) during bundling. The consolidation step only determines *which packages* should be external vs. inlined — it reads `package.json` dependency metadata, not source code.
 
 #### 3.8.4 Build Order Optimization
 
@@ -753,11 +830,11 @@ Excludes specific packages from build output while still serving them during dev
 
 `ui5-tooling-modules` uses Chokidar-based file watching to detect source changes and trigger re-bundling during development. **Status**: Not implemented in this PoC. This will be handled by the incremental build feature (RFC 0017).
 
-### 6.14 Minification
+### 6.13 Minification
 
 Separate minification of generated NPM bundles via `@rollup/plugin-terser`, independent of UI5's own minification step.
 
-### 6.15 `sanitizeNpmPackageName`
+### 6.14 `sanitizeNpmPackageName`
 
 Converts scoped package names to JSDoc-safe paths (removes `@`, replaces `-` with `_`). Required when generated modules need to appear in JSDoc or `.d.ts` output.
 
