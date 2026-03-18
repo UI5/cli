@@ -2373,6 +2373,75 @@ test.serial("Build race condition: file modified during active build", async (t)
 	);
 });
 
+test.serial("Build with dependencies: Verify sap-ui-version.json generation and regeneration", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+	const versionInfoPath = `${destPath}/resources/sap-ui-version.json`;
+
+	// Build #1: Full build with all dependencies in JSDoc mode
+	// JSDoc mode enables generateVersionInfo task which creates sap-ui-version.json
+	await fixtureTester.buildProject({
+		config: {
+			destPath,
+			cleanDest: true,
+			jsdoc: "jsdoc",
+			dependencyIncludes: {includeAllDependencies: true}
+		},
+		assertions: {
+			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+				"application.a": {}
+			}
+		}
+	});
+
+	const versionInfo1Content = await fs.readFile(versionInfoPath, {encoding: "utf8"});
+	t.truthy(versionInfo1Content, "sap-ui-version.json should exist");
+	const versionInfo1 = JSON.parse(versionInfo1Content);
+
+	// Root project metadata
+	t.is(versionInfo1.name, "application.a", "Root project name");
+	t.is(versionInfo1.version, "1.0.0", "Root project version");
+	t.is(typeof versionInfo1.buildTimestamp, "string", "buildTimestamp is string");
+
+	// Libraries array
+	t.true(Array.isArray(versionInfo1.libraries), "libraries is array");
+	const libraryNames = versionInfo1.libraries.map((lib) => lib.name).sort();
+	t.deepEqual(libraryNames, ["library.a", "library.b", "library.c", "library.d"],
+		"Contains all dependency libraries");
+
+	// Each library has required fields
+	versionInfo1.libraries.forEach((lib) => {
+		t.is(typeof lib.name, "string", `Library ${lib.name} has name`);
+		t.is(typeof lib.version, "string", `Library ${lib.name} has version`);
+		t.is(typeof lib.buildTimestamp, "string", `Library ${lib.name} has buildTimestamp`);
+	});
+
+	const firstBuildTimestamp = versionInfo1.buildTimestamp;
+
+	// Build #2: No changes, expect full cache hit
+	await fixtureTester.buildProject({
+		config: {
+			destPath,
+			cleanDest: true,
+			jsdoc: "jsdoc",
+			dependencyIncludes: {includeAllDependencies: true}
+		},
+		assertions: {
+			projects: {} // All projects cached
+		}
+	});
+
+	// Verify sap-ui-version.json was reused from cache (timestamp unchanged)
+	const versionInfo2Content = await fs.readFile(versionInfoPath, {encoding: "utf8"});
+	const versionInfo2 = JSON.parse(versionInfo2Content);
+	t.is(versionInfo2.buildTimestamp, firstBuildTimestamp,
+		"buildTimestamp unchanged when cached (no source changes)");
+});
+
 function getFixturePath(fixtureName) {
 	return fileURLToPath(new URL(`../../fixtures/${fixtureName}`, import.meta.url));
 }
