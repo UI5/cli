@@ -39,6 +39,7 @@ function createMockProject(name = "test.project", id = "test-project-id") {
 			buildTagOperations: new Map(),
 		}),
 		buildFinished: sinon.stub(),
+		setFrozenSourceReader: sinon.stub(),
 	};
 
 	return {
@@ -699,7 +700,7 @@ test("freezeUntransformedSources: writes stage cache with correct stageId and si
 	const resB = createMockResource("/b.js", "hash-b", 1000, 100, 2);
 
 	// Task writes only /a.js, so /b.js is untransformed
-	const {cache, cacheManager} = await buildCacheWithTaskResult(
+	const {cache, project, cacheManager} = await buildCacheWithTaskResult(
 		[resA, resB],
 		["/a.js"]
 	);
@@ -720,6 +721,13 @@ test("freezeUntransformedSources: writes stage cache with correct stageId and si
 	t.truthy(call.args[4].resourceMetadata, "Metadata contains resourceMetadata");
 	t.truthy(call.args[4].resourceMetadata["/b.js"], "resourceMetadata has entry for untransformed /b.js");
 	t.falsy(call.args[4].resourceMetadata["/a.js"], "resourceMetadata does NOT have entry for transformed /a.js");
+
+	// Verify setFrozenSourceReader was called on project resources
+	const projectResources = project.getProjectResources();
+	t.true(projectResources.setFrozenSourceReader.calledOnce,
+		"setFrozenSourceReader called once after freeze");
+	t.truthy(projectResources.setFrozenSourceReader.firstCall.args[0],
+		"setFrozenSourceReader called with a reader");
 });
 
 test("freezeUntransformedSources: throws when source file not found", async (t) => {
@@ -793,7 +801,7 @@ test("writeResultCache: metadata includes sourceStageSignature", async (t) => {
 
 // ===== RESTORE FROZEN SOURCES TESTS =====
 
-test("restoreFrozenSources: cache miss logs verbose and continues", async (t) => {
+test("restoreFrozenSources: cache miss skips gracefully", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 
@@ -862,8 +870,12 @@ test("restoreFrozenSources: cache miss logs verbose and continues", async (t) =>
 	};
 	const result = await cache.prepareProjectBuildAndValidateCache(mockDepReader);
 
-	// Should succeed without error — the cache miss for source stage is non-fatal
+	// Should succeed without error — cache miss for source stage is non-fatal
 	t.truthy(result, "prepareProjectBuildAndValidateCache succeeds despite source cache miss");
+
+	// setFrozenSourceReader should NOT have been called
+	t.false(project.getProjectResources().setFrozenSourceReader.called,
+		"setFrozenSourceReader not called on cache miss");
 
 	// Verify readStageCache was called with "source" stageId
 	const sourceReadCalls = cacheManager.readStageCache.getCalls().filter(
@@ -953,4 +965,11 @@ test("restoreFrozenSources: cache hit creates CAS reader", async (t) => {
 	t.true(sourceReadCalls.length > 0, "readStageCache was called for source stage");
 	t.is(sourceReadCalls[0].args[3], "source-sig-456",
 		"readStageCache called with correct source signature");
+
+	// Verify setFrozenSourceReader was called on project resources after restore
+	const projectResources = project.getProjectResources();
+	t.true(projectResources.setFrozenSourceReader.calledOnce,
+		"setFrozenSourceReader called once after restore");
+	t.truthy(projectResources.setFrozenSourceReader.firstCall.args[0],
+		"setFrozenSourceReader called with a reader");
 });
