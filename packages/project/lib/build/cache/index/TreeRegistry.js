@@ -349,7 +349,8 @@ export default class TreeRegistry {
 								resourceNode.lastModified = upsert.resource.getLastModified();
 								resourceNode.size = await upsert.resource.getSize();
 								resourceNode.inode = upsert.resource.getInode();
-								resourceNode.tags = upsert.resource.getTags?.() ?? upsert.resource.tags ?? resourceNode.tags;
+								resourceNode.tags = upsert.resource.getTags?.() ??
+									upsert.resource.tags ?? resourceNode.tags;
 								modifiedNodes.add(resourceNode);
 								dirModified = true;
 

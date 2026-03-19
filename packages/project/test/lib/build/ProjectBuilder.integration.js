@@ -2349,6 +2349,39 @@ test.serial("Build race condition: file modified during active build", async (t)
 	);
 });
 
+test.serial("Build dependency race condition: frozen source reader protects against filesystem changes",
+	async (t) => {
+		const fixtureTester = new FixtureTester(t, "application.a");
+		const destPath = fixtureTester.destPath;
+
+		// Build with dependency-race-condition custom task and all dependencies included.
+		// library.d is built first → its sources are frozen in CAS.
+		// Then application.a builds, running the custom task that:
+		//   1. Reads library.d's some.js via the dependency reader (CAS-backed)
+		//   2. Modifies some.js on disk
+		//   3. Re-reads via the dependency reader
+		//   4. Asserts the content is still the original CAS-frozen content (not modified disk)
+		//   5. Restores the file on disk
+		// If the frozen reader is not working, the custom task throws and the build fails.
+		await fixtureTester.buildProject({
+			graphConfig: {rootConfigPath: "ui5-dependency-race-condition.yaml"},
+			config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+			assertions: {
+				projects: {
+					"library.d": {},
+					"library.a": {},
+					"library.b": {},
+					"library.c": {},
+					"application.a": {}
+				}
+			}
+		});
+
+		// Sanity check: verify library.d's some.js exists in build output
+		const builtContent = await fs.readFile(`${destPath}/resources/library/d/some.js`, {encoding: "utf8"});
+		t.truthy(builtContent, "library.d some.js exists in build output");
+	});
+
 test.serial("Build with dependencies: Verify sap-ui-version.json generation and regeneration", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;

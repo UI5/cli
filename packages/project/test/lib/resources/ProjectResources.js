@@ -1,5 +1,6 @@
 import test from "ava";
 import sinon from "sinon";
+import {createProxy, createResource} from "@ui5/fs/resourceFactory";
 import ProjectResources from "../../../lib/resources/ProjectResources.js";
 
 function createProjectResources({frozenSourceReader} = {}) {
@@ -107,4 +108,58 @@ test("initStages clears frozen source reader", (t) => {
 	const reader2 = pr.getReader();
 	t.truthy(reader2, "Reader returned after initStages");
 	t.not(reader1, reader2, "Reader was recreated after initStages");
+});
+
+test("Frozen source reader takes priority over filesystem source reader", async (t) => {
+	const resourcePath = "/resources/test/some.js";
+	const filesystemContent = "filesystem content";
+	const frozenCASContent = "frozen CAS content";
+
+	// Create a source reader that simulates the filesystem
+	const filesystemResource = createResource({path: resourcePath, string: filesystemContent});
+	const sourceReader = createProxy({
+		name: "Filesystem source reader",
+		listResourcePaths: () => [resourcePath],
+		getResource: async (virPath) => {
+			if (virPath === resourcePath) {
+				return filesystemResource;
+			}
+			return null;
+		}
+	});
+
+	// Create a frozen CAS reader with different content
+	const frozenResource = createResource({path: resourcePath, string: frozenCASContent});
+	const frozenReader = createProxy({
+		name: "Frozen CAS reader",
+		listResourcePaths: () => [resourcePath],
+		getResource: async (virPath) => {
+			if (virPath === resourcePath) {
+				return frozenResource;
+			}
+			return null;
+		}
+	});
+
+	const writer = {
+		byGlob: sinon.stub().resolves([]),
+		write: sinon.stub().resolves(),
+	};
+
+	const pr = new ProjectResources({
+		getName: () => "test.project",
+		getStyledReader: sinon.stub().returns(sourceReader),
+		createWriter: sinon.stub().returns(writer),
+		addReadersForWriter: sinon.stub(),
+		buildManifest: null,
+	});
+
+	pr.setFrozenSourceReader(frozenReader);
+
+	const reader = pr.getReader();
+	const result = await reader.byPath(resourcePath);
+	t.truthy(result, "Resource found via reader");
+	const content = await result.getString();
+	t.is(content, frozenCASContent,
+		"Frozen CAS reader takes priority over filesystem source reader");
 });
