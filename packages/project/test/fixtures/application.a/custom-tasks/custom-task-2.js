@@ -1,8 +1,11 @@
+const Logger = require("@ui5/logger");
+const log = Logger.getLogger("builder:tasks:customTask2");
+
 module.exports = async function ({
 	workspace, taskUtil,
 	options: {projectNamespace}
 }) {
-	console.log("Custom task 2 executed");
+	log.verbose("Custom task 2 executed");
 
 	// Read a file which is an input of custom-task-1 (which sets a tag on it):
 	const testJS = await workspace.byPath(`/resources/${projectNamespace}/test.js`);

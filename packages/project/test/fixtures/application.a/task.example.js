@@ -1,8 +1,11 @@
+const Logger = require("@ui5/logger");
+const log = Logger.getLogger("builder:tasks:exampleTask");
+
 module.exports = async function ({
 	workspace, taskUtil,
 	options: {projectNamespace}
 }) {
-	console.log("Example task executed");
+	log.verbose("Example task executed");
 
 	// Omit a specific resource from the build result
 	const omittedResource = await workspace.byPath(`/resources/${projectNamespace}/fileToBeOmitted.js`);
