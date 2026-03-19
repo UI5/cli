@@ -880,10 +880,7 @@ export default class ProjectBuildCache {
 		// Create CAS-backed proxy reader for the untransformed source files
 		const casSourceReader = this.#createReaderForStageCache("source", sourceSignature, resourceMetadata);
 
-		// TODO: Replace the project's filesystem-backed source reader with the CAS-backed reader
-		// via ProjectResources.setSourceReader(casSourceReader) to protect downstream consumers
-		// from filesystem race conditions.
-		void casSourceReader;
+		this.#project.getProjectResources().setFrozenSourceReader(casSourceReader);
 	}
 
 	/**
@@ -899,23 +896,19 @@ export default class ProjectBuildCache {
 
 		if (!stageMetadata) {
 			log.verbose(
-				`No cached source stage found for project ${this.#project.getName()} ` +
-				`with signature ${sourceStageSignature}`);
+				`No cached source stage metadata found for project ${this.#project.getName()} ` +
+				`with signature ${sourceStageSignature}. Skipping frozen source restore.`);
 			return;
 		}
 
 		const {resourceMetadata} = stageMetadata;
 		log.verbose(
-			`Restored ${Object.keys(resourceMetadata).length} frozen source files for project ` +
-			`${this.#project.getName()} from CAS`);
+			`Restored frozen source files for project ${this.#project.getName()} from CAS`);
 
 		const casSourceReader = this.#createReaderForStageCache(
 			"source", sourceStageSignature, resourceMetadata);
 
-		// TODO: Replace the project's filesystem-backed source reader with the CAS-backed reader
-		// via ProjectResources.setSourceReader(casSourceReader) to protect downstream consumers
-		// from filesystem race conditions.
-		void casSourceReader;
+		this.#project.getProjectResources().setFrozenSourceReader(casSourceReader);
 	}
 
 	/**

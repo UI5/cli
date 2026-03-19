@@ -26,6 +26,9 @@ class ProjectResources {
 	#currentStageWorkspace;
 	#currentStageReaders; // Map to store the various reader styles
 
+	// CAS-backed frozen source reader (set after build or restore from cache)
+	#frozenSourceReader = null;
+
 	// Callbacks (interface object)
 	#getName;
 	#getStyledReader;
@@ -137,6 +140,11 @@ class ProjectResources {
 			this.#addReaderForStage(this.#stages[i], readers, style);
 		}
 
+		// Add CAS-backed frozen source reader (if available)
+		if (this.#frozenSourceReader) {
+			readers.push(this.#frozenSourceReader);
+		}
+
 		// Finally add the project's source reader
 		readers.push(this.#getStyledReader(style));
 
@@ -152,6 +160,21 @@ class ProjectResources {
 	 */
 	getSourceReader(style = "buildtime") {
 		return this.#getStyledReader(style);
+	}
+
+	/**
+	 * Sets a CAS-backed frozen source reader that provides immutable snapshots
+	 * of untransformed source files. This reader is inserted into the reader chain
+	 * between stage readers and the filesystem source reader, so that downstream
+	 * dependency consumers read from CAS instead of the live filesystem.
+	 *
+	 * @public
+	 * @param {@ui5/fs/AbstractReader} reader CAS-backed reader for frozen source files
+	 */
+	setFrozenSourceReader(reader) {
+		this.#frozenSourceReader = reader;
+		// Invalidate cached readers since the reader chain changed
+		this.#currentStageReaders = new Map();
 	}
 
 	/**
@@ -218,6 +241,7 @@ class ProjectResources {
 		this.#lastTagCacheImportIndex = -1;
 		this.#currentStageReaders = new Map();
 		this.#currentStageWorkspace = null;
+		this.#frozenSourceReader = null;
 		this.#projectResourceTagCollection = null;
 	}
 
