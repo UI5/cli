@@ -2269,123 +2269,79 @@ test.serial("Build race condition: file modified during active build", async (t)
 	const addedFileName = "added-during-build.js";
 	const addedFilePath = `${fixtureTester.fixturePath}/webapp/${addedFileName}`;
 
-	// #1 Build with race condition triggered by custom task
-	// The custom task (configured in ui5-race-condition.yaml) modifies test.js during the build,
-	// after the source index is created but before tasks that process test.js execute.
-	// This creates a race condition where the cached content hash no longer matches the actual file.
-	//
-	// Expected behavior:
-	// - Build should detect that source file hash changed during execution
-	// - Build should fail with an error OR mark cache as invalid
-	//
-	// FIXME: Current behavior:
-	// - Build succeeds without detecting the race condition
-	// - Cache is written with inconsistent data (index hash != processed content hash)
-	await fixtureTester.buildProject({
+	// #1 Build with race condition triggered by custom task that modifies test.js during the build.
+	// The build should detect the source change and throw.
+	const error1 = await t.throwsAsync(fixtureTester.buildProject({
 		graphConfig: {rootConfigPath: "ui5-race-condition.yaml"},
 		config: {destPath, cleanDest: true},
-		assertions: {
-			projects: {
-				"application.a": {}
-			}
-		}
-	});
-
-	// Verify the race condition occurred: the modification made by the custom task is in the output
-	const builtFileContent = await fs.readFile(`${destPath}/test.js`, {encoding: "utf8"});
-	t.true(
-		builtFileContent.includes(`RACE CONDITION MODIFICATION`),
-		"Build output contains the modification made during build"
-	);
+	}));
+	t.true(error1.message.includes("Detected changes to source files of project application.a during the build"),
+		"Error message indicates source change detected");
 
 	// #2 Revert the source file to original content
 	await fs.writeFile(testFilePath, originalContent);
 
-	// #3 Build again after reverting the source
-	// FIXME: The cache should be invalidated because the previous build had a race condition,
-	// but currently it's reused (projects: {}). Once proper validation is implemented,
-	// this should trigger a full rebuild: {"application.a": {}}
+	// #3 Build again with normal config after reverting the source.
+	// Since the race condition build threw, no corrupted cache was written.
+	// This build should succeed and produce clean output.
 	await fixtureTester.buildProject({
-		graphConfig: {rootConfigPath: "ui5-race-condition.yaml"},
 		config: {destPath, cleanDest: true},
 		assertions: {
-			projects: {} // Current: cache reused | Expected: {"application.a": {}}
+			projects: {
+				"application.a": {}
+			}
 		}
 	});
 
-	// FIXME: Due to incorrect cache reuse from build #1, the output still contains the modification
-	// even though the source was reverted. This demonstrates the cache corruption issue.
-	// Expected: finalBuiltContent should NOT contain "RACE CONDITION MODIFICATION"
+	// Verify the output does NOT contain the race condition modification
 	const finalBuiltContent = await fs.readFile(`${destPath}/test.js`, {encoding: "utf8"});
-	t.true(
+	t.false(
 		finalBuiltContent.includes(`RACE CONDITION MODIFICATION`),
-		"Build output incorrectly contains the modification due to corrupted cache"
+		"Build output does not contain race condition modification after clean rebuild"
 	);
 
 	// #4 Build with race condition triggered by add-file custom task
 	await fs.rm(addedFilePath, {force: true});
-	await fixtureTester.buildProject({
+	const error2 = await t.throwsAsync(fixtureTester.buildProject({
 		graphConfig: {rootConfigPath: "ui5-race-condition-add-file.yaml"},
 		config: {destPath, cleanDest: true},
-		assertions: {
-			projects: {
-				"application.a": {}
-			}
-		}
-	});
-
-	const builtAddedFileContent = await fs.readFile(`${destPath}/${addedFileName}`, {encoding: "utf8"});
-	t.true(
-		builtAddedFileContent.includes(`RACE CONDITION ADDED FILE`),
-		"Build output contains file added during active build"
-	);
+	}));
+	t.true(error2.message.includes("Detected changes to source files of project application.a during the build"),
+		"Error message indicates source change detected (add file)");
 
 	// #5 Revert source state by removing the file that was added during build
 	await fs.rm(addedFilePath, {force: true});
 
-	// #6 Build again after removing the source file
-	// FIXME: The added file should trigger cache invalidation, but currently cache is reused.
+	// #6 Build again with normal config after reverting.
+	// Cache from build #3 is still valid (same source state), so everything should be skipped.
 	await fixtureTester.buildProject({
-		graphConfig: {rootConfigPath: "ui5-race-condition-add-file.yaml"},
 		config: {destPath, cleanDest: true},
 		assertions: {
-			projects: {} // Current: cache reused | Expected: {"application.a": {}}
+			projects: {}
 		}
 	});
-
-	const staleAddedFileContent = await fs.readFile(`${destPath}/${addedFileName}`, {encoding: "utf8"});
-	t.true(
-		staleAddedFileContent.includes(`RACE CONDITION ADDED FILE`),
-		"Build output incorrectly keeps added file due to corrupted cache"
-	);
 
 	// #7 Build with race condition triggered by delete-file custom task
-	await fixtureTester.buildProject({
+	const error3 = await t.throwsAsync(fixtureTester.buildProject({
 		graphConfig: {rootConfigPath: "ui5-race-condition-delete-file.yaml"},
 		config: {destPath, cleanDest: true},
-		assertions: {
-			projects: {
-				"application.a": {}
-			}
-		}
-	});
-
-	// File was deleted during build and therefore not part of the output
-	await t.throwsAsync(fs.readFile(`${destPath}/test.js`, {encoding: "utf8"}));
+	}));
+	t.true(error3.message.includes("Detected changes to source files of project application.a during the build"),
+		"Error message indicates source change detected (delete file)");
 
 	// #8 Revert source state by restoring the deleted file
 	await fs.writeFile(testFilePath, originalContent);
 
-	// #9 Build again after restoring the source file
-	// FIXME: The restored file should trigger cache invalidation, but currently cache is reused.
+	// #9 Build again with normal config after restoring.
+	// Cache from build #3 is still valid (same source state), so everything should be skipped.
 	await fixtureTester.buildProject({
-		graphConfig: {rootConfigPath: "ui5-race-condition-delete-file.yaml"},
 		config: {destPath, cleanDest: true},
 		assertions: {
-			projects: {} // Current: cache reused | Expected: {"application.a": {}}
+			projects: {}
 		}
 	});
 
+	// Verify test.js is present in output
 	const restoredBuiltFileContent = await fs.readFile(`${destPath}/test.js`, {encoding: "utf8"});
 	t.true(
 		restoredBuiltFileContent.includes(`console.log`),
