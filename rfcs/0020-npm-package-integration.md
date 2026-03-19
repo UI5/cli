@@ -234,20 +234,20 @@ Each plugin transforms code at a specific stage. The order is critical — each 
 
 **Plugin Summary Table:**
 
-| Plugin | Purpose | Source |
-|--------|---------|--------|
-| `@rollup/plugin-node-resolve` | Resolve NPM package paths using package.json fields (exports -> browser -> module -> main) | Rollup ecosystem |
-| `pnpm-resolve` | Follow PNPM symlinks to real file paths | ui5-tooling-modules |
-| `skip-assets` | Skip CSS/image/font imports that Rollup cannot bundle | ui5-tooling-modules |
-| `@rollup/plugin-commonjs` | Convert CJS (`require`/`module.exports`) to ESM for tree-shaking | Rollup ecosystem |
-| `rollup-plugin-polyfill-node` | Browser polyfills for Node.js built-ins (`path`, `buffer`, `events`, `stream`, `util`) | Community plugin |
-| `@rollup/plugin-replace` | Static replacement of `process.env.NODE_ENV` -> `"production"` enabling dead-code elimination | Rollup ecosystem |
-| `dynamic-imports` | Preserve dynamic `import()` calls or convert to Rollup chunks | ui5-tooling-modules |
-| `transform-top-level-this` | Normalize UMD `this` references to `undefined` (ES module semantics) | ui5-tooling-modules |
-| `import-meta` | Transform `import.meta.url` to browser-compatible code | ui5-tooling-modules |
-| `inject-esmodule` | Add `__esModule` flag for CJS/ESM default export interop | ui5-tooling-modules |
-| Rollup AMD output | Built-in: `format: "amd"` with `amd.define: "sap.ui.define"` | Rollup core |
-| `ui5-amd-exports` (custom) | Transform Rollup's `['exports']` dependency pattern to UI5-compatible `return exports` pattern | PoC custom plugin |
+| Plugin | Purpose | Why Needed | Source |
+|--------|---------|------------|--------|
+| `@rollup/plugin-node-resolve` | Resolve NPM package paths using package.json fields (exports -> browser -> module -> main) | Rollup does not resolve bare specifiers (e.g., `import x from 'lodash'`) by default — it only understands relative paths. This plugin implements the Node.js module resolution algorithm so Rollup can locate packages in `node_modules/`. | Rollup ecosystem |
+| `pnpm-resolve` | Follow PNPM symlinks to real file paths via custom `resolveModule()` with `realpathSync()` | PNPM uses a content-addressable store (`.pnpm/`) with symlinks instead of hoisting. `@rollup/plugin-node-resolve` alone cannot resolve transitive dependencies through PNPM's nested symlink chains. This plugin bridges the gap by routing both relative and bare specifier imports through PNPM-aware resolution. | ui5-tooling-modules |
+| `skip-assets` | Replace CSS imports with empty strings so Rollup can process packages containing `import './styles.css'` statements | NPM packages frequently include side-effect CSS imports. Rollup only understands JavaScript — it fails with a parse error on CSS syntax. This plugin intercepts files matching configured extensions (currently `["css"]`) and returns an empty string, stripping the import while allowing the bundle to succeed. | ui5-tooling-modules |
+| `@rollup/plugin-commonjs` | Convert CJS (`require`/`module.exports`) to ESM for tree-shaking | Rollup natively understands only ESM. Without this plugin, any CJS package (the majority of the NPM ecosystem) would fail to bundle. The plugin rewrites `require()` calls and `module.exports` patterns to ESM equivalents, enabling Rollup's tree-shaking to eliminate unused code. | Rollup ecosystem |
+| `rollup-plugin-polyfill-node` | Browser polyfills for Node.js built-ins (`path`, `buffer`, `events`, `stream`, `util`) | Many NPM packages depend on Node.js core modules that do not exist in the browser. Without polyfills, packages like `axios` or `crypto`-using libraries would fail at runtime with "module not found" errors. | Community plugin |
+| `@rollup/plugin-replace` | Static replacement of `process.env.NODE_ENV` -> `"production"` enabling dead-code elimination | Many packages contain `if (process.env.NODE_ENV !== 'production')` development-only code blocks (warnings, assertions, verbose logging). Replacing `process.env.NODE_ENV` with `"production"` at build time lets Rollup's tree-shaker eliminate these dead branches, significantly reducing bundle size. | Rollup ecosystem |
+| `dynamic-imports` | Preserve native `import()` calls or let Rollup convert them to chunks, configurable per package | When Rollup converts to AMD, it transforms `import()` expressions into AMD-style dynamic loading. However, UI5's `sap.ui.define` runtime does not support AMD-style dynamic imports. This plugin preserves the original `import()` syntax (based on a configurable allowlist) so the browser's native dynamic import mechanism is used at runtime instead. | ui5-tooling-modules |
+| `transform-top-level-this` | Replace top-level `this` with `exports` in non-ESM modules | UMD modules use patterns like `(function(root) { root.Lib = ... })(this)` where top-level `this` refers to the global object. In Rollup's ES module context, top-level `this` becomes `undefined`, breaking the UMD factory. This plugin detects non-ESM modules with top-level `this` and replaces them with `exports`, preserving UMD self-assignment behavior in the AMD output. | ui5-tooling-modules |
+| `import-meta` | Transform `import.meta.url` -> `sap.ui.require.toUrl()` and emit co-located assets as prebuilt chunks | Modern ESM packages use `import.meta.url` to locate co-located assets (templates, WASM files, workers). This API does not exist in AMD context. The plugin resolves `new URL('file', import.meta.url)` by emitting referenced files as prebuilt chunks, and replaces `import.meta.url` with `sap.ui.require.toUrl()` — bridging ESM asset resolution to UI5's module URL system. | ui5-tooling-modules |
+| `inject-esmodule` | Create proxy entry modules that merge named + default exports and set `__esModule` flag | When `@rollup/plugin-commonjs` converts CJS to ESM, consuming code (e.g., Babel-compiled) uses `_interopRequireDefault` which checks for `__esModule` to decide import wrapping. Without this flag, the interop layer double-wraps exports (`{default: {default: actual}}`). This plugin ensures consistent CJS<->ESM default export interop by explicitly defining `__esModule: true` on the merged export object. | ui5-tooling-modules |
+| Rollup AMD output | Built-in: `format: "amd"` with `amd.define: "sap.ui.define"` | Rollup natively supports AMD output format. The `amd.define` option remaps the `define()` call to `sap.ui.define()`, making the output directly consumable by UI5's module loader without post-processing. | Rollup core |
+| `ui5-amd-exports` (custom) | Transform Rollup's `['exports']` dependency pattern to UI5-compatible `return exports` pattern | Rollup's AMD output uses an `'exports'` dependency that UI5's `sap.ui.define` does not recognize. Without this plugin, modules that export values would fail to load. See [Section 3.5.3](#353-the-ui5amdexports-transform) for the detailed transformation. | PoC custom plugin |
 
 #### 3.5.3 The `ui5AmdExports` Transform
 
