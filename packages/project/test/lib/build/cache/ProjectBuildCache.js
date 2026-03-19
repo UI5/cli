@@ -63,7 +63,8 @@ function createMockCacheManager() {
 		writeResultMetadata: sinon.stub().resolves(),
 		readTaskMetadata: sinon.stub().resolves(null),
 		writeTaskMetadata: sinon.stub().resolves(),
-		writeStageResource: sinon.stub().resolves()
+		writeStageResource: sinon.stub().resolves(),
+		getResourcePathForStage: sinon.stub().resolves("/fake/cache/path")
 	};
 }
 
@@ -606,4 +607,350 @@ test("Empty task list doesn't fail", async (t) => {
 	await cache.setTasks([]);
 
 	t.true(project.getProjectResources().initStages.calledWith([]), "initStages called with empty array");
+});
+
+// ===== CAS SOURCE FREEZE TESTS =====
+
+// Helper: Creates a ProjectBuildCache with a populated source index containing the given resources.
+// Runs a single task that writes `writtenPaths` and then calls allTasksCompleted.
+// Returns {cache, project, cacheManager} for assertions.
+async function buildCacheWithTaskResult(resources, writtenPaths = []) {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const buildSignature = "test-sig";
+
+	// Source reader returns the given resources for byGlob and individual byPath
+	project.getSourceReader.callsFake(() => ({
+		byGlob: sinon.stub().resolves(resources),
+		byPath: sinon.stub().callsFake((path) => {
+			const res = resources.find((r) => r.getPath() === path);
+			return Promise.resolve(res || null);
+		})
+	}));
+
+	const cache = await ProjectBuildCache.create(project, buildSignature, cacheManager);
+
+	// Set up and execute a task
+	await cache.setTasks(["myTask"]);
+	await cache.prepareTaskExecutionAndValidateCache("myTask");
+
+	// Simulate task writing some resources
+	const writtenResources = writtenPaths.map(
+		(p) => createMockResource(p, `hash-${p}`, 2000, 200, 2)
+	);
+	project.getProjectResources().getStage.returns({
+		getId: () => "task/myTask",
+		getWriter: sinon.stub().returns({
+			byGlob: sinon.stub().resolves(writtenResources)
+		})
+	});
+
+	const projectRequests = {paths: new Set(), patterns: new Set()};
+	const dependencyRequests = {paths: new Set(), patterns: new Set()};
+	await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, null, false);
+
+	return {cache, project, cacheManager};
+}
+
+test("freezeUntransformedSources: writes only untransformed source files to CAS", async (t) => {
+	const resA = createMockResource("/a.js", "hash-a", 1000, 100, 1);
+	const resB = createMockResource("/b.js", "hash-b", 1000, 100, 2);
+	const resC = createMockResource("/c.js", "hash-c", 1000, 100, 3);
+	const resD = createMockResource("/d.js", "hash-d", 1000, 100, 4);
+
+	// Task writes /a.js and /b.js, so /c.js and /d.js are untransformed
+	const {cache, cacheManager} = await buildCacheWithTaskResult(
+		[resA, resB, resC, resD],
+		["/a.js", "/b.js"]
+	);
+
+	await cache.allTasksCompleted();
+
+	// writeStageResource should be called for untransformed files /c.js and /d.js
+	const stageResourceCalls = cacheManager.writeStageResource.getCalls();
+	const writtenPaths = stageResourceCalls.map((call) => call.args[3].getOriginalPath());
+	t.true(writtenPaths.includes("/c.js"), "Untransformed /c.js written to CAS");
+	t.true(writtenPaths.includes("/d.js"), "Untransformed /d.js written to CAS");
+	t.false(writtenPaths.includes("/a.js"), "Transformed /a.js NOT written to CAS by freeze");
+	t.false(writtenPaths.includes("/b.js"), "Transformed /b.js NOT written to CAS by freeze");
+});
+
+test("freezeUntransformedSources: early return when all sources overlayed", async (t) => {
+	const resA = createMockResource("/a.js", "hash-a", 1000, 100, 1);
+	const resB = createMockResource("/b.js", "hash-b", 1000, 100, 2);
+
+	// Task writes all source files
+	const {cache, cacheManager} = await buildCacheWithTaskResult(
+		[resA, resB],
+		["/a.js", "/b.js"]
+	);
+
+	await cache.allTasksCompleted();
+
+	// writeStageCache should NOT be called with stageId "source"
+	const sourceStageCalls = cacheManager.writeStageCache.getCalls().filter(
+		(call) => call.args[2] === "source"
+	);
+	t.is(sourceStageCalls.length, 0, "No source stage cache written when all files overlayed");
+});
+
+test("freezeUntransformedSources: writes stage cache with correct stageId and signature", async (t) => {
+	const resA = createMockResource("/a.js", "hash-a", 1000, 100, 1);
+	const resB = createMockResource("/b.js", "hash-b", 1000, 100, 2);
+
+	// Task writes only /a.js, so /b.js is untransformed
+	const {cache, cacheManager} = await buildCacheWithTaskResult(
+		[resA, resB],
+		["/a.js"]
+	);
+
+	await cache.allTasksCompleted();
+
+	// writeStageCache called with stageId "source"
+	const sourceStageCalls = cacheManager.writeStageCache.getCalls().filter(
+		(call) => call.args[2] === "source"
+	);
+	t.is(sourceStageCalls.length, 1, "writeStageCache called once for source stage");
+
+	const call = sourceStageCalls[0];
+	t.is(call.args[0], "test-project-id", "Correct project ID");
+	t.is(call.args[1], "test-sig", "Correct build signature");
+	t.is(call.args[2], "source", "Correct stageId");
+	t.is(typeof call.args[3], "string", "Signature is a string");
+	t.truthy(call.args[4].resourceMetadata, "Metadata contains resourceMetadata");
+	t.truthy(call.args[4].resourceMetadata["/b.js"], "resourceMetadata has entry for untransformed /b.js");
+	t.falsy(call.args[4].resourceMetadata["/a.js"], "resourceMetadata does NOT have entry for transformed /a.js");
+});
+
+test("freezeUntransformedSources: throws when source file not found", async (t) => {
+	const resA = createMockResource("/a.js", "hash-a", 1000, 100, 1);
+	const resB = createMockResource("/b.js", "hash-b", 1000, 100, 2);
+
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+
+	// First call during init returns both resources; second call during freeze returns only /a.js
+	let callCount = 0;
+	project.getSourceReader.callsFake(() => ({
+		byGlob: sinon.stub().callsFake(() => {
+			callCount++;
+			if (callCount <= 1) {
+				return Promise.resolve([resA, resB]);
+			}
+			return Promise.resolve([resA, resB]);
+		}),
+		byPath: sinon.stub().callsFake((path) => {
+			// During freeze, /b.js disappears
+			if (path === "/b.js") {
+				return Promise.resolve(null);
+			}
+			return Promise.resolve(resA);
+		})
+	}));
+
+	const cache = await ProjectBuildCache.create(project, "test-sig", cacheManager);
+	await cache.setTasks(["myTask"]);
+	await cache.prepareTaskExecutionAndValidateCache("myTask");
+
+	project.getProjectResources().getStage.returns({
+		getId: () => "task/myTask",
+		getWriter: sinon.stub().returns({
+			byGlob: sinon.stub().resolves([createMockResource("/a.js", "hash-a", 2000, 200, 2)])
+		})
+	});
+
+	const projectRequests = {paths: new Set(), patterns: new Set()};
+	const dependencyRequests = {paths: new Set(), patterns: new Set()};
+	await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, null, false);
+
+	const error = await t.throwsAsync(() => cache.allTasksCompleted());
+	t.true(error.message.includes("not found during CAS freeze"),
+		"Error message mentions CAS freeze");
+});
+
+// ===== RESULT METADATA SHAPE TESTS =====
+
+test("writeResultCache: metadata includes sourceStageSignature", async (t) => {
+	const resA = createMockResource("/a.js", "hash-a", 1000, 100, 1);
+
+	const {cache, cacheManager} = await buildCacheWithTaskResult(
+		[resA],
+		["/a.js"]
+	);
+
+	await cache.allTasksCompleted();
+	await cache.writeCache();
+
+	// writeResultMetadata should have been called
+	t.true(cacheManager.writeResultMetadata.called, "writeResultMetadata was called");
+
+	const metadataCall = cacheManager.writeResultMetadata.getCall(0);
+	const metadata = metadataCall.args[3];
+	t.truthy(metadata.stageSignatures, "Metadata contains stageSignatures");
+	t.is(typeof metadata.sourceStageSignature, "string",
+		"Metadata contains sourceStageSignature as string");
+});
+
+// ===== RESTORE FROZEN SOURCES TESTS =====
+
+test("restoreFrozenSources: cache miss logs verbose and continues", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+
+	const resA = createMockResource("/a.js", "hash-a", 1000, 100, 1);
+	project.getSourceReader.callsFake(() => ({
+		byGlob: sinon.stub().resolves([resA]),
+		byPath: sinon.stub().resolves(resA)
+	}));
+
+	const indexCache = {
+		version: "1.0",
+		indexTree: {
+			version: 1,
+			indexTimestamp: 1000,
+			root: {
+				hash: "hash-a",
+				children: {
+					"a.js": {
+						hash: "hash-a",
+						metadata: {
+							path: "/a.js",
+							lastModified: 1000,
+							size: 100,
+							inode: 1
+						}
+					}
+				}
+			}
+		},
+		tasks: [["task1", false]]
+	};
+	cacheManager.readIndexCache.resolves(indexCache);
+	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
+		return Promise.resolve({
+			requestSetGraph: {nodes: [], nextId: 1},
+			rootIndices: [],
+			deltaIndices: [],
+			unusedAtLeastOnce: true
+		});
+	});
+
+	// readResultMetadata returns metadata WITH sourceStageSignature
+	cacheManager.readResultMetadata.resolves({
+		stageSignatures: {"task/task1": "sig1-sig2"},
+		sourceStageSignature: "source-sig-123"
+	});
+
+	// readStageCache for task stage returns valid data, but for "source" stage returns null
+	cacheManager.readStageCache.callsFake((projectId, buildSig, stageName, signature) => {
+		if (stageName === "source") {
+			return Promise.resolve(null); // Cache miss for source stage
+		}
+		// Return valid stage for task stages
+		return Promise.resolve({
+			resourceMetadata: {"/a.js": {integrity: "hash-a", lastModified: 1000, size: 100, inode: 1}},
+			projectTagOperations: {},
+			buildTagOperations: {},
+		});
+	});
+
+	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+
+	const mockDepReader = {
+		byGlob: sinon.stub().resolves([]),
+		byPath: sinon.stub().resolves(null)
+	};
+	const result = await cache.prepareProjectBuildAndValidateCache(mockDepReader);
+
+	// Should succeed without error — the cache miss for source stage is non-fatal
+	t.truthy(result, "prepareProjectBuildAndValidateCache succeeds despite source cache miss");
+
+	// Verify readStageCache was called with "source" stageId
+	const sourceReadCalls = cacheManager.readStageCache.getCalls().filter(
+		(call) => call.args[2] === "source"
+	);
+	t.true(sourceReadCalls.length > 0, "readStageCache was called for source stage");
+});
+
+test("restoreFrozenSources: cache hit creates CAS reader", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+
+	const resA = createMockResource("/a.js", "hash-a", 1000, 100, 1);
+	project.getSourceReader.callsFake(() => ({
+		byGlob: sinon.stub().resolves([resA]),
+		byPath: sinon.stub().resolves(resA)
+	}));
+
+	const indexCache = {
+		version: "1.0",
+		indexTree: {
+			version: 1,
+			indexTimestamp: 1000,
+			root: {
+				hash: "hash-a",
+				children: {
+					"a.js": {
+						hash: "hash-a",
+						metadata: {
+							path: "/a.js",
+							lastModified: 1000,
+							size: 100,
+							inode: 1
+						}
+					}
+				}
+			}
+		},
+		tasks: [["task1", false]]
+	};
+	cacheManager.readIndexCache.resolves(indexCache);
+	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
+		return Promise.resolve({
+			requestSetGraph: {nodes: [], nextId: 1},
+			rootIndices: [],
+			deltaIndices: [],
+			unusedAtLeastOnce: true
+		});
+	});
+
+	// readResultMetadata returns metadata WITH sourceStageSignature
+	cacheManager.readResultMetadata.resolves({
+		stageSignatures: {"task/task1": "sig1-sig2"},
+		sourceStageSignature: "source-sig-456"
+	});
+
+	// readStageCache returns valid data for both task and source stages
+	cacheManager.readStageCache.callsFake((projectId, buildSig, stageName, signature) => {
+		if (stageName === "source") {
+			return Promise.resolve({
+				resourceMetadata: {
+					"/b.js": {integrity: "hash-b", lastModified: 1000, size: 100, inode: 2}
+				},
+			});
+		}
+		return Promise.resolve({
+			resourceMetadata: {"/a.js": {integrity: "hash-a", lastModified: 1000, size: 100, inode: 1}},
+			projectTagOperations: {},
+			buildTagOperations: {},
+		});
+	});
+
+	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+
+	const mockDepReader = {
+		byGlob: sinon.stub().resolves([]),
+		byPath: sinon.stub().resolves(null)
+	};
+	const result = await cache.prepareProjectBuildAndValidateCache(mockDepReader);
+
+	t.truthy(result, "Cache restored successfully");
+
+	// Verify readStageCache was called with "source" stageId and the correct signature
+	const sourceReadCalls = cacheManager.readStageCache.getCalls().filter(
+		(call) => call.args[2] === "source"
+	);
+	t.true(sourceReadCalls.length > 0, "readStageCache was called for source stage");
+	t.is(sourceReadCalls[0].args[3], "source-sig-456",
+		"readStageCache called with correct source signature");
 });
