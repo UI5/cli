@@ -254,7 +254,7 @@ test.serial("Build application.a (with various dependencies)", async (t) => {
 
 	// #3 build (no cache, with changes, with dependencies)
 	await fixtureTester.buildProject({
-		config: {destPath, cleanDest: false, dependencyIncludes: {includeAllDependencies: true}},
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
 			projects: {
 				"component.z": {},
@@ -276,7 +276,7 @@ test.serial("Build application.a (with various dependencies)", async (t) => {
 
 	// #4 build (no cache, with changes, with dependencies)
 	await fixtureTester.buildProject({
-		config: {destPath, cleanDest: false, dependencyIncludes: {includeAllDependencies: true}},
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
 			projects: {
 				"library.z": {},
@@ -298,7 +298,7 @@ test.serial("Build application.a (with various dependencies)", async (t) => {
 
 	// #5 build (no cache, with changes, with dependencies)
 	await fixtureTester.buildProject({
-		config: {destPath, cleanDest: false, dependencyIncludes: {includeAllDependencies: true}},
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
 			projects: {
 				"themelib.z": {},
@@ -320,7 +320,7 @@ test.serial("Build application.a (with various dependencies)", async (t) => {
 
 	// #6 build (no cache, with changes, with dependencies)
 	await fixtureTester.buildProject({
-		config: {destPath, cleanDest: false, dependencyIncludes: {includeAllDependencies: true}},
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
 			projects: {
 				"module.z": {},
@@ -374,7 +374,7 @@ test.serial("Build application.a (including only some dependencies)", async (t) 
 	// Exclude library.d as dependency, but include all other dependencies
 	// (builds of library.a and library.b can be reused from cache):
 	await fixtureTester.buildProject({
-		config: {destPath, cleanDest: false,
+		config: {destPath, cleanDest: true,
 			dependencyIncludes: {includeAllDependencies: true, excludeDependency: ["library.d"]}},
 		assertions: {
 			projects: {
@@ -398,7 +398,7 @@ test.serial("Build application.a (including only some dependencies)", async (t) 
 	// Include all dependencies (only library.d is built)
 	// (builds of library.a, library.b, and library.c can be reused from cache):
 	await fixtureTester.buildProject({
-		config: {destPath, cleanDest: false,
+		config: {destPath, cleanDest: true,
 			dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
 			projects: {
@@ -416,6 +416,26 @@ test.serial("Build application.a (including only some dependencies)", async (t) 
 		{encoding: "utf8"}));
 	await t.notThrowsAsync(fs.readFile(`${destPath}/resources/library/d/library-preload.js`,
 		{encoding: "utf8"}));
+
+
+	// Delete a dependency ("library.d") from application.a:
+	await fs.rm(`${fixtureTester.fixturePath}/node_modules/library.d`, {recursive: true, force: true});
+	const packageJsonContent = JSON.parse(
+		await fs.readFile(`${fixtureTester.fixturePath}/package.json`, {encoding: "utf8"}));
+	delete packageJsonContent.dependencies["library.d"];
+	await fs.writeFile(`${fixtureTester.fixturePath}/package.json`, JSON.stringify(packageJsonContent, null, 2));
+
+	// #4 build
+	// Build application.a again with "includeAllDependencies"
+	// and check with assertion "allProjects" that "library.d" isn't even seen:
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true,
+			dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			allProjects: ["library.a", "library.b", "library.c", "application.a"],
+			projects: {}, // no project should be rebuilt
+		}
+	});
 });
 
 test.serial("Build application.a (custom task and tag handling)", async (t) => {
@@ -1223,7 +1243,7 @@ test.serial("Build application.a (Custom bundling)", async (t) => {
 	// #5 build with custom bundle configuration (with empty cache)
 	await fixtureTester.buildProject({
 		graphConfig: {rootConfigPath: "ui5-custom-bundling.yaml"},
-		config: {destPath, cleanDest: false},
+		config: {destPath, cleanDest: true},
 		assertions: {
 			projects: {
 				"application.a": {}
@@ -1258,7 +1278,7 @@ test.serial("Build application.a (Custom bundling)", async (t) => {
 	// #6 build with custom bundle configuration (with empty cache)
 	await fixtureTester.buildProject({
 		graphConfig: {rootConfigPath: "ui5-custom-bundling.yaml"},
-		config: {destPath, cleanDest: false},
+		config: {destPath, cleanDest: true},
 		assertions: {
 			projects: {
 				"application.a": {}
@@ -1297,7 +1317,7 @@ test.serial("Build application.a (Custom bundling)", async (t) => {
 	// #7 build with custom bundle configuration (with empty cache)
 	await fixtureTester.buildProject({
 		graphConfig: {rootConfigPath: "ui5-custom-bundling.yaml"},
-		config: {destPath, cleanDest: false},
+		config: {destPath, cleanDest: true},
 		assertions: {
 			projects: {
 				"application.a": {}
@@ -1495,7 +1515,7 @@ test.serial("Build library.d (with various dependencies)", async (t) => {
 
 	// #3 build (no cache, with changes, with dependencies)
 	await fixtureTester.buildProject({
-		config: {destPath, cleanDest: false, dependencyIncludes: {includeAllDependencies: true}},
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
 			projects: {
 				"library.z": {},
@@ -1517,7 +1537,7 @@ test.serial("Build library.d (with various dependencies)", async (t) => {
 
 	// #4 build (no cache, with changes, with dependencies)
 	await fixtureTester.buildProject({
-		config: {destPath, cleanDest: false, dependencyIncludes: {includeAllDependencies: true}},
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
 			projects: {
 				"themelib.z": {},
@@ -1748,7 +1768,7 @@ test.serial("Build theme.library.e (with various dependencies)", async (t) => {
 
 	// #3 build (no cache, with changes, with dependencies)
 	await fixtureTester.buildProject({
-		config: {destPath, cleanDest: false, dependencyIncludes: {includeAllDependencies: true}},
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
 			projects: {
 				"library.z": {},
@@ -1913,7 +1933,7 @@ test.serial("Build component.a (with various dependencies)", async (t) => {
 
 	// #3 build (no cache, with changes, with dependencies)
 	await fixtureTester.buildProject({
-		config: {destPath, cleanDest: false, dependencyIncludes: {includeAllDependencies: true}},
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
 			projects: {
 				"component.z": {},
@@ -1935,7 +1955,7 @@ test.serial("Build component.a (with various dependencies)", async (t) => {
 
 	// #4 build (no cache, with changes, with dependencies)
 	await fixtureTester.buildProject({
-		config: {destPath, cleanDest: false, dependencyIncludes: {includeAllDependencies: true}},
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
 			projects: {
 				"library.z": {},
@@ -1957,7 +1977,7 @@ test.serial("Build component.a (with various dependencies)", async (t) => {
 
 	// #5 build (no cache, with changes, with dependencies)
 	await fixtureTester.buildProject({
-		config: {destPath, cleanDest: false, dependencyIncludes: {includeAllDependencies: true}},
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
 			projects: {
 				"themelib.z": {},
@@ -1979,7 +1999,7 @@ test.serial("Build component.a (with various dependencies)", async (t) => {
 
 	// #6 build (no cache, with changes, with dependencies)
 	await fixtureTester.buildProject({
-		config: {destPath, cleanDest: false, dependencyIncludes: {includeAllDependencies: true}},
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
 			projects: {
 				"module.z": {},
@@ -2230,7 +2250,7 @@ test.serial("Build module.b (with various dependencies)", async (t) => {
 
 	// #4 build (no cache, with changes, with dependencies)
 	await fixtureTester.buildProject({
-		config: {destPath, cleanDest: false, dependencyIncludes: {includeAllDependencies: true}},
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
 			projects: {
 				"themelib.z": {},
@@ -2495,7 +2515,22 @@ class FixtureTester {
 	}
 
 	_assertBuild(assertions) {
-		const {projects = {}} = assertions;
+		/**
+		 * assertions object structure:
+		 * {
+		 *   projects: {
+		 *     "projectName": {
+		 *       skippedTasks: ["task1", "task2"],
+		 *     },
+		 *     // ...
+		 *   },
+		 *   allProjects: ["projectName1", "projectName2"]
+		 * }
+		 *
+		 * projects - for asserting all projects which are expected to be built
+		 * allProjects - optional, for asserting all seen projects nonetheless if built or not
+		 */
+		const {projects = {}, allProjects = []} = assertions;
 
 		const projectsInOrder = [];
 		const seenProjects = new Set();
@@ -2525,9 +2560,17 @@ class FixtureTester {
 			}
 		}
 
-		// Assert projects built in order
+		// Assert built projects in order
 		const expectedProjects = Object.keys(projects);
 		this._t.deepEqual(projectsInOrder, expectedProjects);
+
+		// Optional check: Assert seen projects
+		if (allProjects.length > 0) {
+			const expectedAllProjects = allProjects.sort();
+			const actualAllProjects = Array.from(seenProjects).sort();
+			this._t.deepEqual(actualAllProjects, expectedAllProjects,
+				"All seen projects (built or not) should match expected");
+		}
 
 		// Assert skipped tasks per project
 		for (const [projectName, expectedSkipped] of Object.entries(projects)) {
