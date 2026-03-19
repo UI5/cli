@@ -251,6 +251,14 @@ The build cache shall be serialized to disk in order to reuse it in successive U
 
 Each project build has its own global metadata cache. This allows reuse of a project's cache across multiple consuming projects. For example, the `sap.ui.core` library could be built once and the build cache can then be reused in the build of multiple applications that reference the project. A "project build" is defined by its [`build signature`](#build-signature).
 
+#### Source File Storage in CAS
+
+In addition to task-produced resources, **source files that are not overlayed by any build task** are also stored in the CAS when a project's build completes. These are the project's original source files that pass through the build unchanged — i.e. resources that were not written to any task's writer stage.
+
+This is necessary because dependent projects need access to the full set of a dependency's resources (both task outputs and unmodified sources). Storing source files in the CAS ensures that dependent projects can read them from the CAS-backed readers rather than from the filesystem, guaranteeing consistency even if the original files are modified between builds (see [Race Condition Handling](#race-condition-handling)).
+
+This specifically applies to source files that are accessible to dependent projects — i.e. resources that would be served to downstream consumers. The metadata for these source resources is tracked alongside the [Stage Metadata](#stage-metadata), enabling dependent projects to resolve them from CAS in the same way as task outputs. No new storage mechanism is needed; source files are simply additional entries in the existing CAS, keyed by their content-integrity hash.
+
 The cache consists of the following components:
 1. A global CAS where all file contents are stored, identified by their content-integrity hash.
 2. Metadata per project build (identified by its build signature), consisting of:
@@ -435,7 +443,7 @@ The resource requests are stored in a serialized [`Resource Request Graph`](#res
 	}
 ```
 
-Stores the metadata of all resources for a given "stage" (i.e. all resources written by a single build task). This metadata can be used to access the resource content from the content-addressable store and to restore resource tag information.
+Stores the metadata of all resources for a given "stage" (i.e. all resources written by a single build task). This metadata can be used to access the resource content from the content-addressable store and to restore resource tag information. Additionally, stage metadata may reference source file entries stored in the CAS for consumption by dependent projects (see [Source File Storage in CAS](#source-file-storage-in-cas)).
 
 The `resourceMapping` maps virtual path prefixes to indices in the `resourceMetadata` array. This is necessary for certain UI5 project types where multiple virtual paths map to the same physical path. For example, for a project of type `application`, the root path `/` maps to the sources (i.e. the `webapp` directory), just like the namespaced path `/resources/my/app/`. Both prefixes therefore reference the same `resourceMetadata` entry (index `0` in the example above). A different prefix, such as `/` for generated root-level resources, may reference a separate entry (index `1`).
 
@@ -523,6 +531,8 @@ The cache is then used to:
 2. Restore `Build Task Cache` instances using the respective [Build Task Metadata](#build-task-metadata) Cache
 3. Provide the `Project` with readers for the cached `writer stages` (i.e. task outputs)
 	* When the build process needs to access a cached resource, it can do so using those readers. Internally, resources are provided by first looking up their metadata in the corresponding [Stage Metadata](#stage-metadata) cache to find the resource content hash. Using this hash, the resource content can be read from the global `cas` store.
+4. Provide dependency resource readers backed by the CAS
+	* When a dependent project's build needs to access resources of a dependency, it reads from CAS-backed readers instead of filesystem readers. This includes both task outputs and unmodified source files stored in the CAS during the dependency's build (see [Source File Storage in CAS](#source-file-storage-in-cas)). This is transparent to build tasks — the reader abstraction hides whether the content comes from CAS or the filesystem.
 
 This allows executing individual tasks and providing them with the results of all preceding tasks without the overhead of creating numerous file system readers or managing physical copies of files for each build stage.
 
@@ -540,11 +550,23 @@ After a *project* has finished building, a list of all modified resources is com
 
 ### Concurrency
 
-Parallel builds of the same project are not supported. A lock mechanism is used to ensure that only one build process is active at a time for a given project. This simplifies cache management and avoids the complexity of concurrent cache reads/writes and cross-project invalidation during parallel execution.
+Parallel builds of the same project are not supported. A lock mechanism is used to ensure that only one build process is active at a time for a given project. This simplifies cache management and avoids the complexity of concurrent cache reads/writes and cross-project invalidation during parallel execution. For race conditions arising from sequential multi-project builds, see [Race Condition Handling](#race-condition-handling).
 
 For the cache specifically, this can be achieved by creating a lock for the build signature. When starting the build, a shared or "read lock" shall be acquired. This allows multiple processes to read from the cache concurrently. Only when updating, i.e. writing new resources to the content-addressable store and updating the metadata cache, shall an exclusive or "write lock" be acquired. This prevents other processes from reading or writing to the cache while it is being updated. It remains to be checked whether there is potential for deadlocks, in which case a more advanced locking mechanism is required. E.g. write-locking all projects that might require a build already at the beginning of the build rather than locking individual projects during the build execution. Alternatively, timeouts can be used to release and retry locks in case of deadlocks, at dynamically increasing time intervals.
 
 The lock files shall be stored in the [Cache Directory Structure](#cache-directory-structure) under a dedicated `locks` directory. Each lock file is named after the corresponding build signature and the type of lock (read or write).
+
+### Race Condition Handling
+
+In a multi-project build, projects are built sequentially based on their dependency order. This introduces a potential race condition: after project A finishes building, a user (or an editor's auto-save in watch mode) may modify a source file in project A before dependent project B starts or finishes building. If B were to read A's source files directly from the filesystem, it would see the modified — and therefore inconsistent — version, leading to incorrect build results.
+
+This is resolved by storing A's source files in the CAS at the end of A's build (see [Source File Storage in CAS](#source-file-storage-in-cas)). Dependent project B reads A's resources from the CAS using the integrity hashes recorded during A's build. This guarantees that B sees exactly the state of A's sources as they were when A was built, regardless of subsequent filesystem modifications.
+
+**Source index validation:** As an additional safeguard, a validation step is performed at the end of each project's build. The project's source index — as recorded at the start of the build — is compared against the current state of the source files on disk. If any source file has been modified during the build, the validation fails and an exception is thrown. This prevents the resulting (potentially corrupt) cache from being stored and the build result from being used. In watch mode, this will cause the build to be retried with the updated source files.
+
+**Scope:** This protection applies to **dependency resources only**. The root project's own source files are always read from the filesystem, as they represent the current input to the build. Modifications to the root project's sources during a build are handled by the [watch mode](#watch-mode), which detects the change and schedules a new build.
+
+**Interaction with watch mode:** If a source file change in a dependency is detected during or after the current build, the watch mode will schedule a new build. The current build continues using the CAS-snapshotted version of the dependency's resources, ensuring consistency. The subsequent build will then pick up the changes and rebuild the affected projects.
 
 ### Garbage Collection
 
