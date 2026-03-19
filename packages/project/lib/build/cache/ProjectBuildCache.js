@@ -280,9 +280,12 @@ export default class ProjectBuildCache {
 		}
 		const [resultSignature, resultMetadata] = res;
 		log.verbose(`Found result cache with signature ${resultSignature}`);
-		const {stageSignatures} = resultMetadata;
+		const {stageSignatures, sourceStageSignature} = resultMetadata;
 
 		const writtenResourcePaths = await this.#importStages(stageSignatures);
+
+		// Restore CAS-backed source reader from the stored source stage
+		await this.#restoreFrozenSources(sourceStageSignature);
 
 		log.verbose(
 			`Using cached result stage for project ${this.#project.getName()} with index signature ${resultSignature}`);
@@ -827,6 +830,95 @@ export default class ProjectBuildCache {
 	}
 
 	/**
+	 * Write untransformed source files (not overlayed by any build task) to the CAS
+	 * and persist their metadata in the stage cache.
+	 *
+	 * This enables downstream projects to read dependency source files from the CAS
+	 * snapshot instead of the live filesystem, preventing race conditions from source
+	 * changes between project builds.
+	 *
+	 * In subsequent builds where the source index signature hasn't changed, the stored
+	 * metadata can be used to recreate a CAS-backed reader without rebuilding the dependency.
+	 */
+	async #freezeUntransformedSources() {
+		const transformedPaths = new Set(this.#writtenResultResourcePaths);
+		const untransformedPaths = this.#sourceIndex.getResourcePaths()
+			.filter((p) => !transformedPaths.has(p));
+
+		if (untransformedPaths.length === 0) {
+			log.verbose(
+				`All source files of project ${this.#project.getName()} are overlayed by build tasks`);
+			return;
+		}
+
+		const sourceReader = this.#project.getSourceReader();
+		const sourceSignature = this.#sourceIndex.getSignature();
+
+		// Read untransformed source files
+		const resources = await Promise.all(untransformedPaths.map(async (resourcePath) => {
+			const resource = await sourceReader.byPath(resourcePath);
+			if (!resource) {
+				throw new Error(
+					`Source file ${resourcePath} not found during CAS freeze ` +
+					`for project ${this.#project.getName()}`);
+			}
+			return resource;
+		}));
+
+		// Write resources to CAS and collect metadata (reuses existing helper)
+		const resourceMetadata = await this.#writeStageResources(resources, "source", sourceSignature);
+
+		// Persist source stage metadata in the stage cache
+		await this.#cacheManager.writeStageCache(
+			this.#project.getId(), this.#buildSignature, "source", sourceSignature,
+			{resourceMetadata});
+
+		log.verbose(
+			`Stored ${untransformedPaths.length} untransformed source files of project ` +
+			`${this.#project.getName()} in CAS with signature ${sourceSignature}`);
+
+		// Create CAS-backed proxy reader for the untransformed source files
+		const casSourceReader = this.#createReaderForStageCache("source", sourceSignature, resourceMetadata);
+
+		// TODO: Replace the project's filesystem-backed source reader with the CAS-backed reader
+		// via ProjectResources.setSourceReader(casSourceReader) to protect downstream consumers
+		// from filesystem race conditions.
+		void casSourceReader;
+	}
+
+	/**
+	 * Restores the CAS-backed reader for untransformed source files from a previous build's
+	 * cached stage metadata.
+	 *
+	 * @param {string} sourceStageSignature The source index signature used when the source
+	 *   stage was persisted
+	 */
+	async #restoreFrozenSources(sourceStageSignature) {
+		const stageMetadata = await this.#cacheManager.readStageCache(
+			this.#project.getId(), this.#buildSignature, "source", sourceStageSignature);
+
+		if (!stageMetadata) {
+			log.verbose(
+				`No cached source stage found for project ${this.#project.getName()} ` +
+				`with signature ${sourceStageSignature}`);
+			return;
+		}
+
+		const {resourceMetadata} = stageMetadata;
+		log.verbose(
+			`Restored ${Object.keys(resourceMetadata).length} frozen source files for project ` +
+			`${this.#project.getName()} from CAS`);
+
+		const casSourceReader = this.#createReaderForStageCache(
+			"source", sourceStageSignature, resourceMetadata);
+
+		// TODO: Replace the project's filesystem-backed source reader with the CAS-backed reader
+		// via ProjectResources.setSourceReader(casSourceReader) to protect downstream consumers
+		// from filesystem race conditions.
+		void casSourceReader;
+	}
+
+	/**
 	 * Signals that all tasks have completed and switches to the result stage
 	 *
 	 * This finalizes the build process by switching the project to use the
@@ -847,6 +939,9 @@ export default class ProjectBuildCache {
 				`The build result may be inconsistent and will not be used. ` +
 				`Build cache has not been updated.`);
 		}
+
+		// Write untransformed source files to CAS for downstream consumer protection
+		await this.#freezeUntransformedSources();
 
 		if (this.#combinedIndexState === INDEX_STATES.INITIAL) {
 			this.#combinedIndexState = INDEX_STATES.FRESH;
@@ -1030,6 +1125,7 @@ export default class ProjectBuildCache {
 
 		const metadata = {
 			stageSignatures,
+			sourceStageSignature: this.#sourceIndex.getSignature(),
 		};
 		await this.#cacheManager.writeResultMetadata(
 			this.#project.getId(), this.#buildSignature, stageSignature, metadata);
