@@ -8,7 +8,7 @@ const readFile = promisify(fs.readFile);
 import BuildTaskCache from "./BuildTaskCache.js";
 import StageCache from "./StageCache.js";
 import ResourceIndex from "./index/ResourceIndex.js";
-import {firstTruthy} from "./utils.js";
+import {firstTruthy, matchResourceMetadataStrict} from "./utils.js";
 const log = getLogger("build:cache:ProjectBuildCache");
 
 export const INDEX_STATES = Object.freeze({
@@ -772,6 +772,61 @@ export default class ProjectBuildCache {
 	}
 
 	/**
+	 * Re-reads all source files from disk and compares them against the source index
+	 * to detect whether any source files were modified, added, or deleted during the build.
+	 *
+	 * Uses metadata-only comparison via matchResourceMetadataStrict (skipping tags,
+	 * since tags are build artifacts that always differ from fresh disk reads).
+	 *
+	 * @returns {Promise<boolean>} True if source changes were detected during the build
+	 */
+	async #revalidateSourceIndex() {
+		const sourceReader = this.#project.getSourceReader();
+		const currentResources = await sourceReader.byGlob("/**/*");
+
+		const tree = this.#sourceIndex.getTree();
+		const indexedPaths = new Set(this.#sourceIndex.getResourcePaths());
+		const currentPaths = new Set();
+
+		for (const resource of currentResources) {
+			const resourcePath = resource.getPath();
+			currentPaths.add(resourcePath);
+
+			const node = tree.getResourceByPath(resourcePath);
+			if (!node) {
+				// File was added during the build
+				log.verbose(`Source file added during build: ${resourcePath}`);
+				return true;
+			}
+
+			const cachedMetadata = {
+				integrity: node.integrity,
+				lastModified: node.lastModified,
+				size: node.size,
+				inode: node.inode,
+			};
+			const isUnchanged = await matchResourceMetadataStrict(
+				resource, cachedMetadata, tree.getIndexTimestamp()
+			);
+			if (!isUnchanged) {
+				// File was modified during the build
+				log.verbose(`Source file modified during build: ${resourcePath}`);
+				return true;
+			}
+		}
+
+		// Check for removed files
+		for (const indexedPath of indexedPaths) {
+			if (!currentPaths.has(indexedPath)) {
+				log.verbose(`Source file removed during build: ${indexedPath}`);
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Signals that all tasks have completed and switches to the result stage
 	 *
 	 * This finalizes the build process by switching the project to use the
@@ -780,9 +835,19 @@ export default class ProjectBuildCache {
 	 *
 	 * @public
 	 * @returns {Promise<string[]>} Array of changed resource paths since the last build
+	 * @throws {Error} If source files were modified during the build
 	 */
 	async allTasksCompleted() {
 		this.#project.getProjectResources().useResultStage();
+
+		const sourceChangedDuringBuild = await this.#revalidateSourceIndex();
+		if (sourceChangedDuringBuild) {
+			throw new Error(
+				`Detected changes to source files of project ${this.#project.getName()} during the build. ` +
+				`The build result may be inconsistent and will not be used. ` +
+				`Build cache has not been updated.`);
+		}
+
 		if (this.#combinedIndexState === INDEX_STATES.INITIAL) {
 			this.#combinedIndexState = INDEX_STATES.FRESH;
 		}
