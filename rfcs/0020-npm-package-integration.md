@@ -55,7 +55,7 @@ UI5 applications face significant challenges when consuming NPM packages:
 - **Dev-Time Support** — On-demand bundling during `ui5 serve` (deferred to [RFC 0017 Incremental Build](https://github.com/UI5/cli/blob/rfc-incremental-build/rfcs/0017-incremental-build.md))
 - **Standard Compliance** — Output follows UI5's AMD module format and naming conventions
 - **Web Component Support** — First-class `@ui5/webcomponents` integration with UI5 control wrappers
-- **Performance Optimization** — Package independence enables deduplication and browser caching
+- **Performance Optimization** — Shared transitive dependencies are extracted into standalone AMD modules (see [3.8.3](#383-externals-discovery-via-transitive-dependency-consolidation)), avoiding duplicate code across bundles and enabling the browser to cache common dependencies (e.g., `react`) once rather than re-downloading them inside every consuming package
 
 ---
 
