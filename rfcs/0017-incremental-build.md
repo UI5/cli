@@ -257,7 +257,9 @@ In addition to task-produced resources, **source files that are not overlayed by
 
 This is necessary because dependent projects need access to the full set of a dependency's resources (both task outputs and unmodified sources). Storing source files in the CAS ensures that dependent projects can read them from the CAS-backed readers rather than from the filesystem, guaranteeing consistency even if the original files are modified between builds (see [Race Condition Handling](#race-condition-handling)).
 
-This specifically applies to source files that are accessible to dependent projects — i.e. resources that would be served to downstream consumers. The metadata for these source resources is tracked alongside the [Stage Metadata](#stage-metadata), enabling dependent projects to resolve them from CAS in the same way as task outputs. No new storage mechanism is needed; source files are simply additional entries in the existing CAS, keyed by their content-integrity hash.
+This specifically applies to source files that are accessible to dependent projects — i.e. resources that would be served to downstream consumers. No new storage mechanism is needed; source files are simply additional entries in the existing CAS, keyed by their content-integrity hash.
+
+The CAS-stored source files are tracked using a flat index of resource paths mapped to their CAS metadata (integrity hash, size, etc.), similar to the [Stage Metadata](#stage-metadata) of task outputs. This source stage index is stored as part of the [Result Metadata](#result-metadata) under the project's source-index signature. This is important because in subsequent builds where the dependency project has not been modified, the build can skip rebuilding the dependency entirely and still reference its source files from the CAS via the stored index — again eliminating the risk of race conditions without requiring a rebuild.
 
 The cache consists of the following components:
 1. A global CAS where all file contents are stored, identified by their content-integrity hash.
@@ -443,7 +445,7 @@ The resource requests are stored in a serialized [`Resource Request Graph`](#res
 	}
 ```
 
-Stores the metadata of all resources for a given "stage" (i.e. all resources written by a single build task). This metadata can be used to access the resource content from the content-addressable store and to restore resource tag information. Additionally, stage metadata may reference source file entries stored in the CAS for consumption by dependent projects (see [Source File Storage in CAS](#source-file-storage-in-cas)).
+Stores the metadata of all resources for a given "stage" (i.e. all resources written by a single build task). This metadata can be used to access the resource content from the content-addressable store and to restore resource tag information.
 
 The `resourceMapping` maps virtual path prefixes to indices in the `resourceMetadata` array. This is necessary for certain UI5 project types where multiple virtual paths map to the same physical path. For example, for a project of type `application`, the root path `/` maps to the sources (i.e. the `webapp` directory), just like the namespaced path `/resources/my/app/`. Both prefixes therefore reference the same `resourceMetadata` entry (index `0` in the example above). A different prefix, such as `/` for generated root-level resources, may reference a separate entry (index `1`).
 
@@ -486,7 +488,7 @@ For some project types where no path mapping is done (e.g. type `module`), the s
 
 Result metadata is stored by forming a key using the current source-index signature, combined with the signatures of the dependency-indices of all the project's stages. The dependency signatures are concatenated and a hash is calculated over the resulting string. The final key is then formed as `<source-index-signature>-<dependency-signature-hash>`.
 
-The metadata then maps this key to the [Stage Metadata](#stage-metadata) of all stages that produced the final build result for this project state. This ultimately allows recreating the full build output of the project by combining those stages with the current sources.
+The metadata then maps this key to the [Stage Metadata](#stage-metadata) of all stages that produced the final build result for this project state. This ultimately allows recreating the full build output of the project by combining those stages with the current sources. Additionally, the result metadata includes the index of [source files stored in the CAS](#source-file-storage-in-cas), enabling dependent projects to resolve these resources from the CAS even when the dependency's build is skipped entirely in subsequent builds.
 
 ### Cache Directory Structure
 
