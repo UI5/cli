@@ -123,12 +123,12 @@ Every scenario runs **dual bundling**: the custom Rollup pipeline and `ui5-tooli
 
 | Scenario | Package | Format | What It Validates |
 |----------|---------|--------|-------------------|
-| ESM Integration | `nanoid` | Pure ESM | ESM-only package -> clean AMD
+| ESM Integration | `nanoid` | Pure ESM | ESM-only package -> clean AMD |
 | CJS Integration | `lodash` | Pure CJS | CJS -> ESM -> AMD via `commonjs` plugin |
-| Web Components | `@ui5/webomponents` | ESM + Custom Elements Manifest | Metadata extraction, UI5 wrapper generation, tag 
-| Complex Package | `sinon` | Mixed deps | Deep dependency trees, tree-shaking effe |
+| Web Components | `@ui5/webcomponents` | ESM + Custom Elements Manifest | Metadata extraction, UI5 wrapper generation, tag name scoping |
+| Complex Package | `sinon` | Mixed deps | Deep dependency trees, tree-shaking effectiveness |
 | Transitive Deps | `axios` | Transitive | Auto-resolution of transitive dependency chains |
-| Consolidated App | chart.js, lidator, React ecosystem | Mixed | Externals, paths mapping, topological ordering, full pipeline |
+| Consolidated App | chart.js, validator, React ecosystem | Mixed | Externals, paths mapping, topological ordering, full pipeline |
 
 
 ### 3.3 Reusable Patterns from `ui5-tooling-modules`
@@ -164,7 +164,7 @@ Rather than implementing a separate scanning phase, NPM dependency detection is 
 
 ![Dependency Scanning Activity Diagram](./resources/0020-npm-integration/dependency-scanning-activity.svg)
 
-* **Key insight**: Leverages existing espree AST parsing that already occurs for UI5 dependency analysis, requiring only pattern detection extensions to existing visitor logic.*
+*__Key insight__: Leverages existing espree AST parsing that already occurs for UI5 dependency analysis, requiring only pattern detection extensions to existing visitor logic.*
 
 **Integration points** (extensions to existing classes):
 
@@ -383,8 +383,6 @@ project/                              project/
 For PNPM, `preserveSymlinks: false` (the Rollup default) ensures symlinks are followed to the real file paths in the `.pnpm/` store. The `pnpm-resolve` plugin from `ui5-tooling-modules` provides additional handling for edge cases like workspace package.json lookup through symlink chains.
 
 #### 3.7.2 Resolution Priority
-
-The `nodeResolve` plugin follows this priority when resolving a package:
 
 The `nodeResolve` plugin follows this priority waterfall (see also the resolution cascade in [3.4.1](#341-design-integrated-into-existing-ast-parsing)): **exports** (highest priority, modern packages) -> **browser** (browser-specific overrides) -> **module** (ESM entry, preferred for tree-shaking) -> **main** (CJS entry, fallback) -> **index.js** (convention-based fallback). The exports field supports conditional resolution with `browser` > `import` > `require` > `default` priority.
 
@@ -753,11 +751,11 @@ Excludes specific packages from build output while still serving them during dev
 
 `ui5-tooling-modules` uses Chokidar-based file watching to detect source changes and trigger re-bundling during development. **Status**: Not implemented in this PoC. This will be handled by the incremental build feature (RFC 0017).
 
-### 6.14 Minification
+### 6.13 Minification
 
 Separate minification of generated NPM bundles via `@rollup/plugin-terser`, independent of UI5's own minification step.
 
-### 6.15 `sanitizeNpmPackageName`
+### 6.14 `sanitizeNpmPackageName`
 
 Converts scoped package names to JSDoc-safe paths (removes `@`, replaces `-` with `_`). Required when generated modules need to appear in JSDoc or `.d.ts` output.
 
