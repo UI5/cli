@@ -133,11 +133,17 @@ Every scenario runs **dual bundling**: the custom Rollup pipeline and `ui5-tooli
 
 ### 3.3 Reusable Patterns from `ui5-tooling-modules`
 
-The community package `ui5-tooling-modules` provides battle-tested patterns that inform this RFC's design. This section maps each reusable pattern to its RFC integration point.
+The community package [`ui5-tooling-modules`](https://www.npmjs.com/package/ui5-tooling-modules) provides battle-tested patterns that inform this RFC's design. Understanding how it works is essential context for the design choices in this RFC.
+
+**How `ui5-tooling-modules` detects NPM packages (heuristic approach):**  `ui5-tooling-modules` uses **bare package names** in developer source code — e.g., `sap.ui.define(["chart.js"], function(chartjs) { ... })`. At build time, its `scan()` function reads every JS/TS/JSX/TSX/XML source file, parses the AST, and extracts **all** dependency strings from `sap.ui.define`, `sap.ui.require`, ES6 `import`, and XML `xmlns` attributes. For each extracted dependency name, it calls `require.resolve()` (with `.js`, `.cjs`, `.mjs` extension probing) to determine whether the name corresponds to an installed NPM package. If resolution succeeds and the resolved path falls within a declared dependency's `node_modules` subtree, the dependency is treated as an NPM package and bundled. If resolution fails, the dependency is assumed to be a UI5-internal module and skipped. This heuristic-based approach means there is **no syntactic distinction** in developer source code between a UI5 module reference and an NPM package reference — the build tool determines the boundary implicitly via filesystem probing at build time.
+
+Notably, `ui5-tooling-modules` also uses a `thirdparty/` namespace — but only at **build output** time. When `addToNamespace: true` (its default since recent versions), the `rewriteDep()` function in its task rewrites bare package references to `{projectNamespace}/thirdparty/{packageName}` in all source files after bundling. So the final deployed output uses the same `thirdparty/` convention that this RFC proposes — the difference is that this RFC makes the convention explicit in developer-authored source code (see [3.4.2](#342-the-thirdparty-convention) for rationale).
+
+This section maps each reusable pattern to its RFC integration point.
 
 | # | Pattern | Reuse Strategy |
 |---|---------|----------------|
-| 1 | Dependency scanning | **Redesign**: integrate into JSModuleAnalyzer's existing AST traversal instead of standalone regex scan. Same detection logic (`thirdparty/*` convention), different execution model (single-pass AST vs. multi-pass regex). |
+| 1 | Dependency scanning | **Redesign**: integrate into JSModuleAnalyzer's existing AST traversal instead of a standalone scan phase. Detection logic changes from heuristic `require.resolve()` probing (ui5-tooling-modules) to explicit `thirdparty/*` prefix matching (this RFC). Execution model shifts from multi-pass file reads to single-pass AST piggyback. |
 | 2 | Module resolution | **Delegate**: let `@rollup/plugin-node-resolve` handle primary resolution. Adopt the `ERR_PACKAGE_PATH_NOT_EXPORTED` fallback and PNPM symlink handling as supplementary logic. |
 | 3 | Rollup plugin ecosystem | **Adopt directly**: these plugins handle real-world edge cases discovered through production usage. Add to the core plugin chain alongside `nodeResolve`, `commonjs`, `nodePolyfills`, and `replace`. |
 | 4 | Namespace management | Integrated strategy places NPM bundles under `/resources/{namespace}/thirdparty/`, enabling Fiori Launchpad deployment. |
@@ -148,10 +154,11 @@ The community package `ui5-tooling-modules` provides battle-tested patterns that
 
 | Aspect | ui5-tooling-modules | This RFC |
 |--------|---------------------|----------|
-| **Scanning** | Standalone regex scan (`scan()`) — reads all files separately | Integrated into JSModuleAnalyzer — piggybacks on existing AST parse |
+| **Scanning** | Standalone scan (`scan()`) — reads all files separately, probes every dep via `require.resolve()` | Integrated into JSModuleAnalyzer — piggybacks on existing AST parse, detects `thirdparty/*` prefix |
 | **Architecture** | Custom task/middleware extension (external dependency) | Standard built-in task in `taskRepository.js` |
 | **Default namespace** | `addToNamespace: false` | `addToNamespace: true` (FLP-compatible) |
 | **devDependencies** | Included via `legacyDependencyResolution` | Excluded by default; explicit `additionalDependencies` list |
+| **Import convention** | Bare package names in source (`"chart.js"`) — NPM vs. UI5 determined by `require.resolve()` probing at build time | Explicit `thirdparty/` prefix in source (`"thirdparty/chart.js"`) — NPM packages identified by deterministic pattern match and a match against `package.json` dependency field, no filesystem probing |
 | **Plugin chain** | 7 custom plugins + core plugins | Same plugins, integrated into standard build pipeline |
 
 ---
@@ -192,6 +199,15 @@ XML xmlns attribute            ->  NPM package name
 ```
 
 The transformation is **deterministic and algorithmic**: strip the `thirdparty/` prefix for JS, or convert dots to slashes for XML. No configuration mapping is needed.
+
+**Rationale — why the `thirdparty/` prefix is needed:**
+
+The alternative — used by `ui5-tooling-modules` — is to cover existing usage of thirdparties in applications (e.g., `"chart.js"`) and have the build tool determine at build time whether each dependency string refers to an NPM package or a UI5 module by probing the filesystem via `require.resolve()`. This RFC introduces the explicit `thirdparty/` prefix instead.
+
+**Reasoning:**
+- `require.resolve()` results depend on the `node_modules` tree shape, which varies between package manager runs, hoisting strategies, and OS case sensitivity. An explicit prefix means the set of NPM packages is determined by source code alone — not by the filesystem state at build time.
+
+- UI5's own framework already uses a `thirdparty/` folder for third-party libraries (e.g., `sap/ui/thirdparty/jqueryui`). Extending this convention to application-level NPM packages is a natural fit. As noted in [3.3](#33-reusable-patterns-from-ui5-tooling-modules), `ui5-tooling-modules` itself rewrites to `thirdparty/` paths at build output time — this RFC simply moves the convention from build-output-only to developer-authored source code, making the NPM boundary explicit at authoring time rather than implicit at build time.
 
 #### 3.4.3 Edge Cases
 
