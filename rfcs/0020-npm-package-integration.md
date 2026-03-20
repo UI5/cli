@@ -24,7 +24,7 @@ This RFC focuses on the implementation mechanics:
 5. **Shared Dependencies** — Externals configuration and peer dependency handling
 6. **Package Patching** — Pre-bundling patches for vulnerability fixes and bug workarounds via `git diff`/`git apply`
 
-**Key Architectural Decision**: NPM dependency scanning is **integrated directly into the existing JSModuleAnalyzer** visitor pattern rather than implementing a separate scanning phase. This leverages the AST parsing that already occurs for UI5 dependency analysis, requiring only a small extension to the existing visitor logic.
+**Key Architectural Decision**: NPM dependency scanning **reuses the existing `JSModuleAnalyzer` visitor infrastructure** rather than implementing a separate scanner from scratch. The detection logic (`thirdparty/*` pattern matching) is added to the existing visitor, and the NPM bundling task triggers its own analysis pass over workspace resources as its first internal step.
 
 ---
 
@@ -67,7 +67,7 @@ The solution consists of four phases working together:
 
 - **UI5 Application Source** — The starting point is the developer's application code. Controllers reference NPM packages via AMD dependencies (e.g., `sap.ui.define(['thirdparty/chart.js', ...])`), and XML views reference them via xmlns declarations (e.g., `xmlns:webc="thirdparty.@ui5.webcomponents"`). These `thirdparty/*` references are the convention that triggers the NPM integration pipeline.
 
-- **Phase 1: Integrated Dependency Analysis** — The existing `JSModuleAnalyzer` and `XMLTemplateAnalyzer` are extended to detect `thirdparty/*` patterns during their regular AST traversal. `espree.parse` walks the AST looking for `thirdparty/*` in AMD dependency arrays and ESM import statements, while `XMLTemplateAnalyzer` scans for `xmlns:thirdparty.*` declarations. `ResourceCollector` aggregates all detected NPM package names across all analyzed resources. **Key architectural decision**: This piggybacks on the AST parsing that already occurs for UI5 dependency analysis — no separate scanning phase is needed, eliminating duplicate parsing overhead. Output: a deduplicated set of NPM package names (e.g., `['chart.js', 'react', 'react-dom', '@ui5/webcomponents']`).
+- **Phase 1: Dependency Analysis** — The existing `JSModuleAnalyzer` and `XMLTemplateAnalyzer` are extended to detect `thirdparty/*` patterns in their visitor logic. The NPM bundling task triggers its own analysis pass over workspace resources: `espree.parse` walks each JS file’s AST looking for `thirdparty/*` in AMD dependency arrays and ESM import statements, while `XMLTemplateAnalyzer` scans for `xmlns:thirdparty.*` declarations. `ResourceCollector` aggregates all detected NPM package names across all analyzed resources. **Key architectural point**: The detection *code* reuses the same infrastructure that the build pipeline already uses for UI5 dependency analysis, but the detection *execution* is triggered by the NPM task itself — it runs its own pass, not piggy-backing on a prior analysis. Output: a deduplicated set of NPM package names (e.g., `['chart.js', 'react', 'react-dom', '@ui5/webcomponents']`).
 
 - **Transitive Dependency Consolidation** — Before Rollup runs, each scanned package's full transitive dependency tree is enumerated by walking `package.json` `dependencies` fields recursively. Any transitive dependency appearing in two or more trees must be externalized — bundled as its own standalone AMD module rather than being inlined into each consumer's bundle. This produces an externals map (which deps to exclude per package) and may add newly-discovered shared packages to the bundle set (see [Section 3.8.3](#383-externals-discovery-via-transitive-dependency-consolidation)).
 
@@ -143,7 +143,7 @@ This section maps each reusable pattern to its RFC integration point.
 
 | # | Pattern | Reuse Strategy |
 |---|---------|----------------|
-| 1 | Dependency scanning | **Redesign**: integrate into JSModuleAnalyzer's existing AST traversal instead of a standalone scan phase. Detection logic changes from heuristic `require.resolve()` probing (ui5-tooling-modules) to explicit `thirdparty/*` prefix matching (this RFC). Execution model shifts from multi-pass file reads to single-pass AST piggyback. |
+| 1 | Dependency scanning | **Redesign**: integrate detection logic into JSModuleAnalyzer's existing visitor pattern instead of a standalone scanner. Detection logic changes from heuristic `require.resolve()` probing (ui5-tooling-modules) to explicit `thirdparty/*` prefix matching (this RFC). The NPM task triggers its own analysis pass using this extended infrastructure. |
 | 2 | Module resolution | **Delegate**: let `@rollup/plugin-node-resolve` handle primary resolution. Adopt the `ERR_PACKAGE_PATH_NOT_EXPORTED` fallback and PNPM symlink handling as supplementary logic. |
 | 3 | Rollup plugin ecosystem | **Adopt directly**: these plugins handle real-world edge cases discovered through production usage. Add to the core plugin chain alongside `nodeResolve`, `commonjs`, `nodePolyfills`, and `replace`. |
 | 4 | Namespace management | Integrated strategy places NPM bundles under `/resources/{namespace}/thirdparty/`, enabling Fiori Launchpad deployment. |
@@ -154,7 +154,7 @@ This section maps each reusable pattern to its RFC integration point.
 
 | Aspect | ui5-tooling-modules | This RFC |
 |--------|---------------------|----------|
-| **Scanning** | Standalone scan (`scan()`) — reads all files separately, probes every dep via `require.resolve()` | Integrated into JSModuleAnalyzer — piggybacks on existing AST parse, detects `thirdparty/*` prefix |
+| **Scanning** | Standalone scan (`scan()`) — reads all files separately, probes every dep via `require.resolve()` | Detection logic integrated into `JSModuleAnalyzer` visitor; NPM task triggers its own analysis pass, detects `thirdparty/*` prefix |
 | **Architecture** | Custom task/middleware extension (external dependency) | Standard built-in task in `taskRepository.js` |
 | **Default namespace** | `addToNamespace: false` | `addToNamespace: true` (FLP-compatible) |
 | **devDependencies** | Included via `legacyDependencyResolution` | Excluded by default; explicit `additionalDependencies` list |
@@ -165,13 +165,13 @@ This section maps each reusable pattern to its RFC integration point.
 
 ### 3.4 Dependency Scanning Strategy
 
-#### 3.4.1 Design: Integrated into Existing AST Parsing
+#### 3.4.1 Design: Reusing Existing Analysis Infrastructure
 
-Rather than implementing a separate scanning phase, NPM dependency detection is integrated directly into the existing `JSModuleAnalyzer` visitor pattern. This piggybacks on the AST traversal that already occurs for UI5 dependency analysis:
+NPM dependency detection reuses the existing `JSModuleAnalyzer` and `XMLTemplateAnalyzer` visitor infrastructure — the same espree-based AST walker and xml2js-based XML parser that the build pipeline already uses for UI5 dependency analysis. The detection *logic* (pattern-matching `thirdparty/*` prefixes) is added to these existing visitors, but the detection *execution* is triggered by the NPM bundling task itself as its first internal step — it does not piggyback on a prior analysis run.
 
 ![Dependency Scanning Activity Diagram](./resources/0020-npm-integration/dependency-scanning-activity.svg)
 
-*__Key insight__: Leverages existing espree AST parsing that already occurs for UI5 dependency analysis, requiring only pattern detection extensions to existing visitor logic.*
+*__Key insight__: Reuses existing espree AST parsing infrastructure, requiring only pattern detection extensions to existing visitor logic. The NPM task triggers its own analysis pass over workspace resources — no separate earlier phase is needed.*
 
 **Integration points** (extensions to existing classes):
 
@@ -286,7 +286,7 @@ sap.ui.define(["thirdparty/validator"], function(validator) {
 
 After scanning produces a list of NPM package names, each name is validated against the project's `package.json`:
 
-As described in [3.4.1 (Integrated into Existing AST Parsing)](#341-design-integrated-into-existing-ast-parsing), each scanned NPM package is validated against the project's `package.json`: packages found in `dependencies` are queued for bundling ✅, packages only in `devDependencies` trigger a warning ⚠️ (should be moved to `dependencies`), and undeclared packages cause an error ❌ (prevents typos and ensures explicit dependency declaration).
+As described in [3.4.1 (Reusing Existing Analysis Infrastructure)](#341-design-reusing-existing-analysis-infrastructure), each scanned NPM package is validated against the project's `package.json`: packages found in `dependencies` are queued for bundling ✅, packages only in `devDependencies` trigger a warning ⚠️ (should be moved to `dependencies`), and undeclared packages cause an error ❌ (prevents typos and ensures explicit dependency declaration).
 
 This prevents accidental bundling of packages not declared as project dependencies and catches typos early.
 
@@ -378,15 +378,16 @@ The NPM bundling task integrates into the existing build pipeline as a standard 
 
 ![NPM Build Task Diagram](./resources/0020-npm-integration/build-task-sequence.svg)
 
-**Why after `generateFlexChangesBundle`?** The scanner needs all source resources to be resolved and available. **Why before `generateComponentPreload`?** The generated NPM bundles must be included in the Component-preload.js for production deployment.
+**Why after `generateFlexChangesBundle`?** All source resources must be resolved and available before the NPM task can scan them. **Why before `generateComponentPreload`?** The generated NPM bundles must be included in the Component-preload.js for production deployment.
 
 #### 3.6.2 Task Interface
 
 The task follows the standard UI5 builder task signature:
 
 - Receives `workspace` (read/write resources), `taskUtil` (project metadata), and `options` (configuration from ui5.yaml)
-- Reads NPM package list from ResourceCollector (populated during earlier analysis phases)
-- Writes generated AMD bundles back to the workspace
+- **Scans** workspace resources (JS via `JSModuleAnalyzer`, XML via `XMLTemplateAnalyzer`) to discover `thirdparty/*` references — this is the task's own internal first step, not a read from a prior phase
+- Validates discovered package names against `package.json` (see [3.4.5](#345-link-with-packagejson))
+- Bundles each validated package with Rollup and writes generated AMD bundles back to the workspace
 - Reports bundled packages via logging
 
 #### 3.6.3 Namespace Strategy: `addToNamespace`
@@ -441,7 +442,7 @@ This transpiler converts AMD modules into ESM so that the TypeScript type-checke
 | Criterion | Integrated Scanning (chosen) | AMD->ESM Transpilation (rejected) |
 |-----------|------------------------------|----------------------------------|
 
-| **Parse passes** | 1 (existing AST walk) | 3+ (original parse -> transpile -> Rollup re-parse) |
+| **Parse passes** | 1 per file (dedicated scan reusing existing AST walker) | 3+ per file (scan + transpile + Rollup re-parse) |
 | **Parser** | espree (lightweight, JS-only) | TypeScript Compiler API (heavyweight) |
 | **Discovery benefit** | Direct extraction of `thirdparty/*` deps | **None** — Rollup still needs explicit entry points |
 | **XML views** | Pattern-match `xmlns` attributes directly | Requires additional XML->JS transpiler |
@@ -483,7 +484,7 @@ For PNPM, `preserveSymlinks: false` (the Rollup default) ensures symlinks are fo
 
 #### 3.7.2 Resolution Priority
 
-The `nodeResolve` plugin follows this priority waterfall (see also the resolution cascade in [3.4.1](#341-design-integrated-into-existing-ast-parsing)): **exports** (highest priority, modern packages) -> **browser** (browser-specific overrides) -> **module** (ESM entry, preferred for tree-shaking) -> **main** (CJS entry, fallback) -> **index.js** (convention-based fallback). The exports field supports conditional resolution with `browser` > `import` > `require` > `default` priority.
+The `nodeResolve` plugin follows this priority waterfall (see also the resolution cascade in [3.4.1](#341-design-reusing-existing-analysis-infrastructure)): **exports** (highest priority, modern packages) -> **browser** (browser-specific overrides) -> **module** (ESM entry, preferred for tree-shaking) -> **main** (CJS entry, fallback) -> **index.js** (convention-based fallback). The exports field supports conditional resolution with `browser` > `import` > `require` > `default` priority.
 
 With `browser: true` configured, the resolution prefers browser-specific builds. This is critical for packages like `axios` that provide separate browser and Node.js entry points.
 
