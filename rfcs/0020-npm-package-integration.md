@@ -209,7 +209,70 @@ The alternative — used by `ui5-tooling-modules` — is to cover existing usage
 
 - UI5's own framework already uses a `thirdparty/` folder for third-party libraries (e.g., `sap/ui/thirdparty/jqueryui`). Extending this convention to application-level NPM packages is a natural fit. As noted in [3.3](#33-reusable-patterns-from-ui5-tooling-modules), `ui5-tooling-modules` itself rewrites to `thirdparty/` paths at build output time — this RFC simply moves the convention from build-output-only to developer-authored source code, making the NPM boundary explicit at authoring time rather than implicit at build time.
 
-#### 3.4.3 Edge Cases
+**Semantic meaning of the `thirdparty/` prefix:**
+
+The `thirdparty/` prefix is not merely a namespace — it carries **semantic meaning** about the module format:
+
+| Import Pattern | Module Format | Source | Example |
+|----------------|---------------|--------|---------|
+| `"react"` | Raw NPM package (ESM/CJS) — consumed directly from `node_modules/` | The consuming code understands the raw format | `import React from "react"` in a TS file compiled externally |
+| `"thirdparty/react"` | **UI5 AMD-wrapped** — the package has been transformed by the Rollup pipeline and placed in the output `thirdparty/` folder | `sap.ui.define(['thirdparty/react'], ...)` | Build output: `resources/thirdparty/react.js` |
+| `"sap/ui/thirdparty/jquery"` | UI5 framework-bundled third-party — pre-wrapped by the UI5 SDK team | Part of the UI5 runtime | Always available, no build step needed |
+
+This distinction is critical: a bare `"react"` import means "I need the raw package from `node_modules/`", while `"thirdparty/react"` means "I need the UI5 AMD-transformed version that the build pipeline produces". The `thirdparty/` prefix is a contract: the referenced module **will exist as a UI5 AMD module** in the `thirdparty/` output folder after the build runs.
+
+#### 3.4.3 TypeScript and the `thirdparty/*` Convention
+
+**Key constraint: UI5 CLI does not directly support TypeScript.** TypeScript sources must be compiled to JavaScript before analysis can occur. There are two approaches:
+
+- **[`ui5-tooling-transpile`](https://github.com/ui5-community/ui5-ecosystem-showcase/tree/main/packages/ui5-tooling-transpile)** — a custom task and middleware that runs **within** the `ui5 build` / `ui5 serve` pipeline. It compiles TS -> JS as a build task, producing `sap.ui.define` (AMD) output. **Task ordering in `ui5.yaml` is critical**: the transpile task must be configured to run before the bundling tasks (e.g., `beforeTask: generateComponentPreload`), so that `.js` files are in the workspace when `JSModuleAnalyzer` is triggered.
+- **`tsc`** — runs **externally**, before `ui5 build` / `ui5 serve`. It cannot produce `sap.ui.define` output, so ESM imports are preserved in the emitted `.js` files. The UI5 build pipeline then processes these `.js` files.
+
+**How this affects imports in TypeScript source:**
+
+The `thirdparty/` prefix in an import path passes through any transpiler unchanged — neither `ui5-tooling-transpile` nor `tsc` needs to understand the convention. In both cases, the `.js` output preserves the `thirdparty/*` reference, which `JSModuleAnalyzer` detects when triggered by the bundling or NPM integration task.
+
+**Pattern A: ESM imports with `ui5-tooling-transpile` (or plain `tsc`)**
+
+The developer writes standard ESM imports in TypeScript using the `thirdparty/` prefix:
+
+```typescript
+// Developer writes (in .ts):
+import validator from "thirdparty/validator";
+```
+
+The NPM integration task will detect the `thirdparty/*` module reference in the compiled `.js` output (via `JSModuleAnalyzer`), bundle the package, and place it in the correct output folder with the correct namespace.
+
+> **Task ordering**: When using `ui5-tooling-transpile`, the transpile task must be configured to run **before** the bundling/NPM integration tasks in `ui5.yaml` (e.g., `beforeTask: generateComponentPreload`). This ensures `.ts` files are compiled to `.js` and written to the workspace before `JSModuleAnalyzer` parses them. When using `tsc`, the compiled `.js` files are already present when the pipeline starts.
+
+**IntelliSense**: TypeScript cannot resolve `"thirdparty/validator"` for type information out of the box, since no such module exists in `node_modules/`. The fix is a `tsconfig.json` paths mapping:
+
+```jsonc
+{
+  "compilerOptions": {
+    "paths": {
+      "thirdparty/*": ["./node_modules/*"],
+      "thirdparty/@ui5/*": ["./node_modules/@ui5/*"]
+    }
+  }
+}
+```
+
+This tells TypeScript: resolve types for `thirdparty/validator` from `node_modules/validator`. The `thirdparty/` prefix is stripped during type lookup, restoring full IntelliSense, type checking, and go-to-definition — while the emitted `.js` preserves the `thirdparty/` prefix for the UI5 build phase to discover.
+
+**Pattern B: Plain JavaScript (no TypeScript)**
+
+No type resolution concern. The `thirdparty/*` convention works directly:
+
+```javascript
+sap.ui.define(["thirdparty/validator"], function(validator) {
+    validator.isEmail("test@example.com"); // works at runtime
+});
+```
+
+> **Note**: The `tsconfig.json` `paths` mapping in Pattern A is a **project-level configuration concern**, not a UI5 CLI concern. Since UI5 CLI does not execute the TypeScript compiler, the paths configuration belongs to the TypeScript toolchain setup. Future work could include scaffolding this config via `ui5 init` or documenting it as a recommended setup step.
+
+#### 3.4.4 Edge Cases
 
 | Edge Case | Description | Handling |
 |-----------|-------------|----------|
@@ -219,7 +282,7 @@ The alternative — used by `ui5-tooling-modules` — is to cover existing usage
 | **Wildcard ignore patterns** | Test files, spec files should not trigger bundling | Configurable scan include/exclude patterns (default: `webapp/**/*.{js,ts,xml}` excluding `test/**`) |
 | **App-local modules** | Files that look like NPM packages but are local to the app | Only trigger on `thirdparty/*` prefix; app-local modules use relative or `sap/*` paths |
 
-#### 3.4.4 Link with package.json
+#### 3.4.5 Link with package.json
 
 After scanning produces a list of NPM package names, each name is validated against the project's `package.json`:
 
@@ -227,7 +290,7 @@ As described in [3.4.1 (Integrated into Existing AST Parsing)](#341-design-integ
 
 This prevents accidental bundling of packages not declared as project dependencies and catches typos early.
 
-#### 3.4.5 "Let Rollup Handle the Rest"
+#### 3.4.6 "Let Rollup Handle the Rest"
 
 A critical design principle: the scanner only extracts **top-level NPM package names** from application source files. All further **file-level** dependency resolution — entry point discovery, internal module imports, file system traversal — is delegated entirely to Rollup and its `nodeResolve` plugin. This avoids reimplementing Node.js module resolution logic.
 
@@ -486,7 +549,7 @@ This approach is more robust than relying solely on `peerDependencies` because:
 - It detects **actual sharing** based on the concrete dependency graph rather than declared intentions
 - It works identically regardless of whether the shared dep is a peer dependency, a regular dependency, or both
 
-**Relationship with "Let Rollup Handle the Rest" ([Section 3.4.5](#345-let-rollup-handle-the-rest))**: Rollup still handles all file-level resolution (entry points, internal imports, polyfills) during bundling. The consolidation step only determines *which packages* should be external vs. inlined — it reads `package.json` dependency metadata, not source code.
+**Relationship with "Let Rollup Handle the Rest" ([Section 3.4.6](#346-let-rollup-handle-the-rest))**: Rollup still handles all file-level resolution (entry points, internal imports, polyfills) during bundling. The consolidation step only determines *which packages* should be external vs. inlined — it reads `package.json` dependency metadata, not source code.
 
 #### 3.8.4 Build Order Optimization
 
