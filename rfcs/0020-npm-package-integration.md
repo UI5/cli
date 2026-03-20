@@ -441,7 +441,6 @@ This transpiler converts AMD modules into ESM so that the TypeScript type-checke
 
 | Criterion | Integrated Scanning (chosen) | AMD->ESM Transpilation (rejected) |
 |-----------|------------------------------|----------------------------------|
-
 | **Parse passes** | 1 per file (dedicated scan reusing existing AST walker) | 3+ per file (scan + transpile + Rollup re-parse) |
 | **Parser** | espree (lightweight, JS-only) | TypeScript Compiler API (heavyweight) |
 | **Discovery benefit** | Direct extraction of `thirdparty/*` deps | **None** — Rollup still needs explicit entry points |
