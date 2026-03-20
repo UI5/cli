@@ -416,19 +416,39 @@ This rewriting runs as a post-bundling step, after all NPM bundles are generated
 
 #### 3.6.5 Architectural Decision: Integrated Scanning vs. AMD->ESM Transpilation
 
-An alternative approach was considered: transpile all UI5 AMD source files to ESM format, then let Rollup discover NPM package imports automatically. This was **rejected** for the following reasons:
+An alternative approach was considered: transpile all UI5 AMD source files (`sap.ui.define` / `sap.ui.require`) to ESM format, then let Rollup discover NPM package imports automatically via its native module graph. This was **rejected** in favor of extending the existing `JSModuleAnalyzer` with a lightweight `thirdparty/*` check.
+
+##### Existence proof — UI5 Linter's AMD->ESM transpiler
+
+AMD->ESM transpilation is not hypothetical. The [UI5 Linter](https://github.com/SAP/ui5-linter) ships a production transpiler at `src/linter/ui5Types/amdTranspiler/`.
+
+This transpiler converts AMD modules into ESM so that the TypeScript type-checker can understand UI5 code. It is **purpose-built for static analysis (linting), not for bundling or dependency discovery**.
+
+##### Why the transpilation approach was rejected
+
+**1. Solving the wrong problem.** Even after transpiling AMD->ESM, Rollup still cannot discover *which* NPM packages an application uses. It needs explicit entry points. Otherwise it just bundles everything as a single bundle.
+
+**2. Disproportionate complexity.** Extending `JSModuleAnalyzer` to detect `thirdparty/*` prefixes requires less efforts (a single `if (dep.startsWith("thirdparty/"))`) than a transpiler utility — for the same end result: a list of NPM package names.
+
+**3. Parser mismatch.** The UI5 Builder's analysis infrastructure (`JSModuleAnalyzer`, `parseUtils.js`) uses **espree** — a lightweight, JS-only parser targeting ES2023. The UI5 Linter's transpiler uses the **TypeScript Compiler API** (`ts.createTransformer`), which is a fundamentally different tool with different performance characteristics and a much larger dependency footprint. Introducing the TS compiler API into the build pipeline purely for dependency scanning would be a significant architectural change.
+
+**4. XML views compound the problem.** UI5 applications declare NPM-backed Web Component dependencies in XML views via `xmlns:webc="thirdparty.@ui5/webcomponents"`. The current `XMLTemplateAnalyzer` already pattern-matches `xmlns` attributes directly. An AMD->ESM approach would require a *second* transpiler for XML->JS. The UI5 Linter indeed has a separate XML transpiler (`src/linter/xmlTemplate/`, using `sax-wasm` + `ViewGenerator`), further multiplying the code that would need to be ported and maintained.
+
+**5. Runtime overhead.** The transpilation approach requires **three parse passes** per source file: (1) the existing AST parse, (2) AMD->ESM code generation, and (3) Rollup re-parsing the transpiled output. The scanning approach adds a single `startsWith` check to pass (1) — effectively zero overhead on top of the existing analysis.
+
+##### Comparison summary
 
 | Criterion | Integrated Scanning (chosen) | AMD->ESM Transpilation (rejected) |
 |-----------|------------------------------|----------------------------------|
-| **Parse passes** | 1 (existing AST walk) | 3+ (original parse + transpile + Rollup re-parse) |
-| **Temporary files** | None | Must write transpiled ESM to disk, then discard |
-| **Discovery benefit** | Direct extraction | **None** — Rollup still needs explicit entry points; it cannot discover which NPM packages the app uses |
-| **XML views** | Pattern-match xmlns attributes directly | Additional transpilation from XML to JS -> ESM |
-| **Implementation** | Small extension to existing infrastructure | New transpiler subsystem (AMD->ESM code generation, source maps, file management) |
-| **Pattern logic** | `if (dep.startsWith('thirdparty/'))` | Identical `thirdparty/*` detection — same algorithm, more overhead |
-| **Maintenance** | Extends well-tested JSModuleAnalyzer | New transformation layer to maintain |
 
-**Key insight**: Both approaches use the **identical `thirdparty/*` convention** for NPM package detection. The only difference is execution model — direct extraction during AST traversal vs. code transformation followed by re-analysis. The transpilation approach adds multiple processing passes without eliminating the need for scanning.
+| **Parse passes** | 1 (existing AST walk) | 3+ (original parse -> transpile -> Rollup re-parse) |
+| **Parser** | espree (lightweight, JS-only) | TypeScript Compiler API (heavyweight) |
+| **Discovery benefit** | Direct extraction of `thirdparty/*` deps | **None** — Rollup still needs explicit entry points |
+| **XML views** | Pattern-match `xmlns` attributes directly | Requires additional XML->JS transpiler |
+| **Pattern logic** | `if (dep.startsWith('thirdparty/'))` | Identical `thirdparty/*` detection — same algorithm, more overhead |
+| **Maintenance** | Extends well-tested `JSModuleAnalyzer` | New transformation layer to maintain and keep in sync with UI5 runtime semantics |
+
+**Key insight**: Both approaches use the **identical `thirdparty/*` convention** for NPM package detection. The only difference is execution model — direct extraction during AST traversal vs. full code transformation followed by re-analysis. The transpilation approach adds lots of new code and multiple processing passes without producing any additional signal for dependency discovery. The UI5 Linter proves that AMD->ESM transpilation *works*, but its purpose (enabling type-checking) is fundamentally different from the build pipeline's goal (enumerating packages to bundle).
 
 ---
 
