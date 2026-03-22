@@ -3,7 +3,8 @@
 		"spdx": [
 			"CC-BY-3.0",
 			"CC-BY-4.0",
-			"BSD"
+			"BSD",
+			"MPL-2.0"
 		],
 		"blueOak": "bronze"
 	},
