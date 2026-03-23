@@ -1,4 +1,4 @@
-import colors from "tailwindcss/colors";
+import colors from "tailwindcss/colors.js";
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -7,11 +7,8 @@ export default {
 	darkMode: "class",
 	content: [
 		"./.vitepress/theme/**/*.{vue,js,ts,jsx,tsx}",
-		"./src/**/*.{vue,js,ts,jsx,tsx,md}",
+		"./docs/**/*.{vue,js,ts,jsx,tsx,md}",
 	],
-	corePlugins: {
-		preflight: false,
-	},
 	theme: {
 		colors: {
 			/* defaults */

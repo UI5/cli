@@ -1,6 +1,7 @@
 // using the defineConfig helper will provide TypeScript-powered
 // intellisense for config options
 import { defineConfig } from "vitepress";
+import tailwindcss from "@tailwindcss/vite";
 
 // markdown
 import MarkdownItImplicitFigures from "markdown-it-implicit-figures";
@@ -92,6 +93,9 @@ export default defineConfig({
 
 
 	vite: {
+		plugins: [
+			tailwindcss(),
+		],
 		build: {
 			chunkSizeWarningLimit: 4000, // chunk for local search index dominates
 		},
