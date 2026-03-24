@@ -1,6 +1,6 @@
 # UI5 CLI Documentation
 
-VitePress-based documentation site for the [UI5 CLI](https://github.com/UI5/cli) tooling. This internal package generates the static documentation published to GitHub Pages, including auto-generated API references (JSDoc), CLI command reference, and JSON Schema documentation.
+VitePress-based documentation site for the [UI5 CLI](https://github.com/UI5/cli) tooling. This internal package generates the static documentation published to GitHub Pages, including the auto-generated API reference (JSDoc), CLI command reference, and JSON Schema documentation.
 
 ## Quick Start
 
