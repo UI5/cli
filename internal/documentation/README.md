@@ -20,7 +20,7 @@ The development server starts at `http://localhost:5173` with hot-reload for liv
 
 | Script | Purpose |
 |--------|---------|
-| `start` | Starts the VitePress dev server and opens the browser automatically. Primary entry point for local documentation development. |
+| `start` | Starts the VitePress dev server and opens the browser automatically. This is the primary entry point for local documentation development. |
 | `dev` | Starts the VitePress dev server without opening the browser. Useful in container/remote environments or when the browser is already open. |
 | `preview` | Serves the production build output (`dist/`) locally on port 8080 for verifying the built site before deployment. Requires `build:vitepress` to have been run first. |
 
