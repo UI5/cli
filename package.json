@@ -50,19 +50,19 @@
 		"knip": "^5.83.0",
 		"licensee": "^11.1.1"
 	},
-	"overrides": {
-		"pacote@<=20": {
-			"tar": "^7.5.10"
-		},
-		"cacache@18": {
-			"tar": "^7.5.10"
-		},
-		"node-gyp@10": {
-			"tar": "^7.5.10"
-		}
-	},
 	"workspaces": [
 		"packages/*",
 		"internal/*"
-	]
+	],
+	"overrides": {
+		"vite@<=5": {
+			"esbuild": "^0.27.4"
+		},
+		"open-cli@<=8": {
+			"file-type": "^21.3.4"
+		},
+		"@tailwindcss/vite@<=4": {
+			"vite": "^8.0.2"
+		}
+	}
 }
