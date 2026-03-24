@@ -28,7 +28,7 @@ The development server starts at `http://localhost:5173` with hot-reload for liv
 
 | Script | Purpose |
 |--------|---------|
-| `build:vitepress` | Builds the static site into the `dist/` directory. Requires `generate-cli-doc`, `schema-generate(-gh-pages)` and `jsdoc-generate(-gh-pages)` to be run first. |
+| `build:vitepress` | Builds the static site into the `dist/` directory. Requires `generate-cli-doc`, `schema-generate(-gh-pages)` and `jsdoc-generate(-gh-pages)` to run first. |
 | `build:assets` | Copies image assets from `docs/images/` to the build output directory. Must be run after `build:vitepress`. Accepts an optional destination path argument (defaults to `./dist`). |
 
 ### Code Generation
