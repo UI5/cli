@@ -4,6 +4,33 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v4.0.11...HEAD).
 
+## [5.0.0-alpha.4](https://github.com/UI5/cli/compare/builder-v5.0.0-alpha.3...builder-v5.0.0-alpha.4) (2026-03-24)
+
+
+### Features
+
+* **builder:** Add dynamic section for API reference during JSDoc build ([47970f7](https://github.com/UI5/cli/commit/47970f74c4adf63625e4f330f19090083f563f82))
+* **builder:** Add hierarchical subsection support for API reference sections ([49a3ef5](https://github.com/UI5/cli/commit/49a3ef569074ff84b5f6dfc2cfc619cd1654c2c8))
+* **builder:** Automatically add [@lends](https://github.com/lends) tag to extend calls during JSdoc build ([3547f42](https://github.com/UI5/cli/commit/3547f425b33663f7e5e2618a6d876fe018058d99))
+* **builder:** In JSDoc build, push the deprecation of namespaces down to the contained APIs ([71c08f2](https://github.com/UI5/cli/commit/71c08f2bb1d2cfee34ab9ca2e9e6042b5e67ae0c))
+* **builder:** Mark cross-references to typedefs in the api.json (SDK variant) ([a474700](https://github.com/UI5/cli/commit/a47470050e804192bfab857f6c224faa6e445e10))
+
+
+### Bug Fixes
+
+* **builder:** Improve JSDoc support for "module:" syntax ([aca05f0](https://github.com/UI5/cli/commit/aca05f0b75561f33842ccb30248ede3a82f2ae46))
+* **builder:** JSDoc: avoid errors when symbol has no events ([6e517e6](https://github.com/UI5/cli/commit/6e517e6c7f480784b93e37e94dcf74e0a689427f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/fs bumped from ^5.0.0-alpha.3 to ^5.0.0-alpha.4
+    * @ui5/logger bumped from ^5.0.0-alpha.3 to ^5.0.0-alpha.4
+  * devDependencies
+    * @ui5/project bumped from ^5.0.0-alpha.3 to ^5.0.0-alpha.4
+
 ## [5.0.0-alpha.3](https://github.com/UI5/cli/compare/builder-v5.0.0-alpha.2...builder-v5.0.0-alpha.3) (2026-02-13)
 
 

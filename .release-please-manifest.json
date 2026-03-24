@@ -1,8 +1,8 @@
 {
-	"packages/logger": "5.0.0-alpha.3",
-	"packages/fs": "5.0.0-alpha.3",
-	"packages/builder": "5.0.0-alpha.3",
-	"packages/server": "5.0.0-alpha.3",
-	"packages/project": "5.0.0-alpha.3",
-	"packages/cli": "5.0.0-alpha.3"
+	"packages/logger": "5.0.0-alpha.4",
+	"packages/fs": "5.0.0-alpha.4",
+	"packages/builder": "5.0.0-alpha.4",
+	"packages/server": "5.0.0-alpha.4",
+	"packages/project": "5.0.0-alpha.4",
+	"packages/cli": "5.0.0-alpha.4"
 }
