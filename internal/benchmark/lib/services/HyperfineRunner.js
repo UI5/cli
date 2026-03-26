@@ -1,4 +1,5 @@
 import path from "node:path";
+import fs from "node:fs";
 
 /**
  * Executes hyperfine benchmarks and manages result files.
@@ -52,6 +53,11 @@ export default class HyperfineRunner {
 			// Checkout the revision
 			console.log(`Checking out ${commitHash}...`);
 			await this.#git.checkout(commitHash, repositoryPath);
+
+			// Clean node_modules to avoid stale workspace symlinks across branches
+			const nodeModulesPath = path.resolve(repositoryPath, "node_modules");
+			console.log(`Removing node_modules...`);
+			await fs.promises.rm(nodeModulesPath, {recursive: true, force: true});
 
 			// Install dependencies
 			console.log(`Running npm ci...`);
