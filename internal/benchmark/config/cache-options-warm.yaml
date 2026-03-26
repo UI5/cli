@@ -22,7 +22,7 @@
 revisions:
   baseline:
     name: "Baseline (pretty JSON)"
-    revision: "feat/incremental-build-4"
+    revision: "feat/incremental-build-tests"
   option_a:
     name: "Option A (minified JSON)"
     revision: "feat/cache-option-a"
