@@ -72,10 +72,14 @@ export default class HyperfineRunner {
 				}
 				const fullCommand = `${env}node ${this.#ui5CliPath} ${benchmark.command}`;
 
-				// Add prepare command (empty string if none)
-				args.push("--prepare", benchmark.prepare || "");
-				// Add conclude command (empty string if none)
-				args.push("--conclude", benchmark.conclude || "");
+				// Add prepare command if specified
+				if (benchmark.prepare) {
+					args.push("--prepare", benchmark.prepare);
+				}
+				// Add conclude command if specified
+				if (benchmark.conclude) {
+					args.push("--conclude", benchmark.conclude);
+				}
 
 				// Add the benchmark command
 				args.push("--command-name", commandName, fullCommand);
