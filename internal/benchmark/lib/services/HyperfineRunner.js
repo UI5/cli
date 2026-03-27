@@ -63,14 +63,15 @@ export default class HyperfineRunner {
 			console.log(`Running npm ci...`);
 			await this.#npm.ci(repositoryPath);
 
-			// Rebuild native addons (e.g. better-sqlite3, classic-level)
-			console.log(`Rebuilding native addons...`);
-			await this.#npm.rebuild(repositoryPath);
+			// Build native addons that require node-gyp (e.g. better-sqlite3)
+			console.log(`Building native addons...`);
+			await this.#npm.rebuildNativeAddons(repositoryPath);
 
 			// Build hyperfine arguments
 			const args = [
 				"--warmup", String(warmup),
-				"--runs", String(runs)
+				"--runs", String(runs),
+				"--show-output"
 			];
 
 			// Add each benchmark as a separate command to hyperfine
