@@ -38,6 +38,12 @@ revisions:
   option_e:
     name: "Option E (LevelDB+MsgPack)"
     revision: "feat/cache-option-e"
+  option_f:
+    name: "Option F (Streaming JSON)"
+    revision: "feat/cache-option-f"
+  option_g:
+    name: "Option G (JSONL Protocol)"
+    revision: "feat/cache-option-g"
 
 hyperfine:
   warmup: 2
