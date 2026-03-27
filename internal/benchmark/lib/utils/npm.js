@@ -13,6 +13,12 @@ async function ci(cwd, spawnFn = spawnProcess) {
 	await runNpmCommand(["ci"], cwd, "ci", spawnFn);
 }
 
+// Rebuild native addons (e.g. better-sqlite3, classic-level)
+async function rebuild(cwd, spawnFn = spawnProcess) {
+	await runNpmCommand(["rebuild"], cwd, "rebuild", spawnFn);
+}
+
 export default {
-	ci
+	ci,
+	rebuild
 };

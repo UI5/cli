@@ -63,6 +63,10 @@ export default class HyperfineRunner {
 			console.log(`Running npm ci...`);
 			await this.#npm.ci(repositoryPath);
 
+			// Rebuild native addons (e.g. better-sqlite3, classic-level)
+			console.log(`Rebuilding native addons...`);
+			await this.#npm.rebuild(repositoryPath);
+
 			// Build hyperfine arguments
 			const args = [
 				"--warmup", String(warmup),
