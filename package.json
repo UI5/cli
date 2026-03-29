@@ -58,7 +58,7 @@
 		"eslint-plugin-ava": "^15.1.0",
 		"eslint-plugin-jsdoc": "^52.0.4",
 		"globals": "^16.5.0",
-		"handlebars": "^4.7.8",
+		"handlebars": "^4.7.9",
 		"jsdoc": "^4.0.5",
 		"local-web-server": "^5.4.0",
 		"open-cli": "^8.0.0",
