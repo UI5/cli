@@ -54,7 +54,7 @@
 		"docdash": "^2.0.2",
 		"eslint": "^8.57.1",
 		"eslint-config-google": "^0.14.0",
-		"handlebars": "^4.7.8",
+		"handlebars": "^4.7.9",
 		"jsdoc": "^4.0.5",
 		"local-web-server": "^5.4.0",
 		"open-cli": "^8.0.0",
