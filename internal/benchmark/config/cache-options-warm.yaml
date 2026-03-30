@@ -44,6 +44,12 @@ revisions:
   option_g:
     name: "Option G (JSONL Protocol)"
     revision: "feat/cache-option-g"
+  option_h:
+    name: "Option H (Pure SQLite)"
+    revision: "feat/cache-option-h"
+  option_i:
+    name: "Option I (Pure LevelDB)"
+    revision: "feat/cache-option-i"
 
 hyperfine:
   warmup: 2
