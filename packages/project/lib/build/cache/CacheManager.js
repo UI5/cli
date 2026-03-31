@@ -8,7 +8,7 @@ import os from "node:os";
 import Configuration from "../../config/Configuration.js";
 import {getPathFromPackageName} from "../../utils/sanitizeFileName.js";
 import {getLogger} from "@ui5/logger";
-import ContentAddressableStorage from "./ContentAddressableStorage.js";
+import BuildTimings from "./BuildTimings.js";
 
 const log = getLogger("build:cache:CacheManager");
 
@@ -125,6 +125,7 @@ export default class CacheManager {
 	 * @throws {Error} If file read fails for reasons other than file not existing
 	 */
 	async readBuildManifest(projectId, buildSignature) {
+		const t = BuildTimings.start("readBuildManifest");
 		try {
 			const manifest = await readFile(this.#getBuildManifestPath(projectId, buildSignature), "utf8");
 			return JSON.parse(manifest);
@@ -137,6 +138,8 @@ export default class CacheManager {
 				`${projectId} / ${buildSignature}: ${err.message}`, {
 				cause: err,
 			});
+		} finally {
+			BuildTimings.end("readBuildManifest", t);
 		}
 	}
 
@@ -153,9 +156,14 @@ export default class CacheManager {
 	 * @returns {Promise<void>}
 	 */
 	async writeBuildManifest(projectId, buildSignature, manifest) {
-		const manifestPath = this.#getBuildManifestPath(projectId, buildSignature);
-		await mkdir(path.dirname(manifestPath), {recursive: true});
-		await writeFile(manifestPath, JSON.stringify(manifest, null, 2), "utf8");
+		const t = BuildTimings.start("writeBuildManifest");
+		try {
+			const manifestPath = this.#getBuildManifestPath(projectId, buildSignature);
+			await mkdir(path.dirname(manifestPath), {recursive: true});
+			await writeFile(manifestPath, JSON.stringify(manifest, null, 2), "utf8");
+		} finally {
+			BuildTimings.end("writeBuildManifest", t);
+		}
 	}
 
 	/**
@@ -185,6 +193,7 @@ export default class CacheManager {
 	 * @throws {Error} If file read fails for reasons other than file not existing
 	 */
 	async readIndexCache(projectId, buildSignature, kind) {
+		const t = BuildTimings.start("readIndexCache");
 		try {
 			const metadata = await readFile(this.#getIndexCachePath(projectId, buildSignature, kind), "utf8");
 			return JSON.parse(metadata);
@@ -197,6 +206,8 @@ export default class CacheManager {
 				`${projectId} / ${buildSignature}: ${err.message}`, {
 				cause: err,
 			});
+		} finally {
+			BuildTimings.end("readIndexCache", t);
 		}
 	}
 
@@ -214,9 +225,14 @@ export default class CacheManager {
 	 * @returns {Promise<void>}
 	 */
 	async writeIndexCache(projectId, buildSignature, kind, index) {
-		const indexPath = this.#getIndexCachePath(projectId, buildSignature, kind);
-		await mkdir(path.dirname(indexPath), {recursive: true});
-		await writeFile(indexPath, JSON.stringify(index, null, 2), "utf8");
+		const t = BuildTimings.start("writeIndexCache");
+		try {
+			const indexPath = this.#getIndexCachePath(projectId, buildSignature, kind);
+			await mkdir(path.dirname(indexPath), {recursive: true});
+			await writeFile(indexPath, JSON.stringify(index, null, 2), "utf8");
+		} finally {
+			BuildTimings.end("writeIndexCache", t);
+		}
 	}
 
 	/**
@@ -249,6 +265,7 @@ export default class CacheManager {
 	 * @throws {Error} If file read fails for reasons other than file not existing
 	 */
 	async readStageCache(projectId, buildSignature, stageId, stageSignature) {
+		const t = BuildTimings.start("readStageCache");
 		try {
 			const metadata = await readFile(
 				this.#getStageMetadataPath(projectId, buildSignature, stageId, stageSignature
@@ -263,6 +280,8 @@ export default class CacheManager {
 				`${projectId} / ${buildSignature} / ${stageId} / ${stageSignature}: ${err.message}`, {
 				cause: err,
 			});
+		} finally {
+			BuildTimings.end("readStageCache", t);
 		}
 	}
 
@@ -281,10 +300,15 @@ export default class CacheManager {
 	 * @returns {Promise<void>}
 	 */
 	async writeStageCache(projectId, buildSignature, stageId, stageSignature, metadata) {
-		const metadataPath = this.#getStageMetadataPath(
-			projectId, buildSignature, stageId, stageSignature);
-		await mkdir(path.dirname(metadataPath), {recursive: true});
-		await writeFile(metadataPath, JSON.stringify(metadata, null, 2), "utf8");
+		const t = BuildTimings.start("writeStageCache");
+		try {
+			const metadataPath = this.#getStageMetadataPath(
+				projectId, buildSignature, stageId, stageSignature);
+			await mkdir(path.dirname(metadataPath), {recursive: true});
+			await writeFile(metadataPath, JSON.stringify(metadata, null, 2), "utf8");
+		} finally {
+			BuildTimings.end("writeStageCache", t);
+		}
 	}
 
 	/**
@@ -316,6 +340,7 @@ export default class CacheManager {
 	 * @throws {Error} If file read fails for reasons other than file not existing
 	 */
 	async readTaskMetadata(projectId, buildSignature, taskName, type) {
+		const t = BuildTimings.start("readTaskMetadata");
 		try {
 			const metadata = await readFile(
 				this.#getTaskMetadataPath(projectId, buildSignature, taskName, type), "utf8");
@@ -329,6 +354,8 @@ export default class CacheManager {
 				`${projectId} / ${buildSignature} / ${taskName} / ${type}: ${err.message}`, {
 				cause: err,
 			});
+		} finally {
+			BuildTimings.end("readTaskMetadata", t);
 		}
 	}
 
@@ -347,9 +374,14 @@ export default class CacheManager {
 	 * @returns {Promise<void>}
 	 */
 	async writeTaskMetadata(projectId, buildSignature, taskName, type, metadata) {
-		const metadataPath = this.#getTaskMetadataPath(projectId, buildSignature, taskName, type);
-		await mkdir(path.dirname(metadataPath), {recursive: true});
-		await writeFile(metadataPath, JSON.stringify(metadata, null, 2), "utf8");
+		const t = BuildTimings.start("writeTaskMetadata");
+		try {
+			const metadataPath = this.#getTaskMetadataPath(projectId, buildSignature, taskName, type);
+			await mkdir(path.dirname(metadataPath), {recursive: true});
+			await writeFile(metadataPath, JSON.stringify(metadata, null, 2), "utf8");
+		} finally {
+			BuildTimings.end("writeTaskMetadata", t);
+		}
 	}
 
 	/**
@@ -379,6 +411,7 @@ export default class CacheManager {
 	 * @throws {Error} If file read fails for reasons other than file not existing
 	 */
 	async readResultMetadata(projectId, buildSignature, stageSignature) {
+		const t = BuildTimings.start("readResultMetadata");
 		try {
 			const metadata = await readFile(
 				this.#getResultMetadataPath(projectId, buildSignature, stageSignature
@@ -393,6 +426,8 @@ export default class CacheManager {
 				`${projectId} / ${buildSignature} / ${stageSignature}: ${err.message}`, {
 				cause: err,
 			});
+		} finally {
+			BuildTimings.end("readResultMetadata", t);
 		}
 	}
 
@@ -410,10 +445,15 @@ export default class CacheManager {
 	 * @returns {Promise<void>}
 	 */
 	async writeResultMetadata(projectId, buildSignature, stageSignature, metadata) {
-		const metadataPath = this.#getResultMetadataPath(
-			projectId, buildSignature, stageSignature);
-		await mkdir(path.dirname(metadataPath), {recursive: true});
-		await writeFile(metadataPath, JSON.stringify(metadata, null, 2), "utf8");
+		const t = BuildTimings.start("writeResultMetadata");
+		try {
+			const metadataPath = this.#getResultMetadataPath(
+				projectId, buildSignature, stageSignature);
+			await mkdir(path.dirname(metadataPath), {recursive: true});
+			await writeFile(metadataPath, JSON.stringify(metadata, null, 2), "utf8");
+		} finally {
+			BuildTimings.end("writeResultMetadata", t);
+		}
 	}
 
 	/**
@@ -443,10 +483,16 @@ export default class CacheManager {
 		if (!integrity) {
 			throw new Error("Integrity hash must be provided to read from cache");
 		}
-		if (await this.#cas.has(integrity)) {
-			return this.#cas.contentPath(integrity);
+		const t = BuildTimings.start("getResourcePathForStage");
+		try {
+			const result = await cacache.get.info(this.#casDir, integrity);
+			if (!result) {
+				return null;
+			}
+			return result.path;
+		} finally {
+			BuildTimings.end("getResourcePathForStage", t);
 		}
-		return null;
 	}
 
 	/**
@@ -459,9 +505,25 @@ export default class CacheManager {
 	 * @param {@ui5/fs/Resource} resource Resource to cache
 	 * @returns {Promise<void>}
 	 */
-	async writeStageResource(resource) {
-		const integrity = await resource.getIntegrity();
-		const buffer = await resource.getBuffer();
-		await this.#cas.put(integrity, buffer);
+	async writeStageResource(buildSignature, stageId, stageSignature, resource) {
+		const t = BuildTimings.start("writeStageResource");
+		try {
+			// Check if resource has already been written
+			const integrity = await resource.getIntegrity();
+			const hasResource = await cacache.get.info(this.#casDir, integrity);
+			if (!hasResource) {
+				const buffer = await resource.getBuffer();
+				// Compress the buffer using gzip before caching
+				const compressedBuffer = await promisify(gzip)(buffer);
+				await cacache.put(
+					this.#casDir,
+					integrity,
+					compressedBuffer,
+					CACACHE_OPTIONS
+				);
+			}
+		} finally {
+			BuildTimings.end("writeStageResource", t);
+		}
 	}
 }

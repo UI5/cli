@@ -5,6 +5,7 @@ import composeProjectList from "./helpers/composeProjectList.js";
 import BuildContext from "./helpers/BuildContext.js";
 import prettyHrtime from "pretty-hrtime";
 import OutputStyleEnum from "./helpers/ProjectBuilderOutputStyle.js";
+import BuildTimings from "./cache/BuildTimings.js";
 
 /**
  * @public
@@ -352,6 +353,7 @@ class ProjectBuilder {
 				projectBuildContext.buildFinished();
 			}
 			this.#log.info(`Build succeeded in ${this._getElapsedTime(startTime)}`);
+			BuildTimings.logSummary();
 		} catch (err) {
 			this.#log.error(`Build failed`);
 			throw err;
