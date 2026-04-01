@@ -189,14 +189,39 @@ function fmtMs(ms) {
 	return `${ms.toFixed(1)}ms`;
 }
 
+function fmtPct(value) {
+	if (value == null || Number.isNaN(value)) return "--";
+	return `${value.toFixed(1)}%`;
+}
+
+function percentile(values, p) {
+	if (!values.length) return 0;
+	const sorted = [...values].sort((a, b) => a - b);
+	const index = Math.ceil((p / 100) * sorted.length) - 1;
+	return sorted[Math.max(0, Math.min(index, sorted.length - 1))];
+}
+
+function median(values) {
+	if (!values.length) return 0;
+	const sorted = [...values].sort((a, b) => a - b);
+	const mid = Math.floor(sorted.length / 2);
+	if (sorted.length % 2 === 0) {
+		return (sorted[mid - 1] + sorted[mid]) / 2;
+	}
+	return sorted[mid];
+}
+
 /**
- * Average multiple timing results.
+ * Aggregate multiple timing results.
  * Input: array of {buildTimeMs, timings: Map<label, {calls, totalMs, ...}>}
  */
-function averageResults(results) {
+function aggregateResults(results) {
 	if (results.length === 0) return null;
 
-	const avgBuildTime = results.reduce((sum, r) => sum + (r.buildTimeMs || 0), 0) / results.length;
+	const buildTimes = results.map((r) => r.buildTimeMs || 0);
+	const avgBuildTime = buildTimes.reduce((sum, t) => sum + t, 0) / results.length;
+	const medianBuildTime = median(buildTimes);
+	const p95BuildTime = percentile(buildTimes, 95);
 
 	const avgTimings = new Map();
 	for (const label of TIMING_LABELS) {
@@ -223,16 +248,32 @@ function averageResults(results) {
 	const writeLabels = ["writeBuildManifest", "writeIndexCache", "writeTaskMetadata", "writeResultMetadata", "writeStageCache"];
 	const resourceLabels = ["getResourcePathForStage", "writeStageResource"];
 
-	const readTotal = readLabels.reduce((s, l) => s + (avgTimings.get(l)?.totalMs || 0), 0);
-	const writeTotal = writeLabels.reduce((s, l) => s + (avgTimings.get(l)?.totalMs || 0), 0);
-	const resourceTotal = resourceLabels.reduce((s, l) => s + (avgTimings.get(l)?.totalMs || 0), 0);
+	const readTotals = results.map((r) => readLabels.reduce((s, l) => s + (r.timings.get(l)?.totalMs || 0), 0));
+	const writeTotals = results.map((r) => writeLabels.reduce((s, l) => s + (r.timings.get(l)?.totalMs || 0), 0));
+	const resourceTotals = results.map((r) => resourceLabels.reduce((s, l) => s + (r.timings.get(l)?.totalMs || 0), 0));
+	const metadataTotals = readTotals.map((readTotal, i) => readTotal + writeTotals[i] + resourceTotals[i]);
+	const metadataShares = metadataTotals.map((metadataTotal, i) => {
+		const buildTime = buildTimes[i];
+		if (!buildTime) return 0;
+		return (metadataTotal / buildTime) * 100;
+	});
+
+	const readTotal = readTotals.reduce((s, n) => s + n, 0) / results.length;
+	const writeTotal = writeTotals.reduce((s, n) => s + n, 0) / results.length;
+	const resourceTotal = resourceTotals.reduce((s, n) => s + n, 0) / results.length;
+	const metadataTotal = metadataTotals.reduce((s, n) => s + n, 0) / results.length;
 
 	return {
 		buildTimeMs: avgBuildTime,
+		buildTimeMedianMs: medianBuildTime,
+		buildTimeP95Ms: p95BuildTime,
 		timings: avgTimings,
 		readTotalMs: readTotal,
 		writeTotalMs: writeTotal,
 		resourceTotalMs: resourceTotal,
+		metadataTotalMs: metadataTotal,
+		metadataSharePct: metadataShares.reduce((s, n) => s + n, 0) / results.length,
+		metadataShareP95Pct: percentile(metadataShares, 95),
 	};
 }
 
@@ -255,9 +296,23 @@ function generateProjectTable(projectName, dataByBranch) {
 
 	// Build time row
 	lines.push(
-		`| **Build Time** | ${BRANCHES.map((b) => {
+		`| **Build Time (avg)** | ${BRANCHES.map((b) => {
 			const d = dataByBranch.get(b.key);
 			return d ? fmtMs(d.buildTimeMs) : "N/A";
+		}).join(" | ")} |`
+	);
+
+	lines.push(
+		`| **Build Time (median)** | ${BRANCHES.map((b) => {
+			const d = dataByBranch.get(b.key);
+			return d ? fmtMs(d.buildTimeMedianMs) : "N/A";
+		}).join(" | ")} |`
+	);
+
+	lines.push(
+		`| **Build Time (p95)** | ${BRANCHES.map((b) => {
+			const d = dataByBranch.get(b.key);
+			return d ? fmtMs(d.buildTimeP95Ms) : "N/A";
 		}).join(" | ")} |`
 	);
 
@@ -282,6 +337,27 @@ function generateProjectTable(projectName, dataByBranch) {
 		`| **Resource I/O Total** | ${BRANCHES.map((b) => {
 			const d = dataByBranch.get(b.key);
 			return d ? fmtMs(d.resourceTotalMs) : "N/A";
+		}).join(" | ")} |`
+	);
+
+	lines.push(
+		`| **Metadata Total** | ${BRANCHES.map((b) => {
+			const d = dataByBranch.get(b.key);
+			return d ? fmtMs(d.metadataTotalMs) : "N/A";
+		}).join(" | ")} |`
+	);
+
+	lines.push(
+		`| **Metadata Share (avg)** | ${BRANCHES.map((b) => {
+			const d = dataByBranch.get(b.key);
+			return d ? fmtPct(d.metadataSharePct) : "N/A";
+		}).join(" | ")} |`
+	);
+
+	lines.push(
+		`| **Metadata Share (p95)** | ${BRANCHES.map((b) => {
+			const d = dataByBranch.get(b.key);
+			return d ? fmtPct(d.metadataShareP95Pct) : "N/A";
 		}).join(" | ")} |`
 	);
 
@@ -426,9 +502,18 @@ async function main() {
 					const buildTimeMs = parseBuildTime(output);
 					const timings = parseTimings(output);
 
+					const readLabels = ["readBuildManifest", "readIndexCache", "readTaskMetadata", "readResultMetadata", "readStageCache"];
+					const writeLabels = ["writeBuildManifest", "writeIndexCache", "writeTaskMetadata", "writeResultMetadata", "writeStageCache"];
+					const resourceLabels = ["getResourcePathForStage", "writeStageResource"];
+					const readTotalMs = readLabels.reduce((s, l) => s + (timings.get(l)?.totalMs || 0), 0);
+					const writeTotalMs = writeLabels.reduce((s, l) => s + (timings.get(l)?.totalMs || 0), 0);
+					const resourceTotalMs = resourceLabels.reduce((s, l) => s + (timings.get(l)?.totalMs || 0), 0);
+					const metadataTotalMs = readTotalMs + writeTotalMs + resourceTotalMs;
+					const metadataSharePct = buildTimeMs ? (metadataTotalMs / buildTimeMs) * 100 : 0;
+
 					if (buildTimeMs !== null) {
 						runResults.push({buildTimeMs, timings});
-						console.log(` ${fmtMs(buildTimeMs)} (${timings.size} metrics)`);
+						console.log(` ${fmtMs(buildTimeMs)} (${timings.size} metrics, metadata ${fmtPct(metadataSharePct)})`);
 					} else {
 						console.log(" no build time found in output");
 					}
@@ -440,6 +525,11 @@ async function main() {
 						project: project.name,
 						run: r + 1,
 						buildTimeMs,
+						readTotalMs,
+						writeTotalMs,
+						resourceTotalMs,
+						metadataTotalMs,
+						metadataSharePct,
 						timings: Object.fromEntries(
 							[...timings.entries()].map(([k, v]) => [k, v])
 						),
@@ -449,12 +539,12 @@ async function main() {
 				}
 			}
 
-			// Average the measured runs
+			// Aggregate the measured runs
 			if (runResults.length > 0) {
-				const avg = averageResults(runResults);
+				const avg = aggregateResults(runResults);
 				allResults.get(project.name).set(branchInfo.key, avg);
-				console.log(`  Average build time: ${fmtMs(avg.buildTimeMs)}, ` +
-					`reads: ${fmtMs(avg.readTotalMs)}, writes: ${fmtMs(avg.writeTotalMs)}`);
+				console.log(`  Build avg/median/p95: ${fmtMs(avg.buildTimeMs)} / ${fmtMs(avg.buildTimeMedianMs)} / ${fmtMs(avg.buildTimeP95Ms)}` +
+					`, metadata share avg/p95: ${fmtPct(avg.metadataSharePct)} / ${fmtPct(avg.metadataShareP95Pct)}`);
 			}
 		}
 	}
@@ -506,19 +596,20 @@ async function main() {
 		const dataByBranch = allResults.get(project.name);
 		console.log(`\n${project.name}:`);
 
-		const header = "  " + "Option".padEnd(30) + "Build Time".padStart(12) + "Reads".padStart(12) + "Writes".padStart(12);
+		const header = "  " + "Option".padEnd(30) + "Avg".padStart(10) + "Median".padStart(10) + "P95".padStart(10) + "Meta%".padStart(10);
 		console.log(header);
 		console.log("  " + "─".repeat(header.length - 2));
 
 		for (const b of BRANCHES) {
 			const d = dataByBranch.get(b.key);
 			if (!d) {
-				console.log(`  ${b.name.padEnd(30)}${"N/A".padStart(12)}${"N/A".padStart(12)}${"N/A".padStart(12)}`);
+				console.log(`  ${b.name.padEnd(30)}${"N/A".padStart(10)}${"N/A".padStart(10)}${"N/A".padStart(10)}${"N/A".padStart(10)}`);
 				continue;
 			}
 			console.log(
-				`  ${b.name.padEnd(30)}${fmtMs(d.buildTimeMs).padStart(12)}` +
-				`${fmtMs(d.readTotalMs).padStart(12)}${fmtMs(d.writeTotalMs).padStart(12)}`
+				`  ${b.name.padEnd(30)}${fmtMs(d.buildTimeMs).padStart(10)}` +
+				`${fmtMs(d.buildTimeMedianMs).padStart(10)}${fmtMs(d.buildTimeP95Ms).padStart(10)}` +
+				`${fmtPct(d.metadataSharePct).padStart(10)}`
 			);
 		}
 	}
