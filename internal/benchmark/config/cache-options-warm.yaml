@@ -50,6 +50,15 @@ revisions:
   option_i:
     name: "Option I (Pure LevelDB)"
     revision: "feat/cache-option-i"
+  option_j:
+    name: "Option J (Incremental Request Managers)"
+    revision: "feat/cache-option-j"
+  option_k:
+    name: "Option K (Flat JSON Store)"
+    revision: "feat/cache-option-k"
+  option_l:
+    name: "Option L (JSONL+jq Streaming)"
+    revision: "feat/cache-option-l"
 
 hyperfine:
   warmup: 2
