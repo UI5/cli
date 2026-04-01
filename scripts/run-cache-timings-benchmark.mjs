@@ -42,6 +42,9 @@ const BRANCHES = [
 	{key: "option_g", name: "Option G (JSONL Protocol)", branch: "feat/cache-option-g"},
 	{key: "option_h", name: "Option H (Pure SQLite)", branch: "feat/cache-option-h"},
 	{key: "option_i", name: "Option I (Pure LevelDB)", branch: "feat/cache-option-i"},
+	{key: "option_j", name: "Option J (Incremental Managers)", branch: "feat/cache-option-j"},
+	{key: "option_k", name: "Option K (Flat JSON Store)", branch: "feat/cache-option-k"},
+	{key: "option_l", name: "Option L (JSONL+jq Streaming)", branch: "feat/cache-option-l"},
 ];
 
 // Timing labels we want to extract (in display order)
