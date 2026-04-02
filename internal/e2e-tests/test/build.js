@@ -35,7 +35,7 @@ class FixtureHelper {
 		// Delete everything from the tmp/<projectname> folder except .ui5 & dist folders
 		const entries = await fs.readdir(this.tmpPath, { withFileTypes: true });
 		for (const entry of entries) {
-			if (entry.name === ".ui5" || entry.name === "dist") {
+			if (entry.name === ".ui5" || entry.name === "dist" || entry.name === "node_modules") {
 				continue;
 			}
 			const entryPath = path.resolve(this.tmpPath, entry.name);
@@ -43,14 +43,13 @@ class FixtureHelper {
 		}
 		// Copy source files to temp location
 		await fs.cp(this.originFixturePath, this.tmpPath, {recursive: true});
-		// Install node_modules
-		await this._installNodeModules();
 	}
 
-	async _installNodeModules() {
+	async build(assert, ui5YamlName) {
 		await new Promise((resolve, reject) => {
-			execFile("npm", ["install"], { cwd: this.tmpPath }, (error, stdout, stderr) => {
+			execFile("node", [ui5CliPath, "build", "--config", ui5YamlName, "--dest", this.distPath], async (error, stdout, stderr) => {
 				if (error) {
+					assert.fail(error);
 					reject(error);
 					return;
 				}
@@ -59,11 +58,10 @@ class FixtureHelper {
 		});
 	}
 
-	async build(assert, ui5YamlName) {
+	async _installNodeModules() {
 		await new Promise((resolve, reject) => {
-			execFile("node", [ui5CliPath, "build", "--config", ui5YamlName, "--dest", this.distPath], async (error, stdout, stderr) => {
+			execFile("npm", ["install"], { cwd: this.tmpPath }, (error, stdout, stderr) => {
 				if (error) {
-					assert.fail(error);
 					reject(error);
 					return;
 				}
@@ -162,17 +160,12 @@ describe("ui5 build", () => {
 		process.chdir(fixtureHelper.tmpPath);
 		const ui5YamlName = "ui5-tooling-modules.yaml";
 
-		// #1 Build
+		// #1 Build (no thirdparty module yet -> just checking that the build succeeds)
 		await fixtureHelper.build(assert, ui5YamlName);
-
-		// Test: the dist contains the expected preload with the correct content
-		const componentPreload = await fs.readFile(path.resolve(fixtureHelper.distPath, "Component-preload.js"), "utf-8");
-		assert.ok(componentPreload.includes("sap.ui.predefine(\"application/a/controller/Test.controller\", [\"application/a/thirdparty/chart.js\"]"), "Component-preload.js should contain the 'Test' controller and its dependency");
-
 
 		// --------------------------------------------------------------------------------------------
 
-		// Add a new source file with another third party import
+		// Add a new source file with a third party import
 		await fixtureHelper.prepareForNextRun();
 		const newControllerPath = path.resolve(fixtureHelper.tmpPath, "webapp/controller/New.controller.js");
 		const newControllerContent =
@@ -188,9 +181,48 @@ describe("ui5 build", () => {
 		// #2 Build
 		await fixtureHelper.build(assert, ui5YamlName);
 
-		// Test: the dist contains the new controller and the new import
+		// Test: the dist contains the new controller and the third party import
 		const newComponentPreload = await fs.readFile(path.resolve(fixtureHelper.distPath, "Component-preload.js"), "utf-8");
-		assert.ok(newComponentPreload.includes("sap.ui.predefine(\"application/a/controller/Test.controller\", [\"application/a/thirdparty/chart.js\"]"), "Component-preload.js should contain the 'Test' controller and its dependency");
-		assert.ok(newComponentPreload.includes("sap.ui.predefine(\"application/a/controller/New.controller\", [\"application/a/thirdparty/chart.js\"]"), "Component-preload.js should contain the 'New' controller and its dependency");
+		assert.ok(newComponentPreload.includes("sap.ui.predefine(\"application/a/controller/New.controller\", [\"application/a/thirdparty/chart.js\"]"), "Component-preload.js should contain the 'New' controller and chart.js");
+	});
+
+	// FIXME: Currently failing
+	test("ui5-tooling-stringreplace", async ({assert}) => {
+		const fixtureHelper = new FixtureHelper("application.a");
+		await fixtureHelper.init();
+		process.env.UI5_DATA_DIR = `${fixtureHelper.dotUi5Path}`;
+		process.chdir(fixtureHelper.tmpPath);
+		const ui5YamlName = "ui5-tooling-stringreplace.yaml";
+
+		// #1 Build (no string replacing yet -> just checking that the build succeeds)
+		await fixtureHelper.build(assert, ui5YamlName);
+
+		// --------------------------------------------------------------------------------------------
+
+
+		// Add a new source file with a placeholder string
+		await fixtureHelper.prepareForNextRun();
+		const newControllerPath = path.resolve(fixtureHelper.tmpPath, "webapp/controller/New.controller.js");
+		const newControllerContent =
+`sap.ui.define([], () => {
+	return Controller.extend("application.a.controller.New",{
+		onInit() {
+			console.log(\${PLACEHOLDER_TEXT});
+		}
+	});
+});`;
+		await fs.writeFile(newControllerPath, newControllerContent, "utf-8");
+
+		// #2 Build
+		// FIXME: Currently failing here (April 02 2026)
+		// Error message:
+		// ("Minification failed with error: Unexpected token punc «{», expected punc «,» in file /resources/application/a/controller/New.controller.js (line 4, col 16, pos 114)")
+		//
+		// -> Probably, the string replacement doesn't get executed as very first middleware (minify happens earlier unexpectedly)
+		await fixtureHelper.build(assert, ui5YamlName);
+
+		// Test: the placeholder in the source file is replaced in the dist output
+		const componentPreload = await fs.readFile(path.resolve(fixtureHelper.distPath, "Component-preload.js"), "utf-8");
+		assert.ok(componentPreload.includes("console.log(\"INSERTED_TEXT\")"), "The placeholder should get replaced with the expected text in the component preload");
 	});
 });
