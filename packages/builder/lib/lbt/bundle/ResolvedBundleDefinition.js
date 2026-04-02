@@ -67,6 +67,7 @@ class ResolvedBundleDefinition {
 						return pool.getModuleInfo(submodule).then(
 							(subinfo) => {
 								if (!bundleInfo.subModules.includes(subinfo.name) &&
+									subinfo.format !== ModuleInfo.Format.ESM &&
 									(!subinfo.requiresTopLevelScope ||
 										(subinfo.requiresTopLevelScope && allowStringBundling))) {
 									bundleInfo.addSubModule(subinfo);

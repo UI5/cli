@@ -64,6 +64,9 @@ async function determineDependencyInfo(resource, rawInfo, pool) {
 		} catch (err) {
 			log.verbose(`Failed to parse ${resource.name}: ${err.message}`);
 			log.verbose(err.stack);
+			if (err.message.includes("'import' and 'export' may appear only with 'sourceType: module'")) {
+				info.format = ModuleInfo.Format.ESM;
+			}
 		}
 		if (ast) {
 			try {

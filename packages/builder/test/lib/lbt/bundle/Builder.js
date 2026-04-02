@@ -27,7 +27,12 @@ test.beforeEach(async (t) => {
 	t.context.BuilderWithStub = await esmock("../../../../lib/lbt/bundle/Builder", {
 		"@ui5/logger": {
 			getLogger: () => myLoggerInstance
-		}
+		},
+		"../../../../lib/lbt/bundle/Resolver": await esmock("../../../../lib/lbt/bundle/Resolver", {
+			"@ui5/logger": {
+				getLogger: () => myLoggerInstance
+			}
+		}),
 	});
 });
 
@@ -2728,6 +2733,18 @@ test("rewriteDefine (with other module name as template literal)", async (t) => 
 	t.is(moduleSourceMap, undefined);
 });
 
+test("rewriteDefine (with ESM content)", async (t) => {
+	const {rewriteDefine} = __localFunctions__;
+
+	const result = await rewriteDefine({
+		moduleName: "my/test/esm-module.js",
+		moduleContent: `import foo from "./foo.js"; export default foo;`,
+		moduleSourceMap: undefined
+	});
+
+	t.is(result, null, "rewriteDefine should return null for ESM content that can't be parsed");
+});
+
 test("getSourceMapForModule: Source map resource named after module resource (no sourceMappingURL)", async (t) => {
 	const originalSourceMap = {
 		"version": 3,
@@ -3249,13 +3266,127 @@ test.serial("integration: createBundle with ESM module in preload section", asyn
 	t.is(oResult.name, "esm-bundle.js");
 	t.truthy(oResult.content, "Bundle should be created");
 
-	// An error should be logged since this ESM module is actually being bundled
-	// and the content can't be properly rewritten to sap.ui.predefine
+	// ESM module should not appear in the bundle content at all
+	t.false(oResult.content.includes("undefined"),
+		"Bundle should not contain 'undefined' string from ESM module");
+	t.false(oResult.content.includes("import foo"),
+		"Bundle should not contain ESM import statement");
+	t.false(oResult.content.includes("export default"),
+		"Bundle should not contain ESM export statement");
+	t.false(oResult.content.includes("esm-module"),
+		"Bundle should not contain ESM module name in preload content");
+
+	// ESM module should not be in bundleInfo subModules
+	t.false(oResult.bundleInfo.subModules.includes("my/app/thirdparty/esm-module.js"),
+		"ESM module should not be listed as subModule in bundleInfo");
+
+	// An error should be logged about ESM not being supported
 	t.true(errorLogStub.callCount >= 1,
-		"log.error should be called for ESM module that can't be bundled");
+		"log.error should be called for ESM module");
 	t.true(
 		errorLogStub.getCalls().some((call) =>
-			call.args[0].includes("my/app/thirdparty/esm-module.js")
+			call.args[0].includes("my/app/thirdparty/esm-module.js") &&
+			call.args[0].includes("ECMAScript Module (ESM)")
+		),
+		"log.error should mention the ESM module name and that it's an ESM module"
+	);
+});
+
+test.serial("integration: createBundle with ESM module in raw section", async (t) => {
+	const {BuilderWithStub, errorLogStub} = t.context;
+	const pool = new ResourcePool();
+
+	pool.addResource({
+		name: "my/app/thirdparty/esm-module.js",
+		getPath: () => "my/app/thirdparty/esm-module.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => `import foo from "./foo.js"; export default foo;`
+	});
+
+	const bundleDefinition = {
+		name: `esm-raw-bundle.js`,
+		defaultFileTypes: [".js"],
+		sections: [{
+			mode: "raw",
+			filters: [
+				"my/app/thirdparty/esm-module.js"
+			]
+		}]
+	};
+
+	const builder = new BuilderWithStub(pool);
+	const oResult = await builder.createBundle(bundleDefinition, {
+		numberOfParts: 1,
+		decorateBootstrapModule: false
+	});
+
+	t.is(oResult.name, "esm-raw-bundle.js");
+	t.truthy(oResult.content, "Bundle should be created");
+
+	// ESM module should not appear in the bundle content
+	t.false(oResult.content.includes("import foo"),
+		"Bundle should not contain ESM import statement");
+	t.false(oResult.content.includes("export default"),
+		"Bundle should not contain ESM export statement");
+
+	// An error should be logged
+	t.true(errorLogStub.callCount >= 1,
+		"log.error should be called for ESM module in raw section");
+	t.true(
+		errorLogStub.getCalls().some((call) =>
+			call.args[0].includes("my/app/thirdparty/esm-module.js") &&
+			call.args[0].includes("ECMAScript Module (ESM)")
+		),
+		"log.error should mention the ESM module name"
+	);
+});
+
+test.serial("integration: createBundle with ESM module in require section", async (t) => {
+	const {BuilderWithStub, errorLogStub} = t.context;
+	const pool = new ResourcePool();
+
+	pool.addResource({
+		name: "my/app/thirdparty/esm-module.js",
+		getPath: () => "my/app/thirdparty/esm-module.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => `import foo from "./foo.js"; export default foo;`
+	});
+
+	const bundleDefinition = {
+		name: `esm-require-bundle.js`,
+		defaultFileTypes: [".js"],
+		sections: [{
+			mode: "require",
+			filters: [
+				"my/app/thirdparty/esm-module.js"
+			]
+		}]
+	};
+
+	const builder = new BuilderWithStub(pool);
+	const oResult = await builder.createBundle(bundleDefinition, {
+		numberOfParts: 1,
+		decorateBootstrapModule: false
+	});
+
+	t.is(oResult.name, "esm-require-bundle.js");
+	t.truthy(oResult.content, "Bundle should be created");
+
+	// ESM module should not appear in require calls
+	t.false(oResult.content.includes("esm-module"),
+		"Bundle should not contain require call for ESM module");
+
+	// An error should be logged
+	t.true(errorLogStub.callCount >= 1,
+		"log.error should be called for ESM module in require section");
+	t.true(
+		errorLogStub.getCalls().some((call) =>
+			call.args[0].includes("my/app/thirdparty/esm-module.js") &&
+			call.args[0].includes("ECMAScript Module (ESM)")
 		),
 		"log.error should mention the ESM module name"
 	);

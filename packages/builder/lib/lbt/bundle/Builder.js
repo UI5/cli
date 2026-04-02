@@ -597,10 +597,11 @@ class BundleBuilder {
 		}
 	}
 
-	writeRequires(section) {
+	async writeRequires(section) {
 		if (section.modules.length === 0) {
 			return;
 		}
+
 		this.outW.ensureNewLine();
 		if (section.async === false) {
 			section.modules.forEach( (module) => {
@@ -767,7 +768,7 @@ async function rewriteDefine({moduleName, moduleContent, moduleSourceMap}) {
 	} catch (e) {
 		log.error(`Error while parsing ${moduleName}: ${e.message}`);
 		log.verbose(e.stack);
-		return {};
+		return null;
 	}
 
 	if ( ast.type === Syntax.Program &&

@@ -25,7 +25,8 @@ const CONDITIONAL = 2;
 const Format = {
 	UI5_LEGACY: "ui5-declare",
 	UI5_DEFINE: "ui5-define",
-	AMD: "amd"
+	AMD: "amd",
+	ESM: "esm"
 };
 
 /**
