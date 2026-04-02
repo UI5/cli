@@ -405,6 +405,7 @@ test("getModuleInfo: determineDependencyInfo for ESM js resource", async (t) => 
 
 	t.is(info.name, "thirdparty/esm-module.js", "name should be set");
 	t.is(info.size, esmCode.length, "size should be set");
+	t.is(info.format, "esm", "format should be set to ESM");
 	t.deepEqual(info.dependencies, [], "no dependencies should be found since parsing failed");
 
 	t.is(errorLogStub.callCount, 0, "log.error should not be called for ESM parse failure");

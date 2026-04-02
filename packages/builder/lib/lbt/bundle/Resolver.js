@@ -4,6 +4,7 @@
 
 import topologicalSort from "../graph/topologicalSort.js";
 import {getRendererName} from "../UI5ClientConstants.js";
+import ModuleInfo from "../resources/ModuleInfo.js";
 import ResourceFilterList from "../resources/ResourceFilterList.js";
 import {SectionType} from "./BundleDefinition.js";
 import ResolvedBundleDefinition from "./ResolvedBundleDefinition.js";
@@ -134,6 +135,16 @@ class BundleResolver {
 						.then( ({resource, isBundle, decomposable}) => {
 							const dependencyInfo = resource && resource.info;
 							let promises = [];
+
+							// Skip ESM modules — they can't be bundled
+							if (resource?.info?.format === ModuleInfo.Format.ESM) {
+								log.error(
+									`Module ${resourceName} is an ECMAScript Module (ESM), ` +
+									`which is not supported for bundling. ` +
+									`The module will be skipped.`
+								);
+								return;
+							}
 
 							if ( isBundle && !decomposable ) {
 								resource.info.subModules.forEach(
