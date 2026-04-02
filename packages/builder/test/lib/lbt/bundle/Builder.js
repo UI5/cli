@@ -3214,3 +3214,49 @@ test.serial("getEffectiveUi5MajorVersion with cache", async (t) => {
 	t.is(getEffectiveUi5MajorVersionUI5v2WithCacheSpy.getCall(1).returnValue, 2, "UI5 Major Version correctly determined");
 	t.is(mySemverParseSpy.callCount, 1, "semver.parse has been called only once");
 });
+
+test.serial("integration: createBundle with ESM module in preload section", async (t) => {
+	const {BuilderWithStub, errorLogStub} = t.context;
+	const pool = new ResourcePool();
+
+	pool.addResource({
+		name: "my/app/thirdparty/esm-module.js",
+		getPath: () => "my/app/thirdparty/esm-module.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => `import foo from "./foo.js"; export default foo;`
+	});
+
+	const bundleDefinition = {
+		name: `esm-bundle.js`,
+		defaultFileTypes: [".js"],
+		sections: [{
+			mode: "preload",
+			name: "preload-section",
+			filters: [
+				"my/app/thirdparty/esm-module.js"
+			]
+		}]
+	};
+
+	const builder = new BuilderWithStub(pool);
+	const oResult = await builder.createBundle(bundleDefinition, {
+		numberOfParts: 1,
+		decorateBootstrapModule: true
+	});
+
+	t.is(oResult.name, "esm-bundle.js");
+	t.truthy(oResult.content, "Bundle should be created");
+
+	// An error should be logged since this ESM module is actually being bundled
+	// and the content can't be properly rewritten to sap.ui.predefine
+	t.true(errorLogStub.callCount >= 1,
+		"log.error should be called for ESM module that can't be bundled");
+	t.true(
+		errorLogStub.getCalls().some((call) =>
+			call.args[0].includes("my/app/thirdparty/esm-module.js")
+		),
+		"log.error should mention the ESM module name"
+	);
+});
