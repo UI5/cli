@@ -74,12 +74,12 @@ class FixtureHelper {
 }
 
 describe("ui5 build", () => {
-	test("ui5-tooling-transpile-middleware", async ({assert}) => {
+	test("ui5-tooling-transpile", async ({assert}) => {
 		const fixtureHelper = new FixtureHelper("application.a.ts");
 		await fixtureHelper.init();
 		process.env.UI5_DATA_DIR = `${fixtureHelper.dotUi5Path}`;
 		process.chdir(fixtureHelper.tmpPath);
-		const ui5YamlName = "ui5-tooling-transpile-middleware.yaml";
+		const ui5YamlName = "ui5-tooling-transpile.yaml";
 
 		// #1 Build
 		await fixtureHelper.build(assert, ui5YamlName);
@@ -108,8 +108,8 @@ describe("ui5 build", () => {
 		assert.ok(newComponentPreload.includes("second:\"test_2\""), "Component-preload.js should contain the updated content from the modified source file");
 	});
 
-	test.only("ui5-task-zipper", async ({assert}) => {
-		const fixtureHelper = new FixtureHelper("application.a.ts");
+	test("ui5-task-zipper", async ({assert}) => {
+		const fixtureHelper = new FixtureHelper("application.a");
 		await fixtureHelper.init();
 		process.env.UI5_DATA_DIR = `${fixtureHelper.dotUi5Path}`;
 		process.chdir(fixtureHelper.tmpPath);
@@ -129,14 +129,14 @@ describe("ui5 build", () => {
 		assert.ok(zipEntries.length > 0, "The zip file should contain entries");
 
 		// Check that the zip file contains the expected source file
-		const testControllerEntry = zipEntries.find(entry => entry.entryName === "controller/Test.controller.ts");
+		const testControllerEntry = zipEntries.find(entry => entry.entryName === "controller/Test.controller.js");
 		assert.ok(testControllerEntry, "The zip file should contain the expected source file");
 
 		// --------------------------------------------------------------------------------------------
 
 		// Delete a source file
 		await fixtureHelper.prepareForNextRun();
-		await fs.rm(path.resolve(fixtureHelper.tmpPath, "webapp/controller/Test.controller.ts"));
+		await fs.rm(path.resolve(fixtureHelper.tmpPath, "webapp/controller/Test.controller.js"));
 
 		// #2 Build
 		await fixtureHelper.build(assert, ui5YamlName);
@@ -151,7 +151,46 @@ describe("ui5 build", () => {
 		assert.ok(zipEntries2.length > 0, "The zip file should contain entries after the second build");
 
 		// Check that the zip file does NOT contain the expected source file anymore
-		const deletedTestControllerEntry = zipEntries2.find(entry => entry.entryName === "controller/Test.controller.ts");
+		const deletedTestControllerEntry = zipEntries2.find(entry => entry.entryName === "controller/Test.controller.js");
 		assert.ok(!deletedTestControllerEntry, "The zip file should NOT contain the deleted source file");
+	});
+
+	test("ui5-tooling-modules", async ({assert}) => {
+		const fixtureHelper = new FixtureHelper("application.a");
+		await fixtureHelper.init();
+		process.env.UI5_DATA_DIR = `${fixtureHelper.dotUi5Path}`;
+		process.chdir(fixtureHelper.tmpPath);
+		const ui5YamlName = "ui5-tooling-modules.yaml";
+
+		// #1 Build
+		await fixtureHelper.build(assert, ui5YamlName);
+
+		// Test: the dist contains the expected preload with the correct content
+		const componentPreload = await fs.readFile(path.resolve(fixtureHelper.distPath, "Component-preload.js"), "utf-8");
+		assert.ok(componentPreload.includes("sap.ui.predefine(\"application/a/controller/Test.controller\", [\"application/a/thirdparty/chart.js\"]"), "Component-preload.js should contain the 'Test' controller and its dependency");
+
+
+		// --------------------------------------------------------------------------------------------
+
+		// Add a new source file with another third party import
+		await fixtureHelper.prepareForNextRun();
+		const newControllerPath = path.resolve(fixtureHelper.tmpPath, "webapp/controller/New.controller.js");
+		const newControllerContent =
+`sap.ui.define(["chart.js"], (chartJS) => {
+	return Controller.extend("application.a.controller.New",{
+		onInit() {
+			console.log(chartJS);
+		}
+	});
+});`;
+		await fs.writeFile(newControllerPath, newControllerContent, "utf-8");
+
+		// #2 Build
+		await fixtureHelper.build(assert, ui5YamlName);
+
+		// Test: the dist contains the new controller and the new import
+		const newComponentPreload = await fs.readFile(path.resolve(fixtureHelper.distPath, "Component-preload.js"), "utf-8");
+		assert.ok(newComponentPreload.includes("sap.ui.predefine(\"application/a/controller/Test.controller\", [\"application/a/thirdparty/chart.js\"]"), "Component-preload.js should contain the 'Test' controller and its dependency");
+		assert.ok(newComponentPreload.includes("sap.ui.predefine(\"application/a/controller/New.controller\", [\"application/a/thirdparty/chart.js\"]"), "Component-preload.js should contain the 'New' controller and its dependency");
 	});
 });

@@ -1,6 +1,6 @@
 specVersion: "5.0"
 metadata:
-  name: application.a.ts
+  name: application.a
 type: application
 builder:
   customTasks:
