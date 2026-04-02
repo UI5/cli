@@ -1,0 +1,10 @@
+specVersion: "5.0"
+metadata:
+  name: application.a.ts
+type: application
+builder:
+  customTasks:
+    - name: ui5-task-zipper
+      afterTask: generateVersionInfo
+      configuration:
+        archiveName: "webapp"

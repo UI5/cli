@@ -7,6 +7,7 @@ import {test, describe} from "node:test";
 import {fileURLToPath} from "node:url";
 import path from "node:path";
 import fs from "node:fs/promises";
+import AdmZip from "adm-zip";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,9 +25,29 @@ class FixtureHelper {
 	async init() {
 		// Clean up previous runs
 		await fs.rm(this.tmpPath, {recursive: true, force: true});
-		// Copy fixture to temp location
+		// Copy source files to temp location
 		await fs.cp(this.originFixturePath, this.tmpPath, {recursive: true});
 		// Install node_modules
+		await this._installNodeModules();
+	}
+
+	async prepareForNextRun() {
+		// Delete everything from the tmp/<projectname> folder except .ui5 & dist folders
+		const entries = await fs.readdir(this.tmpPath, { withFileTypes: true });
+		for (const entry of entries) {
+			if (entry.name === ".ui5" || entry.name === "dist") {
+				continue;
+			}
+			const entryPath = path.resolve(this.tmpPath, entry.name);
+			await fs.rm(entryPath, { recursive: true, force: true });
+		}
+		// Copy source files to temp location
+		await fs.cp(this.originFixturePath, this.tmpPath, {recursive: true});
+		// Install node_modules
+		await this._installNodeModules();
+	}
+
+	async _installNodeModules() {
 		await new Promise((resolve, reject) => {
 			execFile("npm", ["install"], { cwd: this.tmpPath }, (error, stdout, stderr) => {
 				if (error) {
@@ -37,16 +58,10 @@ class FixtureHelper {
 			});
 		});
 	}
-}
 
-describe("ui5 build", () => {
-	test("run the UI5 build command", async ({assert}) => {
-		const fixtureHelper = new FixtureHelper("application.a.ts");
-		await fixtureHelper.init();
-		process.env.UI5_DATA_DIR = `${fixtureHelper.dotUi5Path}`;
-		process.chdir(fixtureHelper.tmpPath);
+	async build(assert, ui5YamlName) {
 		await new Promise((resolve, reject) => {
-			execFile("node", [ui5CliPath, "build", "--dest", fixtureHelper.distPath], async (error, stdout, stderr) => {
+			execFile("node", [ui5CliPath, "build", "--config", ui5YamlName, "--dest", this.distPath], async (error, stdout, stderr) => {
 				if (error) {
 					assert.fail(error);
 					reject(error);
@@ -55,6 +70,19 @@ describe("ui5 build", () => {
 				resolve();
 			});
 		});
+	}
+}
+
+describe("ui5 build", () => {
+	test("ui5-tooling-transpile-middleware", async ({assert}) => {
+		const fixtureHelper = new FixtureHelper("application.a.ts");
+		await fixtureHelper.init();
+		process.env.UI5_DATA_DIR = `${fixtureHelper.dotUi5Path}`;
+		process.chdir(fixtureHelper.tmpPath);
+		const ui5YamlName = "ui5-tooling-transpile-middleware.yaml";
+
+		// #1 Build
+		await fixtureHelper.build(assert, ui5YamlName);
 
 		// Test: no TS syntax is left in the preload (transpile + preload tasks succeeeded)
 		const componentPreload = await fs.readFile(path.resolve(fixtureHelper.distPath, "Component-preload.js"), "utf-8");
@@ -62,5 +90,68 @@ describe("ui5 build", () => {
 		assert.ok(!componentPreload.includes("randomTSType"), "Component-preload.js should NOT contain any TS syntax");
 		const componentPreloadMap = await fs.readFile(path.resolve(fixtureHelper.distPath, "Component-preload.js.map"), "utf-8");
 		assert.ok(componentPreloadMap.includes("randomTSType"), "Component-preload.js.map should contain the TS type information");
+
+		// --------------------------------------------------------------------------------------------
+
+		// Modify source files
+		await fixtureHelper.prepareForNextRun();
+		const fileToModify = path.resolve(fixtureHelper.tmpPath, "webapp/controller/Test.controller.ts");
+		const fileContent = await fs.readFile(fileToModify, "utf-8");
+		const modifiedContent = fileContent.replace("second: \"test\"", "second: \"test_2\"");
+		await fs.writeFile(fileToModify, modifiedContent, "utf-8");
+
+		// #2 Build
+		await fixtureHelper.build(assert, ui5YamlName);
+
+		// Test: the modified content is reflected in the new build output (transpile + preload tasks succeeeded)
+		const newComponentPreload = await fs.readFile(path.resolve(fixtureHelper.distPath, "Component-preload.js"), "utf-8");
+		assert.ok(newComponentPreload.includes("second:\"test_2\""), "Component-preload.js should contain the updated content from the modified source file");
+	});
+
+	test.only("ui5-task-zipper", async ({assert}) => {
+		const fixtureHelper = new FixtureHelper("application.a.ts");
+		await fixtureHelper.init();
+		process.env.UI5_DATA_DIR = `${fixtureHelper.dotUi5Path}`;
+		process.chdir(fixtureHelper.tmpPath);
+		const ui5YamlName = "ui5-task-zipper.yaml";
+
+		// #1 Build
+		await fixtureHelper.build(assert, ui5YamlName);
+
+		// Test: the zip file is created in the dist folder
+		const zipFilePath = path.resolve(fixtureHelper.distPath, "webapp.zip");
+		const zipFileExists = await fs.access(zipFilePath).then(() => true).catch(() => false);
+		assert.ok(zipFileExists, "The zip file should be created in the dist folder");
+
+		// Check the archive content
+		const zip = new AdmZip(zipFilePath);
+		const zipEntries = zip.getEntries();
+		assert.ok(zipEntries.length > 0, "The zip file should contain entries");
+
+		// Check that the zip file contains the expected source file
+		const testControllerEntry = zipEntries.find(entry => entry.entryName === "controller/Test.controller.ts");
+		assert.ok(testControllerEntry, "The zip file should contain the expected source file");
+
+		// --------------------------------------------------------------------------------------------
+
+		// Delete a source file
+		await fixtureHelper.prepareForNextRun();
+		await fs.rm(path.resolve(fixtureHelper.tmpPath, "webapp/controller/Test.controller.ts"));
+
+		// #2 Build
+		await fixtureHelper.build(assert, ui5YamlName);
+
+		// Test: the zip file is updated and does not contain the deleted file
+		const newZipFileExists = await fs.access(zipFilePath).then(() => true).catch(() => false);
+		assert.ok(newZipFileExists, "The zip file should be created in the dist folder after the second build");
+
+		// Check the archive content
+		const zip2 = new AdmZip(zipFilePath);
+		const zipEntries2 = zip2.getEntries();
+		assert.ok(zipEntries2.length > 0, "The zip file should contain entries after the second build");
+
+		// Check that the zip file does NOT contain the expected source file anymore
+		const deletedTestControllerEntry = zipEntries2.find(entry => entry.entryName === "controller/Test.controller.ts");
+		assert.ok(!deletedTestControllerEntry, "The zip file should NOT contain the deleted source file");
 	});
 });

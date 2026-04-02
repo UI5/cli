@@ -16,5 +16,8 @@
 	},
 	"devDependencies": {
 		"eslint": "^9.39.1"
+	},
+	"dependencies": {
+		"adm-zip": "^0.5.17"
 	}
 }
