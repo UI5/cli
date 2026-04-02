@@ -62,7 +62,7 @@ async function determineDependencyInfo(resource, rawInfo, pool) {
 		try {
 			ast = parseJS(code, {comment: true});
 		} catch (err) {
-			log.error(`Failed to parse ${resource.name}: ${err.message}`);
+			log.verbose(`Failed to parse ${resource.name}: ${err.message}`);
 			log.verbose(err.stack);
 		}
 		if (ast) {
@@ -243,4 +243,3 @@ class ResourcePool {
 }
 
 export default ResourcePool;
-

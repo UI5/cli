@@ -7,9 +7,20 @@ import esmock from "esmock";
 test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
 	t.context.LibraryFileAnalyzerGetDependencyInfosStub = sinon.stub().returns({});
+	t.context.verboseLogStub = sinon.stub();
+	t.context.errorLogStub = sinon.stub();
+	t.context.loggerInstance = {
+		silly: sinon.stub(),
+		verbose: t.context.verboseLogStub,
+		warn: sinon.stub(),
+		error: t.context.errorLogStub,
+	};
 	t.context.ResourcePool = await esmock("../../../../lib/lbt/resources/ResourcePool.js", {
 		"../../../../lib/lbt/resources/LibraryFileAnalyzer.js": {
 			getDependencyInfos: t.context.LibraryFileAnalyzerGetDependencyInfosStub
+		},
+		"@ui5/logger": {
+			getLogger: () => t.context.loggerInstance
 		}
 	});
 });
@@ -380,5 +391,30 @@ test.serial("addResource: library and eval raw module info", async (t) => {
 	t.true(actualResourceB.info.requiresTopLevelScope);
 	t.deepEqual(actualResourceB.info.exposedGlobals, ["foo", "bar", "some"],
 		"global names should be known from analsyis step");
+});
+
+test("getModuleInfo: determineDependencyInfo for ESM js resource", async (t) => {
+	const {ResourcePool, verboseLogStub, errorLogStub} = t.context;
+
+	const resourcePool = new ResourcePool();
+	const esmCode = `import foo from "./foo.js"; export default foo;`;
+	const inputJsResource = {name: "thirdparty/esm-module.js", buffer: async () => esmCode};
+	resourcePool.addResource(inputJsResource);
+
+	const info = await resourcePool.getModuleInfo("thirdparty/esm-module.js");
+
+	t.is(info.name, "thirdparty/esm-module.js", "name should be set");
+	t.is(info.size, esmCode.length, "size should be set");
+	t.deepEqual(info.dependencies, [], "no dependencies should be found since parsing failed");
+
+	t.is(errorLogStub.callCount, 0, "log.error should not be called for ESM parse failure");
+	t.true(verboseLogStub.callCount >= 1, "log.verbose should be called");
+	t.true(
+		verboseLogStub.getCalls().some((call) =>
+			call.args[0].includes("Failed to parse thirdparty/esm-module.js") &&
+			call.args[0].includes("'import' and 'export' may appear only with 'sourceType: module'")
+		),
+		"log.verbose should contain the parse error message"
+	);
 });
 
