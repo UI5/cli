@@ -54,7 +54,7 @@ test.serial("Start server - Port is already taken and an error occurs", async (t
 	);
 	t.is(
 		error.address,
-		"localhost",
+		"127.0.0.1",
 		"Correct error address"
 	);
 	t.is(
@@ -89,7 +89,7 @@ test.serial("Start server together with node server - Port is already taken and 
 	});
 
 	t.deepEqual(server.port, nextFoundPort, "Resolves with correct port");
-	const request = supertest(`http://localhost:${nextFoundPort}`);
+	const request = supertest(`http://127.0.0.1:${nextFoundPort}`);
 	const result = await request.get("/index.html");
 	if (result.error) {
 		t.fail(result.error.text);
@@ -181,7 +181,7 @@ test.serial(
 		);
 		t.is(
 			error.address,
-			"localhost",
+			"127.0.0.1",
 			"Correct error address"
 		);
 		t.is(
@@ -213,7 +213,7 @@ test.serial("Start server twice - Port is already taken and the next one is used
 	});
 	t.deepEqual(serveResult2.port, nextFoundPort, "Resolves with correct port");
 
-	const request = supertest(`http://localhost:${nextFoundPort}`);
+	const request = supertest(`http://127.0.0.1:${nextFoundPort}`);
 	const result = await request.get("/index.html");
 	if (result.error) {
 		t.fail(result.error.text);
