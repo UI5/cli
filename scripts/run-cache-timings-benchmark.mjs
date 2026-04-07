@@ -96,8 +96,9 @@ function git(cmd) {
 function runBuildCapture(projectDir) {
 	try {
 		// Use shell to redirect stderr to stdout so we get everything
+		// NO_COLOR disables chalk ANSI codes so regex parsing works reliably
 		const result = execSync(
-			`UI5_BUILD_TIMINGS=true node "${CLI_BIN}" build 2>&1`,
+			`NO_COLOR=1 UI5_BUILD_TIMINGS=true node "${CLI_BIN}" build 2>&1`,
 			{
 				cwd: projectDir,
 				encoding: "utf8",
