@@ -419,3 +419,131 @@ test("getModuleInfo: determineDependencyInfo for ESM js resource", async (t) => 
 	);
 });
 
+test("getModuleInfo: determineDependencyInfo for ESM js resource using import.meta", async (t) => {
+	const {ResourcePool, verboseLogStub, errorLogStub} = t.context;
+
+	const resourcePool = new ResourcePool();
+	const esmCode = `const url = import.meta.url;`;
+	const inputJsResource = {name: "thirdparty/esm-meta-module.js", buffer: async () => esmCode};
+	resourcePool.addResource(inputJsResource);
+
+	const info = await resourcePool.getModuleInfo("thirdparty/esm-meta-module.js");
+
+	t.is(info.name, "thirdparty/esm-meta-module.js", "name should be set");
+	t.is(info.size, esmCode.length, "size should be set");
+	t.is(info.format, "esm", "format should be set to ESM");
+	t.deepEqual(info.dependencies, [], "no dependencies should be found since parsing failed");
+
+	t.is(errorLogStub.callCount, 0, "log.error should not be called for ESM parse failure");
+	t.true(verboseLogStub.callCount >= 1, "log.verbose should be called");
+	t.true(
+		verboseLogStub.getCalls().some((call) =>
+			call.args[0].includes("Failed to parse thirdparty/esm-meta-module.js") &&
+			call.args[0].includes("Cannot use 'import.meta' outside a module")
+		),
+		"log.verbose should contain the import.meta parse error message"
+	);
+});
+
+test("getModuleInfo: determineDependencyInfo for ESM js resource using side-effect import", async (t) => {
+	const {ResourcePool, errorLogStub} = t.context;
+
+	const resourcePool = new ResourcePool();
+	const esmCode = `import "./side-effect.js";`;
+	const inputJsResource = {name: "thirdparty/esm-side-effect.js", buffer: async () => esmCode};
+	resourcePool.addResource(inputJsResource);
+
+	const info = await resourcePool.getModuleInfo("thirdparty/esm-side-effect.js");
+
+	t.is(info.format, "esm", "format should be set to ESM for side-effect import");
+	t.is(errorLogStub.callCount, 0, "log.error should not be called");
+});
+
+test("getModuleInfo: determineDependencyInfo for ESM js resource using re-export", async (t) => {
+	const {ResourcePool, errorLogStub} = t.context;
+
+	const resourcePool = new ResourcePool();
+	const esmCode = `export { foo } from "./foo.js";`;
+	const inputJsResource = {name: "thirdparty/esm-reexport.js", buffer: async () => esmCode};
+	resourcePool.addResource(inputJsResource);
+
+	const info = await resourcePool.getModuleInfo("thirdparty/esm-reexport.js");
+
+	t.is(info.format, "esm", "format should be set to ESM for re-export");
+	t.is(errorLogStub.callCount, 0, "log.error should not be called");
+});
+
+test("getModuleInfo: determineDependencyInfo for ESM js resource using export *", async (t) => {
+	const {ResourcePool, errorLogStub} = t.context;
+
+	const resourcePool = new ResourcePool();
+	const esmCode = `export * from "./foo.js";`;
+	const inputJsResource = {name: "thirdparty/esm-export-star.js", buffer: async () => esmCode};
+	resourcePool.addResource(inputJsResource);
+
+	const info = await resourcePool.getModuleInfo("thirdparty/esm-export-star.js");
+
+	t.is(info.format, "esm", "format should be set to ESM for export *");
+	t.is(errorLogStub.callCount, 0, "log.error should not be called");
+});
+
+test("getModuleInfo: determineDependencyInfo for ESM js resource using named export", async (t) => {
+	const {ResourcePool, errorLogStub} = t.context;
+
+	const resourcePool = new ResourcePool();
+	const esmCode = `export const myVar = 42;`;
+	const inputJsResource = {name: "thirdparty/esm-named-export.js", buffer: async () => esmCode};
+	resourcePool.addResource(inputJsResource);
+
+	const info = await resourcePool.getModuleInfo("thirdparty/esm-named-export.js");
+
+	t.is(info.format, "esm", "format should be set to ESM for named export");
+	t.is(errorLogStub.callCount, 0, "log.error should not be called");
+});
+
+test("getModuleInfo: determineDependencyInfo for ESM js resource using import.meta.resolve", async (t) => {
+	const {ResourcePool, errorLogStub} = t.context;
+
+	const resourcePool = new ResourcePool();
+	const esmCode = `const resolved = import.meta.resolve("./foo.js");`;
+	const inputJsResource = {name: "thirdparty/esm-meta-resolve.js", buffer: async () => esmCode};
+	resourcePool.addResource(inputJsResource);
+
+	const info = await resourcePool.getModuleInfo("thirdparty/esm-meta-resolve.js");
+
+	t.is(info.format, "esm", "format should be set to ESM for import.meta.resolve");
+	t.is(errorLogStub.callCount, 0, "log.error should not be called");
+});
+
+test("getModuleInfo: determineDependencyInfo for ESM js resource using top-level await", async (t) => {
+	const {ResourcePool} = t.context;
+
+	// Top-level await is ESM-only syntax, but the parser produces a generic "Unexpected token"
+	// error that cannot be reliably distinguished from actual syntax errors.
+	// Therefore, the module is NOT detected as ESM.
+	const resourcePool = new ResourcePool();
+	const esmCode = `const x = await Promise.resolve(1);`;
+	const inputJsResource = {name: "thirdparty/esm-top-level-await.js", buffer: async () => esmCode};
+	resourcePool.addResource(inputJsResource);
+
+	const info = await resourcePool.getModuleInfo("thirdparty/esm-top-level-await.js");
+
+	t.is(info.format, undefined, "format should not be set for top-level await (not detectable)");
+});
+
+test("getModuleInfo: determineDependencyInfo for js resource using dynamic import()", async (t) => {
+	const {ResourcePool, errorLogStub} = t.context;
+
+	// Dynamic import() is valid in both scripts and modules, so it parses successfully
+	// and should NOT be flagged as ESM.
+	const resourcePool = new ResourcePool();
+	const code = `const m = import("./foo.js");`;
+	const inputJsResource = {name: "thirdparty/dynamic-import.js", buffer: async () => code};
+	resourcePool.addResource(inputJsResource);
+
+	const info = await resourcePool.getModuleInfo("thirdparty/dynamic-import.js");
+
+	t.not(info.format, "esm", "format should not be ESM for dynamic import()");
+	t.is(errorLogStub.callCount, 0, "log.error should not be called");
+});
+
