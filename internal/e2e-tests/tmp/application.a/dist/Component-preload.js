@@ -1,0 +1,7 @@
+//@ui5-bundle application/a/Component-preload.js
+sap.ui.predefine("application/a/controller/New.controller", [],()=>Controller.extend("application.a.controller.New",{onInit(){console.log("INSERTED_TEXT")}}));
+sap.ui.predefine("application/a/controller/Test.controller", [],()=>Controller.extend("application.a.controller.Test",{onInit(){const o={first:{a:1,b:2,c:3},second:"test"};console.log(o.first.a)}}));
+sap.ui.require.preload({
+	"application/a/manifest.json":'{"_version":"1.12.0","sap.app":{"id":"application.a","type":"application","i18n":"i18n/i18n.properties","title":"{{appTitle}}","description":"{{appDescription}}","applicationVersion":{"version":"1.0.0"}},"sap.ui":{"technology":"UI5","icons":{},"deviceTypes":{"desktop":true,"tablet":true,"phone":true}},"sap.ui5":{"rootView":{"viewName":"application.a.view.App","type":"XML","async":true,"id":"app"},"handleValidation":true,"contentDensities":{"compact":true,"cozy":true},"models":{"i18n":{"type":"sap.ui.model.resource.ResourceModel","settings":{"bundleName":"application.a.i18n.i18n"}}},"routing":{"config":{"routerClass":"sap.m.routing.Router","viewType":"XML","viewPath":"application.a.view","controlId":"app","controlAggregation":"pages","async":true},"routes":[{"pattern":"","name":"main","target":"main"}],"targets":{"main":{"viewId":"main","viewName":"Main"}}},"flexBundle":false}}'
+});
+//# sourceMappingURL=Component-preload.js.map
