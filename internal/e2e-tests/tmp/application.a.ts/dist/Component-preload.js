@@ -1,6 +1,0 @@
-//@ui5-bundle application/a/ts/Component-preload.js
-sap.ui.predefine("application/a/ts/controller/Test.controller", [],function(){"use strict";class s{onInit(){const s={first:{a:1,b:2,c:3},second:"test_2"};console.log(s.first.a)}}return s});
-sap.ui.require.preload({
-	"application/a/ts/manifest.json":'{"_version":"1.12.0","sap.app":{"id":"application.a.ts","type":"application","i18n":"i18n/i18n.properties","title":"{{appTitle}}","description":"{{appDescription}}","applicationVersion":{"version":"1.0.0"}},"sap.ui":{"technology":"UI5","icons":{},"deviceTypes":{"desktop":true,"tablet":true,"phone":true}},"sap.ui5":{"rootView":{"viewName":"application.a.ts.view.App","type":"XML","async":true,"id":"app"},"handleValidation":true,"contentDensities":{"compact":true,"cozy":true},"models":{"i18n":{"type":"sap.ui.model.resource.ResourceModel","settings":{"bundleName":"application.a.ts.i18n.i18n"}}},"routing":{"config":{"routerClass":"sap.m.routing.Router","viewType":"XML","viewPath":"application.a.ts.view","controlId":"app","controlAggregation":"pages","async":true},"routes":[{"pattern":"","name":"main","target":"main"}],"targets":{"main":{"viewId":"main","viewName":"Main"}}},"flexBundle":false}}'
-});
-//# sourceMappingURL=Component-preload.js.map

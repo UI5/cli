@@ -70,3 +70,6 @@ internal/documentation/dist
 internal/documentation/schema/*
 internal/documentation/docs/api
 internal/documentation/tmp
+
+# E2E-tests
+internal/e2e-tests/tmp
