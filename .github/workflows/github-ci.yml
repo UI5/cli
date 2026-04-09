@@ -10,8 +10,15 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
+  engine-compat:
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/engine-compat.yml
+    with:
+      node-versions: '22.20.0, 22, 24.0.0, 24'
+
   test:
     name: General checks and tests
     runs-on: ubuntu-24.04
@@ -23,12 +30,6 @@ jobs:
       uses: actions/setup-node@v6
       with:
         node-version: 22.20.0
-
-    - name: Engine compatibility check
-      if: github.event_name == 'pull_request'
-      uses: ./.github/workflows/engine-compat.yml
-      with:
-        node-versions: '22.20.0, 22, 24.0.0, 24'
 
     - name: Install dependencies
       run: npm ci
