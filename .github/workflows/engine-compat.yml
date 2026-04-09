@@ -1,0 +1,71 @@
+name: Node Packages Engine Compatibility Check
+
+on:
+  workflow_call:
+    inputs:
+      node-versions:
+        description: 'Comma-separated Node.js versions, e.g. 22.20.0, 22, 24.0.0, 24'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  engine-compat:
+    name: Engine compatibility
+    runs-on: ubuntu-24.04
+    steps:
+
+    - uses: actions/checkout@v6
+
+    - name: Check engines and report
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        NODE_VERSIONS: ${{ inputs.node-versions }}
+      run: |
+        export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh"
+
+        PR="${{ github.event.pull_request.number }}"
+        MARKER="<!-- engine-compat -->"
+        FAILED=false
+        TABLE="| Node | Result | Incompatible Packages |\n|---|---|---|"
+
+        IFS=',' read -ra VERSIONS <<< "$NODE_VERSIONS"
+        for V in "${VERSIONS[@]}"; do
+          V=$(echo "$V" | xargs)  # trim whitespace
+          nvm install "$V" --no-progress > /dev/null 2>&1
+          nvm use "$V" > /dev/null 2>&1
+          VER=$(node --version)
+
+          PKGS=$(npm ci --dry-run 2>&1 \
+            | awk -F"'" '/EBADENGINE.*package:/{pkg=$2} /EBADENGINE.*node:/{if(pkg){print pkg" (node "$2")"; pkg=""}}' \
+            | sort -u | tr '\n' ',' | sed 's/,$//' | sed 's/,/, /g')
+
+          if [ -n "$PKGS" ]; then
+            FAILED=true
+            SAFE=$(echo "$PKGS" | sed 's/|/\\|/g')
+            TABLE="$TABLE\n| $VER | ❌ Fail | $SAFE |"
+          else
+            TABLE="$TABLE\n| $VER | ✅ Pass | — |"
+          fi
+        done
+
+        if [ "$FAILED" = true ]; then ICON="❌"; else ICON="✅"; fi
+        printf '%s\n## %s Engine Compatibility\n\n%b\n' "$MARKER" "$ICON" "$TABLE" > /tmp/comment.md
+
+        OLD=$(gh api "repos/${{ github.repository }}/issues/${PR}/comments" \
+          --jq "[.[] | select(.body | contains(\"$MARKER\"))][0].id" 2>/dev/null || true)
+        if [ -n "$OLD" ] && [ "$OLD" != "null" ]; then
+          gh api --method PATCH "repos/${{ github.repository }}/issues/comments/$OLD" -F body=@/tmp/comment.md
+        else
+          gh pr comment "$PR" --body-file /tmp/comment.md
+        fi
+
+        if [ "$FAILED" = true ]; then
+          gh label create blocked --color D93F0B 2>/dev/null || true
+          gh pr edit "$PR" --add-label blocked
+        else
+          gh pr edit "$PR" --remove-label blocked 2>/dev/null || true
+        fi
