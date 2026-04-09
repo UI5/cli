@@ -25,6 +25,7 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         NODE_VERSIONS: ${{ inputs.node-versions }}
       run: |
+        # Load nvm (pre-installed on GitHub runners)
         export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh"
 
         PR="${{ github.event.pull_request.number }}"
@@ -32,6 +33,7 @@ jobs:
         FAILED=false
         TABLE="| Node | Result | Incompatible Packages |\n|---|---|---|"
 
+        # Loop through each requested Node version
         IFS=',' read -ra VERSIONS <<< "$NODE_VERSIONS"
         for V in "${VERSIONS[@]}"; do
           V=$(echo "$V" | xargs)  # trim whitespace
@@ -39,12 +41,16 @@ jobs:
           nvm use "$V" > /dev/null 2>&1
           VER=$(node --version)
 
+          # Dry-run install to collect EBADENGINE warnings without actually installing.
+          # awk extracts "package@version (node range)" from multi-line warning blocks.
+          # sort -u deduplicates (npm may warn about the same package multiple times).
           PKGS=$(npm ci --dry-run 2>&1 \
             | awk -F"'" '/EBADENGINE.*package:/{pkg=$2} /EBADENGINE.*node:/{if(pkg){print pkg" (node "$2")"; pkg=""}}' \
             | sort -u | tr '\n' ',' | sed 's/,$//' | sed 's/,/, /g')
 
           if [ -n "$PKGS" ]; then
             FAILED=true
+            # Escape pipe characters so they don't break the markdown table
             SAFE=$(echo "$PKGS" | sed 's/|/\\|/g')
             TABLE="$TABLE\n| $VER | ❌ Fail | $SAFE |"
           else
@@ -52,9 +58,11 @@ jobs:
           fi
         done
 
+        # Build the comment body
         if [ "$FAILED" = true ]; then ICON="❌"; else ICON="✅"; fi
         printf '%s\n## %s Engine Compatibility\n\n%b\n' "$MARKER" "$ICON" "$TABLE" > /tmp/comment.md
 
+        # Update existing comment (matched by HTML marker) or create a new one
         OLD=$(gh api "repos/${{ github.repository }}/issues/${PR}/comments" \
           --jq "[.[] | select(.body | contains(\"$MARKER\"))][0].id" 2>/dev/null || true)
         if [ -n "$OLD" ] && [ "$OLD" != "null" ]; then
@@ -63,6 +71,7 @@ jobs:
           gh pr comment "$PR" --body-file /tmp/comment.md
         fi
 
+        # Add "blocked" label on failure, remove it on success
         if [ "$FAILED" = true ]; then
           gh label create blocked --color D93F0B 2>/dev/null || true
           gh pr edit "$PR" --add-label blocked
