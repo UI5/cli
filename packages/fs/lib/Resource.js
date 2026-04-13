@@ -4,7 +4,7 @@ import ssri from "ssri";
 import clone from "clone";
 import posixPath from "node:path/posix";
 import {setTimeout} from "node:timers/promises";
-import {withTimeout, Mutex} from "async-mutex";
+import {Mutex} from "async-mutex";
 import {getLogger} from "@ui5/logger";
 
 const log = getLogger("fs:Resource");
@@ -47,11 +47,13 @@ class Resource {
 	#lastModified;
 	#statInfo;
 	#isDirectory;
+	#integrity;
+	#inode;
 
 	/* States */
 	#isModified = false;
-	// Mutex to prevent access/modification while content is being transformed. 100 ms timeout
-	#contentMutex = withTimeout(new Mutex(), 100, new Error("Timeout waiting for resource content access"));
+	// Mutex to prevent access/modification while content is being transformed
+	#contentMutex = new Mutex();
 
 	// Tracing
 	#collections = [];
@@ -91,10 +93,12 @@ class Resource {
 	 * @param {boolean} [parameters.isDirectory] Flag whether the resource represents a directory
 	 * @param {number} [parameters.byteSize] Size of the resource content in bytes
 	 * @param {number} [parameters.lastModified] Last modified timestamp (in milliseconds since UNIX epoch)
+	 * @param {string} [parameters.integrity] Integrity hash of the resource content
+	 * @param {number} [parameters.inode] Inode number of the resource
 	 */
 	constructor({
 		path, statInfo, buffer, createBuffer, string, createStream, stream, project, sourceMetadata,
-		isDirectory, byteSize, lastModified,
+		isDirectory, byteSize, lastModified, integrity, inode,
 	}) {
 		if (!path) {
 			throw new Error("Unable to create Resource: Missing parameter 'path'");
@@ -194,6 +198,13 @@ class Resource {
 			this.#lastModified = lastModified;
 		}
 
+		if (inode !== undefined) {
+			if (typeof inode !== "number" || inode < 0) {
+				throw new Error("Unable to create Resource: Parameter 'inode' must be a positive number");
+			}
+			this.#inode = inode;
+		}
+
 		if (statInfo) {
 			this.#isDirectory ??= statInfo.isDirectory();
 			if (!this.#isDirectory && statInfo.isFile && !statInfo.isFile()) {
@@ -201,6 +212,7 @@ class Resource {
 			}
 			this.#byteSize ??= statInfo.size;
 			this.#lastModified ??= statInfo.mtimeMs;
+			this.#inode ??= statInfo.ino;
 
 			// Create legacy statInfo object
 			this.#statInfo = parseStat(statInfo);
@@ -392,20 +404,23 @@ class Resource {
 		}
 		// Then make sure no other operation is currently modifying the content and then lock it
 		const release = await this.#contentMutex.acquire();
-		const newContent = await callback(this.#getStream());
+		try {
+			const newContent = await callback(this.#getStream());
 
-		// New content is either buffer or stream
-		if (Buffer.isBuffer(newContent)) {
-			this.#content = newContent;
-			this.#contentType = CONTENT_TYPES.BUFFER;
-		} else if (typeof newContent === "object" && typeof newContent.pipe === "function") {
-			this.#content = newContent;
-			this.#contentType = CONTENT_TYPES.STREAM;
-		} else {
-			throw new Error("Unable to set new content: Content must be either a Buffer or a Readable Stream");
+			// New content is either buffer or stream
+			if (Buffer.isBuffer(newContent)) {
+				this.#content = newContent;
+				this.#contentType = CONTENT_TYPES.BUFFER;
+			} else if (typeof newContent === "object" && typeof newContent.pipe === "function") {
+				this.#content = newContent;
+				this.#contentType = CONTENT_TYPES.STREAM;
+			} else {
+				throw new Error("Unable to set new content: Content must be either a Buffer or a Readable Stream");
+			}
+			this.#contendModified();
+		} finally {
+			release();
 		}
-		this.#contendModified();
-		release();
 	}
 
 	/**
@@ -519,9 +534,12 @@ class Resource {
 		this.#contendModified();
 	}
 
-	async getHash() {
+	async getIntegrity() {
+		if (this.#integrity) {
+			return this.#integrity;
+		}
 		if (this.isDirectory()) {
-			throw new Error(`Unable to calculate hash for directory resource: ${this.#path}`);
+			throw new Error(`Unable to calculate integrity for directory resource: ${this.#path}`);
 		}
 
 		// First wait for new content if the current content is flagged as drained
@@ -536,13 +554,22 @@ class Resource {
 
 		switch (this.#contentType) {
 		case CONTENT_TYPES.BUFFER:
-			return ssri.fromData(this.#content, SSRI_OPTIONS).toString();
+			this.#integrity = ssri.fromData(this.#content, SSRI_OPTIONS).toString();
+			break;
 		case CONTENT_TYPES.FACTORY:
-			return (await ssri.fromStream(this.#createStreamFactory(), SSRI_OPTIONS)).toString();
+			// TODO: Investigate performance impact of buffer factory vs. stream factory for integrity calculation
+			// if (this.#createBufferFactory) {
+			// 	this.#integrity = ssri.fromData(
+			// 		await this.#getBufferFromFactory(this.#createBufferFactory, SSRI_OPTIONS).toString());
+			// } else {
+			this.#integrity = (await ssri.fromStream(this.#createStreamFactory(), SSRI_OPTIONS)).toString();
+			// }
+			break;
 		case CONTENT_TYPES.STREAM:
 			// To be discussed: Should we read the stream into a buffer here (using #getBufferFromStream) to avoid
 			// draining it?
-			return (await ssri.fromStream(this.#getStream(), SSRI_OPTIONS)).toString();
+			this.#integrity = ssri.fromData(await this.#getBufferFromStream(this.#content), SSRI_OPTIONS).toString();
+			break;
 		case CONTENT_TYPES.DRAINED_STREAM:
 			throw new Error(`Unexpected error: Content of Resource ${this.#path} is flagged as drained.`);
 		case CONTENT_TYPES.IN_TRANSFORMATION:
@@ -550,6 +577,7 @@ class Resource {
 		default:
 			throw new Error(`Resource ${this.#path} has no content`);
 		}
+		return this.#integrity;
 	}
 
 	#contendModified() {
@@ -557,6 +585,7 @@ class Resource {
 		this.#isModified = true;
 
 		this.#byteSize = undefined;
+		this.#integrity = undefined;
 		this.#lastModified = new Date().getTime(); // TODO: Always update or keep initial value (= fs stat)?
 
 		if (this.#contentType === CONTENT_TYPES.BUFFER) {
@@ -683,6 +712,16 @@ class Resource {
 	}
 
 	/**
+	 * Gets the inode number of the resource.
+	 *
+	 * @public
+	 * @returns {number} Inode number of the resource
+	 */
+	getInode() {
+		return this.#inode;
+	}
+
+	/**
 	 * Resource content size in bytes.
 	 *
 	 * @public
@@ -751,8 +790,9 @@ class Resource {
 			path: this.#path,
 			statInfo: this.#statInfo, // Will be cloned in constructor
 			isDirectory: this.#isDirectory,
-			byteSize: this.#byteSize,
+			byteSize: this.#isDirectory ? undefined : await this.getSize(),
 			lastModified: this.#lastModified,
+			integrity: this.#isDirectory ? undefined : (this.#contentType ? await this.getIntegrity() : undefined),
 			sourceMetadata: clone(this.#sourceMetadata)
 		};
 

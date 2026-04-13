@@ -25,6 +25,8 @@ function getDefaultArgv() {
 		"experimentalCssVariables": false,
 		"cache-mode": "Default",
 		"cacheMode": "Default",
+		"snapshot-cache": "Default",
+		"snapshotCache": "Default",
 		"output-style": "Default",
 		"$0": "ui5"
 	};
@@ -131,15 +133,15 @@ test.serial("ui5 build --framework-version", async (t) => {
 			versionOverride: "1.99.0",
 			workspaceConfigPath: undefined,
 			workspaceName: undefined,
-			cacheMode: "Default",
+			snapshotCache: "Default",
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
 
-test.serial("ui5 build --cache-mode", async (t) => {
+test.serial("ui5 build --snapshot-cache", async (t) => {
 	const {build, argv, graphFromPackageDependenciesStub} = t.context;
 
-	argv.cacheMode = "Off";
+	argv.snapshotCache = "Off";
 
 	await build.handler(argv);
 
@@ -150,7 +152,7 @@ test.serial("ui5 build --cache-mode", async (t) => {
 			versionOverride: undefined,
 			workspaceConfigPath: undefined,
 			workspaceName: undefined,
-			cacheMode: "Off",
+			snapshotCache: "Off",
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
@@ -169,7 +171,7 @@ test.serial("ui5 build --config", async (t) => {
 			versionOverride: undefined,
 			workspaceConfigPath: undefined,
 			workspaceName: undefined,
-			cacheMode: "Default",
+			snapshotCache: "Default",
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
@@ -188,7 +190,7 @@ test.serial("ui5 build --workspace", async (t) => {
 			versionOverride: undefined,
 			workspaceConfigPath: undefined,
 			workspaceName: "dolphin",
-			cacheMode: "Default",
+			snapshotCache: "Default",
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
@@ -207,7 +209,7 @@ test.serial("ui5 build --no-workspace", async (t) => {
 			versionOverride: undefined,
 			workspaceConfigPath: undefined,
 			workspaceName: null,
-			cacheMode: "Default",
+			snapshotCache: "Default",
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
@@ -227,7 +229,7 @@ test.serial("ui5 build --workspace-config", async (t) => {
 			versionOverride: undefined,
 			workspaceConfigPath: fakePath,
 			workspaceName: undefined,
-			cacheMode: "Default",
+			snapshotCache: "Default",
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
@@ -245,7 +247,7 @@ test.serial("ui5 build --dependency-definition", async (t) => {
 			filePath: "dependencies.yaml",
 			rootConfigPath: undefined,
 			versionOverride: undefined,
-			cacheMode: "Default",
+			snapshotCache: "Default",
 		}, "generateProjectGraph.graphFromStaticFile got called with expected arguments"
 	);
 });
@@ -264,7 +266,7 @@ test.serial("ui5 build --dependency-definition --config", async (t) => {
 			filePath: "dependencies.yaml",
 			rootConfigPath: "ui5-test.yaml",
 			versionOverride: undefined,
-			cacheMode: "Default",
+			snapshotCache: "Default",
 		}, "generateProjectGraph.graphFromStaticFile got called with expected arguments"
 	);
 });
@@ -284,7 +286,7 @@ test.serial("ui5 build --dependency-definition --config --framework-version", as
 			filePath: "dependencies.yaml",
 			rootConfigPath: "ui5-test.yaml",
 			versionOverride: "1.99.0",
-			cacheMode: "Default",
+			snapshotCache: "Default",
 		}, "generateProjectGraph.graphFromStaticFile got called with expected arguments"
 	);
 });

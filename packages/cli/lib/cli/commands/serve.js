@@ -2,6 +2,8 @@ import path from "node:path";
 import os from "node:os";
 import chalk from "chalk";
 import baseMiddleware from "../middlewares/base.js";
+import {getLogger} from "@ui5/logger";
+const log = getLogger("cli:commands:serve");
 
 // Serve
 const serve = {
@@ -68,12 +70,30 @@ serve.builder = function(cli) {
 		})
 		.option("cache-mode", {
 			describe:
-				"Cache mode to use when consuming SNAPSHOT versions of framework dependencies. " +
-				"The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the cache only and " +
-				"does not create any requests. 'Off' invalidates any existing cache and updates from the repository",
+				"As of UI5 CLI version 5, renamed to '--snapshot-cache'. " +
+				"Use '--snapshot-cache' to control this behavior.",
+			type: "string",
+			hidden: true,
+		})
+		.option("snapshot-cache", {
+			describe:
+			"Cache mode to use when consuming SNAPSHOT versions of framework dependencies. " +
+			"The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the cache only and " +
+			"does not create any requests. 'Off' invalidates any existing cache and updates from the repository",
 			type: "string",
 			default: "Default",
-			choices: ["Default", "Force", "Off"]
+			choices: ["Default", "Force", "Off"],
+		})
+		.option("cache", {
+			describe:
+				"Cache mode to use for building UI5 projects. " +
+				"The 'Default' behavior is to always use the cache if available. 'Force' uses the cache only " +
+				"(if it's unavailable or invalid, the build fails). 'Read-only' does not create or update any" +
+				"cache but makes use of a cache if available. 'Off' does not use any cache and always triggers" +
+				"a rebuild of the project.",
+			type: "string",
+			default: "Default",
+			choices: ["Default", "Force", "Read-only", "Off"],
 		})
 		.example("ui5 serve", "Start a web server for the current project")
 		.example("ui5 serve --h2", "Enable the HTTP/2 protocol for the web server (requires SSL certificate)")
@@ -85,6 +105,11 @@ serve.builder = function(cli) {
 };
 
 serve.handler = async function(argv) {
+	if (Object.prototype.hasOwnProperty.call(argv, "cacheMode")) {
+		log.warn("As of UI5 CLI version 5, '--cache-mode' was renamed to '--snapshot-cache'. " +
+			"Use '--snapshot-cache' to control this behavior. "+
+			"Setting '--snapshot-cache' to 'Default'...");
+	}
 	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
 	const {serve: serverServe} = await import("@ui5/server");
 	const {getSslCertificate} = await import("@ui5/server/internal/sslUtil");
@@ -95,13 +120,15 @@ serve.handler = async function(argv) {
 			filePath: argv.dependencyDefinition,
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
-			cacheMode: argv.cacheMode,
+			snapshotCache: argv.snapshotCache,
+			cache: argv.cache,
 		});
 	} else {
 		graph = await graphFromPackageDependencies({
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
-			cacheMode: argv.cacheMode,
+			snapshotCache: argv.snapshotCache,
+			cache: argv.cache,
 			workspaceConfigPath: argv.workspaceConfig,
 			workspaceName: argv.workspace === false ? null : argv.workspace,
 		});

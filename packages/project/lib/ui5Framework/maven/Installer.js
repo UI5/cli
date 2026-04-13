@@ -6,7 +6,7 @@ const StreamZip = _StreamZip.async;
 import {promisify} from "node:util";
 import Registry from "./Registry.js";
 import AbstractInstaller from "../AbstractInstaller.js";
-import CacheMode from "./CacheMode.js";
+import SnapshotCache from "./SnapshotCache.js";
 import {rmrf} from "../../utils/fs.js";
 const stat = promisify(fs.stat);
 const readFile = promisify(fs.readFile);
@@ -27,9 +27,10 @@ class Installer extends AbstractInstaller {
 	 * @param {Function} parameters.snapshotEndpointUrlCb Callback that returns a Promise <string>,
 	 * 	resolving to the Maven repository URL.
 	 * 	Example: <code>https://registry.corp/vendor/build-snapshots/</code>
-	 * @param {module:@ui5/project/ui5Framework/maven/CacheMode} [parameters.cacheMode=Default] Cache mode to use
+	 * @param {module:@ui5/project/ui5Framework/maven/SnapshotCache} [parameters.snapshotCache=Default]
+	 * 	Snapshot cache mode to use
 	 */
-	constructor({ui5DataDir, snapshotEndpointUrlCb, cacheMode = CacheMode.Default}) {
+	constructor({ui5DataDir, snapshotEndpointUrlCb, snapshotCache = SnapshotCache.Default}) {
 		super(ui5DataDir);
 
 		this._artifactsDir = path.join(ui5DataDir, "framework", "artifacts");
@@ -37,20 +38,20 @@ class Installer extends AbstractInstaller {
 		this._metadataDir = path.join(ui5DataDir, "framework", "metadata");
 		this._stagingDir = path.join(ui5DataDir, "framework", "staging");
 
-		this._cacheMode = cacheMode;
+		this._snapshotCache = snapshotCache;
 		this._snapshotEndpointUrlCb = snapshotEndpointUrlCb;
 
 		if (!this._snapshotEndpointUrlCb) {
 			throw new Error(`Installer: Missing Snapshot-Endpoint URL callback parameter`);
 		}
-		if (!Object.values(CacheMode).includes(cacheMode)) {
-			throw new Error(`Installer: Invalid value '${cacheMode}' for cacheMode parameter. ` +
-				`Must be one of ${Object.values(CacheMode).join(", ")}`);
+		if (!Object.values(SnapshotCache).includes(snapshotCache)) {
+			throw new Error(`Installer: Invalid value '${snapshotCache}' for snapshotCache parameter. ` +
+				`Must be one of ${Object.values(SnapshotCache).join(", ")}`);
 		}
 
 		log.verbose(`Installing Maven artifacts to: ${this._artifactsDir}`);
 		log.verbose(`Installing Packages to: ${this._packagesDir}`);
-		log.verbose(`Caching mode: ${this._cacheMode}`);
+		log.verbose(`Snapshot cache mode: ${this._snapshotCache}`);
 	}
 
 	async getRegistry() {
@@ -122,7 +123,7 @@ class Installer extends AbstractInstaller {
 		return this._synchronize("metadata-" + fsId, async () => {
 			const localMetadata = await this._getLocalArtifactMetadata(fsId);
 
-			if (this._cacheMode === CacheMode.Force && !localMetadata.revision) {
+			if (this._snapshotCache === SnapshotCache.Force && !localMetadata.revision) {
 				throw new Error(`Could not find artifact ` +
 					`${logId} in local cache`);
 			}
@@ -130,8 +131,8 @@ class Installer extends AbstractInstaller {
 			const now = new Date().getTime();
 			const timeSinceLastCheck = now - localMetadata.lastCheck;
 
-			if (this._cacheMode !== CacheMode.Force &&
-				(timeSinceLastCheck > CACHE_TIME || this._cacheMode === CacheMode.Off)) {
+			if (this._snapshotCache !== SnapshotCache.Force &&
+				(timeSinceLastCheck > CACHE_TIME || this._snapshotCache === SnapshotCache.Off)) {
 				// No cached metadata (-> timeSinceLastCheck equals time since 1970) or
 				// too old metadata or disabled cache
 				// => Retrieve metadata from repository

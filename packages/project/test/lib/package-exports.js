@@ -24,7 +24,7 @@ test("check number of exports", (t) => {
 	"ui5Framework/Openui5Resolver",
 	"ui5Framework/Sapui5Resolver",
 	"ui5Framework/Sapui5MavenSnapshotResolver",
-	"ui5Framework/maven/CacheMode",
+	"ui5Framework/maven/SnapshotCache",
 	"validation/validator",
 	"validation/ValidationError",
 	"graph/ProjectGraph",

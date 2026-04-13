@@ -31,8 +31,10 @@ const log = getLogger("generateProjectGraph");
  * 		Whether framework dependencies should be added to the graph
  * @param {string|null} [options.workspaceName=default]
  * 		Name of the workspace configuration that should be used. "default" if not provided.
- * @param {module:@ui5/project/ui5Framework/maven/CacheMode} [options.cacheMode]
- *      Cache mode to use when consuming SNAPSHOT versions of a framework
+ * @param {module:@ui5/project/ui5Framework/maven/SnapshotCache} [options.snapshotCache]
+ *      Snapshot cache mode to use when consuming SNAPSHOT versions of a framework
+ * @param {module:@ui5/project/build/cache/Cache} [options.cache]
+ *      Cache mode to use for building UI5 projects
  * @param {string} [options.workspaceConfigPath=ui5-workspace.yaml]
  * 		Workspace configuration file to use if no object has been provided
  * @param {@ui5/project/graph/Workspace~Configuration} [options.workspaceConfiguration]
@@ -42,7 +44,7 @@ const log = getLogger("generateProjectGraph");
  */
 export async function graphFromPackageDependencies({
 	cwd, rootConfiguration, rootConfigPath,
-	versionOverride, cacheMode, resolveFrameworkDependencies = true,
+	versionOverride, snapshotCache, cache, resolveFrameworkDependencies = true,
 	workspaceName="default",
 	workspaceConfiguration, workspaceConfigPath = "ui5-workspace.yaml"
 }) {
@@ -73,7 +75,7 @@ export async function graphFromPackageDependencies({
 	const projectGraph = await projectGraphBuilder(provider, workspace);
 
 	if (resolveFrameworkDependencies) {
-		await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride, cacheMode, workspace});
+		await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride, snapshotCache, workspace});
 	}
 
 	return projectGraph;
@@ -98,8 +100,10 @@ export async function graphFromPackageDependencies({
  *		Configuration file to use for the root module instead the default ui5.yaml. Either a path relative to
  *		<code>cwd</code> or an absolute path. In both case, platform-specific path segment separators must be used.
  * @param {string} [options.versionOverride] Framework version to use instead of the one defined in the root project
- * @param {module:@ui5/project/ui5Framework/maven/CacheMode} [options.cacheMode]
- *      Cache mode to use when consuming SNAPSHOT versions of a framework
+ * @param {module:@ui5/project/ui5Framework/maven/SnapshotCache} [options.snapshotCache]
+ *      Snapshot cache mode to use when consuming SNAPSHOT versions of a framework
+ * @param {module:@ui5/project/build/cache/Cache} [options.cache]
+ *      Cache mode to use for building UI5 projects
  * @param {string} [options.resolveFrameworkDependencies=true]
  *		Whether framework dependencies should be added to the graph
  * @returns {Promise<@ui5/project/graph/ProjectGraph>} Promise resolving to a Project Graph instance
@@ -107,7 +111,7 @@ export async function graphFromPackageDependencies({
 export async function graphFromStaticFile({
 	filePath = "projectDependencies.yaml", cwd,
 	rootConfiguration, rootConfigPath,
-	versionOverride, cacheMode, resolveFrameworkDependencies = true
+	versionOverride, snapshotCache, cache, resolveFrameworkDependencies = true
 }) {
 	log.verbose(`Creating project graph using static file...`);
 	const {
@@ -128,7 +132,7 @@ export async function graphFromStaticFile({
 	const projectGraph = await projectGraphBuilder(provider);
 
 	if (resolveFrameworkDependencies) {
-		await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride, cacheMode});
+		await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride, snapshotCache});
 	}
 
 	return projectGraph;
@@ -150,8 +154,8 @@ export async function graphFromStaticFile({
  *		Configuration file to use for the root module instead the default ui5.yaml. Either a path relative to
  *		<code>cwd</code> or an absolute path. In both case, platform-specific path segment separators must be used.
  * @param {string} [options.versionOverride] Framework version to use instead of the one defined in the root project
- * @param {module:@ui5/project/ui5Framework/maven/CacheMode} [options.cacheMode]
- *      Cache mode to use when consuming SNAPSHOT versions of a framework
+ * @param {module:@ui5/project/ui5Framework/maven/SnapshotCache} [options.snapshotCache]
+ *      Snapshot cache mode to use when consuming SNAPSHOT versions of a framework
  * @param {string} [options.resolveFrameworkDependencies=true]
  *		Whether framework dependencies should be added to the graph
  * @returns {Promise<@ui5/project/graph/ProjectGraph>} Promise resolving to a Project Graph instance
@@ -159,7 +163,7 @@ export async function graphFromStaticFile({
 export async function graphFromObject({
 	dependencyTree, cwd,
 	rootConfiguration, rootConfigPath,
-	versionOverride, cacheMode, resolveFrameworkDependencies = true
+	versionOverride, snapshotCache, resolveFrameworkDependencies = true
 }) {
 	log.verbose(`Creating project graph using object...`);
 	const {
@@ -178,7 +182,7 @@ export async function graphFromObject({
 	const projectGraph = await projectGraphBuilder(dependencyTreeProvider);
 
 	if (resolveFrameworkDependencies) {
-		await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride, cacheMode});
+		await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride, snapshotCache});
 	}
 
 	return projectGraph;
