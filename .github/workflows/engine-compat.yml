@@ -26,11 +26,11 @@ jobs:
     - name: Check engine compatibility
       id: check
       run: |
-        # Run check-engine-light with --dev to include devDependencies
+        # Run check-engine-light
         # On success: exit 0, no output
         # On failure: exit 1, stderr contains "Error: incompatible dependencies: pkg1, pkg2, ..."
         set +e
-        OUTPUT=$(npx -y check-engine-light --dev 2>&1)
+        OUTPUT=$(npx -y check-engine-light 2>&1)
         EXIT_CODE=$?
         set -e
 
@@ -63,7 +63,7 @@ jobs:
 
         {
           echo "$MARKER"
-          echo "## $ICON Engine Compatibility (check-engine-light)"
+          echo "## $ICON Engine Compatibility"
           echo ""
           echo "**Project engines.node:** \`$PROJECT_RANGE\`"
           echo ""
