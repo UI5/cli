@@ -77,7 +77,7 @@ jobs:
             echo "|---|---|"
             echo "$CEL_OUTPUT" | grep ' incompatible with ' | while IFS= read -r line; do
               PKG=$(echo "$line" | awk '{print $1}')
-              RANGE=$(echo "$line" | grep -oP '\{ node: .?\K[^}'"'"']+')
+              RANGE=$(echo "$line" | grep -oP '\{ node: .?\K[^}'"'"']+' | head -1)
               SAFE_RANGE="${RANGE//|/\\|}"
               echo "| $PKG | $SAFE_RANGE |"
             done
