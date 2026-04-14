@@ -49,6 +49,7 @@ jobs:
     - name: Build and post PR comment
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CEL_OUTPUT: ${{ steps.check.outputs.output }}
       run: |
         PR="${{ github.event.pull_request.number }}"
         MARKER="<!-- engine-compat-cel -->"
@@ -69,15 +70,16 @@ jobs:
         } > /tmp/comment.md
 
         if [ "$FAILED" = "true" ]; then
-          # Extract package names from "incompatible dependencies: pkg1, pkg2, ..."
-          OUTPUT='${{ steps.check.outputs.output }}'
-          PKGS=$(echo "$OUTPUT" | grep -oP 'incompatible dependencies: \K.*' | sed 's/, /\n/g')
-
+          # Extract per-package detail lines: "pkg { node: 'range' } incompatible with ..."
+          # and the summary line: "Error: incompatible dependencies: pkg1, pkg2, ..."
           {
-            echo "| Incompatible Package |"
-            echo "|---|"
-            echo "$PKGS" | while IFS= read -r pkg; do
-              echo "| $pkg |"
+            echo "| Package | Required Node |"
+            echo "|---|---|"
+            echo "$CEL_OUTPUT" | grep ' incompatible with ' | while IFS= read -r line; do
+              PKG=$(echo "$line" | awk '{print $1}')
+              RANGE=$(echo "$line" | grep -oP '\{ node: .?\K[^}'"'"']+')
+              SAFE_RANGE="${RANGE//|/\\|}"
+              echo "| $PKG | $SAFE_RANGE |"
             done
           } >> /tmp/comment.md
         else
