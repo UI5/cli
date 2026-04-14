@@ -26,13 +26,19 @@ jobs:
     - name: Check engine compatibility
       id: check
       run: |
-        # Run the checker script; capture JSON output even on failure (exit 1 = incompatible found)
+        # Run check-engine-light with --dev to include devDependencies
+        # On success: exit 0, no output
+        # On failure: exit 1, stderr contains "Error: incompatible dependencies: pkg1, pkg2, ..."
         set +e
-        OUTPUT=$(node internal/engine-compat/cli.js)
+        OUTPUT=$(npx -y check-engine-light --dev 2>&1)
         EXIT_CODE=$?
         set -e
 
-        echo "json=$OUTPUT" >> "$GITHUB_OUTPUT"
+        {
+          echo "output<<EOF"
+          echo "$OUTPUT"
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
 
         if [ $EXIT_CODE -eq 0 ]; then
           echo "failed=false" >> "$GITHUB_OUTPUT"
@@ -43,34 +49,38 @@ jobs:
     - name: Build and post PR comment
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CEL_OUTPUT: ${{ steps.check.outputs.output }}
       run: |
         PR="${{ github.event.pull_request.number }}"
         MARKER="<!-- engine-compat -->"
         FAILED="${{ steps.check.outputs.failed }}"
 
-        # Parse JSON output from the checker script
-        RESULT='${{ steps.check.outputs.json }}'
-        PROJECT_RANGE=$(echo "$RESULT" | jq -r '.projectRange')
-        CHECKED=$(echo "$RESULT" | jq -r '.checked')
-        SKIPPED=$(echo "$RESULT" | jq -r '.skipped')
+        # Read project engine range from package.json
+        PROJECT_RANGE=$(jq -r '.engines.node' package.json)
 
         # Build the comment body
         if [ "$FAILED" = "true" ]; then ICON="❌"; else ICON="✅"; fi
 
         {
           echo "$MARKER"
-          echo "## $ICON Engine Compatibility"
+          echo "## $ICON Engine Compatibility (check-engine-light)"
           echo ""
           echo "**Project engines.node:** \`$PROJECT_RANGE\`"
-          echo "**Packages checked:** $CHECKED | **Skipped (no engines):** $SKIPPED"
           echo ""
         } > /tmp/comment.md
 
         if [ "$FAILED" = "true" ]; then
+          # Extract per-package detail lines: "pkg { node: 'range' } incompatible with ..."
+          # and the summary line: "Error: incompatible dependencies: pkg1, pkg2, ..."
           {
-            echo "| Package | Version | Required Node |"
-            echo "|---|---|---|"
-            echo "$RESULT" | jq -r '.incompatible[] | "| \(.name) | \(.version) | \(.enginesNode | gsub("\\|"; "\\\\|")) |"'
+            echo "| Package | Required Node |"
+            echo "|---|---|"
+            echo "$CEL_OUTPUT" | grep ' incompatible with ' | while IFS= read -r line; do
+              PKG=$(echo "$line" | awk '{print $1}')
+              RANGE=$(echo "$line" | grep -oP '\{ node: .?\K[^}'"'"']+' | head -1)
+              SAFE_RANGE="${RANGE//|/\\|}"
+              echo "| $PKG | $SAFE_RANGE |"
+            done
           } >> /tmp/comment.md
         else
           echo "All dependencies are compatible with the project's engine range." >> /tmp/comment.md
