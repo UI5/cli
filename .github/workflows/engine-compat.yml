@@ -1,0 +1,94 @@
+name: Node Packages Engine Compatibility Check
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  engine-compat:
+    name: Engine compatibility
+    runs-on: ubuntu-24.04
+    steps:
+
+    - uses: actions/checkout@v6
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: 24.x
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Check engine compatibility
+      id: check
+      run: |
+        # Run the checker script; capture JSON output even on failure (exit 1 = incompatible found)
+        set +e
+        OUTPUT=$(node internal/engine-compat/cli.js)
+        EXIT_CODE=$?
+        set -e
+
+        echo "json=$OUTPUT" >> "$GITHUB_OUTPUT"
+
+        if [ $EXIT_CODE -eq 0 ]; then
+          echo "failed=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "failed=true" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Build and post PR comment
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        PR="${{ github.event.pull_request.number }}"
+        MARKER="<!-- engine-compat -->"
+        FAILED="${{ steps.check.outputs.failed }}"
+
+        # Parse JSON output from the checker script
+        RESULT='${{ steps.check.outputs.json }}'
+        PROJECT_RANGE=$(echo "$RESULT" | jq -r '.projectRange')
+        CHECKED=$(echo "$RESULT" | jq -r '.checked')
+        SKIPPED=$(echo "$RESULT" | jq -r '.skipped')
+
+        # Build the comment body
+        if [ "$FAILED" = "true" ]; then ICON="❌"; else ICON="✅"; fi
+
+        {
+          echo "$MARKER"
+          echo "## $ICON Engine Compatibility"
+          echo ""
+          echo "**Project engines.node:** \`$PROJECT_RANGE\`"
+          echo "**Packages checked:** $CHECKED | **Skipped (no engines):** $SKIPPED"
+          echo ""
+        } > /tmp/comment.md
+
+        if [ "$FAILED" = "true" ]; then
+          {
+            echo "| Package | Version | Required Node |"
+            echo "|---|---|---|"
+            echo "$RESULT" | jq -r '.incompatible[] | "| \(.name) | \(.version) | \(.enginesNode | gsub("\\|"; "\\\\|")) |"'
+          } >> /tmp/comment.md
+        else
+          echo "All dependencies are compatible with the project's engine range." >> /tmp/comment.md
+        fi
+
+        # Update existing comment (matched by HTML marker) or create a new one
+        OLD=$(gh api "repos/${{ github.repository }}/issues/${PR}/comments" \
+          --jq "[.[] | select(.body | contains(\"$MARKER\"))][0].id" 2>/dev/null || true)
+        if [ -n "$OLD" ] && [ "$OLD" != "null" ]; then
+          gh api --method PATCH "repos/${{ github.repository }}/issues/comments/$OLD" -F body=@/tmp/comment.md
+        else
+          gh pr comment "$PR" --body-file /tmp/comment.md
+        fi
+
+        # Add "blocked" label on failure, remove it on success
+        if [ "$FAILED" = "true" ]; then
+          gh label create blocked --color D93F0B 2>/dev/null || true
+          gh pr edit "$PR" --add-label blocked
+        else
+          gh pr edit "$PR" --remove-label blocked 2>/dev/null || true
+        fi
