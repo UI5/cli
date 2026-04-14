@@ -1,0 +1,20 @@
+{
+	"name": "@ui5-internal/engine-compat",
+	"private": true,
+	"license": "Apache-2.0",
+	"type": "module",
+	"engines": {
+		"node": "^22.20.0 || >=24.0.0",
+		"npm": ">= 8"
+	},
+	"scripts": {
+		"test": "npm run lint",
+		"lint": "eslint ."
+	},
+	"dependencies": {
+		"semver": "^7.7.2"
+	},
+	"devDependencies": {
+		"eslint": "^9.39.1"
+	}
+}
