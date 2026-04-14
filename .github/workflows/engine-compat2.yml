@@ -30,7 +30,7 @@ jobs:
         # On success: exit 0, no output
         # On failure: exit 1, stderr contains "Error: incompatible dependencies: pkg1, pkg2, ..."
         set +e
-        OUTPUT=$(check-engine-light --dev 2>&1)
+        OUTPUT=$(npx -y check-engine-light --dev 2>&1)
         EXIT_CODE=$?
         set -e
 

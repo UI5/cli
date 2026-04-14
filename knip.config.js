@@ -30,8 +30,7 @@ const config = {
 		 * Used via nyc ava --node-arguments="--experimental-loader=@istanbuljs/esm-loader-hook"
 		 * which is not detected by knip as a usage of this package
 		 */
-		"@istanbuljs/esm-loader-hook",
-		"check-engine-light"
+		"@istanbuljs/esm-loader-hook"
 	],
 
 	workspaces: {
