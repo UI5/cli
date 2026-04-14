@@ -17,6 +17,10 @@ jobs:
     if: github.event_name == 'pull_request'
     uses: ./.github/workflows/engine-compat.yml
 
+  engine-compat-cel:
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/engine-compat2.yml
+
   test:
     name: General checks and tests
     runs-on: ubuntu-24.04
