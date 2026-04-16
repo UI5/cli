@@ -61,7 +61,7 @@ revisions:
     revision: "feat/cache-option-l"
 
 hyperfine:
-  warmup: 2
+  warmup: 1
   runs: 5
 
 groups:
@@ -70,6 +70,7 @@ groups:
 
 benchmarks:
   - command: "build"
+    env: UI5_BUILD_NO_WRITE_DEST=X
     groups:
       warm_build:
         name: "build (warm cache)"
