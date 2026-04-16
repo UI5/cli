@@ -48,7 +48,8 @@
 		"globals": "^17.3.0",
 		"husky": "^9.1.7",
 		"knip": "^5.83.0",
-		"licensee": "^11.1.1"
+		"licensee": "^11.1.1",
+		"check-engine-light": "^0.4.0"
 	},
 	"overrides": {
 		"pacote@<=20": {

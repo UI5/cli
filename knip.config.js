@@ -39,7 +39,11 @@ const config = {
 				/**
 				 * Invoked manually via "npx husky" to install git hooks
 				 */
-				"husky"
+				"husky",
+				/**
+				 * Invoked manually via "npx check-engine-light" to check for incompatible engines in productive deps
+				 */
+				"check-engine-light",
 			]
 		},
 		"packages/cli": {
