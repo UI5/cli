@@ -279,6 +279,43 @@ export default class TreeRegistry {
 			upsertsByDir.get(parentPath).push({resourceName, resource, fullPath: resourcePath, sourceTree});
 		}
 
+		// Pre-resolve I/O for resources that don't exist in any tree (genuinely new).
+		// For existing resources, matchResourceMetadataStrict's lastModified short-circuit
+		// avoids I/O in the common case, so those are handled serially in the loop below.
+		const resolvedNewMetadata = new Map();
+		const newResourcePaths = [];
+		for (const [resourcePath, {resource}] of this.pendingUpserts) {
+			let existsInAnyTree = false;
+			const parts = resourcePath.split(path.sep).filter((p) => p.length > 0);
+			const resourceName = parts[parts.length - 1];
+			const parentPath = parts.slice(0, -1).join(path.sep);
+			for (const tree of this.trees) {
+				const parentNode = tree._findNode(parentPath);
+				if (parentNode?.children?.get(resourceName)) {
+					existsInAnyTree = true;
+					break;
+				}
+			}
+			if (!existsInAnyTree) {
+				newResourcePaths.push({resourcePath, resource});
+			}
+		}
+		if (newResourcePaths.length > 0) {
+			await Promise.all(newResourcePaths.map(async ({resourcePath, resource}) => {
+				const [integrity, size] = await Promise.all([
+					resource.getIntegrity(),
+					resource.getSize()
+				]);
+				resolvedNewMetadata.set(resourcePath, {
+					integrity,
+					size,
+					lastModified: resource.getLastModified(),
+					inode: resource.getInode(),
+					tags: resource.getTags?.() ?? resource.tags ?? null
+				});
+			}));
+		}
+
 		// Apply upserts
 		for (const [parentPath, upserts] of upsertsByDir) {
 			for (const tree of this.trees) {
@@ -310,13 +347,16 @@ export default class TreeRegistry {
 							continue;
 						}
 
+						// Use pre-resolved metadata if available, otherwise resolve now
+						const resolved = resolvedNewMetadata.get(upsert.fullPath);
+
 						// Create new resource node
 						resourceNode = new TreeNode(upsert.resourceName, "resource", {
-							integrity: await upsert.resource.getIntegrity(),
-							lastModified: upsert.resource.getLastModified(),
-							size: await upsert.resource.getSize(),
-							inode: upsert.resource.getInode(),
-							tags: upsert.resource.getTags?.() ?? upsert.resource.tags ?? null
+							integrity: resolved?.integrity ?? await upsert.resource.getIntegrity(),
+							lastModified: resolved?.lastModified ?? upsert.resource.getLastModified(),
+							size: resolved?.size ?? await upsert.resource.getSize(),
+							inode: resolved?.inode ?? upsert.resource.getInode(),
+							tags: resolved?.tags ?? upsert.resource.getTags?.() ?? upsert.resource.tags ?? null
 						});
 						parentNode.children.set(upsert.resourceName, resourceNode);
 						modifiedNodes.add(resourceNode);
