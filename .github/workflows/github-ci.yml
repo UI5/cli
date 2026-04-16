@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
 
@@ -26,12 +25,11 @@ jobs:
       with:
         node-version: 22.20.0
 
-    # Check if "engines" field of dependencies is compatible with our Node.js version.
-    # This is a quick check to fail early if incompatible dependencies are introduced. 
-    - name: Check Node.js engine compatibility
-      run: npx -y check-engine-light
     - name: Install dependencies
       run: npm ci
+
+    - name: Check Node.js engine compatibility
+      run: npm run check-engine
 
     - name: Check package.json "engines" consistency
       run: |
