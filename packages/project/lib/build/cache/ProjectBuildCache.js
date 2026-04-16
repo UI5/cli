@@ -10,6 +10,7 @@ import StageCache from "./StageCache.js";
 import ResourceIndex from "./index/ResourceIndex.js";
 import {firstTruthy, matchResourceMetadataStrict} from "./utils.js";
 const log = getLogger("build:cache:ProjectBuildCache");
+import Cache from "./Cache.js";
 
 export const INDEX_STATES = Object.freeze({
 	RESTORING_PROJECT_INDICES: "restoring_project_indices",
@@ -50,6 +51,7 @@ export default class ProjectBuildCache {
 	#project;
 	#buildSignature;
 	#cacheManager;
+	#cacheMode;
 	#currentProjectReader;
 	#currentDependencyReader;
 	#sourceIndex;
@@ -82,13 +84,15 @@ export default class ProjectBuildCache {
 	 * @param {@ui5/project/specifications/Project} project Project instance
 	 * @param {string} buildSignature Build signature for the current build
 	 * @param {object} cacheManager Cache manager instance for reading/writing cache data
+	 * @param {string} cacheMode Cache mode to use for building UI5 projects
 	 */
-	constructor(project, buildSignature, cacheManager) {
+	constructor(project, buildSignature, cacheManager, cacheMode) {
 		log.verbose(
 			`ProjectBuildCache for project ${project.getName()} uses build signature ${buildSignature}`);
 		this.#project = project;
 		this.#buildSignature = buildSignature;
 		this.#cacheManager = cacheManager;
+		this.#cacheMode = cacheMode;
 	}
 
 	/**
@@ -101,10 +105,11 @@ export default class ProjectBuildCache {
 	 * @param {@ui5/project/specifications/Project} project Project instance
 	 * @param {string} buildSignature Build signature for the current build
 	 * @param {object} cacheManager Cache manager instance
+	 * @param {string} cacheMode Cache mode to use for building UI5 projects
 	 * @returns {Promise<@ui5/project/build/cache/ProjectBuildCache>} Initialized cache instance
 	 */
-	static async create(project, buildSignature, cacheManager) {
-		return new ProjectBuildCache(project, buildSignature, cacheManager);
+	static async create(project, buildSignature, cacheManager, cacheMode) {
+		return new ProjectBuildCache(project, buildSignature, cacheManager, cacheMode);
 	}
 
 	/**
@@ -1495,8 +1500,8 @@ export default class ProjectBuildCache {
 	 * @param {Object<string, object>|Array<Object<string, object>>} resourceMetadata
 	 */
 	#collectKnownIntegrities(resourceMetadata) {
-		const metadataObjects = Array.isArray(resourceMetadata)
-			? resourceMetadata : [resourceMetadata];
+		const metadataObjects = Array.isArray(resourceMetadata) ?
+			resourceMetadata : [resourceMetadata];
 		for (const metadataObj of metadataObjects) {
 			for (const meta of Object.values(metadataObj)) {
 				if (meta.integrity) {
