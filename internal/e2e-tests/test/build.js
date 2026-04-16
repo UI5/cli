@@ -3,7 +3,7 @@
 // and by using node's child_process module and the ui5.cjs under ../../../packages/cli/bin/ui5.cjs.
 
 import { execFile } from "node:child_process";
-import {test, describe} from "node:test";
+import {describe, test, afterEach} from "node:test";
 import {fileURLToPath} from "node:url";
 import path from "node:path";
 import fs from "node:fs/promises";
@@ -12,6 +12,7 @@ import AdmZip from "adm-zip";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ui5CliPath = path.resolve(__dirname, "../../../packages/cli/bin/ui5.cjs");
+const originalCwd = process.cwd();
 
 class FixtureHelper {
 	constructor(fixtureName) {
@@ -29,6 +30,9 @@ class FixtureHelper {
 		await fs.cp(this.originFixturePath, this.tmpPath, {recursive: true});
 		// Install node_modules
 		await this._installNodeModules();
+		// Setup environment
+		process.env.UI5_DATA_DIR = `${this.dotUi5Path}`;
+		process.chdir(this.tmpPath);
 	}
 
 	async prepareForNextRun() {
@@ -72,11 +76,14 @@ class FixtureHelper {
 }
 
 describe("ui5 build", () => {
+	afterEach(() => {
+		process.env.UI5_DATA_DIR = undefined;
+		process.chdir(originalCwd);
+	});
+
 	test("ui5-tooling-transpile", async ({assert}) => {
 		const fixtureHelper = new FixtureHelper("application.a.ts");
 		await fixtureHelper.init();
-		process.env.UI5_DATA_DIR = `${fixtureHelper.dotUi5Path}`;
-		process.chdir(fixtureHelper.tmpPath);
 		const ui5YamlName = "ui5-tooling-transpile.yaml";
 
 		// #1 Build
@@ -109,8 +116,6 @@ describe("ui5 build", () => {
 	test("ui5-task-zipper", async ({assert}) => {
 		const fixtureHelper = new FixtureHelper("application.a");
 		await fixtureHelper.init();
-		process.env.UI5_DATA_DIR = `${fixtureHelper.dotUi5Path}`;
-		process.chdir(fixtureHelper.tmpPath);
 		const ui5YamlName = "ui5-task-zipper.yaml";
 
 		// #1 Build
@@ -156,8 +161,6 @@ describe("ui5 build", () => {
 	test("ui5-tooling-modules", async ({assert}) => {
 		const fixtureHelper = new FixtureHelper("application.a");
 		await fixtureHelper.init();
-		process.env.UI5_DATA_DIR = `${fixtureHelper.dotUi5Path}`;
-		process.chdir(fixtureHelper.tmpPath);
 		const ui5YamlName = "ui5-tooling-modules.yaml";
 
 		// #1 Build (no thirdparty module yet -> just checking that the build succeeds)
@@ -189,8 +192,6 @@ describe("ui5 build", () => {
 	test("ui5-tooling-stringreplace", async ({assert}) => {
 		const fixtureHelper = new FixtureHelper("application.a");
 		await fixtureHelper.init();
-		process.env.UI5_DATA_DIR = `${fixtureHelper.dotUi5Path}`;
-		process.chdir(fixtureHelper.tmpPath);
 		const ui5YamlName = "ui5-tooling-stringreplace.yaml";
 
 		// #1 Build (no string replacing yet -> just checking that the build succeeds)
