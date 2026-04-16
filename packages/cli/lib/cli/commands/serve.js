@@ -121,14 +121,12 @@ serve.handler = async function(argv) {
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
 			snapshotCache: argv.snapshotCache,
-			cache: argv.cache,
 		});
 	} else {
 		graph = await graphFromPackageDependencies({
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
 			snapshotCache: argv.snapshotCache,
-			cache: argv.cache,
 			workspaceConfigPath: argv.workspaceConfig,
 			workspaceName: argv.workspace === false ? null : argv.workspace,
 		});

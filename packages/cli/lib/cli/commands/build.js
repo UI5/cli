@@ -112,7 +112,7 @@ build.builder = function(cli) {
 				"As of UI5 CLI version 5, renamed to '--snapshot-cache'. " +
 				"Use '--snapshot-cache' to control this behavior.",
 			type: "string",
-			hidden: true,
+			hidden: true, // Hides it from the help output
 		})
 		.option("snapshot-cache", {
 			describe:
@@ -169,6 +169,7 @@ build.builder = function(cli) {
 };
 
 async function handleBuild(argv) {
+	// Log warning for hidden CLI options
 	if (Object.prototype.hasOwnProperty.call(argv, "cacheMode")) {
 		log.warn("As of UI5 CLI version 5, '--cache-mode' was renamed to '--snapshot-cache'. " +
 			"Use '--snapshot-cache' to control this behavior. "+
@@ -185,14 +186,12 @@ async function handleBuild(argv) {
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
 			snapshotCache: argv.snapshotCache,
-			cache: argv.cache,
 		});
 	} else {
 		graph = await graphFromPackageDependencies({
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
 			snapshotCache: argv.snapshotCache,
-			cache: argv.cache,
 			workspaceConfigPath: argv.workspaceConfig,
 			workspaceName: argv.workspace === false ? null : argv.workspace,
 		});
@@ -221,6 +220,7 @@ async function handleBuild(argv) {
 		excludedTasks: argv["exclude-task"],
 		cssVariables: argv["experimental-css-variables"],
 		outputStyle: argv["output-style"],
+		cache: argv["cache"],
 	});
 }
 

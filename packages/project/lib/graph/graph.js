@@ -33,8 +33,6 @@ const log = getLogger("generateProjectGraph");
  * 		Name of the workspace configuration that should be used. "default" if not provided.
  * @param {module:@ui5/project/ui5Framework/maven/SnapshotCache} [options.snapshotCache]
  *      Snapshot cache mode to use when consuming SNAPSHOT versions of a framework
- * @param {module:@ui5/project/build/cache/Cache} [options.cache]
- *      Cache mode to use for building UI5 projects
  * @param {string} [options.workspaceConfigPath=ui5-workspace.yaml]
  * 		Workspace configuration file to use if no object has been provided
  * @param {@ui5/project/graph/Workspace~Configuration} [options.workspaceConfiguration]
@@ -44,7 +42,7 @@ const log = getLogger("generateProjectGraph");
  */
 export async function graphFromPackageDependencies({
 	cwd, rootConfiguration, rootConfigPath,
-	versionOverride, snapshotCache, cache, resolveFrameworkDependencies = true,
+	versionOverride, snapshotCache, resolveFrameworkDependencies = true,
 	workspaceName="default",
 	workspaceConfiguration, workspaceConfigPath = "ui5-workspace.yaml"
 }) {
@@ -102,8 +100,6 @@ export async function graphFromPackageDependencies({
  * @param {string} [options.versionOverride] Framework version to use instead of the one defined in the root project
  * @param {module:@ui5/project/ui5Framework/maven/SnapshotCache} [options.snapshotCache]
  *      Snapshot cache mode to use when consuming SNAPSHOT versions of a framework
- * @param {module:@ui5/project/build/cache/Cache} [options.cache]
- *      Cache mode to use for building UI5 projects
  * @param {string} [options.resolveFrameworkDependencies=true]
  *		Whether framework dependencies should be added to the graph
  * @returns {Promise<@ui5/project/graph/ProjectGraph>} Promise resolving to a Project Graph instance
@@ -111,7 +107,7 @@ export async function graphFromPackageDependencies({
 export async function graphFromStaticFile({
 	filePath = "projectDependencies.yaml", cwd,
 	rootConfiguration, rootConfigPath,
-	versionOverride, snapshotCache, cache, resolveFrameworkDependencies = true
+	versionOverride, snapshotCache, resolveFrameworkDependencies = true
 }) {
 	log.verbose(`Creating project graph using static file...`);
 	const {
@@ -126,7 +122,7 @@ export async function graphFromStaticFile({
 	const provider = new DependencyTreeProvider({
 		dependencyTree,
 		rootConfiguration,
-		rootConfigPath
+		rootConfigPath,
 	});
 
 	const projectGraph = await projectGraphBuilder(provider);

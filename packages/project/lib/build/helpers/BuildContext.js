@@ -4,6 +4,7 @@ import CacheManager from "../cache/CacheManager.js";
 import {getBaseSignature} from "./getBuildSignature.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("build:helpers:BuildContext");
+import Cache from "../cache/Cache.js";
 
 /**
  * Context of a build process
@@ -21,6 +22,7 @@ class BuildContext {
 		createBuildManifest = false,
 		outputStyle = OutputStyleEnum.Default,
 		includedTasks = [], excludedTasks = [],
+		cache = Cache.Default,
 	} = {}) {
 		if (!graph) {
 			throw new Error(`Missing parameter 'graph'`);
@@ -73,6 +75,7 @@ class BuildContext {
 			outputStyle,
 			includedTasks,
 			excludedTasks,
+			cache
 		};
 		this._buildSignatureBase = getBaseSignature(this._buildConfig);
 
