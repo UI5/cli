@@ -8,10 +8,10 @@
 		"npm": ">= 8"
 	},
 	"scripts": {
-		"unit": "node --test 'test/**/*.js'",
-		"unit-watch": "node --test --watch 'test/**/*.js'"
+		"test": "node --test 'test/**/*.js'",
+		"test-watch": "node --test --watch 'test/**/*.js'"
 	},
 	"dependencies": {
-		"adm-zip": "^0.5.17"
+		"adm-zip": "0.5.17"
 	}
 }
