@@ -274,7 +274,12 @@ class ProjectBuilder {
 		}
 		this.#buildIsRunning = true;
 		this.#log.info(`Preparing build for projects: ${requestedProjects.join(", ")}`);
+		const reqStart = performance.now();
 		const projectBuildContexts = await this._buildContext.getRequiredProjectContexts(requestedProjects);
+		if (this.#log.isLevelEnabled("perf")) {
+			this.#log.perf(
+				`getRequiredProjectContexts completed in ${(performance.now() - reqStart).toFixed(2)} ms`);
+		}
 
 		// Create build queue based on graph depth-first search to ensure correct build order
 		const queue = [];
@@ -318,7 +323,14 @@ class ProjectBuilder {
 				if (alreadyBuilt.includes(projectName)) {
 					this.#log.skipProjectBuild(projectName, projectType);
 				} else {
+					const prepStart = performance.now();
 					const usesCache = await projectBuildContext.prepareProjectBuildAndValidateCache();
+					if (this.#log.isLevelEnabled("perf")) {
+						this.#log.perf(
+							`prepareProjectBuildAndValidateCache for ${projectName} ` +
+							`completed in ${(performance.now() - prepStart).toFixed(2)} ms ` +
+							`(usesCache=${usesCache})`);
+					}
 					if (usesCache) {
 						this.#log.skipProjectBuild(projectName, projectType);
 						alreadyBuilt.push(projectName);
