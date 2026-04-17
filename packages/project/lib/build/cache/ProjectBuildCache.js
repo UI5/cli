@@ -95,15 +95,30 @@ export default class ProjectBuildCache {
 	 * @returns {Promise<@ui5/project/build/cache/ProjectBuildCache>} Initialized cache instance
 	 */
 	static async create(project, buildSignature, cacheManager) {
-		const cache = new ProjectBuildCache(project, buildSignature, cacheManager);
+		return new ProjectBuildCache(project, buildSignature, cacheManager);
+	}
+
+	/**
+	 * Initializes the source index for this project's build cache
+	 *
+	 * This must be called after create() and before any cache operations that depend on the source index.
+	 * Separated from create() to allow parallel initialization of multiple project caches.
+	 *
+	 * @public
+	 * @returns {Promise<void>}
+	 */
+	async initSourceIndex() {
+		if (this.#combinedIndexState !== INDEX_STATES.RESTORING_PROJECT_INDICES) {
+			// Already initialized (e.g. reused across builds)
+			return;
+		}
 		const initStart = performance.now();
-		await cache.#initSourceIndex();
+		await this.#initSourceIndex();
 		if (log.isLevelEnabled("perf")) {
 			log.perf(
-				`Initialized source index for project ${project.getName()} ` +
+				`Initialized source index for project ${this.#project.getName()} ` +
 				`in ${(performance.now() - initStart).toFixed(2)} ms`);
 		}
-		return cache;
 	}
 
 	/**

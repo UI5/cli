@@ -67,6 +67,18 @@ class ProjectBuildContext {
 	}
 
 	/**
+	 * Initializes the source index for this project's build cache
+	 *
+	 * Must be called after create() and before any cache operations.
+	 * Separated from create() to allow parallel initialization of multiple projects.
+	 *
+	 * @returns {Promise<void>}
+	 */
+	async initSourceIndex() {
+		await this._buildCache.initSourceIndex();
+	}
+
+	/**
 	 * Checks whether this context is for the root project
 	 *
 	 * @returns {boolean} True if this is the root project context
