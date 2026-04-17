@@ -283,10 +283,23 @@ export default class ProjectBuildCache {
 		log.verbose(`Found result cache with signature ${resultSignature}`);
 		const {stageSignatures, sourceStageSignature} = resultMetadata;
 
+		const importStagesStart = log.isLevelEnabled("perf") ? performance.now() : 0;
 		const writtenResourcePaths = await this.#importStages(stageSignatures);
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`#findResultCache importStages for project ${this.#project.getName()} ` +
+				`completed in ${(performance.now() - importStagesStart).toFixed(2)} ms ` +
+				`with ${Object.keys(stageSignatures).length} stages`);
+		}
 
 		// Restore CAS-backed source reader from the stored source stage
+		const restoreSourcesStart = log.isLevelEnabled("perf") ? performance.now() : 0;
 		await this.#restoreFrozenSources(sourceStageSignature);
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`#findResultCache restoreFrozenSources for project ${this.#project.getName()} ` +
+				`completed in ${(performance.now() - restoreSourcesStart).toFixed(2)} ms`);
+		}
 
 		log.verbose(
 			`Using cached result stage for project ${this.#project.getName()} with index signature ${resultSignature}`);

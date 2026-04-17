@@ -142,6 +142,9 @@ class ResourceRequestManager {
 			return;
 		}
 
+		const refreshStart = log.isLevelEnabled("perf") ? performance.now() : 0;
+		let totalResourcesFetched = 0;
+		let totalResourcesRemoved = 0;
 		const resourceCache = new Map();
 		const nodeEntries = Array.from(this.#requestGraph.traverseByDepth());
 
@@ -159,13 +162,21 @@ class ResourceRequestManager {
 			const resourcesToRemove = indexedResourcePaths.filter((resPath) => {
 				return !currentResourcePaths.includes(resPath);
 			});
+			totalResourcesRemoved += resourcesToRemove.length;
 			if (resourcesToRemove.length) {
 				await resourceIndex.removeResources(resourcesToRemove);
 			}
+			totalResourcesFetched += resourcesToUpdate.length;
 			if (resourcesToUpdate.length) {
 				await resourceIndex.upsertResources(resourcesToUpdate);
 			}
 		}));
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`refreshIndices for task '${this.#taskName}' of project '${this.#projectName}' ` +
+				`completed in ${(performance.now() - refreshStart).toFixed(2)} ms: ` +
+				`${totalResourcesFetched} resources fetched, ${totalResourcesRemoved} resources removed`);
+		}
 
 		await this.#flushTreeChangesWithoutDiffTracking();
 	}
@@ -217,6 +228,10 @@ class ResourceRequestManager {
 
 		const resourceCache = new Map();
 
+		const fetchStart = log.isLevelEnabled("perf") ? performance.now() : 0;
+		let cacheHits = 0;
+		let cacheMisses = 0;
+
 		// Phase 1: Collect all unique paths to fetch
 		const allPathsToFetch = new Set();
 		for (const requestSetId of matchingRequestSetIds) {
@@ -224,6 +239,9 @@ class ResourceRequestManager {
 			for (const resourcePath of resourcePathsToUpdate) {
 				if (!resourceCache.has(resourcePath)) {
 					allPathsToFetch.add(resourcePath);
+					cacheMisses++;
+				} else {
+					cacheHits++;
 				}
 			}
 		}
@@ -234,6 +252,12 @@ class ResourceRequestManager {
 				const resource = await reader.byPath(resourcePath);
 				resourceCache.set(resourcePath, resource ?? null);
 			}));
+		}
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`updateIndices for task '${this.#taskName}' of project '${this.#projectName}' ` +
+				`resource fetch completed in ${(performance.now() - fetchStart).toFixed(2)} ms: ` +
+				`${cacheHits} cache hits, ${cacheMisses} cache misses`);
 		}
 
 		// Phase 3: Process each request set from cache
@@ -370,7 +394,15 @@ class ResourceRequestManager {
 	 *   each containing added, updated, unchanged, and removed resource paths
 	 */
 	async #flushTreeChanges() {
-		return await Promise.all(this.#treeRegistries.map((registry) => registry.flush()));
+		const flushStart = log.isLevelEnabled("perf") ? performance.now() : 0;
+		const results = await Promise.all(this.#treeRegistries.map((registry) => registry.flush()));
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`#flushTreeChanges for task '${this.#taskName}' of project '${this.#projectName}' ` +
+				`completed in ${(performance.now() - flushStart).toFixed(2)} ms ` +
+				`across ${this.#treeRegistries.length} registries`);
+		}
+		return results;
 	}
 
 	/**
