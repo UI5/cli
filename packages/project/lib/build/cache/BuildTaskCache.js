@@ -152,6 +152,16 @@ export default class BuildTaskCache {
 	}
 
 	/**
+	 * Returns whether this task has any recorded dependency resource requests
+	 *
+	 * @public
+	 * @returns {boolean}
+	 */
+	hasDependencyRequests() {
+		return this.#dependencyRequestManager.hasRequests();
+	}
+
+	/**
 	 * Performs a full refresh of the dependency resource index
 	 *
 	 * Since dependency resources may change independently from this project's cache, a full
