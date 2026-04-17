@@ -192,11 +192,19 @@ export default class ProjectBuildCache {
 		let sourceIndexChanged = false;
 		if (this.#changedProjectSourcePaths.length) {
 			// Update source index so we can use the signature later as part of the result stage signature
+			const sourceStart = performance.now();
 			sourceIndexChanged = await this.#updateSourceIndex(this.#changedProjectSourcePaths);
+			if (log.isLevelEnabled("perf")) {
+				log.perf(
+					`#flushPendingChanges updateSourceIndex for project ${this.#project.getName()} ` +
+					`completed in ${(performance.now() - sourceStart).toFixed(2)} ms ` +
+					`(${this.#changedProjectSourcePaths.length} changed paths, changed=${sourceIndexChanged})`);
+			}
 		}
 
 		let depIndicesChanged = false;
 		if (this.#changedDependencyResourcePaths.length) {
+			const depStart = performance.now();
 			await Promise.all(Array.from(this.#taskCache.values()).map(async (taskCache) => {
 				const changed = await taskCache
 					.updateDependencyIndices(this.#currentDependencyReader, this.#changedDependencyResourcePaths);
@@ -204,6 +212,13 @@ export default class ProjectBuildCache {
 					depIndicesChanged = true;
 				}
 			}));
+			if (log.isLevelEnabled("perf")) {
+				log.perf(
+					`#flushPendingChanges updateDependencyIndices for project ${this.#project.getName()} ` +
+					`completed in ${(performance.now() - depStart).toFixed(2)} ms ` +
+					`(${this.#changedDependencyResourcePaths.length} changed paths, ` +
+					`${this.#taskCache.size} tasks, changed=${depIndicesChanged})`);
+			}
 		}
 
 		// Reset pending changes

@@ -2,6 +2,8 @@ import ProjectBuildContext from "./ProjectBuildContext.js";
 import OutputStyleEnum from "./ProjectBuilderOutputStyle.js";
 import CacheManager from "../cache/CacheManager.js";
 import {getBaseSignature} from "./getBuildSignature.js";
+import {getLogger} from "@ui5/logger";
+const log = getLogger("build:helpers:BuildContext");
 
 /**
  * Context of a build process
@@ -114,11 +116,18 @@ class BuildContext {
 	}
 
 	async getRequiredProjectContexts(requestedProjects) {
+		const totalStart = performance.now();
 		const projectBuildContexts = new Map();
 		const requiredProjects = new Set(requestedProjects);
 
 		for (const projectName of requiredProjects) {
+			const contextStart = performance.now();
 			const projectBuildContext = await this.getProjectContext(projectName);
+			if (log.isLevelEnabled("perf")) {
+				log.perf(
+					`getProjectContext for ${projectName} completed in ` +
+					`${(performance.now() - contextStart).toFixed(2)} ms`);
+			}
 
 			projectBuildContexts.set(projectName, projectBuildContext);
 
@@ -129,6 +138,11 @@ class BuildContext {
 				// Add dependency to list of required projects
 				requiredProjects.add(depName);
 			}
+		}
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`getRequiredProjectContexts completed in ${(performance.now() - totalStart).toFixed(2)} ms ` +
+				`for ${projectBuildContexts.size} projects`);
 		}
 		return projectBuildContexts;
 	}
