@@ -133,10 +133,14 @@ class TaskRunner {
 
 		this._log.setTasks(allTasks);
 		this._buildCache.setTasks(allTasks);
-		for (const taskName of allTasks) {
+		for (let i = 0; i < allTasks.length; i++) {
 			signal?.throwIfAborted();
+			const taskName = allTasks[i];
 			const taskFunction = this._tasks[taskName].task;
 
+			if (i + 1 < allTasks.length) {
+				this._buildCache.prefetchStageCache(allTasks[i + 1]);
+			}
 			if (typeof taskFunction === "function") {
 				await this._executeTask(taskName, taskFunction);
 			}
