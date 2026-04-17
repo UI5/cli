@@ -140,7 +140,6 @@ class Resource {
 		this.#sourceMetadata.contentModified ??= false;
 
 		this.#project = project;
-		this.#integrity = integrity;
 
 		if (createStream) {
 			// We store both factories individually
