@@ -202,6 +202,8 @@ export default class TreeRegistry {
 
 		// Track which resource nodes we've already modified to handle shared nodes
 		const modifiedNodes = new Set();
+		// Track which resource nodes we've already confirmed unchanged to skip redundant checks
+		const unchangedNodes = new Set();
 
 		// Track all affected trees and the paths that need recomputation
 		const affectedTrees = new Map(); // tree -> Set of directory paths needing recomputation
@@ -370,7 +372,38 @@ export default class TreeRegistry {
 						}
 					} else if (resourceNode.type === "resource") {
 						// UPDATE: Check if modified
-						if (!modifiedNodes.has(resourceNode)) {
+						if (modifiedNodes.has(resourceNode)) {
+							// Node was already modified by another tree (shared node)
+							// Still count it as an update for this tree since the change affects it
+							treeStats.get(tree).updated.push(upsert.fullPath);
+							dirModified = true;
+						} else if (unchangedNodes.has(resourceNode)) {
+							// Already confirmed unchanged in another tree — just check tags
+							const currentTags =
+								upsert.resource.getTags?.() ?? upsert.resource.tags ?? null;
+							if (!tagsEqual(resourceNode.tags, currentTags)) {
+								// Tags changed — treat as update
+								resourceNode.tags = currentTags;
+								modifiedNodes.add(resourceNode);
+								unchangedNodes.delete(resourceNode);
+								dirModified = true;
+
+								// Track per-tree update
+								treeStats.get(tree).updated.push(upsert.fullPath);
+
+								if (!updatedResources.includes(upsert.fullPath)) {
+									updatedResources.push(upsert.fullPath);
+								}
+							} else {
+								// Track per-tree unchanged
+								treeStats.get(tree).unchanged.push(upsert.fullPath);
+
+								if (!unchangedResources.includes(upsert.fullPath)) {
+									unchangedResources.push(upsert.fullPath);
+								}
+							}
+						} else {
+							// First time seeing this node — do full comparison
 							const currentMetadata = {
 								integrity: resourceNode.integrity,
 								lastModified: resourceNode.lastModified,
@@ -401,11 +434,14 @@ export default class TreeRegistry {
 									updatedResources.push(upsert.fullPath);
 								}
 							} else {
-								const currentTags = upsert.resource.getTags?.() ?? upsert.resource.tags ?? null;
+								unchangedNodes.add(resourceNode);
+								const currentTags =
+									upsert.resource.getTags?.() ?? upsert.resource.tags ?? null;
 								if (!tagsEqual(resourceNode.tags, currentTags)) {
 									// Tags changed — treat as update
 									resourceNode.tags = currentTags;
 									modifiedNodes.add(resourceNode);
+									unchangedNodes.delete(resourceNode);
 									dirModified = true;
 
 									// Track per-tree update
@@ -423,11 +459,6 @@ export default class TreeRegistry {
 									}
 								}
 							}
-						} else {
-							// Node was already modified by another tree (shared node)
-							// Still count it as an update for this tree since the change affects it
-							treeStats.get(tree).updated.push(upsert.fullPath);
-							dirModified = true;
 						}
 					}
 				}
