@@ -9,7 +9,6 @@ const config = {
 	rules: {
 		files: "off",
 		duplicates: "off",
-		classMembers: "off",
 		unlisted: "off",
 		binaries: "off",
 		unresolved: "off",
