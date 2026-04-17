@@ -6,6 +6,15 @@
  * @property {number} size Size of the resource in bytes
  */
 
+const PERF_TRACKING = !!process.env.UI5_CACHE_PERF;
+const perfCounters = {
+	calls: 0,
+	shortCircuitTrue: 0,
+	sizeMismatch: 0,
+	integrityFallback: 0,
+};
+export {perfCounters as matchResourceMetadataStrictCounters};
+
 /**
  * Compares a resource instance with cached resource metadata
  *
@@ -71,6 +80,7 @@ export async function matchResourceMetadataStrict(resource, cachedMetadata, inde
 	if (!resource || !cachedMetadata) {
 		throw new Error("Cannot compare undefined resources or metadata");
 	}
+	if (PERF_TRACKING) perfCounters.calls++;
 
 	// Check 1: Inode mismatch would indicate file replacement (comparison only if inodes are provided)
 	// const currentInode = resource.getInode();
@@ -84,6 +94,7 @@ export async function matchResourceMetadataStrict(resource, cachedMetadata, inde
 	if (currentLastModified === cachedMetadata.lastModified) {
 		if (indexTimestamp && currentLastModified !== indexTimestamp) {
 			// File has not been modified since last indexing. No update needed
+			if (PERF_TRACKING) perfCounters.shortCircuitTrue++;
 			return true;
 		} // else: Edge case. File modified exactly at index time
 		// Race condition possible - content may have changed during indexing
@@ -93,11 +104,13 @@ export async function matchResourceMetadataStrict(resource, cachedMetadata, inde
 	// Check 3: Size mismatch indicates definite content change
 	const currentSize = await resource.getSize();
 	if (currentSize !== cachedMetadata.size) {
+		if (PERF_TRACKING) perfCounters.sizeMismatch++;
 		return false;
 	}
 
 	// Check 4: Compare integrity (expensive)
 	// lastModified has changed, but the content might be the same. E.g. in case of a metadata-only update
+	if (PERF_TRACKING) perfCounters.integrityFallback++;
 	const currentIntegrity = await resource.getIntegrity();
 	return currentIntegrity === cachedMetadata.integrity;
 }
