@@ -143,7 +143,9 @@ class ResourceRequestManager {
 		}
 
 		const resourceCache = new Map();
-		for (const {nodeId} of this.#requestGraph.traverseByDepth()) {
+		const nodeEntries = Array.from(this.#requestGraph.traverseByDepth());
+
+		await Promise.all(nodeEntries.map(async ({nodeId}) => {
 			const {resourceIndex} = this.#requestGraph.getMetadata(nodeId);
 			if (!resourceIndex) {
 				throw new Error(`Missing resource index for request set ID ${nodeId}`);
@@ -163,7 +165,7 @@ class ResourceRequestManager {
 			if (resourcesToUpdate.length) {
 				await resourceIndex.upsertResources(resourcesToUpdate);
 			}
-		}
+		}));
 
 		await this.#flushTreeChangesWithoutDiffTracking();
 	}
@@ -214,7 +216,27 @@ class ResourceRequestManager {
 		}
 
 		const resourceCache = new Map();
-		// Update matching resource indices
+
+		// Phase 1: Collect all unique paths to fetch
+		const allPathsToFetch = new Set();
+		for (const requestSetId of matchingRequestSetIds) {
+			const resourcePathsToUpdate = updatesByRequestSetId.get(requestSetId);
+			for (const resourcePath of resourcePathsToUpdate) {
+				if (!resourceCache.has(resourcePath)) {
+					allPathsToFetch.add(resourcePath);
+				}
+			}
+		}
+
+		// Phase 2: Batch-fetch in parallel
+		if (allPathsToFetch.size > 0) {
+			await Promise.all(Array.from(allPathsToFetch).map(async (resourcePath) => {
+				const resource = await reader.byPath(resourcePath);
+				resourceCache.set(resourcePath, resource ?? null);
+			}));
+		}
+
+		// Phase 3: Process each request set from cache
 		for (const requestSetId of matchingRequestSetIds) {
 			const {resourceIndex} = this.#requestGraph.getMetadata(requestSetId);
 			if (!resourceIndex) {
@@ -225,17 +247,10 @@ class ResourceRequestManager {
 			const resourcesToUpdate = [];
 			const removedResourcePaths = [];
 			for (const resourcePath of resourcePathsToUpdate) {
-				let resource;
-				if (resourceCache.has(resourcePath)) {
-					resource = resourceCache.get(resourcePath);
-				} else {
-					resource = await reader.byPath(resourcePath);
-					resourceCache.set(resourcePath, resource);
-				}
+				const resource = resourceCache.get(resourcePath);
 				if (resource) {
 					resourcesToUpdate.push(resource);
 				} else {
-					// Resource has been removed
 					removedResourcePaths.push(resourcePath);
 				}
 			}
