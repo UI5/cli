@@ -96,6 +96,7 @@ test("Create ProjectBuildCache instance", async (t) => {
 	const buildSignature = "test-signature";
 
 	const cache = await ProjectBuildCache.create(project, buildSignature, cacheManager);
+	await cache.initSourceIndex();
 
 	t.truthy(cache, "ProjectBuildCache instance created");
 	t.true(cacheManager.readIndexCache.called, "Index cache was attempted to be loaded");
@@ -163,6 +164,7 @@ test("Create with existing index cache", async (t) => {
 	cacheManager.readIndexCache.resolves(indexCache);
 
 	const cache = await ProjectBuildCache.create(project, buildSignature, cacheManager);
+	await cache.initSourceIndex();
 
 	t.truthy(cache, "Cache created with existing index");
 	const taskCache = cache.getTaskCache("task1");
@@ -175,6 +177,7 @@ test("Initialize without any cache", async (t) => {
 	const buildSignature = "test-signature";
 
 	const cache = await ProjectBuildCache.create(project, buildSignature, cacheManager);
+	await cache.initSourceIndex();
 
 	t.false(cache.isFresh(), "Cache is not fresh when empty");
 });
@@ -183,6 +186,7 @@ test("isFresh returns false for empty cache", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	t.false(cache.isFresh(), "Empty cache is not fresh");
 });
@@ -191,6 +195,7 @@ test("getTaskCache returns undefined for non-existent task", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	t.is(cache.getTaskCache("nonexistent"), undefined, "Returns undefined");
 });
@@ -201,6 +206,7 @@ test("setTasks initializes project stages", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	await cache.setTasks(["task1", "task2", "task3"]);
 
@@ -216,6 +222,7 @@ test("setTasks with empty task list", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	await cache.setTasks([]);
 
@@ -226,6 +233,7 @@ test("allTasksCompleted switches to result stage", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	const changedPaths = await cache.allTasksCompleted();
 
@@ -269,6 +277,7 @@ test("allTasksCompleted returns changed resource paths", async (t) => {
 	cacheManager.readIndexCache.resolves(indexCache);
 
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	// Simulate some changes - change tracking happens during prepareProjectBuildAndValidateCache
 	cache.projectSourcesChanged(["/test.js"]);
@@ -284,6 +293,7 @@ test("prepareTaskExecutionAndValidateCache: task needs execution when no cache e
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	await cache.setTasks(["myTask"]);
 	const canUseCache = await cache.prepareTaskExecutionAndValidateCache("myTask");
@@ -296,6 +306,7 @@ test("prepareTaskExecutionAndValidateCache: switches project to correct stage", 
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	await cache.setTasks(["task1", "task2"]);
 	await cache.prepareTaskExecutionAndValidateCache("task2");
@@ -307,6 +318,7 @@ test("recordTaskResult: creates task cache", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	await cache.setTasks(["newTask"]);
 	await cache.prepareTaskExecutionAndValidateCache("newTask");
@@ -324,6 +336,7 @@ test("recordTaskResult with empty requests", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	await cache.setTasks(["task1"]);
 	await cache.prepareTaskExecutionAndValidateCache("task1");
@@ -374,6 +387,7 @@ test("projectSourcesChanged: marks cache as requiring validation", async (t) => 
 	cacheManager.readIndexCache.resolves(indexCache);
 
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	cache.projectSourcesChanged(["/test.js"]);
 
@@ -415,6 +429,7 @@ test("dependencyResourcesChanged: marks cache as requiring validation", async (t
 	cacheManager.readIndexCache.resolves(indexCache);
 
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	cache.dependencyResourcesChanged(["/dep.js"]);
 
@@ -425,6 +440,7 @@ test("projectSourcesChanged: tracks multiple changes", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	cache.projectSourcesChanged(["/test1.js"]);
 	cache.projectSourcesChanged(["/test2.js", "/test3.js"]);
@@ -437,6 +453,7 @@ test("prepareProjectBuildAndValidateCache: returns false for empty cache", async
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	const mockDependencyReader = {
 		byGlob: sinon.stub().resolves([]),
@@ -510,6 +527,7 @@ test("_refreshDependencyIndices: updates dependency indices", async (t) => {
 	cacheManager.readIndexCache.resolves(indexCache);
 
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	const mockDependencyReader = {
 		byGlob: sinon.stub().resolves([]),
@@ -527,6 +545,7 @@ test("writeCache: writes index and stage caches", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	project.getReader.returns({
 		byGlob: sinon.stub().resolves([]),
@@ -573,6 +592,7 @@ test("writeCache: skips writing unchanged caches", async (t) => {
 	cacheManager.readIndexCache.resolves(indexCache);
 
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	project.getReader.returns({
 		byGlob: sinon.stub().resolves([]),
@@ -596,6 +616,7 @@ test("Create cache with empty project name", async (t) => {
 	const cacheManager = createMockCacheManager();
 
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	t.truthy(cache, "Cache created with empty project name");
 });
@@ -604,6 +625,7 @@ test("Empty task list doesn't fail", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	await cache.setTasks([]);
 
@@ -630,6 +652,7 @@ async function buildCacheWithTaskResult(resources, writtenPaths = []) {
 	}));
 
 	const cache = await ProjectBuildCache.create(project, buildSignature, cacheManager);
+	await cache.initSourceIndex();
 
 	// Set up and execute a task
 	await cache.setTasks(["myTask"]);
@@ -757,6 +780,7 @@ test("freezeUntransformedSources: throws when source file not found", async (t) 
 	}));
 
 	const cache = await ProjectBuildCache.create(project, "test-sig", cacheManager);
+	await cache.initSourceIndex();
 	await cache.setTasks(["myTask"]);
 	await cache.prepareTaskExecutionAndValidateCache("myTask");
 
@@ -863,6 +887,7 @@ test("restoreFrozenSources: cache miss skips gracefully", async (t) => {
 	});
 
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	const mockDepReader = {
 		byGlob: sinon.stub().resolves([]),
@@ -949,6 +974,7 @@ test("restoreFrozenSources: cache hit creates CAS reader", async (t) => {
 	});
 
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
 	const mockDepReader = {
 		byGlob: sinon.stub().resolves([]),

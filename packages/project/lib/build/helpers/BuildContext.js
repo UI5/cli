@@ -120,14 +120,11 @@ class BuildContext {
 		const projectBuildContexts = new Map();
 		const requiredProjects = new Set(requestedProjects);
 
+		// Phase 1: Discover all required projects (sequential — each project's
+		// dependencies may expand the set). This is fast because getProjectContext
+		// no longer triggers source index I/O.
 		for (const projectName of requiredProjects) {
-			const contextStart = performance.now();
 			const projectBuildContext = await this.getProjectContext(projectName);
-			if (log.isLevelEnabled("perf")) {
-				log.perf(
-					`getProjectContext for ${projectName} completed in ` +
-					`${(performance.now() - contextStart).toFixed(2)} ms`);
-			}
 
 			projectBuildContexts.set(projectName, projectBuildContext);
 
@@ -139,6 +136,19 @@ class BuildContext {
 				requiredProjects.add(depName);
 			}
 		}
+
+		// Phase 2: Initialize all source indices in parallel
+		const initStart = performance.now();
+		await Promise.all(
+			Array.from(projectBuildContexts.values()).map((ctx) => ctx.initSourceIndex())
+		);
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`Parallel source index initialization completed in ` +
+				`${(performance.now() - initStart).toFixed(2)} ms ` +
+				`for ${projectBuildContexts.size} projects`);
+		}
+
 		if (log.isLevelEnabled("perf")) {
 			log.perf(
 				`getRequiredProjectContexts completed in ${(performance.now() - totalStart).toFixed(2)} ms ` +
