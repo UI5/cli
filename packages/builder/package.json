@@ -110,7 +110,7 @@
 		"@istanbuljs/esm-loader-hook": "^0.3.0",
 		"@jridgewell/trace-mapping": "^0.3.31",
 		"@ui5/project": "^5.0.0-alpha.4",
-		"ava": "^6.4.1",
+		"ava": "^7.0.0",
 		"cross-env": "^10.1.0",
 		"eslint": "^9.36.0",
 		"esmock": "^2.7.3",
