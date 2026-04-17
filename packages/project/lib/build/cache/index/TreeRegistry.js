@@ -2,6 +2,8 @@ import path from "node:path/posix";
 import TreeNode from "./TreeNode.js";
 import {tagsEqual} from "./HashTree.js";
 import {matchResourceMetadataStrict} from "../utils.js";
+import {getLogger} from "@ui5/logger";
+const log = getLogger("build:cache:index:TreeRegistry");
 
 /**
  * Registry for coordinating batch updates across multiple Merkle trees that share nodes by reference.
@@ -194,6 +196,9 @@ export default class TreeRegistry {
 		const unchangedResources = [];
 		const removedResources = [];
 
+		const perfEnabled = log.isLevelEnabled("perf");
+		const phase1Start = perfEnabled ? performance.now() : 0;
+
 		// Track per-tree statistics
 		const treeStats = new Map();
 		for (const tree of this.trees) {
@@ -269,6 +274,11 @@ export default class TreeRegistry {
 
 		// 2. Handle upserts - group by directory
 		const upsertsByDir = new Map(); // parentPath -> [{resourceName, resource, fullPath, sourceTree}]
+
+		const phase2Start = perfEnabled ? performance.now() : 0;
+		let matchMetadataStrictCalls = 0;
+		let matchMetadataUnchanged = 0;
+		let modifiedNodesSkips = 0;
 
 		for (const [resourcePath, {resource, sourceTree}] of this.pendingUpserts) {
 			const parts = resourcePath.split(path.sep).filter((p) => p.length > 0);
@@ -375,6 +385,7 @@ export default class TreeRegistry {
 						if (modifiedNodes.has(resourceNode)) {
 							// Node was already modified by another tree (shared node)
 							// Still count it as an update for this tree since the change affects it
+							modifiedNodesSkips++;
 							treeStats.get(tree).updated.push(upsert.fullPath);
 							dirModified = true;
 						} else if (unchangedNodes.has(resourceNode)) {
@@ -404,6 +415,7 @@ export default class TreeRegistry {
 							}
 						} else {
 							// First time seeing this node — do full comparison
+							matchMetadataStrictCalls++;
 							const currentMetadata = {
 								integrity: resourceNode.integrity,
 								lastModified: resourceNode.lastModified,
@@ -434,6 +446,7 @@ export default class TreeRegistry {
 									updatedResources.push(upsert.fullPath);
 								}
 							} else {
+								matchMetadataUnchanged++;
 								unchangedNodes.add(resourceNode);
 								const currentTags =
 									upsert.resource.getTags?.() ?? upsert.resource.tags ?? null;
@@ -484,6 +497,7 @@ export default class TreeRegistry {
 		}
 
 		// Recompute ancestor hashes for all affected trees
+		const phase3Start = perfEnabled ? performance.now() : 0;
 		for (const [tree, affectedPaths] of affectedTrees) {
 			// Sort paths by depth (deepest first) to recompute bottom-up
 			const sortedPaths = Array.from(affectedPaths).sort((a, b) => {
@@ -508,6 +522,18 @@ export default class TreeRegistry {
 		this.pendingUpserts.clear();
 		this.pendingRemovals.clear();
 		this.pendingTimestampUpdate = null;
+
+		if (perfEnabled) {
+			const now = performance.now();
+			log.perf(
+				`TreeRegistry.flush completed: ` +
+				`phase1(removals)=${(phase2Start - phase1Start).toFixed(2)} ms, ` +
+				`phase2(upserts)=${(phase3Start - phase2Start).toFixed(2)} ms, ` +
+				`phase3(rehash)=${(now - phase3Start).toFixed(2)} ms | ` +
+				`matchMetadataStrictCalls=${matchMetadataStrictCalls}, ` +
+				`matchMetadataUnchanged=${matchMetadataUnchanged}, ` +
+				`modifiedNodesSkips=${modifiedNodesSkips}`);
+		}
 
 		return {
 			added: addedResources,
