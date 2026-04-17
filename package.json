@@ -48,7 +48,7 @@
 		"eslint-plugin-jsdoc": "^62.5.4",
 		"globals": "^17.3.0",
 		"husky": "^9.1.7",
-		"knip": "^5.83.0",
+		"knip": "^6.4.1",
 		"licensee": "^11.1.1",
 		"check-engine-light": "0.4.0"
 	},
