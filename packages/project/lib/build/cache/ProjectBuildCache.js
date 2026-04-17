@@ -221,7 +221,9 @@ export default class ProjectBuildCache {
 		let depIndicesChanged = false;
 		if (this.#changedDependencyResourcePaths.length) {
 			const depStart = performance.now();
-			await Promise.all(Array.from(this.#taskCache.values()).map(async (taskCache) => {
+			const tasksWithDepRequests = Array.from(this.#taskCache.values())
+				.filter((taskCache) => taskCache.hasDependencyRequests());
+			await Promise.all(tasksWithDepRequests.map(async (taskCache) => {
 				const changed = await taskCache
 					.updateDependencyIndices(this.#currentDependencyReader, this.#changedDependencyResourcePaths);
 				if (changed) {
@@ -233,7 +235,7 @@ export default class ProjectBuildCache {
 					`#flushPendingChanges updateDependencyIndices for project ${this.#project.getName()} ` +
 					`completed in ${(performance.now() - depStart).toFixed(2)} ms ` +
 					`(${this.#changedDependencyResourcePaths.length} changed paths, ` +
-					`${this.#taskCache.size} tasks, changed=${depIndicesChanged})`);
+					`${tasksWithDepRequests.length}/${this.#taskCache.size} tasks, changed=${depIndicesChanged})`);
 			}
 		}
 
@@ -258,7 +260,9 @@ export default class ProjectBuildCache {
 	 * @returns {Promise<void>}
 	 */
 	async _refreshDependencyIndices(dependencyReader) {
-		await Promise.all(Array.from(this.#taskCache.values()).map(async (taskCache) => {
+		const tasksWithDepRequests = Array.from(this.#taskCache.values())
+			.filter((taskCache) => taskCache.hasDependencyRequests());
+		await Promise.all(tasksWithDepRequests.map(async (taskCache) => {
 			await taskCache.refreshDependencyIndices(dependencyReader);
 		}));
 		// Reset pending dependency changes since indices are fresh now anyways

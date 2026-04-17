@@ -298,6 +298,16 @@ class ResourceRequestManager {
 	}
 
 	/**
+	 * Returns whether any resource requests have been recorded
+	 *
+	 * @public
+	 * @returns {boolean}
+	 */
+	hasRequests() {
+		return this.#requestGraph.getSize() > 0;
+	}
+
+	/**
 	 * Matches changed resources against a set of requests
 	 *
 	 * Tests each request against the changed resource paths using exact path matching
