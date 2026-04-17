@@ -1275,6 +1275,10 @@ export default class ProjectBuildCache {
 	 */
 	async #initSourceIndex() {
 		const sourceReader = this.#project.getSourceReader();
+
+		// DEBUG:
+		console.log(`cacheMode: `, this.#cacheMode);
+
 		const [resources, indexCache] = await Promise.all([
 			await sourceReader.byGlob("/**/*"),
 			await this.#cacheManager.readIndexCache(this.#project.getId(), this.#buildSignature, "source"),
