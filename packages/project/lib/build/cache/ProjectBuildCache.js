@@ -45,6 +45,7 @@ export const RESULT_CACHE_STATES = Object.freeze({
 export default class ProjectBuildCache {
 	#taskCache = new Map();
 	#stageCache = new StageCache();
+	#prefetchedStageReads;
 
 	#project;
 	#buildSignature;
@@ -517,6 +518,52 @@ export default class ProjectBuildCache {
 	}
 
 	/**
+	 * Pre-fetches stage cache metadata from persistent storage for the given task.
+	 * Results are stored internally and consumed by #findStageCache when called later.
+	 *
+	 * @public
+	 * @param {string} taskName Task name to prefetch cache for
+	 */
+	prefetchStageCache(taskName) {
+		const taskCache = this.#taskCache.get(taskName);
+		if (!taskCache) {
+			return;
+		}
+		const stageName = this.#getStageNameForTask(taskName);
+
+		// Compute possible signatures from current index state
+		const projectSignatures = taskCache.getProjectIndexSignatures();
+		const dependencySignatures = taskCache.getDependencyIndexSignatures();
+		const stageSignatures = combineTwoArraysFast(
+			projectSignatures,
+			dependencySignatures,
+		).map((signaturePair) => {
+			return createStageSignature(...signaturePair);
+		});
+
+		if (!stageSignatures.length) {
+			return;
+		}
+
+		// Filter out signatures already in memory
+		const uncachedSignatures = stageSignatures.filter((sig) =>
+			!this.#stageCache.getCacheForSignature(stageName, sig));
+
+		if (!uncachedSignatures.length) {
+			return;
+		}
+
+		// Start reading from disk — store promises, don't await
+		const prefetchMap = new Map();
+		for (const sig of uncachedSignatures) {
+			prefetchMap.set(sig, this.#cacheManager.readStageCache(
+				this.#project.getId(), this.#buildSignature, stageName, sig));
+		}
+		this.#prefetchedStageReads = this.#prefetchedStageReads ?? new Map();
+		this.#prefetchedStageReads.set(stageName, prefetchMap);
+	}
+
+	/**
 	 * Attempts to find a cached stage for the given task
 	 *
 	 * Checks both in-memory stage cache and persistent cache storage for a matching
@@ -540,6 +587,29 @@ export default class ProjectBuildCache {
 				return stageCache;
 			}
 		}
+
+		// Check prefetched data
+		const prefetchMap = this.#prefetchedStageReads?.get(stageName);
+		if (prefetchMap) {
+			this.#prefetchedStageReads.delete(stageName);
+			for (const stageSignature of stageSignatures) {
+				const promise = prefetchMap.get(stageSignature);
+				if (promise) {
+					const stageMetadata = await promise;
+					if (stageMetadata) {
+						log.verbose(`Found prefetched cached stage for task ${stageName} ` +
+							`with signature ${stageSignature}`);
+						return this.#processStageCacheMetadata(stageName, stageSignature, stageMetadata);
+					}
+				}
+			}
+			// Filter out already-checked signatures from disk lookup
+			stageSignatures = stageSignatures.filter((sig) => !prefetchMap.has(sig));
+			if (!stageSignatures.length) {
+				return;
+			}
+		}
+
 		// TODO: If list of signatures is longer than N,
 		// retrieve all available signatures from cache manager first.
 		// Later maybe add a bloom filter for even larger sets
@@ -550,45 +620,57 @@ export default class ProjectBuildCache {
 				return;
 			}
 			log.verbose(`Found cached stage for task ${stageName} with signature ${stageSignature}`);
-			const {resourceMapping, resourceMetadata, projectTagOperations, buildTagOperations} = stageMetadata;
-			let writtenResourcePaths;
-			let stageReader;
-			if (resourceMapping) {
-				writtenResourcePaths = [];
-				// Restore writer collection
-				const readers = resourceMetadata.map((metadata) => {
-					writtenResourcePaths.push(...Object.keys(metadata));
-					return this.#createReaderForStageCache(
-						stageName, stageSignature, metadata);
-				});
-
-				const writerMapping = Object.create(null);
-				for (const [resourcePath, metadataIndex] of Object.entries(resourceMapping)) {
-					if (!readers[metadataIndex]) {
-						throw new Error(`Inconsistent stage cache: No resource metadata ` +
-							`found at index ${metadataIndex} for resource ${resourcePath}`);
-					}
-					writerMapping[resourcePath] = readers[metadataIndex];
-				}
-
-				stageReader = createWriterCollection({
-					name: `Restored cached stage ${stageName} for project ${this.#project.getName()}`,
-					writerMapping,
-				});
-			} else {
-				writtenResourcePaths = Object.keys(resourceMetadata);
-				stageReader = this.#createReaderForStageCache(stageName, stageSignature, resourceMetadata);
-			}
-
-			return {
-				signature: stageSignature,
-				stage: stageReader,
-				writtenResourcePaths,
-				projectTagOperations: tagOpsToMap(projectTagOperations),
-				buildTagOperations: tagOpsToMap(buildTagOperations),
-			};
+			return this.#processStageCacheMetadata(stageName, stageSignature, stageMetadata);
 		}));
 		return stageCache;
+	}
+
+	/**
+	 * Processes stage cache metadata into a stage cache entry
+	 *
+	 * @param {string} stageName Name of the stage
+	 * @param {string} stageSignature Signature of the stage
+	 * @param {object} stageMetadata Raw metadata from cache
+	 * @returns {object} Stage cache entry
+	 */
+	#processStageCacheMetadata(stageName, stageSignature, stageMetadata) {
+		const {resourceMapping, resourceMetadata, projectTagOperations, buildTagOperations} = stageMetadata;
+		let writtenResourcePaths;
+		let stageReader;
+		if (resourceMapping) {
+			writtenResourcePaths = [];
+			// Restore writer collection
+			const readers = resourceMetadata.map((metadata) => {
+				writtenResourcePaths.push(...Object.keys(metadata));
+				return this.#createReaderForStageCache(
+					stageName, stageSignature, metadata);
+			});
+
+			const writerMapping = Object.create(null);
+			for (const [resourcePath, metadataIndex] of Object.entries(resourceMapping)) {
+				if (!readers[metadataIndex]) {
+					throw new Error(`Inconsistent stage cache: No resource metadata ` +
+						`found at index ${metadataIndex} for resource ${resourcePath}`);
+				}
+				writerMapping[resourcePath] = readers[metadataIndex];
+			}
+
+			stageReader = createWriterCollection({
+				name: `Restored cached stage ${stageName} for project ${this.#project.getName()}`,
+				writerMapping,
+			});
+		} else {
+			writtenResourcePaths = Object.keys(resourceMetadata);
+			stageReader = this.#createReaderForStageCache(stageName, stageSignature, resourceMetadata);
+		}
+
+		return {
+			signature: stageSignature,
+			stage: stageReader,
+			writtenResourcePaths,
+			projectTagOperations: tagOpsToMap(projectTagOperations),
+			buildTagOperations: tagOpsToMap(buildTagOperations),
+		};
 	}
 
 	/**
