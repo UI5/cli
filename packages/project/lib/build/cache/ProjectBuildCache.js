@@ -64,6 +64,10 @@ export default class ProjectBuildCache {
 	#changedDependencyResourcePaths = [];
 	#writtenResultResourcePaths = [];
 
+	// Set of integrity hashes known to already exist in CAS from restored stage metadata.
+	// Populated during the restore phase, consulted during writes to skip redundant CAS lookups.
+	#knownCasIntegrities = new Set();
+
 	#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
 	#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
 
@@ -712,6 +716,8 @@ export default class ProjectBuildCache {
 			stageReader = this.#createReaderForStageCache(stageName, stageSignature, resourceMetadata);
 		}
 
+		this.#collectKnownIntegrities(resourceMetadata);
+
 		return {
 			signature: stageSignature,
 			stage: stageReader,
@@ -996,7 +1002,9 @@ export default class ProjectBuildCache {
 		}));
 
 		// Write resources to CAS and collect metadata (reuses existing helper)
-		const resourceMetadata = await this.#writeStageResources(resources, "source", sourceSignature);
+		const resourceMetadata = await this.#writeStageResources(
+			resources, "source", sourceSignature, this.#knownCasIntegrities);
+		this.#collectKnownIntegrities(resourceMetadata);
 
 		// Persist source stage metadata in the stage cache
 		await this.#cacheManager.writeStageCache(
@@ -1032,6 +1040,7 @@ export default class ProjectBuildCache {
 		}
 
 		const {resourceMetadata} = stageMetadata;
+		this.#collectKnownIntegrities(resourceMetadata);
 		log.verbose(
 			`Restored frozen source files for project ${this.#project.getName()} from CAS`);
 
@@ -1287,13 +1296,17 @@ export default class ProjectBuildCache {
 				const resourceMetadata = await Promise.all(readers.map(async (reader, idx) => {
 					const resources = await reader.byGlob("/**/*");
 
-					return await this.#writeStageResources(resources, stageId, stageSignature);
+					return await this.#writeStageResources(
+						resources, stageId, stageSignature, this.#knownCasIntegrities);
 				}));
+				this.#collectKnownIntegrities(resourceMetadata);
 
 				metadata = {resourceMapping, resourceMetadata};
 			} else {
 				const resources = await writer.byGlob("/**/*");
-				const resourceMetadata = await this.#writeStageResources(resources, stageId, stageSignature);
+				const resourceMetadata = await this.#writeStageResources(
+					resources, stageId, stageSignature, this.#knownCasIntegrities);
+				this.#collectKnownIntegrities(resourceMetadata);
 				metadata = {resourceMetadata};
 			}
 			metadata.projectTagOperations = tagOpsToObject(projectTagOperations);
@@ -1304,26 +1317,57 @@ export default class ProjectBuildCache {
 	}
 
 	/**
+	 * Extracts integrity hashes from resource metadata and adds them to the known CAS set.
+	 * Handles both the array form (WriterCollection stages) and the plain object form.
+	 *
+	 * @param {Object<string, object>|Array<Object<string, object>>} resourceMetadata
+	 */
+	#collectKnownIntegrities(resourceMetadata) {
+		const metadataObjects = Array.isArray(resourceMetadata)
+			? resourceMetadata : [resourceMetadata];
+		for (const metadataObj of metadataObjects) {
+			for (const meta of Object.values(metadataObj)) {
+				if (meta.integrity) {
+					this.#knownCasIntegrities.add(meta.integrity);
+				}
+			}
+		}
+	}
+
+	/**
 	 * Writes stage resources to persistent storage and returns their metadata
 	 *
 	 * @param {@ui5/fs/Resource[]} resources Array of resources to write
 	 * @param {string} stageId Stage identifier
 	 * @param {string} stageSignature Stage signature
+	 * @param {Set<string>} [knownCasIntegrities] Set of integrity hashes known to exist in CAS
 	 * @returns {Promise<Object<string, object>>} Resource metadata indexed by path
 	 */
-	async #writeStageResources(resources, stageId, stageSignature) {
+	async #writeStageResources(resources, stageId, stageSignature, knownCasIntegrities) {
 		const resourceMetadata = Object.create(null);
+		let casSkipped = 0;
 		await Promise.all(resources.map(async (res) => {
-			// Store resource content in cacache via CacheManager
-			await this.#cacheManager.writeStageResource(this.#buildSignature, stageId, stageSignature, res);
+			const integrity = await res.getIntegrity();
+
+			// Skip CAS write if integrity is known to already exist from restored stage metadata
+			if (knownCasIntegrities?.has(integrity)) {
+				casSkipped++;
+			} else {
+				await this.#cacheManager.writeStageResource(this.#buildSignature, stageId, stageSignature, res);
+			}
 
 			resourceMetadata[res.getOriginalPath()] = {
 				inode: res.getInode(),
 				lastModified: res.getLastModified(),
 				size: await res.getSize(),
-				integrity: await res.getIntegrity(),
+				integrity,
 			};
 		}));
+		if (log.isLevelEnabled("perf") && casSkipped > 0) {
+			log.perf(
+				`#writeStageResources for stage ${stageId}: ` +
+				`${casSkipped} CAS skipped, ${resources.length - casSkipped} CAS written`);
+		}
 		return resourceMetadata;
 	}
 
