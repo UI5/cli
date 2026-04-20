@@ -149,12 +149,18 @@ export default class ProjectBuildCache {
 		}
 
 		if (this.#combinedIndexState === INDEX_STATES.RESTORING_DEPENDENCY_INDICES) {
-			const updateStart = performance.now();
-			await this._refreshDependencyIndices(dependencyReader);
-			if (log.isLevelEnabled("perf")) {
+			if (this.#changedDependencyResourcePaths.length) {
+				const updateStart = performance.now();
+				await this._refreshDependencyIndices(dependencyReader);
+				if (log.isLevelEnabled("perf")) {
+					log.perf(
+						`Initialized dependency indices for project ${this.#project.getName()} ` +
+						`in ${(performance.now() - updateStart).toFixed(2)} ms`);
+				}
+			} else if (log.isLevelEnabled("perf")) {
 				log.perf(
-					`Initialized dependency indices for project ${this.#project.getName()} ` +
-					`in ${(performance.now() - updateStart).toFixed(2)} ms`);
+					`Skipping dependency index refresh for project ${this.#project.getName()} ` +
+					`(no dependency changes propagated)`);
 			}
 			this.#combinedIndexState = INDEX_STATES.FRESH;
 
