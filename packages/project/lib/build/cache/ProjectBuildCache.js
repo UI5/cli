@@ -369,6 +369,13 @@ export default class ProjectBuildCache {
 			return [stageName, stageCache];
 		}));
 		this.#project.getProjectResources().useResultStage();
+
+		// When #currentStageSignatures is empty, this is the initial import from persistent cache.
+		// The imported stages represent the already-cached state, not actual changes.
+		// Dependents' dependency indices were restored from the same cache and already reflect these outputs.
+		// Skip change propagation to avoid redundant dependency index updates in dependents.
+		const isInitialImport = this.#currentStageSignatures.size === 0;
+
 		const writtenResourcePaths = new Set();
 		for (const [stageName, stageCache] of importedStages) {
 			// Check whether the stage differs form the one currently in use
@@ -380,13 +387,24 @@ export default class ProjectBuildCache {
 				// Store signature for later use in result stage signature calculation
 				this.#currentStageSignatures.set(stageName, stageCache.signature.split("-"));
 
-				// Cached stage likely differs from the previous one (if any)
-				// Add all resources written by the cached stage to the set of written/potentially changed resources
-				for (const resourcePath of stageCache.writtenResourcePaths) {
-					writtenResourcePaths.add(resourcePath);
+				if (!isInitialImport) {
+					// Cached stage differs from the previous one
+					// Add all resources written by the cached stage to the set of
+					// written/potentially changed resources
+					for (const resourcePath of stageCache.writtenResourcePaths) {
+						writtenResourcePaths.add(resourcePath);
+					}
 				}
 			}
 		}
+
+		if (log.isLevelEnabled("perf") && isInitialImport) {
+			const totalPaths = importedStages.reduce((sum, [, sc]) => sum + sc.writtenResourcePaths.length, 0);
+			log.perf(
+				`#importStages: Initial import for project ${this.#project.getName()}, ` +
+				`suppressed ${totalPaths} resource path propagations`);
+		}
+
 		return Array.from(writtenResourcePaths);
 	}
 
