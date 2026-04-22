@@ -1219,3 +1219,148 @@ test("restoreFrozenSources: cache hit creates CAS reader", async (t) => {
 	t.truthy(projectResources.setFrozenSourceReader.firstCall.args[0],
 		"setFrozenSourceReader called with a reader");
 });
+
+// ===== DEPENDENCY INDEX REFRESH OPTIMIZATION TESTS =====
+
+// Helper: Creates a ProjectBuildCache in RESTORING_DEPENDENCY_INDICES state
+// (warm cache loaded from disk with task metadata) and spies on _refreshDependencyIndices.
+async function createCacheInRestoringState({
+	resources = [createMockResource("/test.js", "hash1", 1000, 100, 1)],
+	tasks = [["task1", false]],
+} = {}) {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const buildSignature = "test-signature";
+
+	project.getSourceReader.callsFake(() => ({
+		byGlob: sinon.stub().resolves(resources),
+		byPath: sinon.stub().callsFake((path) => {
+			const res = resources.find((r) => r.getPath() === path);
+			return Promise.resolve(res || null);
+		})
+	}));
+
+	// Build an indexCache matching the resources (no changes detected)
+	const children = {};
+	for (const res of resources) {
+		const p = res.getPath();
+		const name = p.slice(1);
+		children[name] = {
+			name,
+			type: "resource",
+			hash: `node-hash-${name}`,
+			integrity: await res.getIntegrity(),
+			lastModified: res.getLastModified(),
+			size: await res.getSize(),
+			inode: res.getInode(),
+			tags: null
+		};
+	}
+
+	const indexCache = {
+		version: "1.0",
+		indexTree: {
+			version: 1,
+			indexTimestamp: 500, // Earlier than resource lastModified so matchMetadata says unchanged
+			root: {
+				name: "",
+				type: "directory",
+				hash: "root-hash",
+				children
+			}
+		},
+		tasks
+	};
+
+	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
+		return Promise.resolve({
+			requestSetGraph: {nodes: [], nextId: 1},
+			rootIndices: [],
+			deltaIndices: [],
+			unusedAtLeastOnce: false
+		});
+	});
+
+	cacheManager.readIndexCache.resolves(indexCache);
+
+	const cache = await ProjectBuildCache.create(project, buildSignature, cacheManager);
+	await cache.initSourceIndex();
+
+	// Spy on _refreshDependencyIndices so we can verify whether it's called
+	const refreshSpy = sinon.spy(cache, "_refreshDependencyIndices");
+
+	const mockDependencyReader = {
+		byGlob: sinon.stub().resolves([]),
+		byPath: sinon.stub().resolves(null)
+	};
+
+	return {cache, project, cacheManager, refreshSpy, mockDependencyReader};
+}
+
+test("prepareProjectBuildAndValidateCache: skips _refreshDependencyIndices when no dependency " +
+	"changes propagated (warm cache)", async (t) => {
+	const {cache, refreshSpy, mockDependencyReader} = await createCacheInRestoringState();
+
+	// Do NOT call dependencyResourcesChanged — simulates warm cache with no upstream changes.
+	// In RESTORING_DEPENDENCY_INDICES state, cached dependency indices (from BuildTaskCache.fromCache)
+	// are already correct, so _refreshDependencyIndices can be skipped.
+	await cache.prepareProjectBuildAndValidateCache(mockDependencyReader);
+
+	t.false(refreshSpy.called,
+		"_refreshDependencyIndices should NOT be called when no dependency changes were propagated");
+});
+
+test("prepareProjectBuildAndValidateCache: dependency changes move state from " +
+	"RESTORING_DEPENDENCY_INDICES to REQUIRES_UPDATE", async (t) => {
+	const {cache, refreshSpy, mockDependencyReader} = await createCacheInRestoringState();
+
+	// Simulate an upstream dependency rebuild propagating changed paths.
+	// dependencyResourcesChanged() transitions state from RESTORING_DEPENDENCY_INDICES to REQUIRES_UPDATE,
+	// so the changes go through #flushPendingChanges (incremental delta update) rather than
+	// the full _refreshDependencyIndices path.
+	cache.dependencyResourcesChanged(["/dep/lib/SomeModule.js"]);
+
+	await cache.prepareProjectBuildAndValidateCache(mockDependencyReader);
+
+	// _refreshDependencyIndices is NOT called because dependencyResourcesChanged() already moved
+	// the state to REQUIRES_UPDATE, bypassing the RESTORING_DEPENDENCY_INDICES branch entirely.
+	// Instead, #flushPendingChanges handles the changes via incremental updateDependencyIndices.
+	t.false(refreshSpy.called,
+		"_refreshDependencyIndices should NOT be called — changes handled via #flushPendingChanges");
+});
+
+test("prepareProjectBuildAndValidateCache: transitions from RESTORING_DEPENDENCY_INDICES " +
+	"to FRESH state", async (t) => {
+	const {cache, refreshSpy, mockDependencyReader} = await createCacheInRestoringState();
+
+	// First call transitions from RESTORING_DEPENDENCY_INDICES to FRESH
+	await cache.prepareProjectBuildAndValidateCache(mockDependencyReader);
+	t.false(refreshSpy.called, "_refreshDependencyIndices not called on first pass (no changes)");
+
+	// Second call without new changes — state is already FRESH, no refresh needed
+	refreshSpy.resetHistory();
+	await cache.prepareProjectBuildAndValidateCache(mockDependencyReader);
+
+	t.false(refreshSpy.called,
+		"_refreshDependencyIndices should NOT be called on second invocation (state is FRESH)");
+});
+
+test("prepareProjectBuildAndValidateCache: subsequent dependency changes go through " +
+	"REQUIRES_UPDATE path, not RESTORING_DEPENDENCY_INDICES", async (t) => {
+	const {cache, refreshSpy, mockDependencyReader} = await createCacheInRestoringState();
+
+	// First call with no changes — transitions from RESTORING_DEPENDENCY_INDICES to FRESH
+	await cache.prepareProjectBuildAndValidateCache(mockDependencyReader);
+	t.false(refreshSpy.called, "_refreshDependencyIndices not called on first pass (no changes)");
+
+	// Now simulate a dependency change (e.g. from BuildServer watch mode)
+	cache.dependencyResourcesChanged(["/dep/lib/NewChange.js"]);
+
+	// Second call — should go through REQUIRES_UPDATE / #flushPendingChanges, not _refreshDependencyIndices
+	refreshSpy.resetHistory();
+	await cache.prepareProjectBuildAndValidateCache(mockDependencyReader);
+
+	t.false(refreshSpy.called,
+		"_refreshDependencyIndices should NOT be called for REQUIRES_UPDATE state " +
+		"(#flushPendingChanges handles it instead)");
+});
