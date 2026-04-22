@@ -191,7 +191,7 @@ class ResourceFacade {
 	}
 
 	getIntegrity() {
-		return this.#resource.getIntegrity();
+		return this.#resource.getHash();
 	}
 
 	getInode() {

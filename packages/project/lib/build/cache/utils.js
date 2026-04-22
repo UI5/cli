@@ -55,7 +55,7 @@ export async function matchResourceMetadata(resource, resourceMetadata, indexTim
 		// it's possible for a race condition to have occurred where the file was modified
 		// during index creation without changing its size.
 		// In this case, we need to perform an integrity check to determine if the file has changed.
-		if (await resource.getIntegrity() !== resourceMetadata.integrity) {
+		if (await resource.getHash() !== resourceMetadata.integrity) {
 			return false;
 		}
 	}
@@ -111,7 +111,7 @@ export async function matchResourceMetadataStrict(resource, cachedMetadata, inde
 	// Check 4: Compare integrity (expensive)
 	// lastModified has changed, but the content might be the same. E.g. in case of a metadata-only update
 	if (PERF_TRACKING) perfCounters.integrityFallback++;
-	const currentIntegrity = await resource.getIntegrity();
+	const currentIntegrity = await resource.getHash();
 	return currentIntegrity === cachedMetadata.integrity;
 }
 
@@ -132,7 +132,7 @@ export async function createResourceIndex(resources, includeInode = false) {
 	return await Promise.all(resources.map(async (resource) => {
 		const resourceMetadata = {
 			path: resource.getOriginalPath(),
-			integrity: await resource.getIntegrity(),
+			integrity: await resource.getHash(),
 			lastModified: resource.getLastModified(),
 			size: await resource.getSize(),
 			tags: resource.getTags(),

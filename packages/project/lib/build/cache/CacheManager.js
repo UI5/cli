@@ -382,7 +382,7 @@ export default class CacheManager {
 		const t = BuildTimings.start("writeStageResource");
 		try {
 			// Check if resource has already been written
-			const integrity = await resource.getIntegrity();
+			const integrity = await resource.getHash();
 			const hasResource = await cacache.get.info(this.#casDir, integrity);
 			if (!hasResource) {
 				const buffer = await resource.getBuffer();
