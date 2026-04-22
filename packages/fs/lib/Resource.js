@@ -682,6 +682,16 @@ class Resource {
 	}
 
 	/**
+	 * Gets the inode of the resource.
+	 *
+	 * @public
+	 * @returns {number|undefined} Inode identifier or undefined if not available
+	 */
+	getInode() {
+		return this.#statInfo?.ino;
+	}
+
+	/**
 	 * Resource content size in bytes.
 	 *
 	 * @public
