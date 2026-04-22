@@ -773,6 +773,7 @@ export default class ProjectBuildCache {
 	async recordTaskResult(
 		taskName, projectResourceRequests, dependencyResourceRequests, cacheInfo, supportsDifferentialBuilds
 	) {
+		const recordStart = performance.now();
 		if (!this.#taskCache.has(taskName)) {
 			// Initialize task cache
 			this.#taskCache.set(taskName,
@@ -825,20 +826,37 @@ export default class ProjectBuildCache {
 				reader = cacheInfo.previousStageCache.stage.getWriter() ??
 					cacheInfo.previousStageCache.stage.getCachedWriter();
 			}
+			const mergeStart = performance.now();
 			const previousWrittenResources = await reader.byGlob("/**/*");
+			let mergedCount = 0;
 			for (const res of previousWrittenResources) {
 				if (!writtenResourcePaths.includes(res.getOriginalPath())) {
 					await stageWriter.write(res);
+					mergedCount++;
 				}
+			}
+			if (log.isLevelEnabled("perf")) {
+				log.perf(
+					`recordTaskResult delta merge for task ${taskName} ` +
+					`in project ${this.#project.getName()} completed in ` +
+					`${(performance.now() - mergeStart).toFixed(2)} ms ` +
+					`(${previousWrittenResources.length} previous, ${mergedCount} merged)`);
 			}
 		} else {
 			// Calculate signature for executed task
+			const recordReqStart = performance.now();
 			const currentSignaturePair = await taskCache.recordRequests(
 				projectResourceRequests,
 				dependencyResourceRequests,
 				this.#currentProjectReader,
 				this.#currentDependencyReader
 			);
+			if (log.isLevelEnabled("perf")) {
+				log.perf(
+					`recordTaskResult recordRequests for task ${taskName} ` +
+					`in project ${this.#project.getName()} completed in ` +
+					`${(performance.now() - recordReqStart).toFixed(2)} ms`);
+			}
 			// If provided, set dependency signature for later use in result stage signature calculation
 			const stageName = this.#getStageNameForTask(taskName);
 			this.#currentStageSignatures.set(stageName, currentSignaturePair);
@@ -863,6 +881,12 @@ export default class ProjectBuildCache {
 		}
 		// Reset current project reader
 		this.#currentProjectReader = null;
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`recordTaskResult for task ${taskName} in project ${this.#project.getName()} ` +
+				`completed in ${(performance.now() - recordStart).toFixed(2)} ms ` +
+				`(${writtenResourcePaths.length} written resources, delta=${!!cacheInfo})`);
+		}
 	}
 
 	/**
@@ -945,7 +969,14 @@ export default class ProjectBuildCache {
 	 */
 	async #revalidateSourceIndex() {
 		const sourceReader = this.#project.getSourceReader();
+		const globStart = performance.now();
 		const currentResources = await sourceReader.byGlob("/**/*");
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`#revalidateSourceIndex byGlob for project ${this.#project.getName()} ` +
+				`completed in ${(performance.now() - globStart).toFixed(2)} ms ` +
+				`(${currentResources.length} resources)`);
+		}
 
 		const tree = this.#sourceIndex.getTree();
 		const indexedPaths = new Set(this.#sourceIndex.getResourcePaths());
@@ -1015,6 +1046,7 @@ export default class ProjectBuildCache {
 		const sourceSignature = this.#sourceIndex.getSignature();
 
 		// Read untransformed source files
+		const readStart = performance.now();
 		const resources = await Promise.all(untransformedPaths.map(async (resourcePath) => {
 			const resource = await sourceReader.byPath(resourcePath);
 			if (!resource) {
@@ -1024,10 +1056,22 @@ export default class ProjectBuildCache {
 			}
 			return resource;
 		}));
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`#freezeUntransformedSources byPath reads for project ${this.#project.getName()} ` +
+				`completed in ${(performance.now() - readStart).toFixed(2)} ms ` +
+				`(${resources.length} resources)`);
+		}
 
 		// Write resources to CAS and collect metadata (reuses existing helper)
+		const writeStart = performance.now();
 		const resourceMetadata = await this.#writeStageResources(
 			resources, "source", sourceSignature, this.#knownCasIntegrities);
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`#freezeUntransformedSources writeStageResources for project ${this.#project.getName()} ` +
+				`completed in ${(performance.now() - writeStart).toFixed(2)} ms`);
+		}
 		this.#collectKnownIntegrities(resourceMetadata);
 
 		// Persist source stage metadata in the stage cache
@@ -1086,9 +1130,17 @@ export default class ProjectBuildCache {
 	 * @throws {Error} If source files were modified during the build
 	 */
 	async allTasksCompleted() {
+		const allTasksStart = performance.now();
 		this.#project.getProjectResources().useResultStage();
 
+		const revalidateStart = performance.now();
 		const sourceChangedDuringBuild = await this.#revalidateSourceIndex();
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`allTasksCompleted #revalidateSourceIndex for project ${this.#project.getName()} ` +
+				`completed in ${(performance.now() - revalidateStart).toFixed(2)} ms ` +
+				`(changed=${sourceChangedDuringBuild})`);
+		}
 		if (sourceChangedDuringBuild) {
 			throw new Error(
 				`Detected changes to source files of project ${this.#project.getName()} during the build. ` +
@@ -1097,7 +1149,13 @@ export default class ProjectBuildCache {
 		}
 
 		// Write untransformed source files to CAS for downstream consumer protection
+		const freezeStart = performance.now();
 		await this.#freezeUntransformedSources();
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`allTasksCompleted #freezeUntransformedSources for project ${this.#project.getName()} ` +
+				`completed in ${(performance.now() - freezeStart).toFixed(2)} ms`);
+		}
 
 		if (this.#combinedIndexState === INDEX_STATES.INITIAL) {
 			this.#combinedIndexState = INDEX_STATES.FRESH;
@@ -1109,6 +1167,12 @@ export default class ProjectBuildCache {
 
 		// Reset updated resource paths
 		this.#writtenResultResourcePaths = [];
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`allTasksCompleted for project ${this.#project.getName()} ` +
+				`completed in ${(performance.now() - allTasksStart).toFixed(2)} ms ` +
+				`(${changedPaths.length} changed paths)`);
+		}
 		return changedPaths;
 	}
 
