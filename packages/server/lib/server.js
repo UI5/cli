@@ -174,7 +174,7 @@ export async function serve(graph, {
 	}
 	const buildServer = await graph.serve({
 		initialBuildIncludedDependencies,
-		excludedTasks: ["minify"],
+		excludedTasks: ["minify", "generateLibraryPreload", "generateComponentPreload", "generateBundle"],
 	});
 
 	const resources = {
