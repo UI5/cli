@@ -985,12 +985,16 @@ test("restoreFrozenSources: cache hit creates CAS reader", async (t) => {
 	t.truthy(result, "Cache restored successfully");
 
 	// Verify readStageCache was called with "source" stageId and the correct signature
+	// Two calls expected: first from #initSourceIndex (pre-populating knownCasIntegrities using the
+	// cached tree's root hash), second from #restoreFrozenSources (using the result cache's source signature)
 	const sourceReadCalls = cacheManager.readStageCache.getCalls().filter(
 		(call) => call.args[2] === "source"
 	);
-	t.true(sourceReadCalls.length > 0, "readStageCache was called for source stage");
-	t.is(sourceReadCalls[0].args[3], "source-sig-456",
-		"readStageCache called with correct source signature");
+	t.is(sourceReadCalls.length, 2, "readStageCache was called twice for source stage");
+	t.is(sourceReadCalls[0].args[3], "hash-a",
+		"First readStageCache call uses cached tree root hash for knownCasIntegrities pre-population");
+	t.is(sourceReadCalls[1].args[3], "source-sig-456",
+		"Second readStageCache call uses correct source signature for frozen source restore");
 
 	// Verify setFrozenSourceReader was called on project resources after restore
 	const projectResources = project.getProjectResources();
