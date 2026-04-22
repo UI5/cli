@@ -1212,6 +1212,21 @@ export default class ProjectBuildCache {
 			const {resourceIndex, changedPaths} =
 				await ResourceIndex.fromCacheWithDelta(indexCache, resources, Date.now());
 
+			// Pre-populate knownCasIntegrities from the previous build's frozen source stage.
+			// The source stage metadata records which resources were actually written to CAS
+			// by the previous build's #freezeUntransformedSources. Using this instead of the
+			// source index tree ensures we only skip CAS writes for resources that genuinely
+			// exist in CAS (the tree may contain integrities from newly added or modified files
+			// that were never written to CAS).
+			const cachedSourceSignature = indexCache.indexTree.root.hash;
+			if (cachedSourceSignature) {
+				const sourceStageMetadata = await this.#cacheManager.readStageCache(
+					this.#project.getId(), this.#buildSignature, "source", cachedSourceSignature);
+				if (sourceStageMetadata?.resourceMetadata) {
+					this.#collectKnownIntegrities(sourceStageMetadata.resourceMetadata);
+				}
+			}
+
 			// Import task caches
 			const buildTaskCaches = await Promise.all(
 				indexCache.tasks.map(async ([taskName, supportsDifferentialBuilds]) => {
