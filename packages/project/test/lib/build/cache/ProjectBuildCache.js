@@ -800,6 +800,222 @@ test("freezeUntransformedSources: throws when source file not found", async (t) 
 		"Error message mentions CAS freeze");
 });
 
+// ===== DELTA FREEZE REUSE TESTS =====
+
+/**
+ * Helper that creates a ProjectBuildCache from a warm cache (with index cache and previous
+ * frozen source metadata), runs a single task, and returns the cache + mocks for assertions.
+ *
+ * @param {object} options
+ * @param {Array} options.sourceResources Resources returned by the source reader
+ * @param {string[]} options.taskWrittenPaths Paths written by the task
+ * @param {object} options.previousFrozenMetadata Previous build's frozen source resourceMetadata
+ * @param {string} [options.cachedSourceSignature="prev-source-sig"] Signature from the cached index tree root
+ */
+async function buildCacheWithWarmCacheAndTaskResult({
+	sourceResources, taskWrittenPaths, previousFrozenMetadata, cachedSourceSignature = "prev-source-sig"
+}) {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const buildSignature = "test-sig";
+
+	// Source reader returns given resources for byGlob and individual byPath
+	project.getSourceReader.callsFake(() => ({
+		byGlob: sinon.stub().resolves(sourceResources),
+		byPath: sinon.stub().callsFake((path) => {
+			const res = sourceResources.find((r) => r.getPath() === path);
+			return Promise.resolve(res || null);
+		})
+	}));
+
+	// Build an indexCache that matches the source resources with no changes detected
+	const children = {};
+	for (const res of sourceResources) {
+		const p = res.getPath();
+		const name = p.slice(1); // strip leading /
+		const integrity = await res.getIntegrity();
+		const size = await res.getSize();
+		children[name] = {
+			name,
+			type: "resource",
+			hash: `node-hash-${name}`,
+			integrity,
+			lastModified: res.getLastModified(),
+			size,
+			inode: res.getInode(),
+			tags: null
+		};
+	}
+
+	const indexCache = {
+		version: "1.0",
+		indexTree: {
+			version: 1,
+			indexTimestamp: 500, // Earlier than resource lastModified (1000) so matchMetadata says unchanged
+			root: {
+				name: "",
+				type: "directory",
+				hash: cachedSourceSignature,
+				children
+			}
+		},
+		tasks: [["myTask", 0]]
+	};
+
+	// Mock task metadata for the cached task
+	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
+		return Promise.resolve({
+			requestSetGraph: {nodes: [], nextId: 1},
+			rootIndices: [],
+			deltaIndices: [],
+			unusedAtLeastOnce: false
+		});
+	});
+
+	// Return previous frozen source metadata when readStageCache is called
+	// with the cached source signature during initSourceIndex
+	cacheManager.readStageCache.callsFake((projectId, buildSig, stageId, stageSignature) => {
+		if (stageId === "source" && stageSignature === cachedSourceSignature && previousFrozenMetadata) {
+			return Promise.resolve({resourceMetadata: previousFrozenMetadata});
+		}
+		return Promise.resolve(null);
+	});
+
+	cacheManager.readIndexCache.resolves(indexCache);
+
+	const cache = await ProjectBuildCache.create(project, buildSignature, cacheManager);
+	await cache.initSourceIndex();
+
+	// Set up and execute a task
+	await cache.setTasks(["myTask"]);
+	await cache.prepareTaskExecutionAndValidateCache("myTask");
+
+	// Simulate task writing some resources
+	const writtenResources = taskWrittenPaths.map(
+		(p) => createMockResource(p, `hash-${p}`, 2000, 200, 2)
+	);
+	project.getProjectResources().getStage.returns({
+		getId: () => "task/myTask",
+		getWriter: sinon.stub().returns({
+			byGlob: sinon.stub().resolves(writtenResources)
+		})
+	});
+
+	const projectRequests = {paths: new Set(), patterns: new Set()};
+	const dependencyRequests = {paths: new Set(), patterns: new Set()};
+	await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, null, false);
+
+	return {cache, project, cacheManager};
+}
+
+test("freezeUntransformedSources: fast path — reuses all entries from previous metadata", async (t) => {
+	const resA = createMockResource("/a.js", "hash-a", 1000, 100, 1);
+	const resB = createMockResource("/b.js", "hash-b", 1000, 100, 2);
+	const resC = createMockResource("/c.js", "hash-c", 1000, 100, 3);
+	const resD = createMockResource("/d.js", "hash-d", 1000, 100, 4);
+
+	// Previous frozen metadata covers /c.js and /d.js (the untransformed ones)
+	const previousFrozenMetadata = {
+		"/c.js": {integrity: "hash-c", lastModified: 1000, size: 100, inode: 3},
+		"/d.js": {integrity: "hash-d", lastModified: 1000, size: 100, inode: 4},
+	};
+
+	// Task writes /a.js and /b.js — so /c.js and /d.js are untransformed
+	const {cache, cacheManager} = await buildCacheWithWarmCacheAndTaskResult({
+		sourceResources: [resA, resB, resC, resD],
+		taskWrittenPaths: ["/a.js", "/b.js"],
+		previousFrozenMetadata,
+	});
+
+	await cache.allTasksCompleted();
+
+	// writeStageResource should NOT be called — all metadata was reused
+	t.is(cacheManager.writeStageResource.callCount, 0,
+		"No CAS writes needed when all metadata is reused");
+
+	// writeStageCache SHOULD be called with the reused metadata
+	const sourceStageCalls = cacheManager.writeStageCache.getCalls().filter(
+		(call) => call.args[2] === "source"
+	);
+	t.is(sourceStageCalls.length, 1, "writeStageCache called once for source stage");
+
+	const writtenMetadata = sourceStageCalls[0].args[4].resourceMetadata;
+	t.truthy(writtenMetadata["/c.js"], "Reused metadata for /c.js");
+	t.truthy(writtenMetadata["/d.js"], "Reused metadata for /d.js");
+	t.falsy(writtenMetadata["/a.js"], "No metadata for transformed /a.js");
+	t.falsy(writtenMetadata["/b.js"], "No metadata for transformed /b.js");
+	t.is(writtenMetadata["/c.js"].integrity, "hash-c", "Correct integrity for /c.js");
+});
+
+test("freezeUntransformedSources: delta path — only reads new files missing from previous metadata", async (t) => {
+	const resA = createMockResource("/a.js", "hash-a", 1000, 100, 1);
+	const resB = createMockResource("/b.js", "hash-b", 1000, 100, 2);
+	const resC = createMockResource("/c.js", "hash-c", 1000, 100, 3);
+	const resD = createMockResource("/d.js", "hash-d", 1000, 100, 4);
+	const resE = createMockResource("/e.js", "hash-e", 1000, 100, 5);
+
+	// Previous frozen metadata only covers /c.js and /d.js
+	// /e.js is a newly added file (not in previous metadata)
+	const previousFrozenMetadata = {
+		"/c.js": {integrity: "hash-c", lastModified: 1000, size: 100, inode: 3},
+		"/d.js": {integrity: "hash-d", lastModified: 1000, size: 100, inode: 4},
+	};
+
+	// Task writes /a.js and /b.js — so /c.js, /d.js, /e.js are untransformed
+	const {cache, cacheManager} = await buildCacheWithWarmCacheAndTaskResult({
+		sourceResources: [resA, resB, resC, resD, resE],
+		taskWrittenPaths: ["/a.js", "/b.js"],
+		previousFrozenMetadata,
+	});
+
+	await cache.allTasksCompleted();
+
+	// writeStageResource should be called only for /e.js (the new file)
+	const stageResourceCalls = cacheManager.writeStageResource.getCalls();
+	const writtenPaths = stageResourceCalls.map((call) => call.args[3].getOriginalPath());
+	t.is(writtenPaths.length, 1, "Only 1 CAS write for the new file");
+	t.true(writtenPaths.includes("/e.js"), "New file /e.js written to CAS");
+
+	// Merged metadata should contain all 3 untransformed files
+	const sourceStageCalls = cacheManager.writeStageCache.getCalls().filter(
+		(call) => call.args[2] === "source"
+	);
+	const writtenMetadata = sourceStageCalls[0].args[4].resourceMetadata;
+	t.truthy(writtenMetadata["/c.js"], "Reused metadata for /c.js");
+	t.truthy(writtenMetadata["/d.js"], "Reused metadata for /d.js");
+	t.truthy(writtenMetadata["/e.js"], "New metadata for /e.js");
+	t.is(writtenMetadata["/c.js"].integrity, "hash-c", "Correct reused integrity for /c.js");
+	t.is(writtenMetadata["/e.js"].integrity, "hash-e", "Correct new integrity for /e.js");
+});
+
+test("freezeUntransformedSources: removed file excluded from reused metadata", async (t) => {
+	const resA = createMockResource("/a.js", "hash-a", 1000, 100, 1);
+	const resC = createMockResource("/c.js", "hash-c", 1000, 100, 3);
+
+	// Previous frozen metadata contains /c.js and /removed.js
+	// /removed.js no longer exists in source index
+	const previousFrozenMetadata = {
+		"/c.js": {integrity: "hash-c", lastModified: 1000, size: 100, inode: 3},
+		"/removed.js": {integrity: "hash-removed", lastModified: 1000, size: 100, inode: 9},
+	};
+
+	// Task writes /a.js — /c.js is untransformed. /removed.js is gone from sources.
+	const {cache, cacheManager} = await buildCacheWithWarmCacheAndTaskResult({
+		sourceResources: [resA, resC],
+		taskWrittenPaths: ["/a.js"],
+		previousFrozenMetadata,
+	});
+
+	await cache.allTasksCompleted();
+
+	const sourceStageCalls = cacheManager.writeStageCache.getCalls().filter(
+		(call) => call.args[2] === "source"
+	);
+	const writtenMetadata = sourceStageCalls[0].args[4].resourceMetadata;
+	t.truthy(writtenMetadata["/c.js"], "Reused metadata for /c.js");
+	t.falsy(writtenMetadata["/removed.js"], "Removed file NOT in metadata");
+});
+
 // ===== RESULT METADATA SHAPE TESTS =====
 
 test("writeResultCache: metadata includes sourceStageSignature", async (t) => {

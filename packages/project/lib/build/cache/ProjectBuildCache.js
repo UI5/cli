@@ -68,6 +68,11 @@ export default class ProjectBuildCache {
 	// Populated during the restore phase, consulted during writes to skip redundant CAS lookups.
 	#knownCasIntegrities = new Set();
 
+	// Previous build's frozen source resourceMetadata, loaded from cache during #initSourceIndex().
+	// Used in #freezeUntransformedSources() to skip re-reading unchanged untransformed source files.
+	// Updated after each freeze for reuse in subsequent BuildServer builds.
+	#cachedFrozenSourceMetadata = null;
+
 	#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
 	#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
 
@@ -1039,39 +1044,101 @@ export default class ProjectBuildCache {
 		if (untransformedPaths.length === 0) {
 			log.verbose(
 				`All source files of project ${this.#project.getName()} are overlayed by build tasks`);
+			this.#cachedFrozenSourceMetadata = null;
 			return;
 		}
 
-		const sourceReader = this.#project.getSourceReader();
 		const sourceSignature = this.#sourceIndex.getSignature();
+		const previousMetadata = this.#cachedFrozenSourceMetadata;
 
-		// Read untransformed source files
-		const readStart = performance.now();
-		const resources = await Promise.all(untransformedPaths.map(async (resourcePath) => {
-			const resource = await sourceReader.byPath(resourcePath);
-			if (!resource) {
-				throw new Error(
-					`Source file ${resourcePath} not found during CAS freeze ` +
-					`for project ${this.#project.getName()}`);
+		let resourceMetadata;
+		if (previousMetadata) {
+			// Delta path: reuse previous metadata for unchanged untransformed paths
+			const pathsToRead = [];
+			const reusedMetadata = Object.create(null);
+			for (const p of untransformedPaths) {
+				if (previousMetadata[p]) {
+					reusedMetadata[p] = previousMetadata[p];
+				} else {
+					pathsToRead.push(p);
+				}
 			}
-			return resource;
-		}));
-		if (log.isLevelEnabled("perf")) {
-			log.perf(
-				`#freezeUntransformedSources byPath reads for project ${this.#project.getName()} ` +
-				`completed in ${(performance.now() - readStart).toFixed(2)} ms ` +
-				`(${resources.length} resources)`);
+
+			if (pathsToRead.length === 0) {
+				// Fast path: all metadata reused from previous build
+				resourceMetadata = reusedMetadata;
+				if (log.isLevelEnabled("perf")) {
+					log.perf(
+						`#freezeUntransformedSources for project ${this.#project.getName()}: ` +
+						`reused all ${untransformedPaths.length} entries from previous metadata`);
+				}
+			} else {
+				// Delta path: read only new/newly-untransformed paths
+				const sourceReader = this.#project.getSourceReader();
+				const readStart = log.isLevelEnabled("perf") ? performance.now() : 0;
+				const resources = await Promise.all(pathsToRead.map(async (resourcePath) => {
+					const resource = await sourceReader.byPath(resourcePath);
+					if (!resource) {
+						throw new Error(
+							`Source file ${resourcePath} not found during CAS freeze ` +
+							`for project ${this.#project.getName()}`);
+					}
+					return resource;
+				}));
+				if (log.isLevelEnabled("perf")) {
+					log.perf(
+						`#freezeUntransformedSources byPath reads for project ${this.#project.getName()} ` +
+						`completed in ${(performance.now() - readStart).toFixed(2)} ms ` +
+						`(${resources.length} of ${untransformedPaths.length} resources)`);
+				}
+
+				const writeStart = log.isLevelEnabled("perf") ? performance.now() : 0;
+				const deltaMetadata = await this.#writeStageResources(
+					resources, "source", sourceSignature, this.#knownCasIntegrities);
+				if (log.isLevelEnabled("perf")) {
+					log.perf(
+						`#freezeUntransformedSources writeStageResources for project ` +
+						`${this.#project.getName()} ` +
+						`completed in ${(performance.now() - writeStart).toFixed(2)} ms`);
+				}
+
+				// Merge: reused entries + delta entries
+				resourceMetadata = reusedMetadata;
+				for (const [path, meta] of Object.entries(deltaMetadata)) {
+					resourceMetadata[path] = meta;
+				}
+			}
+		} else {
+			// Cold cache: read all untransformed sources (no previous metadata available)
+			const sourceReader = this.#project.getSourceReader();
+			const readStart = log.isLevelEnabled("perf") ? performance.now() : 0;
+			const resources = await Promise.all(untransformedPaths.map(async (resourcePath) => {
+				const resource = await sourceReader.byPath(resourcePath);
+				if (!resource) {
+					throw new Error(
+						`Source file ${resourcePath} not found during CAS freeze ` +
+						`for project ${this.#project.getName()}`);
+				}
+				return resource;
+			}));
+			if (log.isLevelEnabled("perf")) {
+				log.perf(
+					`#freezeUntransformedSources byPath reads for project ${this.#project.getName()} ` +
+					`completed in ${(performance.now() - readStart).toFixed(2)} ms ` +
+					`(${resources.length} resources)`);
+			}
+
+			const writeStart = log.isLevelEnabled("perf") ? performance.now() : 0;
+			resourceMetadata = await this.#writeStageResources(
+				resources, "source", sourceSignature, this.#knownCasIntegrities);
+			if (log.isLevelEnabled("perf")) {
+				log.perf(
+					`#freezeUntransformedSources writeStageResources for project ` +
+					`${this.#project.getName()} ` +
+					`completed in ${(performance.now() - writeStart).toFixed(2)} ms`);
+			}
 		}
 
-		// Write resources to CAS and collect metadata (reuses existing helper)
-		const writeStart = performance.now();
-		const resourceMetadata = await this.#writeStageResources(
-			resources, "source", sourceSignature, this.#knownCasIntegrities);
-		if (log.isLevelEnabled("perf")) {
-			log.perf(
-				`#freezeUntransformedSources writeStageResources for project ${this.#project.getName()} ` +
-				`completed in ${(performance.now() - writeStart).toFixed(2)} ms`);
-		}
 		this.#collectKnownIntegrities(resourceMetadata);
 
 		// Persist source stage metadata in the stage cache
@@ -1085,8 +1152,10 @@ export default class ProjectBuildCache {
 
 		// Create CAS-backed proxy reader for the untransformed source files
 		const casSourceReader = this.#createReaderForStageCache("source", sourceSignature, resourceMetadata);
-
 		this.#project.getProjectResources().setFrozenSourceReader(casSourceReader);
+
+		// Retain for potential reuse in subsequent BuildServer builds
+		this.#cachedFrozenSourceMetadata = resourceMetadata;
 	}
 
 	/**
@@ -1224,6 +1293,7 @@ export default class ProjectBuildCache {
 					this.#project.getId(), this.#buildSignature, "source", cachedSourceSignature);
 				if (sourceStageMetadata?.resourceMetadata) {
 					this.#collectKnownIntegrities(sourceStageMetadata.resourceMetadata);
+					this.#cachedFrozenSourceMetadata = sourceStageMetadata.resourceMetadata;
 				}
 			}
 
