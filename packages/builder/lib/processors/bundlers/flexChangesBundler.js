@@ -7,6 +7,8 @@ import {createResource} from "@ui5/fs/resourceFactory";
  * @module @ui5/builder/processors/bundlers/flexChangesBundler
  */
 
+const noChangeBundleChangeTypes = [];
+
 /**
  * Bundles all supplied changes.
  *
@@ -77,11 +79,22 @@ export default function({resources, options: {pathPrefix, hasFlexBundleVersion},
 			}
 		});
 
-		if (!hasFlexBundleVersion && (compVariants.length != 0 || variants.length != 0 || variantChanges.length != 0 ||
-				variantDependentControlChanges.length != 0 || variantManagementChanges.length != 0)) {
-			throw new Error(
-				"There are some control variant changes in the changes folder. This only works with a " +
-				"minUI5Version 1.73.0. Please update the minUI5Version in the manifest.json to 1.73.0 or higher");
+		if (!hasFlexBundleVersion) {
+			if (compVariants.length != 0 || variants.length != 0 || variantChanges.length != 0 ||
+					variantDependentControlChanges.length != 0 || variantManagementChanges.length != 0) {
+				throw new Error(
+					"There are some control variant changes in the changes folder. This only works with a " +
+					"minUI5Version 1.73.0. Please update the minUI5Version in the manifest.json to 1.73.0 or higher");
+			}
+
+			const bundleContainsNoChangeBundleChangeTypes =
+				changes.some((change) => noChangeBundleChangeTypes.includes(change.changeType));
+
+			if (bundleContainsNoChangeBundleChangeTypes) {
+				throw new Error(
+					"There are some changes types in the changes folderonly working with a " +
+					"minUI5Version 1.73.0. Please update the minUI5Version in the manifest.json to 1.73.0 or higher");
+			}
 		}
 		// create changes-bundle.json
 		if (!hasFlexBundleVersion) {

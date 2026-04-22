@@ -111,6 +111,61 @@ test("flexChangesBundler with 2 changes", async (t) => {
 	t.deepEqual(parsedContent, flexBundle, "Result must contain the content");
 });
 
+test("includes annotation_changes in flexibility-bundle when hasFlexBundleVersion = true", async (t) => {
+	const change = {
+		"fileName": "id_annotation_change",
+		"fileType": "annotation_changes",
+		"changeType": "annotationUpdate",
+		"reference": "test.Component",
+		"packageName": "$TMP",
+		"content": {},
+		"selector": {"id": "a"},
+		"layer": "CUSTOMER",
+		"creation": "2020-01-01T00:00:00.000Z",
+		"support": {"generator": "g", "service": "", "user": "", "sapui5Version": "1.75.0"}
+	};
+
+	const resources = [{
+		name: "flexChange",
+		getBuffer: async () => JSON.stringify(change)
+	}];
+
+	const options = {pathPrefix: "/mypath", hasFlexBundleVersion: true};
+	const aResult = await flexChangesBundler({resources, options});
+	t.is(aResult.length, 1);
+	const parsed = JSON.parse(await aResult[0].getString());
+	t.true(Array.isArray(parsed.annotationChanges));
+	t.is(parsed.annotationChanges.length, 1, "annotation_changes should be included in flex bundle");
+	// ensure the item is preserved
+	t.deepEqual(parsed.annotationChanges[0], change);
+});
+
+test("annotation_changes triggers error when hasFlexBundleVersion = false", async (t) => {
+	const change = {
+		"fileName": "id_annotation_change2",
+		"fileType": "annotation_changes",
+		"changeType": "annotationUpdate",
+		"reference": "test.Component",
+		"packageName": "$TMP",
+		"content": {},
+		"selector": {"id": "a"},
+		"layer": "CUSTOMER",
+		"creation": "2020-01-01T00:00:00.000Z",
+		"support": {"generator": "g", "service": "", "user": "", "sapui5Version": "1.51.0"}
+	};
+
+	const resources = [{
+		name: "flexChange",
+		getBuffer: async () => JSON.stringify(change)
+	}];
+
+	const options = {pathPrefix: "/mypath", hasFlexBundleVersion: false};
+	await t.throwsAsync(
+		() => flexChangesBundler({resources, options}),
+		{message: /1\.73/}
+	);
+});
+
 test("flexChangesBundler has ctrl_variant and hasFlexBundleVersion = true", async (t) => {
 	const changeList = [
 		{
