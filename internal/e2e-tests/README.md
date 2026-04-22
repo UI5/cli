@@ -32,5 +32,3 @@ Located under `./fixtures/`:
 |---|---|
 | `application.a` | Sample JavaScript project (controller + `manifest.json`) |
 | `application.a.ts` | Sample TypeScript project (based on [generator-ui5-ts-app](https://github.com/ui5-community/generator-ui5-ts-app)) |
-
-> **Note:** These tests are not yet included in any CI pipeline.
