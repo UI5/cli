@@ -111,7 +111,85 @@ test("flexChangesBundler with 2 changes", async (t) => {
 	t.deepEqual(parsedContent, flexBundle, "Result must contain the content");
 });
 
+test("includes annotation_changes in flexibility-bundle when hasFlexBundleVersion = true", async (t) => {
+	const change = {
+		"fileName": "id_annotation_change",
+		"fileType": "annotation_change",
+		"changeType": "annotationUpdate",
+		"reference": "test.Component",
+		"packageName": "$TMP",
+		"content": {},
+		"selector": {"id": "a"},
+		"layer": "CUSTOMER",
+		"creation": "2020-01-01T00:00:00.000Z",
+		"support": {"generator": "g", "service": "", "user": "", "sapui5Version": "1.75.0"}
+	};
+
+	const resources = [{
+		name: "flexChange",
+		getBuffer: async () => JSON.stringify(change)
+	}];
+
+	const options = {pathPrefix: "/mypath", hasFlexBundleVersion: true};
+	const aResult = await flexChangesBundler({resources, options});
+	t.is(aResult.length, 1);
+	const parsed = JSON.parse(await aResult[0].getString());
+	t.true(Array.isArray(parsed.annotationChanges));
+	t.is(parsed.annotationChanges.length, 1, "annotation_changes should be included in flex bundle");
+	// ensure the item is preserved
+	t.deepEqual(parsed.annotationChanges[0], change);
+});
+
+test("annotation_changes triggers error when hasFlexBundleVersion = false", async (t) => {
+	const change = {
+		"fileName": "id_annotation_change2",
+		"fileType": "annotation_change",
+		"changeType": "annotationUpdate",
+		"reference": "test.Component",
+		"packageName": "$TMP",
+		"content": {},
+		"selector": {"id": "a"},
+		"layer": "CUSTOMER",
+		"creation": "2020-01-01T00:00:00.000Z",
+		"support": {"generator": "g", "service": "", "user": "", "sapui5Version": "1.51.0"}
+	};
+
+	const resources = [{
+		name: "flexChange",
+		getBuffer: async () => JSON.stringify(change)
+	}];
+
+	const options = {pathPrefix: "/mypath", hasFlexBundleVersion: false};
+	await t.throwsAsync(
+		() => flexChangesBundler({resources, options}),
+		{message: /1\.73/}
+	);
+});
+
 test("flexChangesBundler has ctrl_variant and hasFlexBundleVersion = true", async (t) => {
+	const annotationChange = [{
+		"fileName": "annotationChange",
+		"title": "annotaitonChange",
+		"variantReference": "sap.ui.demo.todo.Component",
+		"fileType": "annotation_change",
+		"component": "lrep.x.Component",
+		"packageName": "$TMP",
+		"content": {},
+		"selector": {
+			"id": ""
+		},
+		"layer": "VENDOR",
+		"texts": {},
+		"namespace": "l/x/",
+		"creation": "20170705-12-00-00",
+		"originalLanguage": "EN",
+		"conditions": {},
+		"support": {
+			"generator": "Change.createInitialFileContent",
+			"service": "",
+			"user": "SAP"
+		}
+	}];
 	const changeList = [
 		{
 			"fileName": "id_1504764957630_7_rename2",
@@ -341,44 +419,25 @@ test("flexChangesBundler has ctrl_variant and hasFlexBundleVersion = true", asyn
 	}];
 
 	const resources = [];
-	changeList.forEach((change) => {
-		resources.push({
-			name: "flexChange",
-			getBuffer: async () => JSON.stringify(change)
-		});
-	});
-	compVariants.forEach((change) => {
-		resources.push({
-			name: "flexChange",
-			getBuffer: async () => JSON.stringify(change)
-		});
-	});
-	variantDependentControlChange.forEach((change) => {
-		resources.push({
-			name: "flexChange",
-			getBuffer: async () => JSON.stringify(change)
-		});
-	});
-	ctrlVariantChange.forEach((change) => {
-		resources.push({
-			name: "flexChange",
-			getBuffer: async () => JSON.stringify(change)
-		});
-	});
-	ctrlVariantManagementChange.forEach((change) => {
-		resources.push({
-			name: "flexChange",
-			getBuffer: async () => JSON.stringify(change)
-		});
-	});
-	ctrlVariant.forEach((change) => {
-		resources.push({
-			name: "flexChange",
-			getBuffer: async () => JSON.stringify(change)
+	[
+		annotationChange,
+		changeList,
+		compVariants,
+		variantDependentControlChange,
+		ctrlVariantChange,
+		ctrlVariantManagementChange,
+		ctrlVariant
+	].forEach((entities) => {
+		entities.forEach((change) => {
+			resources.push({
+				name: "flexChange",
+				getBuffer: async () => JSON.stringify(change)
+			});
 		});
 	});
 
 	const flexBundle = {
+		"annotationChanges": annotationChange,
 		"changes": changeList,
 		"compVariants": compVariants,
 		"variantChanges": ctrlVariantChange,
@@ -401,6 +460,7 @@ test("flexChangesBundler has ctrl_variant and hasFlexBundleVersion = true", asyn
 	// check content
 	const content = await oResult.getString();
 	const parsedContent = JSON.parse(content);
+console.log(parsedContent);
 	t.deepEqual(parsedContent, flexBundle, "Result must contain the content");
 });
 
@@ -488,9 +548,8 @@ test("flexChangesBundler has ctrl_variant and hasFlexBundleVersion = false", asy
 	};
 
 	const error = await t.throwsAsync(flexChangesBundler({resources, options}));
-	t.deepEqual(error.message, "There are some control variant changes in the changes folder. " +
-		"This only works with a minUI5Version 1.73.0. Please update the minUI5Version in the manifest.json " +
-		"to 1.73.0 or higher", "Correct exception thrown");
+	t.deepEqual(error.message, "There are some files in the changes folder working only with a ui5 version 1.73 and above. " +
+				"Please update the minUI5Version in the manifest.json to 1.73 or higher", "Correct exception thrown");
 });
 
 test("flexChangesBundler with existing flexibility-bundle.json", async (t) => {
@@ -914,6 +973,7 @@ test("flexChangesBundler with existing flexibility-bundle.json", async (t) => {
 	});
 
 	const existingFlexBundle = {
+		"annotationChanges": [],
 		"changes": existingChangeList,
 		"compVariants": existingCompVariants,
 		"variantChanges": existingCtrlVariantChange,
@@ -922,6 +982,7 @@ test("flexChangesBundler with existing flexibility-bundle.json", async (t) => {
 		"variants": existingCtrlVariant
 	};
 	const flexBundle = {
+		"annotationChanges": [],
 		"changes": existingChangeList.concat(changeList),
 		"compVariants": existingCompVariants.concat(compVariants),
 		"variantChanges": existingCtrlVariantChange.concat(ctrlVariantChange),
@@ -1218,11 +1279,13 @@ test("flexChangesBundler with existing flexibility-bundle.json and missing/wrong
 	});
 
 	const existingFlexBundle = {
+		"annotationChanges": [],
 		"changes": existingChangeList,
 		"compVariants": "test",
 		"test_property": []
 	};
 	const flexBundle = {
+		"annotationChanges": [],
 		"changes": existingChangeList.concat(changeList),
 		"compVariants": compVariants,
 		"variantChanges": ctrlVariantChange,

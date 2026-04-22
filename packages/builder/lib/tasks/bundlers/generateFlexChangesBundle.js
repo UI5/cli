@@ -95,7 +95,7 @@ export default async function({workspace, taskUtil, options = {}}) {
 
 	log.verbose("Collecting flexibility changes");
 	const allResources = await workspace.byGlob(
-		`${pathPrefix}/changes/*.{change,variant,ctrl_variant,ctrl_variant_change,ctrl_variant_management_change}`);
+		`${pathPrefix}/changes/*.{annotation_change,change,variant,ctrl_variant,ctrl_variant_change,ctrl_variant_management_change}`);
 
 	let bBundleCreated = false;
 
