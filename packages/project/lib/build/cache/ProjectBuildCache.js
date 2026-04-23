@@ -3,7 +3,6 @@ import {getLogger} from "@ui5/logger";
 import fs from "graceful-fs";
 import {promisify} from "node:util";
 import crypto from "node:crypto";
-import {PassThrough} from "node:stream";
 import {gunzip, createGunzip} from "node:zlib";
 const readFile = promisify(fs.readFile);
 import BuildTaskCache from "./BuildTaskCache.js";
@@ -1526,7 +1525,7 @@ export default class ProjectBuildCache {
 			if (knownCasIntegrities?.has(integrity)) {
 				casSkipped++;
 			} else {
-				await this.#cacheManager.writeStageResource(this.#buildSignature, stageId, stageSignature, res);
+				await this.#cacheManager.writeStageResource(res);
 			}
 
 			resourceMetadata[res.getOriginalPath()] = {
@@ -1621,43 +1620,21 @@ export default class ProjectBuildCache {
 						`in project ${this.#project.getName()}`);
 				}
 
-				// Lazily resolve the cache path on first content access.
-				// This avoids cacache.get.info() I/O during index updates where
-				// only metadata (lastModified, size, integrity, inode) is needed.
-				let cachePathPromise;
-				const resolveCachePath = () => {
-					if (!cachePathPromise) {
-						cachePathPromise = this.#cacheManager.getResourcePathForStage(
-							this.#buildSignature, stageId, stageSignature, virPath, integrity
-						).then((cachePath) => {
-							if (!cachePath) {
-								throw new Error(
-									`Unexpected cache miss for resource ${virPath} of task ${stageId} ` +
-									`in project ${this.#project.getName()}`);
-							}
-							return cachePath;
-						});
-					}
-					return cachePathPromise;
-				};
+				// Compute the CAS content path synchronously from the integrity hash.
+				// No I/O needed — the path is a pure function of the integrity.
+				const cachePath = this.#cacheManager.contentPath(integrity);
 
 				return createResource({
 					path: virPath,
+					sourceMetadata: {
+						adapter: "CAS",
+						fsPath: cachePath,
+						contentModified: false,
+					},
 					createStream: () => {
-						// createStream must return a stream synchronously.
-						// Use a PassThrough as a bridge to defer the async cache path resolution.
-						const passThrough = new PassThrough();
-						resolveCachePath().then((cachePath) => {
-							const src = fs.createReadStream(cachePath).pipe(createGunzip());
-							src.pipe(passThrough);
-							src.on("error", (err) => passThrough.destroy(err));
-						}).catch((err) => {
-							passThrough.destroy(err);
-						});
-						return passThrough;
+						return fs.createReadStream(cachePath).pipe(createGunzip());
 					},
 					createBuffer: async () => {
-						const cachePath = await resolveCachePath();
 						const compressedBuffer = await readFile(cachePath);
 						return await promisify(gunzip)(compressedBuffer);
 					},

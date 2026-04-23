@@ -1,8 +1,6 @@
-import cacache from "cacache";
 import path from "node:path";
 import fs from "graceful-fs";
 import {promisify} from "node:util";
-import {gzip} from "node:zlib";
 const mkdir = promisify(fs.mkdir);
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
@@ -10,23 +8,22 @@ import os from "node:os";
 import Configuration from "../../config/Configuration.js";
 import {getPathFromPackageName} from "../../utils/sanitizeFileName.js";
 import {getLogger} from "@ui5/logger";
+import ContentAddressableStorage from "./ContentAddressableStorage.js";
 
 const log = getLogger("build:cache:CacheManager");
 
 // Singleton instances mapped by cache directory path
 const chacheManagerInstances = new Map();
 
-// Options for cacache operations (using SHA-256 for integrity checks)
-const CACACHE_OPTIONS = {algorithms: ["sha256"]};
-
 // Cache version for compatibility management
-const CACHE_VERSION = "v0_2";
+const CACHE_VERSION = "v0_3";
 
 /**
- * Manages persistence for the build cache using file-based storage and cacache
+ * Manages persistence for the build cache using file-based storage and a
+ * content-addressable storage (CAS) for resource content
  *
  * CacheManager provides a hierarchical file-based cache structure:
- * - cas/ - Content-addressable storage (cacache) for resource content
+ * - cas/ - Content-addressable storage for resource content (gzip-compressed)
  * - buildManifests/ - Build manifest files containing metadata about builds
  * - stageMetadata/ - Stage-level metadata organized by project, build, and stage
  * - index/ - Resource index files for efficient change detection
@@ -38,15 +35,15 @@ const CACHE_VERSION = "v0_2";
  * 4. Stage signature (hash of input resources)
  *
  * Key features:
- * - Content-addressable storage with integrity verification
+ * - Content-addressable storage with synchronous path resolution
  * - Singleton pattern per cache directory
  * - Configurable cache location via UI5_DATA_DIR or configuration
- * - Efficient resource deduplication through cacache
+ * - Efficient resource deduplication through content-addressable storage
  *
  * @class
  */
 export default class CacheManager {
-	#casDir;
+	#cas;
 	#manifestDir;
 	#stageMetadataDir;
 	#taskMetadataDir;
@@ -64,7 +61,7 @@ export default class CacheManager {
 	 */
 	constructor(cacheDir) {
 		cacheDir = path.join(cacheDir, CACHE_VERSION);
-		this.#casDir = path.join(cacheDir, "cas");
+		this.#cas = new ContentAddressableStorage(path.join(cacheDir, "cas"));
 		this.#manifestDir = path.join(cacheDir, "buildManifests");
 		this.#stageMetadataDir = path.join(cacheDir, "stageMetadata");
 		this.#taskMetadataDir = path.join(cacheDir, "taskMetadata");
@@ -420,64 +417,51 @@ export default class CacheManager {
 	}
 
 	/**
-	 * Retrieves the file system path for a cached resource
+	 * Computes the filesystem path for a CAS resource given its integrity hash
 	 *
-	 * Looks up a resource in the content-addressable storage using its cache key
-	 * and verifies its integrity. If integrity mismatches, attempts to recover by
-	 * looking up the content by digest and updating the index.
+	 * This is synchronous — no I/O is performed.
 	 *
 	 * @public
-	 * @param {string} buildSignature Build signature hash
-	 * @param {string} stageId Stage identifier (e.g., "result" or "task/taskName")
-	 * @param {string} stageSignature Stage signature hash
-	 * @param {string} resourcePath Virtual path of the resource
+	 * @param {string} integrity SRI integrity string (e.g., "sha256-...")
+	 * @returns {string} Absolute filesystem path to the cached content file
+	 */
+	contentPath(integrity) {
+		return this.#cas.contentPath(integrity);
+	}
+
+	/**
+	 * Retrieves the file system path for a cached resource
+	 *
+	 * Computes the content path from the integrity hash and verifies the file exists.
+	 *
+	 * @public
 	 * @param {string} integrity Expected integrity hash (e.g., "sha256-...")
 	 * @returns {Promise<string|null>} Absolute path to the cached resource file, or null if not found
 	 * @throws {Error} If integrity is not provided
 	 */
-	async getResourcePathForStage(buildSignature, stageId, stageSignature, resourcePath, integrity) {
+	async getResourcePathForStage(integrity) {
 		if (!integrity) {
 			throw new Error("Integrity hash must be provided to read from cache");
 		}
-		// const cacheKey = this.#createKeyForStage(buildSignature, stageId, stageSignature, resourcePath, integrity);
-		const result = await cacache.get.info(this.#casDir, integrity);
-		if (!result) {
-			return null;
+		if (await this.#cas.has(integrity)) {
+			return this.#cas.contentPath(integrity);
 		}
-		return result.path;
+		return null;
 	}
 
 	/**
-	 * Writes a resource to the cache for a specific stage
+	 * Writes a resource to the content-addressable storage
 	 *
-	 * If the resource content (identified by integrity hash) already exists in the
-	 * content-addressable storage, only updates the index with a new cache key.
-	 * Otherwise, writes the full content to storage.
-	 *
-	 * This enables efficient deduplication when the same resource content appears
-	 * in multiple stages or builds.
+	 * If the resource content (identified by integrity hash) already exists,
+	 * the write is skipped (deduplication).
 	 *
 	 * @public
-	 * @param {string} buildSignature Build signature hash
-	 * @param {string} stageId Stage identifier (e.g., "result" or "task/taskName")
-	 * @param {string} stageSignature Stage signature hash
 	 * @param {@ui5/fs/Resource} resource Resource to cache
 	 * @returns {Promise<void>}
 	 */
-	async writeStageResource(buildSignature, stageId, stageSignature, resource) {
-		// Check if resource has already been written
+	async writeStageResource(resource) {
 		const integrity = await resource.getIntegrity();
-		const hasResource = await cacache.get.info(this.#casDir, integrity);
-		if (!hasResource) {
-			const buffer = await resource.getBuffer();
-			// Compress the buffer using gzip before caching
-			const compressedBuffer = await promisify(gzip)(buffer);
-			await cacache.put(
-				this.#casDir,
-				integrity,
-				compressedBuffer,
-				CACACHE_OPTIONS
-			);
-		}
+		const buffer = await resource.getBuffer();
+		await this.#cas.put(integrity, buffer);
 	}
 }
