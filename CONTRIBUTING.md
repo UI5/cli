@@ -125,11 +125,12 @@ This DCO replaces the previously used CLA ("Contributor License Agreement") as w
 1. Celebrate! 🎉
 
 ### Multi-Branch Development
-There are phases when development of a new major version of UI5 CLI has already started, but this new major version hasn't been released yet. This situation requires a special handling of pull requests / commits if the actual coding change should be both part of the current (e.g. Version 3) and the new major version (e.g. Version 4).
+There are phases when development of a new major version of UI5 CLI has already started, but this new major version hasn't been released yet. This situation requires a special handling of pull requests / commits if the actual coding change should be both part of the current (e.g. Version 4) and the new major version (e.g. Version 5).
 
-1. Create a pull request for the current version (e.g. Version 3) with the desired commit message header `[FEATURE]`, `[FIX]` or `[INTERNAL]`.
+## Bring a commit from UI5 CLI V4 to UI5 CLI V5
+1. Create a pull request for the current version (Version 4) with the desired commit message header `[FEATURE]`, `[FIX]` or `[INTERNAL]`.
 2. Rebase and merge the PR in the current version.
-3. Cherry-pick this commit to the new major version (e.g. Version 4) and change the commit message header to `[INTERNAL]`. With this, you ensure that the coding change does not appear in the changelog of the new major version.
+3. Cherry-pick this commit to the new major version (Version 5) and change the commit message header to the best matching type defined in [Development Conventions and Guidelines](docs/Guidelines.md#commit-message-style).
 
 ### Contributing with AI-generated code
 As artificial intelligence evolves, AI-generated code is becoming valuable for many software projects, including open-source initiatives. While we recognize the potential benefits of incorporating AI-generated content into our open-source projects there are certain requirements that need to be reflected and adhered to when making contributions.
