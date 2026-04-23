@@ -98,7 +98,7 @@
 		"express": "^4.22.1",
 		"fresh": "^0.5.2",
 		"graceful-fs": "^4.2.11",
-		"mime-types": "^2.1.35",
+		"mime-types": "^3.0.2",
 		"parseurl": "^1.3.3",
 		"portscanner": "^2.2.0",
 		"replacestream": "^4.0.3",
