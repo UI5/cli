@@ -291,6 +291,45 @@ class FileSystem extends AbstractAdapter {
 			} else {/* Different paths + modifications require no special handling */}
 		}
 
+		if (sourceMetadata && sourceMetadata.adapter === "CAS" && sourceMetadata.fsPath &&
+			!sourceMetadata.contentModified) {
+			// CAS-backed resource: Stream directly to disk without PassThrough intermediary.
+			// This eliminates one pipe hop and one stream object per resource while maintaining
+			// stream backpressure for I/O throttling at scale (14k+ concurrent writes).
+			log.silly(`Writing CAS resource to ${fsPath}`);
+			await new Promise((resolve, reject) => {
+				const contentStream = resource.getStream();
+				contentStream.on("error", (err) => {
+					reject(err);
+				});
+
+				if (!drain) {
+					// Capture decompressed content for future getBuffer() calls
+					const buffers = [];
+					contentStream.on("data", (data) => {
+						buffers.push(data);
+					});
+					contentStream.on("end", () => {
+						resource.setBuffer(Buffer.concat(buffers));
+					});
+				}
+
+				const writeOptions = {};
+				if (readOnly) {
+					writeOptions.mode = READ_ONLY_MODE;
+				}
+				const write = fs.createWriteStream(fsPath, writeOptions);
+				write.on("error", (err) => {
+					reject(err);
+				});
+				write.on("close", () => {
+					resolve();
+				});
+				contentStream.pipe(write);
+			});
+			return;
+		}
+
 		log.silly(`Writing to ${fsPath}`);
 
 		await new Promise((resolve, reject) => {

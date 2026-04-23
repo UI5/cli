@@ -1,7 +1,11 @@
 import path from "node:path";
-import {readFile} from "node:fs/promises";
+import {readFile, writeFile as fsWriteFile} from "node:fs/promises";
 import {access as fsAccess, constants as fsConstants, mkdir} from "node:fs/promises";
 import {fileURLToPath} from "node:url";
+import {gzipSync} from "node:zlib";
+import {gunzip, createGunzip} from "node:zlib";
+import {promisify} from "node:util";
+import fs from "graceful-fs";
 import test from "ava";
 import {rimraf} from "rimraf";
 import sinon from "sinon";
@@ -303,5 +307,84 @@ test("Migration of resource is executed", async (t) => {
 
 	t.is(migrateResourceWriterSpy.callCount, 1);
 	await t.notThrowsAsync(fileEqual(t, destFsPath, "./test/fixtures/application.a/webapp/index.html"));
+	await t.notThrowsAsync(resource.getBuffer(), "Resource content can still be accessed");
+});
+
+async function createCasResource(t, content, virPath) {
+	const compressedContent = gzipSync(Buffer.from(content, "utf8"));
+	const casDir = path.join(t.context.tmpDirPath, ".cas");
+	await mkdir(casDir, {recursive: true});
+	const casFilePath = path.join(casDir, path.basename(virPath) + ".gz");
+	await fsWriteFile(casFilePath, compressedContent);
+
+	return createResource({
+		path: virPath,
+		sourceMetadata: {
+			adapter: "CAS",
+			fsPath: casFilePath,
+			contentModified: false,
+		},
+		createStream: () => {
+			return fs.createReadStream(casFilePath).pipe(createGunzip());
+		},
+		createBuffer: async () => {
+			const compressedBuffer = await promisify(fs.readFile)(casFilePath);
+			return await promisify(gunzip)(compressedBuffer);
+		},
+	});
+}
+
+test("Write CAS resource", async (t) => {
+	const readerWriters = t.context.readerWriters;
+	const destFsPath = path.join(t.context.tmpDirPath, "index.html");
+	const content = "CAS resource content";
+
+	const resource = await createCasResource(t, content, "/app/index.html");
+	await readerWriters.dest.write(resource);
+
+	await t.notThrowsAsync(fileContent(t, destFsPath, content));
+	await t.notThrowsAsync(resource.getBuffer(), "Resource content can still be accessed");
+});
+
+test("Write CAS resource in readOnly mode", async (t) => {
+	const readerWriters = t.context.readerWriters;
+	const destFsPath = path.join(t.context.tmpDirPath, "index.html");
+	const content = "CAS resource content readOnly";
+
+	const resource = await createCasResource(t, content, "/app/index.html");
+	await readerWriters.dest.write(resource, {readOnly: true});
+
+	await t.notThrowsAsync(fileContent(t, destFsPath, content));
+	await t.notThrowsAsync(fsAccess(destFsPath, fsConstants.R_OK), "File can be read");
+	await t.throwsAsync(fsAccess(destFsPath, fsConstants.W_OK),
+		{message: /EACCES: permission denied|EPERM: operation not permitted/},
+		"File can not be written");
+	await t.notThrowsAsync(resource.getBuffer(), "Resource content can still be accessed");
+});
+
+test("Write CAS resource in drain mode", async (t) => {
+	const readerWriters = t.context.readerWriters;
+	const destFsPath = path.join(t.context.tmpDirPath, "index.html");
+	const content = "CAS resource content drain";
+
+	const resource = await createCasResource(t, content, "/app/index.html");
+	await readerWriters.dest.write(resource, {drain: true});
+
+	await t.notThrowsAsync(fileContent(t, destFsPath, content));
+	await t.throwsAsync(resource.getBuffer(),
+		{message: /Timeout waiting for content of Resource \/app\/index.html to become available./});
+});
+
+test("Write modified CAS resource", async (t) => {
+	const readerWriters = t.context.readerWriters;
+	const destFsPath = path.join(t.context.tmpDirPath, "index.html");
+	const modifiedContent = "Modified CAS content";
+
+	const resource = await createCasResource(t, "Original CAS content", "/app/index.html");
+	resource.setString(modifiedContent);
+
+	await readerWriters.dest.write(resource);
+
+	await t.notThrowsAsync(fileContent(t, destFsPath, modifiedContent));
 	await t.notThrowsAsync(resource.getBuffer(), "Resource content can still be accessed");
 });
