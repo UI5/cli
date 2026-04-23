@@ -1,0 +1,17 @@
+{
+	"name": "@ui5-internal/e2e-tests",
+	"private": true,
+	"license": "Apache-2.0",
+	"type": "module",
+	"engines": {
+		"node": "^22.20.0 || >=24.0.0",
+		"npm": ">= 8"
+	},
+	"scripts": {
+		"test": "node --test 'test/**/*.js'",
+		"test-watch": "node --test --watch 'test/**/*.js'"
+	},
+	"dependencies": {
+		"adm-zip": "0.5.17"
+	}
+}

@@ -1,0 +1,10 @@
+{
+	"name": "application.a.ts",
+	"version": "1.0.0",
+	"description": "UI5 Application: application.a.ts",
+	"license": "Apache-2.0",
+	"devDependencies": {
+		"@openui5/types": "1.115.1",
+		"ui5-tooling-transpile": "3.11.0"
+	}
+}
