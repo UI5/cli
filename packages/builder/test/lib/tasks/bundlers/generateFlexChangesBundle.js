@@ -123,6 +123,7 @@ function createPlaceholderWorkspace(changes, manifest, flexBundle) {
 		};
 
 		const flexBundle = {
+			"annotationChanges": [],
 			"changes": existingChangeList,
 			"compVariants": [],
 			"variantChanges": [],
@@ -132,6 +133,7 @@ function createPlaceholderWorkspace(changes, manifest, flexBundle) {
 		};
 
 		const flexBundleMerge = {
+			"annotationChanges": [],
 			"changes": existingChangeList.concat(changeList),
 			"compVariants": [],
 			"variantChanges": [],

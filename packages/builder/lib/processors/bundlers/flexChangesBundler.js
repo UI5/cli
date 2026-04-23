@@ -18,8 +18,8 @@ import {createResource} from "@ui5/fs/resourceFactory";
  * @param {@ui5/fs/Resource[]} parameters.resources List of resources to be processed
  * @param {object} parameters.options Options
  * @param {string} parameters.options.pathPrefix Prefix for bundle path
- * @param {string} parameters.options.hasFlexBundleVersion true if minUI5Version >= 1.73 than
- *															create flexibility-bundle.json
+ * @param {string} parameters.options.hasFlexBundleVersion true if minUI5Version >= 1.73
+ *															and create flexibility-bundle.json
  * @param {object} [parameters.existingFlexBundle={}] Object with existing flexibility-bundle.json
  * 															to merge with new changes
  * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with flex changes bundle resources
@@ -45,6 +45,7 @@ export default function({resources, options: {pathPrefix, hasFlexBundleVersion},
 		const variants = [];
 		const variantChanges = [];
 		const variantManagementChanges = [];
+		const annotationChanges = [];
 
 		changesContent.forEach(function(content) {
 			if (content.layer === "VENDOR") {
@@ -74,14 +75,23 @@ export default function({resources, options: {pathPrefix, hasFlexBundleVersion},
 			case "ctrl_variant_management_change":
 				variantManagementChanges.push(content);
 				break;
+			case "annotation_change":
+				annotationChanges.push(content);
+				break;
 			}
 		});
 
-		if (!hasFlexBundleVersion && (compVariants.length != 0 || variants.length != 0 || variantChanges.length != 0 ||
-				variantDependentControlChanges.length != 0 || variantManagementChanges.length != 0)) {
+		if (!hasFlexBundleVersion && (
+			compVariants.length != 0 ||
+			variants.length != 0 ||
+			variantChanges.length != 0 ||
+			variantDependentControlChanges.length != 0 ||
+			variantManagementChanges.length != 0 ||
+			annotationChanges.length != 0
+		)) {
 			throw new Error(
-				"There are some control variant changes in the changes folder. This only works with a " +
-				"minUI5Version 1.73.0. Please update the minUI5Version in the manifest.json to 1.73.0 or higher");
+				"There are some files in the changes folder working only with a ui5 version 1.73 and above. " +
+				"Please update the minUI5Version in the manifest.json to 1.73 or higher");
 		}
 		// create changes-bundle.json
 		if (!hasFlexBundleVersion) {
@@ -89,6 +99,7 @@ export default function({resources, options: {pathPrefix, hasFlexBundleVersion},
 		} else {
 			bundleName = "flexibility-bundle.json";
 			let newChangeFormat = {
+				annotationChanges,
 				changes,
 				compVariants,
 				variants,
