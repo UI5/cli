@@ -4,6 +4,20 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v4.0.6...HEAD).
 
+## [5.0.0-alpha.5](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.4...project-v5.0.0-alpha.5) (2026-04-23)
+
+
+### Dependencies
+
+* Bump make-fetch-happen from 15.0.4 to 15.0.5 ([#1341](https://github.com/UI5/cli/issues/1341)) ([a204e65](https://github.com/UI5/cli/commit/a204e65697844b54e1bce51e41fb8c55c7ff158c))
+* Bump read-package-up from 11.0.0 to 12.0.0 ([#1349](https://github.com/UI5/cli/issues/1349)) ([9d5693a](https://github.com/UI5/cli/commit/9d5693a53388fcd0a43cff033bbb1b347a426c89))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/fs bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+    * @ui5/logger bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+  * peerDependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+
 ## [5.0.0-alpha.4](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.3...project-v5.0.0-alpha.4) (2026-03-24)
 
 

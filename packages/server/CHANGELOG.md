@@ -4,6 +4,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v4.0.7...HEAD).
 
+## [5.0.0-alpha.5](https://github.com/UI5/cli/compare/server-v5.0.0-alpha.4...server-v5.0.0-alpha.5) (2026-04-23)
+
+
+### Bug Fixes
+
+* **server:** Explicitly bind to IPv4 loopback ([d913c56](https://github.com/UI5/cli/commit/d913c56a173c62c3c450c2dde358b1081b57db02))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+    * @ui5/fs bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+    * @ui5/logger bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+  * devDependencies
+    * @ui5/project bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+
 ## [5.0.0-alpha.4](https://github.com/UI5/cli/compare/server-v5.0.0-alpha.3...server-v5.0.0-alpha.4) (2026-03-24)
 
 
