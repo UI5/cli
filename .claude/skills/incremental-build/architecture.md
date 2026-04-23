@@ -41,7 +41,8 @@ Use this table to locate source files. ALWAYS read the relevant source file befo
 | `ProjectBuildCache` | `lib/build/cache/ProjectBuildCache.js` | Cache orchestration per project: index management, stage lookup, result recording |
 | `BuildTaskCache` | `lib/build/cache/BuildTaskCache.js` | Per-task resource request tracking and index management |
 | `StageCache` | `lib/build/cache/StageCache.js` | In-memory cache of stage results keyed by signature |
-| `CacheManager` | `lib/build/cache/CacheManager.js` | Persistent cache I/O (filesystem) |
+| `ContentAddressableStorage` | `lib/build/cache/ContentAddressableStorage.js` | Custom CAS with synchronous path resolution from integrity hash |
+| `CacheManager` | `lib/build/cache/CacheManager.js` | Persistent cache I/O (filesystem), delegates content storage to CAS |
 | `ResourceRequestManager` | `lib/build/cache/ResourceRequestManager.js` | Request graph, resource index updates, signature computation |
 | `ResourceRequestGraph` | `lib/build/cache/ResourceRequestGraph.js` | DAG of request sets with delta encoding and best-parent optimization |
 | `ResourceIndex` | `lib/build/cache/index/ResourceIndex.js` | Wrapper around hash trees with delta detection |
@@ -102,8 +103,8 @@ Note: There is no separate `BUILDING` state; `INVALIDATED` covers both "needs bu
 |  signature -> {stage, writtenPaths, tagOps}  |
 +---------------------------------------------+
 |        Persistent (CacheManager)             |  <- Across sessions
-|  ~/.ui5/buildCache/v0_2/                     |
-|    cas/           (content-addressable, gz)  |
+|  ~/.ui5/buildCache/v0_3/                     |
+|    cas/           (custom CAS, gzip)         |
 |    stageMetadata/ (stage results by sig)     |
 |    taskMetadata/  (resource requests)        |
 |    resultMetadata/(build result metadata)    |
@@ -327,10 +328,12 @@ project.getProjectResources().setStage(stageName, stageCache.stage,
 ### On Disk (CacheManager)
 
 ```
-~/.ui5/buildCache/v0_2/
-+-- cas/                          # Content-addressable storage (cacache, gzip)
-|   +-- content-v2/
-|       +-- sha256/...            # Resources stored by integrity hash
+~/.ui5/buildCache/v0_3/
++-- cas/                          # Custom CAS (ContentAddressableStorage, gzip)
+|   +-- sha256/                   # Resources stored by integrity hash
+|       +-- {xx}/                 # First 2 hex chars of digest
+|           +-- {yy}/            # Next 2 hex chars
+|               +-- {rest}       # Remaining hex chars (gzip-compressed content)
 +-- buildManifests/               # Build metadata per project (plain JSON)
 |   +-- {projectId}/
 |       +-- {buildSignature}.json
@@ -375,7 +378,7 @@ Stage metadata stored on disk includes:
 2. **Request batching**: Multiple pending build requests processed in single batch (10ms debounce)
 3. **Abort/retry**: File changes abort running builds; projects re-queued automatically
 4. **Structural sharing**: Derived hash trees share unchanged subtrees, reducing memory
-5. **Content-addressed storage**: Resources deduplicated via integrity hashes in cacache
+5. **Content-addressed storage**: Resources deduplicated via integrity hashes in custom CAS (synchronous path resolution, gzip-compressed)
 6. **Differential caching**: Tasks track resource requests; delta builds only re-process changed resources
 7. **Tag propagation**: Resource tags flow through stages via cached tag operations, included in hash signatures
 8. **Two-tier cache**: Fast in-memory StageCache + persistent filesystem cache via CacheManager
