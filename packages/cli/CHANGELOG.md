@@ -4,6 +4,20 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v4.0.26...HEAD).
 
+## [5.0.0-alpha.5](https://github.com/UI5/cli/compare/cli-v5.0.0-alpha.4...cli-v5.0.0-alpha.5) (2026-04-23)
+
+
+### Dependencies
+
+* Bump yargs from 17.7.2 to 18.0.0 ([#1342](https://github.com/UI5/cli/issues/1342)) ([3de5ea9](https://github.com/UI5/cli/commit/3de5ea9b281f1a674e97b930d41a99bc96a29658))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+    * @ui5/fs bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+    * @ui5/logger bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+    * @ui5/project bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+    * @ui5/server bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+
 ## [5.0.0-alpha.4](https://github.com/UI5/cli/compare/cli-v5.0.0-alpha.3...cli-v5.0.0-alpha.4) (2026-03-24)
 
 
