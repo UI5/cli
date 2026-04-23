@@ -91,39 +91,7 @@ class ComponentProject extends Project {
 
 	/* === Resource Access === */
 
-	/**
-	 * Get a [ReaderCollection]{@link @ui5/fs/ReaderCollection} for accessing all resources of the
-	 * project in the specified "style":
-	 *
-	 * <ul>
-	 * <li><b>buildtime:</b> Resource paths are always prefixed with <code>/resources/</code>
-	 *  or <code>/test-resources/</code> followed by the project's namespace.
-	 *  Any configured build-excludes are applied</li>
-	 * <li><b>dist:</b> Resource paths always match with what the UI5 runtime expects.
-	 *  This means that paths generally depend on the project type. Applications for example use a "flat"-like
-	 *  structure, while libraries use a "buildtime"-like structure.
-	 *  Any configured build-excludes are applied</li>
-	 * <li><b>runtime:</b> Resource paths always match with what the UI5 runtime expects.
-	 *  This means that paths generally depend on the project type. Applications for example use a "flat"-like
-	 *  structure, while libraries use a "buildtime"-like structure.
-	 *  This style is typically used for serving resources directly. Therefore, build-excludes are not applied</li>
-	 * <li><b>flat:</b> Resource paths are never prefixed and namespaces are omitted if possible. Note that
-	 *  project types like "theme-library", which can have multiple namespaces, can't omit them.
-	 *  Any configured build-excludes are applied</li>
-	 * </ul>
-	 *
-	 * If project resources have been changed through the means of a workspace, those changes
-	 * are reflected in the provided reader too.
-	 *
-	 * Resource readers always use POSIX-style paths.
-	 *
-	 * @public
-	 * @param {object} [options]
-	 * @param {string} [options.style=buildtime] Path style to access resources.
-	 *   Can be "buildtime", "dist", "runtime" or "flat"
-	 * @returns {@ui5/fs/ReaderCollection} A reader collection instance
-	 */
-	getReader({style = "buildtime"} = {}) {
+	_getStyledReader(style) {
 		// TODO: Additional style 'ABAP' using "sap.platform.abap".uri from manifest.json?
 
 		// Apply builder excludes to all styles but "runtime"
@@ -161,7 +129,6 @@ class ComponentProject extends Project {
 			throw new Error(`Unknown path mapping style ${style}`);
 		}
 
-		reader = this._addWriter(reader, style);
 		return reader;
 	}
 
@@ -183,52 +150,30 @@ class ComponentProject extends Project {
 		throw new Error(`_getTestReader must be implemented by subclass ${this.constructor.name}`);
 	}
 
-	/**
-	 * Get a resource reader/writer for accessing and modifying a project's resources
-	 *
-	 * @public
-	 * @returns {@ui5/fs/ReaderCollection} A reader collection instance
-	 */
-	getWorkspace() {
-		// Workspace is always of style "buildtime"
-		// Therefore builder resource-excludes are always to be applied
-		const excludes = this.getBuilderResourcesExcludes();
-		return resourceFactory.createWorkspace({
-			name: `Workspace for project ${this.getName()}`,
-			reader: this._getReader(excludes),
-			writer: this._getWriter().collection
+	_createWriter(stageId) {
+		// writer is always of style "buildtime"
+		const namespaceWriter = resourceFactory.createAdapter({
+			name: `Namespace writer for project ${this.getName()}, stage ${stageId}`,
+			virBasePath: "/",
+			project: this
 		});
-	}
 
-	_getWriter() {
-		if (!this._writers) {
-			// writer is always of style "buildtime"
-			const namespaceWriter = resourceFactory.createAdapter({
-				virBasePath: "/",
-				project: this
-			});
+		const generalWriter = resourceFactory.createAdapter({
+			name: `General writer for project ${this.getName()}, stage ${stageId}`,
+			virBasePath: "/",
+			project: this
+		});
 
-			const generalWriter = resourceFactory.createAdapter({
-				virBasePath: "/",
-				project: this
-			});
+		const collection = resourceFactory.createWriterCollection({
+			name: `Writers for project ${this.getName()}, stage ${stageId}`,
+			writerMapping: {
+				[`/resources/${this._namespace}/`]: namespaceWriter,
+				[`/test-resources/${this._namespace}/`]: namespaceWriter,
+				[`/`]: generalWriter
+			}
+		});
 
-			const collection = resourceFactory.createWriterCollection({
-				name: `Writers for project ${this.getName()}`,
-				writerMapping: {
-					[`/resources/${this._namespace}/`]: namespaceWriter,
-					[`/test-resources/${this._namespace}/`]: namespaceWriter,
-					[`/`]: generalWriter
-				}
-			});
-
-			this._writers = {
-				namespaceWriter,
-				generalWriter,
-				collection
-			};
-		}
-		return this._writers;
+		return collection;
 	}
 
 	_getReader(excludes) {
@@ -243,15 +188,31 @@ class ComponentProject extends Project {
 		return reader;
 	}
 
-	_addWriter(reader, style) {
-		const {namespaceWriter, generalWriter} = this._getWriter();
-
+	_addReadersForWriter(readers, writer, style) {
 		if ((style === "runtime" || style === "dist") && this._isRuntimeNamespaced) {
 			// If the project's type requires a namespace at runtime, the
 			// dist- and runtime-style paths are identical to buildtime-style paths
 			style = "buildtime";
 		}
-		const readers = [];
+
+		let generalWriter;
+		let namespaceWriter;
+		if (writer.getMapping) {
+			const mapping = writer.getMapping();
+			generalWriter = mapping[`/`];
+			for (const writer of Object.values(mapping)) {
+				if (writer === generalWriter) {
+					continue;
+				}
+				if (namespaceWriter && writer !== namespaceWriter) {
+					throw new Error(`Cannot determine unique namespace writer for project ${this.getName()}`);
+				}
+				namespaceWriter = writer;
+			}
+		} else {
+			throw new Error(`Cannot determine writers for project ${this.getName()}`);
+		}
+
 		switch (style) {
 		case "buildtime":
 			// Writer already uses buildtime style
@@ -265,8 +226,10 @@ class ComponentProject extends Project {
 				reader: namespaceWriter,
 				namespace: this._namespace
 			}));
-			// Add general writer as is
-			readers.push(generalWriter);
+			// Add general writer only if it differs to prevent duplicate entries (with and without namespace)
+			if (namespaceWriter !== generalWriter) {
+				readers.push(generalWriter);
+			}
 			break;
 		case "flat":
 			// Rewrite paths from "flat" to "buildtime"
@@ -279,12 +242,6 @@ class ComponentProject extends Project {
 		default:
 			throw new Error(`Unknown path mapping style ${style}`);
 		}
-		readers.push(reader);
-
-		return resourceFactory.createReaderCollectionPrioritized({
-			name: `Reader/Writer collection for project ${this.getName()}`,
-			readers
-		});
 	}
 
 	/* === Internals === */

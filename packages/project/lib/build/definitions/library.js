@@ -20,6 +20,7 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("replaceCopyright", {
+		supportsDifferentialBuilds: true,
 		options: {
 			copyright: project.getCopyright(),
 			pattern: "/**/*.{js,library,css,less,theme,html}"
@@ -27,6 +28,7 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("replaceVersion", {
+		supportsDifferentialBuilds: true,
 		options: {
 			version: project.getVersion(),
 			pattern: "/**/*.{js,json,library,css,less,theme,html}"
@@ -34,6 +36,7 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("replaceBuildtime", {
+		supportsDifferentialBuilds: true,
 		options: {
 			pattern: "/resources/sap/ui/{Global,core/Core}.js"
 		}
@@ -82,6 +85,7 @@ export default function({project, taskUtil, getTask}) {
 	}
 
 	tasks.set("minify", {
+		supportsDifferentialBuilds: true,
 		options: {
 			pattern: minificationPattern
 		}

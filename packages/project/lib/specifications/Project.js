@@ -1,5 +1,5 @@
 import Specification from "./Specification.js";
-import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
+import ProjectResources from "../resources/ProjectResources.js";
 
 /**
  * Project
@@ -12,6 +12,8 @@ import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
  * @hideconstructor
  */
 class Project extends Specification {
+	#projectResources;
+
 	constructor(parameters) {
 		super(parameters);
 		if (new.target === Project) {
@@ -36,6 +38,15 @@ class Project extends Specification {
 
 		await this._configureAndValidatePaths(this._config);
 		await this._parseConfiguration(this._config, this._buildManifest);
+
+		// Initialize ProjectResources with interface callbacks
+		this.#projectResources = new ProjectResources({
+			getName: () => this.getName(),
+			getStyledReader: (style) => this._getStyledReader(style),
+			createWriter: (stageId) => this._createWriter(stageId),
+			addReadersForWriter: (readers, writer, style) => this._addReadersForWriter(readers, writer, style),
+			buildManifest: this._buildManifest
+		});
 
 		return this;
 	}
@@ -85,6 +96,14 @@ class Project extends Specification {
 	 */
 	getSourcePath() {
 		throw new Error(`getSourcePath must be implemented by subclass ${this.constructor.name}`);
+	}
+
+	getSourcePaths() {
+		throw new Error(`getSourcePaths must be implemented by subclass ${this.constructor.name}`);
+	}
+
+	getVirtualPath() {
+		throw new Error(`getVirtualPath must be implemented by subclass ${this.constructor.name}`);
 	}
 
 	/**
@@ -220,6 +239,17 @@ class Project extends Specification {
 	}
 
 	/* === Resource Access === */
+
+	/**
+	 * Get the ProjectResources instance for this project.
+	 *
+	 * @public
+	 * @returns {@ui5/project/resources/ProjectResources} The ProjectResources instance
+	 */
+	getProjectResources() {
+		return this.#projectResources;
+	}
+
 	/**
 	 * Get a [ReaderCollection]{@link @ui5/fs/ReaderCollection} for accessing all resources of the
 	 * project in the specified "style":
@@ -241,38 +271,74 @@ class Project extends Specification {
 	 *  Any configured build-excludes are applied</li>
 	 * </ul>
 	 *
+	 * If project resources have been changed through the means of a workspace, those changes
+	 * are reflected in the provided reader too.
+	 *
 	 * Resource readers always use POSIX-style paths.
 	 *
 	 * @public
 	 * @param {object} [options]
 	 * @param {string} [options.style=buildtime] Path style to access resources.
 	 *   Can be "buildtime", "dist", "runtime" or "flat"
-	 * @returns {@ui5/fs/ReaderCollection} Reader collection allowing access to all resources of the project
+	 * @returns {@ui5/fs/ReaderCollection} A reader collection instance
 	 */
 	getReader(options) {
-		throw new Error(`getReader must be implemented by subclass ${this.constructor.name}`);
+		return this.#projectResources.getReader(options);
 	}
 
-	getResourceTagCollection() {
-		if (!this._resourceTagCollection) {
-			this._resourceTagCollection = new ResourceTagCollection({
-				allowedTags: ["ui5:IsDebugVariant", "ui5:HasDebugVariant"],
-				allowedNamespaces: ["project"],
-				tags: this.getBuildManifest()?.tags
-			});
-		}
-		return this._resourceTagCollection;
+	/**
+	 * Get the source reader for the project.
+	 *
+	 * @public
+	 * @param {string} [style=buildtime] Path style to access resources
+	 * @returns {@ui5/fs/ReaderCollection} A reader collection instance
+	 */
+	getSourceReader(style = "buildtime") {
+		return this.#projectResources.getSourceReader(style);
 	}
 
 	/**
 	* Get a [DuplexCollection]{@link @ui5/fs/DuplexCollection} for accessing and modifying a
 	* project's resources. This is always of style <code>buildtime</code>.
 	*
+	* Once a project has finished building, this method will throw to prevent further modifications
+	* since those would have no effect. Use the getReader method to access the project's (modified) resources
+	*
 	* @public
 	* @returns {@ui5/fs/DuplexCollection} DuplexCollection
 	*/
 	getWorkspace() {
-		throw new Error(`getWorkspace must be implemented by subclass ${this.constructor.name}`);
+		return this.#projectResources.getWorkspace();
+	}
+
+	/* Overwritten in ComponentProject subclass */
+	_addReadersForWriter(readers, writer, style) {
+		readers.unshift(writer);
+	}
+
+	/**
+	 * Gets the appropriate resource tag collection for a resource and tag
+	 *
+	 * Determines which tag collection (project-specific or build-level) should be used
+	 * for the given resource and tag combination. Associates the resource with the current
+	 * project if not already associated.
+	 *
+	 * @param {@ui5/fs/Resource} resource Resource to get tag collection for
+	 * @param {string} tag Tag to check acceptance for
+	 * @returns {@ui5/fs/internal/ResourceTagCollection} Appropriate tag collection
+	 * @throws {Error} If no collection accepts the given tag
+	 */
+	getResourceTagCollection(resource, tag) {
+		return this.#projectResources.getResourceTagCollection(resource, tag);
+	}
+
+	/**
+	 * Returns the project-level resource tag collection
+	 *
+	 * @returns {@ui5/fs/internal/ResourceTagCollection} The project-level resource tag collection
+	 */
+	getProjectResourceTagCollection() {
+		return this.#projectResources.getProjectResourceTagCollection();
 	}
 
 	/* === Internals === */

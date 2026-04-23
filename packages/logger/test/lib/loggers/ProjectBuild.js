@@ -115,6 +115,7 @@ test.serial("Start task", (t) => {
 		projectType: "projectType",
 		status: "task-start",
 		taskName: "task.a",
+		isDifferentialBuild: undefined,
 	}, "Metadata event has expected payload");
 
 	t.is(logHandler.callCount, 0, "No log event emitted");
@@ -135,6 +136,7 @@ test.serial("End task", (t) => {
 		projectType: "projectType",
 		status: "task-end",
 		taskName: "task.a",
+		isDifferentialBuild: undefined,
 	}, "Metadata event has expected payload");
 
 	t.is(logHandler.callCount, 0, "No log event emitted");

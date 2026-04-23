@@ -1,0 +1,11 @@
+---
+specVersion: "5.0"
+type: component
+metadata:
+  name: component.a
+builder:
+  componentPreload:
+    namespaces:
+        - "id1"
+    excludes:
+        - "id1/test.js"
