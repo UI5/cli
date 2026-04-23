@@ -353,12 +353,13 @@ class ProjectBuilder {
 				projectBuildContext.buildFinished();
 			}
 			this.#log.info(`Build succeeded in ${this._getElapsedTime(startTime)}`);
-			BuildTimings.logSummary();
 		} catch (err) {
 			this.#log.error(`Build failed`);
 			throw err;
 		} finally {
 			await Promise.all(pCacheWrites);
+			// Log BuildTimings after cache writes complete, so write timings are included
+			BuildTimings.logSummary();
 			this._deregisterCleanupSigHooks(cleanupSigHooks);
 			await this._executeCleanupTasks();
 			this.#buildIsRunning = false;
