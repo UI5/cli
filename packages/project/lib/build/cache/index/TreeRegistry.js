@@ -315,7 +315,7 @@ export default class TreeRegistry {
 		if (newResourcePaths.length > 0) {
 			await Promise.all(newResourcePaths.map(async ({resourcePath, resource}) => {
 				const [integrity, size] = await Promise.all([
-					resource.getIntegrity(),
+					resource.getHash(),
 					resource.getSize()
 				]);
 				resolvedNewMetadata.set(resourcePath, {
@@ -364,7 +364,7 @@ export default class TreeRegistry {
 
 						// Create new resource node
 						resourceNode = new TreeNode(upsert.resourceName, "resource", {
-							integrity: resolved?.integrity ?? await upsert.resource.getIntegrity(),
+							integrity: resolved?.integrity ?? await upsert.resource.getHash(),
 							lastModified: resolved?.lastModified ?? upsert.resource.getLastModified(),
 							size: resolved?.size ?? await upsert.resource.getSize(),
 							inode: resolved?.inode ?? upsert.resource.getInode(),
@@ -430,7 +430,7 @@ export default class TreeRegistry {
 							);
 
 							if (!isUnchanged) {
-								resourceNode.integrity = await upsert.resource.getIntegrity();
+								resourceNode.integrity = await upsert.resource.getHash();
 								resourceNode.lastModified = upsert.resource.getLastModified();
 								resourceNode.size = await upsert.resource.getSize();
 								resourceNode.inode = upsert.resource.getInode();

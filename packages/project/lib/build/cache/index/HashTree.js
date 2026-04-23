@@ -403,7 +403,7 @@ export default class HashTree {
 			const preResolved = await Promise.all(needsIO.map(async ({resource, resourcePath, existingNode, isNew}) => {
 				if (isNew) {
 					const [integrity, size] = await Promise.all([
-						resource.getIntegrity(),
+						resource.getHash(),
 						resource.getSize()
 					]);
 					return {
@@ -436,7 +436,7 @@ export default class HashTree {
 
 				// Changed — integrity/size are cached in the Resource from matchResourceMetadataStrict
 				const [integrity, size] = await Promise.all([
-					resource.getIntegrity(),
+					resource.getHash(),
 					resource.getSize()
 				]);
 				return {
