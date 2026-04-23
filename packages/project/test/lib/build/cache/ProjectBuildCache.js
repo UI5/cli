@@ -65,7 +65,8 @@ function createMockCacheManager() {
 		readTaskMetadata: sinon.stub().resolves(null),
 		writeTaskMetadata: sinon.stub().resolves(),
 		writeStageResource: sinon.stub().resolves(),
-		getResourcePathForStage: sinon.stub().resolves("/fake/cache/path")
+		getResourcePathForStage: sinon.stub().resolves("/fake/cache/path"),
+		contentPath: sinon.stub().returns("/fake/cas/content/path")
 	};
 }
 
@@ -692,7 +693,7 @@ test("freezeUntransformedSources: writes only untransformed source files to CAS"
 
 	// writeStageResource should be called for untransformed files /c.js and /d.js
 	const stageResourceCalls = cacheManager.writeStageResource.getCalls();
-	const writtenPaths = stageResourceCalls.map((call) => call.args[3].getOriginalPath());
+	const writtenPaths = stageResourceCalls.map((call) => call.args[0].getOriginalPath());
 	t.true(writtenPaths.includes("/c.js"), "Untransformed /c.js written to CAS");
 	t.true(writtenPaths.includes("/d.js"), "Untransformed /d.js written to CAS");
 	t.false(writtenPaths.includes("/a.js"), "Transformed /a.js NOT written to CAS by freeze");
@@ -972,7 +973,7 @@ test("freezeUntransformedSources: delta path — only reads new files missing fr
 
 	// writeStageResource should be called only for /e.js (the new file)
 	const stageResourceCalls = cacheManager.writeStageResource.getCalls();
-	const writtenPaths = stageResourceCalls.map((call) => call.args[3].getOriginalPath());
+	const writtenPaths = stageResourceCalls.map((call) => call.args[0].getOriginalPath());
 	t.is(writtenPaths.length, 1, "Only 1 CAS write for the new file");
 	t.true(writtenPaths.includes("/e.js"), "New file /e.js written to CAS");
 
