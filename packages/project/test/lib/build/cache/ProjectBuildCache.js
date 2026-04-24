@@ -40,6 +40,7 @@ function createMockProject(name = "test.project", id = "test-project-id") {
 		}),
 		buildFinished: sinon.stub(),
 		setFrozenSourceReader: sinon.stub(),
+		importTagOperations: sinon.stub(),
 	};
 
 	return {
@@ -350,6 +351,283 @@ test("recordTaskResult with empty requests", async (t) => {
 	const taskCache = cache.getTaskCache("task1");
 	t.truthy(taskCache, "Task cache created even with no requests");
 });
+
+// ===== DELTA (CACHEINFO) PATH IN RECORDTASKRESULT TESTS =====
+
+test("recordTaskResult with cacheInfo: merges resources from previous stage, skipping already-written paths",
+	async (t) => {
+		const project = createMockProject();
+		const cacheManager = createMockCacheManager();
+		const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+		await cache.initSourceIndex();
+
+		await cache.setTasks(["myTask"]);
+		await cache.prepareTaskExecutionAndValidateCache("myTask");
+
+		// Resources written by the delta execution
+		const deltaWrittenRes = createMockResource("/a.js", "hash-a-new", 2000, 200, 2);
+		const writeStub = sinon.stub().resolves();
+		project.getProjectResources().getStage.returns({
+			getId: () => "task/myTask",
+			getWriter: sinon.stub().returns({
+				byGlob: sinon.stub().resolves([deltaWrittenRes]),
+				write: writeStub,
+			})
+		});
+
+		// Resources from the previous stage cache (Reader-type: has byGlob directly)
+		const prevResA = createMockResource("/a.js", "hash-a-old", 1000, 100, 1);
+		const prevResB = createMockResource("/b.js", "hash-b", 1000, 100, 2);
+		const prevResC = createMockResource("/c.js", "hash-c", 1000, 100, 3);
+
+		const cacheInfo = {
+			previousStageCache: {
+				signature: "prev-proj-prev-dep",
+				stage: {
+					byGlob: sinon.stub().resolves([prevResA, prevResB, prevResC]),
+				},
+				writtenResourcePaths: ["/a.js", "/b.js", "/c.js"],
+				projectTagOperations: undefined,
+				buildTagOperations: undefined,
+			},
+			newSignature: "new-proj-new-dep",
+			changedProjectResourcePaths: ["/a.js"],
+			changedDependencyResourcePaths: [],
+		};
+
+		const projectRequests = {paths: new Set(), patterns: new Set()};
+		const dependencyRequests = {paths: new Set(), patterns: new Set()};
+		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo, false);
+
+		t.is(writeStub.callCount, 2, "Write called for 2 non-overlapping resources");
+		const writtenPaths = writeStub.getCalls().map((call) => call.args[0].getOriginalPath());
+		t.true(writtenPaths.includes("/b.js"), "Previous resource /b.js merged into stage");
+		t.true(writtenPaths.includes("/c.js"), "Previous resource /c.js merged into stage");
+		t.false(writtenPaths.includes("/a.js"), "Already-written /a.js not merged");
+	});
+
+test("recordTaskResult with cacheInfo: calls importTagOperations with previous stage cache tags",
+	async (t) => {
+		const project = createMockProject();
+		const cacheManager = createMockCacheManager();
+		const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+		await cache.initSourceIndex();
+
+		await cache.setTasks(["myTask"]);
+		await cache.prepareTaskExecutionAndValidateCache("myTask");
+
+		const writeStub = sinon.stub().resolves();
+		project.getProjectResources().getStage.returns({
+			getId: () => "task/myTask",
+			getWriter: sinon.stub().returns({
+				byGlob: sinon.stub().resolves([]),
+				write: writeStub,
+			})
+		});
+
+		const prevProjectTags = new Map([["/x.js", new Map([["ui5:IsDebugVariant", true]])]]);
+		const prevBuildTags = new Map([["/y.js", new Map([["ui5:OmitFromBuildResult", true]])]]);
+
+		const cacheInfo = {
+			previousStageCache: {
+				signature: "prev-proj-prev-dep",
+				stage: {
+					byGlob: sinon.stub().resolves([]),
+				},
+				writtenResourcePaths: [],
+				projectTagOperations: prevProjectTags,
+				buildTagOperations: prevBuildTags,
+			},
+			newSignature: "new-proj-new-dep",
+			changedProjectResourcePaths: [],
+			changedDependencyResourcePaths: [],
+		};
+
+		const projectRequests = {paths: new Set(), patterns: new Set()};
+		const dependencyRequests = {paths: new Set(), patterns: new Set()};
+		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo, false);
+
+		const importStub = project.getProjectResources().importTagOperations;
+		t.true(importStub.calledOnce, "importTagOperations called once");
+		t.is(importStub.firstCall.args[0], prevProjectTags,
+			"Called with previous stage projectTagOperations");
+		t.is(importStub.firstCall.args[1], prevBuildTags,
+			"Called with previous stage buildTagOperations");
+	});
+
+test("recordTaskResult with cacheInfo: merges tag operations with current delta ops taking precedence",
+	async (t) => {
+		const project = createMockProject();
+		const cacheManager = createMockCacheManager();
+		const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+		await cache.initSourceIndex();
+
+		await cache.setTasks(["myTask"]);
+		await cache.prepareTaskExecutionAndValidateCache("myTask");
+
+		// Delta execution's own tag operations — /a.js IsDebugVariant overrides previous value
+		project.getProjectResources().getResourceTagOperations.returns({
+			projectTagOperations: new Map([["/a.js", new Map([["ui5:IsDebugVariant", false]])]]),
+			buildTagOperations: new Map([["/c.js", new Map([["ui5:NewBuildTag", "val"]])]]),
+		});
+
+		// Set up stage mock with full resource metadata for writeCache to work
+		const writtenRes = createMockResource("/a.js", "hash-a", 2000, 200, 2);
+		const writeStub = sinon.stub().resolves();
+		project.getProjectResources().getStage.returns({
+			getId: () => "task/myTask",
+			getWriter: sinon.stub().returns({
+				byGlob: sinon.stub().resolves([writtenRes]),
+				write: writeStub,
+			})
+		});
+
+		const cacheInfo = {
+			previousStageCache: {
+				signature: "prev-proj-prev-dep",
+				stage: {
+					byGlob: sinon.stub().resolves([]),
+				},
+				writtenResourcePaths: [],
+				projectTagOperations: new Map([
+					["/a.js", new Map([["ui5:IsDebugVariant", true]])],
+					["/b.js", new Map([["ui5:HasDebugVariant", true]])],
+				]),
+				buildTagOperations: new Map([
+					["/a.js", new Map([["ui5:OldBuildTag", "old"]])],
+				]),
+			},
+			newSignature: "merged-sig",
+			changedProjectResourcePaths: [],
+			changedDependencyResourcePaths: [],
+		};
+
+		const projectRequests = {paths: new Set(), patterns: new Set()};
+		const dependencyRequests = {paths: new Set(), patterns: new Set()};
+		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo, false);
+
+		// Verify merged tags via writeCache -> cacheManager.writeStageCache
+		await cache.writeCache();
+
+		const stageCacheCalls = cacheManager.writeStageCache.getCalls().filter(
+			(call) => call.args[2] === "task/myTask"
+		);
+		t.is(stageCacheCalls.length, 1, "writeStageCache called once for task/myTask");
+
+		const metadata = stageCacheCalls[0].args[4];
+
+		// Project tag ops: /a.js should have delta's value (false), /b.js preserved from previous
+		t.is(metadata.projectTagOperations["/a.js"]["ui5:IsDebugVariant"], false,
+			"Delta's value for /a.js takes precedence over previous");
+		t.is(metadata.projectTagOperations["/b.js"]["ui5:HasDebugVariant"], true,
+			"Previous value for /b.js preserved");
+
+		// Build tag ops: /a.js from previous, /c.js from delta
+		t.is(metadata.buildTagOperations["/a.js"]["ui5:OldBuildTag"], "old",
+			"Previous build tag for /a.js preserved");
+		t.is(metadata.buildTagOperations["/c.js"]["ui5:NewBuildTag"], "val",
+			"Delta build tag for /c.js present");
+	});
+
+test("recordTaskResult with cacheInfo: uses cacheInfo.newSignature as stage signature",
+	async (t) => {
+		const project = createMockProject();
+		const cacheManager = createMockCacheManager();
+		const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+		await cache.initSourceIndex();
+
+		await cache.setTasks(["myTask"]);
+		await cache.prepareTaskExecutionAndValidateCache("myTask");
+
+		const writtenRes = createMockResource("/a.js", "hash-a", 2000, 200, 2);
+		const writeStub = sinon.stub().resolves();
+		project.getProjectResources().getStage.returns({
+			getId: () => "task/myTask",
+			getWriter: sinon.stub().returns({
+				byGlob: sinon.stub().resolves([writtenRes]),
+				write: writeStub,
+			})
+		});
+
+		const cacheInfo = {
+			previousStageCache: {
+				signature: "prev-proj-prev-dep",
+				stage: {
+					byGlob: sinon.stub().resolves([]),
+				},
+				writtenResourcePaths: [],
+				projectTagOperations: undefined,
+				buildTagOperations: undefined,
+			},
+			newSignature: "custom-proj-sig-custom-dep-sig",
+			changedProjectResourcePaths: [],
+			changedDependencyResourcePaths: [],
+		};
+
+		const projectRequests = {paths: new Set(), patterns: new Set()};
+		const dependencyRequests = {paths: new Set(), patterns: new Set()};
+		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo, false);
+
+		await cache.writeCache();
+
+		const stageCacheCalls = cacheManager.writeStageCache.getCalls().filter(
+			(call) => call.args[2] === "task/myTask"
+		);
+		t.is(stageCacheCalls.length, 1, "writeStageCache called once for task/myTask");
+		t.is(stageCacheCalls[0].args[3], "custom-proj-sig-custom-dep-sig",
+			"Stage signature comes from cacheInfo.newSignature");
+	});
+
+test("recordTaskResult with cacheInfo: uses getCachedWriter fallback when getWriter returns null",
+	async (t) => {
+		const project = createMockProject();
+		const cacheManager = createMockCacheManager();
+		const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+		await cache.initSourceIndex();
+
+		await cache.setTasks(["myTask"]);
+		await cache.prepareTaskExecutionAndValidateCache("myTask");
+
+		const writeStub = sinon.stub().resolves();
+		project.getProjectResources().getStage.returns({
+			getId: () => "task/myTask",
+			getWriter: sinon.stub().returns({
+				byGlob: sinon.stub().resolves([]),
+				write: writeStub,
+			})
+		});
+
+		// Previous stage is a Stage-type (no byGlob), getWriter returns null, getCachedWriter used
+		const prevResE = createMockResource("/e.js", "hash-e", 1000, 100, 5);
+		const getCachedWriterStub = sinon.stub().returns({
+			byGlob: sinon.stub().resolves([prevResE]),
+		});
+
+		const cacheInfo = {
+			previousStageCache: {
+				signature: "prev-proj-prev-dep",
+				stage: {
+					getWriter: sinon.stub().returns(null),
+					getCachedWriter: getCachedWriterStub,
+				},
+				writtenResourcePaths: ["/e.js"],
+				projectTagOperations: undefined,
+				buildTagOperations: undefined,
+			},
+			newSignature: "new-proj-new-dep",
+			changedProjectResourcePaths: [],
+			changedDependencyResourcePaths: [],
+		};
+
+		const projectRequests = {paths: new Set(), patterns: new Set()};
+		const dependencyRequests = {paths: new Set(), patterns: new Set()};
+		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo, false);
+
+		t.true(getCachedWriterStub.calledOnce, "getCachedWriter used as fallback");
+		t.is(writeStub.callCount, 1, "Write called for 1 resource from cached writer");
+		t.is(writeStub.firstCall.args[0].getOriginalPath(), "/e.js",
+			"Resource /e.js merged from getCachedWriter");
+	});
 
 // ===== RESOURCE CHANGE TRACKING TESTS =====
 
