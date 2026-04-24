@@ -63,7 +63,7 @@ export default class HyperfineRunner {
 			console.log(`Running npm ci...`);
 			await this.#npm.ci(repositoryPath);
 
-			// Build native addons that require node-gyp (e.g. better-sqlite3)
+			// Build native addons that require node-gyp
 			console.log(`Building native addons...`);
 			await this.#npm.rebuildNativeAddons(repositoryPath);
 

@@ -1,8 +1,6 @@
-import Database from "better-sqlite3";
+import {DatabaseSync} from "node:sqlite";
 import path from "node:path";
 import fs from "graceful-fs";
-import {promisify} from "node:util";
-const mkdir = promisify(fs.mkdir);
 
 /**
  * SQLite-based metadata store for build cache.
@@ -27,11 +25,11 @@ export default class MetadataStore {
 		fs.mkdirSync(dbDir, {recursive: true});
 
 		const dbPath = path.join(dbDir, "cache.db");
-		this.#db = new Database(dbPath);
+		this.#db = new DatabaseSync(dbPath);
 
 		// Performance tuning
-		this.#db.pragma("journal_mode = WAL");
-		this.#db.pragma("synchronous = NORMAL");
+		this.#db.exec("PRAGMA journal_mode = WAL");
+		this.#db.exec("PRAGMA synchronous = NORMAL");
 
 		this.#createTables();
 		this.#stmts = this.#prepareStatements();
@@ -192,7 +190,15 @@ export default class MetadataStore {
 	 * @returns {*} Return value of fn
 	 */
 	transaction(fn) {
-		return this.#db.transaction(fn)();
+		this.#db.exec("BEGIN");
+		try {
+			const result = fn();
+			this.#db.exec("COMMIT");
+			return result;
+		} catch (err) {
+			this.#db.exec("ROLLBACK");
+			throw err;
+		}
 	}
 
 	/**

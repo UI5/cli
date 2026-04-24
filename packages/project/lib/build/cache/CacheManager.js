@@ -13,7 +13,7 @@ const log = getLogger("build:cache:CacheManager");
 const chacheManagerInstances = new Map();
 
 // Cache version for compatibility management
-const CACHE_VERSION = "v0_3_c";
+const CACHE_VERSION = "v0_3_c_native";
 
 /**
  * Manages persistence for the build cache using file-based storage and a

@@ -18,7 +18,7 @@ async function ci(cwd, spawnFn = spawnProcess) {
 // Native addons that require node-gyp compilation.
 // npm rebuild doesn't compile these in workspace monorepos,
 // so we run node-gyp rebuild directly in each package directory.
-const NATIVE_ADDONS = ["better-sqlite3"];
+const NATIVE_ADDONS = [];
 
 // Build native addons that require node-gyp compilation
 async function rebuildNativeAddons(cwd, spawnFn = spawnProcess) {
