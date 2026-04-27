@@ -17,6 +17,7 @@ export default class MetadataStorage {
 	#db;
 	#stmts;
 	#dbPath;
+	#inBatch = false;
 
 	/**
 	 * @param {string} dbDir Directory in which to create the metadata.db file
@@ -124,9 +125,42 @@ export default class MetadataStorage {
 	}
 
 	/**
+	 * Begins a batch transaction for multiple writes
+	 */
+	beginBatch() {
+		if (!this.#inBatch) {
+			this.#db.exec("BEGIN");
+			this.#inBatch = true;
+		}
+	}
+
+	/**
+	 * Commits the current batch transaction
+	 */
+	endBatch() {
+		if (this.#inBatch) {
+			this.#db.exec("COMMIT");
+			this.#inBatch = false;
+		}
+	}
+
+	/**
+	 * Rolls back the current batch transaction
+	 */
+	rollbackBatch() {
+		if (this.#inBatch) {
+			this.#db.exec("ROLLBACK");
+			this.#inBatch = false;
+		}
+	}
+
+	/**
 	 * Closes the database connection
 	 */
 	close() {
+		if (this.#inBatch) {
+			this.rollbackBatch();
+		}
 		this.#db.close();
 	}
 

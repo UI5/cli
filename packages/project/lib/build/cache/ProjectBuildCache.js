@@ -1391,14 +1391,21 @@ export default class ProjectBuildCache {
 	 */
 	async writeCache() {
 		const cacheWriteStart = performance.now();
-		await Promise.all([
-			this.#writeResultCache(),
+		this.#cacheManager.beginMetadataBatch();
+		try {
+			await Promise.all([
+				this.#writeResultCache(),
 
-			this.#writeTaskStageCache(),
-			this.#writeTaskRequestCache(),
+				this.#writeTaskStageCache(),
+				this.#writeTaskRequestCache(),
 
-			this.#writeSourceIndex(),
-		]);
+				this.#writeSourceIndex(),
+			]);
+			this.#cacheManager.endMetadataBatch();
+		} catch (err) {
+			this.#cacheManager.rollbackMetadataBatch();
+			throw err;
+		}
 		if (log.isLevelEnabled("perf")) {
 			log.perf(
 				`Wrote build cache for project ${this.#project.getName()} in ` +
