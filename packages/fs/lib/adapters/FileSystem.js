@@ -330,6 +330,21 @@ class FileSystem extends AbstractAdapter {
 			return;
 		}
 
+		if (sourceMetadata && sourceMetadata.adapter === "CAS_SQLITE" &&
+			!sourceMetadata.contentModified) {
+			log.silly(`Writing CAS_SQLITE resource to ${fsPath}`);
+			const buffer = await resource.getBuffer();
+			const writeOptions = {};
+			if (readOnly) {
+				writeOptions.mode = READ_ONLY_MODE;
+			}
+			await writeFile(fsPath, buffer, writeOptions);
+			if (!drain) {
+				resource.setBuffer(buffer);
+			}
+			return;
+		}
+
 		log.silly(`Writing to ${fsPath}`);
 
 		await new Promise((resolve, reject) => {

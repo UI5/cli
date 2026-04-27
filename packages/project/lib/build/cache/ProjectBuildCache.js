@@ -1,10 +1,8 @@
 import {createResource, createProxy, createWriterCollection} from "@ui5/fs/resourceFactory";
 import {getLogger} from "@ui5/logger";
-import fs from "graceful-fs";
-import {promisify} from "node:util";
+import {gunzipSync} from "node:zlib";
+import {Readable} from "node:stream";
 import crypto from "node:crypto";
-import {gunzip, createGunzip} from "node:zlib";
-const readFile = promisify(fs.readFile);
 import BuildTaskCache from "./BuildTaskCache.js";
 import StageCache from "./StageCache.js";
 import ResourceIndex from "./index/ResourceIndex.js";
@@ -1518,14 +1516,17 @@ export default class ProjectBuildCache {
 	async #writeStageResources(resources, stageId, stageSignature, knownCasIntegrities) {
 		const resourceMetadata = Object.create(null);
 		let casSkipped = 0;
+
+		// Phase 1: Gather resource data (async I/O for integrity and buffer)
+		const toWrite = [];
 		await Promise.all(resources.map(async (res) => {
 			const integrity = await res.getIntegrity();
 
-			// Skip CAS write if integrity is known to already exist from restored stage metadata
 			if (knownCasIntegrities?.has(integrity)) {
 				casSkipped++;
 			} else {
-				await this.#cacheManager.writeStageResource(res);
+				const buffer = await res.getBuffer();
+				toWrite.push({integrity, buffer});
 			}
 
 			resourceMetadata[res.getOriginalPath()] = {
@@ -1535,6 +1536,21 @@ export default class ProjectBuildCache {
 				integrity,
 			};
 		}));
+
+		// Phase 2: Batch write to SQLite in a single transaction
+		if (toWrite.length > 0) {
+			this.#cacheManager.beginContentBatch();
+			try {
+				for (const {integrity, buffer} of toWrite) {
+					this.#cacheManager.putContent(integrity, buffer);
+				}
+				this.#cacheManager.endContentBatch();
+			} catch (err) {
+				this.#cacheManager.rollbackContentBatch();
+				throw err;
+			}
+		}
+
 		if (log.isLevelEnabled("perf") && casSkipped > 0) {
 			log.perf(
 				`#writeStageResources for stage ${stageId}: ` +
@@ -1620,23 +1636,18 @@ export default class ProjectBuildCache {
 						`in project ${this.#project.getName()}`);
 				}
 
-				// Compute the CAS content path synchronously from the integrity hash.
-				// No I/O needed — the path is a pure function of the integrity.
-				const cachePath = this.#cacheManager.contentPath(integrity);
-
 				return createResource({
 					path: virPath,
 					sourceMetadata: {
-						adapter: "CAS",
-						fsPath: cachePath,
+						adapter: "CAS_SQLITE",
 						contentModified: false,
 					},
 					createStream: () => {
-						return fs.createReadStream(cachePath).pipe(createGunzip());
+						const compressed = this.#cacheManager.readContentRaw(integrity);
+						return Readable.from(gunzipSync(compressed));
 					},
-					createBuffer: async () => {
-						const compressedBuffer = await readFile(cachePath);
-						return await promisify(gunzip)(compressedBuffer);
+					createBuffer: () => {
+						return this.#cacheManager.readContent(integrity);
 					},
 					byteSize: size,
 					lastModified,
