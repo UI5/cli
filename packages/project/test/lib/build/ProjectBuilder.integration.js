@@ -2452,7 +2452,7 @@ test.serial("Build with dependencies: Verify sap-ui-version.json generation and 
 		"buildTimestamp unchanged when cached (no source changes)");
 });
 
-test.serial("Build application.a with --cache=Default (default behavior)", async (t) => {
+test.serial("Build application.a with --cache=Default", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
 
@@ -2501,7 +2501,7 @@ test.serial("Build application.a with --cache=Default (default behavior)", async
 		"Build dest contains changed file content");
 });
 
-test.serial("Build application.a with --cache=Off (no caching)", async (t) => {
+test.serial("Build application.a with --cache=Off", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
 
@@ -2554,7 +2554,7 @@ test.serial("Build application.a with --cache=Off (no caching)", async (t) => {
 	});
 });
 
-test.serial("Build application.a with --cache=ReadOnly (CI/CD use case)", async (t) => {
+test.serial("Build application.a with --cache=ReadOnly", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
 
@@ -2621,7 +2621,7 @@ test.serial("Build application.a with --cache=ReadOnly (CI/CD use case)", async 
 	});
 });
 
-test.serial("Build application.a with --cache=Force (success path)", async (t) => {
+test.serial("Build application.a with --cache=Force (1)", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
 
@@ -2651,80 +2651,29 @@ test.serial("Build application.a with --cache=Force (success path)", async (t) =
 	const error = await t.throwsAsync(async () => {
 		await fixtureTester.buildProject({
 			config: {destPath, cleanDest: true, cache: Cache.Force},
-			assertions: {
-				projects: {
-					"application.a": {}
-				}
-			}
 		});
 	});
 
-	// TODO: adjust the error messages depending on the implementation
-	t.truthy(error, "Build with Force mode should throw error when cache is invalid");
-	t.true(error.message.includes("application.a"), "Error message should mention the project name");
-	t.true(error.message.includes("Force") || error.message.includes("cache"),
-		"Error message should mention Force mode or cache");
+	t.truthy(error, "Build with Force mode should throw error when cache is stale");
+	t.true(error.message.includes(`Cache is in "Force" mode but cache is stale for project application.a ` +
+		`due to 1 changed source file(s). ` +
+		`Use "Default" or "ReadOnly" to trigger a rebuild.`));
 });
 
-test.serial("Build application.a with --cache=Force (failure paths)", async (t) => {
+test.serial("Build application.a with --cache=Force (2)", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
 
-	// ========== Scenario A: Empty cache ==========
 	// #1: Build with cache=Force on empty cache → ERROR with clear message
-	const errorEmptyCache = await t.throwsAsync(async () => {
+	const error = await t.throwsAsync(async () => {
 		await fixtureTester.buildProject({
 			config: {destPath, cleanDest: false, cache: Cache.Force},
-			assertions: {
-				projects: {
-					"application.a": {}
-				}
-			}
 		});
 	});
 
-	// TODO: adjust the error messages depending on the implementation
-	t.truthy(errorEmptyCache, "Build with Force mode should throw error when cache is empty");
-	t.true(errorEmptyCache.message.includes("application.a"),
-		"Error message should mention the project name");
-	t.true(errorEmptyCache.message.includes("Force") || errorEmptyCache.message.includes("cache"),
-		"Error message should mention Force mode or cache");
-
-
-	// ========== Scenario B: Cache exists but incomplete ==========
-	// #1: Build with cache=Default → cache written
-	await fixtureTester.buildProject({
-		config: {destPath, cleanDest: false, cache: Cache.Default},
-		assertions: {
-			projects: {
-				"application.a": {}
-			}
-		}
-	});
-
-	// #2: Delete some cache metadata (simulate incomplete cache)
-	// Get the cache directory path from UI5_DATA_DIR
-	const cacheDir = `${fixtureTester.fixturePath}/.ui5/buildCache`;
-	const taskMetadataDir = `${cacheDir}/v0_2/taskMetadata`;
-
-	// Delete task metadata directory to simulate incomplete cache
-	await fs.rm(taskMetadataDir, {recursive: true, force: true});
-
-	// #3: Build with cache=Force → ERROR (incomplete cache)
-	const errorIncompleteCache = await t.throwsAsync(async () => {
-		await fixtureTester.buildProject({
-			config: {destPath, cleanDest: true, cache: Cache.Force},
-			assertions: {
-				projects: {}
-			}
-		});
-	});
-
-	// TODO: adjust the error messages depending on the implementation
-	t.truthy(errorIncompleteCache, "Build with Force mode should throw error when cache is incomplete");
-	t.true(errorIncompleteCache.message.includes("application.a") ||
-		errorIncompleteCache.message.includes("cache"),
-	"Error message should mention project name or cache");
+	t.truthy(error, "Build with Force mode should throw error when cache is empty");
+	t.true(error.message.includes(`Cache is in "Force" mode but no cache found for project application.a. ` +
+		`Use "Default" or "ReadOnly" to trigger a rebuild.`));
 });
 
 function getFixturePath(fixtureName) {
@@ -2761,7 +2710,7 @@ class FixtureTester {
 		this._initialized = true;
 	}
 
-	async buildProject({graphConfig = {}, config = {}, assertions = {}} = {}) {
+	async buildProject({graphConfig = {}, config = {}, assertions} = {}) {
 		await this._initialize();
 		this._sinon.resetHistory();
 

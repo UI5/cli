@@ -77,7 +77,9 @@ class BuildContext {
 			excludedTasks,
 			cache
 		};
-		this._buildSignatureBase = getBaseSignature(this._buildConfig);
+		// eslint-disable-next-line no-unused-vars
+		const {cache: _ignoreMe, ...signatureConfig} = this._buildConfig; // Clones buildConfig omitting the cache mode
+		this._buildSignatureBase = getBaseSignature(signatureConfig);
 
 		this._taskRepository = taskRepository;
 

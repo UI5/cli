@@ -1276,8 +1276,15 @@ export default class ProjectBuildCache {
 	async #initSourceIndex() {
 		const sourceReader = this.#project.getSourceReader();
 
-		// DEBUG:
-		console.log(`cacheMode: `, this.#cacheMode);
+		if (this.#cacheMode === Cache.Off) {
+			// Caching disabled: Create fresh index
+			log.verbose(`Cache is in "Off" mode. ` +
+				`Initializing fresh source index for project ${this.#project.getName()}`);
+			this.#sourceIndex = await ResourceIndex.create(await sourceReader.byGlob("/**/*"),
+				Date.now());
+			this.#combinedIndexState = INDEX_STATES.INITIAL;
+			return;
+		}
 
 		const [resources, indexCache] = await Promise.all([
 			await sourceReader.byGlob("/**/*"),
@@ -1329,6 +1336,15 @@ export default class ProjectBuildCache {
 				this.#taskCache.set(buildTaskCache.getTaskName(), buildTaskCache);
 			}
 
+			// Force mode: Fail if cache is stale (source files changed)
+			if (this.#cacheMode === Cache.Force && changedPaths.length > 0) {
+				throw new Error(
+					`Cache is in "Force" mode but cache is stale for project ${this.#project.getName()} ` +
+					`due to ${changedPaths.length} changed source file(s). ` +
+					`Use "Default" or "ReadOnly" to trigger a rebuild.`
+				);
+			}
+
 			if (!changedPaths.length) {
 				// Source index is up-to-date with no changes
 				this.#cachedSourceSignature = resourceIndex.getSignature();
@@ -1339,6 +1355,10 @@ export default class ProjectBuildCache {
 			// Now awaiting initialization of dependency indices
 			this.#combinedIndexState = INDEX_STATES.RESTORING_DEPENDENCY_INDICES;
 		} else {
+			if (this.#cacheMode === Cache.Force) {
+				throw new Error(`Cache is in "Force" mode but no cache found for project ${this.#project.getName()}. ` +
+					`Use "Default" or "ReadOnly" to trigger a rebuild.`);
+			}
 			// No index cache found, create new index
 			this.#sourceIndex = await ResourceIndex.create(resources, Date.now());
 			this.#combinedIndexState = INDEX_STATES.INITIAL;
@@ -1401,6 +1421,16 @@ export default class ProjectBuildCache {
 	 * @returns {Promise<void>}
 	 */
 	async writeCache() {
+		// OFF or ReadOnly modes: Skip all cache writes
+		if (this.#cacheMode === Cache.Off || this.#cacheMode === Cache.ReadOnly) {
+			log.verbose(
+				`Skipping cache write for project ${this.#project.getName()} ` +
+				`(cache mode: ${this.#cacheMode})`
+			);
+			return;
+		}
+
+		// Default and Force modes: Write cache normally
 		const cacheWriteStart = performance.now();
 		await Promise.all([
 			this.#writeResultCache(),
