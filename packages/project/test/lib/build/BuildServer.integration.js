@@ -5,6 +5,7 @@ import {setTimeout} from "node:timers/promises";
 import fs from "node:fs/promises";
 import {graphFromPackageDependencies} from "../../../lib/graph/graph.js";
 import {setLogLevel} from "@ui5/logger";
+import Cache from "../../../lib/build/cache/Cache.js";
 
 // Ensures that all logging code paths are tested
 setLogLevel("silly");
@@ -355,6 +356,262 @@ test.serial("Serve application.a, request application resource AND library resou
 	);
 });
 
+test.serial("Serve application.a with --cache=Default", async (t) => {
+	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
+
+	// #1: Serve and request with empty cache --> all tasks execute
+	await fixtureTester.serveProject({config: {cache: Cache.Default}});
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// #2: Request with valid cache, no changes --> nothing rebuilds (all cached)
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// Change a source file in application.a
+	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
+	await fs.appendFile(changedFilePath, `\ntest("line added for cache test");\n`);
+
+	await setTimeout(500); // Wait for the file watcher to detect and propagate the changes
+
+	// #3: Request with valid cache, source changes --> only affected tasks rebuild
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"escapeNonAsciiCharacters",
+						"replaceCopyright",
+						"enhanceManifest",
+						"generateFlexChangesBundle",
+					]
+				}
+			}
+		}
+	});
+
+	// Verify the changed file is served
+	const resource = await fixtureTester.requestResource({resource: "/test.js"});
+	const servedFileContent = await resource.getString();
+	t.true(servedFileContent.includes(`test("line added for cache test");`),
+		"Served resource contains changed file content");
+});
+
+test.serial("Serve application.a with --cache=Off", async (t) => {
+	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
+
+	// #1: Serve and request with cache=Off --> all tasks execute, cache not written
+	await fixtureTester.serveProject({config: {cache: Cache.Off}});
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// #2: Request with cache=Off (again) --> all tasks execute again (no cache reuse)
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// Restart server with cache=Default
+	await fixtureTester.teardown();
+	await fixtureTester.serveProject({config: {cache: Cache.Default}});
+
+	// #3: Request with cache=Default --> all tasks execute (no cache from previous Off mode)
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// #4: Request with cache=Default (again) --> nothing rebuilds (cache now exists)
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// Restart server with cache=Off
+	await fixtureTester.teardown();
+	await fixtureTester.serveProject({config: {cache: Cache.Off}});
+
+	// #5: Request with cache=Off --> all tasks execute (ignores existing cache)
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+});
+
+test.serial("Serve application.a with --cache=ReadOnly", async (t) => {
+	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
+
+	// #1: Serve and request with cache=Default --> all tasks execute, cache written
+	await fixtureTester.serveProject({config: {cache: Cache.Default}});
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// Restart server with ReadOnly mode
+	await fixtureTester.teardown();
+	await fixtureTester.serveProject({config: {cache: Cache.ReadOnly}});
+
+	// #2: Request with cache=ReadOnly, no changes --> nothing rebuilds (cache used)
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// Change a source file in application.a
+	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
+	await fs.appendFile(changedFilePath, `\ntest("line added for ReadOnly test");\n`);
+
+	await setTimeout(500); // Wait for the file watcher to detect and propagate the changes
+
+	// #3: Request with cache=ReadOnly --> affected tasks rebuild, BUT cache not updated
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"escapeNonAsciiCharacters",
+						"replaceCopyright",
+						"enhanceManifest",
+						"generateFlexChangesBundle",
+					]
+				}
+			}
+		}
+	});
+
+	// Verify the changed file is served
+	const resource = await fixtureTester.requestResource({resource: "/test.js"});
+	const servedFileContent = await resource.getString();
+	t.true(servedFileContent.includes(`test("line added for ReadOnly test");`),
+		"Served resource contains changed file content");
+
+	// Restart server with Default mode
+	await fixtureTester.teardown();
+	await fixtureTester.serveProject({config: {cache: Cache.Default}});
+
+	// #4: Request with cache=Default, no new changes --> rebuilds again (cache from #3 missing)
+	// This validates that ReadOnly didn't write the cache in step #3
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"escapeNonAsciiCharacters",
+						"replaceCopyright",
+						"enhanceManifest",
+						"generateFlexChangesBundle",
+					]
+				}
+			}
+		}
+	});
+});
+
+test.serial("Serve application.a with --cache=Force (1)", async (t) => {
+	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
+
+	// #1: Serve and request with cache=Default --> all tasks execute, cache written
+	await fixtureTester.serveProject({config: {cache: Cache.Default}});
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// Restart server with Force mode
+	await fixtureTester.teardown();
+	await fixtureTester.serveProject({config: {cache: Cache.Force}, expectBuildErrors: true});
+
+	// #2: Request with cache=Force, no changes --> nothing rebuilds (cache used)
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// Change a source file in application.a
+	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
+	await fs.appendFile(changedFilePath, `\ntest("line added for Force test");\n`);
+
+	await setTimeout(500); // Wait for the file watcher to detect and propagate the changes
+
+	// #3: Request with cache=Force --> ERROR (cache invalid due to source changes)
+	const error = await t.throwsAsync(async () => {
+		await fixtureTester.requestResource({
+			resource: "/test.js",
+		});
+	});
+
+	t.truthy(error, "Request with Force mode should throw error when cache is stale");
+	t.true(error.message.includes(`Cache is in "Force" mode but cache is stale for project application.a`));
+
+	// Wait for async error handling to complete
+	await setTimeout(50);
+});
+
+test.serial("Serve application.a with --cache=Force (2)", async (t) => {
+	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
+
+	// #1: Serve with cache=Force on empty cache --> ERROR when requesting resource
+	await fixtureTester.serveProject({config: {cache: Cache.Force}, expectBuildErrors: true});
+
+	const error = await t.throwsAsync(async () => {
+		await fixtureTester.requestResource({
+			resource: "/test.js",
+		});
+	});
+
+	t.truthy(error, "Request with Force mode should throw error when cache is empty");
+	t.true(error.message.includes(`Cache is in "Force" mode but no cache found for project application.a`));
+
+	// Wait for async error handling to complete
+	await setTimeout(50);
+});
+
 function getFixturePath(fixtureName) {
 	return fileURLToPath(new URL(`../../fixtures/${fixtureName}`, import.meta.url));
 }
@@ -392,11 +649,15 @@ class FixtureTester {
 
 	async teardown() {
 		if (this.buildServer) {
-			await this.buildServer.destroy();
+			try {
+				await this.buildServer.destroy();
+			} catch {
+				// Ignore errors during teardown (e.g., failed Force mode builds)
+			}
 		}
 	}
 
-	async serveProject({graphConfig = {}, config = {}} = {}) {
+	async serveProject({graphConfig = {}, config = {}, expectBuildErrors = false} = {}) {
 		await this._initialize();
 
 		const graph = this.graph = await graphFromPackageDependencies({
@@ -406,9 +667,16 @@ class FixtureTester {
 
 		// Execute the build
 		this.buildServer = await graph.serve(config);
-		this.buildServer.on("error", (err) => {
-			this._t.fail(`Build server error: ${err.message}`);
-		});
+		if (!expectBuildErrors) {
+			this.buildServer.on("error", (err) => {
+				this._t.fail(`Build server error: ${err.message}`);
+			});
+		} else {
+			// For tests expecting errors, just log them but don't fail
+			this.buildServer.on("error", () => {
+				// Expected error -> no op
+			});
+		}
 		this._reader = this.buildServer.getReader();
 	}
 

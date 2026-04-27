@@ -2456,7 +2456,7 @@ test.serial("Build application.a with --cache=Default", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
 
-	// #1 Build with empty cache → all tasks execute
+	// #1 Build with empty cache --> all tasks execute
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: false, cache: Cache.Default},
 		assertions: {
@@ -2466,7 +2466,7 @@ test.serial("Build application.a with --cache=Default", async (t) => {
 		}
 	});
 
-	// #2 Build with valid cache, no changes → nothing rebuilds (all cached)
+	// #2 Build with valid cache, no changes --> nothing rebuilds (all cached)
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true, cache: Cache.Default},
 		assertions: {
@@ -2478,7 +2478,7 @@ test.serial("Build application.a with --cache=Default", async (t) => {
 	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
 	await fs.appendFile(changedFilePath, `\ntest("line added for cache test");\n`);
 
-	// #3 Build with valid cache, source changes → only affected tasks rebuild
+	// #3 Build with valid cache, source changes --> only affected tasks rebuild
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true, cache: Cache.Default},
 		assertions: {
@@ -2505,7 +2505,7 @@ test.serial("Build application.a with --cache=Off", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
 
-	// #1 Build with cache=Off → all tasks execute, cache not written
+	// #1 Build with cache=Off --> all tasks execute, cache not written
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: false, cache: Cache.Off},
 		assertions: {
@@ -2515,7 +2515,7 @@ test.serial("Build application.a with --cache=Off", async (t) => {
 		}
 	});
 
-	// #2 Build with cache=Off (again) → all tasks execute again (no cache reuse)
+	// #2 Build with cache=Off (again) --> all tasks execute again (no cache reuse)
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true, cache: Cache.Off},
 		assertions: {
@@ -2525,7 +2525,7 @@ test.serial("Build application.a with --cache=Off", async (t) => {
 		}
 	});
 
-	// #3 Build with cache=Default → all tasks execute (no cache from previous builds)
+	// #3 Build with cache=Default --> all tasks execute (no cache from previous builds)
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true, cache: Cache.Default},
 		assertions: {
@@ -2535,7 +2535,7 @@ test.serial("Build application.a with --cache=Off", async (t) => {
 		}
 	});
 
-	// #4 Build with cache=Default (again) → nothing rebuilds (cache now exists)
+	// #4 Build with cache=Default (again) --> nothing rebuilds (cache now exists)
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true, cache: Cache.Default},
 		assertions: {
@@ -2543,7 +2543,7 @@ test.serial("Build application.a with --cache=Off", async (t) => {
 		}
 	});
 
-	// #5 Build with cache=Off → all tasks execute (ignores existing cache)
+	// #5 Build with cache=Off --> all tasks execute (ignores existing cache)
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true, cache: Cache.Off},
 		assertions: {
@@ -2558,7 +2558,7 @@ test.serial("Build application.a with --cache=ReadOnly", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
 
-	// #1 Build with cache=Default → all tasks execute, cache written
+	// #1 Build with cache=Default --> all tasks execute, cache written
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: false, cache: Cache.Default},
 		assertions: {
@@ -2568,7 +2568,7 @@ test.serial("Build application.a with --cache=ReadOnly", async (t) => {
 		}
 	});
 
-	// #2 Build with cache=ReadOnly, no changes → nothing rebuilds (cache used)
+	// #2 Build with cache=ReadOnly, no changes --> nothing rebuilds (cache used)
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true, cache: Cache.ReadOnly},
 		assertions: {
@@ -2580,7 +2580,7 @@ test.serial("Build application.a with --cache=ReadOnly", async (t) => {
 	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
 	await fs.appendFile(changedFilePath, `\ntest("line added for ReadOnly test");\n`);
 
-	// #3 Build with cache=ReadOnly → affected tasks rebuild, BUT cache not updated
+	// #3 Build with cache=ReadOnly --> affected tasks rebuild, BUT cache not updated
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true, cache: Cache.ReadOnly},
 		assertions: {
@@ -2602,7 +2602,7 @@ test.serial("Build application.a with --cache=ReadOnly", async (t) => {
 	t.true(builtFileContent.includes(`test("line added for ReadOnly test");`),
 		"Build dest contains changed file content");
 
-	// #4 Build with cache=Default, no new changes → rebuilds again (cache from #3 missing)
+	// #4 Build with cache=Default, no new changes --> rebuilds again (cache from #3 missing)
 	// This validates that ReadOnly didn't write the cache in step #3
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true, cache: Cache.Default},
@@ -2625,7 +2625,7 @@ test.serial("Build application.a with --cache=Force (1)", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
 
-	// #1: Build with cache=Default → all tasks execute, cache written
+	// #1: Build with cache=Default --> all tasks execute, cache written
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: false, cache: Cache.Default},
 		assertions: {
@@ -2635,7 +2635,7 @@ test.serial("Build application.a with --cache=Force (1)", async (t) => {
 		}
 	});
 
-	// #2: Build with cache=Force, no changes → nothing rebuilds (cache used)
+	// #2: Build with cache=Force, no changes --> nothing rebuilds (cache used)
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true, cache: Cache.Force},
 		assertions: {
@@ -2647,7 +2647,7 @@ test.serial("Build application.a with --cache=Force (1)", async (t) => {
 	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
 	await fs.appendFile(changedFilePath, `\ntest("line added for Force test");\n`);
 
-	// #3: Build with cache=Force → ERROR (cache invalid due to source changes)
+	// #3: Build with cache=Force --> ERROR (cache invalid due to source changes)
 	const error = await t.throwsAsync(async () => {
 		await fixtureTester.buildProject({
 			config: {destPath, cleanDest: true, cache: Cache.Force},
@@ -2664,7 +2664,7 @@ test.serial("Build application.a with --cache=Force (2)", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
 
-	// #1: Build with cache=Force on empty cache → ERROR with clear message
+	// #1: Build with cache=Force on empty cache --> ERROR with clear message
 	const error = await t.throwsAsync(async () => {
 		await fixtureTester.buildProject({
 			config: {destPath, cleanDest: false, cache: Cache.Force},

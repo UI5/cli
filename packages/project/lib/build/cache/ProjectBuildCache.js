@@ -122,6 +122,10 @@ export default class ProjectBuildCache {
 	 * @returns {Promise<void>}
 	 */
 	async initSourceIndex() {
+		// When cache=Off, always reinitialize to clear cached state
+		if (this.#cacheMode === Cache.Off && this.#combinedIndexState !== INDEX_STATES.RESTORING_PROJECT_INDICES) {
+			this.#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
+		}
 		if (this.#combinedIndexState !== INDEX_STATES.RESTORING_PROJECT_INDICES) {
 			// Already initialized (e.g. reused across builds)
 			return;
@@ -186,6 +190,14 @@ export default class ProjectBuildCache {
 			const changesDetected = await this.#flushPendingChanges();
 			if (changesDetected) {
 				this.#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
+				// Force mode: Fail immediately if changes were detected
+				if (this.#cacheMode === Cache.Force) {
+					throw new Error(
+						`Cache is in "Force" mode but cache is stale for project ${this.#project.getName()} ` +
+						`due to detected source file changes. ` +
+						`Use "Default" or "ReadOnly" to trigger a rebuild.`
+					);
+				}
 			}
 			if (log.isLevelEnabled("perf")) {
 				log.perf(
@@ -193,6 +205,14 @@ export default class ProjectBuildCache {
 						`in ${(performance.now() - flushStart).toFixed(2)} ms`);
 			}
 			this.#combinedIndexState = INDEX_STATES.FRESH;
+		}
+
+		// When cache=Off, don't validate or use result cache
+		if (this.#cacheMode === Cache.Off) {
+			log.verbose(`Cache is in "Off" mode for project ${this.#project.getName()}. ` +
+				`Skipping result cache validation`);
+			this.#resultCacheState = RESULT_CACHE_STATES.NO_CACHE;
+			return false;
 		}
 
 		if (this.#resultCacheState === RESULT_CACHE_STATES.PENDING_VALIDATION) {
@@ -295,6 +315,10 @@ export default class ProjectBuildCache {
 	 * @returns {boolean} True if the cache is fresh
 	 */
 	isFresh() {
+		// When cache=Off, always return false to force rebuilds
+		if (this.#cacheMode === Cache.Off) {
+			return false;
+		}
 		return this.#combinedIndexState === INDEX_STATES.FRESH &&
 			this.#resultCacheState === RESULT_CACHE_STATES.FRESH_AND_IN_USE;
 	}
@@ -1283,6 +1307,20 @@ export default class ProjectBuildCache {
 			this.#sourceIndex = await ResourceIndex.create(await sourceReader.byGlob("/**/*"),
 				Date.now());
 			this.#combinedIndexState = INDEX_STATES.INITIAL;
+			// Clear any existing task cache from previous builds
+			this.#taskCache.clear();
+			this.#stageCache = new StageCache();
+			// Reset ProjectResources to initial stage if it exists (clear any cached result stage)
+			const currentStage = this.#project.getProjectResources().getStage();
+			if (currentStage && currentStage.getId() !== "initial") {
+				this.#project.getProjectResources().useStage("initial");
+
+				// try {
+				// 	this.#project.getProjectResources().useStage("initial");
+				// } catch (err) {
+				// 	console.log(`[DEBUG ProjectBuildCache] Could not reset to initial stage: ${err.message}`);
+				// }
+			}
 			return;
 		}
 
@@ -1336,11 +1374,13 @@ export default class ProjectBuildCache {
 				this.#taskCache.set(buildTaskCache.getTaskName(), buildTaskCache);
 			}
 
-			// Force mode: Fail if cache is stale (source files changed)
-			if (this.#cacheMode === Cache.Force && changedPaths.length > 0) {
+			// Force mode: Fail if cache is stale (source files changed OR pending changes exist)
+			if (this.#cacheMode === Cache.Force &&
+				(changedPaths.length > 0 || this.#changedProjectSourcePaths.length > 0)) {
+				const totalChanges = changedPaths.length + this.#changedProjectSourcePaths.length;
 				throw new Error(
 					`Cache is in "Force" mode but cache is stale for project ${this.#project.getName()} ` +
-					`due to ${changedPaths.length} changed source file(s). ` +
+					`due to ${totalChanges} changed source file(s). ` +
 					`Use "Default" or "ReadOnly" to trigger a rebuild.`
 				);
 			}

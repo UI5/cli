@@ -93,7 +93,7 @@ serve.builder = function(cli) {
 				"a rebuild of the project.",
 			type: "string",
 			default: "Default",
-			choices: ["Default", "Force", "Read-only", "Off"],
+			choices: ["Default", "Force", "ReadOnly", "Off"],
 		})
 		.example("ui5 serve", "Start a web server for the current project")
 		.example("ui5 serve --h2", "Enable the HTTP/2 protocol for the web server (requires SSL certificate)")
@@ -162,7 +162,8 @@ serve.handler = async function(argv) {
 		cert: argv.h2 ? argv.cert : undefined,
 		key: argv.h2 ? argv.key : undefined,
 		sendSAPTargetCSP: !!argv.sapCspPolicies,
-		serveCSPReports: !!argv.serveCspReports
+		serveCSPReports: !!argv.serveCspReports,
+		cache: argv.cache,
 	};
 
 	if (serverConfig.h2) {
