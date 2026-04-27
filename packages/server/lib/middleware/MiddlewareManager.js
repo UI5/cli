@@ -35,7 +35,7 @@ class MiddlewareManager {
 		sendSAPTargetCSP: false,
 		serveCSPReports: false
 	}}) {
-		if (!graph || !rootProject || !sources || !resources || !resources.all ||
+		if (!graph || !rootProject || !resources || !resources.all ||
 			!resources.rootProject || !resources.dependencies) {
 			throw new Error("[MiddlewareManager]: One or more mandatory parameters not provided");
 		}
