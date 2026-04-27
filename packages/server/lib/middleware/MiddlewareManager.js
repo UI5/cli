@@ -2,6 +2,16 @@ import middlewareRepository from "./middlewareRepository.js";
 import MiddlewareUtil from "./MiddlewareUtil.js";
 import {getLogger} from "@ui5/logger";
 const hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
+const log = getLogger("server:MiddlewareManager");
+
+/**
+ * Mapping of removed standard middleware names to their predecessor and successor
+ * in the original execution order. Used to remap custom middleware references
+ * to the nearest remaining middleware when a removed middleware is referenced.
+ */
+const LEGACY_MIDDLEWARE_MAPPING = {
+	serveThemes: {before: "testRunner", after: "versionInfo"}
+};
 
 /**
  * @private
@@ -96,7 +106,7 @@ class MiddlewareManager {
 		}
 
 		if (beforeMiddleware || afterMiddleware) {
-			const refMiddlewareName = beforeMiddleware || afterMiddleware;
+			let refMiddlewareName = beforeMiddleware || afterMiddleware;
 			let refMiddlewareIdx = this.middlewareExecutionOrder.indexOf(refMiddlewareName);
 
 			if (refMiddlewareName === "connectUi5Proxy") {
@@ -106,6 +116,26 @@ class MiddlewareManager {
 					`has been removed in this version of UI5 CLI and can't be referenced anymore. ` +
 					`Please see the migration guide at https://ui5.github.io/cli/updates/migrate-v3/`);
 			}
+
+			// Handle legacy middleware with graceful fallback
+			const legacyMapping = LEGACY_MIDDLEWARE_MAPPING[refMiddlewareName];
+			if (legacyMapping) {
+				const originalRef = refMiddlewareName;
+				// Replace with the appropriate fallback based on reference type
+				refMiddlewareName = afterMiddleware ? legacyMapping.before : legacyMapping.after;
+
+				log.warn(
+					`Standard middleware "${originalRef}" has been removed. ` +
+					`Custom middleware "${middlewareName}" defined in project ` +
+					`"${this.middlewareUtil.getProject()}" references it and ` +
+					`is now placed ${afterMiddleware ? "after" : "before"} ` +
+					`"${refMiddlewareName}" instead. ` +
+					`For details, see the migration guide at ` +
+					`https://ui5.github.io/cli/next/updates/migrate-v5`);
+			}
+
+			refMiddlewareIdx = this.middlewareExecutionOrder.indexOf(refMiddlewareName);
+
 			if (refMiddlewareIdx === -1) {
 				throw new Error(`Could not find middleware ${refMiddlewareName}, referenced by custom ` +
 					`middleware ${middlewareName}`);
