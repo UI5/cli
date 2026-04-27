@@ -2,7 +2,7 @@ import path from "node:path";
 import os from "node:os";
 import Configuration from "../../config/Configuration.js";
 import {getLogger} from "@ui5/logger";
-import ContentAddressableStorage from "./ContentAddressableStorage.js";
+import ContentAddressableStorageSQLite from "./ContentAddressableStorageSQLite.js";
 import MetadataStorage from "./MetadataStorage.js";
 
 const log = getLogger("build:cache:CacheManager");
@@ -11,7 +11,7 @@ const log = getLogger("build:cache:CacheManager");
 const cacheManagerInstances = new Map();
 
 // Cache version for compatibility management
-const CACHE_VERSION = "v0_4";
+const CACHE_VERSION = "v0_5";
 
 /**
  * Manages persistence for the build cache using SQLite-backed metadata storage
@@ -47,12 +47,12 @@ export default class CacheManager {
 	 */
 	constructor(cacheDir) {
 		const versionedDir = path.join(cacheDir, CACHE_VERSION);
-		this.#cas = new ContentAddressableStorage(path.join(versionedDir, "cas"));
+		this.#cas = new ContentAddressableStorageSQLite(path.join(versionedDir, "content.db"));
 		this.#metadataStorage = new MetadataStorage(versionedDir);
 	}
 
 	#isValid() {
-		return this.#metadataStorage.isValid;
+		return this.#metadataStorage.isValid && this.#cas.isValid;
 	}
 
 	/**
@@ -202,36 +202,51 @@ export default class CacheManager {
 	}
 
 	/**
-	 * Computes the filesystem path for a CAS resource given its integrity hash
-	 *
-	 * This is synchronous — no I/O is performed.
+	 * Checks whether content with the given integrity exists in storage
 	 *
 	 * @public
 	 * @param {string} integrity SRI integrity string (e.g., "sha256-...")
-	 * @returns {string} Absolute filesystem path to the cached content file
+	 * @returns {boolean} True if content exists
 	 */
-	contentPath(integrity) {
-		return this.#cas.contentPath(integrity);
+	hasContent(integrity) {
+		return this.#cas.has(integrity);
 	}
 
 	/**
-	 * Retrieves the file system path for a cached resource
+	 * Reads and decompresses content from the CAS
 	 *
-	 * Computes the content path from the integrity hash and verifies the file exists.
+	 * @public
+	 * @param {string} integrity SRI integrity string
+	 * @returns {Buffer} Decompressed content buffer
+	 */
+	readContent(integrity) {
+		return this.#cas.readContent(integrity);
+	}
+
+	/**
+	 * Reads the raw compressed BLOB from the CAS
+	 *
+	 * @public
+	 * @param {string} integrity SRI integrity string
+	 * @returns {Buffer} Compressed content buffer
+	 */
+	readContentRaw(integrity) {
+		return this.#cas.readContentRaw(integrity);
+	}
+
+	/**
+	 * Checks whether content exists for the given integrity hash
 	 *
 	 * @public
 	 * @param {string} integrity Expected integrity hash (e.g., "sha256-...")
-	 * @returns {Promise<string|null>} Absolute path to the cached resource file, or null if not found
+	 * @returns {boolean} True if content exists in storage
 	 * @throws {Error} If integrity is not provided
 	 */
-	async getResourcePathForStage(integrity) {
+	hasResourceForStage(integrity) {
 		if (!integrity) {
 			throw new Error("Integrity hash must be provided to read from cache");
 		}
-		if (await this.#cas.has(integrity)) {
-			return this.#cas.contentPath(integrity);
-		}
-		return null;
+		return this.#cas.has(integrity);
 	}
 
 	/**
@@ -247,13 +262,46 @@ export default class CacheManager {
 	async writeStageResource(resource) {
 		const integrity = await resource.getIntegrity();
 		const buffer = await resource.getBuffer();
-		await this.#cas.put(integrity, buffer);
+		this.#cas.put(integrity, buffer);
+	}
+
+	/**
+	 * Writes content directly to the CAS with pre-fetched integrity and buffer
+	 *
+	 * @public
+	 * @param {string} integrity SRI integrity string
+	 * @param {Buffer} buffer Uncompressed resource content
+	 */
+	putContent(integrity, buffer) {
+		this.#cas.put(integrity, buffer);
+	}
+
+	/**
+	 * Begins a batch transaction for multiple content writes
+	 */
+	beginContentBatch() {
+		this.#cas.beginBatch();
+	}
+
+	/**
+	 * Commits the current content batch transaction
+	 */
+	endContentBatch() {
+		this.#cas.endBatch();
+	}
+
+	/**
+	 * Rolls back the current content batch transaction
+	 */
+	rollbackContentBatch() {
+		this.#cas.rollbackBatch();
 	}
 
 	/**
 	 * Closes the metadata storage
 	 */
 	close() {
+		this.#cas.close();
 		this.#metadataStorage.close();
 	}
 }
