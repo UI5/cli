@@ -298,6 +298,27 @@ export default class CacheManager {
 	}
 
 	/**
+	 * Begins a batch transaction for multiple metadata writes
+	 */
+	beginMetadataBatch() {
+		this.#metadataStorage.beginBatch();
+	}
+
+	/**
+	 * Commits the current metadata batch transaction
+	 */
+	endMetadataBatch() {
+		this.#metadataStorage.endBatch();
+	}
+
+	/**
+	 * Rolls back the current metadata batch transaction
+	 */
+	rollbackMetadataBatch() {
+		this.#metadataStorage.rollbackBatch();
+	}
+
+	/**
 	 * Closes the metadata storage
 	 */
 	close() {

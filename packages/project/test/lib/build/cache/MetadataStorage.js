@@ -170,3 +170,50 @@ test("Read throws wrapped error after close", (t) => {
 	t.true(err.message.includes("Failed to read resource index cache"));
 	t.truthy(err.cause);
 });
+
+// Batch transactions
+
+test("beginBatch/endBatch: Multiple writes commit atomically", (t) => {
+	const {storage} = t.context;
+	storage.beginBatch();
+	storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
+	storage.writeTaskMetadata("project-a", "sig-1", "minify", "project", {v: 2});
+	storage.writeResultMetadata("project-a", "sig-1", "result-sig-1", {v: 3});
+	storage.endBatch();
+
+	t.deepEqual(storage.readIndexCache("project-a", "sig-1", "source"), {v: 1});
+	t.deepEqual(storage.readTaskMetadata("project-a", "sig-1", "minify", "project"), {v: 2});
+	t.deepEqual(storage.readResultMetadata("project-a", "sig-1", "result-sig-1"), {v: 3});
+});
+
+test("rollbackBatch: Discards uncommitted writes", (t) => {
+	const {storage} = t.context;
+	storage.beginBatch();
+	storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
+	storage.writeTaskMetadata("project-a", "sig-1", "minify", "project", {v: 2});
+	storage.rollbackBatch();
+
+	t.is(storage.readIndexCache("project-a", "sig-1", "source"), null);
+	t.is(storage.readTaskMetadata("project-a", "sig-1", "minify", "project"), null);
+});
+
+test("close: Rolls back uncommitted batch", (t) => {
+	const {storage} = t.context;
+	storage.beginBatch();
+	storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
+	storage.close();
+
+	const fresh = new MetadataStorage(t.context.dbDir);
+	t.is(fresh.readIndexCache("project-a", "sig-1", "source"), null);
+	fresh.close();
+});
+
+test("beginBatch: Nested calls are idempotent", (t) => {
+	const {storage} = t.context;
+	storage.beginBatch();
+	storage.beginBatch();
+	storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
+	storage.endBatch();
+
+	t.deepEqual(storage.readIndexCache("project-a", "sig-1", "source"), {v: 1});
+});
