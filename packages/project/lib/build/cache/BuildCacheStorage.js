@@ -6,6 +6,8 @@ import {getLogger} from "@ui5/logger";
 
 const log = getLogger("build:cache:BuildCacheStorage");
 
+const METADATA_COMPRESSION_THRESHOLD = 4096;
+
 /**
  * Unified SQLite-backed storage for the build cache
  *
@@ -50,7 +52,7 @@ export default class BuildCacheStorage {
 				project_id TEXT NOT NULL,
 				build_signature TEXT NOT NULL,
 				kind TEXT NOT NULL,
-				data TEXT NOT NULL,
+				data BLOB NOT NULL,
 				PRIMARY KEY (project_id, build_signature, kind)
 			) WITHOUT ROWID;
 
@@ -59,7 +61,7 @@ export default class BuildCacheStorage {
 				build_signature TEXT NOT NULL,
 				stage_id TEXT NOT NULL,
 				stage_signature TEXT NOT NULL,
-				data TEXT NOT NULL,
+				data BLOB NOT NULL,
 				PRIMARY KEY (project_id, build_signature, stage_id, stage_signature)
 			) WITHOUT ROWID;
 
@@ -68,7 +70,7 @@ export default class BuildCacheStorage {
 				build_signature TEXT NOT NULL,
 				task_name TEXT NOT NULL,
 				type TEXT NOT NULL,
-				data TEXT NOT NULL,
+				data BLOB NOT NULL,
 				PRIMARY KEY (project_id, build_signature, task_name, type)
 			) WITHOUT ROWID;
 
@@ -76,7 +78,7 @@ export default class BuildCacheStorage {
 				project_id TEXT NOT NULL,
 				build_signature TEXT NOT NULL,
 				stage_signature TEXT NOT NULL,
-				data TEXT NOT NULL,
+				data BLOB NOT NULL,
 				PRIMARY KEY (project_id, build_signature, stage_signature)
 			) WITHOUT ROWID;
 		`);
@@ -198,6 +200,33 @@ export default class BuildCacheStorage {
 	// ===== Metadata operations =====
 
 	/**
+	 * Serializes metadata to a buffer, compressing with gzip if above threshold
+	 *
+	 * @param {object} metadata Object to serialize
+	 * @returns {Buffer|string} Compressed buffer or JSON string
+	 */
+	#serializeMetadata(metadata) {
+		const json = JSON.stringify(metadata);
+		if (json.length > METADATA_COMPRESSION_THRESHOLD) {
+			return gzipSync(Buffer.from(json), {level: 1});
+		}
+		return json;
+	}
+
+	/**
+	 * Deserializes metadata, detecting and decompressing gzip data
+	 *
+	 * @param {Buffer|string} data Raw data from database
+	 * @returns {object} Parsed metadata object
+	 */
+	#deserializeMetadata(data) {
+		if (data instanceof Uint8Array && data.length >= 2 && data[0] === 0x1f && data[1] === 0x8b) {
+			return JSON.parse(gunzipSync(data).toString());
+		}
+		return JSON.parse(typeof data === "string" ? data : data.toString());
+	}
+
+	/**
 	 * Reads resource index cache
 	 *
 	 * @param {string} projectId Project identifier
@@ -208,7 +237,7 @@ export default class BuildCacheStorage {
 	readIndexCache(projectId, buildSignature, kind) {
 		try {
 			const row = this.#stmts.readIndexCache.get(projectId, buildSignature, kind);
-			return row ? JSON.parse(row.data) : null;
+			return row ? this.#deserializeMetadata(row.data) : null;
 		} catch (err) {
 			throw new Error(
 				`Failed to read resource index cache for ` +
@@ -227,7 +256,7 @@ export default class BuildCacheStorage {
 	 * @param {object} index Index object to serialize
 	 */
 	writeIndexCache(projectId, buildSignature, kind, index) {
-		this.#stmts.writeIndexCache.run(projectId, buildSignature, kind, JSON.stringify(index));
+		this.#stmts.writeIndexCache.run(projectId, buildSignature, kind, this.#serializeMetadata(index));
 	}
 
 	/**
@@ -244,7 +273,7 @@ export default class BuildCacheStorage {
 			const row = this.#stmts.readStageMetadata.get(
 				projectId, buildSignature, stageId, stageSignature
 			);
-			return row ? JSON.parse(row.data) : null;
+			return row ? this.#deserializeMetadata(row.data) : null;
 		} catch (err) {
 			throw new Error(
 				`Failed to read stage metadata from cache for ` +
@@ -265,7 +294,7 @@ export default class BuildCacheStorage {
 	 */
 	writeStageCache(projectId, buildSignature, stageId, stageSignature, metadata) {
 		this.#stmts.writeStageMetadata.run(
-			projectId, buildSignature, stageId, stageSignature, JSON.stringify(metadata)
+			projectId, buildSignature, stageId, stageSignature, this.#serializeMetadata(metadata)
 		);
 	}
 
@@ -283,7 +312,7 @@ export default class BuildCacheStorage {
 			const row = this.#stmts.readTaskMetadata.get(
 				projectId, buildSignature, taskName, type
 			);
-			return row ? JSON.parse(row.data) : null;
+			return row ? this.#deserializeMetadata(row.data) : null;
 		} catch (err) {
 			throw new Error(
 				`Failed to read task metadata from cache for ` +
@@ -304,7 +333,7 @@ export default class BuildCacheStorage {
 	 */
 	writeTaskMetadata(projectId, buildSignature, taskName, type, metadata) {
 		this.#stmts.writeTaskMetadata.run(
-			projectId, buildSignature, taskName, type, JSON.stringify(metadata)
+			projectId, buildSignature, taskName, type, this.#serializeMetadata(metadata)
 		);
 	}
 
@@ -321,7 +350,7 @@ export default class BuildCacheStorage {
 			const row = this.#stmts.readResultMetadata.get(
 				projectId, buildSignature, stageSignature
 			);
-			return row ? JSON.parse(row.data) : null;
+			return row ? this.#deserializeMetadata(row.data) : null;
 		} catch (err) {
 			throw new Error(
 				`Failed to read result metadata from cache for ` +
@@ -341,7 +370,7 @@ export default class BuildCacheStorage {
 	 */
 	writeResultMetadata(projectId, buildSignature, stageSignature, metadata) {
 		this.#stmts.writeResultMetadata.run(
-			projectId, buildSignature, stageSignature, JSON.stringify(metadata)
+			projectId, buildSignature, stageSignature, this.#serializeMetadata(metadata)
 		);
 	}
 
