@@ -6,7 +6,7 @@ import crypto from "node:crypto";
 import BuildTaskCache from "./BuildTaskCache.js";
 import StageCache from "./StageCache.js";
 import ResourceIndex from "./index/ResourceIndex.js";
-import {firstTruthy, matchResourceMetadataStrict} from "./utils.js";
+import {matchResourceMetadataStrict} from "./utils.js";
 const log = getLogger("build:cache:ProjectBuildCache");
 
 export const INDEX_STATES = Object.freeze({
@@ -311,22 +311,27 @@ export default class ProjectBuildCache {
 			return [];
 		}
 
-		const res = await firstTruthy(resultSignatures.map(async (resultSignature) => {
-			const metadata = await this.#cacheManager.readResultMetadata(
-				this.#project.getId(), this.#buildSignature, resultSignature);
-			if (!metadata) {
-				return;
-			}
-			return [resultSignature, metadata];
-		}));
+		// Batch-check which result signatures exist, then read only the first match
+		const existingSignatures = this.#cacheManager.findExistingResultSignatures(
+			this.#project.getId(), this.#buildSignature, resultSignatures);
 
-		if (!res) {
+		if (!existingSignatures.length) {
 			log.verbose(
 				`No cached stage found for project ${this.#project.getName()}. Searched with ` +
 				`${resultSignatures.length} possible signatures.`);
 			return false;
 		}
-		const [resultSignature, resultMetadata] = res;
+
+		const resultSignature = existingSignatures[0];
+		const resultMetadata = await this.#cacheManager.readResultMetadata(
+			this.#project.getId(), this.#buildSignature, resultSignature);
+
+		if (!resultMetadata) {
+			log.verbose(
+				`No cached stage found for project ${this.#project.getName()}. Searched with ` +
+				`${resultSignatures.length} possible signatures.`);
+			return false;
+		}
 		log.verbose(`Found result cache with signature ${resultSignature}`);
 		const {stageSignatures, sourceStageSignature} = resultMetadata;
 
@@ -631,9 +636,17 @@ export default class ProjectBuildCache {
 			return;
 		}
 
-		// Start reading from disk — store promises, don't await
+		// Batch-check which signatures actually exist in the DB
+		const existingSignatures = this.#cacheManager.findExistingStageSignatures(
+			this.#project.getId(), this.#buildSignature, stageName, uncachedSignatures);
+
+		if (!existingSignatures.length) {
+			return;
+		}
+
+		// Only read signatures that exist — store promises, don't await
 		const prefetchMap = new Map();
-		for (const sig of uncachedSignatures) {
+		for (const sig of existingSignatures) {
 			prefetchMap.set(sig, this.#cacheManager.readStageCache(
 				this.#project.getId(), this.#buildSignature, stageName, sig));
 		}
@@ -688,19 +701,20 @@ export default class ProjectBuildCache {
 			}
 		}
 
-		// TODO: If list of signatures is longer than N,
-		// retrieve all available signatures from cache manager first.
-		// Later maybe add a bloom filter for even larger sets
-		const stageCache = await firstTruthy(stageSignatures.map(async (stageSignature) => {
-			const stageMetadata = await this.#cacheManager.readStageCache(
-				this.#project.getId(), this.#buildSignature, stageName, stageSignature);
-			if (!stageMetadata) {
-				return;
-			}
-			log.verbose(`Found cached stage for task ${stageName} with signature ${stageSignature}`);
-			return this.#processStageCacheMetadata(stageName, stageSignature, stageMetadata);
-		}));
-		return stageCache;
+		// Batch-check which signatures exist, then read only the first match
+		const existingSignatures = this.#cacheManager.findExistingStageSignatures(
+			this.#project.getId(), this.#buildSignature, stageName, stageSignatures);
+		if (!existingSignatures.length) {
+			return;
+		}
+		const stageSignature = existingSignatures[0];
+		const stageMetadata = await this.#cacheManager.readStageCache(
+			this.#project.getId(), this.#buildSignature, stageName, stageSignature);
+		if (!stageMetadata) {
+			return;
+		}
+		log.verbose(`Found cached stage for task ${stageName} with signature ${stageSignature}`);
+		return this.#processStageCacheMetadata(stageName, stageSignature, stageMetadata);
 	}
 
 	/**
