@@ -281,6 +281,36 @@ export default class HashTree {
 	}
 
 	/**
+	 * Recompute a directory node's hash from its children's existing hashes.
+	 *
+	 * Unlike _computeHash, this does NOT recurse into children. It assumes all
+	 * child hashes are already correct and only recomputes this directory's hash
+	 * by combining them. Used for efficient ancestor recomputation after a
+	 * leaf-level change has already been applied.
+	 *
+	 * @param {TreeNode} node - Must be a directory node
+	 * @returns {Buffer}
+	 * @private
+	 */
+	_recomputeDirectoryHashShallow(node) {
+		const sortedChildren = Array.from(node.children.entries())
+			.sort((a, b) => a[0].localeCompare(b[0]));
+
+		if (sortedChildren.length === 0) {
+			node.hash = this._hashData(`dir:${node.name}:empty`);
+		} else {
+			const childHashes = sortedChildren.map(([, child]) => child.hash);
+			const combined = Buffer.concat(childHashes);
+			node.hash = crypto.createHash("sha256")
+				.update(`dir:${node.name}:`)
+				.update(combined)
+				.digest();
+		}
+
+		return node.hash;
+	}
+
+	/**
 	 * Get the root hash as a hex string
 	 *
 	 * @returns {string}
@@ -511,7 +541,7 @@ export default class HashTree {
 		for (const dirPath of sortedPaths) {
 			const node = this._findNode(dirPath);
 			if (node && node.type === "directory") {
-				this._computeHash(node);
+				this._recomputeDirectoryHashShallow(node);
 			}
 		}
 		this.setIndexTimestamp(newIndexTimestamp);
@@ -606,7 +636,7 @@ export default class HashTree {
 		for (const dirPath of sortedPaths) {
 			const node = this._findNode(dirPath);
 			if (node && node.type === "directory") {
-				this._computeHash(node);
+				this._recomputeDirectoryHashShallow(node);
 			}
 		}
 
@@ -630,7 +660,7 @@ export default class HashTree {
 			const dirPath = parts.slice(0, i).join(path.sep);
 			const node = this._findNode(dirPath);
 			if (node && node.type === "directory") {
-				this._computeHash(node);
+				this._recomputeDirectoryHashShallow(node);
 			}
 		}
 	}
