@@ -40,7 +40,6 @@ const CACHE_VERSION = "v0_3_c_native";
  */
 export default class CacheManager {
 	#cas;
-	#casDir;
 	#store;
 
 	/**
@@ -55,7 +54,6 @@ export default class CacheManager {
 	constructor(cacheDir) {
 		cacheDir = path.join(cacheDir, CACHE_VERSION);
 		this.#cas = new ContentAddressableStorage(path.join(cacheDir, "cas"));
-		this.#casDir = path.join(cacheDir, "cas");
 		this.#store = new MetadataStore(cacheDir);
 	}
 
