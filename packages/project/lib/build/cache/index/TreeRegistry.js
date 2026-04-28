@@ -510,7 +510,7 @@ export default class TreeRegistry {
 			for (const dirPath of sortedPaths) {
 				const node = tree._findNode(dirPath);
 				if (node && node.type === "directory") {
-					tree._computeHash(node);
+					tree._recomputeDirectoryHashShallow(node);
 				}
 			}
 			if (this.pendingTimestampUpdate) {
