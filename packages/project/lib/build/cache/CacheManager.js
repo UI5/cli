@@ -2,8 +2,7 @@ import path from "node:path";
 import os from "node:os";
 import Configuration from "../../config/Configuration.js";
 import {getLogger} from "@ui5/logger";
-import ContentAddressableStorageSQLite from "./ContentAddressableStorageSQLite.js";
-import MetadataStorage from "./MetadataStorage.js";
+import BuildCacheStorage from "./BuildCacheStorage.js";
 
 const log = getLogger("build:cache:CacheManager");
 
@@ -11,15 +10,15 @@ const log = getLogger("build:cache:CacheManager");
 const cacheManagerInstances = new Map();
 
 // Cache version for compatibility management
-const CACHE_VERSION = "v0_5";
+const CACHE_VERSION = "v0_6";
 
 /**
- * Manages persistence for the build cache using SQLite-backed metadata storage
- * and a content-addressable storage (CAS) for resource content
+ * Manages persistence for the build cache using a unified SQLite-backed storage
+ * for both metadata and content-addressable resource content
  *
  * CacheManager delegates metadata operations (index caches, stage metadata,
- * task metadata, result metadata) to MetadataStorage (SQLite), and binary
- * resource content to ContentAddressableStorage (file-based, gzip-compressed).
+ * task metadata, result metadata) and binary resource content (gzip-compressed
+ * BLOBs) to BuildCacheStorage (single SQLite database).
  *
  * The cache is organized by:
  * 1. Project ID (package name)
@@ -27,17 +26,15 @@ const CACHE_VERSION = "v0_5";
  * 3. Stage/task identifiers and signatures
  *
  * Key features:
- * - Content-addressable storage with synchronous path resolution
+ * - Content-addressable storage with deduplication
  * - Singleton pattern per cache directory
  * - Configurable cache location via UI5_DATA_DIR or configuration
- * - Efficient resource deduplication through content-addressable storage
- * - SQLite-backed metadata for fast read/write operations
+ * - SQLite-backed storage for fast read/write operations
  *
  * @class
  */
 export default class CacheManager {
-	#cas;
-	#metadataStorage;
+	#storage;
 
 	/**
 	 * Creates a new CacheManager instance
@@ -47,12 +44,11 @@ export default class CacheManager {
 	 */
 	constructor(cacheDir) {
 		const versionedDir = path.join(cacheDir, CACHE_VERSION);
-		this.#cas = new ContentAddressableStorageSQLite(path.join(versionedDir, "content.db"));
-		this.#metadataStorage = new MetadataStorage(versionedDir);
+		this.#storage = new BuildCacheStorage(versionedDir);
 	}
 
 	#isValid() {
-		return this.#metadataStorage.isValid && this.#cas.isValid;
+		return this.#storage.isValid;
 	}
 
 	/**
@@ -99,7 +95,7 @@ export default class CacheManager {
 	 * @returns {Promise<object|null>} Parsed index cache object or null if not found
 	 */
 	async readIndexCache(projectId, buildSignature, kind) {
-		return this.#metadataStorage.readIndexCache(projectId, buildSignature, kind);
+		return this.#storage.readIndexCache(projectId, buildSignature, kind);
 	}
 
 	/**
@@ -113,7 +109,7 @@ export default class CacheManager {
 	 * @returns {Promise<void>}
 	 */
 	async writeIndexCache(projectId, buildSignature, kind, index) {
-		this.#metadataStorage.writeIndexCache(projectId, buildSignature, kind, index);
+		this.#storage.writeIndexCache(projectId, buildSignature, kind, index);
 	}
 
 	/**
@@ -127,7 +123,7 @@ export default class CacheManager {
 	 * @returns {Promise<object|null>} Parsed stage metadata or null if not found
 	 */
 	async readStageCache(projectId, buildSignature, stageId, stageSignature) {
-		return this.#metadataStorage.readStageCache(projectId, buildSignature, stageId, stageSignature);
+		return this.#storage.readStageCache(projectId, buildSignature, stageId, stageSignature);
 	}
 
 	/**
@@ -142,7 +138,7 @@ export default class CacheManager {
 	 * @returns {Promise<void>}
 	 */
 	async writeStageCache(projectId, buildSignature, stageId, stageSignature, metadata) {
-		this.#metadataStorage.writeStageCache(projectId, buildSignature, stageId, stageSignature, metadata);
+		this.#storage.writeStageCache(projectId, buildSignature, stageId, stageSignature, metadata);
 	}
 
 	/**
@@ -156,7 +152,7 @@ export default class CacheManager {
 	 * @returns {Promise<object|null>} Parsed task metadata or null if not found
 	 */
 	async readTaskMetadata(projectId, buildSignature, taskName, type) {
-		return this.#metadataStorage.readTaskMetadata(projectId, buildSignature, taskName, type);
+		return this.#storage.readTaskMetadata(projectId, buildSignature, taskName, type);
 	}
 
 	/**
@@ -171,7 +167,7 @@ export default class CacheManager {
 	 * @returns {Promise<void>}
 	 */
 	async writeTaskMetadata(projectId, buildSignature, taskName, type, metadata) {
-		this.#metadataStorage.writeTaskMetadata(projectId, buildSignature, taskName, type, metadata);
+		this.#storage.writeTaskMetadata(projectId, buildSignature, taskName, type, metadata);
 	}
 
 	/**
@@ -184,7 +180,7 @@ export default class CacheManager {
 	 * @returns {Promise<object|null>} Parsed result metadata or null if not found
 	 */
 	async readResultMetadata(projectId, buildSignature, stageSignature) {
-		return this.#metadataStorage.readResultMetadata(projectId, buildSignature, stageSignature);
+		return this.#storage.readResultMetadata(projectId, buildSignature, stageSignature);
 	}
 
 	/**
@@ -198,7 +194,7 @@ export default class CacheManager {
 	 * @returns {Promise<void>}
 	 */
 	async writeResultMetadata(projectId, buildSignature, stageSignature, metadata) {
-		this.#metadataStorage.writeResultMetadata(projectId, buildSignature, stageSignature, metadata);
+		this.#storage.writeResultMetadata(projectId, buildSignature, stageSignature, metadata);
 	}
 
 	/**
@@ -209,7 +205,7 @@ export default class CacheManager {
 	 * @returns {boolean} True if content exists
 	 */
 	hasContent(integrity) {
-		return this.#cas.has(integrity);
+		return this.#storage.hasContent(integrity);
 	}
 
 	/**
@@ -220,7 +216,7 @@ export default class CacheManager {
 	 * @returns {Buffer} Decompressed content buffer
 	 */
 	readContent(integrity) {
-		return this.#cas.readContent(integrity);
+		return this.#storage.readContent(integrity);
 	}
 
 	/**
@@ -231,7 +227,7 @@ export default class CacheManager {
 	 * @returns {Buffer} Compressed content buffer
 	 */
 	readContentRaw(integrity) {
-		return this.#cas.readContentRaw(integrity);
+		return this.#storage.readContentRaw(integrity);
 	}
 
 	/**
@@ -246,7 +242,7 @@ export default class CacheManager {
 		if (!integrity) {
 			throw new Error("Integrity hash must be provided to read from cache");
 		}
-		return this.#cas.has(integrity);
+		return this.#storage.hasContent(integrity);
 	}
 
 	/**
@@ -262,7 +258,7 @@ export default class CacheManager {
 	async writeStageResource(resource) {
 		const integrity = await resource.getIntegrity();
 		const buffer = await resource.getBuffer();
-		this.#cas.put(integrity, buffer);
+		this.#storage.putContent(integrity, buffer);
 	}
 
 	/**
@@ -273,56 +269,55 @@ export default class CacheManager {
 	 * @param {Buffer} buffer Uncompressed resource content
 	 */
 	putContent(integrity, buffer) {
-		this.#cas.put(integrity, buffer);
+		this.#storage.putContent(integrity, buffer);
 	}
 
 	/**
 	 * Begins a batch transaction for multiple content writes
 	 */
 	beginContentBatch() {
-		this.#cas.beginBatch();
+		this.#storage.beginContentBatch();
 	}
 
 	/**
 	 * Commits the current content batch transaction
 	 */
 	endContentBatch() {
-		this.#cas.endBatch();
+		this.#storage.endContentBatch();
 	}
 
 	/**
 	 * Rolls back the current content batch transaction
 	 */
 	rollbackContentBatch() {
-		this.#cas.rollbackBatch();
+		this.#storage.rollbackContentBatch();
 	}
 
 	/**
 	 * Begins a batch transaction for multiple metadata writes
 	 */
 	beginMetadataBatch() {
-		this.#metadataStorage.beginBatch();
+		this.#storage.beginMetadataBatch();
 	}
 
 	/**
 	 * Commits the current metadata batch transaction
 	 */
 	endMetadataBatch() {
-		this.#metadataStorage.endBatch();
+		this.#storage.endMetadataBatch();
 	}
 
 	/**
 	 * Rolls back the current metadata batch transaction
 	 */
 	rollbackMetadataBatch() {
-		this.#metadataStorage.rollbackBatch();
+		this.#storage.rollbackMetadataBatch();
 	}
 
 	/**
-	 * Closes the metadata storage
+	 * Closes the storage
 	 */
 	close() {
-		this.#cas.close();
-		this.#metadataStorage.close();
+		this.#storage.close();
 	}
 }
