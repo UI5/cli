@@ -113,7 +113,6 @@ export default class CacheManager {
 		} finally {
 			BuildTimings.end("readBuildManifest", t);
 		}
-	
 	}
 
 	/**
@@ -129,11 +128,9 @@ export default class CacheManager {
 		const t = BuildTimings.start("writeBuildManifest");
 		try {
 			this.#store.putBuildManifest(projectId, buildSignature, manifest);
-	
 		} finally {
 			BuildTimings.end("writeBuildManifest", t);
 		}
-	
 	}
 
 	/**
@@ -157,7 +154,6 @@ export default class CacheManager {
 		} finally {
 			BuildTimings.end("readIndexCache", t);
 		}
-	
 	}
 
 	/**
@@ -174,11 +170,9 @@ export default class CacheManager {
 		const t = BuildTimings.start("writeIndexCache");
 		try {
 			this.#store.putIndexCache(projectId, buildSignature, kind, index);
-	
 		} finally {
 			BuildTimings.end("writeIndexCache", t);
 		}
-	
 	}
 
 	/**
@@ -203,7 +197,6 @@ export default class CacheManager {
 		} finally {
 			BuildTimings.end("readStageCache", t);
 		}
-	
 	}
 
 	/**
@@ -221,11 +214,9 @@ export default class CacheManager {
 		const t = BuildTimings.start("writeStageCache");
 		try {
 			this.#store.putStageMetadata(projectId, buildSignature, stageId, stageSignature, metadata);
-	
 		} finally {
 			BuildTimings.end("writeStageCache", t);
 		}
-	
 	}
 
 	/**
@@ -250,7 +241,6 @@ export default class CacheManager {
 		} finally {
 			BuildTimings.end("readTaskMetadata", t);
 		}
-	
 	}
 
 	/**
@@ -268,11 +258,9 @@ export default class CacheManager {
 		const t = BuildTimings.start("writeTaskMetadata");
 		try {
 			this.#store.putTaskMetadata(projectId, buildSignature, taskName, type, metadata);
-	
 		} finally {
 			BuildTimings.end("writeTaskMetadata", t);
 		}
-	
 	}
 
 	/**
@@ -296,7 +284,6 @@ export default class CacheManager {
 		} finally {
 			BuildTimings.end("readResultMetadata", t);
 		}
-	
 	}
 
 	/**
@@ -313,11 +300,9 @@ export default class CacheManager {
 		const t = BuildTimings.start("writeResultMetadata");
 		try {
 			this.#store.putResultMetadata(projectId, buildSignature, stageSignature, metadata);
-	
 		} finally {
 			BuildTimings.end("writeResultMetadata", t);
 		}
-	
 	}
 
 	/**

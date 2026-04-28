@@ -1495,8 +1495,8 @@ export default class ProjectBuildCache {
 	 * @param {Object<string, object>|Array<Object<string, object>>} resourceMetadata
 	 */
 	#collectKnownIntegrities(resourceMetadata) {
-		const metadataObjects = Array.isArray(resourceMetadata)
-			? resourceMetadata : [resourceMetadata];
+		const metadataObjects = Array.isArray(resourceMetadata) ?
+			resourceMetadata : [resourceMetadata];
 		for (const metadataObj of metadataObjects) {
 			for (const meta of Object.values(metadataObj)) {
 				if (meta.integrity) {

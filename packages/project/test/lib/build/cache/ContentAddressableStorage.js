@@ -10,13 +10,13 @@ const readFile = promisify(fs.readFile);
 
 const TEST_DIR = path.join(import.meta.dirname, "..", "..", "..", "tmp", "ContentAddressableStorage");
 
-test.beforeEach(async (t) => {
-	t.context.basePath = path.join(TEST_DIR, `cas-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-	t.context.cas = new ContentAddressableStorage(t.context.basePath);
-});
-
 test.after.always(async () => {
 	await rimraf(TEST_DIR);
+});
+
+test.beforeEach((t) => {
+	t.context.basePath = path.join(TEST_DIR, `cas-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+	t.context.cas = new ContentAddressableStorage(t.context.basePath);
 });
 
 test("contentPath: Computes deterministic path from integrity", (t) => {
@@ -66,7 +66,6 @@ test("has: Returns false when content does not exist", async (t) => {
 test("has: Returns true after content is stored", async (t) => {
 	const cas = t.context.cas;
 	const content = Buffer.from("test content");
-	const integrity = "sha256-6DvEUQhlMraqbfGBGR2fhsJaNhr0K0VhMupLPEYrmIY=";
 
 	// Compute real integrity for test content
 	const ssri = await import("ssri");
