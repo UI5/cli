@@ -1,5 +1,4 @@
 import path from "node:path";
-import fs from "node:fs";
 
 /**
  * Executes hyperfine benchmarks and manages result files.
@@ -54,24 +53,14 @@ export default class HyperfineRunner {
 			console.log(`Checking out ${commitHash}...`);
 			await this.#git.checkout(commitHash, repositoryPath);
 
-			// Clean node_modules to avoid stale workspace symlinks across branches
-			const nodeModulesPath = path.resolve(repositoryPath, "node_modules");
-			console.log(`Removing node_modules...`);
-			await fs.promises.rm(nodeModulesPath, {recursive: true, force: true});
-
 			// Install dependencies
 			console.log(`Running npm ci...`);
 			await this.#npm.ci(repositoryPath);
 
-			// Build native addons that require node-gyp
-			console.log(`Building native addons...`);
-			await this.#npm.rebuildNativeAddons(repositoryPath);
-
 			// Build hyperfine arguments
 			const args = [
 				"--warmup", String(warmup),
-				"--runs", String(runs),
-				"--show-output"
+				"--runs", String(runs)
 			];
 
 			// Add each benchmark as a separate command to hyperfine
@@ -83,14 +72,10 @@ export default class HyperfineRunner {
 				}
 				const fullCommand = `${env}node ${this.#ui5CliPath} ${benchmark.command}`;
 
-				// Add prepare command if specified
-				if (benchmark.prepare) {
-					args.push("--prepare", benchmark.prepare);
-				}
-				// Add conclude command if specified
-				if (benchmark.conclude) {
-					args.push("--conclude", benchmark.conclude);
-				}
+				// Add prepare command (empty string if none)
+				args.push("--prepare", benchmark.prepare || "");
+				// Add conclude command (empty string if none)
+				args.push("--conclude", benchmark.conclude || "");
 
 				// Add the benchmark command
 				args.push("--command-name", commandName, fullCommand);

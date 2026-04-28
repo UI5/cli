@@ -3,7 +3,6 @@
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
-	"version": "0.1.0",
 	"engines": {
 		"node": "^22.20.0 || >=24.0.0",
 		"npm": ">= 8"

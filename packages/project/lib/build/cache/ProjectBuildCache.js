@@ -1532,7 +1532,7 @@ export default class ProjectBuildCache {
 				inode: res.getInode(),
 				lastModified: res.getLastModified(),
 				size: await res.getSize(),
-				integrity: await res.getHash(),
+				integrity: await res.getIntegrity(),
 			};
 		}));
 		if (log.isLevelEnabled("perf") && casSkipped > 0) {

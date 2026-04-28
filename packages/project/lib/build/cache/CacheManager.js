@@ -1,9 +1,8 @@
 import path from "node:path";
-import {promisify} from "node:util";
-import {gzip} from "node:zlib";
 import os from "node:os";
 import Configuration from "../../config/Configuration.js";
 import MetadataStore from "./MetadataStore.js";
+import ContentAddressableStorage from "./ContentAddressableStorage.js";
 import {getLogger} from "@ui5/logger";
 import BuildTimings from "./BuildTimings.js";
 
@@ -40,6 +39,7 @@ const CACHE_VERSION = "v0_3_c_native";
  * @class
  */
 export default class CacheManager {
+	#cas;
 	#casDir;
 	#store;
 
@@ -54,6 +54,7 @@ export default class CacheManager {
 	 */
 	constructor(cacheDir) {
 		cacheDir = path.join(cacheDir, CACHE_VERSION);
+		this.#cas = new ContentAddressableStorage(path.join(cacheDir, "cas"));
 		this.#casDir = path.join(cacheDir, "cas");
 		this.#store = new MetadataStore(cacheDir);
 	}
@@ -349,23 +350,19 @@ export default class CacheManager {
 	 * @returns {Promise<string|null>} Absolute path to the cached resource file, or null if not found
 	 * @throws {Error} If integrity is not provided
 	 */
-	async getResourcePathForStage(buildSignature, stageId, stageSignature, resourcePath, integrity) {
+	async getResourcePathForStage(integrity) {
 		const t = BuildTimings.start("getResourcePathForStage");
 		try {
 			if (!integrity) {
 				throw new Error("Integrity hash must be provided to read from cache");
 			}
-			// const cacheKey = this.#createKeyForStage(buildSignature, stageId, stageSignature, resourcePath, integrity);
-			const result = await cacache.get.info(this.#casDir, integrity);
-			if (!result) {
-				return null;
+			if (await this.#cas.has(integrity)) {
+				return this.#cas.contentPath(integrity);
 			}
-			return result.path;
-	
+			return null;
 		} finally {
 			BuildTimings.end("getResourcePathForStage", t);
 		}
-	
 	}
 
 	/**
@@ -378,27 +375,14 @@ export default class CacheManager {
 	 * @param {@ui5/fs/Resource} resource Resource to cache
 	 * @returns {Promise<void>}
 	 */
-	async writeStageResource(buildSignature, stageId, stageSignature, resource) {
+	async writeStageResource(resource) {
 		const t = BuildTimings.start("writeStageResource");
 		try {
-			// Check if resource has already been written
-			const integrity = await resource.getHash();
-			const hasResource = await cacache.get.info(this.#casDir, integrity);
-			if (!hasResource) {
-				const buffer = await resource.getBuffer();
-				// Compress the buffer using gzip before caching
-				const compressedBuffer = await promisify(gzip)(buffer);
-				await cacache.put(
-					this.#casDir,
-					integrity,
-					compressedBuffer,
-					CACACHE_OPTIONS
-				);
-			}
-	
+			const integrity = await resource.getIntegrity();
+			const buffer = await resource.getBuffer();
+			await this.#cas.put(integrity, buffer);
 		} finally {
 			BuildTimings.end("writeStageResource", t);
 		}
-	
 	}
 }

@@ -35,7 +35,7 @@ function createMiddleware({resources, middlewareUtil}) {
 			}
 
 			// Enable ETag caching
-			const resourceIntegrity = await resource.getHash();
+			const resourceIntegrity = await resource.getIntegrity();
 			res.setHeader("ETag", etag(resourceIntegrity));
 
 			if (isFresh(req, res)) {
