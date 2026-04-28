@@ -10,7 +10,7 @@ const log = getLogger("build:cache:CacheManager");
 const cacheManagerInstances = new Map();
 
 // Cache version for compatibility management
-const CACHE_VERSION = "v0_6";
+const CACHE_VERSION = "v0_7";
 
 /**
  * Manages persistence for the build cache using a unified SQLite-backed storage
