@@ -2,9 +2,10 @@ import test from "ava";
 import path from "node:path";
 import fs from "node:fs";
 import {rimraf} from "rimraf";
-import MetadataStorage from "../../../../lib/build/cache/MetadataStorage.js";
+import {gunzipSync} from "node:zlib";
+import BuildCacheStorage from "../../../../lib/build/cache/BuildCacheStorage.js";
 
-const TEST_DIR = path.join(import.meta.dirname, "..", "..", "..", "tmp", "MetadataStorage");
+const TEST_DIR = path.join(import.meta.dirname, "..", "..", "..", "tmp", "BuildCacheStorage");
 
 test.after.always(async () => {
 	await rimraf(TEST_DIR);
@@ -12,25 +13,84 @@ test.after.always(async () => {
 
 test.beforeEach((t) => {
 	t.context.dbDir = path.join(TEST_DIR, `db-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-	t.context.storage = new MetadataStorage(t.context.dbDir);
+	t.context.storage = new BuildCacheStorage(t.context.dbDir);
 });
 
 test.afterEach.always((t) => {
 	try {
 		t.context.storage.close();
 	} catch {
-		// Already closed (e.g., in error-handling tests)
+		// Already closed
 	}
 });
 
 // Database file creation
 
-test("Creates metadata.db in the specified directory", (t) => {
-	const dbPath = path.join(t.context.dbDir, "metadata.db");
+test("Creates cache.db in the specified directory", (t) => {
+	const dbPath = path.join(t.context.dbDir, "cache.db");
 	t.true(fs.existsSync(dbPath));
 });
 
-// Index cache
+// ===== Content (CAS) operations =====
+
+test("hasContent: Returns false for missing content", (t) => {
+	t.false(t.context.storage.hasContent("sha256-missing"));
+});
+
+test("hasContent: Returns true after content is stored", (t) => {
+	const content = Buffer.from("test content");
+	t.context.storage.putContent("sha256-test", content);
+	t.true(t.context.storage.hasContent("sha256-test"));
+});
+
+test("putContent + readContent: Round-trip", (t) => {
+	const content = Buffer.from("hello world");
+	t.context.storage.putContent("sha256-hello", content);
+	const result = t.context.storage.readContent("sha256-hello");
+	t.deepEqual(result, content);
+});
+
+test("putContent + readContentRaw: Returns gzip-compressed data", (t) => {
+	const content = Buffer.from("compressed test");
+	t.context.storage.putContent("sha256-compressed", content);
+	const raw = t.context.storage.readContentRaw("sha256-compressed");
+	t.notDeepEqual(raw, content);
+	t.deepEqual(gunzipSync(raw), content);
+});
+
+test("putContent: Deduplicates via INSERT OR IGNORE", (t) => {
+	const content1 = Buffer.from("original");
+	t.context.storage.putContent("sha256-dedup", content1);
+	// Second put with same integrity but different buffer is ignored
+	const content2 = Buffer.from("different");
+	t.context.storage.putContent("sha256-dedup", content2);
+	const result = t.context.storage.readContent("sha256-dedup");
+	t.deepEqual(result, content1);
+});
+
+test("readContent: Throws for missing integrity", (t) => {
+	t.throws(() => t.context.storage.readContent("sha256-nonexistent"), {
+		message: /Content not found in CAS for integrity/
+	});
+});
+
+test("readContentRaw: Throws for missing integrity", (t) => {
+	t.throws(() => t.context.storage.readContentRaw("sha256-nonexistent"), {
+		message: /Content not found in CAS for integrity/
+	});
+});
+
+test("putContent + readContent: Large content round-trip", (t) => {
+	const content = Buffer.alloc(1024 * 1024);
+	for (let i = 0; i < content.length; i++) {
+		content[i] = i % 256;
+	}
+	t.context.storage.putContent("sha256-large", content);
+	const result = t.context.storage.readContent("sha256-large");
+	t.deepEqual(result, content);
+});
+
+// ===== Index cache =====
 
 test("readIndexCache: Returns null on cache miss", (t) => {
 	const result = t.context.storage.readIndexCache("project-a", "sig-1", "source");
@@ -62,7 +122,7 @@ test("Index cache: Overwrite replaces data", (t) => {
 	t.deepEqual(t.context.storage.readIndexCache("project-a", "sig-1", "source"), updated);
 });
 
-// Stage metadata
+// ===== Stage metadata =====
 
 test("readStageCache: Returns null on cache miss", (t) => {
 	const result = t.context.storage.readStageCache("project-a", "sig-1", "task/minify", "stage-sig-1");
@@ -98,7 +158,7 @@ test("Stage metadata: Stage IDs with slashes are stored correctly", (t) => {
 	);
 });
 
-// Task metadata
+// ===== Task metadata =====
 
 test("readTaskMetadata: Returns null on cache miss", (t) => {
 	const result = t.context.storage.readTaskMetadata("project-a", "sig-1", "minify", "project");
@@ -126,7 +186,7 @@ test("Task metadata: Different types are independent", (t) => {
 	);
 });
 
-// Result metadata
+// ===== Result metadata =====
 
 test("readResultMetadata: Returns null on cache miss", (t) => {
 	const result = t.context.storage.readResultMetadata("project-a", "sig-1", "result-sig-1");
@@ -148,7 +208,7 @@ test("Result metadata: Overwrite replaces data", (t) => {
 	t.deepEqual(t.context.storage.readResultMetadata("project-a", "sig-1", "result-sig-1"), updated);
 });
 
-// Cross-project isolation
+// ===== Cross-project isolation =====
 
 test("Different projects are fully isolated", (t) => {
 	const dataA = {project: "a"};
@@ -160,7 +220,7 @@ test("Different projects are fully isolated", (t) => {
 	t.deepEqual(t.context.storage.readIndexCache("project-b", "sig-1", "source"), dataB);
 });
 
-// Error handling
+// ===== Error handling =====
 
 test("Read throws wrapped error after close", (t) => {
 	t.context.storage.close();
@@ -171,49 +231,145 @@ test("Read throws wrapped error after close", (t) => {
 	t.truthy(err.cause);
 });
 
-// Batch transactions
+// ===== Metadata batch transactions =====
 
-test("beginBatch/endBatch: Multiple writes commit atomically", (t) => {
+test("beginMetadataBatch/endMetadataBatch: Multiple writes commit atomically", (t) => {
 	const {storage} = t.context;
-	storage.beginBatch();
+	storage.beginMetadataBatch();
 	storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
 	storage.writeTaskMetadata("project-a", "sig-1", "minify", "project", {v: 2});
 	storage.writeResultMetadata("project-a", "sig-1", "result-sig-1", {v: 3});
-	storage.endBatch();
+	storage.endMetadataBatch();
 
 	t.deepEqual(storage.readIndexCache("project-a", "sig-1", "source"), {v: 1});
 	t.deepEqual(storage.readTaskMetadata("project-a", "sig-1", "minify", "project"), {v: 2});
 	t.deepEqual(storage.readResultMetadata("project-a", "sig-1", "result-sig-1"), {v: 3});
 });
 
-test("rollbackBatch: Discards uncommitted writes", (t) => {
+test("rollbackMetadataBatch: Discards uncommitted writes", (t) => {
 	const {storage} = t.context;
-	storage.beginBatch();
+	storage.beginMetadataBatch();
 	storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
 	storage.writeTaskMetadata("project-a", "sig-1", "minify", "project", {v: 2});
-	storage.rollbackBatch();
+	storage.rollbackMetadataBatch();
 
 	t.is(storage.readIndexCache("project-a", "sig-1", "source"), null);
 	t.is(storage.readTaskMetadata("project-a", "sig-1", "minify", "project"), null);
 });
 
-test("close: Rolls back uncommitted batch", (t) => {
+test("close: Rolls back uncommitted metadata batch", (t) => {
 	const {storage} = t.context;
-	storage.beginBatch();
+	storage.beginMetadataBatch();
 	storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
 	storage.close();
 
-	const fresh = new MetadataStorage(t.context.dbDir);
+	const fresh = new BuildCacheStorage(t.context.dbDir);
 	t.is(fresh.readIndexCache("project-a", "sig-1", "source"), null);
 	fresh.close();
 });
 
-test("beginBatch: Nested calls are idempotent", (t) => {
+test("beginMetadataBatch: Nested calls are idempotent", (t) => {
 	const {storage} = t.context;
-	storage.beginBatch();
-	storage.beginBatch();
+	storage.beginMetadataBatch();
+	storage.beginMetadataBatch();
 	storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
-	storage.endBatch();
+	storage.endMetadataBatch();
 
 	t.deepEqual(storage.readIndexCache("project-a", "sig-1", "source"), {v: 1});
+});
+
+// ===== Standalone content batch transactions =====
+
+test("Standalone content batch: Commit persists content", (t) => {
+	const {storage} = t.context;
+	storage.beginContentBatch();
+	storage.putContent("sha256-batch1", Buffer.from("batch item 1"));
+	storage.putContent("sha256-batch2", Buffer.from("batch item 2"));
+	storage.endContentBatch();
+
+	t.deepEqual(storage.readContent("sha256-batch1"), Buffer.from("batch item 1"));
+	t.deepEqual(storage.readContent("sha256-batch2"), Buffer.from("batch item 2"));
+});
+
+test("Standalone content batch: Rollback discards content", (t) => {
+	const {storage} = t.context;
+	storage.beginContentBatch();
+	storage.putContent("sha256-rollback", Buffer.from("should be discarded"));
+	storage.rollbackContentBatch();
+
+	t.false(storage.hasContent("sha256-rollback"));
+});
+
+test("beginContentBatch: Nested calls are idempotent", (t) => {
+	const {storage} = t.context;
+	storage.beginContentBatch();
+	storage.beginContentBatch();
+	storage.putContent("sha256-idempotent", Buffer.from("idempotent"));
+	storage.endContentBatch();
+
+	t.deepEqual(storage.readContent("sha256-idempotent"), Buffer.from("idempotent"));
+});
+
+// ===== Nested content batch inside metadata batch (SAVEPOINT) =====
+
+test("Nested content batch: Content persists when both batches commit", (t) => {
+	const {storage} = t.context;
+	storage.beginMetadataBatch();
+	storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
+
+	storage.beginContentBatch();
+	storage.putContent("sha256-nested", Buffer.from("nested content"));
+	storage.endContentBatch();
+
+	storage.endMetadataBatch();
+
+	t.deepEqual(storage.readIndexCache("project-a", "sig-1", "source"), {v: 1});
+	t.deepEqual(storage.readContent("sha256-nested"), Buffer.from("nested content"));
+});
+
+test("Nested content batch rollback: Metadata survives, content is discarded", (t) => {
+	const {storage} = t.context;
+	storage.beginMetadataBatch();
+	storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
+
+	storage.beginContentBatch();
+	storage.putContent("sha256-rolled-back", Buffer.from("will be rolled back"));
+	storage.rollbackContentBatch();
+
+	storage.endMetadataBatch();
+
+	t.deepEqual(storage.readIndexCache("project-a", "sig-1", "source"), {v: 1});
+	t.false(storage.hasContent("sha256-rolled-back"));
+});
+
+test("Metadata rollback: Both metadata and nested content are discarded", (t) => {
+	const {storage} = t.context;
+	storage.beginMetadataBatch();
+	storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
+
+	storage.beginContentBatch();
+	storage.putContent("sha256-outer-rb", Buffer.from("will be discarded"));
+	storage.endContentBatch();
+
+	storage.rollbackMetadataBatch();
+
+	t.is(storage.readIndexCache("project-a", "sig-1", "source"), null);
+	t.false(storage.hasContent("sha256-outer-rb"));
+});
+
+// ===== Validity =====
+
+test("isValid: Returns true for open database", (t) => {
+	t.true(t.context.storage.isValid);
+});
+
+test("isValid: Returns false after close", (t) => {
+	t.context.storage.close();
+	t.false(t.context.storage.isValid);
+});
+
+test("isValid: Returns false after database file is deleted", (t) => {
+	const dbPath = path.join(t.context.dbDir, "cache.db");
+	fs.unlinkSync(dbPath);
+	t.false(t.context.storage.isValid);
 });

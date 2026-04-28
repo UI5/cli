@@ -66,8 +66,17 @@ function createMockCacheManager() {
 		readTaskMetadata: sinon.stub().resolves(null),
 		writeTaskMetadata: sinon.stub().resolves(),
 		writeStageResource: sinon.stub().resolves(),
-		getResourcePathForStage: sinon.stub().resolves("/fake/cache/path"),
-		contentPath: sinon.stub().returns("/fake/cas/content/path")
+		hasContent: sinon.stub().returns(false),
+		readContent: sinon.stub().returns(Buffer.from("test")),
+		readContentRaw: sinon.stub().returns(Buffer.from("test")),
+		putContent: sinon.stub(),
+		hasResourceForStage: sinon.stub().returns(false),
+		beginContentBatch: sinon.stub(),
+		endContentBatch: sinon.stub(),
+		rollbackContentBatch: sinon.stub(),
+		beginMetadataBatch: sinon.stub(),
+		endMetadataBatch: sinon.stub(),
+		rollbackMetadataBatch: sinon.stub(),
 	};
 }
 
@@ -969,13 +978,13 @@ test("freezeUntransformedSources: writes only untransformed source files to CAS"
 
 	await cache.allTasksCompleted();
 
-	// writeStageResource should be called for untransformed files /c.js and /d.js
-	const stageResourceCalls = cacheManager.writeStageResource.getCalls();
-	const writtenPaths = stageResourceCalls.map((call) => call.args[0].getOriginalPath());
-	t.true(writtenPaths.includes("/c.js"), "Untransformed /c.js written to CAS");
-	t.true(writtenPaths.includes("/d.js"), "Untransformed /d.js written to CAS");
-	t.false(writtenPaths.includes("/a.js"), "Transformed /a.js NOT written to CAS by freeze");
-	t.false(writtenPaths.includes("/b.js"), "Transformed /b.js NOT written to CAS by freeze");
+	// putContent should be called for untransformed files /c.js and /d.js
+	const putContentCalls = cacheManager.putContent.getCalls();
+	const writtenIntegrities = putContentCalls.map((call) => call.args[0]);
+	t.true(writtenIntegrities.includes("hash-c"), "Untransformed /c.js written to CAS");
+	t.true(writtenIntegrities.includes("hash-d"), "Untransformed /d.js written to CAS");
+	t.false(writtenIntegrities.includes("hash-a"), "Transformed /a.js NOT written to CAS by freeze");
+	t.false(writtenIntegrities.includes("hash-b"), "Transformed /b.js NOT written to CAS by freeze");
 });
 
 test("freezeUntransformedSources: early return when all sources overlayed", async (t) => {
@@ -1249,11 +1258,11 @@ test("freezeUntransformedSources: delta path — only reads new files missing fr
 
 	await cache.allTasksCompleted();
 
-	// writeStageResource should be called only for /e.js (the new file)
-	const stageResourceCalls = cacheManager.writeStageResource.getCalls();
-	const writtenPaths = stageResourceCalls.map((call) => call.args[0].getOriginalPath());
-	t.is(writtenPaths.length, 1, "Only 1 CAS write for the new file");
-	t.true(writtenPaths.includes("/e.js"), "New file /e.js written to CAS");
+	// putContent should be called only for /e.js (the new file)
+	const putContentCalls = cacheManager.putContent.getCalls();
+	const writtenIntegrities = putContentCalls.map((call) => call.args[0]);
+	t.is(writtenIntegrities.length, 1, "Only 1 CAS write for the new file");
+	t.true(writtenIntegrities.includes("hash-e"), "New file /e.js written to CAS");
 
 	// Merged metadata should contain all 3 untransformed files
 	const sourceStageCalls = cacheManager.writeStageCache.getCalls().filter(

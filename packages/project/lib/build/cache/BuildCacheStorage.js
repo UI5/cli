@@ -1,36 +1,39 @@
 import {DatabaseSync} from "node:sqlite";
 import {mkdirSync, existsSync} from "node:fs";
 import path from "node:path";
+import {gzipSync, gunzipSync} from "node:zlib";
 import {getLogger} from "@ui5/logger";
 
-const log = getLogger("build:cache:MetadataStorage");
+const log = getLogger("build:cache:BuildCacheStorage");
 
 /**
- * SQLite-backed metadata storage for the build cache
+ * Unified SQLite-backed storage for the build cache
  *
- * Stores build metadata (index caches, stage metadata, task metadata, result metadata)
- * as JSON blobs in a single SQLite database keyed by composite primary keys.
+ * Stores both metadata (index caches, stage metadata, task metadata, result metadata)
+ * and content-addressable resource content (gzip-compressed BLOBs) in a single database.
  *
  * @class
  */
-export default class MetadataStorage {
+export default class BuildCacheStorage {
 	#db;
 	#stmts;
 	#dbPath;
-	#inBatch = false;
+	#inMetadataBatch = false;
+	#inContentBatch = false;
 
 	/**
-	 * @param {string} dbDir Directory in which to create the metadata.db file
+	 * @param {string} dbDir Directory in which to create the cache.db file
 	 */
 	constructor(dbDir) {
 		mkdirSync(dbDir, {recursive: true});
-		this.#dbPath = path.join(dbDir, "metadata.db");
-		log.verbose(`Opening metadata database: ${this.#dbPath}`);
+		this.#dbPath = path.join(dbDir, "cache.db");
+		log.verbose(`Opening build cache database: ${this.#dbPath}`);
 
 		this.#db = new DatabaseSync(this.#dbPath);
 		this.#db.exec("PRAGMA journal_mode=WAL");
 		this.#db.exec("PRAGMA synchronous=NORMAL");
 		this.#db.exec("PRAGMA busy_timeout=5000");
+		this.#db.exec("PRAGMA page_size=8192");
 
 		this.#createTables();
 		this.#prepareStatements();
@@ -38,6 +41,11 @@ export default class MetadataStorage {
 
 	#createTables() {
 		this.#db.exec(`
+			CREATE TABLE IF NOT EXISTS content (
+				integrity TEXT PRIMARY KEY,
+				data BLOB NOT NULL
+			) WITHOUT ROWID;
+
 			CREATE TABLE IF NOT EXISTS index_cache (
 				project_id TEXT NOT NULL,
 				build_signature TEXT NOT NULL,
@@ -76,6 +84,18 @@ export default class MetadataStorage {
 
 	#prepareStatements() {
 		this.#stmts = {
+			// Content (CAS)
+			hasContent: this.#db.prepare(
+				"SELECT 1 FROM content WHERE integrity = ?"
+			),
+			readContent: this.#db.prepare(
+				"SELECT data FROM content WHERE integrity = ?"
+			),
+			writeContent: this.#db.prepare(
+				"INSERT OR IGNORE INTO content (integrity, data) VALUES (?, ?)"
+			),
+
+			// Index cache
 			readIndexCache: this.#db.prepare(
 				"SELECT data FROM index_cache WHERE project_id = ? AND build_signature = ? AND kind = ?"
 			),
@@ -84,6 +104,7 @@ export default class MetadataStorage {
 				VALUES (?, ?, ?, ?)`
 			),
 
+			// Stage metadata
 			readStageMetadata: this.#db.prepare(
 				`SELECT data FROM stage_metadata
 				WHERE project_id = ? AND build_signature = ? AND stage_id = ? AND stage_signature = ?`
@@ -93,6 +114,7 @@ export default class MetadataStorage {
 				(project_id, build_signature, stage_id, stage_signature, data) VALUES (?, ?, ?, ?, ?)`
 			),
 
+			// Task metadata
 			readTaskMetadata: this.#db.prepare(
 				`SELECT data FROM task_metadata
 				WHERE project_id = ? AND build_signature = ? AND task_name = ? AND type = ?`
@@ -102,6 +124,7 @@ export default class MetadataStorage {
 				(project_id, build_signature, task_name, type, data) VALUES (?, ?, ?, ?, ?)`
 			),
 
+			// Result metadata
 			readResultMetadata: this.#db.prepare(
 				`SELECT data FROM result_metadata
 				WHERE project_id = ? AND build_signature = ? AND stage_signature = ?`
@@ -115,8 +138,6 @@ export default class MetadataStorage {
 
 	/**
 	 * Whether the database connection is open and the database file still exists on disk.
-	 * This detects cases where the cache directory was deleted externally
-	 * (e.g., by test cleanup) while the connection was still open.
 	 *
 	 * @returns {boolean}
 	 */
@@ -124,45 +145,57 @@ export default class MetadataStorage {
 		return this.#db.isOpen && existsSync(this.#dbPath);
 	}
 
+	// ===== Content (CAS) operations =====
+
 	/**
-	 * Begins a batch transaction for multiple writes
+	 * Checks whether content with the given integrity exists in storage
+	 *
+	 * @param {string} integrity SRI integrity string
+	 * @returns {boolean} True if content exists
 	 */
-	beginBatch() {
-		if (!this.#inBatch) {
-			this.#db.exec("BEGIN");
-			this.#inBatch = true;
-		}
+	hasContent(integrity) {
+		return this.#stmts.hasContent.get(integrity) !== undefined;
 	}
 
 	/**
-	 * Commits the current batch transaction
+	 * Stores resource content in the CAS
+	 *
+	 * Compresses the buffer with gzip and stores it as a BLOB.
+	 * Deduplicates via INSERT OR IGNORE.
+	 *
+	 * @param {string} integrity SRI integrity string of the uncompressed content
+	 * @param {Buffer} buffer Uncompressed resource content
 	 */
-	endBatch() {
-		if (this.#inBatch) {
-			this.#db.exec("COMMIT");
-			this.#inBatch = false;
-		}
+	putContent(integrity, buffer) {
+		const compressedBuffer = gzipSync(buffer);
+		this.#stmts.writeContent.run(integrity, compressedBuffer);
 	}
 
 	/**
-	 * Rolls back the current batch transaction
+	 * Reads the raw compressed BLOB from the CAS
+	 *
+	 * @param {string} integrity SRI integrity string
+	 * @returns {Buffer} Compressed content buffer
 	 */
-	rollbackBatch() {
-		if (this.#inBatch) {
-			this.#db.exec("ROLLBACK");
-			this.#inBatch = false;
+	readContentRaw(integrity) {
+		const row = this.#stmts.readContent.get(integrity);
+		if (!row) {
+			throw new Error(`Content not found in CAS for integrity: ${integrity}`);
 		}
+		return row.data;
 	}
 
 	/**
-	 * Closes the database connection
+	 * Reads and decompresses content from the CAS
+	 *
+	 * @param {string} integrity SRI integrity string
+	 * @returns {Buffer} Decompressed content buffer
 	 */
-	close() {
-		if (this.#inBatch) {
-			this.rollbackBatch();
-		}
-		this.#db.close();
+	readContent(integrity) {
+		return gunzipSync(this.readContentRaw(integrity));
 	}
+
+	// ===== Metadata operations =====
 
 	/**
 	 * Reads resource index cache
@@ -310,5 +343,99 @@ export default class MetadataStorage {
 		this.#stmts.writeResultMetadata.run(
 			projectId, buildSignature, stageSignature, JSON.stringify(metadata)
 		);
+	}
+
+	// ===== Batch transactions =====
+
+	/**
+	 * Begins a metadata batch transaction (outer transaction)
+	 */
+	beginMetadataBatch() {
+		if (!this.#inMetadataBatch) {
+			this.#db.exec("BEGIN");
+			this.#inMetadataBatch = true;
+		}
+	}
+
+	/**
+	 * Commits the current metadata batch transaction
+	 */
+	endMetadataBatch() {
+		if (this.#inMetadataBatch) {
+			this.#db.exec("COMMIT");
+			this.#inMetadataBatch = false;
+		}
+	}
+
+	/**
+	 * Rolls back the current metadata batch transaction
+	 */
+	rollbackMetadataBatch() {
+		if (this.#inMetadataBatch) {
+			this.#db.exec("ROLLBACK");
+			this.#inMetadataBatch = false;
+		}
+	}
+
+	/**
+	 * Begins a content batch transaction.
+	 * Uses SAVEPOINT when nested inside a metadata batch, plain BEGIN otherwise.
+	 */
+	beginContentBatch() {
+		if (this.#inContentBatch) {
+			return;
+		}
+		if (this.#inMetadataBatch) {
+			this.#db.exec("SAVEPOINT content_batch");
+		} else {
+			this.#db.exec("BEGIN");
+		}
+		this.#inContentBatch = true;
+	}
+
+	/**
+	 * Commits the current content batch transaction.
+	 * Uses RELEASE when nested inside a metadata batch, plain COMMIT otherwise.
+	 */
+	endContentBatch() {
+		if (!this.#inContentBatch) {
+			return;
+		}
+		if (this.#inMetadataBatch) {
+			this.#db.exec("RELEASE content_batch");
+		} else {
+			this.#db.exec("COMMIT");
+		}
+		this.#inContentBatch = false;
+	}
+
+	/**
+	 * Rolls back the current content batch transaction.
+	 * Uses ROLLBACK TO + RELEASE when nested inside a metadata batch, plain ROLLBACK otherwise.
+	 */
+	rollbackContentBatch() {
+		if (!this.#inContentBatch) {
+			return;
+		}
+		if (this.#inMetadataBatch) {
+			this.#db.exec("ROLLBACK TO content_batch");
+			this.#db.exec("RELEASE content_batch");
+		} else {
+			this.#db.exec("ROLLBACK");
+		}
+		this.#inContentBatch = false;
+	}
+
+	/**
+	 * Closes the database connection
+	 */
+	close() {
+		if (this.#inContentBatch) {
+			this.rollbackContentBatch();
+		}
+		if (this.#inMetadataBatch) {
+			this.rollbackMetadataBatch();
+		}
+		this.#db.close();
 	}
 }

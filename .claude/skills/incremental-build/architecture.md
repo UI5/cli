@@ -41,8 +41,8 @@ Use this table to locate source files. ALWAYS read the relevant source file befo
 | `ProjectBuildCache` | `lib/build/cache/ProjectBuildCache.js` | Cache orchestration per project: index management, stage lookup, result recording |
 | `BuildTaskCache` | `lib/build/cache/BuildTaskCache.js` | Per-task resource request tracking and index management |
 | `StageCache` | `lib/build/cache/StageCache.js` | In-memory cache of stage results keyed by signature |
-| `ContentAddressableStorage` | `lib/build/cache/ContentAddressableStorage.js` | Custom CAS with synchronous path resolution from integrity hash |
-| `CacheManager` | `lib/build/cache/CacheManager.js` | Persistent cache I/O (filesystem), delegates content storage to CAS |
+| `BuildCacheStorage` | `lib/build/cache/BuildCacheStorage.js` | Unified SQLite storage for content (CAS) and metadata |
+| `CacheManager` | `lib/build/cache/CacheManager.js` | Persistent cache I/O, delegates to BuildCacheStorage |
 | `ResourceRequestManager` | `lib/build/cache/ResourceRequestManager.js` | Request graph, resource index updates, signature computation |
 | `ResourceRequestGraph` | `lib/build/cache/ResourceRequestGraph.js` | DAG of request sets with delta encoding and best-parent optimization |
 | `ResourceIndex` | `lib/build/cache/index/ResourceIndex.js` | Wrapper around hash trees with delta detection |
@@ -328,32 +328,14 @@ project.getProjectResources().setStage(stageName, stageCache.stage,
 ### On Disk (CacheManager)
 
 ```
-~/.ui5/buildCache/v0_3/
-+-- cas/                          # Custom CAS (ContentAddressableStorage, gzip)
-|   +-- sha256/                   # Resources stored by integrity hash
-|       +-- {xx}/                 # First 2 hex chars of digest
-|           +-- {yy}/            # Next 2 hex chars
-|               +-- {rest}       # Remaining hex chars (gzip-compressed content)
-+-- buildManifests/               # Build metadata per project (plain JSON)
-|   +-- {projectId}/
-|       +-- {buildSignature}.json
-+-- stageMetadata/
-|   +-- {projectId}/
-|       +-- {buildSignature}/
-|           +-- {stageId}/
-|               +-- {stageSignature}.json
-+-- taskMetadata/
-|   +-- {projectId}/
-|       +-- {buildSignature}/
-|           +-- {taskName}/
-|               +-- {type}.json          # type = "project" | "dependency"
-+-- resultMetadata/
-|   +-- {projectId}/
-|       +-- {buildSignature}/
-|           +-- {resultSignature}.json
-+-- index/
-    +-- {projectId}/
-        +-- {kind}-{buildSignature}.json  # kind = "source" | "result"
+~/.ui5/buildCache/v0_6/
++-- cache.db                       # Single SQLite database (WAL mode)
+    Tables:
+    - content(integrity TEXT PK, data BLOB)     # Gzip-compressed CAS BLOBs
+    - index_cache(project_id, build_signature, kind, data)
+    - stage_metadata(project_id, build_signature, stage_id, stage_signature, data)
+    - task_metadata(project_id, build_signature, task_name, type, data)
+    - result_metadata(project_id, build_signature, stage_signature, data)
 ```
 
 Note: Only CAS content (resource bodies) is gzip-compressed. All metadata files are plain JSON.

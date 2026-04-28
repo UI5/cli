@@ -84,35 +84,35 @@ test.serial("Cache miss returns null for all metadata types", async (t) => {
 
 // CAS delegation
 
-test.serial("contentPath delegates to CAS", async (t) => {
+test.serial("Content round-trip via CacheManager", async (t) => {
 	const testDir = getUniqueTestDir();
 	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
 	const cm = new CacheManager(path.join(testDir, "buildCache"));
 
-	const integrity = "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=";
-	const result = cm.contentPath(integrity);
-	t.is(typeof result, "string");
-	t.true(result.includes("cas"));
-	t.true(result.includes("sha256"));
+	const content = Buffer.from("test content");
+	cm.putContent("sha256-test", content);
+	t.true(cm.hasContent("sha256-test"));
+	t.deepEqual(cm.readContent("sha256-test"), content);
 	cm.close();
 });
 
-test.serial("getResourcePathForStage returns null for missing content", async (t) => {
+test.serial("hasResourceForStage delegates to content storage", async (t) => {
 	const testDir = getUniqueTestDir();
 	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
 	const cm = new CacheManager(path.join(testDir, "buildCache"));
 
-	const result = await cm.getResourcePathForStage("sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=");
-	t.is(result, null);
+	t.false(cm.hasResourceForStage("sha256-missing"));
+	cm.putContent("sha256-exists", Buffer.from("data"));
+	t.true(cm.hasResourceForStage("sha256-exists"));
 	cm.close();
 });
 
-test.serial("getResourcePathForStage throws without integrity", async (t) => {
+test.serial("hasResourceForStage throws without integrity", async (t) => {
 	const testDir = getUniqueTestDir();
 	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
 	const cm = new CacheManager(path.join(testDir, "buildCache"));
 
-	await t.throwsAsync(cm.getResourcePathForStage(null), {
+	t.throws(() => cm.hasResourceForStage(null), {
 		message: "Integrity hash must be provided to read from cache"
 	});
 	cm.close();
