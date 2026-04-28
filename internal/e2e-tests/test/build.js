@@ -1,4 +1,4 @@
-// Test running "ui5 build"
+// Tests running "ui5 build"
 // with fixtures (under ../fixtures)
 // and by using node's child_process module and the ui5.cjs under ../../../packages/cli/bin/ui5.cjs.
 
@@ -31,22 +31,8 @@ class FixtureHelper {
 		// Install node_modules
 		await this._installNodeModules();
 		// Setup environment
-		process.env.UI5_DATA_DIR = `${this.dotUi5Path}`;
+		process.env.UI5_DATA_DIR = this.dotUi5Path;
 		process.chdir(this.tmpPath);
-	}
-
-	async prepareForNextRun() {
-		// Delete everything from the tmp/<projectname> folder except .ui5, dist & node_modules folders
-		const entries = await fs.readdir(this.tmpPath, { withFileTypes: true });
-		for (const entry of entries) {
-			if (entry.name === ".ui5" || entry.name === "dist" || entry.name === "node_modules") {
-				continue;
-			}
-			const entryPath = path.resolve(this.tmpPath, entry.name);
-			await fs.rm(entryPath, { recursive: true, force: true });
-		}
-		// Copy source files to temp location
-		await fs.cp(this.originFixturePath, this.tmpPath, {recursive: true});
 	}
 
 	async build(assert, ui5YamlName) {
@@ -91,18 +77,15 @@ describe("ui5 build", () => {
 
 		// Test: no TS syntax is left in the preload (transpile + preload tasks succeeeded)
 		const componentPreload = await fs.readFile(path.resolve(fixtureHelper.distPath, "Component-preload.js"), "utf-8");
-		assert.ok(componentPreload.includes("application/a/ts/controller/Test.controller"), "Component-preload.js should contain the TS resource transpiled to JS");
-		assert.ok(!componentPreload.includes("randomTSType"), "Component-preload.js should NOT contain any TS syntax");
-		const componentPreloadMap = await fs.readFile(path.resolve(fixtureHelper.distPath, "Component-preload.js.map"), "utf-8");
-		assert.ok(componentPreloadMap.includes("randomTSType"), "Component-preload.js.map should contain the TS type information");
+		assert.ok(componentPreload.includes("application/a/ts/controller/Base.controller"), "Component-preload.js should contain the TS resource transpiled to JS");
+		assert.ok(!componentPreload.includes("AppComponent"), "Component-preload.js should NOT contain any TS syntax");
 
 		// --------------------------------------------------------------------------------------------
 
 		// Modify source files
-		await fixtureHelper.prepareForNextRun();
-		const fileToModify = path.resolve(fixtureHelper.tmpPath, "webapp/controller/Test.controller.ts");
+		const fileToModify = path.resolve(fixtureHelper.tmpPath, "webapp/controller/Base.controller.ts");
 		const fileContent = await fs.readFile(fileToModify, "utf-8");
-		const modifiedContent = fileContent.replace("second: \"test\"", "second: \"test_2\"");
+		const modifiedContent = fileContent.replace("public getOwnerComponent()", "public getNewOwnerComponent()");
 		await fs.writeFile(fileToModify, modifiedContent, "utf-8");
 
 		// #2 Build
@@ -110,7 +93,7 @@ describe("ui5 build", () => {
 
 		// Test: the modified content is reflected in the new build output (transpile + preload tasks succeeeded)
 		const newComponentPreload = await fs.readFile(path.resolve(fixtureHelper.distPath, "Component-preload.js"), "utf-8");
-		assert.ok(newComponentPreload.includes("second:\"test_2\""), "Component-preload.js should contain the updated content from the modified source file");
+		assert.ok(newComponentPreload.includes("getNewOwnerComponent"), "Component-preload.js should contain the updated content from the modified source file");
 	});
 
 	test("ui5-task-zipper", async ({assert}) => {
@@ -138,7 +121,6 @@ describe("ui5 build", () => {
 		// --------------------------------------------------------------------------------------------
 
 		// Delete a source file
-		await fixtureHelper.prepareForNextRun();
 		await fs.rm(path.resolve(fixtureHelper.tmpPath, "webapp/controller/Test.controller.js"));
 
 		// #2 Build
@@ -169,7 +151,6 @@ describe("ui5 build", () => {
 		// --------------------------------------------------------------------------------------------
 
 		// Add a new source file with a third party import
-		await fixtureHelper.prepareForNextRun();
 		const newControllerPath = path.resolve(fixtureHelper.tmpPath, "webapp/controller/New.controller.js");
 		const newControllerContent =
 `sap.ui.define(["chart.js"], (chartJS) => {
@@ -187,6 +168,9 @@ describe("ui5 build", () => {
 		// Test: the dist contains the new controller and the third party import
 		const newComponentPreload = await fs.readFile(path.resolve(fixtureHelper.distPath, "Component-preload.js"), "utf-8");
 		assert.ok(newComponentPreload.includes("sap.ui.predefine(\"application/a/controller/New.controller\", [\"application/a/thirdparty/chart.js\"]"), "Component-preload.js should contain the 'New' controller and chart.js");
+		// Test: the dist contains the expected third party module
+		const chartJSModule = await fs.readFile(path.resolve(fixtureHelper.distPath, "thirdparty/chart.js.js"), "utf-8");
+		assert.ok(chartJSModule.includes("Chart"), "The expected third party module should be included in the dist");
 	});
 
 	test("ui5-tooling-stringreplace", async ({assert}) => {
@@ -201,7 +185,6 @@ describe("ui5 build", () => {
 
 
 		// Add a new source file with a placeholder string
-		await fixtureHelper.prepareForNextRun();
 		const newControllerPath = path.resolve(fixtureHelper.tmpPath, "webapp/controller/New.controller.js");
 		const newControllerContent =
 `sap.ui.define([], () => {

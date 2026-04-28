@@ -12,6 +12,6 @@
 		"test-watch": "node --test --watch 'test/**/*.js'"
 	},
 	"dependencies": {
-		"adm-zip": "0.5.17"
+		"adm-zip": "^0.5.17"
 	}
 }
