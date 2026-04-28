@@ -455,6 +455,59 @@ export default class BuildCacheStorage {
 		this.#inContentBatch = false;
 	}
 
+	// ===== Batch existence checks =====
+
+	/**
+	 * Finds which stage signatures exist in the database for a given project/build/stage
+	 *
+	 * Uses a single SELECT ... IN (...) query to batch-check existence without
+	 * reading full data blobs. Returns matching signatures in the order they appear
+	 * in the input array (preserving priority).
+	 *
+	 * @param {string} projectId Project identifier
+	 * @param {string} buildSignature Build signature hash
+	 * @param {string} stageId Stage identifier
+	 * @param {string[]} signatures Array of stage signatures to check
+	 * @returns {string[]} Signatures that exist in the database (in input order)
+	 */
+	findExistingStageSignatures(projectId, buildSignature, stageId, signatures) {
+		if (!signatures.length) {
+			return [];
+		}
+		const placeholders = signatures.map(() => "?").join(",");
+		const stmt = this.#db.prepare(
+			`SELECT stage_signature FROM stage_metadata
+			WHERE project_id = ? AND build_signature = ? AND stage_id = ?
+			AND stage_signature IN (${placeholders})`
+		);
+		const rows = stmt.all(projectId, buildSignature, stageId, ...signatures);
+		const existingSet = new Set(rows.map((row) => row.stage_signature));
+		return signatures.filter((sig) => existingSet.has(sig));
+	}
+
+	/**
+	 * Finds which result signatures exist in the database for a given project/build
+	 *
+	 * @param {string} projectId Project identifier
+	 * @param {string} buildSignature Build signature hash
+	 * @param {string[]} signatures Array of stage signatures to check
+	 * @returns {string[]} Signatures that exist in the database (in input order)
+	 */
+	findExistingResultSignatures(projectId, buildSignature, signatures) {
+		if (!signatures.length) {
+			return [];
+		}
+		const placeholders = signatures.map(() => "?").join(",");
+		const stmt = this.#db.prepare(
+			`SELECT stage_signature FROM result_metadata
+			WHERE project_id = ? AND build_signature = ?
+			AND stage_signature IN (${placeholders})`
+		);
+		const rows = stmt.all(projectId, buildSignature, ...signatures);
+		const existingSet = new Set(rows.map((row) => row.stage_signature));
+		return signatures.filter((sig) => existingSet.has(sig));
+	}
+
 	/**
 	 * Closes the database connection
 	 */

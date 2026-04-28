@@ -198,6 +198,33 @@ export default class CacheManager {
 	}
 
 	/**
+	 * Batch-checks which stage signatures exist in the database
+	 *
+	 * @public
+	 * @param {string} projectId Project identifier
+	 * @param {string} buildSignature Build signature hash
+	 * @param {string} stageId Stage identifier
+	 * @param {string[]} signatures Array of stage signatures to check
+	 * @returns {string[]} Signatures that exist in the database (in input order)
+	 */
+	findExistingStageSignatures(projectId, buildSignature, stageId, signatures) {
+		return this.#storage.findExistingStageSignatures(projectId, buildSignature, stageId, signatures);
+	}
+
+	/**
+	 * Batch-checks which result signatures exist in the database
+	 *
+	 * @public
+	 * @param {string} projectId Project identifier
+	 * @param {string} buildSignature Build signature hash
+	 * @param {string[]} signatures Array of stage signatures to check
+	 * @returns {string[]} Signatures that exist in the database (in input order)
+	 */
+	findExistingResultSignatures(projectId, buildSignature, signatures) {
+		return this.#storage.findExistingResultSignatures(projectId, buildSignature, signatures);
+	}
+
+	/**
 	 * Checks whether content with the given integrity exists in storage
 	 *
 	 * @public

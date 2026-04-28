@@ -77,6 +77,8 @@ function createMockCacheManager() {
 		beginMetadataBatch: sinon.stub(),
 		endMetadataBatch: sinon.stub(),
 		rollbackMetadataBatch: sinon.stub(),
+		findExistingStageSignatures: sinon.stub().callsFake((projectId, buildSig, stageId, sigs) => sigs),
+		findExistingResultSignatures: sinon.stub().callsFake((projectId, buildSig, sigs) => sigs),
 	};
 }
 
