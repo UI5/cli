@@ -32,10 +32,12 @@ export default class BuildCacheStorage {
 		log.verbose(`Opening build cache database: ${this.#dbPath}`);
 
 		this.#db = new DatabaseSync(this.#dbPath);
+		this.#db.exec("PRAGMA page_size=32768");
 		this.#db.exec("PRAGMA journal_mode=WAL");
 		this.#db.exec("PRAGMA synchronous=NORMAL");
 		this.#db.exec("PRAGMA busy_timeout=5000");
-		this.#db.exec("PRAGMA page_size=8192");
+		this.#db.exec("PRAGMA mmap_size=268435456");
+		this.#db.exec("PRAGMA cache_size=-65536");
 
 		this.#createTables();
 		this.#prepareStatements();
