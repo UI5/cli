@@ -7,6 +7,7 @@ import {getLogger} from "@ui5/logger";
 const log = getLogger("build:cache:BuildCacheStorage");
 
 const METADATA_COMPRESSION_THRESHOLD = 4096;
+const CONTENT_COMPRESSION_THRESHOLD = 128;
 
 /**
  * Unified SQLite-backed storage for the build cache
@@ -171,8 +172,9 @@ export default class BuildCacheStorage {
 	 * @param {Buffer} buffer Uncompressed resource content
 	 */
 	putContent(integrity, buffer) {
-		const compressedBuffer = gzipSync(buffer, {level: 1});
-		this.#stmts.writeContent.run(integrity, compressedBuffer);
+		const stored = buffer.length > CONTENT_COMPRESSION_THRESHOLD ?
+			gzipSync(buffer, {level: 1}) : buffer;
+		this.#stmts.writeContent.run(integrity, stored);
 	}
 
 	/**
@@ -209,7 +211,11 @@ export default class BuildCacheStorage {
 	 * @returns {Buffer} Decompressed content buffer
 	 */
 	readContent(integrity) {
-		return gunzipSync(this.readContentRaw(integrity));
+		const raw = this.readContentRaw(integrity);
+		if (raw.length >= 2 && raw[0] === 0x1f && raw[1] === 0x8b) {
+			return gunzipSync(raw);
+		}
+		return Buffer.from(raw);
 	}
 
 	// ===== Metadata operations =====

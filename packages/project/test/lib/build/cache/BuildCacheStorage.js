@@ -50,8 +50,8 @@ test("putContent + readContent: Round-trip", (t) => {
 	t.deepEqual(result, content);
 });
 
-test("putContent + readContentRaw: Returns gzip-compressed data", (t) => {
-	const content = Buffer.from("compressed test");
+test("putContent + readContentRaw: Returns gzip-compressed data for content above threshold", (t) => {
+	const content = Buffer.alloc(256, "x");
 	t.context.storage.putContent("sha256-compressed", content);
 	const raw = t.context.storage.readContentRaw("sha256-compressed");
 	t.notDeepEqual(raw, content);
@@ -425,4 +425,39 @@ test("putCompressedContent: Deduplicates via INSERT OR IGNORE", (t) => {
 	t.context.storage.putCompressedContent("sha256-dedup-pre", gzipSync(content1));
 	t.context.storage.putCompressedContent("sha256-dedup-pre", gzipSync(content2));
 	t.deepEqual(t.context.storage.readContent("sha256-dedup-pre"), content1);
+});
+
+// ===== Content compression threshold =====
+
+test("putContent: Tiny content (<=128 bytes) is stored uncompressed", (t) => {
+	const content = Buffer.from("tiny");
+	t.context.storage.putContent("sha256-tiny", content);
+	const raw = t.context.storage.readContentRaw("sha256-tiny");
+	t.false(raw.length >= 2 && raw[0] === 0x1f && raw[1] === 0x8b,
+		"Raw data should NOT have gzip magic bytes");
+	t.deepEqual(Buffer.from(raw), content);
+});
+
+test("putContent: Content above threshold (>128 bytes) is compressed", (t) => {
+	const content = Buffer.alloc(256, "x");
+	t.context.storage.putContent("sha256-above", content);
+	const raw = t.context.storage.readContentRaw("sha256-above");
+	t.true(raw.length >= 2 && raw[0] === 0x1f && raw[1] === 0x8b,
+		"Raw data should have gzip magic bytes");
+});
+
+test("readContent: Handles both compressed and uncompressed content", (t) => {
+	const tiny = Buffer.from("small");
+	const large = Buffer.alloc(256, "y");
+	t.context.storage.putContent("sha256-small", tiny);
+	t.context.storage.putContent("sha256-large-fmt", large);
+	t.deepEqual(t.context.storage.readContent("sha256-small"), tiny);
+	t.deepEqual(t.context.storage.readContent("sha256-large-fmt"), large);
+});
+
+test("readContent: Legacy compressed tiny content is still readable", (t) => {
+	const content = Buffer.from("legacy tiny");
+	const compressed = gzipSync(content, {level: 1});
+	t.context.storage.putCompressedContent("sha256-legacy-tiny", compressed);
+	t.deepEqual(t.context.storage.readContent("sha256-legacy-tiny"), content);
 });
