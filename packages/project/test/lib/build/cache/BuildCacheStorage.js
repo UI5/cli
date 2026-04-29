@@ -373,3 +373,39 @@ test("isValid: Returns false after database file is deleted", (t) => {
 	fs.unlinkSync(dbPath);
 	t.false(t.context.storage.isValid);
 });
+
+// ===== Batch existence checks =====
+
+test("findExistingContentIntegrities: Returns empty Set for empty input", (t) => {
+	const result = t.context.storage.findExistingContentIntegrities([]);
+	t.deepEqual(result, new Set());
+});
+
+test("findExistingContentIntegrities: Returns empty Set when no matches", (t) => {
+	const result = t.context.storage.findExistingContentIntegrities(["sha256-a", "sha256-b"]);
+	t.deepEqual(result, new Set());
+});
+
+test("findExistingContentIntegrities: Returns Set with existing integrities", (t) => {
+	t.context.storage.putContent("sha256-exists1", Buffer.from("content1"));
+	t.context.storage.putContent("sha256-exists2", Buffer.from("content2"));
+
+	const result = t.context.storage.findExistingContentIntegrities(
+		["sha256-exists1", "sha256-missing", "sha256-exists2"]
+	);
+	t.deepEqual(result, new Set(["sha256-exists1", "sha256-exists2"]));
+});
+
+test("findExistingContentIntegrities: Handles large batches", (t) => {
+	const integrities = [];
+	for (let i = 0; i < 100; i++) {
+		const integrity = `sha256-batch${i}`;
+		t.context.storage.putContent(integrity, Buffer.from(`content${i}`));
+		integrities.push(integrity);
+	}
+	integrities.push("sha256-nonexistent");
+
+	const result = t.context.storage.findExistingContentIntegrities(integrities);
+	t.is(result.size, 100);
+	t.false(result.has("sha256-nonexistent"));
+});

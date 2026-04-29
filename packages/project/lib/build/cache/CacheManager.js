@@ -225,6 +225,17 @@ export default class CacheManager {
 	}
 
 	/**
+	 * Batch-checks which content integrities exist in the CAS
+	 *
+	 * @public
+	 * @param {string[]} integrities Array of integrity hashes to check
+	 * @returns {Set<string>} Set of integrities that exist in the database
+	 */
+	findExistingContentIntegrities(integrities) {
+		return this.#storage.findExistingContentIntegrities(integrities);
+	}
+
+	/**
 	 * Checks whether content with the given integrity exists in storage
 	 *
 	 * @public

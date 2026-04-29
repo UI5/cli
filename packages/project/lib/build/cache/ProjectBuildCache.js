@@ -1538,7 +1538,7 @@ export default class ProjectBuildCache {
 		let casSkipped = 0;
 
 		// Phase 1: Gather resource data (async I/O for integrity and buffer)
-		const toWrite = [];
+		let toWrite = [];
 		await Promise.all(resources.map(async (res) => {
 			const integrity = await res.getIntegrity();
 
@@ -1556,6 +1556,17 @@ export default class ProjectBuildCache {
 				integrity,
 			};
 		}));
+
+		// Phase 1.5: Batch-check which integrities already exist in the DB
+		if (toWrite.length > 0) {
+			const existingIntegrities = this.#cacheManager.findExistingContentIntegrities(
+				toWrite.map(({integrity}) => integrity)
+			);
+			if (existingIntegrities.size > 0) {
+				casSkipped += existingIntegrities.size;
+				toWrite = toWrite.filter(({integrity}) => !existingIntegrities.has(integrity));
+			}
+		}
 
 		// Phase 2: Batch write to SQLite in a single transaction
 		if (toWrite.length > 0) {
