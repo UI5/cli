@@ -644,28 +644,6 @@ export default class HashTree {
 	}
 
 	/**
-	 * Recompute hashes for all ancestor directories up to root.
-	 *
-	 * Used after modifications to ensure the entire path from the modified
-	 * resource/directory up to the root has correct hash values.
-	 *
-	 * @param {string} resourcePath - Path to resource or directory that was modified
-	 * @private
-	 */
-	_recomputeAncestorHashes(resourcePath) {
-		const parts = resourcePath.split(path.sep).filter((p) => p.length > 0);
-
-		// Recompute from deepest to root
-		for (let i = parts.length; i >= 0; i--) {
-			const dirPath = parts.slice(0, i).join(path.sep);
-			const node = this._findNode(dirPath);
-			if (node && node.type === "directory") {
-				this._recomputeDirectoryHashShallow(node);
-			}
-		}
-	}
-
-	/**
 	 * Get hash for a specific directory.
 	 *
 	 * Useful for checking if a specific subtree has changed without comparing the entire tree.
