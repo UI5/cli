@@ -1,6 +1,6 @@
 import {createResource, createProxy, createWriterCollection} from "@ui5/fs/resourceFactory";
 import {getLogger} from "@ui5/logger";
-import {gunzipSync, gzip} from "node:zlib";
+import {gzip} from "node:zlib";
 import {Readable} from "node:stream";
 import crypto from "node:crypto";
 import os from "node:os";
@@ -1576,11 +1576,14 @@ export default class ProjectBuildCache {
 
 			for (let i = 0; i < toWrite.length; i += concurrency) {
 				const chunk = toWrite.slice(i, i + concurrency);
-				const results = await Promise.all(chunk.map(({buffer}) =>
-					new Promise((resolve, reject) =>
+				const results = await Promise.all(chunk.map(({buffer}) => {
+					if (buffer.length <= 128) {
+						return Promise.resolve(buffer);
+					}
+					return new Promise((resolve, reject) =>
 						gzip(buffer, {level: 1}, (err, result) => err ? reject(err) : resolve(result))
-					)
-				));
+					);
+				}));
 				for (let j = 0; j < results.length; j++) {
 					compressed[i + j] = results[j];
 				}
@@ -1691,8 +1694,7 @@ export default class ProjectBuildCache {
 						contentModified: false,
 					},
 					createStream: () => {
-						const compressed = this.#cacheManager.readContentRaw(integrity);
-						return Readable.from(gunzipSync(compressed));
+						return Readable.from(this.#cacheManager.readContent(integrity));
 					},
 					createBuffer: () => {
 						return this.#cacheManager.readContent(integrity);
