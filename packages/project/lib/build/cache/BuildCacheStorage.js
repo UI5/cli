@@ -171,7 +171,7 @@ export default class BuildCacheStorage {
 	 * @param {Buffer} buffer Uncompressed resource content
 	 */
 	putContent(integrity, buffer) {
-		const compressedBuffer = gzipSync(buffer);
+		const compressedBuffer = gzipSync(buffer, {level: 1});
 		this.#stmts.writeContent.run(integrity, compressedBuffer);
 	}
 
@@ -508,6 +508,27 @@ export default class BuildCacheStorage {
 		const rows = stmt.all(projectId, buildSignature, ...signatures);
 		const existingSet = new Set(rows.map((row) => row.stage_signature));
 		return signatures.filter((sig) => existingSet.has(sig));
+	}
+
+	/**
+	 * Finds which content integrities already exist in the CAS
+	 *
+	 * Uses a single SELECT ... IN (...) query to batch-check existence without
+	 * reading full data blobs.
+	 *
+	 * @param {string[]} integrities Array of integrity hashes to check
+	 * @returns {Set<string>} Set of integrities that exist in the database
+	 */
+	findExistingContentIntegrities(integrities) {
+		if (!integrities.length) {
+			return new Set();
+		}
+		const placeholders = integrities.map(() => "?").join(",");
+		const stmt = this.#db.prepare(
+			`SELECT integrity FROM content WHERE integrity IN (${placeholders})`
+		);
+		const rows = stmt.all(...integrities);
+		return new Set(rows.map((row) => row.integrity));
 	}
 
 	/**
