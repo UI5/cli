@@ -557,13 +557,12 @@ class Resource {
 			this.#integrity = ssri.fromData(this.#content, SSRI_OPTIONS).toString();
 			break;
 		case CONTENT_TYPES.FACTORY:
-			// TODO: Investigate performance impact of buffer factory vs. stream factory for integrity calculation
-			// if (this.#createBufferFactory) {
-			// 	this.#integrity = ssri.fromData(
-			// 		await this.#getBufferFromFactory(this.#createBufferFactory, SSRI_OPTIONS).toString());
-			// } else {
-			this.#integrity = (await ssri.fromStream(this.#createStreamFactory(), SSRI_OPTIONS)).toString();
-			// }
+			if (this.#createBufferFactory) {
+				const buffer = await this.#getBufferFromFactory(this.#createBufferFactory);
+				this.#integrity = ssri.fromData(buffer, SSRI_OPTIONS).toString();
+			} else {
+				this.#integrity = (await ssri.fromStream(this.#createStreamFactory(), SSRI_OPTIONS)).toString();
+			}
 			break;
 		case CONTENT_TYPES.STREAM:
 			// To be discussed: Should we read the stream into a buffer here (using #getBufferFromStream) to avoid
