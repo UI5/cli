@@ -1632,6 +1632,98 @@ test("getIntegrity: Returns integrity for factory content", async (t) => {
 		"Correct integrity for content");
 });
 
+test("getIntegrity: Uses buffer factory when available", async (t) => {
+	const createBufferStub = sinon.stub().resolves(Buffer.from("Content"));
+	const createStreamStub = sinon.stub().returns(new Stream.Readable({
+		read() {
+			this.push("Content");
+			this.push(null);
+		}
+	}));
+	const resource = new Resource({
+		path: "/my/path/to/resource",
+		createBuffer: createBufferStub,
+		createStream: createStreamStub
+	});
+
+	const integrity = await resource.getIntegrity();
+	t.is(integrity, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
+		"Correct integrity for content");
+	t.true(createBufferStub.calledOnce, "createBuffer factory called once");
+	t.false(createStreamStub.called, "createStream factory not called");
+});
+
+test("getIntegrity: Materializes buffer - subsequent getBuffer avoids double I/O", async (t) => {
+	const createBufferStub = sinon.stub().resolves(Buffer.from("Content"));
+	const createStreamStub = sinon.stub().returns(new Stream.Readable({
+		read() {
+			this.push("Content");
+			this.push(null);
+		}
+	}));
+	const resource = new Resource({
+		path: "/my/path/to/resource",
+		createBuffer: createBufferStub,
+		createStream: createStreamStub
+	});
+
+	const integrity = await resource.getIntegrity();
+	t.is(integrity, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=");
+
+	const buffer = await resource.getBuffer();
+	t.is(buffer.toString(), "Content", "getBuffer returns correct content");
+	t.true(createBufferStub.calledOnce, "createBuffer factory called only once (buffer was cached)");
+	t.false(createStreamStub.called, "createStream factory never called");
+});
+
+test("getIntegrity: Does not mark factory resource as modified after buffer materialization", async (t) => {
+	const resource = new Resource({
+		path: "/my/path/to/resource",
+		createBuffer: async () => Buffer.from("Content"),
+		createStream: () => new Stream.Readable({
+			read() {
+				this.push("Content");
+				this.push(null);
+			}
+		}),
+		sourceMetadata: {
+			adapter: "FileSystem",
+			fsPath: "/some/path"
+		}
+	});
+
+	t.false(resource.isModified(), "Resource not modified before getIntegrity");
+	t.false(resource.getSourceMetadata().contentModified, "Content not marked as modified");
+
+	await resource.getIntegrity();
+
+	t.false(resource.isModified(), "Resource still not modified after getIntegrity");
+	t.false(resource.getSourceMetadata().contentModified, "Content still not marked as modified");
+});
+
+test("getIntegrity: Multiple calls with createBuffer only invoke factory once", async (t) => {
+	const createBufferStub = sinon.stub().resolves(Buffer.from("Content"));
+	const resource = new Resource({
+		path: "/my/path/to/resource",
+		createBuffer: createBufferStub,
+		createStream: () => new Stream.Readable({
+			read() {
+				this.push("Content");
+				this.push(null);
+			}
+		})
+	});
+
+	const integrity1 = await resource.getIntegrity();
+	const integrity2 = await resource.getIntegrity();
+	const integrity3 = await resource.getIntegrity();
+
+	t.is(integrity1, integrity2);
+	t.is(integrity2, integrity3);
+	t.is(integrity1, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=");
+	t.true(createBufferStub.calledOnce, "createBuffer factory called only once across all calls");
+});
+
 test("getIntegrity: Throws error for resource with no content", async (t) => {
 	const resource = new Resource({
 		path: "/my/path/to/resource"
