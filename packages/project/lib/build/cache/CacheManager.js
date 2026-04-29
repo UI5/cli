@@ -311,6 +311,17 @@ export default class CacheManager {
 	}
 
 	/**
+	 * Writes pre-compressed content directly to the CAS
+	 *
+	 * @public
+	 * @param {string} integrity SRI integrity string
+	 * @param {Buffer} compressedBuffer Gzip-compressed resource content
+	 */
+	putCompressedContent(integrity, compressedBuffer) {
+		this.#storage.putCompressedContent(integrity, compressedBuffer);
+	}
+
+	/**
 	 * Begins a batch transaction for multiple content writes
 	 */
 	beginContentBatch() {

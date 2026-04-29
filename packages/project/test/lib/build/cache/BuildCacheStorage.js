@@ -2,7 +2,7 @@ import test from "ava";
 import path from "node:path";
 import fs from "node:fs";
 import {rimraf} from "rimraf";
-import {gunzipSync} from "node:zlib";
+import {gunzipSync, gzipSync} from "node:zlib";
 import BuildCacheStorage from "../../../../lib/build/cache/BuildCacheStorage.js";
 
 const TEST_DIR = path.join(import.meta.dirname, "..", "..", "..", "tmp", "BuildCacheStorage");
@@ -408,4 +408,21 @@ test("findExistingContentIntegrities: Handles large batches", (t) => {
 	const result = t.context.storage.findExistingContentIntegrities(integrities);
 	t.is(result.size, 100);
 	t.false(result.has("sha256-nonexistent"));
+});
+
+// ===== Pre-compressed content =====
+
+test("putCompressedContent: Stores pre-compressed data retrievable via readContent", (t) => {
+	const content = Buffer.from("pre-compressed test");
+	const compressed = gzipSync(content, {level: 1});
+	t.context.storage.putCompressedContent("sha256-precomp", compressed);
+	t.deepEqual(t.context.storage.readContent("sha256-precomp"), content);
+});
+
+test("putCompressedContent: Deduplicates via INSERT OR IGNORE", (t) => {
+	const content1 = Buffer.from("first");
+	const content2 = Buffer.from("second");
+	t.context.storage.putCompressedContent("sha256-dedup-pre", gzipSync(content1));
+	t.context.storage.putCompressedContent("sha256-dedup-pre", gzipSync(content2));
+	t.deepEqual(t.context.storage.readContent("sha256-dedup-pre"), content1);
 });

@@ -1,8 +1,9 @@
 import {createResource, createProxy, createWriterCollection} from "@ui5/fs/resourceFactory";
 import {getLogger} from "@ui5/logger";
-import {gunzipSync} from "node:zlib";
+import {gunzipSync, gzip} from "node:zlib";
 import {Readable} from "node:stream";
 import crypto from "node:crypto";
+import os from "node:os";
 import BuildTaskCache from "./BuildTaskCache.js";
 import StageCache from "./StageCache.js";
 import ResourceIndex from "./index/ResourceIndex.js";
@@ -1568,12 +1569,28 @@ export default class ProjectBuildCache {
 			}
 		}
 
-		// Phase 2: Batch write to SQLite in a single transaction
+		// Phase 2: Parallel async compression (outside transaction)
 		if (toWrite.length > 0) {
+			const concurrency = Math.min(os.availableParallelism(), 8);
+			const compressed = new Array(toWrite.length);
+
+			for (let i = 0; i < toWrite.length; i += concurrency) {
+				const chunk = toWrite.slice(i, i + concurrency);
+				const results = await Promise.all(chunk.map(({buffer}) =>
+					new Promise((resolve, reject) =>
+						gzip(buffer, {level: 1}, (err, result) => err ? reject(err) : resolve(result))
+					)
+				));
+				for (let j = 0; j < results.length; j++) {
+					compressed[i + j] = results[j];
+				}
+			}
+
+			// Phase 3: Batch insert pre-compressed content in transaction
 			this.#cacheManager.beginContentBatch();
 			try {
-				for (const {integrity, buffer} of toWrite) {
-					this.#cacheManager.putContent(integrity, buffer);
+				for (let i = 0; i < toWrite.length; i++) {
+					this.#cacheManager.putCompressedContent(toWrite[i].integrity, compressed[i]);
 				}
 				this.#cacheManager.endContentBatch();
 			} catch (err) {

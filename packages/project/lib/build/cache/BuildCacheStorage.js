@@ -176,6 +176,19 @@ export default class BuildCacheStorage {
 	}
 
 	/**
+	 * Stores pre-compressed content in the CAS
+	 *
+	 * Caller is responsible for providing gzip-compressed data.
+	 * Deduplicates via INSERT OR IGNORE.
+	 *
+	 * @param {string} integrity SRI integrity string of the uncompressed content
+	 * @param {Buffer} compressedBuffer Gzip-compressed resource content
+	 */
+	putCompressedContent(integrity, compressedBuffer) {
+		this.#stmts.writeContent.run(integrity, compressedBuffer);
+	}
+
+	/**
 	 * Reads the raw compressed BLOB from the CAS
 	 *
 	 * @param {string} integrity SRI integrity string
