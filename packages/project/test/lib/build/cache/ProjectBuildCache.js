@@ -70,6 +70,7 @@ function createMockCacheManager() {
 		readContent: sinon.stub().returns(Buffer.from("test")),
 		readContentRaw: sinon.stub().returns(Buffer.from("test")),
 		putContent: sinon.stub(),
+		putCompressedContent: sinon.stub(),
 		hasResourceForStage: sinon.stub().returns(false),
 		beginContentBatch: sinon.stub(),
 		endContentBatch: sinon.stub(),
@@ -981,8 +982,8 @@ test("freezeUntransformedSources: writes only untransformed source files to CAS"
 
 	await cache.allTasksCompleted();
 
-	// putContent should be called for untransformed files /c.js and /d.js
-	const putContentCalls = cacheManager.putContent.getCalls();
+	// putCompressedContent should be called for untransformed files /c.js and /d.js
+	const putContentCalls = cacheManager.putCompressedContent.getCalls();
 	const writtenIntegrities = putContentCalls.map((call) => call.args[0]);
 	t.true(writtenIntegrities.includes("hash-c"), "Untransformed /c.js written to CAS");
 	t.true(writtenIntegrities.includes("hash-d"), "Untransformed /d.js written to CAS");
@@ -1261,8 +1262,8 @@ test("freezeUntransformedSources: delta path — only reads new files missing fr
 
 	await cache.allTasksCompleted();
 
-	// putContent should be called only for /e.js (the new file)
-	const putContentCalls = cacheManager.putContent.getCalls();
+	// putCompressedContent should be called only for /e.js (the new file)
+	const putContentCalls = cacheManager.putCompressedContent.getCalls();
 	const writtenIntegrities = putContentCalls.map((call) => call.args[0]);
 	t.is(writtenIntegrities.length, 1, "Only 1 CAS write for the new file");
 	t.true(writtenIntegrities.includes("hash-e"), "New file /e.js written to CAS");
