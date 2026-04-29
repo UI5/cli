@@ -634,3 +634,125 @@ test("Serialization roundtrip preserves tags and root hash", (t) => {
 	const node3 = restored.getResourceByPath("file3.js");
 	t.is(node3.tags, null, "Null tags should be preserved");
 });
+
+// ============================================================================
+// Shallow Recomputation Safety Tests
+// ============================================================================
+
+test("Multi-level nested upserts produce same hash as fresh construction", async (t) => {
+	const initialResources = [
+		{path: "a/b/c/d/deep.js", integrity: "hash-deep", lastModified: 1000, size: 100},
+		{path: "a/b/mid.js", integrity: "hash-mid", lastModified: 1000, size: 200},
+		{path: "a/top.js", integrity: "hash-top", lastModified: 1000, size: 300}
+	];
+
+	const tree = new HashTree(initialResources);
+	const indexTimestamp = tree.getIndexTimestamp();
+
+	// Upsert resources at multiple depths in one batch
+	await tree.upsertResources([
+		createMockResource("a/b/c/d/deep.js", "new-hash-deep", indexTimestamp + 1, 101, 1),
+		createMockResource("a/b/mid.js", "new-hash-mid", indexTimestamp + 1, 201, 2),
+		createMockResource("a/top.js", "new-hash-top", indexTimestamp + 1, 301, 3)
+	]);
+
+	// Build a reference tree with the final state directly
+	const referenceTree = new HashTree([
+		{path: "a/b/c/d/deep.js", integrity: "new-hash-deep", lastModified: indexTimestamp + 1, size: 101},
+		{path: "a/b/mid.js", integrity: "new-hash-mid", lastModified: indexTimestamp + 1, size: 201},
+		{path: "a/top.js", integrity: "new-hash-top", lastModified: indexTimestamp + 1, size: 301}
+	]);
+
+	t.is(tree.getRootHash(), referenceTree.getRootHash(),
+		"Upserted tree must match freshly constructed tree with same final state");
+});
+
+test("Sibling directory modifications produce correct ancestor hashes", async (t) => {
+	const initialResources = [
+		{path: "root/left/file1.js", integrity: "hash-1", lastModified: 1000, size: 100},
+		{path: "root/right/file2.js", integrity: "hash-2", lastModified: 1000, size: 200},
+		{path: "root/right/nested/file3.js", integrity: "hash-3", lastModified: 1000, size: 300}
+	];
+
+	const tree = new HashTree(initialResources);
+	const indexTimestamp = tree.getIndexTimestamp();
+
+	// Modify resources in sibling branches in one batch
+	await tree.upsertResources([
+		createMockResource("root/left/file1.js", "new-hash-1", indexTimestamp + 1, 101, 1),
+		createMockResource("root/right/file2.js", "new-hash-2", indexTimestamp + 1, 201, 2),
+		createMockResource("root/right/nested/file3.js", "new-hash-3", indexTimestamp + 1, 301, 3)
+	]);
+
+	const referenceTree = new HashTree([
+		{path: "root/left/file1.js", integrity: "new-hash-1", lastModified: indexTimestamp + 1, size: 101},
+		{path: "root/right/file2.js", integrity: "new-hash-2", lastModified: indexTimestamp + 1, size: 201},
+		{path: "root/right/nested/file3.js", integrity: "new-hash-3", lastModified: indexTimestamp + 1, size: 301}
+	]);
+
+	t.is(tree.getRootHash(), referenceTree.getRootHash(),
+		"Root hash must be correct after sibling modifications");
+	t.is(tree.getDirectoryHash("root"), referenceTree.getDirectoryHash("root"),
+		"Common ancestor 'root' hash must match reference");
+	t.is(tree.getDirectoryHash("root/left"), referenceTree.getDirectoryHash("root/left"),
+		"Left branch hash must match reference");
+	t.is(tree.getDirectoryHash("root/right"), referenceTree.getDirectoryHash("root/right"),
+		"Right branch hash must match reference");
+});
+
+test("Batch removal from multiple nested branches produces correct hashes", async (t) => {
+	const initialResources = [
+		{path: "a/b/c/x.js", integrity: "hash-x"},
+		{path: "a/b/y.js", integrity: "hash-y"},
+		{path: "a/d/z.js", integrity: "hash-z"},
+		{path: "a/keep.js", integrity: "hash-keep"}
+	];
+
+	const tree = new HashTree(initialResources);
+
+	// Remove resources from multiple different branches at once
+	await tree.removeResources(["a/b/c/x.js", "a/b/y.js", "a/d/z.js"]);
+
+	// Build reference tree with only the remaining resource
+	const referenceTree = new HashTree([
+		{path: "a/keep.js", integrity: "hash-keep"}
+	]);
+
+	t.is(tree.getRootHash(), referenceTree.getRootHash(),
+		"After batch removal, hash must match fresh tree with remaining resources");
+});
+
+test("Intermediate directory hashes are correct after deep leaf modification", async (t) => {
+	const initialResources = [
+		{path: "a/b/c/d/leaf.js", integrity: "old-hash", lastModified: 1000, size: 100},
+		{path: "a/b/c/sibling.js", integrity: "hash-sibling"},
+		{path: "a/b/other.js", integrity: "hash-other"}
+	];
+
+	const tree = new HashTree(initialResources);
+	const indexTimestamp = tree.getIndexTimestamp();
+
+	// Modify only the deepest leaf
+	await tree.upsertResources([
+		createMockResource("a/b/c/d/leaf.js", "new-hash", indexTimestamp + 1, 101, 1)
+	]);
+
+	// Build reference tree with the final state
+	const referenceTree = new HashTree([
+		{path: "a/b/c/d/leaf.js", integrity: "new-hash", lastModified: indexTimestamp + 1, size: 101},
+		{path: "a/b/c/sibling.js", integrity: "hash-sibling"},
+		{path: "a/b/other.js", integrity: "hash-other"}
+	]);
+
+	// Verify every directory node in the ancestor chain, not just root
+	t.is(tree.getDirectoryHash("a/b/c/d"), referenceTree.getDirectoryHash("a/b/c/d"),
+		"Deepest modified directory hash must match reference");
+	t.is(tree.getDirectoryHash("a/b/c"), referenceTree.getDirectoryHash("a/b/c"),
+		"Intermediate directory 'a/b/c' hash must match reference");
+	t.is(tree.getDirectoryHash("a/b"), referenceTree.getDirectoryHash("a/b"),
+		"Intermediate directory 'a/b' hash must match reference");
+	t.is(tree.getDirectoryHash("a"), referenceTree.getDirectoryHash("a"),
+		"Intermediate directory 'a' hash must match reference");
+	t.is(tree.getRootHash(), referenceTree.getRootHash(),
+		"Root hash must match reference");
+});
