@@ -8,6 +8,7 @@ const chmod = promisify(fs.chmod);
 const mkdir = promisify(fs.mkdir);
 const stat = promisify(fs.stat);
 const readFile = promisify(fs.readFile);
+const writeFile = promisify(fs.writeFile);
 import {globby, isGitIgnored} from "globby";
 import {PassThrough} from "node:stream";
 import AbstractAdapter from "./AbstractAdapter.js";
