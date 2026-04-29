@@ -1,9 +1,9 @@
-// Tests running "ui5 build"
+// Tests for "ui5 build"
 // with fixtures (under ../fixtures)
-// and by using node's child_process module and the ui5.cjs under ../../../packages/cli/bin/ui5.cjs.
+// and by using execa running ui5.cjs under ../../../packages/cli/bin/ui5.cjs.
 
-import { execFile } from "node:child_process";
-import {describe, test, afterEach} from "node:test";
+import {execa} from "execa";
+import {describe, test} from "node:test";
 import {fileURLToPath} from "node:url";
 import path from "node:path";
 import fs from "node:fs/promises";
@@ -12,7 +12,7 @@ import AdmZip from "adm-zip";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ui5CliPath = path.resolve(__dirname, "../../../packages/cli/bin/ui5.cjs");
-const originalCwd = process.cwd();
+const ui5 = (args, options = {}) => execa(ui5CliPath, args, options);
 
 class FixtureHelper {
 	constructor(fixtureName) {
@@ -30,43 +30,20 @@ class FixtureHelper {
 		await fs.cp(this.originFixturePath, this.tmpPath, {recursive: true});
 		// Install node_modules
 		await this._installNodeModules();
-		// Setup environment
-		process.env.UI5_DATA_DIR = this.dotUi5Path;
-		process.chdir(this.tmpPath);
 	}
 
 	async build(assert, ui5YamlName) {
-		await new Promise((resolve, reject) => {
-			execFile("node", [ui5CliPath, "build", "--config", ui5YamlName, "--dest", this.distPath], async (error, stdout, stderr) => {
-				if (error) {
-					assert.fail(error);
-					reject(error);
-					return;
-				}
-				resolve();
-			});
-		});
+		const {stdout} = await ui5(["build", "--config", ui5YamlName, "--dest", this.distPath],
+			{cwd: this.tmpPath, env: {UI5_DATA_DIR: this.dotUi5Path}});
+		return stdout;
 	}
 
 	async _installNodeModules() {
-		await new Promise((resolve, reject) => {
-			execFile("npm", ["install"], { cwd: this.tmpPath }, (error, stdout, stderr) => {
-				if (error) {
-					reject(error);
-					return;
-				}
-				resolve();
-			});
-		});
+		await execa("npm", ["ci"], {cwd: this.tmpPath});
 	}
 }
 
 describe("ui5 build", () => {
-	afterEach(() => {
-		process.env.UI5_DATA_DIR = undefined;
-		process.chdir(originalCwd);
-	});
-
 	test("ui5-tooling-transpile", async ({assert}) => {
 		const fixtureHelper = new FixtureHelper("application.a.ts");
 		await fixtureHelper.init();
@@ -76,8 +53,10 @@ describe("ui5 build", () => {
 		await fixtureHelper.build(assert, ui5YamlName);
 
 		// Test: no TS syntax is left in the preload (transpile + preload tasks succeeeded)
-		const componentPreload = await fs.readFile(path.resolve(fixtureHelper.distPath, "Component-preload.js"), "utf-8");
-		assert.ok(componentPreload.includes("application/a/ts/controller/Base.controller"), "Component-preload.js should contain the TS resource transpiled to JS");
+		const componentPreload = await fs.readFile(
+			path.resolve(fixtureHelper.distPath, "Component-preload.js"), "utf-8");
+		assert.ok(componentPreload.includes("application/a/ts/controller/Base.controller"),
+			"Component-preload.js should contain the TS resource transpiled to JS");
 		assert.ok(!componentPreload.includes("AppComponent"), "Component-preload.js should NOT contain any TS syntax");
 
 		// --------------------------------------------------------------------------------------------
@@ -92,8 +71,10 @@ describe("ui5 build", () => {
 		await fixtureHelper.build(assert, ui5YamlName);
 
 		// Test: the modified content is reflected in the new build output (transpile + preload tasks succeeeded)
-		const newComponentPreload = await fs.readFile(path.resolve(fixtureHelper.distPath, "Component-preload.js"), "utf-8");
-		assert.ok(newComponentPreload.includes("getNewOwnerComponent"), "Component-preload.js should contain the updated content from the modified source file");
+		const newComponentPreload = await fs.readFile(
+			path.resolve(fixtureHelper.distPath, "Component-preload.js"), "utf-8");
+		assert.ok(newComponentPreload.includes("getNewOwnerComponent"),
+			"Component-preload.js should contain the updated content from the modified source file");
 	});
 
 	test("ui5-task-zipper", async ({assert}) => {
@@ -115,7 +96,7 @@ describe("ui5 build", () => {
 		assert.ok(zipEntries.length > 0, "The zip file should contain entries");
 
 		// Check that the zip file contains the expected source file
-		const testControllerEntry = zipEntries.find(entry => entry.entryName === "controller/Test.controller.js");
+		const testControllerEntry = zipEntries.find((entry) => entry.entryName === "controller/Test.controller.js");
 		assert.ok(testControllerEntry, "The zip file should contain the expected source file");
 
 		// --------------------------------------------------------------------------------------------
@@ -136,7 +117,8 @@ describe("ui5 build", () => {
 		assert.ok(zipEntries2.length > 0, "The zip file should contain entries after the second build");
 
 		// Check that the zip file does NOT contain the expected source file anymore
-		const deletedTestControllerEntry = zipEntries2.find(entry => entry.entryName === "controller/Test.controller.js");
+		const deletedTestControllerEntry = zipEntries2.find((entry) =>
+			entry.entryName === "controller/Test.controller.js");
 		assert.ok(!deletedTestControllerEntry, "The zip file should NOT contain the deleted source file");
 	});
 
@@ -166,10 +148,14 @@ describe("ui5 build", () => {
 		await fixtureHelper.build(assert, ui5YamlName);
 
 		// Test: the dist contains the new controller and the third party import
-		const newComponentPreload = await fs.readFile(path.resolve(fixtureHelper.distPath, "Component-preload.js"), "utf-8");
-		assert.ok(newComponentPreload.includes("sap.ui.predefine(\"application/a/controller/New.controller\", [\"application/a/thirdparty/chart.js\"]"), "Component-preload.js should contain the 'New' controller and chart.js");
+		const newComponentPreload = await fs.readFile(
+			path.resolve(fixtureHelper.distPath, "Component-preload.js"), "utf-8");
+		assert.ok(newComponentPreload.includes(
+			"sap.ui.predefine(\"application/a/controller/New.controller\", [\"application/a/thirdparty/chart.js\"]"),
+		"Component-preload.js should contain the 'New' controller and chart.js");
 		// Test: the dist contains the expected third party module
-		const chartJSModule = await fs.readFile(path.resolve(fixtureHelper.distPath, "thirdparty/chart.js.js"), "utf-8");
+		const chartJSModule = await fs.readFile(
+			path.resolve(fixtureHelper.distPath, "thirdparty/chart.js.js"), "utf-8");
 		assert.ok(chartJSModule.includes("Chart"), "The expected third party module should be included in the dist");
 	});
 
@@ -199,13 +185,17 @@ describe("ui5 build", () => {
 		// #2 Build
 		// FIXME: Currently failing here for IB (https://github.com/UI5/cli/pull/1267), April 02 2026 - aa3a2c1c04f7a5cd27650335cde37a798baacf2a
 		// Error message:
-		// ("Minification failed with error: Unexpected token punc «{», expected punc «,» in file /resources/application/a/controller/New.controller.js (line 4, col 16, pos 114)")
+		// ("Minification failed with error: Unexpected token punc «{», expected punc «,»
+		// in file /resources/application/a/controller/New.controller.js (line 4, col 16, pos 114)")
 		//
-		// -> Probably, the string replacement doesn't get executed as very first middleware (minify happens earlier unexpectedly)
+		// -> Probably, the string replacement doesn't get executed as very first middleware
+		// (minify happens earlier unexpectedly)
 		await fixtureHelper.build(assert, ui5YamlName);
 
 		// Test: the placeholder in the source file is replaced in the dist output
-		const componentPreload = await fs.readFile(path.resolve(fixtureHelper.distPath, "Component-preload.js"), "utf-8");
-		assert.ok(componentPreload.includes("console.log(\"INSERTED_TEXT\")"), "The placeholder should get replaced with the expected text in the component preload");
+		const componentPreload = await fs.readFile(
+			path.resolve(fixtureHelper.distPath, "Component-preload.js"), "utf-8");
+		assert.ok(componentPreload.includes("console.log(\"INSERTED_TEXT\")"),
+			"The placeholder should get replaced with the expected text in the component preload");
 	});
 });

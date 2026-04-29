@@ -9,9 +9,11 @@
 	},
 	"scripts": {
 		"test": "node --test 'test/**/*.js'",
-		"test-watch": "node --test --watch 'test/**/*.js'"
+		"test-watch": "node --test --watch 'test/**/*.js'",
+		"lint": "eslint ."
 	},
 	"dependencies": {
-		"adm-zip": "^0.5.17"
+		"adm-zip": "^0.5.17",
+		"execa": "^9.6.0"
 	}
 }
