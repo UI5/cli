@@ -45,8 +45,6 @@ function createMiddleware({resources, middlewareUtil}) {
 				return;
 			}
 
-			// Pipe resource stream to response
-			// TODO: Check whether we can optimize this for small or even all resources by using getBuffer()
 			res.send(await resource.getBuffer());
 		} catch (err) {
 			next(err);
