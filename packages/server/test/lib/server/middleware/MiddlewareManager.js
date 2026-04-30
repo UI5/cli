@@ -25,6 +25,7 @@ test("Missing parameters", (t) => {
 		new MiddlewareManager({
 			graph: {},
 			rootProject: "root project",
+			sources: "sources",
 			resources: {}
 		});
 	});
@@ -37,6 +38,7 @@ test("Correct parameters", (t) => {
 		new MiddlewareManager({
 			graph: {},
 			rootProject: "root project",
+			sources: "sources",
 			resources: {
 				all: "I",
 				rootProject: "like",
@@ -51,6 +53,7 @@ test("applyMiddleware", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "love",
@@ -83,6 +86,7 @@ test("addMiddleware: Adding already added middleware", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -104,6 +108,7 @@ test("addMiddleware: Adding middleware already added to middlewareExecutionOrder
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -125,6 +130,7 @@ test("addMiddleware: Add middleware", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -149,6 +155,7 @@ test("addMiddleware: Add middleware with beforeMiddleware and mountPath paramete
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -181,6 +188,7 @@ test("addMiddleware: Add middleware with beforeMiddleware=connectUi5Proxy", asyn
 	const middlewareManager = new StubbedMiddlewareManager({
 		graph: {},
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -207,6 +215,7 @@ test("addMiddleware: Add middleware with afterMiddleware parameter", async (t) =
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -234,6 +243,7 @@ test("addMiddleware: Add middleware with invalid afterMiddleware parameter", asy
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -260,6 +270,7 @@ test("addMiddleware: Add middleware with wrapperCallback parameter", async (t) =
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -299,6 +310,7 @@ test("addMiddleware: Add middleware with async wrapperCallback", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -321,6 +333,7 @@ test("addStandardMiddleware: Adds standard middleware in correct order", async (
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -330,7 +343,7 @@ test("addStandardMiddleware: Adds standard middleware in correct order", async (
 	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
 	await middlewareManager.addStandardMiddleware();
 
-	t.is(addMiddlewareStub.callCount, 10, "Expected count of middleware got added");
+	t.is(addMiddlewareStub.callCount, 9, "Expected count of middleware got added");
 	const addedMiddlewareNames = [];
 	for (let i = 0; i < addMiddlewareStub.callCount; i++) {
 		addedMiddlewareNames.push(addMiddlewareStub.getCall(i).args[0]);
@@ -342,7 +355,6 @@ test("addStandardMiddleware: Adds standard middleware in correct order", async (
 		"discovery",
 		"serveResources",
 		"testRunner",
-		"serveThemes",
 		"versionInfo",
 		"nonReadRequests",
 		"serveIndex"
@@ -363,6 +375,7 @@ test("addCustomMiddleware: No custom middleware defined", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -393,6 +406,7 @@ test("addCustomMiddleware: Unknown custom middleware", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -431,6 +445,7 @@ test("addCustomMiddleware: Custom middleware got added", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -485,6 +500,7 @@ test("addCustomMiddleware: Custom middleware with duplicate name", async (t) => 
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -521,6 +537,7 @@ test("addCustomMiddleware: Missing name configuration", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -553,6 +570,7 @@ test("addCustomMiddleware: Both before- and afterMiddleware configuration", asyn
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -584,6 +602,7 @@ test("addCustomMiddleware: Missing before- or afterMiddleware configuration", as
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -629,6 +648,7 @@ test("addCustomMiddleware", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -698,6 +718,7 @@ test("addCustomMiddleware with specVersion 3.0", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -747,6 +768,7 @@ test("addStandardMiddleware: CSP middleware configured correctly (default)", asy
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -795,6 +817,7 @@ test("addStandardMiddleware: CSP middleware configured correctly (enabled)", asy
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -855,6 +878,7 @@ test("addStandardMiddleware: CSP middleware configured correctly (custom)", asyn
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
+		sources: "sources",
 		resources: {
 			all: "I",
 			rootProject: "like",

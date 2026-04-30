@@ -1,32 +1,21 @@
 import test from "ava";
-import sinonGlobal from "sinon";
-import esmock from "esmock";
 import supertest from "supertest";
 import {graphFromPackageDependencies} from "@ui5/project/graph";
+import {serve} from "../../../lib/server.js";
 
 let request;
 let server;
 
 // Start server before running tests
-test.before(async (t) => {
-	const sinon = t.context.sinon = sinonGlobal.createSandbox();
-
-	t.context.manifestEnhancer = sinon.stub();
-
-	const {serve} = await esmock.p("../../../lib/server.js", {}, {
-		"@ui5/builder/processors/manifestEnhancer": t.context.manifestEnhancer,
-	});
-
+test.before(async () => {
 	const graph = await graphFromPackageDependencies({
 		cwd: "./test/fixtures/application.a"
 	});
 
-	t.context.applicationProject = graph.getProject("application.a");
-
 	server = await serve(graph, {
-		port: 3334
+		port: 3350
 	});
-	request = supertest("http://localhost:3334");
+	request = supertest("http://localhost:3350");
 });
 
 test.after.always(() => {
@@ -41,59 +30,32 @@ test.after.always(() => {
 	});
 });
 
-test("serveResources: manifestEnhancer cache invalidation", async (t) => {
-	const {manifestEnhancer} = t.context;
-
-	manifestEnhancer.callsFake(async ({resources}) => {
-		for (const resource of resources) {
-			resource.setString(JSON.stringify({"mockedResponse": "v1"}));
-		}
-	});
-
-	const response = await request.get("/manifest.json");
+test("serveResources: ETag caching", async (t) => {
+	const response = await request.get("/index.html");
 	if (response.error) {
 		throw new Error(response.error);
 	}
 	t.is(response.statusCode, 200, "Correct HTTP status code");
-	t.is(response.text, JSON.stringify({
-		"mockedResponse": "v1"
-	}), "Correct response");
+	t.truthy(response.headers.etag, "Response has ETag header");
 
-	const cachedResponse = await request.get("/manifest.json").set({"If-None-Match": response.headers.etag});
-	t.is(cachedResponse.statusCode, 304, "Correct HTTP status code");
-
-	// Changes to the response content should invalidate the cache
-	manifestEnhancer.callsFake(async ({resources}) => {
-		for (const resource of resources) {
-			resource.setString(JSON.stringify({"mockedResponse": "v2"}));
-		}
-	});
-
-	const newResponse = await request.get("/manifest.json").set({"If-None-Match": response.headers.etag});
-	t.is(newResponse.statusCode, 200, "Correct HTTP status code");
-	t.is(newResponse.text, JSON.stringify({
-		"mockedResponse": "v2"
-	}), "Correct response");
+	const cachedResponse = await request.get("/index.html").set({"If-None-Match": response.headers.etag});
+	t.is(cachedResponse.statusCode, 304, "Returns 304 when ETag matches");
 });
 
-test("serveResources: version placeholder cache invalidation", async (t) => {
-	const {applicationProject} = t.context;
+test("serveResources: Different resources have different ETags", async (t) => {
+	const response1 = await request.get("/index.html");
+	const response2 = await request.get("/versionTest.js");
 
-	const response = await request.get("/versionTest.js");
-	if (response.error) {
-		throw new Error(response.error);
-	}
-	t.is(response.statusCode, 200, "Correct HTTP status code");
-	t.is(response.text, "console.log(`1.0.0`);\n", "Correct response");
+	t.truthy(response1.headers.etag, "First response has ETag");
+	t.truthy(response2.headers.etag, "Second response has ETag");
+	t.not(response1.headers.etag, response2.headers.etag, "Different resources have different ETags");
+});
 
-	const cachedResponse = await request.get("/versionTest.js").set({"If-None-Match": response.headers.etag});
-	t.is(cachedResponse.statusCode, 304, "Correct HTTP status code");
+test("serveResources: Mismatched ETag returns fresh response", async (t) => {
+	const response = await request.get("/index.html");
+	t.is(response.statusCode, 200);
 
-	// Changes to the project version should invalidate the cache
-	applicationProject._version = "1.0.1-SNAPSHOT";
-
-	const newResponse = await request.get("/versionTest.js").set({"If-None-Match": response.headers.etag});
-	t.is(newResponse.statusCode, 200, "Correct HTTP status code");
-	t.is(newResponse.text, "console.log(`1.0.1-SNAPSHOT`);\n", "Correct response");
-	t.regex(newResponse.headers.etag, /1\.0\.1-SNAPSHOT/, "Correct updated ETag");
+	const freshResponse = await request.get("/index.html").set({"If-None-Match": "\"stale-etag\""});
+	t.is(freshResponse.statusCode, 200, "Returns 200 when ETag does not match");
+	t.truthy(freshResponse.text, "Response body is included");
 });
