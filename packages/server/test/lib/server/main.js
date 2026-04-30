@@ -278,7 +278,8 @@ test("Get library.css (built by buildThemes task) (/resources/library/a/themes/b
 `, "Correct response");
 });
 
-test("Get library-RTL.css (built by buildThemes task) (/resources/library/a/themes/base/library-RTL.css)", async (t) => {
+test("Get library-RTL.css (built by buildThemes task) " +
+	"(/resources/library/a/themes/base/library-RTL.css)", async (t) => {
 	const res = await request.get(
 		"/resources/library/a/themes/base/library-RTL.css",
 	);
@@ -298,37 +299,43 @@ test("Get library-RTL.css (built by buildThemes task) (/resources/library/a/them
 	);
 });
 
-test("Get library-parameters.json (built by buildThemes task) (/resources/library/a/themes/base/library-parameters.json)",
-	async (t) => {
-		const res = await request.get("/resources/library/a/themes/base/library-parameters.json");
-		if (res.error) {
-			throw new Error(res.error);
-		}
-		t.is(res.statusCode, 200, "Correct HTTP status code");
-		t.regex(res.headers["content-type"], /json/, "Correct content type");
-		t.deepEqual(res.body, {
-			libraryAColor1: "#fafad2"
-		}, "Correct response");
-	});
+test("Get library-parameters.json (built by buildThemes task) " +
+	"(/resources/library/a/themes/base/library-parameters.json)",
+async (t) => {
+	const res = await request.get(
+		"/resources/library/a/themes/base/library-parameters.json");
+	if (res.error) {
+		throw new Error(res.error);
+	}
+	t.is(res.statusCode, 200, "Correct HTTP status code");
+	t.regex(res.headers["content-type"], /json/, "Correct content type");
+	t.deepEqual(res.body, {
+		libraryAColor1: "#fafad2"
+	}, "Correct response");
+});
 
-test("Get css_variables.source.less (built by buildThemes task) (/resources/library/a/themes/base/css_variables.source.less)",
-	async (t) => {
-		const res = await request.get("/resources/library/a/themes/base/css_variables.source.less");
-		if (res.error) {
-			throw new Error(res.error);
-		}
-		t.is(res.statusCode, 200, "Correct HTTP status code");
-		t.regex(res.headers["content-type"], /less/, "Correct content type");
-		t.is(res.text, `@libraryAColor1: #fafad2;
+test("Get css_variables.source.less (built by buildThemes task) " +
+	"(/resources/library/a/themes/base/css_variables.source.less)",
+async (t) => {
+	const res = await request.get(
+		"/resources/library/a/themes/base/css_variables.source.less");
+	if (res.error) {
+		throw new Error(res.error);
+	}
+	t.is(res.statusCode, 200, "Correct HTTP status code");
+	t.regex(res.headers["content-type"], /less/, "Correct content type");
+	t.is(res.text, `@libraryAColor1: #fafad2;
 
 :root {
 --libraryAColor1: @libraryAColor1;
 }
 `, "Correct response");
-	});
+});
 
-test("Get css_variables.css (built by buildThemes task) (/resources/library/a/themes/base/css_variables.css)", async (t) => {
-	const res = await request.get("/resources/library/a/themes/base/css_variables.css");
+test("Get css_variables.css (built by buildThemes task) " +
+	"(/resources/library/a/themes/base/css_variables.css)", async (t) => {
+	const res = await request.get(
+		"/resources/library/a/themes/base/css_variables.css");
 	if (res.error) {
 		throw new Error(res.error);
 	}
@@ -341,29 +348,33 @@ test("Get css_variables.css (built by buildThemes task) (/resources/library/a/th
 `, "Correct response");
 });
 
-test("Get library_skeleton.css (built by buildThemes task) (/resources/library/a/themes/base/library_skeleton.css)",
-	async (t) => {
-		const res = await request.get("/resources/library/a/themes/base/library_skeleton.css");
-		if (res.error) {
-			throw new Error(res.error);
-		}
-		t.is(res.statusCode, 200, "Correct HTTP status code");
-		t.regex(res.headers["content-type"], /css/, "Correct content type");
-		// CSS is minified by default in buildThemes task
-		t.is(res.text, `.library-a-foo{color:var(--libraryAColor1);padding:1px 2px 3px 4px}`, "Correct response");
-	});
+test("Get library_skeleton.css (built by buildThemes task) " +
+	"(/resources/library/a/themes/base/library_skeleton.css)",
+async (t) => {
+	const res = await request.get(
+		"/resources/library/a/themes/base/library_skeleton.css");
+	if (res.error) {
+		throw new Error(res.error);
+	}
+	t.is(res.statusCode, 200, "Correct HTTP status code");
+	t.regex(res.headers["content-type"], /css/, "Correct content type");
+	// CSS is minified by default in buildThemes task
+	t.is(res.text, `.library-a-foo{color:var(--libraryAColor1);padding:1px 2px 3px 4px}`, "Correct response");
+});
 
-test("Get library_skeleton-RTL.css (built by buildThemes task) (/resources/library/a/themes/base/library_skeleton-RTL.css)",
-	async (t) => {
-		const res = await request.get("/resources/library/a/themes/base/library_skeleton-RTL.css");
-		if (res.error) {
-			throw new Error(res.error);
-		}
-		t.is(res.statusCode, 200, "Correct HTTP status code");
-		t.regex(res.headers["content-type"], /css/, "Correct content type");
-		// CSS is minified by default in buildThemes task
-		t.is(res.text, `.library-a-foo{color:var(--libraryAColor1);padding:1px 4px 3px 2px}`, "Correct response");
-	});
+test("Get library_skeleton-RTL.css (built by buildThemes task) " +
+	"(/resources/library/a/themes/base/library_skeleton-RTL.css)",
+async (t) => {
+	const res = await request.get(
+		"/resources/library/a/themes/base/library_skeleton-RTL.css");
+	if (res.error) {
+		throw new Error(res.error);
+	}
+	t.is(res.statusCode, 200, "Correct HTTP status code");
+	t.regex(res.headers["content-type"], /css/, "Correct content type");
+	// CSS is minified by default in buildThemes task
+	t.is(res.text, `.library-a-foo{color:var(--libraryAColor1);padding:1px 4px 3px 2px}`, "Correct response");
+});
 
 test("Stop server", async (t) => {
 	const port = 3350;
