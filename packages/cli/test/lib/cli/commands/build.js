@@ -32,6 +32,7 @@ function getDefaultArgv() {
 
 function getDefaultBuilderArgs() {
 	return {
+		cacheDir: path.join("/root/path", ".ui5-cache"),
 		destPath: "./dist",
 		cleanDest: false,
 		dependencyIncludes: {
@@ -64,7 +65,8 @@ test.beforeEach(async (t) => {
 	t.context.getBuilderSettings = sinon.stub().returns(undefined);
 	const fakeGraph = {
 		getRoot: sinon.stub().returns({
-			getBuilderSettings: t.context.getBuilderSettings
+			getBuilderSettings: t.context.getBuilderSettings,
+			getRootPath: sinon.stub().returns("/root/path")
 		}),
 		build: t.context.builder
 	};
