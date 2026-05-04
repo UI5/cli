@@ -212,13 +212,23 @@ export async function serve(graph, {
 		app = await _addSsl({app, key, cert});
 	}
 
-	const {port, server} = await _listen(app, requestedPort, changePortIfInUse, acceptRemoteConnections);
+	let port; let server;
+	try {
+		({port, server} = await _listen(app, requestedPort, changePortIfInUse, acceptRemoteConnections));
+	} catch (err) {
+		await buildServer.destroy();
+		throw err;
+	}
 
 	return {
 		h2,
 		port,
 		close: function(callback) {
-			server.close(callback);
+			buildServer.destroy().then(() => {
+				server.close(callback);
+			}, () => {
+				server.close(callback);
+			});
 		}
 	};
 }
