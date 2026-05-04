@@ -51,7 +51,7 @@
 		"@apidevtools/json-schema-ref-parser": "^14.2.1",
 		"handlebars": "^4.7.9",
 		"jsdoc": "^4.0.4",
-		"open-cli": "^8.0.0",
+		"open-cli": "^9.0.0",
 		"traverse": "^0.6.11"
 	}
 }
