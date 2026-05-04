@@ -11,20 +11,22 @@
         // Fix is available in VitePress 2.x with esbuild v0.25.x, but no stable release yet (only alpha).
         "GHSA-67mh-4wv8-2f99|vitepress>vite>esbuild",
 
-        // None of the tar vulnerabilities listed below can be exploited in the context of UI5 CLI.
-        // All archives handled by UI5 CLI are provided by SAP and hosted on the npm registry, hence
-        // they are seen as trusted sources.
-        // We nevertheless upgraded the tar dependency to the fixed version using overwrites in the package.json.
-        // This only affects productive dependencies though, not development dependencies.
-        "GHSA-34x7-hfp2-rc4v|@npmcli/metavuln-calculator>pacote>tar>",
-        "GHSA-34x7-hfp2-rc4v|licensee>@npmcli/arborist>pacote>tar",
-        "GHSA-83g3-92jg-28cx|@npmcli/metavuln-calculator>pacote>tar>",
-        "GHSA-83g3-92jg-28cx|licensee>@npmcli/arborist>pacote>tar",
-        "GHSA-8qq5-rm4j-mr97|@npmcli/metavuln-calculator>pacote>tar>",
-        "GHSA-8qq5-rm4j-mr97|licensee>@npmcli/arborist>pacote>tar",
-        "GHSA-qffp-2rhf-9h96|@npmcli/metavuln-calculator>pacote>tar>",
-        "GHSA-qffp-2rhf-9h96|licensee>@npmcli/arborist>pacote>tar",
-        "GHSA-r6q2-hw4h-h46w|@npmcli/metavuln-calculator>pacote>tar>",
-        "GHSA-r6q2-hw4h-h46w|licensee>@npmcli/arborist>pacote>tar",
+        // GHSA-4w7w-66w2-5vf9 is a path traversal in Vite's dev server allowing .map file reads outside
+        // the project root when the server is network-exposed (--host).
+        // Not a risk here: the dev server is only used locally (never exposed to the network) and all
+        // documentation content is already publicly available on GitHub Pages.
+        // This issue affects only the dev server. Production/CI builds are unaffected.
+        //
+        // No fix available for Vite 5.x; patches exist only for Vite >= 6.4.2.
+        // A fix would require upgrading to VitePress 2.x (which depends on Vite 6+), but no stable release yet.
+        "GHSA-4w7w-66w2-5vf9|vitepress>vite",
+
+        // GHSA-w5hq-g745-h8pq: uuid v3/v5/v6 fail to validate output buffer bounds, allowing silent
+        // partial writes. Not a risk here: istanbul-lib-processinfo only uses uuid.v4() (which is
+        // unaffected) and nyc is a dev-only test coverage tool — no untrusted input reaches uuid.
+        //
+        // Fixed in uuid >= 14.0.0, but nyc's dependency chain pins uuid 8.x.
+        // Upgrading nyc to 18.x to pick up the fix.
+        "GHSA-w5hq-g745-h8pq|nyc>istanbul-lib-processinfo>uuid"
     ]
 }
