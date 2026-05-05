@@ -434,17 +434,25 @@ class FixtureTester {
 
 	_assertBuild(assertions) {
 		const {projects = {}} = assertions;
-		const eventArgs = this._t.context.projectBuildStatusEventStub.args.map((args) => args[0]);
 
 		const projectsInOrder = [];
 		const seenProjects = new Set();
 		const tasksByProject = {};
 
-		for (const event of eventArgs) {
+		// Extract build status to identify built projects and their order
+		const buildStatusEvents = this._t.context.buildStatusEventStub.args.map((args) => args[0]);
+		for (const event of buildStatusEvents) {
 			if (!seenProjects.has(event.projectName)) {
-				projectsInOrder.push(event.projectName);
 				seenProjects.add(event.projectName);
+				if (event.status === "project-build-start") {
+					projectsInOrder.push(event.projectName);
+				}
 			}
+		}
+
+		// Extract task status to identify skipped & executed tasks per project
+		const projectBuildStatusEvents = this._t.context.projectBuildStatusEventStub.args.map((args) => args[0]);
+		for (const event of projectBuildStatusEvents) {
 			if (!tasksByProject[event.projectName]) {
 				tasksByProject[event.projectName] = {executed: [], skipped: []};
 			}
