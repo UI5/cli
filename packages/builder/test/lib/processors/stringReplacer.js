@@ -52,7 +52,7 @@ test.serial("No replacement", async (t) => {
 	});
 
 	t.is(processedResources.length, 1, "Returned one resource");
-	t.is(processedResources[0], resource, "Input resource is returned");
+	t.is(processedResources[0], undefined, "Input resource is not returned when unchanged");
 	t.is(resource.setString.callCount, 0, "Resource#setString did not get called");
 });
 
@@ -153,9 +153,9 @@ test.serial("Process multiple resources", async (t) => {
 	});
 
 	t.is(processedResources.length, 4, "Returned all four resources");
-	t.is(processedResources[0], resourceA, "Input resourceA is returned");
+	t.is(processedResources[0], undefined, "Unchanged resourceA is not returned");
 	t.is(processedResources[1], resourceB, "Input resourceB is returned");
-	t.is(processedResources[2], resourceC, "Input resourceC is returned");
+	t.is(processedResources[2], undefined, "Unchanged resourceC is not returned");
 	t.is(processedResources[3], resourceD, "Input resourceD is returned");
 	t.is(resourceA.setString.callCount, 0, "resourceA#setString did not get called");
 	t.is(resourceB.setString.callCount, 1, "resourceB#setString got called once");
