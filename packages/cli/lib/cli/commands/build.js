@@ -108,11 +108,21 @@ build.builder = function(cli) {
 			type: "string"
 		})
 		.option("cache-mode", {
+			// Deprecated
+			hidden: true,
 			describe:
 				"As of UI5 CLI version 5, renamed to '--snapshot-cache'. " +
 				"Use '--snapshot-cache' to control this behavior.",
 			type: "string",
-			hidden: true, // Hides it from the help output
+			choices: ["Default", "Force", "Off"],
+		})
+		.coerce("cache-mode", (opt) => {
+			// Log a warning if this option is used
+			if (opt !== undefined) {
+				log.warn("As of UI5 CLI version 5, '--cache-mode' was renamed to '--snapshot-cache'. " +
+					"Use '--snapshot-cache' to control this behavior.");
+			}
+			return opt;
 		})
 		.option("snapshot-cache", {
 			describe:
@@ -120,7 +130,7 @@ build.builder = function(cli) {
 				"The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the cache only and " +
 				"does not create any requests. 'Off' invalidates any existing cache and updates from the repository",
 			type: "string",
-			default: "Default",
+			defaultDescription: "Default",
 			choices: ["Default", "Force", "Off"],
 		})
 		.option("cache", {
@@ -169,12 +179,6 @@ build.builder = function(cli) {
 };
 
 async function handleBuild(argv) {
-	// Log warning for hidden CLI options
-	if (Object.prototype.hasOwnProperty.call(argv, "cacheMode")) {
-		log.warn("As of UI5 CLI version 5, '--cache-mode' was renamed to '--snapshot-cache'. " +
-			"Use '--snapshot-cache' to control this behavior. "+
-			"Setting '--snapshot-cache' to 'Default'...");
-	}
 	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
 
 	const command = argv._[argv._.length - 1];
@@ -185,13 +189,13 @@ async function handleBuild(argv) {
 			filePath: argv.dependencyDefinition,
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
-			snapshotCache: argv.snapshotCache,
+			snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
 		});
 	} else {
 		graph = await graphFromPackageDependencies({
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
-			snapshotCache: argv.snapshotCache,
+			snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
 			workspaceConfigPath: argv.workspaceConfig,
 			workspaceName: argv.workspace === false ? null : argv.workspace,
 		});
