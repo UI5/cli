@@ -63,6 +63,17 @@ serve.builder = function(cli) {
 			default: false,
 			type: "boolean"
 		})
+		.option("cache", {
+			describe:
+				"Cache mode to use for building UI5 projects. " +
+				"The 'Default' behavior is to always use the cache if available. 'Force' uses the cache only " +
+				"(if it's unavailable or invalid, the build fails). 'Read-only' does not create or update any " +
+				"cache but makes use of a cache if available. 'Off' does not use any cache and always triggers " +
+				"a rebuild of the project",
+			type: "string",
+			default: "Default",
+			choices: ["Default", "Force", "ReadOnly", "Off"],
+		})
 		.option("framework-version", {
 			describe: "Overrides the framework version defined by the project. " +
 				"Takes the same value as the version part of \"ui5 use\"",
@@ -93,17 +104,6 @@ serve.builder = function(cli) {
 			type: "string",
 			defaultDescription: "Default",
 			choices: ["Default", "Force", "Off"],
-		})
-		.option("cache", {
-			describe:
-				"Cache mode to use for building UI5 projects. " +
-				"The 'Default' behavior is to always use the cache if available. 'Force' uses the cache only " +
-				"(if it's unavailable or invalid, the build fails). 'Read-only' does not create or update any " +
-				"cache but makes use of a cache if available. 'Off' does not use any cache and always triggers " +
-				"a rebuild of the project",
-			type: "string",
-			default: "Default",
-			choices: ["Default", "Force", "ReadOnly", "Off"],
 		})
 		.example("ui5 serve", "Start a web server for the current project")
 		.example("ui5 serve --h2", "Enable the HTTP/2 protocol for the web server (requires SSL certificate)")

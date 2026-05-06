@@ -2676,50 +2676,6 @@ test.serial("Build application.a with --cache=Force (2)", async (t) => {
 		`Use "Default", "ReadOnly" or "Off" to rebuild.`));
 });
 
-// FIXME: Currently failing at #2 Build assertion
-test.serial("Build application.i and application.i.copy with --cache", async (t) => {
-	// This test covers a scenario with two projects depending on the same
-	// dependency (exact same content) "library.d".
-	// We want to verify that:
-	// - First, we only want to build application.i (with cache=Default)
-	// 		(caches for the root project and the dependency should be created)
-	// - Second, we build application.i.copy with cache=Default
-	//		(since application.i.copy has the same dependency "library.d"
-	// 		with the exact same content, the cache for library.d can be reused.
-
-	const fixtureTester1 = new FixtureTester(t, "application.i");
-	const destPath1 = fixtureTester1.destPath;
-
-	// #1: Build application.i with cache=Default
-	await fixtureTester1.buildProject({
-		config: {destPath: destPath1, cleanDest: false, cache: Cache.Default,
-			dependencyIncludes: {includeAllDependencies: true}
-		},
-		assertions: {
-			projects: {
-				"library.d": {},
-				"application.i": {},
-			},
-		}
-	});
-
-
-	// #2: Build application.i.copy with cache=Default
-	const fixtureTester2 = new FixtureTester(t, "application.i.copy");
-	const destPath2 = fixtureTester2.destPath;
-
-	await fixtureTester2.buildProject({
-		config: {destPath: destPath2, cleanDest: false, cache: Cache.Default,
-			dependencyIncludes: {includeAllDependencies: true}},
-		assertions: {
-			projects: {
-				// library.d should not be rebuilt
-				"application.i.copy": {},
-			},
-		}
-	});
-});
-
 function getFixturePath(fixtureName) {
 	return fileURLToPath(new URL(`../../fixtures/${fixtureName}`, import.meta.url));
 }

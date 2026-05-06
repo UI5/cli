@@ -85,6 +85,17 @@ build.builder = function(cli) {
 			default: false,
 			type: "boolean"
 		})
+		.option("cache", {
+			describe:
+				"Cache mode to use for building UI5 projects. " +
+				"The 'Default' behavior is to always use the cache if available. 'Force' uses the cache only " +
+				"(if it's unavailable or invalid, the build fails). 'ReadOnly' does not create or update any " +
+				"cache but makes use of a cache if available. 'Off' does not use any cache and always triggers " +
+				"a rebuild of the project",
+			type: "string",
+			default: "Default",
+			choices: ["Default", "Force", "ReadOnly", "Off"],
+		})
 		.option("create-build-manifest", {
 			describe: "Store build metadata in a '.ui5' directory in the build destination, " +
 				"allowing reuse of the build result in other builds",
@@ -132,17 +143,6 @@ build.builder = function(cli) {
 			type: "string",
 			defaultDescription: "Default",
 			choices: ["Default", "Force", "Off"],
-		})
-		.option("cache", {
-			describe:
-				"Cache mode to use for building UI5 projects. " +
-				"The 'Default' behavior is to always use the cache if available. 'Force' uses the cache only " +
-				"(if it's unavailable or invalid, the build fails). 'ReadOnly' does not create or update any " +
-				"cache but makes use of a cache if available. 'Off' does not use any cache and always triggers " +
-				"a rebuild of the project",
-			type: "string",
-			default: "Default",
-			choices: ["Default", "Force", "ReadOnly", "Off"],
 		})
 		.option("experimental-css-variables", {
 			describe:
