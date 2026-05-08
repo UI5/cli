@@ -103,7 +103,7 @@ class Memory extends AbstractAdapter {
 
 		const resource = this._virFiles[relPath];
 
-		if (!resource || (options.nodir && resource.getStatInfo().isDirectory())) {
+		if (!resource || (options.nodir && resource.isDirectory())) {
 			return null;
 		} else {
 			return await this._cloneResource(resource);
