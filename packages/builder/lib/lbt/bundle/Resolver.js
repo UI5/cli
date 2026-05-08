@@ -329,6 +329,15 @@ class BundleResolver {
 				return collectModulesForSection(section).
 					then( (modules) => {
 						if ( section.mode == SectionType.Raw && section.sort !== false ) {
+							// Sort modules by their filter definition order to ensure
+							// deterministic input for the topological sort.
+							// Topological sort preserves input order for tie-breaking,
+							// so this ensures modules at the same dependency level
+							// appear in the order defined by the section filters.
+							const filterOrder = new ResourceFilterList(section.filters, fileTypes);
+							modules.sort((a, b) => {
+								return filterOrder.matchIndex(a) - filterOrder.matchIndex(b);
+							});
 							// sort the modules in topological order
 							return topologicalSort(pool, modules).then( (modules) => {
 								log.silly(`      Resolved modules (sorted): ${modules}`);

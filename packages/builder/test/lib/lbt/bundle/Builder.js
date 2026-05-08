@@ -3064,6 +3064,158 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map
 		"bundle info subModules are correct");
 });
 
+test("integration: createBundle raw section with deterministic ordering", async (t) => {
+	const pool = new ResourcePool();
+	pool.addResource({
+		name: "raw-module1.js",
+		getPath: () => "raw-module1.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "// raw-module1"
+	});
+	pool.addResource({
+		name: "raw-module2.js",
+		getPath: () => "raw-module2.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "// raw-module2"
+	});
+	pool.addResource({
+		name: "raw-dependency.js",
+		getPath: () => "raw-dependency.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "// raw-dependency"
+	});
+	await pool.addResource({
+		name: "a.library",
+		getPath: () => "a.library",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => `<?xml version="1.0" encoding="UTF-8" ?>
+<library xmlns="http://www.sap.com/sap.ui.library.xsd" >
+	<appData>
+		<packaging xmlns="http://www.sap.com/ui5/buildext/packaging" version="2.0" >
+			<module-infos>
+				<raw-module name="raw-module1.js" depends="raw-dependency.js" />
+				<raw-module name="raw-module2.js" depends="raw-dependency.js" />
+				<raw-module name="raw-dependency.js" />
+			</module-infos>
+		</packaging>
+	</appData>
+</library>`
+	});
+
+	const bundleDefinition = {
+		name: `bundle.js`,
+		defaultFileTypes: [".js"],
+		sections: [{
+			mode: "raw",
+			filters: ["raw-module2.js", "raw-module1.js", "raw-dependency.js"],
+			sort: true
+		}]
+	};
+
+	const builder = new Builder(pool);
+	const oResult = await builder.createBundle(bundleDefinition, {numberOfParts: 1, decorateBootstrapModule: false});
+	t.is(oResult.name, "bundle.js");
+	const expectedContent = `//@ui5-bundle bundle.js
+//@ui5-bundle-raw-include raw-dependency.js
+// raw-dependency
+//@ui5-bundle-raw-include raw-module2.js
+// raw-module2
+//@ui5-bundle-raw-include raw-module1.js
+// raw-module1
+${SOURCE_MAPPING_URL}=bundle.js.map
+`;
+	t.deepEqual(oResult.content, expectedContent,
+		"Raw modules should be ordered deterministically: " +
+		"dependency first, then remaining modules in filter definition order");
+	t.deepEqual(oResult.bundleInfo.subModules,
+		["raw-dependency.js", "raw-module2.js", "raw-module1.js"],
+		"bundle info subModules reflect the deterministic order");
+});
+
+test("integration: createBundle raw section with deterministic ordering (glob filters)", async (t) => {
+	const pool = new ResourcePool();
+	pool.addResource({
+		name: "vendor/mod-a.js",
+		getPath: () => "vendor/mod-a.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "// mod-a"
+	});
+	pool.addResource({
+		name: "vendor/mod-b.js",
+		getPath: () => "vendor/mod-b.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "// mod-b"
+	});
+	pool.addResource({
+		name: "vendor/dep.js",
+		getPath: () => "vendor/dep.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "// dep"
+	});
+	await pool.addResource({
+		name: "a.library",
+		getPath: () => "a.library",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => `<?xml version="1.0" encoding="UTF-8" ?>
+<library xmlns="http://www.sap.com/sap.ui.library.xsd" >
+	<appData>
+		<packaging xmlns="http://www.sap.com/ui5/buildext/packaging" version="2.0" >
+			<module-infos>
+				<raw-module name="vendor/mod-a.js" depends="vendor/dep.js" />
+				<raw-module name="vendor/mod-b.js" depends="vendor/dep.js" />
+				<raw-module name="vendor/dep.js" />
+			</module-infos>
+		</packaging>
+	</appData>
+</library>`
+	});
+
+	const bundleDefinition = {
+		name: `bundle.js`,
+		defaultFileTypes: [".js"],
+		sections: [{
+			mode: "raw",
+			filters: ["vendor/mod-b.js", "vendor/*"],
+			sort: true
+		}]
+	};
+
+	const builder = new Builder(pool);
+	const oResult = await builder.createBundle(bundleDefinition, {numberOfParts: 1, decorateBootstrapModule: false});
+	t.is(oResult.name, "bundle.js");
+	const expectedContent = `//@ui5-bundle bundle.js
+//@ui5-bundle-raw-include vendor/dep.js
+// dep
+//@ui5-bundle-raw-include vendor/mod-b.js
+// mod-b
+//@ui5-bundle-raw-include vendor/mod-a.js
+// mod-a
+${SOURCE_MAPPING_URL}=bundle.js.map
+`;
+	t.deepEqual(oResult.content, expectedContent,
+		"Raw modules should be ordered deterministically with glob filters: " +
+		"dependency first, then mod-b (explicit filter, index 0) before mod-a (glob match, index 1)");
+	t.deepEqual(oResult.bundleInfo.subModules,
+		["vendor/dep.js", "vendor/mod-b.js", "vendor/mod-a.js"],
+		"bundle info subModules reflect the deterministic order");
+});
+
 test.serial("getEffectiveUi5MajorVersion without cache", async (t) => {
 	const pool = new ResourcePool();
 	pool.addResource({

@@ -124,6 +124,16 @@ export default class ResourceFilterList {
 		);
 	}
 
+	matchIndex(candidate) {
+		for (let i = 0; i < this.matchers.length; i++) {
+			const matcher = this.matchers[i];
+			if (matcher.include && matcher.calcMatch(candidate, false)) {
+				return i;
+			}
+		}
+		return this.matchers.length;
+	}
+
 	toString() {
 		return this.matchers.map((matcher) => matcher.pattern).join(",");
 	}
