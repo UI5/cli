@@ -43,6 +43,7 @@ class Project extends Specification {
 		this.#projectResources = new ProjectResources({
 			getName: () => this.getName(),
 			getStyledReader: (style) => this._getStyledReader(style),
+			applyStyleToReader: (reader, style) => this._applyStyleToReader(reader, style),
 			createWriter: (stageId) => this._createWriter(stageId),
 			addReadersForWriter: (readers, writer, style) => this._addReadersForWriter(readers, writer, style),
 			buildManifest: this._buildManifest
@@ -314,6 +315,19 @@ class Project extends Specification {
 	/* Overwritten in ComponentProject subclass */
 	_addReadersForWriter(readers, writer, style) {
 		readers.unshift(writer);
+	}
+
+	/**
+	 * Applies style-specific path transforms to a reader.
+	 * Overridden in ComponentProject to apply flat/dist/runtime path mapping.
+	 * Default implementation returns the reader unchanged (for Module/ThemeLibrary).
+	 *
+	 * @param {@ui5/fs/AbstractReader} reader Reader to transform
+	 * @param {string} style Path style to apply
+	 * @returns {@ui5/fs/AbstractReader} Transformed reader
+	 */
+	_applyStyleToReader(reader, style) {
+		return reader;
 	}
 
 	/**
