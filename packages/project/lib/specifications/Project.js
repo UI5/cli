@@ -314,7 +314,7 @@ class Project extends Specification {
 
 	/* Overwritten in ComponentProject subclass */
 	_addReadersForWriter(readers, writer, style) {
-		readers.unshift(writer);
+		readers.push(writer);
 	}
 
 	/**
