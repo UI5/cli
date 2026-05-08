@@ -32,6 +32,7 @@ class ProjectResources {
 	// Callbacks (interface object)
 	#getName;
 	#getStyledReader;
+	#applyStyleToReader;
 	#createWriter;
 	#addReadersForWriter;
 
@@ -51,13 +52,15 @@ class ProjectResources {
 	 * @param {object} options Configuration options
 	 * @param {Function} options.getName Returns the project name (for error messages and reader names)
 	 * @param {Function} options.getStyledReader Gets the source reader for a given style
+	 * @param {Function} options.applyStyleToReader Applies style-specific path transforms to a reader
 	 * @param {Function} options.createWriter Creates a writer for a stage
 	 * @param {Function} options.addReadersForWriter Adds readers for a writer to a readers array
 	 * @param {object} options.buildManifest
 	 */
-	constructor({getName, getStyledReader, createWriter, addReadersForWriter, buildManifest}) {
+	constructor({getName, getStyledReader, applyStyleToReader, createWriter, addReadersForWriter, buildManifest}) {
 		this.#getName = getName;
 		this.#getStyledReader = getStyledReader;
+		this.#applyStyleToReader = applyStyleToReader;
 		this.#createWriter = createWriter;
 		this.#addReadersForWriter = addReadersForWriter;
 		this.#buildManifest = buildManifest;
@@ -141,8 +144,9 @@ class ProjectResources {
 		}
 
 		// Add CAS-backed frozen source reader (if available)
+		// Apply the same style transform that the source reader gets
 		if (this.#frozenSourceReader) {
-			readers.push(this.#frozenSourceReader);
+			readers.push(this.#applyStyleToReader(this.#frozenSourceReader, style));
 		}
 
 		// Finally add the project's source reader

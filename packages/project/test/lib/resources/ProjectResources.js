@@ -15,6 +15,7 @@ function createProjectResources({frozenSourceReader} = {}) {
 	const pr = new ProjectResources({
 		getName: () => "test.project",
 		getStyledReader: sinon.stub().returns(sourceReader),
+		applyStyleToReader: sinon.stub().callsFake((reader) => reader),
 		createWriter: sinon.stub().returns(writer),
 		addReadersForWriter: sinon.stub(),
 		buildManifest: null,
@@ -69,6 +70,7 @@ test("setFrozenSourceReader: frozen reader is between stages and source reader",
 	const pr = new ProjectResources({
 		getName: () => "test.project",
 		getStyledReader,
+		applyStyleToReader: sinon.stub().callsFake((reader) => reader),
 		createWriter: sinon.stub().returns(writer),
 		addReadersForWriter,
 		buildManifest: null,
@@ -149,6 +151,7 @@ test("Frozen source reader takes priority over filesystem source reader", async 
 	const pr = new ProjectResources({
 		getName: () => "test.project",
 		getStyledReader: sinon.stub().returns(sourceReader),
+		applyStyleToReader: sinon.stub().callsFake((reader) => reader),
 		createWriter: sinon.stub().returns(writer),
 		addReadersForWriter: sinon.stub(),
 		buildManifest: null,

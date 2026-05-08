@@ -97,39 +97,32 @@ class ComponentProject extends Project {
 		// Apply builder excludes to all styles but "runtime"
 		const excludes = style === "runtime" ? [] : this.getBuilderResourcesExcludes();
 
+		const reader = this._getReader(excludes);
+		return this._applyStyleToReader(reader, style);
+	}
+
+	_applyStyleToReader(reader, style) {
 		if ((style === "runtime" || style === "dist") && this._isRuntimeNamespaced) {
 			// If the project's type requires a namespace at runtime, the
 			// dist- and runtime-style paths are identical to buildtime-style paths
 			style = "buildtime";
 		}
-		let reader = this._getReader(excludes);
 		switch (style) {
 		case "buildtime":
-			break;
+			return reader;
 		case "runtime":
 		case "dist":
-			// Use buildtime reader and link it to /
-			// No test-resources for runtime resource access,
-			// unless runtime is namespaced
-			reader = resourceFactory.createFlatReader({
-				reader,
-				namespace: this._namespace
-			});
-			break;
 		case "flat":
 			// Use buildtime reader and link it to /
 			// No test-resources for runtime resource access,
 			// unless runtime is namespaced
-			reader = resourceFactory.createFlatReader({
+			return resourceFactory.createFlatReader({
 				reader,
 				namespace: this._namespace
 			});
-			break;
 		default:
 			throw new Error(`Unknown path mapping style ${style}`);
 		}
-
-		return reader;
 	}
 
 	/**
