@@ -115,7 +115,7 @@ class Proxy extends AbstractReader {
 		trace.pathCall();
 
 		const resource = await this._getResource(virPath);
-		if (!resource || (options.nodir && resource.getStatInfo().isDirectory())) {
+		if (!resource || (options.nodir && resource.isDirectory())) {
 			return null;
 		} else {
 			return resource;
