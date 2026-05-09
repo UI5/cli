@@ -453,6 +453,7 @@ class ProjectResources {
 	 * @returns {@ui5/fs/internal/ResourceTagCollection} The project-level resource tag collection
 	 */
 	getProjectResourceTagCollection() {
+		this.#applyCachedResourceTags();
 		return this.#getProjectResourceTagCollection();
 	}
 
