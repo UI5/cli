@@ -340,7 +340,6 @@ class ProjectBuildContext {
 	 * Gets the build manifest if available and compatible
 	 *
 	 * Retrieves the project's build manifest and validates its version.
-	 * Only manifest versions 0.1 and 0.2 are currently supported.
 	 *
 	 * @returns {object|undefined} Build manifest object or undefined if unavailable or incompatible
 	 */
@@ -350,8 +349,8 @@ class ProjectBuildContext {
 			return;
 		}
 		// Check whether the manifest can be used for this build
-		if (manifest.manifestVersion === "0.1" || manifest.manifestVersion === "0.2") {
-			// Manifest version 0.1 and 0.2 are always used without further checks for legacy reasons
+		if (manifest.manifestVersion === "0.1" || manifest.manifestVersion === "0.2" ||
+			manifest.manifestVersion === "1.0") {
 			return manifest;
 		}
 		// Unknown manifest version can't be used
