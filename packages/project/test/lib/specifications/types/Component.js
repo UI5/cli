@@ -704,3 +704,70 @@ test("Do not throw when both Component.js and Component.ts exist", async (t) => 
 	componentHInput.configuration.resources.configuration.paths.src = "src-with-component-js-and-component-ts";
 	await t.notThrowsAsync(Specification.create(componentHInput), "Should not throw an error");
 });
+
+test("getSourcePaths: includes src and test paths", async (t) => {
+	const {projectInput} = t.context;
+	const project = await Specification.create(projectInput);
+	const paths = project.getSourcePaths();
+	t.true(paths.includes(path.join(componentAPath, "src")));
+	t.true(paths.includes(path.join(componentAPath, "test")));
+	t.is(paths.length, 2);
+});
+
+test("getSourcePaths: only src when test does not exist", async (t) => {
+	const {componentHInput} = t.context;
+	const project = await Specification.create(componentHInput);
+	const paths = project.getSourcePaths();
+	t.is(paths.length, 1);
+	t.true(paths[0].endsWith("webapp"));
+});
+
+test("getVirtualPath: converts src path to virtual path", async (t) => {
+	const {projectInput} = t.context;
+	const project = await Specification.create(projectInput);
+	const srcFilePath = path.join(componentAPath, "src", "Component.js");
+	t.is(project.getVirtualPath(srcFilePath), "/resources/id1/Component.js");
+});
+
+test("getVirtualPath: converts test path to virtual path", async (t) => {
+	const {projectInput} = t.context;
+	const project = await Specification.create(projectInput);
+	const testFilePath = path.join(componentAPath, "test", "TestFile.js");
+	t.is(project.getVirtualPath(testFilePath), "/test-resources/id1/TestFile.js");
+});
+
+test("getVirtualPath: throws for unknown path", async (t) => {
+	const {projectInput} = t.context;
+	const project = await Specification.create(projectInput);
+	const unknownPath = path.join(componentAPath, "unknown", "file.js");
+	const err = t.throws(() => project.getVirtualPath(unknownPath));
+	t.true(err.message.includes("Unable to convert source path"));
+});
+
+test("_getTestReader: returns reader when test path exists", async (t) => {
+	const {projectInput} = t.context;
+	const project = await Specification.create(projectInput);
+	const reader = project.getReader();
+	const resource = await reader.byPath("/test-resources/id1/TestFile.js");
+	t.truthy(resource, "Found test resource via reader");
+});
+
+test("_parseConfiguration: uses namespace from buildManifest", async (t) => {
+	const project = await Specification.create({
+		id: "component.a.id",
+		version: "1.0.0",
+		modulePath: componentAPath,
+		configuration: {
+			specVersion: "5.0",
+			kind: "project",
+			type: "component",
+			metadata: {name: "component.a"}
+		},
+		buildManifest: {
+			namespace: "custom/namespace",
+			version: "1.0",
+			buildManifest: true
+		}
+	});
+	t.is(project.getNamespace(), "custom/namespace");
+});

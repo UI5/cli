@@ -248,3 +248,25 @@ test("_configureAndValidatePaths: Source directory does not exist", async (t) =>
 
 	t.is(err.message, "Unable to find source directory 'does/not/exist' in theme-library project theme.library.e");
 });
+
+test("getSourcePaths", async (t) => {
+	const {projectInput} = t.context;
+	const project = await Specification.create(projectInput);
+	t.deepEqual(project.getSourcePaths(), [path.join(themeLibraryEPath, "src")]);
+});
+
+test("getVirtualPath: converts source file path to virtual path", async (t) => {
+	const {projectInput} = t.context;
+	const project = await Specification.create(projectInput);
+	const sourcePath = path.join(themeLibraryEPath, "src", "theme", "library", "e", "themes", "my_theme", ".theme");
+	const virtualPath = project.getVirtualPath(sourcePath);
+	t.is(virtualPath, "/resources/theme/library/e/themes/my_theme/.theme");
+});
+
+test("getVirtualPath: throws for unknown path", async (t) => {
+	const {projectInput} = t.context;
+	const project = await Specification.create(projectInput);
+	const unknownPath = path.join(themeLibraryEPath, "unknown", "file.js");
+	const err = t.throws(() => project.getVirtualPath(unknownPath));
+	t.true(err.message.includes("Unable to convert source path"));
+});
