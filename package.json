@@ -27,6 +27,7 @@
 		"lint": "eslint ./ && npm run lint --workspaces --if-present",
 		"lint:commit": "commitlint",
 		"unit": "npm run unit --workspaces --if-present",
+		"unit:summary": "node scripts/unit-summary.js",
 		"coverage": "npm run coverage --workspaces --if-present",
 		"knip": "knip --config knip.config.js",
 		"check-engine": "check-engine-light .",
