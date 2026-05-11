@@ -63,12 +63,13 @@ test.beforeEach(async (t) => {
 
 	t.context.consoleOutput = "";
 	t.context.processStderrWrite = sinon.stub(process.stderr, "write").callsFake((message) => {
-		// NOTE: This fake impl only supports one string arg passed to console.log
 		t.context.consoleOutput += message;
 	});
-	t.context.processStdoutWrite = sinon.stub(process.stdout, "write").callsFake((message) => {
-		// NOTE: This fake impl only supports one string arg passed to console.log
-		t.context.consoleOutput += message;
+	t.context.handlerReady = new Promise((resolve) => {
+		t.context.processStdoutWrite = sinon.stub(process.stdout, "write").callsFake((message) => {
+			t.context.consoleOutput += message;
+			resolve();
+		});
 	});
 
 	t.context.open = sinon.stub();
@@ -90,7 +91,7 @@ test.serial("ui5 serve: default", async (t) => {
 	const {argv, serve, graph, server, fakeGraph} = t.context;
 
 	serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
@@ -138,7 +139,7 @@ test.serial("ui5 serve --h2", async (t) => {
 	argv.h2 = true;
 
 	serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
@@ -181,7 +182,7 @@ test.serial("ui5 serve --accept-remote-connections", async (t) => {
 	argv.acceptRemoteConnections = true;
 
 	serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
@@ -221,12 +222,16 @@ URL: http://localhost:8080
 });
 
 test.serial("ui5 serve --open", async (t) => {
-	const {argv, serve, graph, server, fakeGraph, open} = t.context;
+	const {argv, serve, graph, server, fakeGraph} = t.context;
+
+	const openCalled = new Promise((resolve) => {
+		t.context.open.callsFake(resolve);
+	});
 
 	argv.open = "index.html";
 
 	serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await openCalled;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
@@ -256,19 +261,23 @@ URL: http://localhost:8080
 		}
 	]);
 
-	t.is(open.callCount, 1);
-	t.deepEqual(open.getCall(0).args, [
+	t.is(t.context.open.callCount, 1);
+	t.deepEqual(t.context.open.getCall(0).args, [
 		"http://localhost:8080/index.html"
 	]);
 });
 
 test.serial("ui5 serve --open (opens default url)", async (t) => {
-	const {argv, serve, graph, server, fakeGraph, open} = t.context;
+	const {argv, serve, graph, server, fakeGraph} = t.context;
+
+	const openCalled = new Promise((resolve) => {
+		t.context.open.callsFake(resolve);
+	});
 
 	argv.open = true;
 
 	serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await openCalled;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
@@ -298,8 +307,8 @@ URL: http://localhost:8080
 		}
 	]);
 
-	t.is(open.callCount, 1);
-	t.deepEqual(open.getCall(0).args, [
+	t.is(t.context.open.callCount, 1);
+	t.deepEqual(t.context.open.getCall(0).args, [
 		"http://localhost:8080"
 	]);
 });
@@ -311,7 +320,7 @@ test.serial("ui5 serve --config", async (t) => {
 	argv.config = fakePath;
 
 	serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
@@ -349,7 +358,7 @@ test.serial("ui5 serve --dependency-definition", async (t) => {
 	argv.dependencyDefinition = fakePath;
 
 	serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromPackageDependencies.callCount, 0);
 	t.is(graph.graphFromStaticFile.callCount, 1);
@@ -389,7 +398,7 @@ test.serial("ui5 serve --dependency-definition / --config", async (t) => {
 	argv.config = fakeConfigPath;
 
 	serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromPackageDependencies.callCount, 0);
 	t.is(graph.graphFromStaticFile.callCount, 1);
@@ -425,7 +434,7 @@ test.serial("ui5 serve --framework-version", async (t) => {
 	argv.frameworkVersion = "1.234.5";
 
 	serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
@@ -462,7 +471,7 @@ test.serial("ui5 serve --cache-mode", async (t) => {
 	argv.cacheMode = "Force";
 
 	serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
@@ -499,7 +508,7 @@ test.serial("ui5 serve --workspace", async (t) => {
 	argv.workspace = "dolphin";
 
 	serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
@@ -536,7 +545,7 @@ test.serial("ui5 serve --no-workspace", async (t) => {
 	argv.workspace = false;
 
 	serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
@@ -574,7 +583,7 @@ test.serial("ui5 serve --workspace-config", async (t) => {
 	argv.workspaceConfig = fakePath;
 
 	serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
@@ -611,7 +620,7 @@ test.serial("ui5 serve --sap-csp-policies", async (t) => {
 	argv.sapCspPolicies = true;
 
 	serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
@@ -648,7 +657,7 @@ test.serial("ui5 serve --serve-csp-reports", async (t) => {
 	argv.serveCspReports = true;
 
 	serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
@@ -685,7 +694,7 @@ test.serial("ui5 serve --simple-index", async (t) => {
 	argv.simpleIndex = true;
 
 	serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
@@ -729,7 +738,7 @@ test.serial("ui5 serve with ui5.yaml port setting", async (t) => {
 	});
 
 	serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
@@ -780,7 +789,7 @@ test.serial("ui5 serve --h2 with ui5.yaml port setting", async (t) => {
 	argv.h2 = true;
 
 	serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
@@ -838,7 +847,7 @@ test.serial("ui5 serve --h2 with ui5.yaml port setting and port CLI argument", a
 	argv.port = 5555;
 
 	serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
@@ -879,7 +888,7 @@ test.serial("ui5 serve: Error callback propagates to handler", async (t) => {
 	const {argv, serve} = t.context;
 
 	const handlerPromise = serve.handler(argv);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await t.context.handlerReady;
 
 	t.context.serverErrorCallback(new Error("Server crashed"));
 
