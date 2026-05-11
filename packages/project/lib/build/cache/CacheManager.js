@@ -35,6 +35,8 @@ const CACHE_VERSION = "v0_7";
  */
 export default class CacheManager {
 	#storage;
+	#refCount = 0;
+	#cacheDir;
 
 	/**
 	 * Creates a new CacheManager instance
@@ -43,6 +45,7 @@ export default class CacheManager {
 	 * @param {string} cacheDir Base directory for the cache
 	 */
 	constructor(cacheDir) {
+		this.#cacheDir = cacheDir;
 		const versionedDir = path.join(cacheDir, CACHE_VERSION);
 		this.#storage = new BuildCacheStorage(versionedDir);
 	}
@@ -82,7 +85,9 @@ export default class CacheManager {
 		if (!cacheManagerInstances.has(cacheDir) || !cacheManagerInstances.get(cacheDir).#isValid()) {
 			cacheManagerInstances.set(cacheDir, new CacheManager(cacheDir));
 		}
-		return cacheManagerInstances.get(cacheDir);
+		const instance = cacheManagerInstances.get(cacheDir);
+		instance.#refCount++;
+		return instance;
 	}
 
 	/**
@@ -364,9 +369,13 @@ export default class CacheManager {
 	}
 
 	/**
-	 * Closes the storage
+	 * Releases a reference to this CacheManager. The underlying storage is
+	 * closed only when the last consumer releases its reference.
 	 */
 	close() {
-		this.#storage.close();
+		if (--this.#refCount <= 0) {
+			this.#storage.close();
+			cacheManagerInstances.delete(this.#cacheDir);
+		}
 	}
 }
