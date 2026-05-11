@@ -20,6 +20,7 @@ function getDefaultArgv() {
 		"createBuildManifest": false,
 		"dest": "./dist",
 		"clean-dest": false,
+		"cache": "Default",
 		"cleanDest": false,
 		"experimental-css-variables": false,
 		"experimentalCssVariables": false,
@@ -37,6 +38,7 @@ function getDefaultBuilderArgs() {
 		cacheDir: path.join("/root/path", ".ui5-cache"),
 		destPath: "./dist",
 		cleanDest: false,
+		cache: "Default",
 		dependencyIncludes: {
 			includeAllDependencies: false,
 			includeDependency: undefined,

@@ -102,7 +102,7 @@ serve.builder = function(cli) {
 				"The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the cache only and " +
 				"does not create any requests. 'Off' invalidates any existing cache and updates from the repository",
 			type: "string",
-			defaultDescription: "Default",
+			defaultDescription: "Default", // Use "defaultdescription" to allow undefined (needed for evaluation)
 			choices: ["Default", "Force", "Off"],
 		})
 		.example("ui5 serve", "Start a web server for the current project")

@@ -87,6 +87,7 @@ test("getBuildConfig: Default values", (t) => {
 		createBuildManifest: false,
 		includedTasks: [],
 		excludedTasks: [],
+		cache: "Default",
 	}, "Returned correct value");
 });
 
@@ -107,6 +108,7 @@ test("getBuildConfig: Custom values", (t) => {
 		createBuildManifest: false,
 		includedTasks: ["included tasks"],
 		excludedTasks: ["excluded tasks"],
+		cache: "Off",
 	});
 
 	t.deepEqual(buildContext.getBuildConfig(), {
@@ -117,6 +119,7 @@ test("getBuildConfig: Custom values", (t) => {
 		createBuildManifest: false,
 		includedTasks: ["included tasks"],
 		excludedTasks: ["excluded tasks"],
+		cache: "Off"
 	}, "Returned correct value");
 });
 

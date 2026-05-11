@@ -1,4 +1,5 @@
 import baseMiddleware from "../middlewares/base.js";
+import path from "node:path";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("cli:commands:build");
 
@@ -141,7 +142,7 @@ build.builder = function(cli) {
 				"The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the cache only and " +
 				"does not create any requests. 'Off' invalidates any existing cache and updates from the repository",
 			type: "string",
-			defaultDescription: "Default",
+			defaultDescription: "Default", // Use "defaultdescription" to allow undefined (needed for evaluation)
 			choices: ["Default", "Force", "Off"],
 		})
 		.option("experimental-css-variables", {
@@ -203,6 +204,7 @@ async function handleBuild(argv) {
 	const buildSettings = graph.getRoot().getBuilderSettings() || {};
 	await graph.build({
 		graph,
+		cacheDir: path.join(graph.getRoot().getRootPath(), ".ui5-cache"),
 		destPath: argv.dest,
 		cleanDest: argv["clean-dest"],
 		createBuildManifest: argv["create-build-manifest"],

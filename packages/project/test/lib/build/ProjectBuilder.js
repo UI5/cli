@@ -601,6 +601,7 @@ test.serial("_writeResults: Create build manifest", async (t) => {
 		includedTasks: [],
 		jsdoc: false,
 		selfContained: false,
+		cache: "Default",
 	}, "createBuildManifest got called with correct build configuration");
 	t.is(createBuildManifestStub.getCall(0).args[2], taskRepository,
 		"createBuildManifest got called with correct taskRepository");
