@@ -44,6 +44,7 @@ class BuildServer extends EventEmitter {
 	#pendingBuildRequest = new Set();
 	#activeBuild = null;
 	#processBuildRequestsTimeout;
+	#destroyed = false;
 	#allReader;
 	#rootReader;
 	#dependenciesReader;
@@ -124,11 +125,14 @@ class BuildServer extends EventEmitter {
 	}
 
 	async destroy() {
+		this.#destroyed = true;
+		clearTimeout(this.#processBuildRequestsTimeout);
 		await this.#watchHandler.destroy();
 		if (this.#activeBuild) {
 			// Await active build to finish
 			await this.#activeBuild;
 		}
+		this.#projectBuilder.closeCacheManager();
 	}
 
 	/**
@@ -312,7 +316,7 @@ class BuildServer extends EventEmitter {
 	}
 
 	#triggerRequestQueue() {
-		if (this.#activeBuild) {
+		if (this.#destroyed || this.#activeBuild) {
 			return;
 		}
 		// If no build is active, trigger queue processing debounced

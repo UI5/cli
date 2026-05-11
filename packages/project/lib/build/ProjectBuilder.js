@@ -136,7 +136,33 @@ class ProjectBuilder {
 	}
 
 	/**
-	 * Build projects without writing to a target directory
+	 * Releases the build cache database connection and any underlying storage resources.
+	 *
+	 * Must be called by consumers of {@link #build} once they are done with this builder
+	 * (e.g. when shutting down a long-running [BuildServer]{@link @ui5/project/build/BuildServer}).
+	 * {@link #buildToTarget} closes the CacheManager automatically and does not require this call.
+	 *
+	 * Safe to call multiple times; subsequent calls are no-ops. After this method returns,
+	 * the builder must not be used for further builds.
+	 *
+	 * @public
+	 */
+	closeCacheManager() {
+		this._buildContext.closeCacheManager();
+	}
+
+	/**
+	 * Build projects without writing to a target directory.
+	 *
+	 * Intended for long-running consumers (such as the
+	 * [BuildServer]{@link @ui5/project/build/BuildServer}) that access build results through
+	 * readers rather than the file system. Multiple sequential calls are supported and reuse
+	 * the same build cache.
+	 *
+	 * The caller is responsible for releasing the underlying build cache database by invoking
+	 * {@link #closeCacheManager} once the builder is no longer needed. Failing to do so leaks
+	 * the SQLite connection and its memory mapping, which on Windows also blocks deletion of
+	 * the cache directory by subsequent processes.
 	 *
 	 * @public
 	 * @param {object} parameters Parameters
@@ -158,7 +184,14 @@ class ProjectBuilder {
 	}
 
 	/**
-	 * Executes a project build, including all necessary or requested dependencies
+	 * Executes a project build, including all necessary or requested dependencies, and writes
+	 * the result to the given target directory.
+	 *
+	 * Closes the build cache database before returning, so {@link #closeCacheManager} does not
+	 * need to be called by the consumer. After this method returns, the builder must not be
+	 * used for further builds. For repeated builds against the same builder instance — e.g.
+	 * in a long-running [BuildServer]{@link @ui5/project/build/BuildServer} — use
+	 * {@link #build} instead and close the CacheManager explicitly when done.
 	 *
 	 * @public
 	 * @param {object} parameters Parameters
@@ -219,6 +252,7 @@ class ProjectBuilder {
 			await this._writeResults(projectBuildContext, fsTarget, pWrites);
 		});
 		await Promise.all(pWrites);
+		this._buildContext.closeCacheManager();
 	}
 
 	/**
