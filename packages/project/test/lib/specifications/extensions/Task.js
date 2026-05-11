@@ -3,6 +3,7 @@ import path from "node:path";
 import sinon from "sinon";
 import Specification from "../../../../lib/specifications/Specification.js";
 import Task from "../../../../lib/specifications/extensions/Task.js";
+import Extension from "../../../../lib/specifications/Extension.js";
 
 function clone(obj) {
 	return JSON.parse(JSON.stringify(obj));
@@ -97,4 +98,47 @@ test("Task with illegal suffix", async (t) => {
 		"Failed to validate configuration of task extension task-a--1: " +
 		"Task name must not end with '--<number>'",
 		"Threw with expected error message");
+});
+
+test("getBuildSignatureCallback (CJS)", async (t) => {
+	const extension = await Specification.create(clone(basicCjsTaskInput));
+	const callback = await extension.getBuildSignatureCallback();
+	t.is(callback, undefined, "Returns undefined when not exported");
+});
+
+test("getBuildSignatureCallback (ESM)", async (t) => {
+	const extension = await Specification.create(clone(basicEsmTaskInput));
+	const callback = await extension.getBuildSignatureCallback();
+	t.is(callback, undefined, "Returns undefined when not exported");
+});
+
+test("getSupportsDifferentialBuildsCallback (CJS)", async (t) => {
+	const extension = await Specification.create(clone(basicCjsTaskInput));
+	const callback = await extension.getSupportsDifferentialBuildsCallback();
+	t.is(callback, undefined, "Returns undefined when not exported");
+});
+
+test("getSupportsDifferentialBuildsCallback (ESM)", async (t) => {
+	const extension = await Specification.create(clone(basicEsmTaskInput));
+	const callback = await extension.getSupportsDifferentialBuildsCallback();
+	t.is(callback, undefined, "Returns undefined when not exported");
+});
+
+test("getExpectedOutputCallback (CJS)", async (t) => {
+	const extension = await Specification.create(clone(basicCjsTaskInput));
+	const callback = await extension.getExpectedOutputCallback();
+	t.is(callback, undefined, "Returns undefined when not exported");
+});
+
+test("getExpectedOutputCallback (ESM)", async (t) => {
+	const extension = await Specification.create(clone(basicEsmTaskInput));
+	const callback = await extension.getExpectedOutputCallback();
+	t.is(callback, undefined, "Returns undefined when not exported");
+});
+
+test("Extension abstract class cannot be directly instantiated", (t) => {
+	t.throws(() => new Extension({configuration: {}}), {
+		instanceOf: TypeError,
+		message: /Class 'Extension' is abstract/
+	});
 });

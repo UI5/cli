@@ -1567,3 +1567,38 @@ test("_getNamespaceFromDotLibrary: Does not propagate exception", async (t) => {
 	const res = await project._getNamespaceFromDotLibrary();
 	t.deepEqual(res, {}, "Empty object returned");
 });
+
+test("getSourcePaths: returns src and test paths", async (t) => {
+	const {projectInput} = t.context;
+	const project = await (new Library().init(projectInput));
+	const paths = project.getSourcePaths();
+	t.true(paths.length >= 1, "Has at least one source path");
+	t.true(paths[0].endsWith("src"), "First path is src");
+	if (paths.length > 1) {
+		t.true(paths[1].endsWith("test"), "Second path is test");
+	}
+});
+
+test("getVirtualPath: converts src path to virtual path", async (t) => {
+	const {projectInput} = t.context;
+	const project = await (new Library().init(projectInput));
+	const srcFilePath = path.join(libraryDPath, "main", "src", "library", "d", "some.js");
+	const virtualPath = project.getVirtualPath(srcFilePath);
+	t.is(virtualPath, "/resources/library/d/some.js");
+});
+
+test("getVirtualPath: converts test path to virtual path", async (t) => {
+	const {projectInput} = t.context;
+	const project = await (new Library().init(projectInput));
+	const testFilePath = path.join(libraryDPath, "main", "test", "library", "d", "Test.html");
+	const virtualPath = project.getVirtualPath(testFilePath);
+	t.is(virtualPath, "/test-resources/library/d/Test.html");
+});
+
+test("getVirtualPath: throws for unknown path", async (t) => {
+	const {projectInput} = t.context;
+	const project = await (new Library().init(projectInput));
+	const unknownPath = path.join(libraryDPath, "unknown", "file.js");
+	const err = t.throws(() => project.getVirtualPath(unknownPath));
+	t.true(err.message.includes("Unable to convert source path"));
+});
