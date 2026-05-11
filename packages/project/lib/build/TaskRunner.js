@@ -146,7 +146,7 @@ class TaskRunner {
 			}
 		}
 		signal?.throwIfAborted();
-		return await this._buildCache.allTasksCompleted();
+		return await this._buildCache.allTasksCompleted(signal);
 	}
 
 	/**
