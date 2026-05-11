@@ -326,3 +326,74 @@ test("_getPath: Empty path", (t) => {
 		message: "Invalid Resource: Resource path must not be empty"
 	});
 });
+
+test("getAllTags: Returns all tags", (t) => {
+	const tagCollection = new ResourceTagCollection({
+		allowedTags: ["abc:MyTag", "abc:OtherTag"]
+	});
+	tagCollection.setTag("/my/resource.js", "abc:MyTag", "value1");
+	tagCollection.setTag("/other/resource.js", "abc:OtherTag", 42);
+
+	const allTags = tagCollection.getAllTags();
+	t.is(allTags["/my/resource.js"]["abc:MyTag"], "value1");
+	t.is(allTags["/other/resource.js"]["abc:OtherTag"], 42);
+});
+
+test("getAllTagsForResource: Returns tags for specific resource", (t) => {
+	const tagCollection = new ResourceTagCollection({
+		allowedTags: ["abc:MyTag", "abc:OtherTag"]
+	});
+	tagCollection.setTag("/my/resource.js", "abc:MyTag", "value1");
+	tagCollection.setTag("/my/resource.js", "abc:OtherTag", true);
+
+	const tags = tagCollection.getAllTagsForResource("/my/resource.js");
+	t.is(tags["abc:MyTag"], "value1");
+	t.is(tags["abc:OtherTag"], true);
+});
+
+test("getAllTagsForResource: Returns null for unknown resource", (t) => {
+	const tagCollection = new ResourceTagCollection({
+		allowedTags: ["abc:MyTag"]
+	});
+
+	const tags = tagCollection.getAllTagsForResource("/unknown.js");
+	t.is(tags, null);
+});
+
+test("acceptsTag: Returns true for allowed tag", (t) => {
+	const tagCollection = new ResourceTagCollection({
+		allowedTags: ["abc:MyTag"]
+	});
+
+	t.true(tagCollection.acceptsTag("abc:MyTag"));
+});
+
+test("acceptsTag: Returns true for allowed namespace", (t) => {
+	const tagCollection = new ResourceTagCollection({
+		allowedNamespaces: ["abc"]
+	});
+
+	t.true(tagCollection.acceptsTag("abc:AnyTag"));
+});
+
+test("acceptsTag: Returns false for disallowed tag", (t) => {
+	const tagCollection = new ResourceTagCollection({
+		allowedTags: ["abc:MyTag"]
+	});
+
+	t.false(tagCollection.acceptsTag("abc:OtherTag"));
+});
+
+test("clone: Creates independent copy", (t) => {
+	const tagCollection = new ResourceTagCollection({
+		allowedTags: ["abc:MyTag"],
+		allowedNamespaces: ["abc"]
+	});
+	tagCollection.setTag("/my/resource.js", "abc:MyTag", "original");
+
+	const cloned = tagCollection.clone();
+	cloned.setTag("/my/resource.js", "abc:MyTag", "modified");
+
+	t.is(tagCollection.getTag("/my/resource.js", "abc:MyTag"), "original");
+	t.is(cloned.getTag("/my/resource.js", "abc:MyTag"), "modified");
+});

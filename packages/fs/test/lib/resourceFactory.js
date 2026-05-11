@@ -1,7 +1,8 @@
 import test from "ava";
 import {
 	createAdapter, createReader, createReaderCollection, createReaderCollectionPrioritized,
-	createResource, createWriterCollection, createWorkspace, prefixGlobPattern} from "../../lib/resourceFactory.js";
+	createResource, createWriterCollection, createWorkspace, createFlatReader, createMonitor,
+	prefixGlobPattern} from "../../lib/resourceFactory.js";
 import FileSystem from "../../lib/adapters/FileSystem.js";
 import Memory from "../../lib/adapters/Memory.js";
 import ReaderCollection from "../../lib/ReaderCollection.js";
@@ -348,5 +349,64 @@ test("createWorkspace: Without writer", async (t) => {
 	});
 	t.true(writerCollection instanceof DuplexCollection, "Returned a ReaderCollection");
 	t.true(writerCollection._writer instanceof Memory, "Internal Writer is created and a MemAdapter");
+});
+
+test("createFlatReader", async (t) => {
+	const {default: Link} = await import("../../lib/readers/Link.js");
+	const reader = createAdapter({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/resources/app/",
+		project: {
+			getName: () => "my.project"
+		}
+	});
+
+	const flatReader = createFlatReader({
+		name: "flat reader",
+		reader,
+		namespace: "app"
+	});
+
+	t.true(flatReader instanceof Link, "Returned a Link reader");
+	t.is(flatReader.getName(), "flat reader");
+
+	const resources = await flatReader.byGlob("**/*.js");
+	t.true(resources.length > 0, "Found resources through flat reader");
+});
+
+test("createMonitor: with DuplexCollection", async (t) => {
+	const {default: DuplexCollection} = await import("../../lib/DuplexCollection.js");
+	const MonitoredReaderWriter = (await import("../../lib/MonitoredReaderWriter.js")).default;
+
+	const reader = createAdapter({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/resources/app/",
+		project: {
+			getName: () => "my.project"
+		}
+	});
+	const workspace = createWorkspace({
+		name: "workspace",
+		reader
+	});
+
+	t.true(workspace instanceof DuplexCollection);
+	const monitored = createMonitor(workspace);
+	t.true(monitored instanceof MonitoredReaderWriter);
+});
+
+test("createMonitor: with non-DuplexCollection reader", async (t) => {
+	const MonitoredReader = (await import("../../lib/MonitoredReader.js")).default;
+
+	const reader = createAdapter({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/resources/app/",
+		project: {
+			getName: () => "my.project"
+		}
+	});
+
+	const monitored = createMonitor(reader);
+	t.true(monitored instanceof MonitoredReader);
 });
 
