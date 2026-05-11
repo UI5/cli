@@ -10,6 +10,16 @@ import ResourceIndex from "./index/ResourceIndex.js";
 import {matchResourceMetadataStrict} from "./utils.js";
 const log = getLogger("build:cache:ProjectBuildCache");
 
+export class SourceChangedDuringBuildError extends Error {
+	constructor(projectName) {
+		super(
+			`Detected changes to source files of project ${projectName} during the build. ` +
+			`The build result may be inconsistent and will not be used. ` +
+			`Build cache has not been updated.`);
+		this.name = "SourceChangedDuringBuildError";
+	}
+}
+
 export const INDEX_STATES = Object.freeze({
 	RESTORING_PROJECT_INDICES: "restoring_project_indices",
 	RESTORING_DEPENDENCY_INDICES: "restoring_dependency_indices",
@@ -1207,10 +1217,11 @@ export default class ProjectBuildCache {
 	 * Also updates the result resource index accordingly.
 	 *
 	 * @public
+	 * @param {AbortSignal} [signal] Abort signal to cancel the build
 	 * @returns {Promise<string[]>} Array of changed resource paths since the last build
 	 * @throws {Error} If source files were modified during the build
 	 */
-	async allTasksCompleted() {
+	async allTasksCompleted(signal) {
 		const allTasksStart = performance.now();
 		this.#project.getProjectResources().useResultStage();
 
@@ -1223,10 +1234,19 @@ export default class ProjectBuildCache {
 				`(changed=${sourceChangedDuringBuild})`);
 		}
 		if (sourceChangedDuringBuild) {
-			throw new Error(
-				`Detected changes to source files of project ${this.#project.getName()} during the build. ` +
-				`The build result may be inconsistent and will not be used. ` +
-				`Build cache has not been updated.`);
+			// If the build was aborted (e.g. due to a file change detected by the watcher),
+			// prefer the abort error over the source-change error. The abort will trigger a
+			// clean retry cycle in the BuildServer.
+			signal?.throwIfAborted();
+
+			// Reset index state so that the next build attempt will re-initialize the source index
+			// from scratch. Without this, a retry in the BuildServer would reuse the stale index
+			// and perpetually detect the same change.
+			this.#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
+			this.#sourceIndex = null;
+			this.#taskCache.clear();
+
+			throw new SourceChangedDuringBuildError(this.#project.getName());
 		}
 
 		// Write untransformed source files to CAS for downstream consumer protection
