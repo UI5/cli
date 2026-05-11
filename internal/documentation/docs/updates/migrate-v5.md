@@ -15,6 +15,8 @@ Or update your global install via: `npm i --global @ui5/cli@next`
 
 - **@ui5/cli: `ui5 init` defaults to Specification Version 5.0**
 
+- **Rename: Command Option `--cache-mode` is now `--snapshot-cache`**
+
 
 ## Node.js and npm Version Support
 
@@ -26,6 +28,12 @@ Support for older Node.js releases has been dropped; their use will cause an err
 UI5 CLI 5.x introduces **Specification Version 5.0**, which enables the new Component Type and brings improved project structure conventions.
 
 Projects using older **Specification Versions** are expected to be **fully compatible with UI5 CLI v5**.
+
+## Rename of Command Option
+
+With Specification Version 5.0, the option `--cache-mode` (for commands `ui5 build` and `ui5 serve`) has been renamed to `--snapshot-cache`.
+
+The behavior remains the same. When `--cache-mode` is used, a deprecation warning is logged and `--snapshot-cache` is set to `Default`.
 
 ## UI5 CLI Init Command
 

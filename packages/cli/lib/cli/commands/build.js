@@ -1,5 +1,6 @@
 import baseMiddleware from "../middlewares/base.js";
-import path from "node:path";
+import {getLogger} from "@ui5/logger";
+const log = getLogger("cli:commands:build");
 
 const build = {
 	command: "build",
@@ -108,12 +109,30 @@ build.builder = function(cli) {
 		})
 		.option("cache-mode", {
 			describe:
+				"As of UI5 CLI version 5, renamed to '--snapshot-cache'. " +
+				"Use '--snapshot-cache' to control this behavior.",
+			type: "string",
+			hidden: true, // Hides it from the help output
+		})
+		.option("snapshot-cache", {
+			describe:
 				"Cache mode to use when consuming SNAPSHOT versions of framework dependencies. " +
 				"The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the cache only and " +
 				"does not create any requests. 'Off' invalidates any existing cache and updates from the repository",
 			type: "string",
 			default: "Default",
-			choices: ["Default", "Force", "Off"]
+			choices: ["Default", "Force", "Off"],
+		})
+		.option("cache", {
+			describe:
+				"Cache mode to use for building UI5 projects. " +
+				"The 'Default' behavior is to always use the cache if available. 'Force' uses the cache only " +
+				"(if it's unavailable or invalid, the build fails). 'ReadOnly' does not create or update any " +
+				"cache but makes use of a cache if available. 'Off' does not use any cache and always triggers " +
+				"a rebuild of the project",
+			type: "string",
+			default: "Default",
+			choices: ["Default", "Force", "ReadOnly", "Off"],
 		})
 		.option("experimental-css-variables", {
 			describe:
@@ -150,6 +169,12 @@ build.builder = function(cli) {
 };
 
 async function handleBuild(argv) {
+	// Log warning for hidden CLI options
+	if (Object.prototype.hasOwnProperty.call(argv, "cacheMode")) {
+		log.warn("As of UI5 CLI version 5, '--cache-mode' was renamed to '--snapshot-cache'. " +
+			"Use '--snapshot-cache' to control this behavior. "+
+			"Setting '--snapshot-cache' to 'Default'...");
+	}
 	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
 
 	const command = argv._[argv._.length - 1];
@@ -160,13 +185,13 @@ async function handleBuild(argv) {
 			filePath: argv.dependencyDefinition,
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
-			cacheMode: argv.cacheMode,
+			snapshotCache: argv.snapshotCache,
 		});
 	} else {
 		graph = await graphFromPackageDependencies({
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
-			cacheMode: argv.cacheMode,
+			snapshotCache: argv.snapshotCache,
 			workspaceConfigPath: argv.workspaceConfig,
 			workspaceName: argv.workspace === false ? null : argv.workspace,
 		});
@@ -174,7 +199,6 @@ async function handleBuild(argv) {
 	const buildSettings = graph.getRoot().getBuilderSettings() || {};
 	await graph.build({
 		graph,
-		cacheDir: path.join(graph.getRoot().getRootPath(), ".ui5-cache"),
 		destPath: argv.dest,
 		cleanDest: argv["clean-dest"],
 		createBuildManifest: argv["create-build-manifest"],
@@ -196,6 +220,7 @@ async function handleBuild(argv) {
 		excludedTasks: argv["exclude-task"],
 		cssVariables: argv["experimental-css-variables"],
 		outputStyle: argv["output-style"],
+		cache: argv["cache"],
 	});
 }
 

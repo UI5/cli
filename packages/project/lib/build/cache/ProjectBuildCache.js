@@ -9,6 +9,7 @@ import StageCache from "./StageCache.js";
 import ResourceIndex from "./index/ResourceIndex.js";
 import {matchResourceMetadataStrict} from "./utils.js";
 const log = getLogger("build:cache:ProjectBuildCache");
+import Cache from "./Cache.js";
 
 export const INDEX_STATES = Object.freeze({
 	RESTORING_PROJECT_INDICES: "restoring_project_indices",
@@ -49,6 +50,7 @@ export default class ProjectBuildCache {
 	#project;
 	#buildSignature;
 	#cacheManager;
+	#cacheMode;
 	#currentProjectReader;
 	#currentDependencyReader;
 	#sourceIndex;
@@ -81,13 +83,15 @@ export default class ProjectBuildCache {
 	 * @param {@ui5/project/specifications/Project} project Project instance
 	 * @param {string} buildSignature Build signature for the current build
 	 * @param {object} cacheManager Cache manager instance for reading/writing cache data
+	 * @param {string} cacheMode Cache mode to use for building UI5 projects
 	 */
-	constructor(project, buildSignature, cacheManager) {
+	constructor(project, buildSignature, cacheManager, cacheMode) {
 		log.verbose(
 			`ProjectBuildCache for project ${project.getName()} uses build signature ${buildSignature}`);
 		this.#project = project;
 		this.#buildSignature = buildSignature;
 		this.#cacheManager = cacheManager;
+		this.#cacheMode = cacheMode;
 	}
 
 	/**
@@ -100,10 +104,11 @@ export default class ProjectBuildCache {
 	 * @param {@ui5/project/specifications/Project} project Project instance
 	 * @param {string} buildSignature Build signature for the current build
 	 * @param {object} cacheManager Cache manager instance
+	 * @param {string} cacheMode Cache mode to use for building UI5 projects
 	 * @returns {Promise<@ui5/project/build/cache/ProjectBuildCache>} Initialized cache instance
 	 */
-	static async create(project, buildSignature, cacheManager) {
-		return new ProjectBuildCache(project, buildSignature, cacheManager);
+	static async create(project, buildSignature, cacheManager, cacheMode) {
+		return new ProjectBuildCache(project, buildSignature, cacheManager, cacheMode);
 	}
 
 	/**
@@ -116,6 +121,10 @@ export default class ProjectBuildCache {
 	 * @returns {Promise<void>}
 	 */
 	async initSourceIndex() {
+		// When cache=Off, always reinitialize to clear cached state
+		if (this.#cacheMode === Cache.Off && this.#combinedIndexState !== INDEX_STATES.RESTORING_PROJECT_INDICES) {
+			this.#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
+		}
 		if (this.#combinedIndexState !== INDEX_STATES.RESTORING_PROJECT_INDICES) {
 			// Already initialized (e.g. reused across builds)
 			return;
@@ -180,6 +189,14 @@ export default class ProjectBuildCache {
 			const changesDetected = await this.#flushPendingChanges();
 			if (changesDetected) {
 				this.#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
+				// Force mode: Fail immediately if changes were detected
+				if (this.#cacheMode === Cache.Force) {
+					throw new Error(
+						`Cache is in "Force" mode but cache is stale for project ${this.#project.getName()} ` +
+						`due to detected source file changes. ` +
+						`Use "Default", "ReadOnly" or "Off" to rebuild.`
+					);
+				}
 			}
 			if (log.isLevelEnabled("perf")) {
 				log.perf(
@@ -187,6 +204,14 @@ export default class ProjectBuildCache {
 						`in ${(performance.now() - flushStart).toFixed(2)} ms`);
 			}
 			this.#combinedIndexState = INDEX_STATES.FRESH;
+		}
+
+		// When cache=Off, don't validate or use result cache
+		if (this.#cacheMode === Cache.Off) {
+			log.verbose(`Cache is in "Off" mode for project ${this.#project.getName()}. ` +
+				`Skipping result cache validation`);
+			this.#resultCacheState = RESULT_CACHE_STATES.NO_CACHE;
+			return false;
 		}
 
 		if (this.#resultCacheState === RESULT_CACHE_STATES.PENDING_VALIDATION) {
@@ -289,6 +314,10 @@ export default class ProjectBuildCache {
 	 * @returns {boolean} True if the cache is fresh
 	 */
 	isFresh() {
+		// When cache=Off, always return false to force rebuilds
+		if (this.#cacheMode === Cache.Off) {
+			return false;
+		}
 		return this.#combinedIndexState === INDEX_STATES.FRESH &&
 			this.#resultCacheState === RESULT_CACHE_STATES.FRESH_AND_IN_USE;
 	}
@@ -1283,6 +1312,25 @@ export default class ProjectBuildCache {
 	 */
 	async #initSourceIndex() {
 		const sourceReader = this.#project.getSourceReader();
+
+		if (this.#cacheMode === Cache.Off) {
+			// Caching disabled: Create fresh index
+			log.verbose(`Cache is in "Off" mode. ` +
+				`Initializing fresh source index for project ${this.#project.getName()}`);
+			this.#sourceIndex = await ResourceIndex.create(await sourceReader.byGlob("/**/*"),
+				Date.now());
+			this.#combinedIndexState = INDEX_STATES.INITIAL;
+			// Clear any existing task cache from previous builds
+			this.#taskCache.clear();
+			this.#stageCache = new StageCache();
+			// Reset ProjectResources to initial stage if it exists (clear any cached result stage)
+			const currentStage = this.#project.getProjectResources().getStage();
+			if (currentStage && currentStage.getId() !== "initial") {
+				this.#project.getProjectResources().useStage("initial");
+			}
+			return;
+		}
+
 		const [resources, indexCache] = await Promise.all([
 			await sourceReader.byGlob("/**/*"),
 			await this.#cacheManager.readIndexCache(this.#project.getId(), this.#buildSignature, "source"),
@@ -1333,6 +1381,17 @@ export default class ProjectBuildCache {
 				this.#taskCache.set(buildTaskCache.getTaskName(), buildTaskCache);
 			}
 
+			// Force mode: Fail if cache is stale (source files changed OR pending changes exist)
+			if (this.#cacheMode === Cache.Force &&
+				(changedPaths.length > 0 || this.#changedProjectSourcePaths.length > 0)) {
+				const totalChanges = changedPaths.length + this.#changedProjectSourcePaths.length;
+				throw new Error(
+					`Cache is in "Force" mode but cache is stale for project ${this.#project.getName()} ` +
+					`due to ${totalChanges} changed source file(s). ` +
+					`Use "Default", "ReadOnly" or "Off" to rebuild.`
+				);
+			}
+
 			if (!changedPaths.length) {
 				// Source index is up-to-date with no changes
 				this.#cachedSourceSignature = resourceIndex.getSignature();
@@ -1343,6 +1402,10 @@ export default class ProjectBuildCache {
 			// Now awaiting initialization of dependency indices
 			this.#combinedIndexState = INDEX_STATES.RESTORING_DEPENDENCY_INDICES;
 		} else {
+			if (this.#cacheMode === Cache.Force) {
+				throw new Error(`Cache is in "Force" mode but no cache found for project ${this.#project.getName()}. ` +
+					`Use "Default", "ReadOnly" or "Off" to rebuild.`);
+			}
 			// No index cache found, create new index
 			this.#sourceIndex = await ResourceIndex.create(resources, Date.now());
 			this.#combinedIndexState = INDEX_STATES.INITIAL;
@@ -1405,6 +1468,16 @@ export default class ProjectBuildCache {
 	 * @returns {Promise<void>}
 	 */
 	async writeCache() {
+		// OFF or ReadOnly modes: Skip all cache writes
+		if (this.#cacheMode === Cache.Off || this.#cacheMode === Cache.ReadOnly) {
+			log.verbose(
+				`Skipping cache write for project ${this.#project.getName()} ` +
+				`(cache mode: ${this.#cacheMode})`
+			);
+			return;
+		}
+
+		// Default and Force modes: Write cache normally
 		const cacheWriteStart = performance.now();
 		this.#cacheManager.beginMetadataBatch();
 		try {

@@ -4,6 +4,7 @@ import {fileURLToPath} from "node:url";
 import fs from "node:fs/promises";
 import {graphFromPackageDependencies} from "../../../lib/graph/graph.js";
 import {setLogLevel} from "@ui5/logger";
+import Cache from "../../../lib/build/cache/Cache.js";
 
 // Ensures that all logging code paths are tested
 setLogLevel("silly");
@@ -2451,6 +2452,274 @@ test.serial("Build with dependencies: Verify sap-ui-version.json generation and 
 		"buildTimestamp unchanged when cached (no source changes)");
 });
 
+test.serial("Build application.a with --cache=Default", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+
+	// #1 Build with empty cache --> all tasks execute
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: false, cache: Cache.Default},
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// #2 Build with valid cache, no changes --> nothing rebuilds (all cached)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, cache: Cache.Default},
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// Change a source file in application.a
+	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
+	await fs.appendFile(changedFilePath, `\ntest("line added for cache test");\n`);
+
+	// #3 Build with valid cache, source changes --> only affected tasks rebuild
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, cache: Cache.Default},
+		assertions: {
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"escapeNonAsciiCharacters",
+						"replaceCopyright",
+						"enhanceManifest",
+						"generateFlexChangesBundle",
+					]
+				}
+			}
+		}
+	});
+
+	// Verify the changed file is in the destPath
+	const builtFileContent = await fs.readFile(`${destPath}/test.js`, {encoding: "utf8"});
+	t.true(builtFileContent.includes(`test("line added for cache test");`),
+		"Build dest contains changed file content");
+});
+
+test.serial("Build application.a with --cache=Off", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+
+	// #1 Build with cache=Off --> all tasks execute, cache not written
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: false, cache: Cache.Off},
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// #2 Build with cache=Off (again) --> all tasks execute again (no cache reuse)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, cache: Cache.Off},
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// #3 Build with cache=Default --> all tasks execute (no cache from previous builds)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, cache: Cache.Default},
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// #4 Build with cache=Default (again) --> nothing rebuilds (cache now exists)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, cache: Cache.Default},
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// #5 Build with cache=Off --> all tasks execute (ignores existing cache)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, cache: Cache.Off},
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+});
+
+test.serial("Build application.a with --cache=ReadOnly", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+
+	// #1 Build with cache=Default --> all tasks execute, cache written
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: false, cache: Cache.Default},
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// #2 Build with cache=ReadOnly, no changes --> nothing rebuilds (cache used)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, cache: Cache.ReadOnly},
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// Change a source file in application.a
+	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
+	await fs.appendFile(changedFilePath, `\ntest("line added for ReadOnly test");\n`);
+
+	// #3 Build with cache=ReadOnly --> affected tasks rebuild, BUT cache not updated
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, cache: Cache.ReadOnly},
+		assertions: {
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"escapeNonAsciiCharacters",
+						"replaceCopyright",
+						"enhanceManifest",
+						"generateFlexChangesBundle",
+					]
+				}
+			}
+		}
+	});
+
+	// Verify the changed file is in the destPath
+	const builtFileContent = await fs.readFile(`${destPath}/test.js`, {encoding: "utf8"});
+	t.true(builtFileContent.includes(`test("line added for ReadOnly test");`),
+		"Build dest contains changed file content");
+
+	// #4 Build with cache=Default, no new changes --> rebuilds again (cache from #3 missing)
+	// This validates that ReadOnly didn't write the cache in step #3
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, cache: Cache.Default},
+		assertions: {
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"escapeNonAsciiCharacters",
+						"replaceCopyright",
+						"enhanceManifest",
+						"generateFlexChangesBundle",
+					]
+				}
+			}
+		}
+	});
+});
+
+test.serial("Build application.a with --cache=Force (1)", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+
+	// #1: Build with cache=Default --> all tasks execute, cache written
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: false, cache: Cache.Default},
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// #2: Build with cache=Force, no changes --> nothing rebuilds (cache used)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, cache: Cache.Force},
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// Change a source file in application.a
+	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
+	await fs.appendFile(changedFilePath, `\ntest("line added for Force test");\n`);
+
+	// #3: Build with cache=Force --> ERROR (cache invalid due to source changes)
+	const error = await t.throwsAsync(async () => {
+		await fixtureTester.buildProject({
+			config: {destPath, cleanDest: true, cache: Cache.Force},
+		});
+	});
+
+	t.truthy(error, "Build with Force mode should throw error when cache is stale");
+	t.true(error.message.includes(`Cache is in "Force" mode but cache is stale for project application.a ` +
+		`due to 1 changed source file(s). ` +
+		`Use "Default", "ReadOnly" or "Off" to rebuild.`));
+});
+
+test.serial("Build application.a with --cache=Force (2)", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+
+	// #1: Build with cache=Force on empty cache --> ERROR with clear message
+	const error = await t.throwsAsync(async () => {
+		await fixtureTester.buildProject({
+			config: {destPath, cleanDest: false, cache: Cache.Force},
+		});
+	});
+
+	t.truthy(error, "Build with Force mode should throw error when cache is empty");
+	t.true(error.message.includes(`Cache is in "Force" mode but no cache found for project application.a. ` +
+		`Use "Default", "ReadOnly" or "Off" to rebuild.`));
+});
+
+// FIXME: Currently failing at #2 Build assertion
+test.serial("Build application.i and application.i.copy with --cache", async (t) => {
+	// This test covers a scenario with two projects depending on the same
+	// dependency (exact same content) "library.d".
+	// We want to verify that:
+	// - First, we only want to build application.i (with cache=Default)
+	// 		(caches for the root project and the dependency should be created)
+	// - Second, we build application.i.copy with cache=Default
+	//		(since application.i.copy has the same dependency "library.d"
+	// 		with the exact same content, the cache for library.d can be reused.
+
+	const fixtureTester1 = new FixtureTester(t, "application.i");
+	const destPath1 = fixtureTester1.destPath;
+
+	// #1: Build application.i with cache=Default
+	await fixtureTester1.buildProject({
+		config: {destPath: destPath1, cleanDest: false, cache: Cache.Default,
+			dependencyIncludes: {includeAllDependencies: true}
+		},
+		assertions: {
+			projects: {
+				"library.d": {},
+				"application.i": {},
+			},
+		}
+	});
+
+
+	// #2: Build application.i.copy with cache=Default
+	const fixtureTester2 = new FixtureTester(t, "application.i.copy");
+	const destPath2 = fixtureTester2.destPath;
+
+	await fixtureTester2.buildProject({
+		config: {destPath: destPath2, cleanDest: false, cache: Cache.Default,
+			dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {
+				// library.d should not be rebuilt
+				"application.i.copy": {},
+			},
+		}
+	});
+});
+
 function getFixturePath(fixtureName) {
 	return fileURLToPath(new URL(`../../fixtures/${fixtureName}`, import.meta.url));
 }
@@ -2485,7 +2754,7 @@ class FixtureTester {
 		this._initialized = true;
 	}
 
-	async buildProject({graphConfig = {}, config = {}, assertions = {}} = {}) {
+	async buildProject({graphConfig = {}, config = {}, assertions} = {}) {
 		await this._initialize();
 		this._sinon.resetHistory();
 

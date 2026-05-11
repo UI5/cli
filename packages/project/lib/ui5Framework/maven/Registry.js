@@ -65,8 +65,8 @@ class Registry {
 					`You can change the configured URL using the following command: ` +
 					`'ui5 config set mavenSnapshotEndpointUrl <url>'`);
 
-				// TODO: Allow cacheMode to be set from outside
-				// `You may be able to continue working offline. For this, set --cache-mode to "force"`);
+				// TODO: Allow snapshotCache to be set from outside
+				// `You may be able to continue working offline. For this, set --snapshot-cache to "force"`);
 				// ` or use the --offline flag`); // TODO: Implement --offline flag
 			}
 			throw new Error(
@@ -108,8 +108,8 @@ class Registry {
 					`You can change the configured URL using the following command: ` +
 					`'ui5 config set mavenSnapshotEndpointUrl <url>'`);
 
-				// TODO: Allow cacheMode to be set from outside
-				// `You may be able to continue working offline. For this, set --cache-mode to "force"`);
+				// TODO: Allow snapshotCache to be set from outside
+				// `You may be able to continue working offline. For this, set --snapshot-cache to "force"`);
 				// ` or use the --offline flag`); // TODO: Implement --offline flag
 			}
 			throw new Error(`Failed to retrieve artifact ` +

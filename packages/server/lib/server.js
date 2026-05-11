@@ -4,6 +4,7 @@ import MiddlewareManager from "./middleware/MiddlewareManager.js";
 import {createReaderCollection} from "@ui5/fs/resourceFactory";
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
 import {getLogger} from "@ui5/logger";
+import Cache from "@ui5/project/build/cache/Cache";
 
 const log = getLogger("server");
 /**
@@ -128,6 +129,7 @@ async function _addSsl({app, key, cert}) {
  * 										are send for any requested <code>*.html</code> file
  * @param {boolean} [options.serveCSPReports=false] Enable CSP reports serving for request url
  * 										'/.ui5/csp/csp-reports.json'
+ * @param {string} [options.cache="Default"] Cache mode to use for building UI5 projects.
  * @param {Function} error Error callback. Will be called when an error occurs outside of request handling.
  * @returns {Promise<object>} Promise resolving once the server is listening.
  * 							It resolves with an object containing the <code>port</code>,
@@ -136,7 +138,8 @@ async function _addSsl({app, key, cert}) {
  */
 export async function serve(graph, {
 	port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
-	acceptRemoteConnections = false, sendSAPTargetCSP = false, simpleIndex = false, serveCSPReports = false
+	acceptRemoteConnections = false, sendSAPTargetCSP = false,
+	simpleIndex = false, serveCSPReports = false, cache = Cache.Default
 }, error) {
 	const rootProject = graph.getRoot();
 
@@ -175,6 +178,7 @@ export async function serve(graph, {
 	const buildServer = await graph.serve({
 		initialBuildIncludedDependencies,
 		excludedTasks: ["minify", "generateLibraryPreload", "generateComponentPreload", "generateBundle"],
+		cache,
 	});
 
 	const resources = {

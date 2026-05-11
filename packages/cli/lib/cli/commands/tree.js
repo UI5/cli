@@ -28,7 +28,13 @@ tree.builder = function(cli) {
 				"Takes the same value as the version part of \"ui5 use\"",
 			type: "string"
 		})
-		.option("cache-mode", {
+		.hide("cache-mode", {
+			describe:
+				"As of UI5 CLI version 5, renamed to '--snapshot-cache'. " +
+				"Use '--snapshot-cache' to control this behavior.",
+			type: "string",
+		})
+		.option("snapshot-cache", {
 			describe:
 				"Cache mode to use when consuming SNAPSHOT versions of framework dependencies. " +
 				"The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the cache only and " +
@@ -51,13 +57,13 @@ tree.handler = async function(argv) {
 		graph = await graphFromStaticFile({
 			filePath: argv.dependencyDefinition,
 			versionOverride: argv.frameworkVersion,
-			cacheMode: argv.cacheMode,
+			snapshotCache: argv.snapshotCache,
 		});
 	} else {
 		graph = await graphFromPackageDependencies({
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
-			cacheMode: argv.cacheMode,
+			snapshotCache: argv.snapshotCache,
 			workspaceConfigPath: argv.workspaceConfig,
 			workspaceName: argv.workspace === false ? null : argv.workspace,
 		});
