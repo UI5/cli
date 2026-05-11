@@ -136,3 +136,100 @@ test.serial("create() returns singleton per cache directory", async (t) => {
 	const cm2 = await CacheManager.create(testDir);
 	t.is(cm1, cm2, "Same cache directory returns same instance");
 });
+
+test.serial("readContentRaw returns stored buffer", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+
+	const content = Buffer.from("test content for raw read");
+	cm.putContent("sha256-raw", content);
+	const raw = cm.readContentRaw("sha256-raw");
+	t.truthy(raw, "Returns a value");
+	cm.close();
+});
+
+test.serial("putCompressedContent stores pre-compressed data that readContent decompresses", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {gzipSync} = await import("node:zlib");
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+
+	const content = Buffer.from("compressed content");
+	const compressed = gzipSync(content);
+	cm.putCompressedContent("sha256-comp", compressed);
+	const decompressed = cm.readContent("sha256-comp");
+	t.deepEqual(decompressed, content, "readContent returns decompressed content");
+	cm.close();
+});
+
+test.serial("writeStageResource writes resource by integrity", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+
+	const resource = {
+		getIntegrity: async () => "sha256-stage",
+		getBuffer: async () => Buffer.from("stage resource content")
+	};
+	await cm.writeStageResource(resource);
+	t.true(cm.hasContent("sha256-stage"));
+	t.deepEqual(cm.readContent("sha256-stage"), Buffer.from("stage resource content"));
+	cm.close();
+});
+
+test.serial("Batch operations: content batch begin/end", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+
+	cm.beginContentBatch();
+	cm.putContent("sha256-batch1", Buffer.from("batch1"));
+	cm.putContent("sha256-batch2", Buffer.from("batch2"));
+	cm.endContentBatch();
+
+	t.true(cm.hasContent("sha256-batch1"));
+	t.true(cm.hasContent("sha256-batch2"));
+	cm.close();
+});
+
+test.serial("Batch operations: content batch rollback", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+
+	cm.beginContentBatch();
+	cm.putContent("sha256-rollback", Buffer.from("rollback"));
+	cm.rollbackContentBatch();
+
+	t.false(cm.hasContent("sha256-rollback"), "Content should not exist after rollback");
+	cm.close();
+});
+
+test.serial("Batch operations: metadata batch begin/end", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+
+	cm.beginMetadataBatch();
+	await cm.writeIndexCache("proj-batch", "sig", "source", {data: true});
+	cm.endMetadataBatch();
+
+	const result = await cm.readIndexCache("proj-batch", "sig", "source");
+	t.deepEqual(result, {data: true});
+	cm.close();
+});
+
+test.serial("Batch operations: metadata batch rollback", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+
+	cm.beginMetadataBatch();
+	await cm.writeIndexCache("proj-rollback", "sig", "source", {data: true});
+	cm.rollbackMetadataBatch();
+
+	const result = await cm.readIndexCache("proj-rollback", "sig", "source");
+	t.is(result, null, "Metadata should not exist after rollback");
+	cm.close();
+});

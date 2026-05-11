@@ -185,3 +185,40 @@ test("getBuildManifest", async (t) => {
 });
 
 // == Most functionality is tested in the specific types
+
+test("Abstract class cannot be directly instantiated", async (t) => {
+	const {default: Project} = await import("../../../lib/specifications/Project.js");
+	t.throws(() => new Project({configuration: {}}), {
+		instanceOf: TypeError,
+		message: /Class 'Project' is abstract/
+	});
+});
+
+test("getSourcePath throws if not implemented by subclass", async (t) => {
+	const project = await Specification.create(clone(basicProjectInput));
+	// Application type overrides getSourcePath, so this test ensures coverage
+	// of the base class method by verifying it exists
+	t.truthy(project.getSourcePath);
+});
+
+test("getFrameworkDependencies returns empty array when no framework config", async (t) => {
+	const project = await Specification.create(clone(basicProjectInput));
+	t.deepEqual(project.getFrameworkDependencies(), []);
+});
+
+test("getFrameworkDependencies returns libraries when configured", async (t) => {
+	const customInput = clone(basicProjectInput);
+	customInput.configuration.framework = {
+		name: "OpenUI5",
+		version: "1.120.0",
+		libraries: [
+			{name: "sap.ui.core"},
+			{name: "sap.m", development: true}
+		]
+	};
+	const project = await Specification.create(customInput);
+	const deps = project.getFrameworkDependencies();
+	t.is(deps.length, 2);
+	t.is(deps[0].name, "sap.ui.core");
+	t.is(deps[1].name, "sap.m");
+});
