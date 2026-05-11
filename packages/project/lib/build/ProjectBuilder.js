@@ -219,6 +219,7 @@ class ProjectBuilder {
 			await this._writeResults(projectBuildContext, fsTarget, pWrites);
 		});
 		await Promise.all(pWrites);
+		this._buildContext.closeCacheManager();
 	}
 
 	/**
