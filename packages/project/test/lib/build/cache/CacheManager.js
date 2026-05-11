@@ -7,7 +7,8 @@ import {rimraf} from "rimraf";
 const TEST_DIR = path.join(import.meta.dirname, "..", "..", "..", "tmp", "CacheManager");
 
 test.after.always(async () => {
-	await rimraf(TEST_DIR);
+	// Best-effort cleanup; on Windows, SQLite WAL files may still be locked briefly after close
+	await rimraf(TEST_DIR).catch(() => {});
 });
 
 test.afterEach.always(() => {
@@ -135,6 +136,8 @@ test.serial("create() returns singleton per cache directory", async (t) => {
 	const cm1 = await CacheManager.create(testDir);
 	const cm2 = await CacheManager.create(testDir);
 	t.is(cm1, cm2, "Same cache directory returns same instance");
+	cm1.close();
+	cm2.close();
 });
 
 test.serial("readContentRaw returns stored buffer", async (t) => {

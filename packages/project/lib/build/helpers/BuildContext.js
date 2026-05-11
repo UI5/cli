@@ -175,6 +175,13 @@ class BuildContext {
 		}));
 	}
 
+	closeCacheManager() {
+		if (this.#cacheManager) {
+			this.#cacheManager.close();
+			this.#cacheManager = null;
+		}
+	}
+
 	/**
 	 *
 	 * @param {Map<string, Set<string>>} resourceChanges Mapping project name to changed resource paths
