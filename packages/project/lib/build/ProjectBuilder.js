@@ -217,18 +217,21 @@ class ProjectBuilder {
 			});
 		}
 		const pWrites = [];
-		await this.#build(requestedProjects, async (projectName, project, projectBuildContext) => {
-			if (!fsTarget) {
-				// Nothing to write to
-				return;
-			}
-			// Only write requested projects to target
-			// (excluding dependencies that were required to be built, but not requested)
-			this.#log.verbose(`Writing out files for project ${projectName}...`);
-			await this._writeResults(projectBuildContext, fsTarget, pWrites);
-		});
-		await Promise.all(pWrites);
-		this._buildContext.closeCacheManager();
+		try {
+			await this.#build(requestedProjects, async (projectName, project, projectBuildContext) => {
+				if (!fsTarget) {
+					// Nothing to write to
+					return;
+				}
+				// Only write requested projects to target
+				// (excluding dependencies that were required to be built, but not requested)
+				this.#log.verbose(`Writing out files for project ${projectName}...`);
+				await this._writeResults(projectBuildContext, fsTarget, pWrites);
+			});
+			await Promise.all(pWrites);
+		} finally {
+			this._buildContext.closeCacheManager();
+		}
 	}
 
 	/**

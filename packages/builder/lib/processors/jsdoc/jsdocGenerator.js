@@ -163,10 +163,11 @@ async function buildJsdoc({sourcePath, configPath}) {
 		"--verbose",
 		sourcePath
 	];
-	const exitCode = await new Promise((resolve /* , reject */) => {
+	const exitCode = await new Promise((resolve, reject) => {
 		const child = spawn("node", args, {
 			stdio: ["ignore", "ignore", "inherit"]
 		});
+		child.on("error", reject);
 		child.on("close", resolve);
 	});
 
