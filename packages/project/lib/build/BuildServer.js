@@ -126,9 +126,7 @@ class BuildServer extends EventEmitter {
 
 	async destroy() {
 		this.#destroyed = true;
-		// Prevent any queued builds from starting after shutdown
 		clearTimeout(this.#processBuildRequestsTimeout);
-		this.#pendingBuildRequest.clear();
 		await this.#watchHandler.destroy();
 		if (this.#activeBuild) {
 			// Await active build to finish

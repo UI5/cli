@@ -560,6 +560,7 @@ export default class BuildCacheStorage {
 		if (this.#inMetadataBatch) {
 			this.rollbackMetadataBatch();
 		}
+		this.#db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
 		this.#db.close();
 	}
 }
