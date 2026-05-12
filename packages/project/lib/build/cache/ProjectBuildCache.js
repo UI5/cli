@@ -942,7 +942,8 @@ export default class ProjectBuildCache {
 				this.#changedProjectSourcePaths.push(resourcePath);
 			}
 		}
-		if (this.#combinedIndexState !== INDEX_STATES.INITIAL) {
+		if (this.#combinedIndexState !== INDEX_STATES.INITIAL &&
+			this.#combinedIndexState !== INDEX_STATES.RESTORING_PROJECT_INDICES) {
 			// If there is an index cache, mark it as requiring update
 			this.#combinedIndexState = INDEX_STATES.REQUIRES_UPDATE;
 		}
@@ -962,7 +963,8 @@ export default class ProjectBuildCache {
 				this.#changedDependencyResourcePaths.push(resourcePath);
 			}
 		}
-		if (this.#combinedIndexState !== INDEX_STATES.INITIAL) {
+		if (this.#combinedIndexState !== INDEX_STATES.INITIAL &&
+			this.#combinedIndexState !== INDEX_STATES.RESTORING_PROJECT_INDICES) {
 			// If there is an index cache, mark it as requiring update
 			this.#combinedIndexState = INDEX_STATES.REQUIRES_UPDATE;
 		}
@@ -1302,6 +1304,10 @@ export default class ProjectBuildCache {
 	 * @throws {Error} If cached index signature doesn't match computed signature
 	 */
 	async #initSourceIndex() {
+		// Clear any pending source changes accumulated before initialization.
+		// The fresh disk read below already captures the current state.
+		this.#changedProjectSourcePaths = [];
+
 		const sourceReader = this.#project.getSourceReader();
 		const [resources, indexCache] = await Promise.all([
 			await sourceReader.byGlob("/**/*"),
