@@ -2460,7 +2460,7 @@ function getTmpPath(folderName) {
 }
 
 async function rmrf(dirPath) {
-	return fs.rm(dirPath, {recursive: true, force: true});
+	return fs.rm(dirPath, {recursive: true, force: true, maxRetries: 3, retryDelay: 200});
 }
 
 class FixtureTester {
