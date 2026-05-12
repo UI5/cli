@@ -80,7 +80,9 @@ test.serial("buildJsdoc", async (t) => {
 	let exitCode = 0;
 	const cpStub = sinon.stub().returns({
 		on: (event, callback) => {
-			callback(exitCode);
+			if (event === "close") {
+				callback(exitCode);
+			}
 		}
 	});
 
