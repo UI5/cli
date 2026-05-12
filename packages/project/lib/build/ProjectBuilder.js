@@ -136,6 +136,15 @@ class ProjectBuilder {
 	}
 
 	/**
+	 * Closes the CacheManager, releasing the underlying storage resources.
+	 *
+	 * @public
+	 */
+	closeCacheManager() {
+		this._buildContext.closeCacheManager();
+	}
+
+	/**
 	 * Build projects without writing to a target directory
 	 *
 	 * @public

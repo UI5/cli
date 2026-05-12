@@ -129,6 +129,7 @@ class BuildServer extends EventEmitter {
 			// Await active build to finish
 			await this.#activeBuild;
 		}
+		this.#projectBuilder.closeCacheManager();
 	}
 
 	/**
