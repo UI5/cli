@@ -138,6 +138,34 @@ test.serial("serveIndex no hidden", async (t) => {
 	});
 });
 
+test.serial("serveIndex error handling", async (t) => {
+	t.plan(1);
+	const expectedError = new Error("Read error");
+	const readerStub = {
+		byGlob() {
+			return Promise.reject(expectedError);
+		}
+	};
+	const middleware = serveIndexMiddleware({
+		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
+		resources: {
+			all: readerStub
+		}
+	});
+
+	await new Promise((resolve) => {
+		const req = {
+			url: "/"
+		};
+		const res = {};
+		const next = function(err) {
+			t.is(err, expectedError, "Error is passed to next");
+			resolve();
+		};
+		middleware(req, res, next);
+	});
+});
+
 test.serial("serveIndex no details", async (t) => {
 	t.plan(4);
 	const writeResource = function(writer, path, buffer) {
