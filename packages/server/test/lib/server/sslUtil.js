@@ -53,6 +53,31 @@ test("Get existing certificate", async (t) => {
 	t.is(result.cert.toString(), "dummy-crt-file", "Cert exists");
 });
 
+test("Get existing certificate with outdated permissions triggers chmod error handling", async (t) => {
+	const constants = await import("node:fs").then((m) => m.constants);
+	const chmodStub = sinon.stub().rejects(new Error("chmod failed"));
+	const statStub = sinon.stub().resolves({
+		mode: constants.S_IRUSR | constants.S_IWUSR,
+	});
+	const readFileStub = sinon.stub().resolves(Buffer.from("file-content"));
+
+	const sslUtil = await esmock("../../../lib/sslUtil.js", {
+		"node:fs/promises": {
+			stat: statStub,
+			readFile: readFileStub,
+			writeFile: sinon.stub(),
+			mkdir: sinon.stub(),
+			chmod: chmodStub,
+			constants,
+		}
+	});
+
+	const result = await sslUtil.getSslCertificate("/fake/path.key", "/fake/path.crt");
+	t.is(result.key.toString(), "file-content", "Key is returned despite chmod error");
+	t.is(result.cert.toString(), "file-content", "Cert is returned despite chmod error");
+	t.true(chmodStub.calledTwice, "chmod was called for both key and cert");
+});
+
 test.serial("Create new certificate and install it", async (t) => {
 	const {createSslUtilMock, yesno, devcertSanscache} = t.context;
 	const sslUtil = await createSslUtilMock();
