@@ -741,6 +741,77 @@ test("projectSourcesChanged: tracks multiple changes", async (t) => {
 	t.pass("Multiple changes tracked");
 });
 
+test("projectSourcesChanged after SourceChangedDuringBuildError does not corrupt state", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+
+	const resource = createMockResource("/test.js", "hash1", 1000, 100, 1);
+	let byGlobCallCount = 0;
+	project.getSourceReader.callsFake(() => ({
+		byGlob: sinon.stub().callsFake(() => {
+			byGlobCallCount++;
+			if (byGlobCallCount === 1) {
+				return Promise.resolve([resource]);
+			}
+			// On revalidation, return a modified resource to trigger SourceChangedDuringBuildError
+			return Promise.resolve([createMockResource("/test.js", "hash2", 2000, 200, 2)]);
+		}),
+		byPath: sinon.stub().resolves(resource)
+	}));
+
+	const indexCache = {
+		version: "1.0",
+		indexTree: {
+			version: 1,
+			indexTimestamp: 1000,
+			root: {
+				hash: "hash1",
+				children: {
+					"test.js": {
+						hash: "hash1",
+						metadata: {
+							path: "/test.js",
+							lastModified: 1000,
+							size: 100,
+							inode: 1
+						}
+					}
+				}
+			}
+		},
+		tasks: []
+	};
+	cacheManager.readIndexCache.resolves(indexCache);
+
+	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+
+	// Simulate a build completing and detecting that sources changed during build
+	// allTasksCompleted will throw SourceChangedDuringBuildError, setting #sourceIndex = null
+	const error = await t.throwsAsync(() => cache.allTasksCompleted());
+	t.true(error.message.includes("test.project"),
+		"SourceChangedDuringBuildError thrown");
+
+	// Simulate what BuildServer does: flush resource changes before next build
+	// This calls projectSourcesChanged while #sourceIndex is null
+	cache.projectSourcesChanged(["/test.js"]);
+
+	// Now simulate next build attempt: initSourceIndex should still work
+	// (state should still be RESTORING_PROJECT_INDICES, not REQUIRES_UPDATE)
+	byGlobCallCount = 0; // Reset so initSourceIndex gets fresh resources
+	await cache.initSourceIndex();
+
+	// And prepareProjectBuildAndValidateCache should not crash
+	const mockDependencyReader = {
+		byGlob: sinon.stub().resolves([]),
+		byPath: sinon.stub().resolves(null)
+	};
+	await t.notThrowsAsync(
+		() => cache.prepareProjectBuildAndValidateCache(mockDependencyReader),
+		"prepareProjectBuildAndValidateCache does not throw after race condition"
+	);
+});
+
 test("prepareProjectBuildAndValidateCache: returns false for empty cache", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
