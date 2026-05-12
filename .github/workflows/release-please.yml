@@ -24,7 +24,7 @@ jobs:
          node-version: 24.x
 
       - name: Run Release Please to update PRs and create releases
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@v5
         id: release
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
