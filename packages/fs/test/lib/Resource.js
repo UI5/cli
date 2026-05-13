@@ -743,6 +743,59 @@ test("Resource: clone resource with stream", async (t) => {
 	t.is(clonedResourceContent, "Content", "Cloned resource has correct content string");
 });
 
+test("Resource: clone resource with WHATWG TransformStream", async (t) => {
+	const ts = new TransformStream({
+		transform(chunk, controller) {
+			controller.enqueue(chunk);
+		}
+	});
+
+	const writer = ts.writable.getWriter();
+	writer.write(Buffer.from("TransformStream Content"));
+	writer.close();
+
+	const resource = new Resource({
+		path: "/my/path/to/resource"
+	});
+	resource.setStream(ts);
+
+	const clonedResource = await resource.clone();
+	t.pass("Resource cloned");
+
+	const clonedResourceContent = await clonedResource.getString();
+	t.is(clonedResourceContent, "TransformStream Content", "Cloned resource has correct content string");
+});
+
+test("Resource: clone resource with legacy stream lacking Symbol.asyncIterator", async (t) => {
+	// Simulate a stream from readable-stream@2 (e.g. replacestream) which has .pipe but no Symbol.asyncIterator
+	const stream = new Stream.Transform({
+		transform(chunk, enc, cb) {
+			cb(null, chunk.toString().replace("old", "new"));
+		}
+	});
+
+	// Remove Symbol.asyncIterator to simulate legacy readable-stream@2 behavior
+	stream[Symbol.asyncIterator] = undefined;
+	delete stream[Symbol.asyncIterator];
+
+	const input = new Stream.Readable();
+	input._read = function() {};
+	input.push("old content");
+	input.push(null);
+	input.pipe(stream);
+
+	const resource = new Resource({
+		path: "/my/path/to/resource"
+	});
+	resource.setStream(stream);
+
+	const clonedResource = await resource.clone();
+	t.pass("Resource cloned");
+
+	const clonedResourceContent = await clonedResource.getString();
+	t.is(clonedResourceContent, "new content", "Cloned resource has correct content string");
+});
+
 test("Resource: clone resource with createBuffer factory", async (t) => {
 	const resource = new Resource({
 		path: "/my/path/to/resource",
