@@ -45,9 +45,9 @@ export const RESULT_CACHE_STATES = Object.freeze({
  * @property {string} signature Signature of the cached stage
  * @property {@ui5/fs/AbstractReader} stage Reader for the cached stage
  * @property {string[]} writtenResourcePaths Array of resource paths written by the task
- * @property {Map<string, Map<string, {string|number|boolean|undefined}>>} projectTagOperations
+ * @property {Map<string, Map<string, *>>} projectTagOperations
  * Map of resource paths to their tags that were set or cleared during this stage's execution, for project tags
- * @property {Map<string, Map<string, {string|number|boolean|undefined}>>} buildTagOperations
+ * @property {Map<string, Map<string, *>>} buildTagOperations
  * Map of resource paths to their tags that were set or cleared during this stage's execution, for build tags
  */
 
@@ -1816,7 +1816,7 @@ function tagOpsToMap(tagOps) {
 }
 
 /**
- * @param {Map<string, Map<string, {string|number|boolean|undefined}>>} tagOps
+ * @param {Map<string, Map<string, *>>} tagOps
  * Map of resource paths to their tag operations
  */
 function tagOpsToObject(tagOps) {

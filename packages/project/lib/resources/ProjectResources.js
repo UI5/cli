@@ -324,8 +324,8 @@ class ProjectResources {
 	 * @public
 	 * @param {string} stageId The ID of the stage to set
 	 * @param {Stage|object} stageOrCachedWriter A Stage instance or a cached writer/reader
-	 * @param {Map<string, Map<string, {string|number|boolean|undefined}>>} projectTagOperations
-	 * @param {Map<string, Map<string, {string|number|boolean|undefined}>>} buildTagOperations
+	 * @param {Map<string, Map<string, *>>} projectTagOperations
+	 * @param {Map<string, Map<string, *>>} buildTagOperations
 	 * @returns {boolean} True if the stored stage has changed, false otherwise
 	 * @throws {Error} If the stage does not exist or invalid parameters are provided
 	 */
@@ -421,8 +421,8 @@ class ProjectResources {
 	 * This is used during delta builds to apply tag operations from a previous stage cache
 	 * that would otherwise be lost because the delta execution only records its own tag operations.
 	 *
-	 * @param {Map<string, Map<string, {string|number|boolean|undefined}>>} [projectTagOperations]
-	 * @param {Map<string, Map<string, {string|number|boolean|undefined}>>} [buildTagOperations]
+	 * @param {Map<string, Map<string, *>>} [projectTagOperations]
+	 * @param {Map<string, Map<string, *>>} [buildTagOperations]
 	 */
 	importTagOperations(projectTagOperations, buildTagOperations) {
 		if (projectTagOperations?.size) {

@@ -93,7 +93,7 @@ export default class HashTree {
 	/**
 	 * Build tree from resource list
 	 *
-	 * @param {Array<{path: string, integrity?: string}>} resources
+	 * @param {Array<object>} resources
 	 * @private
 	 */
 	_buildTree(resources) {

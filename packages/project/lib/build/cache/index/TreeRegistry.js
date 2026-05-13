@@ -19,11 +19,11 @@ const log = getLogger("build:cache:index:TreeRegistry");
  *
  * This approach ensures consistency when multiple trees represent filtered views of the same underlying data.
  *
- * @property {Set<import('./SharedHashTree.js').default>} trees - All registered HashTree/SharedHashTree instances
- * @property {Map<string, {resource: @ui5/fs/Resource, sourceTree: import('./SharedHashTree.js').default|null}>}
+ * @property {Set<SharedHashTree>} trees - All registered HashTree/SharedHashTree instances
+ * @property {Map<string, object>}
  *           pendingUpserts - Resource path to resource and source tree mappings for scheduled upserts
  * @property {Set<string>} pendingRemovals - Resource paths scheduled for removal
- * @property {Map<import('./SharedHashTree.js').default, Set<import('./SharedHashTree.js').default>>} derivedTrees
+ * @property {Map<SharedHashTree, Set<SharedHashTree>>} derivedTrees
  *           Maps parent trees to their directly derived children
  */
 export default class TreeRegistry {
@@ -39,8 +39,8 @@ export default class TreeRegistry {
 	 * Once registered, the tree will participate in all batch operations triggered by flush().
 	 * Multiple trees can share the same underlying nodes through structural sharing.
 	 *
-	 * @param {import('./SharedHashTree.js').default} tree - HashTree or SharedHashTree instance to register
-	 * @param {import('./SharedHashTree.js').default} [parentTree] - Parent tree if this is a derived tree
+	 * @param {@ui5/project/build/cache/index/SharedHashTree} tree - HashTree or SharedHashTree instance to register
+	 * @param {@ui5/project/build/cache/index/SharedHashTree} [parentTree] - Parent tree if this is a derived tree
 	 */
 	register(tree, parentTree = null) {
 		this.trees.add(tree);
@@ -59,7 +59,7 @@ export default class TreeRegistry {
 	 * After unregistering, the tree will no longer participate in batch operations.
 	 * Any pending operations scheduled before unregistration will still be applied during flush().
 	 *
-	 * @param {import('./SharedHashTree.js').default} tree - HashTree or SharedHashTree instance to unregister
+	 * @param {@ui5/project/build/cache/index/SharedHashTree} tree - HashTree or SharedHashTree instance to unregister
 	 */
 	unregister(tree) {
 		this.trees.delete(tree);
@@ -74,8 +74,8 @@ export default class TreeRegistry {
 	/**
 	 * Get all trees derived from a given tree (recursively).
 	 *
-	 * @param {import('./SharedHashTree.js').default} tree - The parent tree
-	 * @returns {Set<import('./SharedHashTree.js').default>} Set of all derived trees (direct and transitive)
+	 * @param {@ui5/project/build/cache/index/SharedHashTree} tree - The parent tree
+	 * @returns {Set<SharedHashTree>} Set of all derived trees (direct and transitive)
 	 */
 	_getDerivedTrees(tree) {
 		const result = new Set();
@@ -97,8 +97,8 @@ export default class TreeRegistry {
 	/**
 	 * Check if targetTree is the same as or derived from sourceTree.
 	 *
-	 * @param {import('./SharedHashTree.js').default} sourceTree - The source/parent tree
-	 * @param {import('./SharedHashTree.js').default} targetTree - The tree to check
+	 * @param {@ui5/project/build/cache/index/SharedHashTree} sourceTree - The source/parent tree
+	 * @param {@ui5/project/build/cache/index/SharedHashTree} targetTree - The tree to check
 	 * @returns {boolean} True if targetTree is sourceTree or derived from it
 	 */
 	_isTreeOrDerived(sourceTree, targetTree) {
@@ -121,7 +121,7 @@ export default class TreeRegistry {
 	 *
 	 * @param {@ui5/fs/Resource} resource - Resource instance to upsert
 	 * @param {number} [newIndexTimestamp] - Timestamp at which the provided resources have been indexed
-	 * @param {import('./SharedHashTree.js').default} [sourceTree] - Tree that initiated this upsert
+	 * @param {@ui5/project/build/cache/index/SharedHashTree} [sourceTree] - Tree that initiated this upsert
 	 *        (for controlling insert propagation)
 	 */
 	scheduleUpsert(resource, newIndexTimestamp, sourceTree = null) {
@@ -173,11 +173,9 @@ export default class TreeRegistry {
 	 *
 	 * After successful completion, all pending operations are cleared.
 	 *
-	 * @returns {Promise<{added: string[], updated: string[], unchanged: string[], removed: string[],
-	 * treeStats: Map<import('./SharedHashTree.js').default,
-	 * {added: string[], updated: string[], unchanged: string[], removed: string[]}>}>}
-	 *          Object containing arrays of resource paths categorized by operation result,
-	 *          plus per-tree statistics showing which resource paths were added/updated/unchanged/removed in each tree
+	 * @returns {Promise<object>}
+	 *          Object containing arrays of resource paths categorized by operation result
+	 *          (added, updated, unchanged, removed), plus per-tree statistics (treeStats Map)
 	 */
 	async flush() {
 		if (this.pendingUpserts.size === 0 && this.pendingRemovals.size === 0) {
@@ -550,7 +548,7 @@ export default class TreeRegistry {
 	 * Returns an array of TreeNode objects representing the full path,
 	 * starting with root at index 0 and ending with the target node.
 	 *
-	 * @param {import('./SharedHashTree.js').default} tree - Tree to traverse
+	 * @param {@ui5/project/build/cache/index/SharedHashTree} tree - Tree to traverse
 	 * @param {string[]} pathParts - Path components to follow
 	 * @returns {Array<TreeNode>} Array of TreeNode objects along the path
 	 */
@@ -576,9 +574,9 @@ export default class TreeRegistry {
 	 * need their hashes recomputed to reflect the change. This method tracks those paths
 	 * in the affectedTrees map for later batch processing.
 	 *
-	 * @param {import('./SharedHashTree.js').default} tree - Tree containing the affected path
+	 * @param {@ui5/project/build/cache/index/SharedHashTree} tree - Tree containing the affected path
 	 * @param {string[]} pathParts - Path components of the modified resource/directory
-	 * @param {Map<import('./SharedHashTree.js').default, Set<string>>} affectedTrees
+	 * @param {Map<SharedHashTree, Set<string>>} affectedTrees
 	 * 	 Map tracking affected paths per tree
 	 */
 	_markAncestorsAffected(tree, pathParts, affectedTrees) {
@@ -598,7 +596,7 @@ export default class TreeRegistry {
 	 * It's used during upsert operations to automatically create parent directories
 	 * when inserting resources into paths that don't yet exist.
 	 *
-	 * @param {import('./SharedHashTree.js').default} tree - Tree to create directory path in
+	 * @param {@ui5/project/build/cache/index/SharedHashTree} tree - Tree to create directory path in
 	 * @param {string[]} pathParts - Path components of the directory to ensure exists
 	 * @returns {TreeNode} The directory node at the end of the path
 	 */
