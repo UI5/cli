@@ -653,14 +653,19 @@ test.serial("Build application.a (multiple custom tasks 2)", async (t) => {
 	});
 });
 
+// eslint-disable-next-line ava/no-skip-test
 test.serial.skip("Build application.a (dependency content changes)", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
 
-	// This test should cover a scenario with an application depending on a library.
-	// Specifically, we're directly modifying the contents of the library
-	// which should have effects on the application because a custom task will detect it
-	// and modify the application's resources. The application is expected to get rebuilt.
+	// Scenario: A custom task reads dependency resources via taskUtil.getProject().getReader() and conditionally
+	// modifies application resources based on what it finds. When the dependency content changes, the application
+	// should be rebuilt so the custom task can react to the new dependency state.
+	//
+	// Currently skipped: The custom task accesses dependencies through taskUtil.getProject("library.d").getReader()
+	// rather than the monitored "dependencies" reader parameter. Reads through this path are not tracked by the
+	// caching system's ResourceRequestManager, so dependency changes don't invalidate the application's result cache.
+	// Fixing this requires tracking reads made via taskUtil.getProject().getReader() as dependency requests.
 
 	// #1 build (no cache, no changes, no dependencies)
 	await fixtureTester.buildProject({
@@ -720,7 +725,7 @@ test.serial.skip("Build application.a (dependency content changes)", async (t) =
 		assertions: {
 			projects: {
 				"library.d": {},
-				"application.a": { // FIXME: currently failing (getting skipped entirely)
+				"application.a": {
 					skippedTasks: [
 						"enhanceManifest",
 						"escapeNonAsciiCharacters",
