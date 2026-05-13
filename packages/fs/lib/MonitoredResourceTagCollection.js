@@ -22,7 +22,7 @@ class MonitoredTagCollection {
 	/**
 	 * Returns tags created or cleared via this MonitoredTagCollection during the execution of a task
 	 *
-	 * @returns {Map<string, Map<string, {string|number|boolean|undefined}>>}
+	 * @returns {Map<string, Map<string, *>>}
 	 *  Map of resource paths to their tags that were set or cleared during this task's execution
 	 */
 	getTagOperations() {
