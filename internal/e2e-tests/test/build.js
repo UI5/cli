@@ -183,13 +183,6 @@ describe("ui5 build", () => {
 		await fs.writeFile(newControllerPath, newControllerContent, "utf-8");
 
 		// #2 Build
-		// FIXME: Currently failing here for IB (https://github.com/UI5/cli/pull/1267), April 02 2026 - aa3a2c1c04f7a5cd27650335cde37a798baacf2a
-		// Error message:
-		// ("Minification failed with error: Unexpected token punc «{», expected punc «,»
-		// in file /resources/application/a/controller/New.controller.js (line 4, col 16, pos 114)")
-		//
-		// -> Probably, the string replacement doesn't get executed as very first middleware
-		// (minify happens earlier unexpectedly)
 		await fixtureHelper.build(assert, ui5YamlName);
 
 		// Test: the placeholder in the source file is replaced in the dist output

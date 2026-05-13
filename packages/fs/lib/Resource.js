@@ -1,4 +1,4 @@
-import {Readable} from "node:stream";
+import {Readable, PassThrough} from "node:stream";
 import {buffer as streamToBuffer} from "node:stream/consumers";
 import ssri from "ssri";
 import clone from "clone";
@@ -528,6 +528,15 @@ class Resource {
 			this.#createStreamFactory = stream;
 			this.#contentType = CONTENT_TYPES.FACTORY;
 		} else {
+			if (stream instanceof TransformStream) {
+				stream = Readable.fromWeb(stream.readable);
+			} else if (!(Symbol.asyncIterator in stream)) {
+				// Legacy streams (e.g. from readable-stream@2) that lack Symbol.asyncIterator
+				// need to be wrapped in a native stream to be consumed by stream/consumers
+				const wrapper = new PassThrough();
+				stream.pipe(wrapper);
+				stream = wrapper;
+			}
 			this.#content = stream;
 			this.#contentType = CONTENT_TYPES.STREAM;
 		}
