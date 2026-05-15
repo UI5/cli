@@ -8,7 +8,6 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  id-token: write # Required for trusted publishing via OIDC (https://docs.npmjs.com/trusted-publishers)
 
 jobs:
   release-please:
@@ -60,6 +59,10 @@ jobs:
     runs-on: ubuntu-24.04
     needs: release-please
     if: needs.release-please.outputs.releases_created == 'true'
+    permissions:
+      id-token: write # Required for trusted publishing via OIDC (https://docs.npmjs.com/trusted-publishers)
+    # The GitHub Actions Environment configured for the trusted publisher
+    environment: npmjs:ui5-cli-mono
     strategy:
       # Sequential publishing ensures dependencies exist on NPM before dependents are published
       # Order: logger → fs → builder → server → project (CLI handled separately for shrinkwrap generation)
@@ -87,6 +90,10 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [release-please, publish-packages]
     if: needs.release-please.outputs.releases_created == 'true'
+    permissions:
+      id-token: write # Required for trusted publishing via OIDC (https://docs.npmjs.com/trusted-publishers)
+    # The GitHub Actions Environment configured for the trusted publisher
+    environment: npmjs:ui5-cli-mono
     steps:
       - uses: actions/checkout@v6
 
