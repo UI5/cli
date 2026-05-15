@@ -55,6 +55,6 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Close parallel build
-        uses: coverallsapp/github-action@v2.3.7
+        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b # v2.3.6
         with:
           parallel-finished: true
