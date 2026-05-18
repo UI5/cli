@@ -198,6 +198,27 @@ Delete the custom `test/Test.qunit.html` file from your test directory. This fil
 Depending on your project setup, you might need to update additional paths in configuration files or test runners to reflect the new structure.
 The test suite is now served under the standard `/test-resources/` path with the component's full namespace (e.g. `/test-resources/sap/ui/demo/todo/testsuite.qunit.html`).
 
+## Removal of Standard Server Middleware
+
+The following middleware has been removed from the [standard middlewares list](../pages/Server.md#standard-middleware):
+
+* `serveThemes` — Theme compilation (LESS to CSS) is now handled by the `buildThemes` build task during the incremental build, rather than on-demand during runtime. The resulting CSS files are served via the `serveResources` middleware. This change improves performance through build-time compilation and caching while maintaining the same functionality.
+
+**Backward Compatibility:**
+If your project or any custom middleware references a removed middleware via `beforeMiddleware` or `afterMiddleware`, UI5 CLI will automatically remap the reference to the nearest remaining middleware and log a deprecation warning. Your custom middleware will still be executed in the expected order.
+
+**What Changed:**
+- Theme CSS files (`library.css`, `library-RTL.css`, etc.) are now **pre-built** during the incremental build
+- Files are served via `serveResources` instead of being compiled on-demand
+- The same CSS files are available at the same URLs as before
+
+**Recommended Action:**
+Update your `ui5.yaml` configuration to reference an existing middleware instead.
+
+| Removed Middleware | Replacement Behavior | Recommended `afterMiddleware` |
+| ------------------ | -------------------- | ----------------------------- |
+| `serveThemes`      | CSS files pre-built by `buildThemes` task and served via `serveResources` | `testRunner` |
+
 ## Learn More
 
 - [Project: Type `component`](../pages/Project#component)
