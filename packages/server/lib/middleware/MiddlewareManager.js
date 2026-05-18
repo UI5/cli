@@ -107,6 +107,7 @@ class MiddlewareManager {
 
 		if (beforeMiddleware || afterMiddleware) {
 			let refMiddlewareName = beforeMiddleware || afterMiddleware;
+			const originalRefMiddlewareName = refMiddlewareName; // Store original before any remapping
 			let refMiddlewareIdx = this.middlewareExecutionOrder.indexOf(refMiddlewareName);
 
 			if (refMiddlewareName === "connectUi5Proxy") {
@@ -120,12 +121,11 @@ class MiddlewareManager {
 			// Handle legacy middleware with graceful fallback
 			const legacyMapping = LEGACY_MIDDLEWARE_MAPPING[refMiddlewareName];
 			if (legacyMapping) {
-				const originalRef = refMiddlewareName;
 				// Replace with the appropriate fallback based on reference type
 				refMiddlewareName = afterMiddleware ? legacyMapping.before : legacyMapping.after;
 
 				log.warn(
-					`Standard middleware "${originalRef}" has been removed. ` +
+					`Standard middleware "${originalRefMiddlewareName}" has been removed. ` +
 					`Custom middleware "${middlewareName}" defined in project ` +
 					`"${this.middlewareUtil.getProject()}" references it and ` +
 					`is now placed ${afterMiddleware ? "after" : "before"} ` +
@@ -137,8 +137,14 @@ class MiddlewareManager {
 			refMiddlewareIdx = this.middlewareExecutionOrder.indexOf(refMiddlewareName);
 
 			if (refMiddlewareIdx === -1) {
-				throw new Error(`Could not find middleware ${refMiddlewareName}, referenced by custom ` +
-					`middleware ${middlewareName}`);
+				// Provide clear error message, including remapping context if applicable
+				const errorMsg = legacyMapping ?
+					`Could not find fallback middleware "${refMiddlewareName}" ` +
+					`(mapped from removed middleware "${originalRefMiddlewareName}"), ` +
+					`referenced by custom middleware "${middlewareName}"` :
+					`Could not find middleware ${refMiddlewareName}, referenced by custom ` +
+					`middleware ${middlewareName}`;
+				throw new Error(errorMsg);
 			}
 			if (afterMiddleware) {
 				// Insert after index of referenced middleware

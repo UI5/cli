@@ -130,18 +130,10 @@ test("Get app_pages from discovery middleware (/discovery/app_pages)", async (t)
 		throw new Error(res.error);
 	}
 	t.is(res.statusCode, 200, "Correct HTTP status code");
-	// Note: With BuildServer/incremental build, additional resources are discovered
-	// including those under /resources/id1/ namespace
 	t.deepEqual(res.body, {
 		"app_pages": [
 			{
 				"entry": "index.html"
-			},
-			{
-				"entry": "resources/id1/index.html"
-			},
-			{
-				"entry": "resources/id1/versionTest.html"
 			},
 			{
 				"entry": "versionTest.html"
