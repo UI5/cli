@@ -33,7 +33,7 @@ Projects using older **Specification Versions** are expected to be **fully compa
 
 With Specification Version 5.0, the option `--cache-mode` (for commands `ui5 build` and `ui5 serve`) has been renamed to `--snapshot-cache`.
 
-The behavior remains the same. When `--cache-mode` is used, a deprecation warning is logged and `--snapshot-cache` is set to `Default`.
+When legacy `--cache-mode` is used, the behavior remains the same but a deprecation warning is logged. When both `--snapshot-cache` and `--cache-mode` are used, successor `--snapshot-cache` always gets priority.
 
 ## UI5 CLI Init Command
 
