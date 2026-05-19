@@ -1,7 +1,7 @@
 import path from "node:path/posix";
 import TreeNode from "./TreeNode.js";
 import {tagsEqual} from "./HashTree.js";
-import {matchResourceMetadataStrict} from "../utils.js";
+import {isResourceUnchanged} from "../utils.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("build:cache:index:TreeRegistry");
 
@@ -274,8 +274,8 @@ export default class TreeRegistry {
 		const upsertsByDir = new Map(); // parentPath -> [{resourceName, resource, fullPath, sourceTree}]
 
 		const phase2Start = perfEnabled ? performance.now() : 0;
-		let matchMetadataStrictCalls = 0;
-		let matchMetadataUnchanged = 0;
+		let isUnchangedCalls = 0;
+		let isUnchangedHits = 0;
 		let modifiedNodesSkips = 0;
 
 		for (const [resourcePath, {resource, sourceTree}] of this.pendingUpserts) {
@@ -290,7 +290,7 @@ export default class TreeRegistry {
 		}
 
 		// Pre-resolve I/O for resources that don't exist in any tree (genuinely new).
-		// For existing resources, matchResourceMetadataStrict's lastModified short-circuit
+		// For existing resources, isResourceUnchanged's lastModified short-circuit
 		// avoids I/O in the common case, so those are handled serially in the loop below.
 		const resolvedNewMetadata = new Map();
 		const newResourcePaths = [];
@@ -413,7 +413,7 @@ export default class TreeRegistry {
 							}
 						} else {
 							// First time seeing this node — do full comparison
-							matchMetadataStrictCalls++;
+							isUnchangedCalls++;
 							const currentMetadata = {
 								integrity: resourceNode.integrity,
 								lastModified: resourceNode.lastModified,
@@ -421,7 +421,7 @@ export default class TreeRegistry {
 								inode: resourceNode.inode
 							};
 
-							const isUnchanged = await matchResourceMetadataStrict(
+							const isUnchanged = await isResourceUnchanged(
 								upsert.resource,
 								currentMetadata,
 								tree.getIndexTimestamp()
@@ -444,7 +444,7 @@ export default class TreeRegistry {
 									updatedResources.push(upsert.fullPath);
 								}
 							} else {
-								matchMetadataUnchanged++;
+								isUnchangedHits++;
 								unchangedNodes.add(resourceNode);
 								const currentTags =
 									upsert.resource.getTags?.() ?? upsert.resource.tags ?? null;
@@ -528,8 +528,8 @@ export default class TreeRegistry {
 				`phase1(removals)=${(phase2Start - phase1Start).toFixed(2)} ms, ` +
 				`phase2(upserts)=${(phase3Start - phase2Start).toFixed(2)} ms, ` +
 				`phase3(rehash)=${(now - phase3Start).toFixed(2)} ms | ` +
-				`matchMetadataStrictCalls=${matchMetadataStrictCalls}, ` +
-				`matchMetadataUnchanged=${matchMetadataUnchanged}, ` +
+				`isUnchangedCalls=${isUnchangedCalls}, ` +
+				`isUnchangedHits=${isUnchangedHits}, ` +
 				`modifiedNodesSkips=${modifiedNodesSkips}`);
 		}
 

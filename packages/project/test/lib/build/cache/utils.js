@@ -1,7 +1,6 @@
 import test from "ava";
 import {
-	matchResourceMetadata,
-	matchResourceMetadataStrict,
+	isResourceUnchanged,
 	createResourceIndex,
 	firstTruthy
 } from "../../../../lib/build/cache/utils.js";
@@ -26,168 +25,100 @@ function createMockResource(opts = {}) {
 	};
 }
 
-// === matchResourceMetadata ===
+// === isResourceUnchanged ===
 
-test("matchResourceMetadata: throws when resource is undefined", async (t) => {
-	await t.throwsAsync(matchResourceMetadata(null, {integrity: "x"}), {
+test("isResourceUnchanged: throws when resource is undefined", async (t) => {
+	await t.throwsAsync(isResourceUnchanged(null, {integrity: "x"}), {
 		message: /Cannot compare undefined/
 	});
 });
 
-test("matchResourceMetadata: throws when metadata is undefined", async (t) => {
-	await t.throwsAsync(matchResourceMetadata(createMockResource(), null), {
+test("isResourceUnchanged: throws when metadata is undefined", async (t) => {
+	await t.throwsAsync(isResourceUnchanged(createMockResource(), null), {
 		message: /Cannot compare undefined/
 	});
 });
 
-test("matchResourceMetadata: returns false if resource modified after index timestamp", async (t) => {
-	const resource = createMockResource({lastModified: 2000});
-	const metadata = {lastModified: 1000, size: 100, integrity: "hash-a"};
-	t.false(await matchResourceMetadata(resource, metadata, 1500));
-});
-
-test("matchResourceMetadata: returns false if lastModified differs", async (t) => {
-	const resource = createMockResource({lastModified: 2000});
-	const metadata = {lastModified: 1000, size: 100, integrity: "hash-a"};
-	t.false(await matchResourceMetadata(resource, metadata));
-});
-
-test("matchResourceMetadata: returns false if size differs", async (t) => {
-	const resource = createMockResource({lastModified: 1000, size: 200});
-	const metadata = {lastModified: 1000, size: 100, integrity: "hash-a"};
-	t.false(await matchResourceMetadata(resource, metadata));
-});
-
-test("matchResourceMetadata: returns false if inodes differ", async (t) => {
-	const resource = createMockResource({lastModified: 1000, size: 100, inode: 5});
-	const metadata = {lastModified: 1000, size: 100, inode: 10, integrity: "hash-a"};
-	t.false(await matchResourceMetadata(resource, metadata));
-});
-
-test("matchResourceMetadata: skips inode check when metadata inode is undefined", async (t) => {
-	const resource = createMockResource({lastModified: 1000, size: 100, inode: 5});
-	const metadata = {lastModified: 1000, size: 100, integrity: "hash-a"};
-	t.true(await matchResourceMetadata(resource, metadata));
-});
-
-test("matchResourceMetadata: skips inode check when resource inode is undefined", async (t) => {
-	const resource = createMockResource({lastModified: 1000, size: 100, inode: undefined});
-	const metadata = {lastModified: 1000, size: 100, inode: 10, integrity: "hash-a"};
-	t.true(await matchResourceMetadata(resource, metadata));
-});
-
-test("matchResourceMetadata: race condition - integrity check when lastModified equals indexTimestamp", async (t) => {
-	const resource = createMockResource({lastModified: 1000, size: 100, integrity: "hash-different"});
-	const metadata = {lastModified: 1000, size: 100, integrity: "hash-a", inode: 1};
-	t.false(await matchResourceMetadata(resource, metadata, 1000));
-});
-
-test("matchResourceMetadata: race condition - passes if integrity matches", async (t) => {
-	const resource = createMockResource({lastModified: 1000, size: 100, integrity: "hash-a"});
-	const metadata = {lastModified: 1000, size: 100, integrity: "hash-a", inode: 1};
-	t.true(await matchResourceMetadata(resource, metadata, 1000));
-});
-
-test("matchResourceMetadata: returns true when all checks pass", async (t) => {
-	const resource = createMockResource({lastModified: 1000, size: 100, inode: 1});
-	const metadata = {lastModified: 1000, size: 100, inode: 1, integrity: "hash-a"};
-	t.true(await matchResourceMetadata(resource, metadata, 2000));
-});
-
-// === matchResourceMetadataStrict ===
-
-test("matchResourceMetadataStrict: throws when resource is undefined", async (t) => {
-	await t.throwsAsync(matchResourceMetadataStrict(null, {integrity: "x"}), {
-		message: /Cannot compare undefined/
-	});
-});
-
-test("matchResourceMetadataStrict: throws when metadata is undefined", async (t) => {
-	await t.throwsAsync(matchResourceMetadataStrict(createMockResource(), null), {
-		message: /Cannot compare undefined/
-	});
-});
-
-test("matchResourceMetadataStrict: short-circuits true when lastModified matches and not at indexTimestamp",
+test("isResourceUnchanged: short-circuits true when lastModified matches and not at indexTimestamp",
 	async (t) => {
 		const resource = createMockResource({lastModified: 1000});
 		const metadata = {lastModified: 1000, size: 100, integrity: "hash-a"};
-		t.true(await matchResourceMetadataStrict(resource, metadata, 2000));
+		t.true(await isResourceUnchanged(resource, metadata, 2000));
 	});
 
-test("matchResourceMetadataStrict: falls through when lastModified matches indexTimestamp (race)", async (t) => {
+test("isResourceUnchanged: falls through when lastModified matches indexTimestamp (race)", async (t) => {
 	const resource = createMockResource({lastModified: 1000, size: 100, integrity: "hash-a"});
 	const metadata = {lastModified: 1000, size: 100, integrity: "hash-a"};
-	t.true(await matchResourceMetadataStrict(resource, metadata, 1000));
+	t.true(await isResourceUnchanged(resource, metadata, 1000));
 });
 
 // Mtime is not a content fingerprint: cp -p, tar -x, rsync -t and atomic renames
 // can preserve it across content changes. Verify that size mismatch is detected
 // even when lastModified matches the cached value.
 test(
-	"matchResourceMetadataStrict: returns false when content changed but mtime preserved (size differs)",
+	"isResourceUnchanged: returns false when content changed but mtime preserved (size differs)",
 	async (t) => {
 		const resource = createMockResource({lastModified: 1000, size: 200, integrity: "hash-different"});
 		const metadata = {lastModified: 1000, size: 100, integrity: "hash-a"};
-		t.false(await matchResourceMetadataStrict(resource, metadata, 2000));
+		t.false(await isResourceUnchanged(resource, metadata, 2000));
 	}
 );
 
-test("matchResourceMetadataStrict: returns false when size differs", async (t) => {
+test("isResourceUnchanged: returns false when size differs", async (t) => {
 	const resource = createMockResource({lastModified: 2000, size: 200});
 	const metadata = {lastModified: 1000, size: 100, integrity: "hash-a"};
-	t.false(await matchResourceMetadataStrict(resource, metadata, 500));
+	t.false(await isResourceUnchanged(resource, metadata, 500));
 });
 
-test("matchResourceMetadataStrict: falls through to integrity when lastModified differs but size matches",
+test("isResourceUnchanged: falls through to integrity when lastModified differs but size matches",
 	async (t) => {
 		const resource = createMockResource({lastModified: 2000, size: 100, integrity: "hash-a"});
 		const metadata = {lastModified: 1000, size: 100, integrity: "hash-a"};
-		t.true(await matchResourceMetadataStrict(resource, metadata, 500));
+		t.true(await isResourceUnchanged(resource, metadata, 500));
 	});
 
-test("matchResourceMetadataStrict: returns false when integrity differs", async (t) => {
+test("isResourceUnchanged: returns false when integrity differs", async (t) => {
 	const resource = createMockResource({lastModified: 2000, size: 100, integrity: "different"});
 	const metadata = {lastModified: 1000, size: 100, integrity: "hash-a"};
-	t.false(await matchResourceMetadataStrict(resource, metadata, 500));
+	t.false(await isResourceUnchanged(resource, metadata, 500));
 });
 
-test("matchResourceMetadataStrict: no indexTimestamp - falls through on matching lastModified", async (t) => {
+test("isResourceUnchanged: no indexTimestamp - falls through on matching lastModified", async (t) => {
 	const resource = createMockResource({lastModified: 1000, size: 100, integrity: "hash-a"});
 	const metadata = {lastModified: 1000, size: 100, integrity: "hash-a"};
-	t.true(await matchResourceMetadataStrict(resource, metadata));
+	t.true(await isResourceUnchanged(resource, metadata));
 });
 
 // An atomic rename with preserved mtime (cp -p, mv tmp, ...) yields a new inode
 // without changing size or lastModified. The size+mtime cheap path would
 // otherwise short-circuit and serve a stale cache hit; force the integrity
 // check whenever the inode disagrees.
-test("matchResourceMetadataStrict: inode mismatch forces integrity check (content unchanged)",
+test("isResourceUnchanged: inode mismatch forces integrity check (content unchanged)",
 	async (t) => {
 		const resource = createMockResource({lastModified: 1000, size: 100, inode: 2, integrity: "hash-a"});
 		const metadata = {lastModified: 1000, size: 100, inode: 1, integrity: "hash-a"};
-		t.true(await matchResourceMetadataStrict(resource, metadata, 2000));
+		t.true(await isResourceUnchanged(resource, metadata, 2000));
 	});
 
-test("matchResourceMetadataStrict: inode mismatch detects same-size content change",
+test("isResourceUnchanged: inode mismatch detects same-size content change",
 	async (t) => {
 		const resource = createMockResource({lastModified: 1000, size: 100, inode: 2, integrity: "hash-different"});
 		const metadata = {lastModified: 1000, size: 100, inode: 1, integrity: "hash-a"};
-		t.false(await matchResourceMetadataStrict(resource, metadata, 2000));
+		t.false(await isResourceUnchanged(resource, metadata, 2000));
 	});
 
-test("matchResourceMetadataStrict: skips inode check when cached metadata has no inode",
+test("isResourceUnchanged: skips inode check when cached metadata has no inode",
 	async (t) => {
 		const resource = createMockResource({lastModified: 1000, size: 100, inode: 7, integrity: "hash-a"});
 		const metadata = {lastModified: 1000, size: 100, integrity: "hash-a"};
-		t.true(await matchResourceMetadataStrict(resource, metadata, 2000));
+		t.true(await isResourceUnchanged(resource, metadata, 2000));
 	});
 
-test("matchResourceMetadataStrict: skips inode check when resource has no inode",
+test("isResourceUnchanged: skips inode check when resource has no inode",
 	async (t) => {
 		const resource = createMockResource({lastModified: 1000, size: 100, inode: undefined, integrity: "hash-a"});
 		const metadata = {lastModified: 1000, size: 100, inode: 5, integrity: "hash-a"};
-		t.true(await matchResourceMetadataStrict(resource, metadata, 2000));
+		t.true(await isResourceUnchanged(resource, metadata, 2000));
 	});
 
 // === createResourceIndex ===
