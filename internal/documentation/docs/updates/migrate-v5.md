@@ -31,7 +31,7 @@ Projects using older **Specification Versions** are expected to be **fully compa
 
 ## Rename of Command Option
 
-With Specification Version 5.0, the option `--cache-mode` (for commands `ui5 build` and `ui5 serve`) has been renamed to `--snapshot-cache`.
+With UI5 CLI v5, the option `--cache-mode` (for commands `ui5 build` and `ui5 serve`) has been renamed to `--snapshot-cache`.
 
 When legacy `--cache-mode` is used, the behavior remains the same but a deprecation warning is logged. When both `--snapshot-cache` and `--cache-mode` are used, successor `--snapshot-cache` always gets priority.
 
