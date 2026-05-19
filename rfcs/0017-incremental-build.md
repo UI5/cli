@@ -163,17 +163,21 @@ The `Project Builder` shall be enhanced to:
 
 The `Task Runner` shall be enhanced to:
 
-1. Request the build signature of any tasks implementing the `determineBuildSignature` method at the beginning of the build process (see [Build Task API Changes](#build-task-api-changes)). These signatures are then incorporated into the overall build signature of the project (see [Cache Creation](#cache-creation)).
+1. _[Not yet integrated]_ Request the build signature of any tasks implementing the `determineBuildSignature` method at the beginning of the build process (see [Build Task API Changes](#build-task-api-changes)). These signatures are then incorporated into the overall build signature of the project (see [Cache Creation](#cache-creation)).
 2. Before executing each task, allow the `Project Build Cache` to prepare the task execution and determine whether the task needs to be executed or can be skipped based on valid cache data.
-3. _[TODO: Revisit this concept] Before executing a task, call the `determineExpectedOutput` method if provided. This allows the task to specify which resources it expects to write during its execution. The `Project Build Cache` can then use this information to detect and remove stale output resources that were produced in a previous execution of the task, but are no longer produced in the current execution._
+3. _[Not yet integrated]_ Before executing a task, call the `determineExpectedOutput` method if provided. This allows the task to specify which resources it expects to write during its execution. The `Project Build Cache` can then use this information to detect and remove stale output resources that were produced in a previous execution of the task, but are no longer produced in the current execution.
 4. Execute the task, optionally providing it with a list of changed resource paths since the last execution. This can be used by tasks supporting `differential builds` to only process changed resources (see [Build Task API Changes](#build-task-api-changes) below).
-5. After a task has been executed, allow the `Project Build Cache` to update the cache using information on which resources have been read during the task's execution as well as its output resources. _(to be discussed: also the set of resources expected to be written, as provided by the `determineExpectedOutput` method?)_
+5. After a task has been executed, allow the `Project Build Cache` to update the cache using information on which resources have been read during the task's execution as well as its output resources.
 	* The resources read by a task are determined by providing the task with `workspace` and `dependencies` reader/writer instances that have been wrapped in ["Monitored Reader"](#monitored-reader) instances. They are responsible for observing which resources are accessed during the task's execution.
 	* The `Project Build Cache` will then:
 		* Update the metadata in the respective `Build Task Cache` with the set of resources read by the task ("resource requests")
 		* Compile a new "signature" for the task's input resources and store this, along with the project's current stage instance, in the in-memory Stage Cache of the `Project Build Cache` (mapping a stage signature to an earlier cached stage instance).
 		* _Delete or tag resources that have become stale_
 		* Using the set of changed resource paths, check which downstream tasks need to be potentially invalidated (see [Cache Invalidation](#cache-invalidation))
+
+##### Processor Return Value Convention
+
+Resource processors invoked from a task may return `undefined` for an input resource in their result array to indicate that the resource was not modified. The task runner interprets this as "use the input resource as-is" and skips the corresponding write to the writer stage. This avoids redundant cache entries and unnecessary downstream invalidation when a processor inspects but does not change a resource.
 
 ##### Build Task API Changes
 
@@ -189,7 +193,7 @@ Build tasks can now optionally support "differential builds" by implementing the
 	* Returns: `undefined` or an arbitrary string representing the build signature for the task. This can be used to incorporate task-specific configuration files (e.g. tsconfig.json for a TypeScript compilation task) into the build signature of the project, causing the cache to be invalidated if those files change. The string should not be a hash value (the build signature hash is calculated later). If `undefined` is returned, or if the method is not implemented, it is assumed that the task's cache remains valid until relevant input resources change.
 	* This method is called once at the beginning of every build. The return value is used to calculate a unique signature for the task based on its configuration. This signature is then incorporated into the overall build signature of the project (see [Cache Creation](#cache-creation) below).
 	* Might return a list of file paths that shall be watched for changes (when running in watch mode). On change, the build signature is recalculated and the cache invalidated if it has changed.
-* **async determineExpectedOutput({workspace, dependencies, cacheUtil, log, options})**: _**TODO: Stale output detection is essential for cache correctness — without it, resources from a previous build that are no longer produced will persist in the cache. This concept must be finalized before the incremental build is considered complete.**_
+* **async determineExpectedOutput({workspace, dependencies, cacheUtil, log, options})**: _**Not yet integrated. Stale output detection is essential for cache correctness — without it, resources from a previous build that are no longer produced will persist in the cache. This concept must be finalized before the incremental build is considered complete.**_
 	* `workspace`: Reader to access resources of the project's `workspace` (read only)
 	* `dependencies`: Reader to access resources of the project's dependencies
 	* `cacheUtil`: Same as above
@@ -222,16 +226,14 @@ When a resource changes, only the hashes along the path from the changed leaf no
 
 ![Hash_Tree](./resources/0017-incremental-build/Hash_Tree.png)
 
-The integrity hash of a source file shall be calculated based on its raw content. A SHA256 hash shall be used for this purpose. Internally, the hash shall be stored in Base64 format to reduce the size of stored metadata. A library like [ssri](https://github.com/npm/ssri) may be used for this purpose, allowing easy interoperability with [cacache](#cacache) (see below).
+The integrity hash of a source file shall be calculated based on its raw content. A SHA256 hash shall be used for this purpose. Internally, the hash shall be stored in Sub-Resource Integrity (SRI) format (`sha256-<base64>`) to allow direct use as CAS keys.
 
 When comparing the stored metadata with a current source file, the following attributes shall be considered before computing a resource's integrity hash:
 * `lastModified`: Modification time
 * `size`: File size
-* `inode`: Inode number (to detect file replacements)
+* `inode`: Inode number (stored for future use, but currently not used in comparisons)
 
-_TODO: Revisit the use of inode numbers for change detection. Inodes are filesystem-specific and not stable across different filesystems, network mounts, or container rebuilds. This may limit cache portability. Consider making inode checks optional or fallback-only._
-
-If **any** of these attributes differ, the file may be modified, requiring the computation of the integrity hash to confirm the change.
+If **any** of these attributes differ, the file may be modified, and its integrity hash shall be computed to confirm the change.
 
 Each hash tree also contains an "index timestamp", representing the last time the index has been updated from disk. This allows quick invalidation if source files have a modification time later than this timestamp.
 
@@ -247,7 +249,7 @@ Shared Hash Trees are managed by a `Tree Registry`. Changes made to any Shared H
 
 ### Cache Creation
 
-The build cache shall be serialized to disk in order to reuse it in successive UI5 CLI executions. This will be done using a **Content-Addressable Storage (CAS)** model, which separates file content from metadata, and a **dedicated metadata storage**. The CAS ensures that each unique file content is stored only once on disk, greatly reducing disk space usage and improving I/O performance.
+The build cache shall be serialized to disk in order to reuse it in successive UI5 CLI executions. This is done using a single **SQLite database** (WAL mode) that stores both content-addressable resource BLOBs and all metadata in dedicated tables. The CAS table ensures that each unique file content is stored only once, greatly reducing disk space usage and improving I/O performance. Using a single database eliminates the overhead of managing thousands of small files on disk and provides transactional consistency for cache writes.
 
 Each project build has its own global metadata cache. This allows reuse of a project's cache across multiple consuming projects. For example, the `sap.ui.core` library could be built once and the build cache can then be reused in the build of multiple applications that reference the project. A "project build" is defined by its [`build signature`](#build-signature).
 
@@ -262,12 +264,12 @@ This specifically applies to source files that are accessible to dependent proje
 The CAS-stored source files are tracked using a flat index of resource paths mapped to their CAS metadata (integrity hash, size, etc.), similar to the [Stage Metadata](#stage-metadata) of task outputs. This source stage index is stored as part of the [Result Metadata](#result-metadata) under the project's source-index signature. This is important because in subsequent builds where the dependency project has not been modified, the build can skip rebuilding the dependency entirely and still reference its source files from the CAS via the stored index — again eliminating the risk of race conditions without requiring a rebuild.
 
 The cache consists of the following components:
-1. A global CAS where all file contents are stored, identified by their content-integrity hash.
-2. Metadata per project build (identified by its build signature), consisting of:
-	* [Index Cache](#index-cache): Serialized [Hash Tree](#hash-tree) of all **source** files of the project, as well as a list of all build task names executed during the build.
-	* Task Metadata: Stores all resource requests of a build task, as well as serialized [Shared Hash Trees](#shared-hash-tree) representing the input resources of the task during its last execution.
-	* Stage Metadata: Contains the resource metadata for a given stage. The metadata can be used to access the resource content in the content-addressable store, allowing restoration of the output of a task or the final build result of a project (by combining multiple stages).
-	* Result Metadata: Maps a set of stage metadata that produced a final build result for a given project state (represented by the project's source index signature and the signatures of relevant dependencies).
+1. A `content` table acting as the global CAS, storing resource BLOBs keyed by their SRI integrity hash.
+2. Metadata tables per project build (identified by its build signature):
+	* `index_cache`: Serialized [Hash Tree](#hash-tree) of all **source** files of the project, as well as a list of all build task names executed during the build.
+	* `task_metadata`: Stores all resource requests of a build task, as well as serialized [Shared Hash Trees](#shared-hash-tree) representing the input resources of the task during its last execution.
+	* `stage_metadata`: Contains the resource metadata for a given stage. The metadata can be used to access the resource content from the `content` table, allowing restoration of the output of a task or the final build result of a project (by combining multiple stages).
+	* `result_metadata`: Maps a set of stage metadata that produced a final build result for a given project state (represented by the project's source index signature and the signatures of relevant dependencies).
 
 ![Cache Overview Diagram](./resources/0017-incremental-build/Cache_Overview.png)
 
@@ -296,13 +298,13 @@ However, there are major differences in how those two types of project states ar
 
 #### Build Signature
 
-The build signature is used to distinguish different builds of the same project. It is mainly calculated based on the **build configuration** of a project, but it also incorporates information that depends on the UI5 CLI version (specifically an internal `BUILD_SIG_VERSION` integer constant), as well as optional signatures provided by custom tasks.
+The build signature is used to distinguish different builds of the same project. It is calculated from an internal version constant (bumped whenever the cache format changes), the **build configuration**, and the project's identity and configuration.
 
-This signature is used to determine whether an existing cache can be used in a given build execution. For example, a "jsdoc" build leads to a different build signature than a regular project build, so two independent cache entries will be created on disk.
+This signature is used to determine whether an existing cache can be used in a given build execution. For example, a "jsdoc" build leads to a different build signature than a regular project build, so two independent cache entries will be created in the database.
 
-The signature is a simple hash (represented as a hexadecimal string, to allow usage in directory and file names).
+The signature is a hash represented as a hexadecimal string.
 
-A mechanism shall be created for custom tasks to provide a signature as well. This allows the incorporation of task-specific configuration files (e.g. tsconfig.json for a TypeScript compilation task) into the build signature (see [Build Task API Changes](#build-task-api-changes)).
+A mechanism for custom tasks to contribute to the build signature via `determineBuildSignature()` is defined in the Task API but not yet integrated into the build flow.
 
 ### Index Cache
 
@@ -492,37 +494,26 @@ The metadata then maps this key to the [Stage Metadata](#stage-metadata) of all 
 
 ### Cache Directory Structure
 
-A global `cas` directory stores all unique file contents from all builds, while project-specific directories contain only their lightweight metadata.
+All cache data is stored in a single SQLite database file per cache version:
 
 ```
-~/.ui5/buildCache/
-├── cas/  <-- Global Content-Addressable Store (shared across all projects) - actual representation might differ
-│   ├── c1c77edc5c689a471b12fe8ba79c51d1  (Content of one file)
-│   ├── d41d8cd98f00b204e9899998ecf8427e  (Content of another file)
-│   └── ... (all other unique file contents)
-│
-├── index/
-├── stageMetadata/
-├── taskMetadata/
-├── resultMetadata/
-└── locks/
+~/.ui5/buildCache/v0_<N>/
+└── cache.db          # Single SQLite database (WAL mode)
+    Tables:
+    - content          # CAS: resource BLOBs keyed by integrity hash
+    - index_cache      # Source/result index trees
+    - stage_metadata   # Per-task stage results
+    - task_metadata    # Resource request graphs
+    - result_metadata  # Build result mappings
 ```
 
 A new `buildCache` directory shall be added to the ~/.ui5/ directory. The location of this directory can be configured using the [`UI5_DATA_DIR` environment variable](https://ui5.github.io/cli/stable/pages/Troubleshooting/#environment-variable-ui5_data_dir).
 
-The `cas` directory contains files named by their content hash. Each file contains the raw content of a resource produced during a build. A library like [`cacache`](#cacache) should be used to manage the content-addressable store. In this case, the actual directory structure may differ from what is depicted above.
+Tables are configured for primary-key lookups only, and SQLite pragmas are tuned for cache-style workloads (WAL journaling, increased page size, memory-mapped reads, and a busy timeout to tolerate concurrent openers).
 
-Instead of storing the index cache, stage caches, and build task caches as separate files on disk, they may also be stored in a database such as LevelDB or SQLite. This would allow for faster access and reduce the number of files on disk.
+Content and large metadata BLOBs are gzip-compressed before storage; tiny resources are stored uncompressed since the gzip overhead would exceed the saving.
 
 ![Diagram illustrating the creation of a build cache](./resources/0017-incremental-build/Create_Cache.png)
-
-#### cacache
-
-The [`cacache`](https://github.com/npm/cacache) library is a well-established content-addressable cache implementation developed and used by npm itself. It provides efficient storage and retrieval of file contents based on their content hash, along with built-in mechanisms for cache integrity verification and garbage collection.
-
-It allows storing and retrieving files using a unique key. Files can also be retrieved directly by their content hash ("digest").
-
-In this concept, cacache will be used to store the content of resources produced during the build. The content shall be **compressed** to reduce disk space usage. The key for each resource is its integrity hash.
 
 ### Cache Import
 
@@ -532,7 +523,7 @@ The cache is then used to:
 1. Check the source files of the project against the deserialized hash tree to determine which files have changed since the last build
 2. Restore `Build Task Cache` instances using the respective [Build Task Metadata](#build-task-metadata) Cache
 3. Provide the `Project` with readers for the cached `writer stages` (i.e. task outputs)
-	* When the build process needs to access a cached resource, it can do so using those readers. Internally, resources are provided by first looking up their metadata in the corresponding [Stage Metadata](#stage-metadata) cache to find the resource content hash. Using this hash, the resource content can be read from the global `cas` store.
+	* When the build process needs to access a cached resource, it can do so using those readers. Internally, resources are provided by first looking up their metadata in the corresponding [Stage Metadata](#stage-metadata) cache to find the resource content hash. Using this hash, the resource content is read from the `content` table in the database.
 4. Provide dependency resource readers backed by the CAS
 	* When a dependent project's build needs to access resources of a dependency, it reads from CAS-backed readers instead of filesystem readers. This includes both task outputs and unmodified source files stored in the CAS during the dependency's build (see [Source File Storage in CAS](#source-file-storage-in-cas)). This is transparent to build tasks — the reader abstraction hides whether the content comes from CAS or the filesystem.
 
@@ -552,11 +543,31 @@ After a *project* has finished building, a list of all modified resources is com
 
 ### Concurrency
 
-Parallel builds of the same project are not supported. A lock mechanism is used to ensure that only one build process is active at a time for a given project. This simplifies cache management and avoids the complexity of concurrent cache reads/writes and cross-project invalidation during parallel execution. For race conditions arising from sequential multi-project builds, see [Race Condition Handling](#race-condition-handling).
+Parallel builds of the same project are not supported. SQLite's WAL mode provides the necessary concurrency control at the database level: multiple readers can operate concurrently, and a single writer is serialized automatically by SQLite. No external lock files are needed for raw database I/O.
 
-For the cache specifically, this can be achieved by creating a lock for the build signature. When starting the build, a shared or "read lock" shall be acquired. This allows multiple processes to read from the cache concurrently. Only when updating, i.e. writing new resources to the content-addressable store and updating the metadata cache, shall an exclusive or "write lock" be acquired. This prevents other processes from reading or writing to the cache while it is being updated. It remains to be checked whether there is potential for deadlocks, in which case a more advanced locking mechanism is required. E.g. write-locking all projects that might require a build already at the beginning of the build rather than locking individual projects during the build execution. Alternatively, timeouts can be used to release and retry locks in case of deadlocks, at dynamically increasing time intervals.
+Within a single process, the cache manager that owns the SQLite connection is a singleton per cache directory and shared across all consumers (e.g. a multi-project build, the development server). The underlying database is closed only when the last consumer releases it, so that one consumer cannot prematurely close handles that another still depends on.
 
-The lock files shall be stored in the [Cache Directory Structure](#cache-directory-structure) under a dedicated `locks` directory. Each lock file is named after the corresponding build signature and the type of lock (read or write).
+#### Cross-Process Build Coordination
+
+SQLite's database-level concurrency does not, on its own, coordinate higher-level build activity across processes. Consider this scenario:
+
+* Process 1 is building projects `a` and `b`, where `a` depends on `b`.
+* Process 2 starts a build for project `c`, which also depends on `b`.
+
+Process 2 must wait until Process 1 has finished building `b` before reading `b`'s cache. Once `b` is built, however, Process 2 should be free to read `b`'s cache and proceed with building `c` immediately — even while Process 1 is still building `a`.
+
+To achieve this, a shared/exclusive (read/write) lock shall be acquired per **build signature**:
+
+* A process building a project takes an **exclusive lock** on that project's build signature for the duration of the build.
+* A process reading a project's cache (e.g. as a dependency, or to skip rebuilding entirely) takes a **shared lock** on the build signature for the duration of the read.
+
+Multiple shared locks may coexist; an exclusive lock is incompatible with any other lock. In the scenario above, Process 1 releases its exclusive lock on `sig(b)` as soon as `b`'s build commits — Process 2's pending shared-lock acquisition on `sig(b)` then succeeds even though Process 1 still holds an exclusive lock on `sig(a)`.
+
+The locks shall be implemented as **filesystem-based locks** stored alongside the cache database (e.g. in a `locks/` subdirectory keyed by build signature), rather than as rows inside the SQLite database.
+
+#### Determining Whether the Cache Can Be Used
+
+When a process needs a project's cache, it follows an optimistic acquisition pattern: it first tries to take a **shared lock** and read the cache. If no valid cache entry exists under that lock, it releases the shared lock, acquires an **exclusive lock**, re-checks (another process may have built it in the meantime), and either builds the project or, if the cache now exists, downgrades to a shared lock and reads it.
 
 ### Race Condition Handling
 
@@ -564,7 +575,7 @@ In a multi-project build, projects are built sequentially based on their depende
 
 This is resolved by storing A's source files in the CAS at the end of A's build (see [Source File Storage in CAS](#source-file-storage-in-cas)). Dependent project B reads A's resources from the CAS using the integrity hashes recorded during A's build. This guarantees that B sees exactly the state of A's sources as they were when A was built, regardless of subsequent filesystem modifications.
 
-**Source index validation:** As an additional safeguard, a validation step is performed at the end of each project's build. The project's source index — as recorded at the start of the build — is compared against the current state of the source files on disk. If any source file has been modified during the build, the validation fails and an exception is thrown. This prevents the resulting (potentially corrupt) cache from being stored and the build result from being used. In watch mode, this will cause the build to be retried with the updated source files.
+**Source index validation:** As an additional safeguard, a validation step is performed at the end of each project's build. The project's source index — as recorded at the start of the build — is compared against the current state of the source files on disk. If any source file has been modified during the build, the validation fails and an error is thrown. This prevents the resulting (potentially corrupt) cache from being stored and the build result from being used. In watch mode, the build server treats this error as a signal to reset the affected project's source-index state and re-enqueue it for rebuild.
 
 **Scope:** This protection applies to **dependency resources only**. The root project's own source files are always read from the filesystem, as they represent the current input to the build. Modifications to the root project's sources during a build are handled by the [watch mode](#watch-mode), which detects the change and schedules a new build.
 
@@ -572,13 +583,11 @@ This is resolved by storing A's source files in the CAS at the end of A's build 
 
 ### Garbage Collection
 
-A mechanism to free unused cache resources on disk is required. The cache can potentially grow very large over time and consume a lot of disk space.
+A mechanism to free unused cache resources is required. The SQLite database can grow over time as new project versions and build configurations accumulate entries.
 
-This should use some sort of LRU-cache, in combination with the garbage collection mechanism integrated in [cacache](#cacache), to remove cache entries dynamically. The same mechanism could also be applied to the npm artifacts already downloaded by UI5 CLI today.
+_**Not yet implemented.**_ A future implementation should use some form of LRU eviction based on last-access timestamps or entry age. The garbage collection check should run as a non-blocking process after a successful `ui5 build` or `ui5 serve` command completes. If configured thresholds (age or size) have been exceeded, unused entries are removed.
 
-To avoid slowing down core commands, the garbage collection check shall run as a non-blocking process after a successful `ui5 build` or `ui5 serve` command completes. This process may check whether configured thresholds (age or size) have been exceeded. If so, it proceeds with removing unused cache entries.
-
-Additionally, a dedicated command, such as `ui5 cache clean`, shall be introduced. This command allows users to manually trigger a cache purge, providing options to specify criteria such as maximum age or size for cache entries to be removed. Similarly, a command `ui5 cache verify` may be provided to check the integrity of the cache.
+Additionally, a dedicated command, such as `ui5 cache clean`, shall be introduced. This command allows users to manually trigger a cache purge, providing options to specify criteria such as maximum age or size. Similarly, a command `ui5 cache verify` may be provided to check the integrity of the cache. In the meantime, users can simply delete the `~/.ui5/buildCache/` directory to clear all caches.
 
 ### Watch Mode
 
@@ -588,7 +597,7 @@ The watch mode shall be used by the server to automatically rebuild projects whe
 
 #### Cache Invalidation
 
-**It is to be decided** whether, besides watching relevant source files, the watch mode shall also watch configuration files relevant for the build signature (e.g. ui5.yaml, package.json, tsconfig.json, etc.). If any of those files change, a different cache would have to be used. This might be unexpected behavior to some users, where launching a development tool only reads the relevant configuration once and then keeps using it even when the underlying files change.
+**It is to be decided** whether, besides watching relevant source files, the watch mode shall also watch configuration files relevant for the build signature (e.g. ui5.yaml, package.json, tsconfig.json, etc.). If any of those files change, a different cache would have to be used. Currently, only source files are watched; configuration changes require a restart.
 
 #### Error Handling
 
@@ -600,19 +609,21 @@ If some tasks have executed successfully before the error occurred, their result
 
 ![Diagram illustrating the integration of the incremental build in the UI5 CLI server](./resources/0017-incremental-build/Server_Overview.png)
 
-The UI5 CLI server shall integrate the incremental build as a means to pre-process projects before serving the build result. It shall use the watch mode to automatically rebuild projects when source files are modified, so that the latest resources are always served.
+The UI5 CLI server integrates the incremental build via `BuildServer`, which pre-builds projects before serving and watches for source changes, automatically rebuilding affected projects and their dependents.
 
-Middleware like `serveThemes` (used for compiling LESS resources to CSS) would become obsolete, since the `buildThemes` task will be executed instead.
+Middleware like `serveThemes` (used for compiling LESS resources to CSS) becomes obsolete, since the `buildThemes` task is executed instead.
 
 If any project (root or dependency) defines custom tasks, those tasks are executed in the server as well. This makes it possible to easily integrate projects with custom tasks as dependencies.
 
-Since executing a full build requires more time than the on-the-fly processing of resources currently implemented in the UI5 CLI server, users shall be able to disable individual tasks that are not necessarily needed during development. This can be done using CLI parameters as well as ui5.yaml configuration.
+Since executing a full build requires more time than the on-the-fly processing of resources currently implemented in the UI5 CLI server, expensive tasks that are not strictly required during development (e.g. minification and bundle/preload generation) are excluded by default in serve mode. Users can further customize which tasks are disabled using CLI parameters or ui5.yaml configuration.
 
-While a build is running, the server shall pause responding to incoming requests for resources of the project that is currently being rebuilt. This is necessary to ensure that the server does not serve outdated resources. Requests for resources of other projects that are not affected by the current build shall continue to be served normally.
+While a build is running, the server pauses responding to incoming requests for resources of projects that are currently being rebuilt. This ensures that the server does not serve outdated or partially built resources. Requests for resources of other projects that are not affected by the current build continue to be served normally.
 
-The server may implement "live-reload" functionality to inform client-side code to refresh the page whenever changes have been detected and the build has finished.
+The server emits events (`buildFinished`, `sourcesChanged`, `error`) that can be consumed by middleware or future live-reload implementations.
 
 #### Live Reload
+
+_**Not yet implemented.**_
 
 The server may implement live-reload functionality to inform connected clients about changes in the build result. This can be achieved using WebSockets or Server-Sent Events (SSE).
 
@@ -622,17 +633,18 @@ For this purpose, a script shall be injected into the served HTML pages that est
 
 ## Integration in UI5 CLI
 
+The `ui5 serve` command integrates the incremental build via `BuildServer`. On startup, it builds the configured projects and watches for file changes, automatically rebuilding affected projects.
+
 The following new arguments shall be added to the `ui5 build` and `ui5 serve` commands:
 
-* `--cache-mode`: Controls the use of the build cache.
+* `--cache-mode`: _**Not yet implemented for the build cache.** (Note: The existing `--cache-mode` parameter controls framework dependency resolution caching, not the build cache. A separate parameter or repurposing is needed.)_
 	* Possible modes:
 		* Default: Use the cache if available
 		* Force: Always use the cache. If it is incomplete or invalid, fail the build
 		* Read-only: Do not create or update the cache but make use of any existing cache if available (useful for CI/CD)
 		* Off: Do not use the cache at all
-	* **To be discussed:** This clashes with the already existing [`--cache-mode` parameter](https://ui5.github.io/cli/stable/pages/CLI/#ui5-build). Should that one be renamed or repurposed?
-* `--watch`: Enables watch mode, causing the build to be re-triggered whenever a source file or relevant configuration file changes.
-	* This parameter is only relevant for the `ui5 build` command. The `ui5 serve` command shall always use the watch mode internally.
+* `--watch`: _**Not yet implemented for `ui5 build`.**_ Enables watch mode, causing the build to be re-triggered whenever a source file or relevant configuration file changes.
+	* This parameter is only relevant for the `ui5 build` command. The `ui5 serve` command always uses watch mode internally.
 
 ## How we teach this
 
@@ -653,7 +665,7 @@ All of this should be communicated in the UI5 CLI documentation and in blog post
 * Projects might have to adapt their configurations.
 * Custom tasks might need to be adapted. Previously, they could only access the sources of a project. With this change, they will access the build result instead. Access to the sources is still possible but requires the use of a dedicated API.
 * UI5 CLI standard tasks need to be adapted to use the new cache API. Especially the bundling tasks currently have no concept for partially re-creating bundles. However, this is an essential requirement to achieve fast incremental builds.
-* While the content-addressable cache is highly efficient at deduplication, the central cache can still grow very large over time. A robust [garbage collection](#garbage-collection) mechanism is critical for managing disk space.
+* The SQLite database can grow over time. A [garbage collection](#garbage-collection) mechanism is needed for managing disk space (not yet implemented).
 
 ## Alternatives
 
@@ -663,12 +675,17 @@ An alternative to using the incremental build in the UI5 CLI server would be to 
 
 * ✅ How to distinguish projects with build cache from pre-built projects (with project manifest)
 	* Check presence of "sourceMetadata" attribute. Only with "sourceMetadata" can the cache be used for incremental (re-)builds of the project. Otherwise it is "only" a build *result* that can be used for building dependent projects.
+* ✅ Storage format: SQLite with unified content + metadata tables was chosen over cacache + file-based metadata or LevelDB.
 * Cache related topics
 	* Allow tasks to store additional information in the cache
 * Some tasks might be relevant for the server only (e.g. code coverage); come up with a way to configure that
 	* This will implicitly cause the creation of different caches for server and build. This might just be an acceptable and easy to understand trade-off.
-* What if a task ceases to create a resource because of a change in another resource? The previously created version of the resource would still be served from the cache.
+* What if a task ceases to create a resource because of a change in another resource? The previously created version of the resource would still be served from the cache. (`determineExpectedOutput` is designed to address this but not yet integrated.)
 * Measure performance in BAS. Find out whether this approach results in acceptable performance.
 * Test with selected (community) custom tasks
-* Cache corruption and crash recovery: Consider cases where cache write has been interrupted
 * Add a debug command to verify the integrity of a cache by rebuilding the project and comparing the result with the cache
+* Cache corruption and crash recovery: Consider cases where cache write has been interrupted
+* Integration of `determineBuildSignature` and `determineExpectedOutput` into the build flow
+* `--cache-mode` parameter for build cache (separate from the existing framework dependency cache mode)
+* `--watch` for `ui5 build`
+* Live reload
