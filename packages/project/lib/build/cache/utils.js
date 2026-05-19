@@ -11,6 +11,7 @@ const perfCounters = {
 	calls: 0,
 	shortCircuitTrue: 0,
 	sizeMismatch: 0,
+	inodeMismatch: 0,
 	integrityFallback: 0,
 };
 export {perfCounters as matchResourceMetadataStrictCounters};
@@ -82,14 +83,7 @@ export async function matchResourceMetadataStrict(resource, cachedMetadata, inde
 	}
 	if (PERF_TRACKING) perfCounters.calls++;
 
-	// Check 1: Inode mismatch would indicate file replacement (comparison only if inodes are provided)
-	// const currentInode = resource.getInode();
-	// if (cachedMetadata.inode !== undefined && currentInode !== undefined &&
-	// 	currentInode !== cachedMetadata.inode) {
-	// 	return false;
-	// }
-
-	// Check 2: Size mismatch indicates definite content change. Required before any
+	// Size mismatch indicates a definite content change. Required before any
 	// "unchanged" decision because mtime preservation (cp -p, tar -x, rsync -t,
 	// atomic rename) does not imply content unchanged.
 	const currentSize = await resource.getSize();
@@ -98,21 +92,30 @@ export async function matchResourceMetadataStrict(resource, cachedMetadata, inde
 		return false;
 	}
 
-	// Check 3: Modification time + size both match → unchanged, unless we're in
-	// the racy-git window (mtime === indexTimestamp), where content may have
-	// changed during indexing without mtime moving.
+	// Inode mismatch indicates the file was replaced (atomic rename, cp, tar
+	// extraction, ...). Content may still be identical, so fall through to the
+	// integrity check rather than returning false. Inode is optional on both
+	// sides (e.g. virtual resources, older caches without inode); skip the
+	// check when either is undefined.
+	const currentInode = resource.getInode();
+	const inodeMismatch =
+		cachedMetadata.inode !== undefined && currentInode !== undefined &&
+		currentInode !== cachedMetadata.inode;
+	if (inodeMismatch && PERF_TRACKING) perfCounters.inodeMismatch++;
+
+	// mtime + size both match and the file has not been replaced → unchanged,
+	// unless we are in the racy-git window (mtime === indexTimestamp), where
+	// content may have changed during indexing without mtime moving.
 	const currentLastModified = resource.getLastModified();
-	if (currentLastModified === cachedMetadata.lastModified) {
+	if (!inodeMismatch && currentLastModified === cachedMetadata.lastModified) {
 		if (indexTimestamp && currentLastModified !== indexTimestamp) {
 			if (PERF_TRACKING) perfCounters.shortCircuitTrue++;
 			return true;
-		} // else: Edge case. File modified exactly at index time
-		// Race condition possible - content may have changed during indexing
-		// Fall through to integrity check
+		}
+		// Race condition possible — fall through to integrity check
 	}
 
-	// Check 4: Compare integrity (expensive)
-	// lastModified has changed, but the content might be the same. E.g. in case of a metadata-only update
+	// mtime differs, file was replaced, or racy window — verify content.
 	if (PERF_TRACKING) perfCounters.integrityFallback++;
 	const currentIntegrity = await resource.getIntegrity();
 	return currentIntegrity === cachedMetadata.integrity;
@@ -123,27 +126,23 @@ export async function matchResourceMetadataStrict(resource, cachedMetadata, inde
  * Creates an index of resource metadata from an array of resources
  *
  * Processes all resources in parallel, extracting their metadata including
- * path, integrity, lastModified timestamp, and size. Optionally includes inode information.
+ * path, integrity, lastModified timestamp, size and inode (when available).
  *
  * @public
  * @param {Array<@ui5/fs/Resource>} resources Array of resources to index
- * @param {boolean} [includeInode=false] Whether to include inode information in the metadata
  * @returns {Promise<Array<@ui5/project/build/cache/index/HashTree~ResourceMetadata>>}
  *   Array of resource metadata objects
  */
-export async function createResourceIndex(resources, includeInode = false) {
+export async function createResourceIndex(resources) {
 	return await Promise.all(resources.map(async (resource) => {
-		const resourceMetadata = {
+		return {
 			path: resource.getOriginalPath(),
 			integrity: await resource.getIntegrity(),
 			lastModified: resource.getLastModified(),
 			size: await resource.getSize(),
+			inode: resource.getInode(),
 			tags: resource.getTags(),
 		};
-		if (includeInode) {
-			resourceMetadata.inode = resource.getInode();
-		}
-		return resourceMetadata;
 	}));
 }
 

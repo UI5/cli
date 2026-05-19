@@ -158,12 +158,44 @@ test("matchResourceMetadataStrict: no indexTimestamp - falls through on matching
 	t.true(await matchResourceMetadataStrict(resource, metadata));
 });
 
+// An atomic rename with preserved mtime (cp -p, mv tmp, ...) yields a new inode
+// without changing size or lastModified. The size+mtime cheap path would
+// otherwise short-circuit and serve a stale cache hit; force the integrity
+// check whenever the inode disagrees.
+test("matchResourceMetadataStrict: inode mismatch forces integrity check (content unchanged)",
+	async (t) => {
+		const resource = createMockResource({lastModified: 1000, size: 100, inode: 2, integrity: "hash-a"});
+		const metadata = {lastModified: 1000, size: 100, inode: 1, integrity: "hash-a"};
+		t.true(await matchResourceMetadataStrict(resource, metadata, 2000));
+	});
+
+test("matchResourceMetadataStrict: inode mismatch detects same-size content change",
+	async (t) => {
+		const resource = createMockResource({lastModified: 1000, size: 100, inode: 2, integrity: "hash-different"});
+		const metadata = {lastModified: 1000, size: 100, inode: 1, integrity: "hash-a"};
+		t.false(await matchResourceMetadataStrict(resource, metadata, 2000));
+	});
+
+test("matchResourceMetadataStrict: skips inode check when cached metadata has no inode",
+	async (t) => {
+		const resource = createMockResource({lastModified: 1000, size: 100, inode: 7, integrity: "hash-a"});
+		const metadata = {lastModified: 1000, size: 100, integrity: "hash-a"};
+		t.true(await matchResourceMetadataStrict(resource, metadata, 2000));
+	});
+
+test("matchResourceMetadataStrict: skips inode check when resource has no inode",
+	async (t) => {
+		const resource = createMockResource({lastModified: 1000, size: 100, inode: undefined, integrity: "hash-a"});
+		const metadata = {lastModified: 1000, size: 100, inode: 5, integrity: "hash-a"};
+		t.true(await matchResourceMetadataStrict(resource, metadata, 2000));
+	});
+
 // === createResourceIndex ===
 
 test("createResourceIndex: indexes resources correctly", async (t) => {
 	const resources = [
-		createMockResource({path: "/a.js", integrity: "hash-a", lastModified: 1000, size: 50}),
-		createMockResource({path: "/b.js", integrity: "hash-b", lastModified: 2000, size: 60}),
+		createMockResource({path: "/a.js", integrity: "hash-a", lastModified: 1000, size: 50, inode: 7}),
+		createMockResource({path: "/b.js", integrity: "hash-b", lastModified: 2000, size: 60, inode: 8}),
 	];
 
 	const result = await createResourceIndex(resources);
@@ -173,17 +205,17 @@ test("createResourceIndex: indexes resources correctly", async (t) => {
 	t.is(result[0].integrity, "hash-a");
 	t.is(result[0].lastModified, 1000);
 	t.is(result[0].size, 50);
-	t.is(result[0].inode, undefined);
+	t.is(result[0].inode, 7);
 });
 
-test("createResourceIndex: includes inode when requested", async (t) => {
+test("createResourceIndex: leaves inode undefined when resource has none", async (t) => {
 	const resources = [
-		createMockResource({path: "/a.js", inode: 42}),
+		createMockResource({path: "/a.js", inode: undefined}),
 	];
 
-	const result = await createResourceIndex(resources, true);
+	const result = await createResourceIndex(resources);
 
-	t.is(result[0].inode, 42);
+	t.is(result[0].inode, undefined);
 });
 
 test("createResourceIndex: includes tags", async (t) => {
