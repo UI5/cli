@@ -14,54 +14,7 @@ const perfCounters = {
 	inodeMismatch: 0,
 	integrityFallback: 0,
 };
-export {perfCounters as matchResourceMetadataStrictCounters};
-
-/**
- * Compares a resource instance with cached resource metadata
- *
- * Optimized for quickly rejecting changed files. Performs a series of checks
- * starting with the cheapest (timestamp) to more expensive (integrity hash).
- *
- * @public
- * @param {@ui5/fs/Resource} resource Resource instance to compare
- * @param {ResourceMetadata} resourceMetadata Resource metadata to compare against
- * @param {number} [indexTimestamp] Timestamp of the metadata creation
- * @returns {Promise<boolean>} True if resource is found to match the metadata
- * @throws {Error} If resource or metadata is undefined
- */
-export async function matchResourceMetadata(resource, resourceMetadata, indexTimestamp) {
-	if (!resource || !resourceMetadata) {
-		throw new Error("Cannot compare undefined resources or metadata");
-	}
-
-	const currentLastModified = resource.getLastModified();
-	if (indexTimestamp && currentLastModified > indexTimestamp) {
-		// Resource modified after index was created, no need for further checks
-		return false;
-	}
-	if (currentLastModified !== resourceMetadata.lastModified) {
-		return false;
-	}
-	if (await resource.getSize() !== resourceMetadata.size) {
-		return false;
-	}
-	const incomingInode = resource.getInode();
-	if (resourceMetadata.inode !== undefined && incomingInode !== undefined &&
-		incomingInode !== resourceMetadata.inode) {
-		return false;
-	}
-
-	if (currentLastModified === indexTimestamp) {
-		// If the source modification time is equal to index creation time,
-		// it's possible for a race condition to have occurred where the file was modified
-		// during index creation without changing its size.
-		// In this case, we need to perform an integrity check to determine if the file has changed.
-		if (await resource.getIntegrity() !== resourceMetadata.integrity) {
-			return false;
-		}
-	}
-	return true;
-}
+export {perfCounters as isResourceUnchangedCounters};
 
 /**
  * Determines if a resource has changed compared to cached metadata
@@ -77,7 +30,7 @@ export async function matchResourceMetadata(resource, resourceMetadata, indexTim
  * @returns {Promise<boolean>} True if resource content is unchanged
  * @throws {Error} If resource or metadata is undefined
  */
-export async function matchResourceMetadataStrict(resource, cachedMetadata, indexTimestamp) {
+export async function isResourceUnchanged(resource, cachedMetadata, indexTimestamp) {
 	if (!resource || !cachedMetadata) {
 		throw new Error("Cannot compare undefined resources or metadata");
 	}

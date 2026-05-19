@@ -7,7 +7,7 @@ import os from "node:os";
 import BuildTaskCache from "./BuildTaskCache.js";
 import StageCache from "./StageCache.js";
 import ResourceIndex from "./index/ResourceIndex.js";
-import {matchResourceMetadataStrict} from "./utils.js";
+import {isResourceUnchanged} from "./utils.js";
 const log = getLogger("build:cache:ProjectBuildCache");
 
 export class SourceChangedDuringBuildError extends Error {
@@ -991,7 +991,7 @@ export default class ProjectBuildCache {
 	 * Re-reads all source files from disk and compares them against the source index
 	 * to detect whether any source files were modified, added, or deleted during the build.
 	 *
-	 * Uses metadata-only comparison via matchResourceMetadataStrict (skipping tags,
+	 * Uses metadata-only comparison via isResourceUnchanged (skipping tags,
 	 * since tags are build artifacts that always differ from fresh disk reads).
 	 *
 	 * @returns {Promise<boolean>} True if source changes were detected during the build
@@ -1028,7 +1028,7 @@ export default class ProjectBuildCache {
 				size: node.size,
 				inode: node.inode,
 			};
-			const isUnchanged = await matchResourceMetadataStrict(
+			const isUnchanged = await isResourceUnchanged(
 				resource, cachedMetadata, tree.getIndexTimestamp()
 			);
 			if (!isUnchanged) {

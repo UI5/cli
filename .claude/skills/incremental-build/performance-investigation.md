@@ -18,7 +18,7 @@ UI5_CLI_NO_LOCAL=X UI5_BUILD_NO_WRITE_DEST=X UI5_CACHE_PERF=1 ui5 build --log-le
 Flags:
 - `UI5_CLI_NO_LOCAL=X` — Use the globally linked CLI (i.e., the development version)
 - `UI5_BUILD_NO_WRITE_DEST=X` — Skip writing output to `./dist` (isolates cache/build overhead from disk I/O)
-- `UI5_CACHE_PERF=1` — Enable low-level `matchResourceMetadataStrict` counters (see below)
+- `UI5_CACHE_PERF=1` — Enable low-level `isResourceUnchanged` counters (see below)
 - `--log-level perf` — Show all perf-level log statements
 
 ### Three build scenarios
@@ -150,7 +150,7 @@ Per-task index update:
 
 ```
 perf updateIndices for task 'replaceVersion' of project 'sap.m' resource fetch completed in 3.89 ms: 0 cache hits, 783 cache misses
-perf TreeRegistry.flush completed: phase1(removals)=0.00 ms, phase2(upserts)=7.13 ms, phase3(rehash)=9.56 ms | matchMetadataStrictCalls=783, matchMetadataUnchanged=782, modifiedNodesSkips=0
+perf TreeRegistry.flush completed: phase1(removals)=0.00 ms, phase2(upserts)=7.13 ms, phase3(rehash)=9.56 ms | isUnchangedCalls=783, isUnchangedHits=782, modifiedNodesSkips=0
 perf #flushTreeChanges for task 'replaceVersion' completed in 16.79 ms across 1 registries
 perf Updated project indices for task replaceVersion in project sap.m in 21.71 ms
 ```
@@ -160,7 +160,7 @@ Key metrics:
 - **phase1(removals)**: Time removing deleted resources from the Merkle tree.
 - **phase2(upserts)**: Time inserting/updating resources in the tree.
 - **phase3(rehash)**: Time propagating hash changes up from modified leaves to root. High rehash with few changed resources indicates deep tree structure.
-- **matchMetadataStrictCalls / matchMetadataUnchanged**: How many resources were compared, and how many were unchanged (short-circuited by lastModified check). If `calls >> unchanged`, many resources needed content hashing.
+- **isUnchangedCalls / isUnchangedHits**: How many resources were compared, and how many were unchanged (short-circuited by lastModified check). If `calls >> hits`, many resources needed content hashing.
 
 Then task execution or skip:
 
@@ -217,14 +217,15 @@ The four sub-operations (stages, requests, sourceIndex, result) run in parallel 
 
 ## UI5_CACHE_PERF Counters
 
-Setting `UI5_CACHE_PERF=1` enables low-level counters in `utils.js` for `matchResourceMetadataStrict`:
+Setting `UI5_CACHE_PERF=1` enables low-level counters in `utils.js` for `isResourceUnchanged`:
 
 - `calls` — Total invocations
 - `shortCircuitTrue` — Fast-path returns (lastModified matches cached and ≠ indexTimestamp → file unchanged, no I/O needed)
 - `sizeMismatch` — Changes detected via size check (cheap)
+- `inodeMismatch` — File replacement detected via inode change (forces integrity check)
 - `integrityFallback` — Full SHA256 content hash required (expensive)
 
-These counters appear in the `TreeRegistry.flush` log as `matchMetadataStrictCalls` and `matchMetadataUnchanged`.
+These counters are tallied per-flush in `TreeRegistry.flush` as `isUnchangedCalls` and `isUnchangedHits`.
 
 A high `integrityFallback` count means many files have the same size but different content — this is expensive and may indicate that the `lastModified` short-circuit is not working (e.g., due to timestamp resolution issues).
 
@@ -303,13 +304,13 @@ These four operations run in parallel. They share I/O bandwidth, so their indivi
 
 **Note:** In CLI mode, cache writes are deferred to the background. The `Wrote build cache` log line appears after `Build succeeded`. The sub-timings tend to be lower (~250-300ms vs ~1400ms) because background writes don't compete with the build for I/O bandwidth.
 
-### 5. matchMetadataUnchanged vs modifiedNodesSkips
+### 5. isUnchangedHits vs modifiedNodesSkips
 
 In `TreeRegistry.flush` logs:
-- `matchMetadataUnchanged` — Resources whose metadata (lastModified, size, integrity) matched the cached version. No tree modification needed.
+- `isUnchangedHits` — Resources whose metadata (lastModified, size, integrity) matched the cached version. No tree modification needed.
 - `modifiedNodesSkips` — Tree nodes already marked as modified by a previous flush in the same build. Skipped to avoid redundant work.
 
-When `matchMetadataUnchanged` equals `matchMetadataStrictCalls`, ALL resources were unchanged — the flush was pure overhead.
+When `isUnchangedHits` equals `isUnchangedCalls`, ALL resources were unchanged — the flush was pure overhead.
 
 ### 6. Dependency index "changed=true" doesn't always mean task re-execution
 
@@ -367,7 +368,7 @@ When diagnosing slow `writeStageResources`, check the `CAS skipped` vs `CAS writ
 4. **Drill down.** For the dominant phase:
    - Add more granular `log.perf()` statements if needed
    - Use `console.time()`/`console.timeEnd()` for quick local profiling
-   - Check `matchMetadataStrictCalls` vs `matchMetadataUnchanged` to understand if resources are being unnecessarily re-hashed
+   - Check `isUnchangedCalls` vs `isUnchangedHits` to understand if resources are being unnecessarily re-hashed
 
 5. **Validate optimization ideas.** When proposing optimizations:
    - Consider warm vs stale vs cold cache impact separately

@@ -264,7 +264,7 @@ test("upsertResources returns empty array when no changes", async (t) => {
 	t.deepEqual(updated, [], "Should return empty array when no changes");
 });
 
-// Companion to the matchResourceMetadataStrict test in cache/utils.js: ensure
+// Companion to the isResourceUnchanged test in cache/utils.js: ensure
 // upsertResources also detects size mismatches when the cached mtime is preserved.
 test(
 	"upsertResources: classifies as updated when content changed but mtime preserved (size differs)",

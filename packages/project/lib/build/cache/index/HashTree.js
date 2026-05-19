@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import path from "node:path/posix";
 import TreeNode from "./TreeNode.js";
-import {matchResourceMetadataStrict} from "../utils.js";
+import {isResourceUnchanged} from "../utils.js";
 
 /**
  * @typedef {object} @ui5/project/build/cache/index/HashTree~ResourceMetadata
@@ -388,7 +388,7 @@ export default class HashTree {
 		const affectedPaths = new Set();
 
 		// Phase 1: Categorize each resource. New resources need integrity+size resolved.
-		// Existing resources are routed through matchResourceMetadataStrict (Phase 2),
+		// Existing resources are routed through isResourceUnchanged (Phase 2),
 		// which handles the mtime/size short-circuit with the racy-git protection.
 		const needsIO = [];
 
@@ -419,7 +419,7 @@ export default class HashTree {
 					};
 				}
 
-				// Existing resource with potential change — use matchResourceMetadataStrict
+				// Existing resource with potential change — use isResourceUnchanged
 				// for the remaining checks (size comparison, integrity comparison)
 				const currentMetadata = {
 					integrity: existingNode.integrity,
@@ -429,13 +429,13 @@ export default class HashTree {
 				};
 
 				const isUnchanged =
-					await matchResourceMetadataStrict(resource, currentMetadata, this.#indexTimestamp);
+					await isResourceUnchanged(resource, currentMetadata, this.#indexTimestamp);
 
 				if (isUnchanged) {
 					return {resourcePath, existingNode, isUnchanged: true, tags: resource.getTags()};
 				}
 
-				// Changed — integrity/size are cached in the Resource from matchResourceMetadataStrict
+				// Changed — integrity/size are cached in the Resource from isResourceUnchanged
 				const [integrity, size] = await Promise.all([
 					resource.getIntegrity(),
 					resource.getSize()
