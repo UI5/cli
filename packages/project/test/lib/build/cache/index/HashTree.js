@@ -264,6 +264,28 @@ test("upsertResources returns empty array when no changes", async (t) => {
 	t.deepEqual(updated, [], "Should return empty array when no changes");
 });
 
+// Companion to the matchResourceMetadataStrict test in cache/utils.js: ensure
+// upsertResources also detects size mismatches when the cached mtime is preserved.
+test(
+	"upsertResources: classifies as updated when content changed but mtime preserved (size differs)",
+	async (t) => {
+		const resources = [
+			{path: "file1.js", integrity: "hash1", lastModified: 1000, size: 100}
+		];
+
+		// indexTimestamp must differ from lastModified to bypass the racy-git
+		// fallback, which would otherwise force an integrity check.
+		const tree = new HashTree(resources, {indexTimestamp: 2000});
+
+		// Same lastModified (1000), different size (200) and integrity ("changed").
+		const racy = createMockResource("file1.js", "changed", 1000, 200, 1);
+		const {updated, unchanged} = await tree.upsertResources([racy]);
+
+		t.deepEqual(updated, ["file1.js"], "Should detect the size-mismatched update");
+		t.deepEqual(unchanged, [], "Should not classify the racy resource as unchanged");
+	}
+);
+
 test("Different nested structures with same resources produce different hashes", (t) => {
 	const resources1 = [
 		{path: "a/b/file.js", integrity: "hash1"}

@@ -121,6 +121,18 @@ test("matchResourceMetadataStrict: falls through when lastModified matches index
 	t.true(await matchResourceMetadataStrict(resource, metadata, 1000));
 });
 
+// Mtime is not a content fingerprint: cp -p, tar -x, rsync -t and atomic renames
+// can preserve it across content changes. Verify that size mismatch is detected
+// even when lastModified matches the cached value.
+test(
+	"matchResourceMetadataStrict: returns false when content changed but mtime preserved (size differs)",
+	async (t) => {
+		const resource = createMockResource({lastModified: 1000, size: 200, integrity: "hash-different"});
+		const metadata = {lastModified: 1000, size: 100, integrity: "hash-a"};
+		t.false(await matchResourceMetadataStrict(resource, metadata, 2000));
+	}
+);
+
 test("matchResourceMetadataStrict: returns false when size differs", async (t) => {
 	const resource = createMockResource({lastModified: 2000, size: 200});
 	const metadata = {lastModified: 1000, size: 100, integrity: "hash-a"};

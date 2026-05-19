@@ -89,23 +89,26 @@ export async function matchResourceMetadataStrict(resource, cachedMetadata, inde
 	// 	return false;
 	// }
 
-	// Check 2: Modification time unchanged would suggest no update needed
+	// Check 2: Size mismatch indicates definite content change. Required before any
+	// "unchanged" decision because mtime preservation (cp -p, tar -x, rsync -t,
+	// atomic rename) does not imply content unchanged.
+	const currentSize = await resource.getSize();
+	if (currentSize !== cachedMetadata.size) {
+		if (PERF_TRACKING) perfCounters.sizeMismatch++;
+		return false;
+	}
+
+	// Check 3: Modification time + size both match → unchanged, unless we're in
+	// the racy-git window (mtime === indexTimestamp), where content may have
+	// changed during indexing without mtime moving.
 	const currentLastModified = resource.getLastModified();
 	if (currentLastModified === cachedMetadata.lastModified) {
 		if (indexTimestamp && currentLastModified !== indexTimestamp) {
-			// File has not been modified since last indexing. No update needed
 			if (PERF_TRACKING) perfCounters.shortCircuitTrue++;
 			return true;
 		} // else: Edge case. File modified exactly at index time
 		// Race condition possible - content may have changed during indexing
 		// Fall through to integrity check
-	}
-
-	// Check 3: Size mismatch indicates definite content change
-	const currentSize = await resource.getSize();
-	if (currentSize !== cachedMetadata.size) {
-		if (PERF_TRACKING) perfCounters.sizeMismatch++;
-		return false;
 	}
 
 	// Check 4: Compare integrity (expensive)
