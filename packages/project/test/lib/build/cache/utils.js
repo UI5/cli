@@ -1,8 +1,7 @@
 import test from "ava";
 import {
 	isResourceUnchanged,
-	createResourceIndex,
-	firstTruthy
+	createResourceIndex
 } from "../../../../lib/build/cache/utils.js";
 
 function createMockResource(opts = {}) {
@@ -162,45 +161,4 @@ test("createResourceIndex: includes tags", async (t) => {
 test("createResourceIndex: empty array returns empty result", async (t) => {
 	const result = await createResourceIndex([]);
 	t.deepEqual(result, []);
-});
-
-// === firstTruthy ===
-
-test("firstTruthy: returns null for empty array", async (t) => {
-	const result = await firstTruthy([]);
-	t.is(result, null);
-});
-
-test("firstTruthy: returns first truthy value", async (t) => {
-	const result = await firstTruthy([
-		Promise.resolve(null),
-		Promise.resolve("found"),
-		Promise.resolve("also found"),
-	]);
-	t.is(result, "found");
-});
-
-test("firstTruthy: returns null when all resolve to falsy", async (t) => {
-	const result = await firstTruthy([
-		Promise.resolve(null),
-		Promise.resolve(false),
-		Promise.resolve(0),
-	]);
-	t.is(result, null);
-});
-
-test("firstTruthy: rejects when a promise rejects", async (t) => {
-	const error = new Error("test error");
-	await t.throwsAsync(firstTruthy([
-		Promise.resolve(null),
-		Promise.reject(error),
-	]), {message: "test error"});
-});
-
-test("firstTruthy: resolves with first truthy regardless of order", async (t) => {
-	const result = await firstTruthy([
-		new Promise((resolve) => setTimeout(() => resolve(null), 50)),
-		Promise.resolve("immediate"),
-	]);
-	t.is(result, "immediate");
 });
