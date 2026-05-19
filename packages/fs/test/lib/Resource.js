@@ -1979,3 +1979,65 @@ test("getIntegrity: Works with large content", async (t) => {
 	t.is(integrity, "sha256-j5kLoLV3tRzwCeoEk2jBa72hsh4bk74HqCR1i7JTw5s=",
 		"Correct integrity for large content");
 });
+
+test("getInode: Memory-only resource returns undefined", (t) => {
+	const resource = new Resource({
+		path: "/my/path/to/resource",
+		string: "content"
+	});
+
+	t.is(resource.getInode(), undefined,
+		"Resource constructed without statInfo or inode must not advertise an inode");
+});
+
+test("getInode: Clone of memory-only resource returns undefined", async (t) => {
+	const resource = new Resource({
+		path: "/my/path/to/resource",
+		string: "content"
+	});
+
+	const clone = await resource.clone();
+
+	t.is(clone.getInode(), undefined,
+		"Clone must not fabricate an inode for a memory-only resource");
+});
+
+test("getInode: FS-backed resource returns the real inode", async (t) => {
+	const fsPath = path.join("test", "fixtures", "application.a", "webapp", "index.html");
+	const statInfo = await stat(fsPath);
+	const resource = new Resource({
+		path: "/app/index.html",
+		statInfo,
+		createStream: () => createReadStream(fsPath)
+	});
+
+	t.is(resource.getInode(), statInfo.ino,
+		"Resource constructed with statInfo carries the real inode");
+});
+
+test("getInode: Clone of FS-backed resource preserves the inode", async (t) => {
+	const resource = createBasicResource();
+	const inode = resource.getInode();
+
+	const clone = await resource.clone();
+
+	t.not(inode, undefined, "Sanity: original resource has an inode");
+	t.is(clone.getInode(), inode,
+		"Clone preserves the inode of an FS-backed resource");
+});
+
+test("getInode: Preserved across setBuffer", (t) => {
+	const fsPath = path.join("test", "fixtures", "application.a", "webapp", "index.html");
+	const statInfo = statSync(fsPath);
+	const resource = new Resource({
+		path: "/app/index.html",
+		statInfo,
+		buffer: Buffer.from("original")
+	});
+	const inode = resource.getInode();
+
+	resource.setBuffer(Buffer.from("modified"));
+
+	t.is(resource.getInode(), inode,
+		"Inode is unchanged after setBuffer (same on-disk slot, content modified)");
+});

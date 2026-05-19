@@ -954,7 +954,7 @@ function createStat(size, isDirectory = false, lastModified) {
 		isSymbolicLink: fnFalse,
 		isFIFO: fnFalse,
 		isSocket: fnFalse,
-		ino: 0,
+		ino: undefined,
 		size, // Might be undefined
 		atimeMs: now.getTime(),
 		mtimeMs: mtime.getTime(),
