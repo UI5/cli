@@ -4,6 +4,7 @@ import {directoryDeepEqual, fileEqual, findFiles, readFileContent} from "../../u
 
 import {graphFromObject} from "@ui5/project/graph";
 import * as taskRepository from "../../../lib/tasks/taskRepository.js";
+import {isolatedUi5DataDir} from "../../utils/buildCacheIsolation.js";
 
 const __dirname = import.meta.dirname;
 
@@ -23,6 +24,7 @@ test("integration: Build application.g", async (t) => {
 
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks,
 		includedTasks
@@ -61,6 +63,7 @@ test("integration: Build application.g with cachebuster using hashes", async (t)
 
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks,
 		includedTasks

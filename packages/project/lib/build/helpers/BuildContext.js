@@ -21,7 +21,7 @@ class BuildContext {
 		createBuildManifest = false,
 		outputStyle = OutputStyleEnum.Default,
 		includedTasks = [], excludedTasks = [],
-	} = {}) {
+	} = {}, {ui5DataDir} = {}) {
 		if (!graph) {
 			throw new Error(`Missing parameter 'graph'`);
 		}
@@ -81,6 +81,7 @@ class BuildContext {
 		this._options = {
 			cssVariables: cssVariables
 		};
+		this._ui5DataDir = ui5DataDir;
 		this._projectBuildContexts = new Map();
 	}
 
@@ -161,7 +162,9 @@ class BuildContext {
 		if (this.#cacheManager) {
 			return this.#cacheManager;
 		}
-		this.#cacheManager = await CacheManager.create(this._graph.getRoot().getRootPath());
+		this.#cacheManager = await CacheManager.create(this._graph.getRoot().getRootPath(), {
+			ui5DataDir: this._ui5DataDir,
+		});
 		return this.#cacheManager;
 	}
 

@@ -713,6 +713,10 @@ class ProjectGraph {
 	 * @param {Array.<string>} [parameters.excludedTasks=[]] List of tasks to be excluded.
 	 * @param {module:@ui5/project/build/ProjectBuilderOutputStyle} [parameters.outputStyle=Default]
 	 *   Processes build results into a specific directory structure.
+	 * @param {string} [parameters.ui5DataDir]
+	 *   Explicit UI5 data directory to use for the build cache. Overrides the
+	 *   <code>UI5_DATA_DIR</code> environment variable, the UI5 configuration file,
+	 *   and the default of <code>~/.ui5</code>.
 	 * @returns {Promise} Promise resolving to <code>undefined</code> once build has finished
 	 */
 	async build({
@@ -722,6 +726,7 @@ class ProjectGraph {
 		selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
 		includedTasks = [], excludedTasks = [],
 		outputStyle = OutputStyleEnum.Default,
+		ui5DataDir,
 	}) {
 		this.seal(); // Do not allow further changes to the graph
 		if (this._builtOrServed) {
@@ -740,7 +745,8 @@ class ProjectGraph {
 				selfContained, cssVariables, jsdoc,
 				createBuildManifest,
 				includedTasks, excludedTasks, outputStyle,
-			}
+			},
+			ui5DataDir,
 		});
 		return await builder.buildToTarget({
 			destPath, cleanDest,
