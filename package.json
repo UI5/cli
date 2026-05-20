@@ -34,7 +34,8 @@
 		"schema-generate": "node ./scripts/buildSchema.js ui5",
 		"schema-workspace-generate": "node ./scripts/buildSchema.js ui5-workspace",
 		"generate-cli-doc": "node ./scripts/generateCliDoc.js",
-		"depcheck": "depcheck --ignores @ui5/builder,@ui5/cli,@ui5/fs,@ui5/logger,@ui5/project,@ui5/server,docdash,local-web-server"
+		"depcheck": "depcheck --ignores @ui5/builder,@ui5/cli,@ui5/fs,@ui5/logger,@ui5/project,@ui5/server,docdash,local-web-server",
+		"audit": "audit-ci --config ./audit-ci.jsonc"
 	},
 	"repository": {
 		"type": "git",
@@ -51,6 +52,7 @@
 	"devDependencies": {
 		"@apidevtools/json-schema-ref-parser": "^14.2.1",
 		"@eslint/js": "^9.8.0",
+		"audit-ci": "^7.1.0",
 		"depcheck": "^1.4.7",
 		"docdash": "^2.0.2",
 		"eslint": "^9.39.4",
