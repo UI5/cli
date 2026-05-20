@@ -2,5 +2,9 @@
     // $schema provides code completion hints to IDEs.
     "$schema": "https://github.com/IBM/audit-ci/raw/main/docs/schema.json",
     "low": true,
-    "allowlist": []
+    "allowlist": [
+        // Transitive dev-dependency "@tootallnate/once" has been fixed in v2.0.1 but
+        // advisory does not exclude this version (https://github.com/advisories/GHSA-vpq2-c234-7xj6)
+        "GHSA-vpq2-c234-7xj6|local-web-server>lws-rewrite>http-proxy-agent>@tootallnate/once"
+    ]
 }
