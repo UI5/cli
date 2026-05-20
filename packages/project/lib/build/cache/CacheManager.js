@@ -59,20 +59,26 @@ export default class CacheManager {
 	 *
 	 * Returns a singleton CacheManager for the determined cache directory.
 	 * The cache directory is resolved in this order:
-	 * 1. UI5_DATA_DIR environment variable (resolved relative to cwd)
-	 * 2. ui5DataDir from UI5 configuration file
-	 * 3. Default: ~/.ui5/
+	 * 1. Explicit <code>ui5DataDir</code> option (resolved relative to cwd)
+	 * 2. UI5_DATA_DIR environment variable (resolved relative to cwd)
+	 * 3. ui5DataDir from UI5 configuration file
+	 * 4. Default: ~/.ui5/
 	 *
 	 * @public
 	 * @param {string} cwd Current working directory for resolving relative paths
+	 * @param {object} [options]
+	 * @param {string} [options.ui5DataDir] Explicit UI5 data directory. When provided,
+	 *   environment variable, configuration file, and home-directory fallbacks are skipped.
 	 * @returns {Promise<CacheManager>} Singleton CacheManager instance for the cache directory
 	 */
-	static async create(cwd) {
-		// ENV var should take precedence over the dataDir from the configuration.
-		let ui5DataDir = process.env.UI5_DATA_DIR;
+	static async create(cwd, {ui5DataDir} = {}) {
 		if (!ui5DataDir) {
-			const config = await Configuration.fromFile();
-			ui5DataDir = config.getUi5DataDir();
+			// ENV var should take precedence over the dataDir from the configuration.
+			ui5DataDir = process.env.UI5_DATA_DIR;
+			if (!ui5DataDir) {
+				const config = await Configuration.fromFile();
+				ui5DataDir = config.getUi5DataDir();
+			}
 		}
 		if (ui5DataDir) {
 			ui5DataDir = path.resolve(cwd, ui5DataDir);

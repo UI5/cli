@@ -8,6 +8,7 @@ import {
 import lineColumn from "line-column";
 import {graphFromPackageDependencies} from "@ui5/project/graph";
 import * as taskRepository from "../../../lib/tasks/taskRepository.js";
+import {isolatedUi5DataDir} from "../../utils/buildCacheIsolation.js";
 
 const applicationURL = new URL("../../fixtures/sourcemaps/test.application/", import.meta.url);
 const applicationDestRootURL = new URL("../../tmp/build/sourcemaps/test.application/", import.meta.url);
@@ -64,6 +65,7 @@ test.serial("Verify source maps (test.application)", async (t) => {
 	graph.setTaskRepository(taskRepository);
 
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath: fileURLToPath(destURL)
 	});
 
