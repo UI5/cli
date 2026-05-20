@@ -11,7 +11,8 @@
 	"packages": {
 		"callsite": "1.0.0",
 		"yesno": "0.4.0",
-		"only": "0.0.2"
+		"only": "0.0.2",
+		"pause-stream": "0.0.11"
 	},
 	"corrections": true
 }

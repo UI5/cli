@@ -33,7 +33,8 @@
 		"check-engine": "check-engine-light .",
 		"check-licenses": "licensee --errors-only",
 		"schema-generate": "npm run schema-generate --workspace=@ui5/documentation",
-		"generate-cli-doc": "npm run generate-cli-doc --workspace=@ui5/documentation"
+		"generate-cli-doc": "npm run generate-cli-doc --workspace=@ui5/documentation",
+		"audit": "audit-ci --config ./audit-ci.jsonc"
 	},
 	"repository": {
 		"type": "git",
@@ -43,6 +44,7 @@
 		"@commitlint/cli": "^20.1.0",
 		"@commitlint/config-conventional": "^20.0.0",
 		"@eslint/js": "^9.8.0",
+		"audit-ci": "^7.1.0",
 		"check-engine-light": "0.4.0",
 		"eslint": "^9.35.0",
 		"eslint-config-google": "^0.14.0",
