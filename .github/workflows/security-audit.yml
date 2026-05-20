@@ -24,4 +24,4 @@ jobs:
           ref: ${{ matrix.branch }}
 
       - name: Use audit-ci
-        run: npx audit-ci@7.1.0 --config ./audit-ci.jsonc
+        run: npm run audit
