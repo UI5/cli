@@ -245,7 +245,7 @@ class MiddlewareManager {
 	async addCustomMiddleware() {
 		const project = this.graph.getRoot();
 		const projectCustomMiddleware = project.getCustomMiddleware();
-		if (projectCustomMiddleware.length === 0) {
+		if (!projectCustomMiddleware.length === 0) {
 			return; // No custom middleware defined
 		}
 
