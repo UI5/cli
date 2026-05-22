@@ -28,11 +28,13 @@ jobs:
             GIT_COMMITTER_NAME: "OpenUI5 Bot"
             GIT_COMMITTER_EMAIL: "openui5@sap.com"
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            REPO_NAME: ${{ github.event.repository.name }}
         steps:
             - name: Checkout
               uses: actions/checkout@v6
               with:
                   fetch-depth: 0
+                  persist-credentials: false
             - name: Setup Node
               uses: actions/setup-node@v6
               with:
@@ -57,10 +59,10 @@ jobs:
               working-directory: internal/documentation
               run: |
                 # The base output
-                npm run build:vitepress -- --base="/${{ github.event.repository.name }}/${DOC_VERSION}/"
+                npm run build:vitepress -- --base="/${REPO_NAME}/${DOC_VERSION}/"
                 npm run build:assets -- ./dist
                 # The alias output
-                npm run build:vitepress -- --base="/${{ github.event.repository.name }}/${DOC_ALIAS}/" --outDir="dist-${DOC_ALIAS}"
+                npm run build:vitepress -- --base="/${REPO_NAME}/${DOC_ALIAS}/" --outDir="dist-${DOC_ALIAS}"
                 npm run build:assets -- ./dist-${DOC_ALIAS}
             - name: Build Schema
               working-directory: internal/documentation
