@@ -39,7 +39,7 @@ class SapUiDefineCall {
 			this.dependencies = this.dependencyArray.elements.map( (elem) => {
 				const value = getStringValue(elem);
 				if ( !value ) {
-					throw new TypeError();
+					throw new TypeError(`dependency element is not a string literal in module ${this.name}`);
 				}
 				return resolveRelativeRequireJSName(this.name, value);
 			});
