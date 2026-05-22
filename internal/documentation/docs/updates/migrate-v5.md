@@ -202,14 +202,14 @@ The test suite is now served under the standard `/test-resources/` path with the
 
 The following middleware has been removed from the [standard middlewares list](../pages/Server.md#standard-middleware):
 
-* `serveThemes` — Theme compilation (LESS to CSS) is now handled by the `buildThemes` build task during the incremental build, rather than on-demand during runtime. The resulting CSS files are served via the `serveResources` middleware. This change improves performance through build-time compilation and caching while maintaining the same functionality.
+* `serveThemes` — Theme compilation (LESS to CSS) is now handled by the `buildThemes` build task during the incremental build, rather than on demand during runtime. The resulting CSS files are served via the `serveResources` middleware. This change improves performance through build-time compilation and caching while maintaining the same functionality.
 
 **Backward Compatibility:**
 If your project or any custom middleware references a removed middleware via `beforeMiddleware` or `afterMiddleware`, UI5 CLI will automatically remap the reference to the nearest remaining middleware and log a deprecation warning. Your custom middleware will still be executed in the expected order.
 
 **What Changed:**
 - Theme CSS files (`library.css`, `library-RTL.css`, etc.) are now **pre-built** during the incremental build
-- Files are served via `serveResources` instead of being compiled on-demand
+- Files are served via `serveResources` instead of being compiled on demand
 - The same CSS files are available at the same URLs as before
 
 **Recommended Action:**
