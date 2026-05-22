@@ -223,17 +223,6 @@ const CALL_JQUERY_SAP_REQUIRE = [["jQuery", "$"], "sap", "require"];
 const CALL_JQUERY_SAP_REGISTER_PRELOADED_MODULES = [["jQuery", "$"], "sap", "registerPreloadedModules"];
 const SPECIAL_AMD_DEPENDENCIES = ["require", "exports", "module"];
 
-/**
- * Well-known module IDs that represent the jQuery global (jquery.sap.global.js).
- * When a factory parameter receives one of these modules, it is treated as a jQuery alias.
- */
-const JQUERY_SAP_GLOBAL_MODULE_IDS = ["jquery.sap.global", "jquery.sap.global.js"];
-
-/**
- * Well-known module IDs that represent the sap.ui namespace.
- * Currently the sap/ui/core/Core module exposes sap.ui.require/define etc.
- */
-const SAP_UI_CORE_MODULE_ID = "sap/ui/core/Core.js";
 
 function isCallableExpression(node) {
 	return node.type == Syntax.FunctionExpression || node.type == Syntax.ArrowFunctionExpression;
@@ -248,41 +237,77 @@ function getDocumentation(node) {
 }
 
 /**
- * Checks whether a callee AST node matches a method path where the root object
- * could be an alias identifier (i.e. not the canonical object name).
+ * Builds a map from factory parameter name to "jquery" for every parameter position in the
+ * dependency array of a sap.ui.define / define call that resolves to the jquery.sap.global
+ * module.
  *
- * Example: aliasPath = ["sap", "require"] means we check for alias.require(...)
- *          where "alias" is some variable name stored separately.
+ * This supports the common pattern from issue #512 where the jQuery global is received
+ * under a local parameter name and then used as an alias for jQuery.sap calls:
  *
- * @param {object} calleeNode - The callee node of a CallExpression
- * @param {string} aliasName  - The variable name that is the alias
- * @param {string[]} methodPath - The property path *after* the alias identifier
- *                                e.g. ["sap", "require"] for jQuery aliased to "jq" → jq.sap.require
- * @returns {boolean}
+ *   sap.ui.define(["jquery.sap.global"], function(jq) {
+ *     jq.sap.require("my.module");
+ *   });
+ *
+ * The map lifetime is deliberately scoped to one factory body: it is built right before
+ * visiting that body and is not accessible outside. A parameter in an inner function with the
+ * same name correctly shadows the outer alias because the outer map is not consulted once the
+ * inner function's own scope takes over.
+ *
+ * @param {object} defineCallNode - The CallExpression node of the define/sap.ui.define call
+ * @returns {Set<string>} Set of parameter names that are aliases for the jQuery global
  */
-function isAliasMethodCall(calleeNode, aliasName, methodPath) {
-	// Walk the callee MemberExpression chain from right to left matching the methodPath segments
-	let node = calleeNode;
-	let length = methodPath.length;
-
-	while ( length > 0 &&
-			node.type === Syntax.MemberExpression &&
-			node.property.type === Syntax.Identifier &&
-			node.property.name === methodPath[length - 1] ) {
-		node = node.object;
-		length--;
+function buildJQueryAliasSet(defineCallNode) {
+	const aliasSet = new Set();
+	const args = defineCallNode.arguments;
+	if ( !args || args.length === 0 ) {
+		return aliasSet;
 	}
 
-	// After consuming all method path segments, what remains must be the alias identifier
-	return length === 0 && node.type === Syntax.Identifier && node.name === aliasName;
+	let i = 0;
+	// skip optional module name string
+	if ( i < args.length && args[i].type === Syntax.Literal ) {
+		i++;
+	}
+
+	// find dependency array
+	if ( i >= args.length || args[i].type !== Syntax.ArrayExpression ) {
+		return aliasSet;
+	}
+	const depArray = args[i].elements;
+	i++;
+
+	// find factory function
+	if ( i >= args.length || !isCallableExpression(args[i]) ) {
+		return aliasSet;
+	}
+	const params = args[i].params;
+
+	// Compare each parameter's dependency with MODULE__JQUERY_SAP_GLOBAL using the canonical
+	// fromUI5LegacyName helper — the same helper used elsewhere in the analyzer.
+	for (let p = 0; p < params.length && p < depArray.length; p++) {
+		const param = params[p];
+		// Only handle simple identifier parameters (destructuring cannot be a simple alias)
+		if ( param.type !== Syntax.Identifier ) {
+			continue;
+		}
+		const depValue = getStringValue(depArray[p]);
+		if ( depValue === undefined ) {
+			continue;
+		}
+		if ( fromUI5LegacyName(depValue) === MODULE__JQUERY_SAP_GLOBAL ) {
+			aliasSet.add(param.name);
+			log.verbose(`Local alias '${param.name}' maps to jquery.sap.global`);
+		}
+	}
+	return aliasSet;
 }
 
 /**
  * Analyzes an already parsed JSDocument to collect information about the contained module(s).
  *
  * Can handle jQuery.sap.require/jQuery.sap.declare/sap.ui.define and jquery.sap.isDeclared calls.
- * Also detects dependencies when known APIs are called via local alias names that were assigned
- * from factory function parameters or top-level variable declarations.
+ * Also detects dependencies called via a factory function parameter that is an alias for the
+ * jquery.sap.global module (see issue #512).
  *
  * @author Frank Weigel
  * @since 1.1.2
@@ -334,29 +359,8 @@ class JSModuleAnalyzer {
 		// Module name via @ui5-bundle comment in first line. Overrides all other main module candidates.
 		let firstLineBundleName;
 
-		/**
-		 * Alias tracking for local names of well-known APIs.
-		 *
-		 * Maps a local variable/parameter name to the "role" it plays:
-		 *   "jquery" → the variable represents the jQuery object (→ detect alias.sap.require / alias.sap.declare etc.)
-		 *   "sap.ui" → the variable represents the sap.ui namespace (→ detect alias.require / alias.requireSync / alias.define)
-		 *
-		 * Populated from:
-		 *   1. Factory function parameters of sap.ui.define / define:
-		 *      e.g. sap.ui.define(["jquery.sap.global", "sap/ui/core/Core"], function(jq, ui) {...})
-		 *          → jq → "jquery", ui → "sap.ui"
-		 *   2. Top-level variable declarators:
-		 *      e.g. var jq = jQuery; or var $ = jQuery;
-		 *          → jq → "jquery"
-		 *      e.g. var ui = sap.ui;
-		 *          → ui → "sap.ui"
-		 *
-		 * @type {Map<string, "jquery"|"sap.ui">}
-		 */
-		const aliasMap = new Map();
-
 		// first analyze the whole AST...
-		visit(ast, false);
+		visit(ast, false, new Set());
 
 		// ...then all the comments
 		if ( Array.isArray(ast.comments) ) {
@@ -437,218 +441,17 @@ class JSModuleAnalyzer {
 		}
 
 		/**
-		 * Registers aliases for factory function parameters of a sap.ui.define / define call.
+		 * Visits an AST node.
 		 *
-		 * Maps each parameter name to a "role" based on the dependency it receives:
-		 * - "jquery" when the dependency is jquery.sap.global (jQuery is passed in)
-		 * - "sap.ui" when the dependency is sap/ui/core/Core (sap.ui namespace is available)
-		 *
-		 * @param {object} defineCallNode - The CallExpression node of the define/sap.ui.define call
+		 * @param {object} node - The AST node to visit
+		 * @param {boolean} conditional - Whether the node is reached only conditionally
+		 * @param {Set<string>} jQueryAliases - Set of local parameter names that are aliases
+		 *   for the jQuery global (jquery.sap.global) within the current factory body.
+		 *   This set is scoped to the factory body of the enclosing sap.ui.define / define call
+		 *   and is passed down through the recursion. It is replaced with a fresh set when a
+		 *   new factory body is entered, which naturally handles shadowing.
 		 */
-		function registerFactoryParamAliases(defineCallNode) {
-			const args = defineCallNode.arguments;
-			if ( !args || args.length === 0 ) {
-				return;
-			}
-
-			let i = 0;
-			// skip optional module name string
-			if ( i < args.length && args[i].type === Syntax.Literal ) {
-				i++;
-			}
-
-			// find dependency array
-			if ( i >= args.length || args[i].type !== Syntax.ArrayExpression ) {
-				return;
-			}
-			const depArray = args[i].elements;
-			i++;
-
-			// find factory function
-			if ( i >= args.length || !isCallableExpression(args[i]) ) {
-				return;
-			}
-			const factory = args[i];
-			const params = factory.params;
-
-			// Map each parameter to its dependency
-			for (let p = 0; p < params.length && p < depArray.length; p++) {
-				const param = params[p];
-				const depElem = depArray[p];
-
-				// Only handle simple identifier parameters (not destructuring)
-				if ( param.type !== Syntax.Identifier ) {
-					continue;
-				}
-
-				const depValue = getStringValue(depElem);
-				if ( depValue === undefined ) {
-					continue;
-				}
-
-				// Normalize the dependency name for comparison
-				const normalizedDep = depValue.endsWith(".js") ? depValue : depValue + ".js";
-				const normalizedDepSlash = depValue.replace(/\./g, "/").replace(/\/js$/, ".js");
-
-				// Check if the dependency is jquery.sap.global (any notation)
-				if ( normalizedDep === "jquery.sap.global.js" ||
-					 normalizedDepSlash === "jquery/sap/global.js" ) {
-					aliasMap.set(param.name, "jquery");
-					log.verbose(`Alias: parameter '${param.name}' mapped to jQuery (jquery.sap.global)`);
-				} else if ( depValue === "sap/ui/core/Core" ||
-							normalizedDep === "sap/ui/core/Core.js" ||
-							depValue === SAP_UI_CORE_MODULE_ID ) {
-					// sap/ui/core/Core provides the sap.ui namespace
-					aliasMap.set(param.name, "sap.ui");
-					log.verbose(`Alias: parameter '${param.name}' mapped to sap.ui (sap/ui/core/Core)`);
-				}
-			}
-		}
-
-		/**
-		 * Registers top-level variable declaration aliases.
-		 *
-		 * Handles patterns like:
-		 *   var jq = jQuery;
-		 *   var jq = $;
-		 *   var ui = sap.ui;
-		 *
-		 * @param {object} declaratorNode - A VariableDeclarator AST node
-		 */
-		function registerVariableDeclaratorAlias(declaratorNode) {
-			if ( !declaratorNode.init || declaratorNode.id.type !== Syntax.Identifier ) {
-				return;
-			}
-			const localName = declaratorNode.id.name;
-			const init = declaratorNode.init;
-
-			// var jq = jQuery; or var jq = $;
-			if ( init.type === Syntax.Identifier &&
-				 (init.name === "jQuery" || init.name === "$") ) {
-				aliasMap.set(localName, "jquery");
-				log.verbose(`Alias: variable '${localName}' mapped to jQuery`);
-				return;
-			}
-
-			// var ui = sap.ui;
-			if ( init.type === Syntax.MemberExpression &&
-				 init.object.type === Syntax.Identifier && init.object.name === "sap" &&
-				 init.property.type === Syntax.Identifier && init.property.name === "ui" ) {
-				aliasMap.set(localName, "sap.ui");
-				log.verbose(`Alias: variable '${localName}' mapped to sap.ui`);
-				return;
-			}
-		}
-
-		/**
-		 * Checks whether the CallExpression node matches a known UI5 API call via an alias
-		 * and handles it accordingly.
-		 *
-		 * Handled alias patterns:
-		 *   jQuery alias (role "jquery"):
-		 *     alias.sap.require("...") → jQuery.sap.require
-		 *     alias.sap.declare("...") → jQuery.sap.declare
-		 *     alias.sap.isDeclared("...") → jQuery.sap.isDeclared (for if-block handling)
-		 *     alias.sap.registerPreloadedModules({...}) → jQuery.sap.registerPreloadedModules
-		 *
-		 *   sap.ui alias (role "sap.ui"):
-		 *     alias.require([...]) → sap.ui.require
-		 *     alias.requireSync("...") → sap.ui.requireSync
-		 *     alias.define([...], fn) → sap.ui.define
-		 *
-		 * @param {object} node - A CallExpression node
-		 * @param {boolean} conditional - Whether we are in a conditional branch
-		 * @returns {boolean} true if the call was recognized and handled as an alias call
-		 */
-		function handleAliasCall(node, conditional) {
-			if ( aliasMap.size === 0 ) {
-				return false;
-			}
-
-			const callee = node.callee;
-			if ( callee.type !== Syntax.MemberExpression ) {
-				return false;
-			}
-
-			// Try each registered alias
-			for (const [aliasName, role] of aliasMap) {
-				if ( role === "jquery" ) {
-					// alias.sap.require("...")
-					if ( isAliasMethodCall(callee, aliasName, ["sap", "require"]) ) {
-						log.verbose(`Detected jQuery.sap.require via alias '${aliasName}'`);
-						info.setFormat(ModuleFormat.UI5_LEGACY);
-						onJQuerySapRequire(node, conditional);
-						return true;
-					}
-					// alias.sap.declare("...")
-					if ( !conditional && isAliasMethodCall(callee, aliasName, ["sap", "declare"]) ) {
-						log.verbose(`Detected jQuery.sap.declare via alias '${aliasName}'`);
-						nModuleDeclarations++;
-						info.setFormat(ModuleFormat.UI5_LEGACY);
-						bIsUi5Module = true;
-						onDeclare(node);
-						return true;
-					}
-					// alias.sap.registerPreloadedModules({...})
-					if ( isAliasMethodCall(callee, aliasName, ["sap", "registerPreloadedModules"]) ) {
-						log.verbose(`Detected jQuery.sap.registerPreloadedModules via alias '${aliasName}'`);
-						if (!conditional) {
-							bIsUi5Module = true;
-						}
-						info.setFormat(ModuleFormat.UI5_LEGACY);
-						onRegisterPreloadedModules(node, /* evoSyntax= */ false);
-						return true;
-					}
-				} else if ( role === "sap.ui" ) {
-					// alias.require([...], fn)
-					if ( isAliasMethodCall(callee, aliasName, ["require"]) ) {
-						log.verbose(`Detected sap.ui.require via alias '${aliasName}'`);
-						info.setFormat(ModuleFormat.UI5_DEFINE);
-						const args = node.arguments;
-						let iArg = 0;
-						if ( iArg < args.length && args[iArg].type === Syntax.ArrayExpression ) {
-							analyzeDependencyArray(args[iArg].elements, conditional, null);
-							iArg++;
-						}
-						if ( iArg < args.length && isCallableExpression(args[iArg]) ) {
-							visit(args[iArg].body, conditional);
-						}
-						return true;
-					}
-					// alias.requireSync("...")
-					if ( isAliasMethodCall(callee, aliasName, ["requireSync"]) ) {
-						log.verbose(`Detected sap.ui.requireSync via alias '${aliasName}'`);
-						info.setFormat(ModuleFormat.UI5_DEFINE);
-						onSapUiRequireSync(node, conditional);
-						return true;
-					}
-					// alias.define([...], fn)  – top-level only (not conditional)
-					if ( !conditional && isAliasMethodCall(callee, aliasName, ["define"]) ) {
-						log.verbose(`Detected sap.ui.define via alias '${aliasName}'`);
-						nModuleDeclarations++;
-						info.setFormat(ModuleFormat.UI5_DEFINE);
-						bIsUi5Module = true;
-						onDefine(node);
-						const args = node.arguments;
-						let iArg = 0;
-						if ( iArg < args.length && isString(args[iArg]) ) {
-							iArg++;
-						}
-						if ( iArg < args.length && args[iArg].type === Syntax.ArrayExpression ) {
-							iArg++;
-						}
-						if ( iArg < args.length && isCallableExpression(args[iArg]) ) {
-							visit(args[iArg].body, conditional);
-						}
-						return true;
-					}
-				}
-			}
-
-			return false;
-		}
-
-		function visit(node, conditional) {
+		function visit(node, conditional, jQueryAliases) {
 			// console.log("visiting ", node);
 
 			if ( node == null ) {
@@ -656,21 +459,12 @@ class JSModuleAnalyzer {
 			}
 
 			if ( Array.isArray(node) ) {
-				node.forEach((child) => visit(child, conditional));
+				node.forEach((child) => visit(child, conditional, jQueryAliases));
 				return;
 			}
 
 			const condKeys = EnrichedVisitorKeys[node.type];
 			switch (node.type) {
-			case Syntax.VariableDeclarator:
-				// Collect top-level variable alias assignments (e.g. var jq = jQuery; var ui = sap.ui;)
-				registerVariableDeclaratorAlias(node);
-				// default visit to process the initializer
-				for ( const key of condKeys ) {
-					visit(node[key.key], key.conditional || conditional);
-				}
-				break;
-
 			case Syntax.CallExpression:
 				if ( !conditional && isMethodCall(node, CALL_JQUERY_SAP_DECLARE) ) {
 					// recognized a call to jQuery.sap.declare()
@@ -689,10 +483,6 @@ class JSModuleAnalyzer {
 						info.setFormat(ModuleFormat.AMD);
 					}
 					bIsUi5Module = true;
-
-					// Register aliases from the factory function parameters before visiting the body
-					registerFactoryParamAliases(node);
-
 					onDefine(node);
 
 					const args = node.arguments;
@@ -704,8 +494,12 @@ class JSModuleAnalyzer {
 						iArg++;
 					}
 					if ( iArg < args.length && isCallableExpression(args[iArg]) ) {
-						// unconditionally execute the factory function
-						visit(args[iArg].body, conditional);
+						// Build a fresh alias set scoped to this factory body.
+						// The aliases are derived solely from the factory parameters of this
+						// define call, so they are naturally scoped to its body.
+						const factoryAliases = buildJQueryAliasSet(node);
+						// unconditionally execute the factory function with its own alias set
+						visit(args[iArg].body, conditional, factoryAliases);
 					}
 				} else if ( isMethodCall(node, CALL_REQUIRE_PREDEFINE) || isMethodCall(node, CALL_SAP_UI_PREDEFINE) ) {
 					// recognized a call to require.predefine() or sap.ui.predefine()
@@ -725,7 +519,7 @@ class JSModuleAnalyzer {
 					}
 					if ( iArg < args.length && isCallableExpression(args[iArg]) ) {
 						// unconditionally execute the factory function
-						visit(args[iArg].body, conditional);
+						visit(args[iArg].body, conditional, jQueryAliases);
 					}
 				} else if ( isMethodCall(node, CALL_SAP_UI_REQUIRE) || isMethodCall(node, CALL_AMD_REQUIRE) ) {
 					// recognized a call to require() or sap.ui.require()
@@ -744,7 +538,7 @@ class JSModuleAnalyzer {
 					}
 					if ( iArg < args.length && isCallableExpression(args[iArg]) ) {
 						// analyze the callback function
-						visit(args[iArg].body, conditional);
+						visit(args[iArg].body, conditional, jQueryAliases);
 					}
 				} else if ( isMethodCall(node, CALL_REQUIRE_SYNC) || isMethodCall(node, CALL_SAP_UI_REQUIRE_SYNC) ) {
 					// recognizes a call to sap.ui.requireSync
@@ -769,18 +563,33 @@ class JSModuleAnalyzer {
 					}
 					info.setFormat(ModuleFormat.UI5_DEFINE);
 					onRegisterPreloadedModules(node, /* evoSyntax= */ true);
-				} else if ( handleAliasCall(node, conditional) ) {
-					// recognized an alias call - already handled inside handleAliasCall
-					// nothing more to do
+				} else if (
+					// Detect jQuery.sap.require called through a factory parameter alias.
+					// e.g. sap.ui.define(["jquery.sap.global"], function(jq) { jq.sap.require("..."); })
+					// The alias set is scoped to the enclosing define factory body.
+					jQueryAliases.size > 0 &&
+					node.callee.type === Syntax.MemberExpression &&
+					node.callee.object.type === Syntax.MemberExpression &&
+					node.callee.object.object.type === Syntax.Identifier &&
+					jQueryAliases.has(node.callee.object.object.name) &&
+					node.callee.object.property.type === Syntax.Identifier &&
+					node.callee.object.property.name === "sap" &&
+					node.callee.property.type === Syntax.Identifier &&
+					node.callee.property.name === "require"
+				) {
+					// Treat alias.sap.require(...) exactly like jQuery.sap.require(...)
+					log.verbose(`Detected jQuery.sap.require via alias '${node.callee.object.object.name}'`);
+					info.setFormat(ModuleFormat.UI5_LEGACY);
+					onJQuerySapRequire(node, conditional);
 				} else if ( isCallableExpression(node.callee) ) {
 					// recognizes a scope function declaration + argument
-					visit(node.arguments, conditional);
+					visit(node.arguments, conditional, jQueryAliases);
 					// NODE-TODO defaults of callee?
-					visit(node.callee.body, conditional);
+					visit(node.callee.body, conditional, jQueryAliases);
 				} else {
 					// default visit
 					for ( const key of condKeys ) {
-						visit(node[key.key], key.conditional || conditional);
+						visit(node[key.key], key.conditional || conditional, jQueryAliases);
 					}
 				}
 				break;
@@ -795,22 +604,12 @@ class JSModuleAnalyzer {
 				if ( node.test.type == Syntax.UnaryExpression &&
 						node.test.operator === "!" &&
 						isMethodCall(node.test.argument, CALL_JQUERY_SAP_IS_DECLARED ) ) {
-					visit(node.consequent, conditional);
-					visit(node.alternate, true);
-				} else if ( node.test.type === Syntax.UnaryExpression &&
-						node.test.operator === "!" &&
-						// Also check alias-based isDeclared: if (!alias.sap.isDeclared(...)) { ... }
-						aliasMap.size > 0 &&
-						node.test.argument.type === Syntax.CallExpression &&
-						Array.from(aliasMap.entries()).some(([name, role]) =>
-							role === "jquery" && isAliasMethodCall(
-								node.test.argument.callee, name, ["sap", "isDeclared"])) ) {
-					visit(node.consequent, conditional);
-					visit(node.alternate, true);
+					visit(node.consequent, conditional, jQueryAliases);
+					visit(node.alternate, true, jQueryAliases);
 				} else {
 					// default visit
 					for ( const key of condKeys ) {
-						visit(node[key.key], key.conditional || conditional);
+						visit(node[key.key], key.conditional || conditional, jQueryAliases);
 					}
 				}
 				break;
@@ -819,8 +618,8 @@ class JSModuleAnalyzer {
 
 				// Instance properties (static=false) are only initialized when an instance is created (conditional)
 				// but a computed key is always evaluated on class initialization (eager)
-				visit(node.key, conditional);
-				visit(node.value, !node.static || conditional);
+				visit(node.key, conditional, jQueryAliases);
+				visit(node.value, !node.static || conditional, jQueryAliases);
 
 				break;
 
@@ -831,7 +630,7 @@ class JSModuleAnalyzer {
 				}
 				// default visit
 				for ( const key of condKeys ) {
-					visit(node[key.key], key.conditional || conditional);
+					visit(node[key.key], key.conditional || conditional, jQueryAliases);
 				}
 				break;
 			}
