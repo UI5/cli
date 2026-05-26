@@ -89,8 +89,8 @@ build.builder = function(cli) {
 		.option("cache", {
 			describe:
 				"Cache mode to use for building UI5 projects. " +
-				"The 'Default' behavior is to always use the cache if available. 'Force' uses the cache only " +
-				"(if it's unavailable or invalid, the build fails). 'ReadOnly' does not create or update any " +
+				"The 'Default' behavior is to always use the cache if available. 'Force' uses the cache only. " +
+				"If the cache is unavailable or invalid, the build fails. 'ReadOnly' does not create or update any " +
 				"cache but makes use of a cache if available. 'Off' does not use any cache and always triggers " +
 				"a rebuild of the project",
 			type: "string",
@@ -131,7 +131,7 @@ build.builder = function(cli) {
 		.coerce("cache-mode", (opt) => {
 			// Log a warning if this option is used
 			if (opt !== undefined) {
-				log.warn("As of UI5 CLI version 5, '--cache-mode' was renamed to '--snapshot-cache'. " +
+				log.warn("As of UI5 CLI version 5, '--cache-mode' is renamed to '--snapshot-cache'. " +
 					"Use '--snapshot-cache' to control this behavior.");
 			}
 			return opt;

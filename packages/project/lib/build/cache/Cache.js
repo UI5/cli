@@ -5,7 +5,7 @@
  * @readonly
  * @enum {string}
  * @property {string} Default Use cache if available
- * @property {string} Force Use cache only (if it's unavailable or invalid, the build fails)
+ * @property {string} Force Use cache only. If the cache is unavailable or invalid, the build fails
  * @property {string} ReadOnly Do not create or update any cache but make use of a cache if available
  * @property {string} Off Do not use any cache and always rebuild
  * @module @ui5/project/build/cache/Cache
