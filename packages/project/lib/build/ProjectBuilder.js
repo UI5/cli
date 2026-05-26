@@ -32,6 +32,8 @@ class ProjectBuilder {
 	 * @property {Array.<string>} [includedTasks=[]] List of tasks to be included
 	 * @property {Array.<string>} [excludedTasks=[]] List of tasks to be excluded.
 	 * 			If the wildcard '*' is provided, only the included tasks will be executed.
+	 * @property {module:@ui5/project/build/cache/Cache} [cache=Cache.Default]
+	 * Cache mode to use for building UI5 projects
 	 */
 
 	/**

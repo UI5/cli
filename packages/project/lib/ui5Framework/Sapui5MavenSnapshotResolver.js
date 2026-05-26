@@ -34,21 +34,21 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 	 * @param {string} [options.cwd=process.cwd()] Current working directory
 	 * @param {string} [options.ui5DataDir="~/.ui5"] UI5 home directory location. This will be used to store packages,
 	 * metadata and configuration used by the resolvers. Relative to `process.cwd()`
-	 * @param {module:@ui5/project/ui5Framework/maven/CacheMode} [options.cacheMode=Default]
-	 * Cache mode to use
+	 * @param {module:@ui5/project/ui5Framework/maven/SnapshotCache} [options.snapshotCache=Default]
+	 * Snapshot cache mode to use
 	 */
 	constructor(options) {
 		super(options);
 
 		const {
-			cacheMode,
+			snapshotCache,
 		} = options;
 
 		this._installer = new Installer({
 			ui5DataDir: this._ui5DataDir,
 			snapshotEndpointUrlCb:
 				Sapui5MavenSnapshotResolver._createSnapshotEndpointUrlCallback(options.snapshotEndpointUrl),
-			cacheMode,
+			snapshotCache,
 		});
 		this._loadDistMetadata = null;
 

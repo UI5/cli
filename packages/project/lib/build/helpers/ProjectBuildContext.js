@@ -56,8 +56,9 @@ class ProjectBuildContext {
 	static async create(buildContext, project, cacheManager, baseSignature) {
 		const buildSignature = getProjectSignature(
 			baseSignature, project, buildContext.getGraph(), buildContext.getTaskRepository());
+		const cacheMode = buildContext.getBuildConfig().cache;
 		const buildCache = await ProjectBuildCache.create(
-			project, buildSignature, cacheManager);
+			project, buildSignature, cacheManager, cacheMode);
 		return new ProjectBuildContext(
 			buildContext,
 			project,

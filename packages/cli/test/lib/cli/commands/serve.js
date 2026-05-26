@@ -26,6 +26,8 @@ function getDefaultArgv() {
 		"serveCspReports": false,
 		"cache-mode": "Default",
 		"cacheMode": "Default",
+		"snapshot-cache": "Default",
+		"snapshotCache": "Default",
 		"$0": "ui5"
 	};
 }
@@ -98,7 +100,7 @@ test.serial("ui5 serve: default", async (t) => {
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -146,7 +148,7 @@ test.serial("ui5 serve --h2", async (t) => {
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -189,7 +191,7 @@ test.serial("ui5 serve --accept-remote-connections", async (t) => {
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `
@@ -238,7 +240,7 @@ test.serial("ui5 serve --open", async (t) => {
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -284,7 +286,7 @@ test.serial("ui5 serve --open (opens default url)", async (t) => {
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -327,7 +329,7 @@ test.serial("ui5 serve --config", async (t) => {
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: fakePath, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -364,7 +366,7 @@ test.serial("ui5 serve --dependency-definition", async (t) => {
 	t.is(graph.graphFromStaticFile.callCount, 1);
 	t.deepEqual(graph.graphFromStaticFile.getCall(0).args, [{
 		filePath: fakePath, versionOverride: undefined,
-		cacheMode: "Default", rootConfigPath: undefined
+		snapshotCache: "Default", rootConfigPath: undefined
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -404,7 +406,7 @@ test.serial("ui5 serve --dependency-definition / --config", async (t) => {
 	t.is(graph.graphFromStaticFile.callCount, 1);
 	t.deepEqual(graph.graphFromStaticFile.getCall(0).args, [{
 		filePath: fakeDependenciesPath, versionOverride: undefined,
-		cacheMode: "Default", rootConfigPath: fakeConfigPath
+		snapshotCache: "Default", rootConfigPath: fakeConfigPath
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -441,7 +443,7 @@ test.serial("ui5 serve --framework-version", async (t) => {
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: "1.234.5",
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -465,10 +467,10 @@ URL: http://localhost:8080
 	]);
 });
 
-test.serial("ui5 serve --cache-mode", async (t) => {
+test.serial("ui5 serve --snapshotCache", async (t) => {
 	const {argv, serve, graph, server, fakeGraph} = t.context;
 
-	argv.cacheMode = "Force";
+	argv.snapshotCache = "Force";
 
 	serve.handler(argv);
 	await t.context.handlerReady;
@@ -478,7 +480,7 @@ test.serial("ui5 serve --cache-mode", async (t) => {
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Force",
+		snapshotCache: "Force",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -515,7 +517,7 @@ test.serial("ui5 serve --workspace", async (t) => {
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: "dolphin",
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -552,7 +554,7 @@ test.serial("ui5 serve --no-workspace", async (t) => {
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: null,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -590,7 +592,7 @@ test.serial("ui5 serve --workspace-config", async (t) => {
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: fakePath, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -627,7 +629,7 @@ test.serial("ui5 serve --sap-csp-policies", async (t) => {
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -664,7 +666,7 @@ test.serial("ui5 serve --serve-csp-reports", async (t) => {
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -701,7 +703,7 @@ test.serial("ui5 serve --simple-index", async (t) => {
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -745,7 +747,7 @@ test.serial("ui5 serve with ui5.yaml port setting", async (t) => {
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -796,7 +798,7 @@ test.serial("ui5 serve --h2 with ui5.yaml port setting", async (t) => {
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -854,7 +856,7 @@ test.serial("ui5 serve --h2 with ui5.yaml port setting and port CLI argument", a
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
