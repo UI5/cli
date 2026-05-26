@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<title>Redirecting</title>
+	<noscript>
+		<meta http-equiv="refresh" content="1; url=https://ui5.github.io/cli" />
+	</noscript>
+	<script>
+		(function () {
+			"use strict";
+
+			var url = new URL(window.location);
+			var path = url.pathname.split("/");
+			var pathRegex = /\/(v[0-9]+|stable|next)/gi;
+
+			// Check if URL contains a version pattern
+			var hasVersion = url.pathname.match(pathRegex);
+
+			if (!hasVersion) {
+				// No version in URL - add stable
+				// e.g., /cli/ → /cli/stable/
+				path.splice(2, 0, "stable");
+				url.pathname = path.join("/");
+				window.location = url.toString();
+				return;
+			}
+
+			// Find the version part in the path
+			var versionIndex = path.findIndex((elem) => elem.match(/^(v[0-9]+|stable|next)$/));
+
+			if (versionIndex > -1) {
+				var version = path[versionIndex];
+
+				// Dynamically check if version exists by trying to fetch its index.html
+				var versionPath = path.slice(0, versionIndex + 1).join("/") + "/";
+				var testUrl = url.origin + versionPath;
+
+				// Create a test request to see if version exists
+				fetch(testUrl, { method: 'HEAD' })
+					.then(function (response) {
+						if (response.ok) {
+							// Version exists, but current page doesn't - show 404 within that version
+							// Don't redirect if already on 404 to prevent loops
+							if (!url.pathname.endsWith("/404.html") && !url.pathname.endsWith("/404/")) {
+								var newPath = path.slice(0, versionIndex + 1).concat(["404.html"]);
+								url.pathname = newPath.join("/");
+								window.location = url.toString();
+							}
+						} else {
+							// Version doesn't exist - redirect to stable
+							redirectToStable();
+						}
+					})
+					.catch(function () {
+						// Network error or version doesn't exist - redirect to stable
+						redirectToStable();
+					});
+			} else {
+				// Edge case: redirect to stable
+				redirectToStable();
+			}
+
+			function redirectToStable() {
+				var versionIndex = path.findIndex((elem) => elem.match(/^(v[0-9]+|stable|next)$/));
+
+				if (versionIndex > -1) {
+					path[versionIndex] = "stable";
+					path = path.slice(0, versionIndex + 1);
+				} else {
+					path = ["", path[1], "stable"];
+				}
+
+				url.pathname = path.join("/");
+
+				// Prevent infinite loops
+				if (url.toString() !== window.location.toString()) {
+					window.location = url.toString();
+				}
+			}
+		})()
+	</script>
+</head>
+
+<body>
+	Redirect to <a href="https://ui5.github.io/cli/stable/">the stable docs release</a>...
+</body>
+
+</html>

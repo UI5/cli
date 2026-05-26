@@ -1,0 +1,19 @@
+[
+  {
+    "version": "v4",
+    "title": "v4",
+    "aliases": [
+      "stable"
+    ]
+  },
+  {
+    "version": "v3",
+    "title": "v3",
+    "aliases": []
+  },
+  {
+    "version": "v2",
+    "title": "v2",
+    "aliases": []
+  }
+]
