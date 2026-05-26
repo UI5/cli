@@ -218,14 +218,15 @@ Key operations:
 - `removeResources(paths)`: Remove resources, recompute affected hashes
 - `_computeHash(node)`: Recursive hash computation
 
-The `matchResourceMetadataStrict` utility (`utils.js`) determines if a resource is "unchanged" using a tiered comparison (cheapest first):
+The `isResourceUnchanged` utility (`utils.js`) determines if a resource is "unchanged" using a tiered comparison (cheapest first):
 
-1. If `lastModified` matches cached value AND differs from `indexTimestamp`: unchanged (fast path)
-2. If `lastModified` equals `indexTimestamp`: racy-git edge case -- file may have changed during indexing, fall through to integrity check
-3. Compare `size` -- if different, changed
-4. Compare `integrity` hash -- expensive, last resort
+1. Compare `size` -- if different, changed (definite signal; mtime preservation via `cp -p`/`tar -x`/atomic rename does not imply unchanged content)
+2. Compare `inode` -- if different, the file was replaced; fall through to integrity check rather than rejecting outright (content may still be identical)
+3. If `lastModified` matches cached value AND differs from `indexTimestamp` AND inode matches: unchanged (fast path)
+4. If `lastModified` equals `indexTimestamp`: racy-git edge case -- file may have changed during indexing, fall through to integrity check
+5. Compare `integrity` hash -- expensive, last resort
 
-Note: inode comparison is defined but currently commented out. `inode` is still stored in TreeNode for future use.
+`inode` is optional on both sides (virtual resources, older caches without inode); the inode check is skipped when either side is undefined.
 
 ### SharedHashTree and TreeRegistry
 

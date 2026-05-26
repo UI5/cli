@@ -2,7 +2,7 @@
  * @typedef {object} StageCacheEntry
  * @property {object} stage The cached stage instance (typically a reader or writer)
  * @property {string[]} writtenResourcePaths Array of resource paths written during stage execution
- * @property {Map<string, Map<string, {string|number|boolean|undefined}>>} resourceTagOperations
+ * @property {Map<string, Map<string, *>>} resourceTagOperations
  *  Map of resource paths to their tags that were set or cleared during this stage's execution
  */
 
@@ -42,8 +42,8 @@ export default class StageCache {
 	 * @param {string} signature Content hash signature of the stage's input resources
 	 * @param {object} stageInstance The stage instance to cache (typically a reader or writer)
 	 * @param {string[]} writtenResourcePaths Array of resource paths written during this stage
-	 * @param {Map<string, Map<string, {string|number|boolean|undefined}>>} projectTagOperations
-	 * @param {Map<string, Map<string, {string|number|boolean|undefined}>>} buildTagOperations
+	 * @param {Map<string, Map<string, *>>} projectTagOperations
+	 * @param {Map<string, Map<string, *>>} buildTagOperations
 	 *  Map of resource paths to their tags that were set or cleared during this stage's execution
 	 */
 	addSignature(stageId, signature, stageInstance, writtenResourcePaths, projectTagOperations, buildTagOperations) {
@@ -91,7 +91,7 @@ export default class StageCache {
 	 * retrieve the full stage data via getCacheForSignature().
 	 *
 	 * @public
-	 * @returns {Array<[string, string]>} Array of [stageId, signature] tuples to persist
+	 * @returns {string[][]} Array of [stageId, signature] tuples to persist
 	 */
 	flushCacheQueue() {
 		const queue = this.#cacheQueue;

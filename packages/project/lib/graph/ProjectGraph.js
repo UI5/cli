@@ -716,6 +716,10 @@ class ProjectGraph {
 	 *   Processes build results into a specific directory structure.
 	 * @param {module:@ui5/project/build/cache/Cache} [parameters.cache=Default]
 	 *   Cache mode to use for building UI5 projects
+	 * @param {string} [parameters.ui5DataDir]
+	 *   Explicit UI5 data directory to use for the build cache. Overrides the
+	 *   <code>UI5_DATA_DIR</code> environment variable, the UI5 configuration file,
+	 *   and the default of <code>~/.ui5</code>.
 	 * @returns {Promise} Promise resolving to <code>undefined</code> once build has finished
 	 */
 	async build({
@@ -726,6 +730,7 @@ class ProjectGraph {
 		includedTasks = [], excludedTasks = [],
 		outputStyle = OutputStyleEnum.Default,
 		cache = Cache.Default,
+		ui5DataDir,
 	}) {
 		this.seal(); // Do not allow further changes to the graph
 		if (this._builtOrServed) {
@@ -745,7 +750,8 @@ class ProjectGraph {
 				createBuildManifest,
 				includedTasks, excludedTasks, outputStyle,
 				cache
-			}
+			},
+			ui5DataDir,
 		});
 		return await builder.buildToTarget({
 			destPath, cleanDest,

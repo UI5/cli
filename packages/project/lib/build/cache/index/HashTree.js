@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import path from "node:path/posix";
 import TreeNode from "./TreeNode.js";
-import {matchResourceMetadataStrict} from "../utils.js";
+import {isResourceUnchanged} from "../utils.js";
 
 /**
  * @typedef {object} @ui5/project/build/cache/index/HashTree~ResourceMetadata
@@ -93,7 +93,7 @@ export default class HashTree {
 	/**
 	 * Build tree from resource list
 	 *
-	 * @param {Array<{path: string, integrity?: string}>} resources
+	 * @param {Array<object>} resources
 	 * @private
 	 */
 	_buildTree(resources) {
@@ -387,44 +387,15 @@ export default class HashTree {
 		const unchanged = [];
 		const affectedPaths = new Set();
 
-		// Phase 1: Filter out clearly-unchanged resources using cheap sync checks.
-		// This avoids async/Promise overhead and unnecessary I/O for the common case
-		// where most resources haven't changed (lastModified short-circuit).
+		// Phase 1: Categorize each resource. New resources need integrity+size resolved.
+		// Existing resources are routed through isResourceUnchanged (Phase 2),
+		// which handles the mtime/size short-circuit with the racy-git protection.
 		const needsIO = [];
 
 		for (const resource of resources) {
 			const resourcePath = resource.getOriginalPath();
 			const existingNode = this.getResourceByPath(resourcePath);
-
-			if (!existingNode) {
-				// New resource — always needs I/O
-				needsIO.push({resource, resourcePath, existingNode: null, isNew: true});
-				continue;
-			}
-
-			// Replicate matchResourceMetadataStrict's fast path (sync, no I/O):
-			// If lastModified matches and is not at risk of race condition, content is unchanged.
-			const currentLastModified = resource.getLastModified();
-			if (currentLastModified === existingNode.lastModified &&
-				this.#indexTimestamp && currentLastModified !== this.#indexTimestamp) {
-				// Content definitely unchanged — check tags
-				if (tagsEqual(existingNode.tags, resource.getTags())) {
-					unchanged.push(resourcePath);
-				} else {
-					// Tag-only change — update tags without I/O
-					existingNode.tags = resource.getTags();
-					this._computeHash(existingNode);
-					updated.push(resourcePath);
-					const parts = resourcePath.split(path.sep).filter((p) => p.length > 0);
-					for (let i = 0; i < parts.length; i++) {
-						affectedPaths.add(parts.slice(0, i).join(path.sep));
-					}
-				}
-				continue;
-			}
-
-			// Potentially changed — needs I/O to determine
-			needsIO.push({resource, resourcePath, existingNode, isNew: false});
+			needsIO.push({resource, resourcePath, existingNode, isNew: !existingNode});
 		}
 
 		// Phase 2: Resolve I/O concurrently for resources that need it.
@@ -448,7 +419,7 @@ export default class HashTree {
 					};
 				}
 
-				// Existing resource with potential change — use matchResourceMetadataStrict
+				// Existing resource with potential change — use isResourceUnchanged
 				// for the remaining checks (size comparison, integrity comparison)
 				const currentMetadata = {
 					integrity: existingNode.integrity,
@@ -458,13 +429,13 @@ export default class HashTree {
 				};
 
 				const isUnchanged =
-					await matchResourceMetadataStrict(resource, currentMetadata, this.#indexTimestamp);
+					await isResourceUnchanged(resource, currentMetadata, this.#indexTimestamp);
 
 				if (isUnchanged) {
 					return {resourcePath, existingNode, isUnchanged: true, tags: resource.getTags()};
 				}
 
-				// Changed — integrity/size are cached in the Resource from matchResourceMetadataStrict
+				// Changed — integrity/size are cached in the Resource from isResourceUnchanged
 				const [integrity, size] = await Promise.all([
 					resource.getIntegrity(),
 					resource.getSize()

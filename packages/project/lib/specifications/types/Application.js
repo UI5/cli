@@ -52,7 +52,7 @@ class Application extends ComponentProject {
 	getVirtualPath(sourceFilePath) {
 		const sourcePath = this.getSourcePath();
 		if (sourceFilePath.startsWith(sourcePath)) {
-			const relSourceFilePath = fsPath.relative(sourcePath, sourceFilePath);
+			const relSourceFilePath = fsPath.relative(sourcePath, sourceFilePath).replaceAll("\\", "/");
 			return `/resources/${this._namespace}/${relSourceFilePath}`;
 		}
 

@@ -104,8 +104,12 @@ class ProjectBuilder {
 	 * @param {@ui5/project/graph/ProjectGraph} parameters.graph Project graph
 	 * @param {@ui5/project/build/ProjectBuilder~BuildConfiguration} [parameters.buildConfig] Build configuration
 	 * @param {@ui5/builder/tasks/taskRepository} parameters.taskRepository Task Repository module to use
+	 * @param {string} [parameters.ui5DataDir]
+	 *   Explicit UI5 data directory to use for the build cache, overriding the
+	 *   <code>UI5_DATA_DIR</code> environment variable, the UI5 configuration file,
+	 *   and the default of <code>~/.ui5</code>.
 	 */
-	constructor({graph, buildConfig, taskRepository}) {
+	constructor({graph, buildConfig, taskRepository, ui5DataDir}) {
 		if (!graph) {
 			throw new Error(`Missing parameter 'graph'`);
 		}
@@ -118,7 +122,7 @@ class ProjectBuilder {
 		}
 
 		this._graph = graph;
-		this._buildContext = new BuildContext(graph, taskRepository, buildConfig);
+		this._buildContext = new BuildContext(graph, taskRepository, buildConfig, {ui5DataDir});
 		this.#log = new BuildLogger("ProjectBuilder");
 	}
 
@@ -138,7 +142,33 @@ class ProjectBuilder {
 	}
 
 	/**
-	 * Build projects without writing to a target directory
+	 * Releases the build cache database connection and any underlying storage resources.
+	 *
+	 * Must be called by consumers of {@link #build} once they are done with this builder
+	 * (e.g. when shutting down a long-running [BuildServer]{@link @ui5/project/build/BuildServer}).
+	 * {@link #buildToTarget} closes the CacheManager automatically and does not require this call.
+	 *
+	 * Safe to call multiple times; subsequent calls are no-ops. After this method returns,
+	 * the builder must not be used for further builds.
+	 *
+	 * @public
+	 */
+	closeCacheManager() {
+		this._buildContext.closeCacheManager();
+	}
+
+	/**
+	 * Build projects without writing to a target directory.
+	 *
+	 * Intended for long-running consumers (such as the
+	 * [BuildServer]{@link @ui5/project/build/BuildServer}) that access build results through
+	 * readers rather than the file system. Multiple sequential calls are supported and reuse
+	 * the same build cache.
+	 *
+	 * The caller is responsible for releasing the underlying build cache database by invoking
+	 * {@link #closeCacheManager} once the builder is no longer needed. Failing to do so leaks
+	 * the SQLite connection and its memory mapping, which on Windows also blocks deletion of
+	 * the cache directory by subsequent processes.
 	 *
 	 * @public
 	 * @param {object} parameters Parameters
@@ -160,7 +190,14 @@ class ProjectBuilder {
 	}
 
 	/**
-	 * Executes a project build, including all necessary or requested dependencies
+	 * Executes a project build, including all necessary or requested dependencies, and writes
+	 * the result to the given target directory.
+	 *
+	 * Closes the build cache database before returning, so {@link #closeCacheManager} does not
+	 * need to be called by the consumer. After this method returns, the builder must not be
+	 * used for further builds. For repeated builds against the same builder instance — e.g.
+	 * in a long-running [BuildServer]{@link @ui5/project/build/BuildServer} — use
+	 * {@link #build} instead and close the CacheManager explicitly when done.
 	 *
 	 * @public
 	 * @param {object} parameters Parameters
@@ -210,17 +247,21 @@ class ProjectBuilder {
 			});
 		}
 		const pWrites = [];
-		await this.#build(requestedProjects, async (projectName, project, projectBuildContext) => {
-			if (!fsTarget) {
-				// Nothing to write to
-				return;
-			}
-			// Only write requested projects to target
-			// (excluding dependencies that were required to be built, but not requested)
-			this.#log.verbose(`Writing out files for project ${projectName}...`);
-			await this._writeResults(projectBuildContext, fsTarget, pWrites);
-		});
-		await Promise.all(pWrites);
+		try {
+			await this.#build(requestedProjects, async (projectName, project, projectBuildContext) => {
+				if (!fsTarget) {
+					// Nothing to write to
+					return;
+				}
+				// Only write requested projects to target
+				// (excluding dependencies that were required to be built, but not requested)
+				this.#log.verbose(`Writing out files for project ${projectName}...`);
+				await this._writeResults(projectBuildContext, fsTarget, pWrites);
+			});
+			await Promise.all(pWrites);
+		} finally {
+			this._buildContext.closeCacheManager();
+		}
 	}
 
 	/**

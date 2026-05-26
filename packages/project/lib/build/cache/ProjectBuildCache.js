@@ -7,9 +7,19 @@ import os from "node:os";
 import BuildTaskCache from "./BuildTaskCache.js";
 import StageCache from "./StageCache.js";
 import ResourceIndex from "./index/ResourceIndex.js";
-import {matchResourceMetadataStrict} from "./utils.js";
+import {isResourceUnchanged} from "./utils.js";
 const log = getLogger("build:cache:ProjectBuildCache");
 import Cache from "./Cache.js";
+
+export class SourceChangedDuringBuildError extends Error {
+	constructor(projectName) {
+		super(
+			`Detected changes to source files of project ${projectName} during the build. ` +
+			`The build result may be inconsistent and will not be used. ` +
+			`Build cache has not been updated.`);
+		this.name = "SourceChangedDuringBuildError";
+	}
+}
 
 export const INDEX_STATES = Object.freeze({
 	RESTORING_PROJECT_INDICES: "restoring_project_indices",
@@ -36,9 +46,9 @@ export const RESULT_CACHE_STATES = Object.freeze({
  * @property {string} signature Signature of the cached stage
  * @property {@ui5/fs/AbstractReader} stage Reader for the cached stage
  * @property {string[]} writtenResourcePaths Array of resource paths written by the task
- * @property {Map<string, Map<string, {string|number|boolean|undefined}>>} projectTagOperations
+ * @property {Map<string, Map<string, *>>} projectTagOperations
  * Map of resource paths to their tags that were set or cleared during this stage's execution, for project tags
- * @property {Map<string, Map<string, {string|number|boolean|undefined}>>} buildTagOperations
+ * @property {Map<string, Map<string, *>>} buildTagOperations
  * Map of resource paths to their tags that were set or cleared during this stage's execution, for build tags
  */
 
@@ -961,7 +971,8 @@ export default class ProjectBuildCache {
 				this.#changedProjectSourcePaths.push(resourcePath);
 			}
 		}
-		if (this.#combinedIndexState !== INDEX_STATES.INITIAL) {
+		if (this.#combinedIndexState !== INDEX_STATES.INITIAL &&
+			this.#combinedIndexState !== INDEX_STATES.RESTORING_PROJECT_INDICES) {
 			// If there is an index cache, mark it as requiring update
 			this.#combinedIndexState = INDEX_STATES.REQUIRES_UPDATE;
 		}
@@ -981,7 +992,8 @@ export default class ProjectBuildCache {
 				this.#changedDependencyResourcePaths.push(resourcePath);
 			}
 		}
-		if (this.#combinedIndexState !== INDEX_STATES.INITIAL) {
+		if (this.#combinedIndexState !== INDEX_STATES.INITIAL &&
+			this.#combinedIndexState !== INDEX_STATES.RESTORING_PROJECT_INDICES) {
 			// If there is an index cache, mark it as requiring update
 			this.#combinedIndexState = INDEX_STATES.REQUIRES_UPDATE;
 		}
@@ -1008,7 +1020,7 @@ export default class ProjectBuildCache {
 	 * Re-reads all source files from disk and compares them against the source index
 	 * to detect whether any source files were modified, added, or deleted during the build.
 	 *
-	 * Uses metadata-only comparison via matchResourceMetadataStrict (skipping tags,
+	 * Uses metadata-only comparison via isResourceUnchanged (skipping tags,
 	 * since tags are build artifacts that always differ from fresh disk reads).
 	 *
 	 * @returns {Promise<boolean>} True if source changes were detected during the build
@@ -1045,7 +1057,7 @@ export default class ProjectBuildCache {
 				size: node.size,
 				inode: node.inode,
 			};
-			const isUnchanged = await matchResourceMetadataStrict(
+			const isUnchanged = await isResourceUnchanged(
 				resource, cachedMetadata, tree.getIndexTimestamp()
 			);
 			if (!isUnchanged) {
@@ -1236,10 +1248,11 @@ export default class ProjectBuildCache {
 	 * Also updates the result resource index accordingly.
 	 *
 	 * @public
+	 * @param {AbortSignal} [signal] Abort signal to cancel the build
 	 * @returns {Promise<string[]>} Array of changed resource paths since the last build
 	 * @throws {Error} If source files were modified during the build
 	 */
-	async allTasksCompleted() {
+	async allTasksCompleted(signal) {
 		const allTasksStart = performance.now();
 		this.#project.getProjectResources().useResultStage();
 
@@ -1252,10 +1265,19 @@ export default class ProjectBuildCache {
 				`(changed=${sourceChangedDuringBuild})`);
 		}
 		if (sourceChangedDuringBuild) {
-			throw new Error(
-				`Detected changes to source files of project ${this.#project.getName()} during the build. ` +
-				`The build result may be inconsistent and will not be used. ` +
-				`Build cache has not been updated.`);
+			// If the build was aborted (e.g. due to a file change detected by the watcher),
+			// prefer the abort error over the source-change error. The abort will trigger a
+			// clean retry cycle in the BuildServer.
+			signal?.throwIfAborted();
+
+			// Reset index state so that the next build attempt will re-initialize the source index
+			// from scratch. Without this, a retry in the BuildServer would reuse the stale index
+			// and perpetually detect the same change.
+			this.#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
+			this.#sourceIndex = null;
+			this.#taskCache.clear();
+
+			throw new SourceChangedDuringBuildError(this.#project.getName());
 		}
 
 		// Write untransformed source files to CAS for downstream consumer protection
@@ -1311,6 +1333,10 @@ export default class ProjectBuildCache {
 	 * @throws {Error} If cached index signature doesn't match computed signature
 	 */
 	async #initSourceIndex() {
+		// Clear any pending source changes accumulated before initialization.
+		// The fresh disk read below already captures the current state.
+		this.#changedProjectSourcePaths = [];
+
 		const sourceReader = this.#project.getSourceReader();
 
 		if (this.#cacheMode === Cache.Off) {
@@ -1863,7 +1889,7 @@ function tagOpsToMap(tagOps) {
 }
 
 /**
- * @param {Map<string, Map<string, {string|number|boolean|undefined}>>} tagOps
+ * @param {Map<string, Map<string, *>>} tagOps
  * Map of resource paths to their tag operations
  */
 function tagOpsToObject(tagOps) {

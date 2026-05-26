@@ -743,6 +743,59 @@ test("Resource: clone resource with stream", async (t) => {
 	t.is(clonedResourceContent, "Content", "Cloned resource has correct content string");
 });
 
+test("Resource: clone resource with WHATWG TransformStream", async (t) => {
+	const ts = new TransformStream({
+		transform(chunk, controller) {
+			controller.enqueue(chunk);
+		}
+	});
+
+	const writer = ts.writable.getWriter();
+	writer.write(Buffer.from("TransformStream Content"));
+	writer.close();
+
+	const resource = new Resource({
+		path: "/my/path/to/resource"
+	});
+	resource.setStream(ts);
+
+	const clonedResource = await resource.clone();
+	t.pass("Resource cloned");
+
+	const clonedResourceContent = await clonedResource.getString();
+	t.is(clonedResourceContent, "TransformStream Content", "Cloned resource has correct content string");
+});
+
+test("Resource: clone resource with legacy stream lacking Symbol.asyncIterator", async (t) => {
+	// Simulate a stream from readable-stream@2 (e.g. replacestream) which has .pipe but no Symbol.asyncIterator
+	const stream = new Stream.Transform({
+		transform(chunk, enc, cb) {
+			cb(null, chunk.toString().replace("old", "new"));
+		}
+	});
+
+	// Remove Symbol.asyncIterator to simulate legacy readable-stream@2 behavior
+	stream[Symbol.asyncIterator] = undefined;
+	delete stream[Symbol.asyncIterator];
+
+	const input = new Stream.Readable();
+	input._read = function() {};
+	input.push("old content");
+	input.push(null);
+	input.pipe(stream);
+
+	const resource = new Resource({
+		path: "/my/path/to/resource"
+	});
+	resource.setStream(stream);
+
+	const clonedResource = await resource.clone();
+	t.pass("Resource cloned");
+
+	const clonedResourceContent = await clonedResource.getString();
+	t.is(clonedResourceContent, "new content", "Cloned resource has correct content string");
+});
+
 test("Resource: clone resource with createBuffer factory", async (t) => {
 	const resource = new Resource({
 		path: "/my/path/to/resource",
@@ -1925,4 +1978,66 @@ test("getIntegrity: Works with large content", async (t) => {
 
 	t.is(integrity, "sha256-j5kLoLV3tRzwCeoEk2jBa72hsh4bk74HqCR1i7JTw5s=",
 		"Correct integrity for large content");
+});
+
+test("getInode: Memory-only resource returns undefined", (t) => {
+	const resource = new Resource({
+		path: "/my/path/to/resource",
+		string: "content"
+	});
+
+	t.is(resource.getInode(), undefined,
+		"Resource constructed without statInfo or inode must not advertise an inode");
+});
+
+test("getInode: Clone of memory-only resource returns undefined", async (t) => {
+	const resource = new Resource({
+		path: "/my/path/to/resource",
+		string: "content"
+	});
+
+	const clone = await resource.clone();
+
+	t.is(clone.getInode(), undefined,
+		"Clone must not fabricate an inode for a memory-only resource");
+});
+
+test("getInode: FS-backed resource returns the real inode", async (t) => {
+	const fsPath = path.join("test", "fixtures", "application.a", "webapp", "index.html");
+	const statInfo = await stat(fsPath);
+	const resource = new Resource({
+		path: "/app/index.html",
+		statInfo,
+		createStream: () => createReadStream(fsPath)
+	});
+
+	t.is(resource.getInode(), statInfo.ino,
+		"Resource constructed with statInfo carries the real inode");
+});
+
+test("getInode: Clone of FS-backed resource preserves the inode", async (t) => {
+	const resource = createBasicResource();
+	const inode = resource.getInode();
+
+	const clone = await resource.clone();
+
+	t.not(inode, undefined, "Sanity: original resource has an inode");
+	t.is(clone.getInode(), inode,
+		"Clone preserves the inode of an FS-backed resource");
+});
+
+test("getInode: Preserved across setBuffer", (t) => {
+	const fsPath = path.join("test", "fixtures", "application.a", "webapp", "index.html");
+	const statInfo = statSync(fsPath);
+	const resource = new Resource({
+		path: "/app/index.html",
+		statInfo,
+		buffer: Buffer.from("original")
+	});
+	const inode = resource.getInode();
+
+	resource.setBuffer(Buffer.from("modified"));
+
+	t.is(resource.getInode(), inode,
+		"Inode is unchanged after setBuffer (same on-disk slot, content modified)");
 });

@@ -728,3 +728,82 @@ test("SharedHashTree - complex multi-tree coordination", async (t) => {
 	t.is(sharedA1, sharedA3, "baseTree and derived2 share node");
 	t.is(sharedA1.integrity, "new-hash-a", "All see updated value");
 });
+
+test("getAddedResources: detects new resource added to derived tree", async (t) => {
+	const registry = new TreeRegistry();
+	const baseResources = [
+		{path: "existing.js", integrity: "hash-e", size: 100, lastModified: 1000, inode: 1}
+	];
+	const baseTree = new SharedHashTree(baseResources, registry);
+
+	// Create a reference tree (not in same registry) representing the original state
+	const registry2 = new TreeRegistry();
+	const rootTree = new SharedHashTree(baseResources, registry2);
+
+	const derived = baseTree.deriveTree();
+	const indexTimestamp = derived.getIndexTimestamp();
+
+	// Add a completely new resource to derived
+	await derived.upsertResources([
+		createMockResource("newfile.js", "hash-new", indexTimestamp + 1, 200, 2)
+	], Date.now());
+	await registry.flush();
+
+	const added = derived.getAddedResources(rootTree);
+	t.is(added.length, 1, "Should detect one added resource");
+	t.true(added[0].path.endsWith("newfile.js"));
+	t.is(added[0].integrity, "hash-new");
+});
+
+test("getAddedResources: detects new directory with resources", async (t) => {
+	const registry = new TreeRegistry();
+	const baseResources = [
+		{path: "root.js", integrity: "hash-r", size: 50, lastModified: 500, inode: 10}
+	];
+	const baseTree = new SharedHashTree(baseResources, registry);
+
+	// Reference tree for comparison
+	const registry2 = new TreeRegistry();
+	const rootTree = new SharedHashTree(baseResources, registry2);
+
+	const derived = baseTree.deriveTree();
+	const indexTimestamp = derived.getIndexTimestamp();
+
+	// Add resources in a new directory that doesn't exist in base
+	await derived.upsertResources([
+		createMockResource("newdir/a.js", "hash-a", indexTimestamp + 1, 100, 1),
+		createMockResource("newdir/b.js", "hash-b", indexTimestamp + 1, 200, 2)
+	], Date.now());
+	await registry.flush();
+
+	const added = derived.getAddedResources(rootTree);
+	t.is(added.length, 2, "Should detect both resources in new directory");
+	const paths = added.map((r) => r.path).sort();
+	t.deepEqual(paths, ["/newdir/a.js", "/newdir/b.js"]);
+});
+
+test("getAddedResources: skips structurally shared nodes", async (t) => {
+	const registry = new TreeRegistry();
+	const baseResources = [
+		{path: "shared/file.js", integrity: "hash-s", size: 100, lastModified: 1000, inode: 1},
+		{path: "other/file.js", integrity: "hash-o", size: 200, lastModified: 2000, inode: 2}
+	];
+	const baseTree = new SharedHashTree(baseResources, registry);
+
+	// Reference tree for comparison
+	const registry2 = new TreeRegistry();
+	const rootTree = new SharedHashTree(baseResources, registry2);
+
+	const derived = baseTree.deriveTree();
+	const indexTimestamp = derived.getIndexTimestamp();
+
+	// Only add a new resource in "other" subtree
+	await derived.upsertResources([
+		createMockResource("other/new.js", "hash-n", indexTimestamp + 1, 300, 3)
+	], Date.now());
+	await registry.flush();
+
+	const added = derived.getAddedResources(rootTree);
+	t.is(added.length, 1, "Only new resource is detected");
+	t.is(added[0].path, "/other/new.js");
+});

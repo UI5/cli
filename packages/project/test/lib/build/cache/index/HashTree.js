@@ -264,6 +264,28 @@ test("upsertResources returns empty array when no changes", async (t) => {
 	t.deepEqual(updated, [], "Should return empty array when no changes");
 });
 
+// Companion to the isResourceUnchanged test in cache/utils.js: ensure
+// upsertResources also detects size mismatches when the cached mtime is preserved.
+test(
+	"upsertResources: classifies as updated when content changed but mtime preserved (size differs)",
+	async (t) => {
+		const resources = [
+			{path: "file1.js", integrity: "hash1", lastModified: 1000, size: 100}
+		];
+
+		// indexTimestamp must differ from lastModified to bypass the racy-git
+		// fallback, which would otherwise force an integrity check.
+		const tree = new HashTree(resources, {indexTimestamp: 2000});
+
+		// Same lastModified (1000), different size (200) and integrity ("changed").
+		const racy = createMockResource("file1.js", "changed", 1000, 200, 1);
+		const {updated, unchanged} = await tree.upsertResources([racy]);
+
+		t.deepEqual(updated, ["file1.js"], "Should detect the size-mismatched update");
+		t.deepEqual(unchanged, [], "Should not classify the racy resource as unchanged");
+	}
+);
+
 test("Different nested structures with same resources produce different hashes", (t) => {
 	const resources1 = [
 		{path: "a/b/file.js", integrity: "hash1"}
@@ -755,4 +777,66 @@ test("Intermediate directory hashes are correct after deep leaf modification", a
 		"Intermediate directory 'a' hash must match reference");
 	t.is(tree.getRootHash(), referenceTree.getRootHash(),
 		"Root hash must match reference");
+});
+
+test("hasDirectoryChanged: returns true when directory hash differs", (t) => {
+	const resources = [
+		{path: "dir/file1.js", integrity: "hash1"},
+		{path: "dir/file2.js", integrity: "hash2"}
+	];
+	const tree = new HashTree(resources);
+	const previousHash = "some-old-hash";
+	t.true(tree.hasDirectoryChanged("dir", previousHash));
+});
+
+test("hasDirectoryChanged: returns false when directory hash matches", (t) => {
+	const resources = [
+		{path: "dir/file1.js", integrity: "hash1"}
+	];
+	const tree = new HashTree(resources);
+	const currentHash = tree.getDirectoryHash("dir");
+	t.false(tree.hasDirectoryChanged("dir", currentHash));
+});
+
+test("getStats: returns resource/directory counts and depth", (t) => {
+	const resources = [
+		{path: "a.js", integrity: "hash-a"},
+		{path: "dir/b.js", integrity: "hash-b"},
+		{path: "dir/sub/c.js", integrity: "hash-c"}
+	];
+	const tree = new HashTree(resources);
+	const stats = tree.getStats();
+	t.is(stats.resources, 3);
+	t.is(stats.directories, 3); // root, dir, dir/sub
+	t.is(stats.maxDepth, 3); // c.js is at depth 3 (root=0, dir=1, sub=2, c.js=3)
+	t.is(stats.rootHash, tree.getRootHash());
+});
+
+test("validate: returns true for valid tree", (t) => {
+	const resources = [
+		{path: "file.js", integrity: "hash1"},
+		{path: "dir/file2.js", integrity: "hash2"}
+	];
+	const tree = new HashTree(resources);
+	t.true(tree.validate());
+});
+
+test("clone: creates independent copy", async (t) => {
+	const resources = [
+		{path: "file1.js", integrity: "hash1", lastModified: 1000, size: 100},
+		{path: "dir/file2.js", integrity: "hash2", lastModified: 2000, size: 200}
+	];
+	const tree = new HashTree(resources);
+	const cloned = tree.clone();
+
+	t.is(cloned.getRootHash(), tree.getRootHash(), "Clone has same root hash");
+
+	// Mutating clone should not affect original
+	const indexTimestamp = cloned.getIndexTimestamp();
+	await cloned.upsertResources([createMockResource("file1.js", "new-hash", indexTimestamp + 1, 101, 1)]);
+	t.not(cloned.getRootHash(), tree.getRootHash(), "Original unchanged after clone mutation");
+});
+
+test("fromCache: throws on unsupported version", (t) => {
+	t.throws(() => HashTree.fromCache({version: 99, root: {}}), {message: /Unsupported version/});
 });

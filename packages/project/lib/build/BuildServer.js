@@ -2,6 +2,7 @@ import EventEmitter from "node:events";
 import {createReaderCollectionPrioritized} from "@ui5/fs/resourceFactory";
 import BuildReader from "./BuildReader.js";
 import WatchHandler from "./helpers/WatchHandler.js";
+import {SourceChangedDuringBuildError} from "./cache/ProjectBuildCache.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("build:BuildServer");
 import Cache from "./cache/Cache.js";
@@ -44,6 +45,7 @@ class BuildServer extends EventEmitter {
 	#pendingBuildRequest = new Set();
 	#activeBuild = null;
 	#processBuildRequestsTimeout;
+	#destroyed = false;
 	#allReader;
 	#rootReader;
 	#dependenciesReader;
@@ -124,11 +126,14 @@ class BuildServer extends EventEmitter {
 	}
 
 	async destroy() {
+		this.#destroyed = true;
+		clearTimeout(this.#processBuildRequestsTimeout);
 		await this.#watchHandler.destroy();
 		if (this.#activeBuild) {
 			// Await active build to finish
 			await this.#activeBuild;
 		}
+		this.#projectBuilder.closeCacheManager();
 	}
 
 	/**
@@ -314,7 +319,7 @@ class BuildServer extends EventEmitter {
 	}
 
 	#triggerRequestQueue() {
-		if (this.#activeBuild) {
+		if (this.#destroyed || this.#activeBuild) {
 			return;
 		}
 		// If no build is active, trigger queue processing debounced
@@ -371,7 +376,7 @@ class BuildServer extends EventEmitter {
 				const projectBuildStatus = this.#projectBuildStatus.get(projectName);
 				projectBuildStatus.setReader(project.getReader({style: "runtime"}));
 			}).catch((err) => {
-				if (err instanceof AbortBuildError) {
+				if (err instanceof AbortBuildError || err instanceof SourceChangedDuringBuildError) {
 					log.info("Build aborted");
 					log.verbose(`Projects affected by abort: ${projectsToBuild.join(", ")}`);
 					// Build was aborted - do not log as error

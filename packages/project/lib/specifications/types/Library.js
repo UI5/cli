@@ -67,7 +67,7 @@ class Library extends ComponentProject {
 	getVirtualPath(sourceFilePath) {
 		const sourcePath = this.getSourcePath();
 		if (sourceFilePath.startsWith(sourcePath)) {
-			const relSourceFilePath = fsPath.relative(sourcePath, sourceFilePath);
+			const relSourceFilePath = fsPath.relative(sourcePath, sourceFilePath).replaceAll("\\", "/");
 			let virBasePath = "/resources/";
 			if (!this._isSourceNamespaced) {
 				virBasePath += `${this._namespace}/`;
@@ -77,7 +77,7 @@ class Library extends ComponentProject {
 
 		const testPath = fsPath.join(this.getRootPath(), this._testPath);
 		if (sourceFilePath.startsWith(testPath)) {
-			const relSourceFilePath = fsPath.relative(testPath, sourceFilePath);
+			const relSourceFilePath = fsPath.relative(testPath, sourceFilePath).replaceAll("\\", "/");
 			let virBasePath = "/test-resources/";
 			if (!this._isSourceNamespaced) {
 				virBasePath += `${this._namespace}/`;

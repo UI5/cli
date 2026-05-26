@@ -9,6 +9,7 @@ import sinon from "sinon";
 import {graphFromObject, graphFromPackageDependencies} from "@ui5/project/graph";
 import * as taskRepository from "../../../lib/tasks/taskRepository.js";
 import {setLogLevel} from "@ui5/logger";
+import {isolatedUi5DataDir} from "../../utils/buildCacheIsolation.js";
 
 // Using CommonsJS require since JSON module imports are still experimental
 const require = createRequire(import.meta.url);
@@ -100,6 +101,7 @@ test.serial("Build application.a", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: ["generateComponentPreload", "generateStandaloneAppBundle", "generateVersionInfo"]
 	});
@@ -121,6 +123,7 @@ test.serial("Build application.a with dependencies", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: [
 			"generateComponentPreload", "generateStandaloneAppBundle", "generateVersionInfo",
@@ -146,6 +149,7 @@ test.serial("Build application.a with dependencies exclude", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: [
 			"generateComponentPreload", "generateStandaloneAppBundle", "generateVersionInfo",
@@ -172,6 +176,7 @@ test.serial("Build application.a self-contained", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: ["generateComponentPreload", "generateVersionInfo"],
 		selfContained: true
@@ -194,6 +199,7 @@ test.serial("Build application.a with dependencies self-contained", async (t) =>
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: [
 			"generateComponentPreload", "generateVersionInfo", "escapeNonAsciiCharacters",
@@ -253,6 +259,7 @@ test.serial("Build application.g", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: ["generateVersionInfo"]
 	});
@@ -274,6 +281,7 @@ test.serial("Build application.g with component preload paths", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: ["generateVersionInfo"]
 	});
@@ -295,6 +303,7 @@ test.serial("Build application.g with excludes", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: ["*"]
 	});
@@ -316,6 +325,7 @@ test.serial("Build application.h", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: ["generateComponentPreload",
 			"generateStandaloneAppBundle", "generateVersionInfo"]
@@ -338,6 +348,7 @@ test.serial("Build application.h (no minify)", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: ["minify", "generateComponentPreload",
 			"generateStandaloneAppBundle", "generateVersionInfo"]
@@ -360,6 +371,7 @@ test.serial("Build application.i", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: ["generateVersionInfo"]
 	});
@@ -381,6 +393,7 @@ test.serial("Build application.j", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: ["generateVersionInfo"]
 	});
@@ -408,6 +421,7 @@ test.serial("Build application.j with resources.json and version info", async (t
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		includedTasks: ["generateResourcesJson", "generateVersionInfo"]
 	});
@@ -429,6 +443,7 @@ test.serial("Build application.k (componentPreload excludes)", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		includedTasks: ["generateComponentPreload"],
 		excludedTasks: ["*"]
@@ -451,6 +466,7 @@ test.serial("Build application.k (package sub-components / componentPreload excl
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		includedTasks: ["generateComponentPreload"],
 		excludedTasks: ["*"]
@@ -473,6 +489,7 @@ test.serial("Build application.l: minification excludes, w/ namespace", async (t
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: ["generateComponentPreload", "generateStandaloneAppBundle", "generateVersionInfo"]
 	});
@@ -494,6 +511,7 @@ test.serial("Build application.m: bundle should not contain hashbang but an empt
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath
 	});
 
@@ -514,6 +532,7 @@ test.serial("Build application.ø", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: ["generateVersionInfo"]
 	});
@@ -535,6 +554,7 @@ test.serial("Build library.d with copyright from .library file", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: ["generateLibraryPreload"]
 	});
@@ -556,6 +576,7 @@ test.serial("Build library.e with copyright from metadata configuration of tree"
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: ["generateLibraryPreload"]
 	});
@@ -581,6 +602,7 @@ test.serial("Build library.e with build manifest", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		createBuildManifest: true
 	});
@@ -656,6 +678,7 @@ test.serial("Build library.h with custom bundles and component-preloads", async 
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: ["generateLibraryPreload"]
 	});
@@ -677,6 +700,7 @@ test.serial("Build library.h with custom bundles and component-preloads (no mini
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: ["minify", "generateLibraryPreload"]
 	});
@@ -702,6 +726,7 @@ test.serial("Build library.h w/ custom bundles, component-preloads, resources.js
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		createBuildManifest: true,
 		includedTasks: ["generateResourcesJson"],
@@ -851,6 +876,7 @@ test.serial("Build library.i with manifest info taken from .library and library.
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: ["generateLibraryPreload", "minify"]
 	});
@@ -872,6 +898,7 @@ test.serial("Build library.j with JSDoc build only", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		includedTasks: ["generateJsdoc"],
 		excludedTasks: ["*"]
@@ -898,6 +925,7 @@ test.serial("Build library.i, bundling library.h", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: ["generateLibraryPreload"]
 	});
@@ -1006,6 +1034,7 @@ test.serial("Build library.l", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: ["generateLibraryManifest", "generateLibraryPreload"]
 	});
@@ -1027,6 +1056,7 @@ test.serial("Build theme.j even without an library", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath
 	});
 
@@ -1047,6 +1077,7 @@ test.serial("Build theme.j even without an library with resources.json", async (
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		includedTasks: [
 			"generateResourcesJson"
@@ -1074,6 +1105,7 @@ test.serial("Build theme.j with build manifest", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		createBuildManifest: true
 	});
@@ -1130,6 +1162,7 @@ test.serial("Build library.ø", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath
 	});
 
@@ -1158,6 +1191,7 @@ test.serial("Build library.coreBuildtime: replaceBuildtime", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks: ["generateLibraryManifest", "generateLibraryPreload"]
 	});
@@ -1181,6 +1215,7 @@ test.serial("Build library with theme configured for CSS variables", async (t) =
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		cssVariables: true,
 	});
@@ -1202,6 +1237,7 @@ test.serial("Build library with theme configured for CSS variables and theme des
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		cssVariables: true,
 		includedTasks: ["generateThemeDesignerResources"]
@@ -1224,6 +1260,7 @@ test.serial("Build theme-library with CSS variables", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		cssVariables: true
 	});
@@ -1245,6 +1282,7 @@ test.serial("Build theme-library with CSS variables and theme designer resources
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		cssVariables: true,
 		includedTasks: ["generateThemeDesignerResources"]
@@ -1267,6 +1305,7 @@ test.serial("Build library.o with terminologies and supportedLocales", async (t)
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath
 	});
 
@@ -1287,6 +1326,7 @@ test.serial("Build application.o with terminologies and supportedLocales", async
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath
 	});
 
