@@ -2,6 +2,7 @@ import path from "node:path";
 import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
+import yargs from "yargs";
 
 function getDefaultArgv() {
 	// This has been taken from the actual argv object yargs provides
@@ -382,4 +383,68 @@ test.serial("ui5 build --output-style", async (t) => {
 	expectedBuilderArgs.outputStyle = "Flat";
 	t.deepEqual(builder.getCall(0).args[0], expectedBuilderArgs,
 		"Build with activated outputStyle='Flat' is called with expected arguments");
+});
+
+test.serial("ui5 build builder: --cache coerce normalizes letter case", async (t) => {
+	const {build} = t.context;
+
+	const parseCache = async (value) => {
+		const cli = yargs().exitProcess(false);
+		build.builder(cli);
+		const argv = await cli.parseAsync(["--cache", value]);
+		return argv.cache;
+	};
+
+	t.is(await parseCache("default"), "Default");
+	t.is(await parseCache("FORCE"), "Force");
+	t.is(await parseCache("OfF"), "Off");
+});
+
+test.serial("ui5 build builder: --cache coerce maps read-only variants to 'ReadOnly'", async (t) => {
+	const {build} = t.context;
+
+	const parseCache = async (value) => {
+		const cli = yargs().exitProcess(false);
+		build.builder(cli);
+		const argv = await cli.parseAsync(["--cache", value]);
+		return argv.cache;
+	};
+
+	t.is(await parseCache("readonly"), "ReadOnly");
+	t.is(await parseCache("READONLY"), "ReadOnly");
+	t.is(await parseCache("read-only"), "ReadOnly");
+	t.is(await parseCache("Read-Only"), "ReadOnly");
+});
+
+test.serial("ui5 build builder: --output-style coerce normalizes letter case", async (t) => {
+	const {build} = t.context;
+
+	const parseOutputStyle = async (value) => {
+		const cli = yargs().exitProcess(false);
+		build.builder(cli);
+		const argv = await cli.parseAsync(["--output-style", value]);
+		return argv.outputStyle;
+	};
+
+	t.is(await parseOutputStyle("flat"), "Flat");
+	t.is(await parseOutputStyle("nAmEsPaCe"), "Namespace");
+});
+
+test.serial("ui5 build builder: --cache-mode coerce logs deprecation warning", async (t) => {
+	const logWarn = sinon.stub();
+	const build = await esmock.p("../../../../lib/cli/commands/build.js", {
+		"@ui5/logger": {
+			getLogger: () => ({warn: logWarn})
+		}
+	});
+
+	const cli = yargs().exitProcess(false);
+	build.builder(cli);
+
+	const argv = await cli.parseAsync(["--cache-mode", "Force"]);
+	t.is(argv.cacheMode, "Force");
+	t.is(logWarn.callCount, 1, "log.warn got called once");
+	t.regex(logWarn.getCall(0).args[0], /'--cache-mode' is renamed to '--snapshot-cache'/);
+
+	esmock.purge(build);
 });

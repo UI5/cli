@@ -3,6 +3,7 @@ import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
 import chalk from "chalk";
+import yargs from "yargs";
 
 function getDefaultArgv() {
 	// This has been taken from the actual argv object yargs provides
@@ -914,4 +915,52 @@ test.serial("ui5 serve: Error callback propagates to handler", async (t) => {
 	t.context.serverErrorCallback(new Error("Server crashed"));
 
 	await t.throwsAsync(handlerPromise, {message: "Server crashed"});
+});
+
+test.serial("ui5 serve builder: --cache coerce normalizes letter case", async (t) => {
+	const {serve} = t.context;
+
+	const parseCache = async (value) => {
+		const cli = yargs().exitProcess(false);
+		serve.builder(cli);
+		const argv = await cli.parseAsync(["--cache", value]);
+		return argv.cache;
+	};
+
+	t.is(await parseCache("default"), "Default");
+	t.is(await parseCache("FORCE"), "Force");
+	t.is(await parseCache("OfF"), "Off");
+});
+
+test.serial("ui5 serve builder: --cache coerce maps read-only variants to 'ReadOnly'", async (t) => {
+	const {serve} = t.context;
+
+	const parseCache = async (value) => {
+		const cli = yargs().exitProcess(false);
+		serve.builder(cli);
+		const argv = await cli.parseAsync(["--cache", value]);
+		return argv.cache;
+	};
+
+	t.is(await parseCache("readonly"), "ReadOnly");
+	t.is(await parseCache("read-only"), "ReadOnly");
+});
+
+test.serial("ui5 serve builder: --cache-mode coerce logs deprecation warning", async (t) => {
+	const logWarn = sinon.stub();
+	const serve = await esmock.p("../../../../lib/cli/commands/serve.js", {
+		"@ui5/logger": {
+			getLogger: () => ({warn: logWarn})
+		}
+	});
+
+	const cli = yargs().exitProcess(false);
+	serve.builder(cli);
+
+	const argv = await cli.parseAsync(["--cache-mode", "Force"]);
+	t.is(argv.cacheMode, "Force");
+	t.is(logWarn.callCount, 1, "log.warn got called once");
+	t.regex(logWarn.getCall(0).args[0], /'--cache-mode' is renamed to '--snapshot-cache'/);
+
+	esmock.purge(serve);
 });
