@@ -74,6 +74,13 @@ serve.builder = function(cli) {
 			default: "Default",
 			choices: ["Default", "Force", "ReadOnly", "Off"],
 		})
+		.coerce("cache", (opt) => {
+			const lower = opt.toLowerCase();
+			if (lower === "readonly" || lower === "read-only") {
+				return "ReadOnly";
+			}
+			return lower.charAt(0).toUpperCase() + lower.slice(1);
+		})
 		.option("framework-version", {
 			describe: "Overrides the framework version defined by the project. " +
 				"Takes the same value as the version part of \"ui5 use\"",

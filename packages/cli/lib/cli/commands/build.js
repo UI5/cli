@@ -96,6 +96,13 @@ build.builder = function(cli) {
 			default: "Default",
 			choices: ["Default", "Force", "ReadOnly", "Off"],
 		})
+		.coerce("cache", (opt) => {
+			const lower = opt.toLowerCase();
+			if (lower === "readonly" || lower === "read-only") {
+				return "ReadOnly";
+			}
+			return lower.charAt(0).toUpperCase() + lower.slice(1);
+		})
 		.option("create-build-manifest", {
 			describe: "Store build metadata in a '.ui5' directory in the build destination, " +
 				"allowing reuse of the build result in other builds",

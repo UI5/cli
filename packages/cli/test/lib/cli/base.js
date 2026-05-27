@@ -304,3 +304,63 @@ test.serial("ui5 --output-style", async (t) => {
 		message: /^((?!Argument: output-style, Given: "Default).)*$/s
 	}, "Does not throw an exception because of the --output-style input");
 });
+
+test.serial("ui5 build --cache", async (t) => {
+	// "--cache" uses a coerce to normalize the input letter case and to map "read-only" / "readonly"
+	// variants to "ReadOnly". Since the coerce is hard to test in isolation, we check the result by
+	// observing yargs' choice validation: invalid input is reported with the normalized form, while
+	// valid (lower-case) input passes the choice validation and only fails later because there is no
+	// project to build.
+	await t.throwsAsync(ui5(["build", "--cache", "nonExistent"]), {
+		message: /Argument: cache, Given: "Nonexistent", Choices: "Default", "Force", "ReadOnly", "Off"/s
+	}, "Coercion correctly capitalizes the first letter and makes the rest lowercase");
+
+	await t.throwsAsync(ui5(["build", "--cache", "default"]), {
+		message: /^((?!Argument: cache, Given: "Default).)*$/s
+	}, "Does not throw an exception because of the --cache input ('default' coerced to 'Default')");
+
+	await t.throwsAsync(ui5(["build", "--cache", "FORCE"]), {
+		message: /^((?!Argument: cache, Given: "Force).)*$/s
+	}, "Does not throw an exception because of the --cache input ('FORCE' coerced to 'Force')");
+
+	await t.throwsAsync(ui5(["build", "--cache", "OfF"]), {
+		message: /^((?!Argument: cache, Given: "Off).)*$/s
+	}, "Does not throw an exception because of the --cache input ('OfF' coerced to 'Off')");
+
+	await t.throwsAsync(ui5(["build", "--cache", "readonly"]), {
+		message: /^((?!Argument: cache, Given: "ReadOnly).)*$/s
+	}, "Does not throw an exception because of the --cache input ('readonly' coerced to 'ReadOnly')");
+
+	await t.throwsAsync(ui5(["build", "--cache", "READONLY"]), {
+		message: /^((?!Argument: cache, Given: "ReadOnly).)*$/s
+	}, "Does not throw an exception because of the --cache input ('READONLY' coerced to 'ReadOnly')");
+
+	await t.throwsAsync(ui5(["build", "--cache", "read-only"]), {
+		message: /^((?!Argument: cache, Given: "ReadOnly).)*$/s
+	}, "Does not throw an exception because of the --cache input ('read-only' coerced to 'ReadOnly')");
+
+	await t.throwsAsync(ui5(["build", "--cache", "Read-Only"]), {
+		message: /^((?!Argument: cache, Given: "ReadOnly).)*$/s
+	}, "Does not throw an exception because of the --cache input ('Read-Only' coerced to 'ReadOnly')");
+});
+
+test.serial("ui5 serve --cache", async (t) => {
+	// Same pattern as the "ui5 build --cache" test above. "ui5 serve" also fails outside of a
+	// UI5 project, so we can observe whether the failure is caused by the choice validation
+	// of the --cache option.
+	await t.throwsAsync(ui5(["serve", "--cache", "nonExistent"]), {
+		message: /Argument: cache, Given: "Nonexistent", Choices: "Default", "Force", "ReadOnly", "Off"/s
+	}, "Coercion correctly capitalizes the first letter and makes the rest lowercase");
+
+	await t.throwsAsync(ui5(["serve", "--cache", "force"]), {
+		message: /^((?!Argument: cache, Given: "Force).)*$/s
+	}, "Does not throw an exception because of the --cache input ('force' coerced to 'Force')");
+
+	await t.throwsAsync(ui5(["serve", "--cache", "readonly"]), {
+		message: /^((?!Argument: cache, Given: "ReadOnly).)*$/s
+	}, "Does not throw an exception because of the --cache input ('readonly' coerced to 'ReadOnly')");
+
+	await t.throwsAsync(ui5(["serve", "--cache", "read-only"]), {
+		message: /^((?!Argument: cache, Given: "ReadOnly).)*$/s
+	}, "Does not throw an exception because of the --cache input ('read-only' coerced to 'ReadOnly')");
+});
