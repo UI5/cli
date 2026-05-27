@@ -66,10 +66,10 @@ serve.builder = function(cli) {
 		.option("cache", {
 			describe:
 				"Cache mode to use for building UI5 projects. " +
-				"The 'Default' behavior is to always use the cache if available. 'Force' uses the cache only. " +
-				"If the cache is unavailable or invalid, the build fails. 'Read-only' does not create or update any " +
-				"cache but makes use of a cache if available. 'Off' does not use any cache and always triggers " +
-				"a rebuild of the project",
+				"The 'Default' behavior is to always use the build-cache if available. 'Force' uses the cache only. " +
+				"If the build-cache is unavailable or invalid, the server will fail to build the project. " +
+				"'ReadOnly' does not create or update any cache but makes use of a cache if available. " +
+				"'Off' does not use any build-cache and always triggers a rebuild of the project",
 			type: "string",
 			default: "Default",
 			choices: ["Default", "Force", "ReadOnly", "Off"],
