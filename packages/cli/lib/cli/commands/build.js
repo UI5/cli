@@ -1,5 +1,4 @@
 import baseMiddleware from "../middlewares/base.js";
-import path from "node:path";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("cli:commands:build");
 
@@ -204,7 +203,6 @@ async function handleBuild(argv) {
 	const buildSettings = graph.getRoot().getBuilderSettings() || {};
 	await graph.build({
 		graph,
-		cacheDir: path.join(graph.getRoot().getRootPath(), ".ui5-cache"),
 		destPath: argv.dest,
 		cleanDest: argv["clean-dest"],
 		createBuildManifest: argv["create-build-manifest"],

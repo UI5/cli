@@ -35,7 +35,6 @@ function getDefaultArgv() {
 
 function getDefaultBuilderArgs() {
 	return {
-		cacheDir: path.join("/root/path", ".ui5-cache"),
 		destPath: "./dist",
 		cleanDest: false,
 		cache: "Default",

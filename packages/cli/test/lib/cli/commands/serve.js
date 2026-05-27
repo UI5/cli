@@ -112,6 +112,7 @@ URL: http://localhost:8080
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -160,6 +161,7 @@ URL: https://localhost:8443
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			changePortIfInUse: true,
 			h2: true,
 			key: "random-key",
@@ -211,6 +213,7 @@ URL: http://localhost:8080
 		fakeGraph,
 		{
 			acceptRemoteConnections: true,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -252,6 +255,7 @@ URL: http://localhost:8080
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -298,6 +302,7 @@ URL: http://localhost:8080
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -341,6 +346,7 @@ URL: http://localhost:8080
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -378,6 +384,7 @@ URL: http://localhost:8080
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -418,6 +425,7 @@ URL: http://localhost:8080
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -455,6 +463,7 @@ URL: http://localhost:8080
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -492,6 +501,7 @@ URL: http://localhost:8080
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -529,6 +539,7 @@ URL: http://localhost:8080
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -566,6 +577,7 @@ URL: http://localhost:8080
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -604,6 +616,7 @@ URL: http://localhost:8080
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -641,6 +654,7 @@ URL: http://localhost:8080
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -678,6 +692,7 @@ URL: http://localhost:8080
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -715,6 +730,7 @@ URL: http://localhost:8080
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -759,6 +775,7 @@ URL: http://localhost:3333
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: false,
 			h2: false,
@@ -810,6 +827,7 @@ URL: https://localhost:4444
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			changePortIfInUse: false,
 			h2: true,
 			key: "random-key",
@@ -868,6 +886,7 @@ URL: https://localhost:5555
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			changePortIfInUse: false,
 			h2: true,
 			key: "random-key",
