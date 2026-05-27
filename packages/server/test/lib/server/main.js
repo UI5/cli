@@ -369,7 +369,7 @@ async (t) => {
 });
 
 test("Stop server", async (t) => {
-	const port = 3350;
+	const port = 3351;
 	const request = supertest(`http://localhost:${port}`);
 
 	const graph = await graphFromPackageDependencies({
