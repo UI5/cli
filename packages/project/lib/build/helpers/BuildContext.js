@@ -22,9 +22,8 @@ class BuildContext {
 		createBuildManifest = false,
 		outputStyle = OutputStyleEnum.Default,
 		includedTasks = [], excludedTasks = [],
-    cache = Cache.Default,
+		cache = Cache.Default,
 	} = {}, {ui5DataDir} = {}) {
-
 		if (!graph) {
 			throw new Error(`Missing parameter 'graph'`);
 		}

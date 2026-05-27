@@ -426,11 +426,30 @@ test.serial("Serve application.a with --cache=Off", async (t) => {
 	await fixtureTester.requestResource({
 		resource: "/test.js",
 		assertions: {
+			projects: {}
+		}
+	});
+
+	// Change a source file in application.a
+	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
+	await fs.appendFile(changedFilePath, `\ntest("line added for ReadOnly test");\n`);
+
+	await setTimeout(500); // Wait for the file watcher to detect and propagate the changes
+
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
 			projects: {
 				"application.a": {}
 			}
 		}
 	});
+
+	// Verify the changed file is served
+	const resource = await fixtureTester.requestResource({resource: "/test.js"});
+	const servedFileContent = await resource.getString();
+	t.true(servedFileContent.includes(`test("line added for ReadOnly test");`),
+		"Served resource contains changed file content");
 
 	// Restart server with cache=Default
 	await fixtureTester.teardown();

@@ -5,7 +5,6 @@ import WatchHandler from "./helpers/WatchHandler.js";
 import {SourceChangedDuringBuildError} from "./cache/ProjectBuildCache.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("build:BuildServer");
-import Cache from "./cache/Cache.js";
 
 class AbortBuildError extends Error {
 	constructor(message) {
@@ -192,10 +191,9 @@ class BuildServer extends EventEmitter {
 			throw new Error(`Project '${projectName}' not found in project graph`);
 		}
 		const projectBuildStatus = this.#projectBuildStatus.get(projectName);
-		const cacheMode = this.#projectBuilder._buildContext.getBuildConfig().cache;
 
 		// When cache=Off, always rebuild - don't use in-memory cached readers
-		if (cacheMode !== Cache.Off && projectBuildStatus.isFresh()) {
+		if (projectBuildStatus.isFresh()) {
 			return projectBuildStatus.getReader();
 		}
 		const {promise, resolve, reject} = Promise.withResolvers();
