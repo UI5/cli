@@ -142,7 +142,7 @@ build.builder = function(cli) {
 				"The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the cache only and " +
 				"does not create any requests. 'Off' invalidates any existing cache and updates from the repository",
 			type: "string",
-			defaultDescription: "Default", // Use "defaultdescription" to allow undefined (needed for evaluation)
+			defaultDescription: "Default", // Use "defaultDescription" to allow undefined (needed for evaluation)
 			choices: ["Default", "Force", "Off"],
 		})
 		.option("experimental-css-variables", {
