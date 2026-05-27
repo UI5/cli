@@ -113,7 +113,7 @@ export default class ProjectBuildCache {
 	 * @public
 	 * @param {@ui5/project/specifications/Project} project Project instance
 	 * @param {string} buildSignature Build signature for the current build
-	 * @param {object} cacheManager Cache manager instance
+	 * @param {object|null} cacheManager Cache manager instance
 	 * @param {string} cacheMode Cache mode to use for building UI5 projects
 	 * @returns {Promise<@ui5/project/build/cache/ProjectBuildCache>} Initialized cache instance
 	 */

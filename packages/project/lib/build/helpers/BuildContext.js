@@ -164,6 +164,9 @@ class BuildContext {
 	}
 
 	async getCacheManager() {
+		if (this._buildConfig.cache === Cache.Off) {
+			return null;
+		}
 		if (this.#cacheManager) {
 			return this.#cacheManager;
 		}

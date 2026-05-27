@@ -324,6 +324,62 @@ test("getProjectContext", async (t) => {
 	t.is(projectBuildContext, projectBuildContext2);
 });
 
+test("getCacheManager: Returns null when cache mode is 'Off'", async (t) => {
+	const {BuildContext} = t.context;
+
+	const graph = {
+		getRoot: () => ({getType: () => "library", getRootPath: () => ""}),
+	};
+	const buildContext = new BuildContext(graph, "taskRepository", {
+		cache: "Off"
+	});
+
+	const cacheManager = await buildContext.getCacheManager();
+	t.is(cacheManager, null, "Returned null");
+	t.is(t.context.CacheManagerCreate.callCount, 0,
+		"CacheManager.create was not called");
+});
+
+test("getCacheManager: Creates and caches CacheManager for default cache mode", async (t) => {
+	const {BuildContext} = t.context;
+
+	const cacheManagerInstance = {};
+	t.context.CacheManagerCreate.resetBehavior();
+	t.context.CacheManagerCreate.resolves(cacheManagerInstance);
+
+	const graph = {
+		getRoot: () => ({getType: () => "library", getRootPath: () => "/some/path"}),
+	};
+	const buildContext = new BuildContext(graph, "taskRepository");
+
+	const cacheManager1 = await buildContext.getCacheManager();
+	t.is(cacheManager1, cacheManagerInstance, "Returned CacheManager instance");
+	t.is(t.context.CacheManagerCreate.callCount, 1,
+		"CacheManager.create was called once");
+
+	const cacheManager2 = await buildContext.getCacheManager();
+	t.is(cacheManager2, cacheManagerInstance, "Returned same CacheManager instance");
+	t.is(t.context.CacheManagerCreate.callCount, 1,
+		"CacheManager.create was not called again on subsequent invocations");
+});
+
+test("closeCacheManager: No-op when cache mode is 'Off'", async (t) => {
+	const {BuildContext} = t.context;
+
+	const graph = {
+		getRoot: () => ({getType: () => "library", getRootPath: () => ""}),
+	};
+	const buildContext = new BuildContext(graph, "taskRepository", {
+		cache: "Off"
+	});
+
+	await buildContext.getCacheManager();
+
+	t.notThrows(() => {
+		buildContext.closeCacheManager();
+	}, "closeCacheManager does not throw when no CacheManager was created");
+});
+
 test("executeCleanupTasks", async (t) => {
 	const {BuildContext} = t.context;
 
