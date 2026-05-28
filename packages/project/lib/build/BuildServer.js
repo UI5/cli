@@ -155,11 +155,17 @@ class BuildServer extends EventEmitter {
 		this.#destroyed = true;
 		clearTimeout(this.#processBuildRequestsTimeout);
 		await this.#watchHandler.destroy();
-		if (this.#activeBuild) {
-			// Await active build to finish
-			await this.#activeBuild;
+		try {
+			if (this.#activeBuild) {
+				// Await active build to finish
+				await this.#activeBuild;
+			}
+		} finally {
+			// Always release the cache manager, even when the active build rejected
+			// (e.g. Force-mode stale-cache errors). Otherwise the SQLite handle leaks
+			// and subsequent fs.rm of the cache directory fails with EBUSY on Windows.
+			this.#projectBuilder.closeCacheManager();
 		}
-		this.#projectBuilder.closeCacheManager();
 	}
 
 	/**
