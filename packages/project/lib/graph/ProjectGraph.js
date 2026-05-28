@@ -791,7 +791,7 @@ class ProjectGraph {
 		const {
 			default: BuildServer
 		} = await import("../build/BuildServer.js");
-		return new BuildServer(this, builder,
+		return BuildServer.create(this, builder,
 			initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies);
 	}
 

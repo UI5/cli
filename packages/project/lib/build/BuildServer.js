@@ -52,10 +52,11 @@ class BuildServer extends EventEmitter {
 	/**
 	 * Creates a new BuildServer instance
 	 *
-	 * Initializes readers for different project combinations, sets up file watching,
-	 * and optionally performs an initial build of specified dependencies.
+	 * Initializes readers for different project combinations and optionally enqueues an
+	 * initial build of specified dependencies. File watching is set up separately via
+	 * {@link BuildServer.create}, which awaits watcher readiness before returning.
 	 *
-	 * @public
+	 * @private
 	 * @param {@ui5/project/graph/ProjectGraph} graph Project graph containing all projects
 	 * @param {@ui5/project/build/ProjectBuilder} projectBuilder Builder instance for executing builds
 	 * @param {boolean} initialBuildRootProject Whether to build the root project in the initial build
@@ -107,14 +108,39 @@ class BuildServer extends EventEmitter {
 				}
 			}
 		}
+	}
 
+	/**
+	 * Creates a BuildServer and waits for its file watcher to be ready before resolving.
+	 *
+	 * Awaiting watcher readiness avoids a race where source changes made immediately after
+	 * <code>graph.serve()</code> resolves would be missed. The race is most pronounced on
+	 * Windows, where chokidar's <code>ReadDirectoryChangesW</code> backend has noticeably
+	 * higher startup latency than inotify/FSEvents.
+	 *
+	 * @public
+	 * @param {@ui5/project/graph/ProjectGraph} graph Project graph containing all projects
+	 * @param {@ui5/project/build/ProjectBuilder} projectBuilder Builder instance for executing builds
+	 * @param {boolean} initialBuildRootProject Whether to build the root project in the initial build
+	 * @param {string[]} initialBuildIncludedDependencies Project names to include in initial build
+	 * @param {string[]} initialBuildExcludedDependencies Project names to exclude from initial build
+	 * @returns {Promise<BuildServer>} Resolves once the watcher is ready
+	 */
+	static async create(
+		graph, projectBuilder,
+		initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies
+	) {
+		const buildServer = new BuildServer(
+			graph, projectBuilder,
+			initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies
+		);
+		await buildServer.#initWatcher();
+		return buildServer;
+	}
+
+	async #initWatcher() {
 		const watchHandler = new WatchHandler();
 		this.#watchHandler = watchHandler;
-		const allProjects = graph.getProjects();
-		watchHandler.watch(allProjects).catch((err) => {
-			// Error during watch setup
-			this.emit("error", err);
-		});
 		watchHandler.on("error", (err) => {
 			this.emit("error", err);
 		});
@@ -122,6 +148,7 @@ class BuildServer extends EventEmitter {
 			log.verbose(`Source change detected: ${eventType} ${resourcePath} in project '${project.getName()}'`);
 			this._projectResourceChanged(project, resourcePath, ["add", "unlink", "unlinkDir"].includes(eventType));
 		});
+		await watchHandler.watch(this.#graph.getProjects());
 	}
 
 	async destroy() {
