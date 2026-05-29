@@ -5,7 +5,8 @@ import process from "node:process";
 import readline from "node:readline";
 import baseMiddleware from "../middlewares/base.js";
 import Configuration from "@ui5/project/config/Configuration";
-import {cleanCache, getCacheInfo} from "@ui5/project/cache/CacheCleanup";
+import * as frameworkCache from "@ui5/project/ui5Framework/cache";
+import CacheManager from "@ui5/project/build/cache/CacheManager";
 
 const cacheCommand = {
 	command: "cache",
@@ -78,8 +79,16 @@ async function handleCache() {
 		ui5DataDir = path.join(os.homedir(), ".ui5");
 	}
 
-	// Check what items exist before cleaning
-	const items = await getCacheInfo({ui5DataDir});
+	// Check what items exist before cleaning (orchestrate both domains)
+	const items = [];
+	const frameworkInfo = await frameworkCache.getCacheInfo(ui5DataDir);
+	if (frameworkInfo) {
+		items.push(frameworkInfo);
+	}
+	const buildInfo = await CacheManager.getCacheInfo(ui5DataDir);
+	if (buildInfo) {
+		items.push(buildInfo);
+	}
 
 	if (items.length === 0) {
 		process.stderr.write("Nothing to clean\n");
@@ -103,18 +112,27 @@ async function handleCache() {
 		return;
 	}
 
-	// Perform the actual cleanup
-	const result = await cleanCache({ui5DataDir});
+	// Perform the actual cleanup (orchestrate both domains)
+	const removed = [];
+	const frameworkResult = await frameworkCache.cleanCache(ui5DataDir);
+	if (frameworkResult) {
+		removed.push(frameworkResult);
+	}
+	const buildResult = await CacheManager.cleanCache(ui5DataDir);
+	if (buildResult) {
+		removed.push(buildResult);
+	}
 
 	process.stderr.write("\n");
-	for (const entry of result.entries) {
+	for (const entry of removed) {
 		const sizeStr = entry.size > 0 ? ` (${formatSize(entry.size)})` : "";
 		process.stderr.write(`${chalk.green("✓")} Removed ${chalk.bold(entry.path)}${sizeStr}\n`);
 	}
 
+	const totalRemoved = removed.reduce((sum, entry) => sum + entry.size, 0);
 	process.stderr.write(
-		`\n${chalk.green("Success:")} Cleaned ${result.totalCount} ${result.totalCount === 1 ? "entry" : "entries"}` +
-		(result.totalSize > 0 ? `, freed ${formatSize(result.totalSize)}` : "") + "\n"
+		`\n${chalk.green("Success:")} Cleaned ${removed.length} ${removed.length === 1 ? "entry" : "entries"}` +
+		(totalRemoved > 0 ? `, freed ${formatSize(totalRemoved)}` : "") + "\n"
 	);
 }
 
