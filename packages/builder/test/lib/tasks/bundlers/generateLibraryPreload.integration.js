@@ -6,6 +6,7 @@ import {graphFromObject} from "@ui5/project/graph";
 import {directoryDeepEqual, fileEqual, findFiles} from "../../../utils/fshelper.js";
 import generateLibraryPreload from "../../../../lib/tasks/bundlers/generateLibraryPreload.js";
 import * as taskRepository from "../../../../lib/tasks/taskRepository.js";
+import {isolatedUi5DataDir} from "../../../utils/buildCacheIsolation.js";
 
 const __dirname = import.meta.dirname;
 const libraryDPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d");
@@ -24,6 +25,7 @@ test.serial("integration: build library.d with library preload", async (t) => {
 	});
 	graph.setTaskRepository(taskRepository);
 	await t.notThrowsAsync(graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks,
 		includedTasks
@@ -77,6 +79,7 @@ test.serial("integration: build library.d-minified with library preload", async 
 	});
 	graph.setTaskRepository(taskRepository);
 	await t.notThrowsAsync(graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks,
 		includedTasks
@@ -130,6 +133,7 @@ test.serial("integration: build sap.ui.core with library preload", async (t) => 
 	});
 	graph.setTaskRepository(taskRepository);
 	await t.notThrowsAsync(graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks,
 		includedTasks
@@ -333,6 +337,7 @@ test.serial("integration: build library.n without enabled string bundling", asyn
 	});
 	graph.setTaskRepository(taskRepository);
 	await t.notThrowsAsync(graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks,
 		includedTasks
@@ -378,6 +383,7 @@ test.serial("integration: build library.n with enabled string bundling", async (
 	});
 	graph.setTaskRepository(taskRepository);
 	await t.notThrowsAsync(graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks,
 		includedTasks

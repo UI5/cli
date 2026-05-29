@@ -100,9 +100,8 @@ test("No Replace of characters", async (t) => {
 	t.plan(1);
 
 	const input = `ONE LOVE`;
-	const expected = `ONE LOVE`;
-	const [resource] = await escape(input);
-	t.deepEqual(await resource.getString(), expected, "Correct file content should be set");
+	const result = await escape(input);
+	t.is(result[0], undefined, "Resource is not returned when no characters need escaping");
 });
 
 test("Invalid encoding", async (t) => {
