@@ -1,0 +1,37 @@
+---
+specVersion: "5.0"
+type: application
+metadata:
+  name: application.a
+builder:
+  customTasks:
+    - name: custom-task-0
+      afterTask: minify
+    - name: custom-task-1
+      afterTask: custom-task-0
+    - name: custom-task-2
+      afterTask: custom-task-1
+---
+specVersion: "5.0"
+kind: extension
+type: task
+metadata:
+  name: custom-task-0
+task:
+  path: custom-tasks/custom-task-0.js
+---
+specVersion: "5.0"
+kind: extension
+type: task
+metadata:
+  name: custom-task-1
+task:
+  path: custom-tasks/custom-task-1.js
+---
+specVersion: "5.0"
+kind: extension
+type: task
+metadata:
+  name: custom-task-2
+task:
+  path: custom-tasks/custom-task-2.js

@@ -1,0 +1,18 @@
+---
+specVersion: "2.3"
+type: application
+metadata:
+  name: application.a
+builder:  
+  customTasks:
+    - name: dependency-change
+      afterTask: minify
+---
+specVersion: "5.0"
+kind: extension
+type: task
+metadata:
+  name: dependency-change
+task:
+  path: task.dependency-change.js
+

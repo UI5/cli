@@ -1,0 +1,19 @@
+---
+specVersion: "5.0"
+type: application
+metadata:
+  name: application.a
+builder:
+  bundles:
+    - bundleDefinition:
+        name: "custom-bundle.js"
+        defaultFileTypes:
+          - ".js"
+          - ".json"
+        sections:
+          - mode: preload
+            name: "customBundle"
+            filters:
+              - "id1/Component.js"
+              - "id1/newFile.js"
+            resolve: false

@@ -1,0 +1,1 @@
+{"version":3,"file":"scriptWithSourceMap.js","names":["console","log"],"sources":["scriptWithSourceMap.ts"],"sourcesContent":["console.log(\"This is a script with a source map.\");\n"],"mappings":"AAAAA,QAAQC,IAAI","ignoreList":[]}
