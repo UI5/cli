@@ -64,7 +64,7 @@ test("cleanCache: clean all removes framework packages", async (t) => {
 	t.true(result.totalCount >= 1);
 	const frameworkEntries = result.entries.filter((e) => e.type === "framework");
 	t.is(frameworkEntries.length, 1);
-	t.is(frameworkEntries[0].path, "framework/packages");
+	t.is(frameworkEntries[0].path, "framework");
 });
 
 // ===== cleanCache: build cache (full clean) =====
