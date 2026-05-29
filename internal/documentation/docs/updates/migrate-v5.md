@@ -15,6 +15,8 @@ Or update your global install via: `npm i --global @ui5/cli@next`
 
 - **@ui5/cli: `ui5 init` defaults to Specification Version 5.0**
 
+- **Rename: Command Option `--cache-mode` is now `--snapshot-cache`**
+
 
 ## Node.js and npm Version Support
 
@@ -26,6 +28,12 @@ Support for older Node.js releases has been dropped; their use will cause an err
 UI5 CLI 5.x introduces **Specification Version 5.0**, which enables the new Component Type and brings improved project structure conventions.
 
 Projects using older **Specification Versions** are expected to be **fully compatible with UI5 CLI v5**.
+
+## Rename of Command Option
+
+With UI5 CLI v5, the option `--cache-mode` (for commands `ui5 build` and `ui5 serve`) has been renamed to `--snapshot-cache`.
+
+When legacy `--cache-mode` is used, the behavior remains the same but a deprecation warning is logged. When both `--snapshot-cache` and `--cache-mode` are used, the `--snapshot-cache` flag always gets priority.
 
 ## UI5 CLI Init Command
 
@@ -197,6 +205,27 @@ Delete the custom `test/Test.qunit.html` file from your test directory. This fil
 
 Depending on your project setup, you might need to update additional paths in configuration files or test runners to reflect the new structure.
 The test suite is now served under the standard `/test-resources/` path with the component's full namespace (e.g. `/test-resources/sap/ui/demo/todo/testsuite.qunit.html`).
+
+## Removal of Standard Server Middleware
+
+The following middleware has been removed from the [standard middlewares list](../pages/Server.md#standard-middleware):
+
+* `serveThemes` — Theme compilation (LESS to CSS) is now handled by the `buildThemes` build task during the incremental build, rather than on demand during runtime. The resulting CSS files are served via the `serveResources` middleware. This change improves performance through build-time compilation and caching while maintaining the same functionality.
+
+**Backward Compatibility:**
+If your project or any custom middleware references a removed middleware via `beforeMiddleware` or `afterMiddleware`, UI5 CLI will automatically remap the reference to the nearest remaining middleware and log a deprecation warning. Your custom middleware will still be executed in the expected order.
+
+**What Changed:**
+- Theme CSS files (`library.css`, `library-RTL.css`, etc.) are now **pre-built** during the incremental build
+- Files are served via `serveResources` instead of being compiled on demand
+- The same CSS files are available at the same URLs as before
+
+**Recommended Action:**
+Update your `ui5.yaml` configuration to reference an existing middleware instead.
+
+| Removed Middleware | Replacement Behavior | Recommended `afterMiddleware` |
+| ------------------ | -------------------- | ----------------------------- |
+| `serveThemes`      | CSS files pre-built by `buildThemes` task and served via `serveResources` | `testRunner` |
 
 ## Learn More
 

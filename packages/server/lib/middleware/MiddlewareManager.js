@@ -2,6 +2,16 @@ import middlewareRepository from "./middlewareRepository.js";
 import MiddlewareUtil from "./MiddlewareUtil.js";
 import {getLogger} from "@ui5/logger";
 const hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
+const log = getLogger("server:MiddlewareManager");
+
+/**
+ * Mapping of removed standard middleware names to their predecessor and successor
+ * in the original execution order. Used to remap custom middleware references
+ * to the nearest remaining middleware when a removed middleware is referenced.
+ */
+const LEGACY_MIDDLEWARE_MAPPING = {
+	serveThemes: {before: "testRunner", after: "versionInfo"}
+};
 
 /**
  * @private
@@ -21,7 +31,7 @@ const hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
  * @alias @ui5/server/internal/MiddlewareManager
  */
 class MiddlewareManager {
-	constructor({graph, rootProject, resources, options = {
+	constructor({graph, rootProject, sources, resources, buildReader, options = {
 		sendSAPTargetCSP: false,
 		serveCSPReports: false
 	}}) {
@@ -31,7 +41,9 @@ class MiddlewareManager {
 		}
 		this.graph = graph;
 		this.rootProject = rootProject;
+		this.sources = sources;
 		this.resources = resources;
+		this.buildReader = buildReader;
 		this.options = options;
 
 		this.middleware = Object.create(null);
@@ -94,7 +106,8 @@ class MiddlewareManager {
 		}
 
 		if (beforeMiddleware || afterMiddleware) {
-			const refMiddlewareName = beforeMiddleware || afterMiddleware;
+			let refMiddlewareName = beforeMiddleware || afterMiddleware;
+			const originalRefMiddlewareName = refMiddlewareName; // Store original before any remapping
 			let refMiddlewareIdx = this.middlewareExecutionOrder.indexOf(refMiddlewareName);
 
 			if (refMiddlewareName === "connectUi5Proxy") {
@@ -104,9 +117,34 @@ class MiddlewareManager {
 					`has been removed in this version of UI5 CLI and can't be referenced anymore. ` +
 					`Please see the migration guide at https://ui5.github.io/cli/updates/migrate-v3/`);
 			}
+
+			// Handle legacy middleware with graceful fallback
+			const legacyMapping = LEGACY_MIDDLEWARE_MAPPING[refMiddlewareName];
+			if (legacyMapping) {
+				// Replace with the appropriate fallback based on reference type
+				refMiddlewareName = afterMiddleware ? legacyMapping.before : legacyMapping.after;
+
+				log.warn(
+					`Standard middleware "${originalRefMiddlewareName}" has been removed. ` +
+					`Custom middleware "${middlewareName}" defined in project ` +
+					`"${this.middlewareUtil.getProject()}" references it and ` +
+					`is now placed ${afterMiddleware ? "after" : "before"} ` +
+					`"${refMiddlewareName}" instead. ` +
+					`For details, see the migration guide at ` +
+					`https://ui5.github.io/cli/next/updates/migrate-v5`);
+			}
+
+			refMiddlewareIdx = this.middlewareExecutionOrder.indexOf(refMiddlewareName);
+
 			if (refMiddlewareIdx === -1) {
-				throw new Error(`Could not find middleware ${refMiddlewareName}, referenced by custom ` +
-					`middleware ${middlewareName}`);
+				// Provide clear error message, including remapping context if applicable
+				const errorMsg = legacyMapping ?
+					`Could not find fallback middleware "${refMiddlewareName}" ` +
+					`(mapped from removed middleware "${originalRefMiddlewareName}"), ` +
+					`referenced by custom middleware "${middlewareName}"` :
+					`Could not find middleware ${refMiddlewareName}, referenced by custom ` +
+					`middleware ${middlewareName}`;
+				throw new Error(errorMsg);
 			}
 			if (afterMiddleware) {
 				// Insert after index of referenced middleware
@@ -218,7 +256,6 @@ class MiddlewareManager {
 		});
 		await this.addMiddleware("serveResources");
 		await this.addMiddleware("testRunner");
-		await this.addMiddleware("serveThemes");
 		await this.addMiddleware("versionInfo", {
 			mountPath: "/resources/sap-ui-version.json"
 		});
