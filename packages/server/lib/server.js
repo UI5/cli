@@ -192,8 +192,15 @@ export async function serve(graph, {
 		all: buildServer.getReader(),
 	};
 
-	buildServer.on("error", async (err) => {
-		error(err);
+	buildServer.on("error", (err) => {
+		if (typeof error === "function") {
+			error(err);
+			return;
+		}
+		log.error(`BuildServer error: ${err?.message ?? err}`);
+		if (err?.stack) {
+			log.verbose(err.stack);
+		}
 	});
 
 	const middlewareManager = new MiddlewareManager({
