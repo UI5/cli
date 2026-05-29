@@ -1,6 +1,7 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import BuildCacheStorage from "../build/cache/BuildCacheStorage.js";
+import {CACHE_VERSION} from "../build/cache/CacheManager.js";
 
 // ========================================
 // SHARED UTILITIES
@@ -99,89 +100,75 @@ async function cleanFrameworkCache(ui5DataDir, frameworkInfo) {
 
 /**
  * Check if build cache exists and get its info.
+ * Only checks the current known cache version to avoid processing unknown future versions.
  *
  * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
  * @returns {Promise<{path: string, size: number, type: string}|null>} Build cache info or null
  */
 async function getBuildCacheInfo(ui5DataDir) {
 	const buildCacheDir = path.join(ui5DataDir, "buildCache");
+	const dbDir = path.join(buildCacheDir, CACHE_VERSION);
+
 	try {
-		await fs.access(buildCacheDir);
-		const versionDirs = await fs.readdir(buildCacheDir, {withFileTypes: true});
+		await fs.access(dbDir);
+	} catch {
+		// Current version directory doesn't exist
+		return null;
+	}
 
-		let hasAnyRecords = false;
-		for (const versionDir of versionDirs) {
-			if (!versionDir.isDirectory()) {
-				continue;
+	try {
+		const storage = new BuildCacheStorage(dbDir);
+		try {
+			if (storage.hasRecords()) {
+				const size = await getDirectorySize(buildCacheDir);
+				return {
+					path: `buildCache/${CACHE_VERSION} (database records)`,
+					size,
+					type: "database"
+				};
 			}
-
-			const dbDir = path.join(buildCacheDir, versionDir.name);
-			try {
-				const storage = new BuildCacheStorage(dbDir);
-				if (storage.hasRecords()) {
-					hasAnyRecords = true;
-					storage.close();
-					break;
-				}
-				storage.close();
-			} catch {
-				// Skip if database can't be opened
-			}
-		}
-
-		if (hasAnyRecords) {
-			const size = await getDirectorySize(buildCacheDir);
-			return {
-				path: "buildCache/ (database records)",
-				size,
-				type: "database"
-			};
+		} finally {
+			storage.close();
 		}
 	} catch {
-		// Directory doesn't exist
+		// Skip if database can't be opened
 	}
 	return null;
 }
 
 /**
- * Clean build cache by clearing all records from SQLite databases.
+ * Clean build cache by clearing all records from SQLite database.
+ * Only cleans the current known cache version to avoid processing unknown future versions.
  *
  * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
  * @returns {Promise<Array<{path: string, type: string, size: number}>>} Removed entries
  */
 async function cleanBuildCache(ui5DataDir) {
 	const buildCacheDir = path.join(ui5DataDir, "buildCache");
+	const dbDir = path.join(buildCacheDir, CACHE_VERSION);
 	const removed = [];
 
 	try {
-		await fs.access(buildCacheDir);
+		await fs.access(dbDir);
 	} catch {
+		// Current version directory doesn't exist
 		return removed;
 	}
 
-	let cacheVersionDirs;
 	try {
-		cacheVersionDirs = await fs.readdir(buildCacheDir, {withFileTypes: true});
-	} catch {
-		return removed;
-	}
-
-	for (const versionDir of cacheVersionDirs) {
-		if (!versionDir.isDirectory()) {
-			continue;
-		}
-
-		const dbDir = path.join(buildCacheDir, versionDir.name);
-
 		const storage = new BuildCacheStorage(dbDir);
-		const freedSize = storage.clearAllRecords();
-		storage.close();
-
-		removed.push({
-			path: `buildCache/${versionDir.name}`,
-			type: "buildCache",
-			size: freedSize,
-		});
+		try {
+			const freedSize = storage.clearAllRecords();
+			removed.push({
+				path: `buildCache/${CACHE_VERSION}`,
+				type: "buildCache",
+				size: freedSize,
+			});
+		} finally {
+			storage.close();
+		}
+	} catch {
+		// Skip if database can't be cleared
 	}
 
 	return removed;
