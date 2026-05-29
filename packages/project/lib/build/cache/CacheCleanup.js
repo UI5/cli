@@ -1,6 +1,6 @@
 import path from "node:path";
 import fs from "node:fs/promises";
-import BuildCacheStorage from "../build/cache/BuildCacheStorage.js";
+import BuildCacheStorage from "./BuildCacheStorage.js";
 
 /**
  * Get the size of a directory tree recursively.
