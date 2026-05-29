@@ -56,12 +56,14 @@ test("Standard build", (t) => {
 		replaceCopyright: {
 			options: {
 				copyright: "copyright", pattern: "/**/*.{js,json}"
-			}
+			},
+			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
 			options: {
 				version: "version", pattern: "/**/*.{js,json}"
-			}
+			},
+			supportsDifferentialBuilds: true,
 		},
 		minify: {
 			options: {
@@ -69,7 +71,8 @@ test("Standard build", (t) => {
 					"/**/*.js",
 					"!**/*.support.js",
 				]
-			}
+			},
+			supportsDifferentialBuilds: true,
 		},
 		enhanceManifest: {},
 		generateFlexChangesBundle: {},
@@ -162,12 +165,14 @@ test("Custom bundles", async (t) => {
 		replaceCopyright: {
 			options: {
 				copyright: "copyright", pattern: "/**/*.{js,json}"
-			}
+			},
+			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
 			options: {
 				version: "version", pattern: "/**/*.{js,json}"
-			}
+			},
+			supportsDifferentialBuilds: true,
 		},
 		minify: {
 			options: {
@@ -175,7 +180,8 @@ test("Custom bundles", async (t) => {
 					"/**/*.js",
 					"!**/*.support.js",
 				]
-			}
+			},
+			supportsDifferentialBuilds: true,
 		},
 		enhanceManifest: {},
 		generateFlexChangesBundle: {},
@@ -301,7 +307,8 @@ test("Minification excludes", (t) => {
 				"!**/*.support.js",
 				"!/resources/**.html",
 			]
-		}
+		},
+		supportsDifferentialBuilds: true,
 	}, "Correct minify task definition");
 });
 

@@ -311,3 +311,12 @@ test("_configureAndValidatePaths: Directory does not exist", async (t) => {
 
 	t.is(err.message, "Unable to find source directory 'does/not/exist' in module project module.a");
 });
+
+test("getSourcePaths: returns all configured fs base paths", async (t) => {
+	const {projectInput} = t.context;
+	const project = await Specification.create(projectInput);
+	const paths = project.getSourcePaths();
+	t.is(paths.length, 2);
+	t.is(paths[0], path.join(moduleAPath, "dist"));
+	t.is(paths[1], path.join(moduleAPath, "dev"));
+});

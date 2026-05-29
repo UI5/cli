@@ -1,6 +1,7 @@
 import OutputStyleEnum from "../build/helpers/ProjectBuilderOutputStyle.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:ProjectGraph");
+import Cache from "../../../project/lib/build/cache/Cache.js";
 
 
 /**
@@ -284,6 +285,40 @@ class ProjectGraph {
 		processDependency(projectName);
 		return Array.from(dependencies);
 	}
+
+	getDependents(projectName) {
+		if (!this._projects.has(projectName)) {
+			throw new Error(
+				`Failed to get dependents for project ${projectName}: ` +
+				`Unable to find project in project graph`);
+		}
+		const dependents = [];
+		for (const [fromProjectName, adjacencies] of this._adjList) {
+			if (adjacencies.has(projectName)) {
+				dependents.push(fromProjectName);
+			}
+		}
+		return dependents;
+	}
+
+	getTransitiveDependents(projectName) {
+		const dependents = new Set();
+		if (!this._projects.has(projectName)) {
+			throw new Error(
+				`Failed to get transitive dependents for project ${projectName}: ` +
+				`Unable to find project in project graph`);
+		}
+		const addDependents = (projectName) => {
+			const projectDependents = this.getDependents(projectName);
+			projectDependents.forEach((dependent) => {
+				dependents.add(dependent);
+				addDependents(dependent);
+			});
+		};
+		addDependents(projectName);
+		return Array.from(dependents);
+	}
+
 	/**
 	 * Checks whether a dependency is optional or not.
 	 * Currently only used in tests.
@@ -476,6 +511,135 @@ class ProjectGraph {
 	}
 
 	/**
+	 * Generator function that traverses all dependencies of the given start project depth-first.
+	 * Each dependency project is visited exactly once, and dependencies are fully explored
+	 * before the dependent project is yielded (post-order traversal).
+	 * In case a cycle is detected, an error is thrown.
+	 *
+	 * @public
+	 * @generator
+	 * @param {string|boolean} [startName] Name of the project to start the traversal at,
+	 *   or a boolean to set includeStartModule while using the root project as start.
+	 *   Defaults to the graph's root project.
+	 * @param {boolean} [includeStartModule=false] Whether to include the start project itself in the results
+	 * @yields {object} Object containing the project and its direct dependencies
+	 * @yields {module:@ui5/project/specifications/Project} return.project The dependency project
+	 * @yields {string[]} return.dependencies Array of direct dependency names for this project
+	 * @throws {Error} If the start project cannot be found or if a cycle is detected
+	 */
+	* traverseDependenciesDepthFirst(startName, includeStartModule = false) {
+		if (typeof startName === "boolean") {
+			includeStartModule = startName;
+			startName = undefined;
+		}
+		if (!startName) {
+			startName = this._rootProjectName;
+		} else if (!this.getProject(startName)) {
+			throw new Error(`Failed to start graph traversal: Could not find project ${startName} in project graph`);
+		}
+
+		const visited = Object.create(null);
+		const processing = Object.create(null);
+
+		const traverse = function* (projectName, ancestors) {
+			this._checkCycle(ancestors, projectName);
+
+			if (visited[projectName]) {
+				return;
+			}
+
+			if (processing[projectName]) {
+				return;
+			}
+
+			processing[projectName] = true;
+			const newAncestors = [...ancestors, projectName];
+			const dependencies = this.getDependencies(projectName);
+
+			for (const depName of dependencies) {
+				yield* traverse.call(this, depName, newAncestors);
+			}
+
+			visited[projectName] = true;
+			processing[projectName] = false;
+
+			if (includeStartModule || projectName !== startName) {
+				yield {
+					project: this.getProject(projectName),
+					dependencies
+				};
+			}
+		}.bind(this);
+
+		yield* traverse(startName, []);
+	}
+
+	/**
+	 * Generator function that traverses all projects that depend on the given start project.
+	 * Traversal is breadth-first, visiting each dependent project exactly once.
+	 * Projects are yielded in the order they are discovered as dependents.
+	 * In case a cycle is detected, an error is thrown.
+	 *
+	 * @public
+	 * @generator
+	 * @param {string|boolean} [startName] Name of the project to start the traversal at,
+	 *   or a boolean to set includeStartModule while using the root project as start.
+	 *   Defaults to the graph's root project.
+	 * @param {boolean} [includeStartModule=false] Whether to include the start project itself in the results
+	 * @yields {object} Object containing the dependent project and its dependents
+	 * @yields {module:@ui5/project/specifications/Project} return.project The dependent project
+	 * @yields {string[]} return.dependents Array of project names that depend on this project
+	 * @throws {Error} If the start project cannot be found or if a cycle is detected
+	 */
+	* traverseDependents(startName, includeStartModule = false) {
+		if (typeof startName === "boolean") {
+			includeStartModule = startName;
+			startName = undefined;
+		}
+		if (!startName) {
+			startName = this._rootProjectName;
+		} else if (!this.getProject(startName)) {
+			throw new Error(`Failed to start graph traversal: Could not find project ${startName} in project graph`);
+		}
+
+		const queue = [{
+			projectNames: [startName],
+			ancestors: []
+		}];
+
+		const visited = Object.create(null);
+
+		while (queue.length) {
+			const {projectNames, ancestors} = queue.shift(); // Get and remove first entry from queue
+
+			for (const projectName of projectNames) {
+				this._checkCycle(ancestors, projectName);
+				if (visited[projectName]) {
+					continue;
+				}
+
+				visited[projectName] = true;
+
+				const newAncestors = [...ancestors, projectName];
+				const dependents = this.getDependents(projectName);
+
+				queue.push({
+					projectNames: dependents,
+					ancestors: newAncestors
+				});
+
+				if (includeStartModule || projectName !== startName) {
+					// Do not yield the start module itself
+					yield {
+						project: this.getProject(projectName),
+						dependents
+					};
+				}
+			}
+		}
+	}
+
+	/**
 	 * Join another project graph into this one.
 	 * Projects and extensions which already exist in this graph will cause an error to be thrown
 	 *
@@ -550,6 +714,12 @@ class ProjectGraph {
 	 * @param {Array.<string>} [parameters.excludedTasks=[]] List of tasks to be excluded.
 	 * @param {module:@ui5/project/build/ProjectBuilderOutputStyle} [parameters.outputStyle=Default]
 	 *   Processes build results into a specific directory structure.
+	 * @param {module:@ui5/project/build/cache/Cache} [parameters.cache=Default]
+	 *   Cache mode to use for building UI5 projects
+	 * @param {string} [parameters.ui5DataDir]
+	 *   Explicit UI5 data directory to use for the build cache. Overrides the
+	 *   <code>UI5_DATA_DIR</code> environment variable, the UI5 configuration file,
+	 *   and the default of <code>~/.ui5</code>.
 	 * @returns {Promise} Promise resolving to <code>undefined</code> once build has finished
 	 */
 	async build({
@@ -558,15 +728,17 @@ class ProjectGraph {
 		dependencyIncludes,
 		selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
 		includedTasks = [], excludedTasks = [],
-		outputStyle = OutputStyleEnum.Default
+		outputStyle = OutputStyleEnum.Default,
+		cache = Cache.Default,
+		ui5DataDir,
 	}) {
 		this.seal(); // Do not allow further changes to the graph
-		if (this._built) {
+		if (this._builtOrServed) {
 			throw new Error(
-				`Project graph with root node ${this._rootProjectName} has already been built. ` +
-				`Each graph can only be built once`);
+				`Project graph with root node ${this._rootProjectName} has already been built or served. ` +
+				`Each graph can only be built or served once`);
 		}
-		this._built = true;
+		this._builtOrServed = true;
 		const {
 			default: ProjectBuilder
 		} = await import("../build/ProjectBuilder.js");
@@ -577,13 +749,50 @@ class ProjectGraph {
 				selfContained, cssVariables, jsdoc,
 				createBuildManifest,
 				includedTasks, excludedTasks, outputStyle,
-			}
+				cache
+			},
+			ui5DataDir,
 		});
-		await builder.build({
+		return await builder.buildToTarget({
 			destPath, cleanDest,
 			includedDependencies, excludedDependencies,
 			dependencyIncludes,
 		});
+	}
+
+	async serve({
+		initialBuildRootProject = false,
+		initialBuildIncludedDependencies = [], initialBuildExcludedDependencies = [],
+		selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
+		includedTasks = [], excludedTasks = [],
+		cache = Cache.Default,
+	}) {
+		this.seal(); // Do not allow further changes to the graph
+		if (this._builtOrServed) {
+			throw new Error(
+				`Project graph with root node ${this._rootProjectName} has already been built or served. ` +
+				`Each graph can only be built or served once`);
+		}
+		this._builtOrServed = true;
+		const {
+			default: ProjectBuilder
+		} = await import("../build/ProjectBuilder.js");
+		const builder = new ProjectBuilder({
+			graph: this,
+			taskRepository: await this._getTaskRepository(),
+			buildConfig: {
+				selfContained, cssVariables, jsdoc,
+				createBuildManifest,
+				includedTasks, excludedTasks,
+				outputStyle: OutputStyleEnum.Default,
+				cache
+			}
+		});
+		const {
+			default: BuildServer
+		} = await import("../build/BuildServer.js");
+		return BuildServer.create(this, builder,
+			initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies);
 	}
 
 	/**
