@@ -2,9 +2,10 @@ import chalk from "chalk";
 import path from "node:path";
 import os from "node:os";
 import process from "node:process";
+import readline from "node:readline";
 import baseMiddleware from "../middlewares/base.js";
 import Configuration from "@ui5/project/config/Configuration";
-import {cleanCache} from "@ui5/project/build/cache/CacheCleanup";
+import {cleanCache, getCacheInfo} from "@ui5/project/build/cache/CacheCleanup";
 
 const cacheCommand = {
 	command: "cache",
@@ -44,6 +45,26 @@ function formatSize(bytes) {
 	return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
+/**
+ * Prompt user for confirmation.
+ *
+ * @param {string} question The question to ask
+ * @returns {Promise<boolean>} True if user confirmed
+ */
+async function confirm(question) {
+	const rl = readline.createInterface({
+		input: process.stdin,
+		output: process.stderr
+	});
+
+	return new Promise((resolve) => {
+		rl.question(question, (answer) => {
+			rl.close();
+			resolve(answer.toLowerCase() === "y" || answer.toLowerCase() === "yes");
+		});
+	});
+}
+
 async function handleCache() {
 	// Resolve UI5 data directory
 	let ui5DataDir = process.env.UI5_DATA_DIR;
@@ -57,20 +78,42 @@ async function handleCache() {
 		ui5DataDir = path.join(os.homedir(), ".ui5");
 	}
 
-	const result = await cleanCache({ui5DataDir});
+	// Check what items exist before cleaning
+	const items = await getCacheInfo({ui5DataDir});
 
-	if (result.totalCount === 0) {
+	if (items.length === 0) {
 		process.stderr.write("Nothing to clean\n");
 		return;
 	}
 
+	// Display items that will be removed
+	process.stderr.write(chalk.bold("\nThe following items from cache will be removed:\n"));
+	let totalSize = 0;
+	for (const item of items) {
+		totalSize += item.size;
+		const sizeStr = item.size > 0 ? ` (${formatSize(item.size)})` : "";
+		process.stderr.write(`  ${chalk.yellow("•")} ${item.path}${sizeStr}\n`);
+	}
+	process.stderr.write(chalk.bold(`\nTotal: ${formatSize(totalSize)}\n\n`));
+
+	// Ask for confirmation
+	const confirmed = await confirm("Do you want to continue? (y/N) ");
+	if (!confirmed) {
+		process.stderr.write("Cancelled\n");
+		return;
+	}
+
+	// Perform the actual cleanup
+	const result = await cleanCache({ui5DataDir});
+
+	process.stderr.write("\n");
 	for (const entry of result.entries) {
 		const sizeStr = entry.size > 0 ? ` (${formatSize(entry.size)})` : "";
-		process.stderr.write(`Removed ${chalk.bold(entry.path)}${sizeStr}\n`);
+		process.stderr.write(`${chalk.green("✓")} Removed ${chalk.bold(entry.path)}${sizeStr}\n`);
 	}
 
 	process.stderr.write(
-		`\nCleaned ${result.totalCount} ${result.totalCount === 1 ? "entry" : "entries"}` +
+		`\n${chalk.green("Success:")} Cleaned ${result.totalCount} ${result.totalCount === 1 ? "entry" : "entries"}` +
 		(result.totalSize > 0 ? `, freed ${formatSize(result.totalSize)}` : "") + "\n"
 	);
 }

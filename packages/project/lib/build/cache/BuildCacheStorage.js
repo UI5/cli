@@ -577,6 +577,21 @@ export default class BuildCacheStorage {
 	}
 
 	/**
+	 * Checks if the database has any records in any table.
+	 *
+	 * @returns {boolean} True if there are any records
+	 */
+	hasRecords() {
+		const tables = ["content", "index_cache", "stage_metadata", "task_metadata", "result_metadata"];
+		for (const table of tables) {
+			const count = this.#db.prepare(`SELECT COUNT(*) as count FROM ${table}`).get()?.count ?? 0;
+			if (count > 0) {
+				return true;
+			}
+		}
+		return false;
+	}
+	/**
 	 * Closes the database connection
 	 */
 	close() {
