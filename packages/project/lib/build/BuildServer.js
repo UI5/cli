@@ -95,8 +95,8 @@ class BuildServer extends EventEmitter {
 	 *
 	 * Awaiting watcher readiness avoids a race where source changes made immediately after
 	 * <code>graph.serve()</code> resolves would be missed. The race is most pronounced on
-	 * Windows, where chokidar's <code>ReadDirectoryChangesW</code> backend has noticeably
-	 * higher startup latency than inotify/FSEvents.
+	 * Windows, where the <code>ReadDirectoryChangesW</code> backend has noticeably
+	 * higher startup latency than FSEvents/inotify.
 	 *
 	 * Initial builds are enqueued only after the watcher is ready, so any source changes
 	 * occurring during those builds are reliably detected.
@@ -146,7 +146,7 @@ class BuildServer extends EventEmitter {
 		});
 		watchHandler.on("change", (eventType, resourcePath, project) => {
 			log.verbose(`Source change detected: ${eventType} ${resourcePath} in project '${project.getName()}'`);
-			this._projectResourceChanged(project, resourcePath, ["add", "unlink", "unlinkDir"].includes(eventType));
+			this._projectResourceChanged(project, resourcePath, ["create", "delete"].includes(eventType));
 		});
 		await watchHandler.watch(this.#graph.getProjects());
 	}

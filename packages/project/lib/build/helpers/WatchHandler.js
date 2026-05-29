@@ -1,5 +1,5 @@
 import EventEmitter from "node:events";
-import chokidar from "chokidar";
+import parcelWatcher from "@parcel/watcher";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("build:helpers:WatchHandler");
 
@@ -10,7 +10,7 @@ const log = getLogger("build:helpers:WatchHandler");
  * @memberof @ui5/project/build/helpers
  */
 class WatchHandler extends EventEmitter {
-	#closeCallbacks = [];
+	#subscriptions = [];
 
 	constructor() {
 		super();
@@ -25,51 +25,47 @@ class WatchHandler extends EventEmitter {
 	}
 
 	async _watchProject(project) {
-		let ready = false;
 		const paths = project.getSourcePaths();
-		log.verbose(`Watching source paths: ${paths.join(", ")}`);
+		log.verbose(`Watching source path(s): ${paths.join(", ")}`);
 
-		const watcher = chokidar.watch(paths, {
-			ignoreInitial: true,
-		});
-		this.#closeCallbacks.push(async () => {
-			await watcher.close();
-		});
-		watcher.on("all", (event, filePath) => {
-			if (!ready) {
-				// Ignore events before ready
-				return;
-			}
-			if (event === "addDir") {
-				// Ignore directory creation events
-				return;
-			}
-			this.#handleWatchEvents(event, filePath, project).catch((err) => {
-				this.emit("error", err);
+		await Promise.all(paths.map(async (path) => {
+			const subscription = await parcelWatcher.subscribe(path, (err, events) => {
+				if (err) {
+					this.emit("error", err);
+					return;
+				}
+				for (const event of events) {
+					try {
+						this.#handleWatchEvents(event.type, event.path, project);
+					} catch (handlerErr) {
+						this.emit("error", handlerErr);
+					}
+				}
 			});
-		});
-		const {promise, resolve} = Promise.withResolvers();
-
-		watcher.on("ready", () => {
-			ready = true;
-			resolve();
-		});
-		watcher.on("error", (err) => {
-			this.emit("error", err);
-		});
-
-		return promise;
+			this.#subscriptions.push(subscription);
+		}));
 	}
 
 	async destroy() {
-		for (const cb of this.#closeCallbacks) {
-			await cb();
+		// Drain the subscriptions list so a second destroy() is a no-op and a partial
+		// failure cannot leave stale handles behind to be unsubscribed twice.
+		const subscriptions = this.#subscriptions;
+		this.#subscriptions = [];
+		// Run in parallel and collect failures so a single misbehaving subscription
+		// cannot leak the others.
+		const results = await Promise.allSettled(subscriptions.map((s) => s.unsubscribe()));
+		const failures = results.filter((r) => r.status === "rejected").map((r) => r.reason);
+		if (failures.length) {
+			const err = new AggregateError(failures, "Failed to unsubscribe one or more file watchers");
+			this.emit("error", err);
 		}
 	}
 
-	async #handleWatchEvents(eventType, filePath, project) {
+	#handleWatchEvents(eventType, filePath, project) {
 		const resourcePath = project.getVirtualPath(filePath);
-		log.verbose(`File changed: ${eventType} ${filePath} (as ${resourcePath} in project '${project.getName()}')`);
+		if (log.isLevelEnabled("silly")) {
+			log.silly(`FS event: ${eventType} ${filePath} (as ${resourcePath} in project '${project.getName()}')`);
+		}
 		this.emit("change", eventType, resourcePath, project);
 	}
 }
