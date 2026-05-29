@@ -845,6 +845,32 @@ test.serial("ProjectBuild status (skip): Task execution already ended", (t) => {
 	t.is(stderrWriteStub.callCount, 0, "Logged zero messages");
 });
 
+test.serial("ProjectBuild status: Differential build task start", (t) => {
+	const {stderrWriteStub} = t.context;
+	process.emit("ui5.build-metadata", {
+		projectsToBuild: ["project.a"]
+	});
+
+	process.emit("ui5.project-build-metadata", {
+		projectName: "project.a",
+		projectType: "project-type",
+		tasksToRun: ["task.a"]
+	});
+
+	process.emit("ui5.project-build-status", {
+		level: "info",
+		projectName: "project.a",
+		projectType: "project-type",
+		taskName: "task.a",
+		status: "task-start",
+		isDifferentialBuild: true,
+	});
+
+	t.is(stderrWriteStub.callCount, 1, "Logged one message");
+	t.true(stripAnsi(stderrWriteStub.getCall(0).args[0]).includes("Running task task.a..."),
+		"Logged expected message");
+});
+
 test.serial("ProjectBuild status: Unknown status", (t) => {
 	const {stderrWriteStub} = t.context;
 	process.emit("ui5.build-metadata", {
