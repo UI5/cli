@@ -334,7 +334,7 @@ class Console {
 			}
 			projectMetadata.buildSkipped = true;
 			message = `${chalk.yellow(figures.tick)} ` +
-				`Skipping build of ${projectType} project ${chalk.bold(projectName)}`;
+				chalk.grey(`Skipping build of ${projectType} project ${chalk.bold(projectName)}`);
 
 			// Update progress bar (if used)
 			// All tasks of this projects are completed
@@ -349,7 +349,7 @@ class Console {
 		this.#writeMessage(level, `${chalk.grey(buildIndex)}: ${message}`);
 	}
 
-	#handleProjectBuildStatusEvent({level, projectName, projectType, taskName, status}) {
+	#handleProjectBuildStatusEvent({level, projectName, projectType, taskName, status, isDifferentialBuild}) {
 		const {projectTasks} = this.#getProjectMetadata(projectName);
 		const taskMetadata = projectTasks.get(taskName);
 		if (!taskMetadata) {
@@ -382,7 +382,8 @@ class Console {
 					`for project ${projectName}, task ${taskName}`);
 			}
 			taskMetadata.executionStarted = true;
-			message = `${chalk.blue(figures.pointerSmall)} Running task ${chalk.bold(taskName)}...`;
+			message = (isDifferentialBuild ? chalk.grey(figures.lozengeOutline) : chalk.blue(figures.pointerSmall)) +
+				` Running task ${chalk.bold(taskName)}...`;
 			break;
 		case "task-end":
 			if (taskMetadata.executionEnded) {
@@ -412,7 +413,7 @@ class Console {
 					`Task execution already started`);
 			}
 			taskMetadata.executionEnded = true;
-			message = `${chalk.green(figures.tick)} Skipping task ${chalk.bold(taskName)}`;
+			message = chalk.yellow(figures.tick) + chalk.grey(` Skipping task ${chalk.bold(taskName)}`);
 
 			// Update progress bar (if used)
 			this._getProgressBar()?.increment(1);
