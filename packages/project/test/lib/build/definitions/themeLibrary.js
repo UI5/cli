@@ -53,13 +53,15 @@ test("Standard build", (t) => {
 			options: {
 				copyright: "copyright",
 				pattern: "/resources/**/*.{less,theme}"
-			}
+			},
+			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
 			options: {
 				version: "version",
 				pattern: "/resources/**/*.{less,theme}"
-			}
+			},
+			supportsDifferentialBuilds: true,
 		},
 		buildThemes: {
 			requiresDependencies: true,
@@ -114,13 +116,15 @@ test("Standard build for non root project", (t) => {
 			options: {
 				copyright: "copyright",
 				pattern: "/resources/**/*.{less,theme}"
-			}
+			},
+			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
 			options: {
 				version: "version",
 				pattern: "/resources/**/*.{less,theme}"
-			}
+			},
+			supportsDifferentialBuilds: true,
 		},
 		buildThemes: {
 			requiresDependencies: true,
