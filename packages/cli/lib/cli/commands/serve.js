@@ -2,6 +2,8 @@ import path from "node:path";
 import os from "node:os";
 import chalk from "chalk";
 import baseMiddleware from "../middlewares/base.js";
+import {getLogger} from "@ui5/logger";
+const log = getLogger("cli:commands:serve");
 
 // Serve
 const serve = {
@@ -61,19 +63,54 @@ serve.builder = function(cli) {
 			default: false,
 			type: "boolean"
 		})
+		.option("cache", {
+			describe:
+				"Cache mode to use for building UI5 projects. " +
+				"The 'Default' behavior is to always use the build-cache if available. 'Force' uses the cache only. " +
+				"If the build-cache is unavailable or invalid, the server will fail to build the project. " +
+				"'ReadOnly' does not create or update any cache but makes use of a cache if available. " +
+				"'Off' does not use any build-cache and always triggers a rebuild of the project",
+			type: "string",
+			default: "Default",
+			choices: ["Default", "Force", "ReadOnly", "Off"],
+		})
+		.coerce("cache", (opt) => {
+			const lower = opt.toLowerCase();
+			if (lower === "readonly" || lower === "read-only") {
+				return "ReadOnly";
+			}
+			return lower.charAt(0).toUpperCase() + lower.slice(1);
+		})
 		.option("framework-version", {
 			describe: "Overrides the framework version defined by the project. " +
 				"Takes the same value as the version part of \"ui5 use\"",
 			type: "string"
 		})
 		.option("cache-mode", {
+			// Deprecated
+			hidden: true,
+			describe:
+				"As of UI5 CLI version 5, renamed to '--snapshot-cache'. " +
+				"Use '--snapshot-cache' to control this behavior.",
+			type: "string",
+			choices: ["Default", "Force", "Off"],
+		})
+		.coerce("cache-mode", (opt) => {
+			// Log a warning if this option is used
+			if (opt !== undefined) {
+				log.warn("As of UI5 CLI version 5, '--cache-mode' is renamed to '--snapshot-cache'. " +
+					"Use '--snapshot-cache' to control this behavior.");
+			}
+			return opt;
+		})
+		.option("snapshot-cache", {
 			describe:
 				"Cache mode to use when consuming SNAPSHOT versions of framework dependencies. " +
 				"The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the cache only and " +
 				"does not create any requests. 'Off' invalidates any existing cache and updates from the repository",
 			type: "string",
-			default: "Default",
-			choices: ["Default", "Force", "Off"]
+			defaultDescription: "Default", // Use "defaultdescription" to allow undefined (needed for evaluation)
+			choices: ["Default", "Force", "Off"],
 		})
 		.example("ui5 serve", "Start a web server for the current project")
 		.example("ui5 serve --h2", "Enable the HTTP/2 protocol for the web server (requires SSL certificate)")
@@ -95,13 +132,13 @@ serve.handler = async function(argv) {
 			filePath: argv.dependencyDefinition,
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
-			cacheMode: argv.cacheMode,
+			snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
 		});
 	} else {
 		graph = await graphFromPackageDependencies({
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
-			cacheMode: argv.cacheMode,
+			snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
 			workspaceConfigPath: argv.workspaceConfig,
 			workspaceName: argv.workspace === false ? null : argv.workspace,
 		});
@@ -137,7 +174,8 @@ serve.handler = async function(argv) {
 		cert: argv.h2 ? argv.cert : undefined,
 		key: argv.h2 ? argv.key : undefined,
 		sendSAPTargetCSP: !!argv.sapCspPolicies,
-		serveCSPReports: !!argv.serveCspReports
+		serveCSPReports: !!argv.serveCspReports,
+		cache: argv.cache,
 	};
 
 	if (serverConfig.h2) {
@@ -146,7 +184,10 @@ serve.handler = async function(argv) {
 		serverConfig.cert = cert;
 	}
 
-	const {h2, port: actualPort} = await serverServe(graph, serverConfig);
+	const {promise: pOnError, reject} = Promise.withResolvers();
+	const {h2, port: actualPort} = await serverServe(graph, serverConfig, function(err) {
+		reject(err);
+	});
 
 	const protocol = h2 ? "https" : "http";
 	let browserUrl = protocol + "://localhost:" + actualPort;
@@ -183,6 +224,7 @@ serve.handler = async function(argv) {
 		const {default: open} = await import("open");
 		open(browserUrl);
 	}
+	await pOnError; // Await errors that should bubble into the yargs handler
 };
 
 export default serve;
