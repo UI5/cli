@@ -31,7 +31,7 @@
 		"./graph/ProjectGraph": "./lib/graph/ProjectGraph.js",
 		"./graph/projectGraphBuilder": "./lib/graph/projectGraphBuilder.js",
 		"./graph": "./lib/graph/graph.js",
-		"./build/cache/CacheCleanup": "./lib/build/cache/CacheCleanup.js",
+		"./cache/CacheCleanup": "./lib/cache/CacheCleanup.js",
 		"./package.json": "./package.json"
 	},
 	"engines": {
