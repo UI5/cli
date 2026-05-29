@@ -42,7 +42,7 @@ test.afterEach.always(async (t) => {
 // once the BuildServer has been started and built a project at least once.
 // This is independent of caching on file-system level, which is isolated per test via tmp folders.
 test.serial("Serve application.a, initial file changes", async (t) => {
-	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
 
 	await fixtureTester.serveProject();
 
@@ -77,7 +77,7 @@ test.serial("Serve application.a, initial file changes", async (t) => {
 });
 
 test.serial("Serve application.a, request application resource", async (t) => {
-	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
 
 	// #1 request with empty cache
 	await fixtureTester.serveProject();
@@ -128,7 +128,7 @@ test.serial("Serve application.a, request application resource", async (t) => {
 });
 
 test.serial("Serve application.a, request library resource", async (t) => {
-	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
 
 	// #1 request with empty cache
 	await fixtureTester.serveProject();
@@ -201,7 +201,7 @@ test.serial("Serve application.a, request library resource", async (t) => {
 });
 
 test.serial("Serve library", async (t) => {
-	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "library.d");
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "library.d");
 
 	// #1 request with empty cache
 	await fixtureTester.serveProject({
@@ -285,7 +285,7 @@ test.serial("Serve library", async (t) => {
 });
 
 test.serial("Serve application.a, request application resource AND library resource", async (t) => {
-	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
 
 	// #1 request with empty cache
 	await fixtureTester.serveProject();
@@ -357,7 +357,7 @@ test.serial("Serve application.a, request application resource AND library resou
 });
 
 test.serial("Serve application.a with --cache=Default", async (t) => {
-	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
 
 	// #1: Serve and request with empty cache --> all tasks execute
 	await fixtureTester.serveProject({config: {cache: Cache.Default}});
@@ -409,7 +409,7 @@ test.serial("Serve application.a with --cache=Default", async (t) => {
 });
 
 test.serial("Serve application.a with --cache=Off", async (t) => {
-	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
 
 	// #1: Serve and request with cache=Off --> all tasks execute, cache not written
 	await fixtureTester.serveProject({config: {cache: Cache.Off}});
@@ -489,7 +489,7 @@ test.serial("Serve application.a with --cache=Off", async (t) => {
 });
 
 test.serial("Serve application.a with --cache=ReadOnly", async (t) => {
-	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
 
 	// #1: Serve and request with cache=Default --> all tasks execute, cache written
 	await fixtureTester.serveProject({config: {cache: Cache.Default}});
@@ -567,7 +567,7 @@ test.serial("Serve application.a with --cache=ReadOnly", async (t) => {
 });
 
 test.serial("Serve application.a with --cache=Force (1)", async (t) => {
-	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
 
 	// #1: Serve and request with cache=Default --> all tasks execute, cache written
 	await fixtureTester.serveProject({config: {cache: Cache.Default}});
@@ -613,7 +613,7 @@ test.serial("Serve application.a with --cache=Force (1)", async (t) => {
 });
 
 test.serial("Serve application.a with --cache=Force (2)", async (t) => {
-	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
 
 	// #1: Serve with cache=Force on empty cache --> ERROR when requesting resource
 	await fixtureTester.serveProject({config: {cache: Cache.Force}, expectBuildErrors: true});
@@ -631,6 +631,104 @@ test.serial("Serve application.a with --cache=Force (2)", async (t) => {
 	await setTimeout(50);
 });
 
+// ProjectBuildCache's StageCache must be cleared correctly when a build is aborted.
+// A task that completed during an aborted attempt has already called recordTaskResult,
+// which adds its stage to the in-memory StageCache. On retry,
+// prepareTaskExecutionAndValidateCache might finds those entries via #findStageCache if not cleaned up.
+// It will then emit task-skip events for tasks that the retry should have actually re-executed.
+test.serial.failing("Aborted initial build must not leak in-memory StageCache to retry", async (t) => {
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "library.d");
+	await fixtureTester.serveProject({
+		config: {excludedTasks: ["minify"]}
+	});
+	const project = fixtureTester.graph.getProject("library.d");
+
+	// One-shot trigger: when `replaceBuildtime` (the 4th task for this fixture) ends in the
+	// initial build, simulate a watcher event by calling _projectResourceChanged directly.
+	// This invalidates library.d, aborts the running build at the next signal check, and
+	// re-enqueues it. By that point, tasks 1-4 have completed recordTaskResult and live in
+	// the in-memory StageCache. Tasks 5+ never started.
+	let aborted = false;
+	const abortHandler = (event) => {
+		if (
+			!aborted &&
+			event.projectName === "library.d" &&
+			event.status === "task-end" &&
+			event.taskName === "replaceBuildtime"
+		) {
+			aborted = true;
+			fixtureTester.buildServer._projectResourceChanged(
+				project, "/resources/library/d/some.js", false);
+		}
+	};
+	process.on("ui5.project-build-status", abortHandler);
+
+	try {
+		// byPath returns once the retry succeeds, so all events for both attempts are captured.
+		await fixtureTester._reader.byPath("/resources/library/d/some.js");
+	} finally {
+		process.off("ui5.project-build-status", abortHandler);
+	}
+
+	t.true(aborted, "Test setup precondition: abort trigger should have fired");
+
+	// On a fresh fixture the persistent cache is empty. After the fix, the retry's
+	// prepareTaskExecutionAndValidateCache should find no cached stages (in-memory cache
+	// from the aborted build is discarded) and execute every task. No task-skip events
+	// should be emitted for library.d.
+	const skippedTasks = t.context.projectBuildStatusEventStub.args
+		.map(([event]) => event)
+		.filter((e) => e.projectName === "library.d" && e.status === "task-skip")
+		.map((e) => e.taskName);
+
+	t.deepEqual(skippedTasks, [],
+		"Persistent cache is empty and the in-memory StageCache populated by the aborted " +
+		"attempt must not be reused on retry");
+});
+
+// Same scenario as above but the for a later abort: After `generateLibraryPreload`
+test.serial.failing(
+	"Aborted initial build leaks all StageCache entries up to the abort point", async (t) => {
+		const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "library.d");
+		await fixtureTester.serveProject({
+			config: {excludedTasks: ["minify"]}
+		});
+		const project = fixtureTester.graph.getProject("library.d");
+
+		let aborted = false;
+		const abortHandler = (event) => {
+			if (
+				!aborted &&
+				event.projectName === "library.d" &&
+				event.status === "task-end" &&
+				event.taskName === "generateLibraryPreload"
+			) {
+				aborted = true;
+				fixtureTester.buildServer._projectResourceChanged(
+					project, "/resources/library/d/some.js", false);
+			}
+		};
+		process.on("ui5.project-build-status", abortHandler);
+
+		try {
+			await fixtureTester._reader.byPath("/resources/library/d/some.js");
+		} finally {
+			process.off("ui5.project-build-status", abortHandler);
+		}
+
+		t.true(aborted, "Test setup precondition: abort trigger should have fired");
+
+		const skippedTasks = t.context.projectBuildStatusEventStub.args
+			.map(([event]) => event)
+			.filter((e) => e.projectName === "library.d" && e.status === "task-skip")
+			.map((e) => e.taskName);
+
+		t.deepEqual(skippedTasks, [],
+			"Persistent cache is empty and the in-memory StageCache populated by the aborted " +
+			"attempt must not be reused on retry");
+	}
+);
+
 function getFixturePath(fixtureName) {
 	return fileURLToPath(new URL(`../../fixtures/${fixtureName}`, import.meta.url));
 }
@@ -644,11 +742,19 @@ async function rmrf(dirPath) {
 }
 
 class FixtureTester {
+	// Initialization (rmrf + fs.cp of the fixture into the tmp directory) is done up-front
+	// and separately from `serveProject`, so that the build server's file watcher does not
+	// race with FS events from the copy.
+	static async create(t, fixtureName) {
+		const fixtureTester = new FixtureTester(t, fixtureName);
+		await fixtureTester._initialize();
+		return fixtureTester;
+	}
+
 	constructor(t, fixtureName) {
 		this._t = t;
 		this._sinon = t.context.sinon;
 		this._fixtureName = fixtureName;
-		this._initialized = false;
 
 		// Public
 		this.fixturePath = getTmpPath(fixtureName);
@@ -657,13 +763,9 @@ class FixtureTester {
 	}
 
 	async _initialize() {
-		if (this._initialized) {
-			return;
-		}
 		process.env.UI5_DATA_DIR = getTmpPath(`${this._fixtureName}/.ui5`);
 		await rmrf(this.fixturePath); // Clean up any previous test runs
 		await fs.cp(getFixturePath(this._fixtureName), this.fixturePath, {recursive: true});
-		this._initialized = true;
 	}
 
 	async teardown() {
@@ -677,8 +779,6 @@ class FixtureTester {
 	}
 
 	async serveProject({graphConfig = {}, config = {}, expectBuildErrors = false} = {}) {
-		await this._initialize();
-
 		const graph = this.graph = await graphFromPackageDependencies({
 			...graphConfig,
 			cwd: this.fixturePath,
