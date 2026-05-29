@@ -766,6 +766,7 @@ class ProjectGraph {
 		selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
 		includedTasks = [], excludedTasks = [],
 		cache = Cache.Default,
+		ui5DataDir,
 	}) {
 		this.seal(); // Do not allow further changes to the graph
 		if (this._builtOrServed) {
@@ -786,7 +787,8 @@ class ProjectGraph {
 				includedTasks, excludedTasks,
 				outputStyle: OutputStyleEnum.Default,
 				cache
-			}
+			},
+			ui5DataDir,
 		});
 		const {
 			default: BuildServer
