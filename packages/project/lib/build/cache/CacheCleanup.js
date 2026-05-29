@@ -46,15 +46,15 @@ async function cleanBuildCache(buildCacheDir) {
 		return removed;
 	}
 
-	let versionDirs;
+	let cacheVersionDirs;
 	try {
-		versionDirs = await fs.readdir(buildCacheDir, {withFileTypes: true});
+		cacheVersionDirs = await fs.readdir(buildCacheDir, {withFileTypes: true});
 	} catch {
 		return removed;
 	}
 
 
-	for (const versionDir of versionDirs) {
+	for (const versionDir of cacheVersionDirs) {
 		if (!versionDir.isDirectory()) {
 			continue;
 		}
