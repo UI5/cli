@@ -4,6 +4,7 @@ import sinon from "sinon";
 import {directoryDeepEqual, fileEqual, findFiles} from "../../../utils/fshelper.js";
 import {graphFromObject} from "@ui5/project/graph";
 import * as taskRepository from "../../../../lib/tasks/taskRepository.js";
+import {isolatedUi5DataDir} from "../../../utils/buildCacheIsolation.js";
 
 const __dirname = import.meta.dirname;
 const applicationBPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.b");
@@ -26,6 +27,7 @@ test.serial("integration: build application.b standalone", async (t) => {
 
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks,
 		includedTasks
@@ -189,6 +191,7 @@ test("integration: build application.n standalone without enabled string bundlin
 
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks,
 		includedTasks
@@ -232,6 +235,7 @@ test("integration: build application.n standalone with enabled string bundling",
 
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
+		ui5DataDir: isolatedUi5DataDir(t),
 		destPath,
 		excludedTasks,
 		includedTasks
