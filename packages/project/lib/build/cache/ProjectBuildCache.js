@@ -161,6 +161,11 @@ export default class ProjectBuildCache {
 	 *  if cache is empty
 	 */
 	async prepareProjectBuildAndValidateCache(dependencyReader) {
+		// Discard any in-memory StageCache entries that a prior aborted build left in
+		// the queue. Successful builds flush the queue in writeCache, so this is a
+		// no-op in the common case.
+		this.#stageCache.discardPending();
+
 		this.#currentProjectReader = this.#project.getReader();
 
 		this.#currentDependencyReader = dependencyReader;

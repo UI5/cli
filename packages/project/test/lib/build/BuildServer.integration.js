@@ -636,7 +636,7 @@ test.serial("Serve application.a with --cache=Force (2)", async (t) => {
 // which adds its stage to the in-memory StageCache. On retry,
 // prepareTaskExecutionAndValidateCache might finds those entries via #findStageCache if not cleaned up.
 // It will then emit task-skip events for tasks that the retry should have actually re-executed.
-test.serial.failing("Aborted initial build must not leak in-memory StageCache to retry", async (t) => {
+test.serial("Aborted initial build must not leak in-memory StageCache to retry", async (t) => {
 	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "library.d");
 	await fixtureTester.serveProject({
 		config: {excludedTasks: ["minify"]}
@@ -687,8 +687,8 @@ test.serial.failing("Aborted initial build must not leak in-memory StageCache to
 });
 
 // Same scenario as above but the for a later abort: After `generateLibraryPreload`
-test.serial.failing(
-	"Aborted initial build leaks all StageCache entries up to the abort point", async (t) => {
+test.serial(
+	"Aborted initial build must not leak in-memory StageCache to retry (late abort)", async (t) => {
 		const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "library.d");
 		await fixtureTester.serveProject({
 			config: {excludedTasks: ["minify"]}
