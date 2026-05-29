@@ -36,7 +36,7 @@ test.beforeEach(async (t) => {
 
 	t.context.cache = await esmock.p("../../../../lib/cli/commands/cache.js", {
 		"@ui5/project/config/Configuration": t.context.Configuration,
-		"@ui5/project/build/cache/CacheCleanup": {
+		"@ui5/project/cache/CacheCleanup": {
 			cleanCache: t.context.cleanCacheStub,
 			getCacheInfo: t.context.getCacheInfoStub,
 		},

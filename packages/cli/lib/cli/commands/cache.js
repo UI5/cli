@@ -5,7 +5,7 @@ import process from "node:process";
 import readline from "node:readline";
 import baseMiddleware from "../middlewares/base.js";
 import Configuration from "@ui5/project/config/Configuration";
-import {cleanCache, getCacheInfo} from "@ui5/project/build/cache/CacheCleanup";
+import {cleanCache, getCacheInfo} from "@ui5/project/cache/CacheCleanup";
 
 const cacheCommand = {
 	command: "cache",
