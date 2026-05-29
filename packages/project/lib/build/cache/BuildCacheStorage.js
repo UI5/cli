@@ -551,6 +551,32 @@ export default class BuildCacheStorage {
 	}
 
 	/**
+	 * Clears all records from all tables and runs VACUUM.
+	 * Returns the number of bytes freed.
+	 *
+	 * @returns {number} Number of bytes freed
+	 */
+	clearAllRecords() {
+		const {page_count: pageCountBefore} = this.#db.prepare("PRAGMA page_count").get();
+		const {page_size: pageSize} = this.#db.prepare("PRAGMA page_size").get();
+		const bytesBefore = pageCountBefore * pageSize;
+
+		this.#db.exec("BEGIN");
+		this.#db.exec("DELETE FROM content");
+		this.#db.exec("DELETE FROM index_cache");
+		this.#db.exec("DELETE FROM stage_metadata");
+		this.#db.exec("DELETE FROM task_metadata");
+		this.#db.exec("DELETE FROM result_metadata");
+		this.#db.exec("COMMIT");
+		this.#db.exec("VACUUM");
+
+		const {page_count: pageCountAfter} = this.#db.prepare("PRAGMA page_count").get();
+		const bytesAfter = pageCountAfter * pageSize;
+
+		return bytesBefore - bytesAfter;
+	}
+
+	/**
 	 * Closes the database connection
 	 */
 	close() {

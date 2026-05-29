@@ -1,6 +1,6 @@
 import path from "node:path";
 import fs from "node:fs/promises";
-import {DatabaseSync} from "node:sqlite";
+import BuildCacheStorage from "../build/cache/BuildCacheStorage.js";
 
 /**
  * Get the size of a directory tree recursively.
@@ -79,34 +79,17 @@ async function cleanBuildCache(buildCacheDir) {
 		return removed;
 	}
 
-	const tables = ["content", "index_cache", "stage_metadata", "task_metadata", "result_metadata"];
 
 	for (const versionDir of versionDirs) {
 		if (!versionDir.isDirectory()) {
 			continue;
 		}
 
-		const dbPath = path.join(buildCacheDir, versionDir.name, "cache.db");
-		try {
-			await fs.access(dbPath);
-		} catch {
-			continue;
-		}
+		const dbDir = path.join(buildCacheDir, versionDir.name);
 
-		const statBefore = await fs.stat(dbPath);
-		const sizeBefore = statBefore.size;
-
-		const db = new DatabaseSync(dbPath);
-		db.exec("BEGIN");
-		for (const table of tables) {
-			db.exec(`DELETE FROM ${table}`);
-		}
-		db.exec("COMMIT");
-		db.exec("VACUUM");
-		db.close();
-
-		const statAfter = await fs.stat(dbPath);
-		const freedSize = sizeBefore - statAfter.size;
+		const storage = new BuildCacheStorage(dbDir);
+		const freedSize = storage.clearAllRecords();
+		storage.close();
 
 		removed.push({
 			path: `buildCache/${versionDir.name}`,
