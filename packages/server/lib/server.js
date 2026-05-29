@@ -130,6 +130,9 @@ async function _addSsl({app, key, cert}) {
  * @param {boolean} [options.serveCSPReports=false] Enable CSP reports serving for request url
  * 										'/.ui5/csp/csp-reports.json'
  * @param {string} [options.cache="Default"] Cache mode to use for building UI5 projects.
+ * @param {string} [options.ui5DataDir] Explicit UI5 data directory to use for the build cache.
+ * 										Overrides the <code>UI5_DATA_DIR</code> environment variable,
+ * 										the UI5 configuration file, and the default of <code>~/.ui5</code>.
  * @param {Function} error Error callback. Will be called when an error occurs outside of request handling.
  * @returns {Promise<object>} Promise resolving once the server is listening.
  * 							It resolves with an object containing the <code>port</code>,
@@ -139,7 +142,8 @@ async function _addSsl({app, key, cert}) {
 export async function serve(graph, {
 	port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
 	acceptRemoteConnections = false, sendSAPTargetCSP = false,
-	simpleIndex = false, serveCSPReports = false, cache = Cache.Default
+	simpleIndex = false, serveCSPReports = false, cache = Cache.Default,
+	ui5DataDir,
 }, error) {
 	const rootProject = graph.getRoot();
 
@@ -179,6 +183,7 @@ export async function serve(graph, {
 		initialBuildIncludedDependencies,
 		excludedTasks: ["minify", "generateLibraryPreload", "generateComponentPreload", "generateBundle"],
 		cache,
+		ui5DataDir,
 	});
 
 	const resources = {
