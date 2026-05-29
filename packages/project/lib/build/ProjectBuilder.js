@@ -316,95 +316,100 @@ class ProjectBuilder {
 			throw new Error("A build is already running");
 		}
 		this.#buildIsRunning = true;
-		this.#log.info(`Preparing build for projects: ${requestedProjects.join(", ")}`);
-		const reqStart = performance.now();
-		const projectBuildContexts = await this._buildContext.getRequiredProjectContexts(requestedProjects);
-		if (this.#log.isLevelEnabled("perf")) {
-			this.#log.perf(
-				`getRequiredProjectContexts completed in ${(performance.now() - reqStart).toFixed(2)} ms`);
-		}
-
-		// Create build queue based on graph depth-first search to ensure correct build order
-		const queue = [];
-		const processedProjectNames = [];
-		for (const {project} of this._graph.traverseDependenciesDepthFirst(true)) {
-			const projectName = project.getName();
-			const projectBuildContext = projectBuildContexts.get(projectName);
-			if (projectBuildContext) {
-				// Build context exists
-				//	=> This project needs to be built or, in case it has already
-				//		been built, it's build result needs to be written out (if requested)
-				queue.push(projectBuildContext);
-				processedProjectNames.push(projectName);
-			}
-		}
-
-		this.#log.setProjects(queue.map((projectBuildContext) => {
-			return projectBuildContext.getProject().getName();
-		}));
-
-		const alreadyBuilt = [];
-		for (const projectBuildContext of queue) {
-			if (!projectBuildContext.possiblyRequiresBuild()) {
-				const projectName = projectBuildContext.getProject().getName();
-				alreadyBuilt.push(projectName);
-			}
-		}
-
-		const cleanupSigHooks = this._registerCleanupSigHooks();
+		let cleanupSigHooks;
 		const pCacheWrites = [];
 		try {
-			const startTime = process.hrtime();
-			while (queue.length) {
-				const projectBuildContext = queue.shift();
-				const project = projectBuildContext.getProject();
-				const projectName = project.getName();
-				const projectType = project.getType();
-				this.#log.verbose(`Processing project ${projectName}...`);
-
-				// Only build projects that are not already build (i.e. provide a matching build manifest)
-				if (alreadyBuilt.includes(projectName)) {
-					this.#log.skipProjectBuild(projectName, projectType);
-				} else {
-					const prepStart = performance.now();
-					const usesCache = await projectBuildContext.prepareProjectBuildAndValidateCache();
-					if (this.#log.isLevelEnabled("perf")) {
-						this.#log.perf(
-							`prepareProjectBuildAndValidateCache for ${projectName} ` +
-							`completed in ${(performance.now() - prepStart).toFixed(2)} ms ` +
-							`(usesCache=${usesCache})`);
-					}
-					if (usesCache) {
-						this.#log.skipProjectBuild(projectName, projectType);
-						alreadyBuilt.push(projectName);
-					} else {
-						await this._buildProject(projectBuildContext, signal);
-					}
-				}
-				signal?.throwIfAborted();
-
-				if (projectBuiltCallback && requestedProjects.includes(projectName)) {
-					await projectBuiltCallback(projectName, project, projectBuildContext);
-				}
-
-				if (!alreadyBuilt.includes(projectName) && !process.env.UI5_BUILD_NO_WRITE_CACHE) {
-					this.#log.verbose(`Triggering cache update for project ${projectName}...`);
-					pCacheWrites.push(projectBuildContext.writeBuildCache());
-				}
-
-				projectBuildContext.buildFinished();
+			cleanupSigHooks = this._registerCleanupSigHooks();
+			this.#log.info(`Preparing build for projects: ${requestedProjects.join(", ")}`);
+			const reqStart = performance.now();
+			const projectBuildContexts = await this._buildContext.getRequiredProjectContexts(requestedProjects);
+			if (this.#log.isLevelEnabled("perf")) {
+				this.#log.perf(
+					`getRequiredProjectContexts completed in ${(performance.now() - reqStart).toFixed(2)} ms`);
 			}
-			this.#log.info(`Build succeeded in ${this._getElapsedTime(startTime)}`);
-		} catch (err) {
-			this.#log.error(`Build failed`);
-			throw err;
+
+			// Create build queue based on graph depth-first search to ensure correct build order
+			const queue = [];
+			const processedProjectNames = [];
+			for (const {project} of this._graph.traverseDependenciesDepthFirst(true)) {
+				const projectName = project.getName();
+				const projectBuildContext = projectBuildContexts.get(projectName);
+				if (projectBuildContext) {
+					// Build context exists
+					//	=> This project needs to be built or, in case it has already
+					//		been built, it's build result needs to be written out (if requested)
+					queue.push(projectBuildContext);
+					processedProjectNames.push(projectName);
+				}
+			}
+
+			this.#log.setProjects(queue.map((projectBuildContext) => {
+				return projectBuildContext.getProject().getName();
+			}));
+
+			const alreadyBuilt = [];
+			for (const projectBuildContext of queue) {
+				if (!projectBuildContext.possiblyRequiresBuild()) {
+					const projectName = projectBuildContext.getProject().getName();
+					alreadyBuilt.push(projectName);
+				}
+			}
+
+			const startTime = process.hrtime();
+			try {
+				while (queue.length) {
+					const projectBuildContext = queue.shift();
+					const project = projectBuildContext.getProject();
+					const projectName = project.getName();
+					const projectType = project.getType();
+					this.#log.verbose(`Processing project ${projectName}...`);
+
+					// Only build projects that are not already build (i.e. provide a matching build manifest)
+					if (alreadyBuilt.includes(projectName)) {
+						this.#log.skipProjectBuild(projectName, projectType);
+					} else {
+						const prepStart = performance.now();
+						const usesCache = await projectBuildContext.prepareProjectBuildAndValidateCache();
+						if (this.#log.isLevelEnabled("perf")) {
+							this.#log.perf(
+								`prepareProjectBuildAndValidateCache for ${projectName} ` +
+								`completed in ${(performance.now() - prepStart).toFixed(2)} ms ` +
+								`(usesCache=${usesCache})`);
+						}
+						if (usesCache) {
+							this.#log.skipProjectBuild(projectName, projectType);
+							alreadyBuilt.push(projectName);
+						} else {
+							await this._buildProject(projectBuildContext, signal);
+						}
+					}
+					signal?.throwIfAborted();
+
+					if (projectBuiltCallback && requestedProjects.includes(projectName)) {
+						await projectBuiltCallback(projectName, project, projectBuildContext);
+					}
+
+					if (!alreadyBuilt.includes(projectName) && !process.env.UI5_BUILD_NO_WRITE_CACHE) {
+						this.#log.verbose(`Triggering cache update for project ${projectName}...`);
+						pCacheWrites.push(projectBuildContext.writeBuildCache());
+					}
+
+					projectBuildContext.buildFinished();
+				}
+				this.#log.info(`Build succeeded in ${this._getElapsedTime(startTime)}`);
+			} catch (err) {
+				this.#log.error(`Build failed`);
+				throw err;
+			}
+			return processedProjectNames;
 		} finally {
 			await Promise.all(pCacheWrites);
-			this._deregisterCleanupSigHooks(cleanupSigHooks);
+			if (cleanupSigHooks) {
+				this._deregisterCleanupSigHooks(cleanupSigHooks);
+			}
 			await this._executeCleanupTasks();
 			this.#buildIsRunning = false;
 		}
-		return processedProjectNames;
 	}
 
 	/**

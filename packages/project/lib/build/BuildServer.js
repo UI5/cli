@@ -398,6 +398,7 @@ class BuildServer extends EventEmitter {
 			this.#flushResourceChanges();
 
 			// Set active build to prevent concurrent builds
+			let buildError = null;
 			const buildPromise = this.#activeBuild = this.#projectBuilder.build({
 				includeRootProject: buildRootProject,
 				includedDependencies: dependenciesToBuild,
@@ -426,17 +427,26 @@ class BuildServer extends EventEmitter {
 						const projectBuildStatus = this.#projectBuildStatus.get(projectName);
 						projectBuildStatus.rejectReaderRequests(err);
 					}
-					// Re-throw to be handled by caller
-					// TODO: rather emit 'error' event for the BuildServer and continue processing the queue?
-					// Currently, this.#activeBuild will not be cleared.
-					throw err;
+					// Capture the error for emission below; do NOT re-throw so the queue keeps processing
+					// and #activeBuild is cleared. Subsequent requests for affected projects will re-enqueue
+					// builds via #getReaderForProject.
+					buildError = err;
 				}
 			});
 
-			const builtProjects = await buildPromise;
+			let builtProjects;
+			try {
+				builtProjects = await buildPromise;
+			} finally {
+				// Always clear the active build, even on error, so that future requests can enqueue new builds.
+				this.#activeBuild = null;
+			}
+			if (buildError) {
+				this.emit("error", buildError);
+				// Continue processing any remaining pending requests for unaffected projects.
+				continue;
+			}
 			this.emit("buildFinished", builtProjects);
-			// Clear active build
-			this.#activeBuild = null;
 			if (signal.aborted) {
 				log.verbose(`Build aborted for projects: ${projectsToBuild.join(", ")}`);
 				// Do not continue processing the queue if the build was aborted, but re-trigger processing debounced
