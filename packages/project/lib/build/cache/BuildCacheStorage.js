@@ -566,4 +566,15 @@ export default class BuildCacheStorage {
 		this.#db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
 		this.#db.close();
 	}
+
+	/**
+	 * Get the total size of the database file
+	 *
+	 * @returns {number} Database size in bytes
+	 */
+	getDatabaseSize() {
+		const pageCount = this.#db.prepare("PRAGMA page_count").get().page_count;
+		const pageSize = this.#db.prepare("PRAGMA page_size").get().page_size;
+		return pageCount * pageSize;
+	}
 }
