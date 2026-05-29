@@ -9,6 +9,9 @@ import Resource from "./Resource.js";
 import WriterCollection from "./WriterCollection.js";
 import Filter from "./readers/Filter.js";
 import Link from "./readers/Link.js";
+import Proxy from "./readers/Proxy.js";
+import MonitoredReader from "./MonitoredReader.js";
+import MonitoredReaderWriter from "./MonitoredReaderWriter.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("resources:resourceFactory");
 
@@ -26,6 +29,7 @@ const log = getLogger("resources:resourceFactory");
  *
  * @public
  * @param {object} parameters Parameters
+ * @param {string} parameters.name
  * @param {string} parameters.virBasePath Virtual base path. Must be absolute, POSIX-style, and must end with a slash
  * @param {string} [parameters.fsBasePath]
  *   File System base path.
@@ -38,11 +42,11 @@ const log = getLogger("resources:resourceFactory");
  * @param {@ui5/project/specifications/Project} [parameters.project] Project this adapter belongs to (if any)
  * @returns {@ui5/fs/adapters/FileSystem|@ui5/fs/adapters/Memory} File System- or Virtual Adapter
  */
-export function createAdapter({fsBasePath, virBasePath, project, excludes, useGitignore}) {
+export function createAdapter({name, fsBasePath, virBasePath, project, excludes, useGitignore}) {
 	if (fsBasePath) {
-		return new FsAdapter({fsBasePath, virBasePath, project, excludes, useGitignore});
+		return new FsAdapter({name, fsBasePath, virBasePath, project, excludes, useGitignore});
 	} else {
-		return new MemAdapter({virBasePath, project, excludes});
+		return new MemAdapter({name, virBasePath, project, excludes});
 	}
 }
 
@@ -178,15 +182,17 @@ export function createResource(parameters) {
 export function createWorkspace({reader, writer, virBasePath = "/", name = "workspace"}) {
 	if (!writer) {
 		writer = new MemAdapter({
+			name: `Workspace writer for ${name}`,
 			virBasePath
 		});
 	}
 
-	return new DuplexCollection({
+	const d = new DuplexCollection({
 		reader,
 		writer,
 		name
 	});
+	return d;
 }
 
 /**
@@ -235,6 +241,19 @@ export function createLinkReader(parameters) {
 }
 
 /**
+ * @param {object} parameters
+ * @param {object} parameters.name Name of the reader
+ * @param {@ui5/fs/readers/Proxy~getResource} parameters.getResource
+ * 	Callback function to retrieve a resource by its virtual path.
+ * @param {@ui5/fs/readers/Proxy~listResourcePaths} parameters.listResourcePaths
+ * 	Callback function to list all available virtual resource paths.
+ * @returns {@ui5/fs/readers/Proxy} Reader instance
+ */
+export function createProxy(parameters) {
+	return new Proxy(parameters);
+}
+
+/**
  * Create a [Link-Reader]{@link @ui5/fs/readers/Link} where all requests are prefixed with
  * <code>/resources/&lt;namespace&gt;</code>.
  *
@@ -243,18 +262,27 @@ export function createLinkReader(parameters) {
  *
  * @public
  * @param {object} parameters
+ * @param {string} parameters.name
  * @param {@ui5/fs/AbstractReader} parameters.reader Single reader or collection of readers
  * @param {string} parameters.namespace Project namespace
  * @returns {@ui5/fs/readers/Link} Reader instance
  */
-export function createFlatReader({reader, namespace}) {
+export function createFlatReader({name, reader, namespace}) {
 	return new Link({
+		name,
 		reader: reader,
 		pathMapping: {
 			linkPath: `/`,
 			targetPath: `/resources/${namespace}/`
 		}
 	});
+}
+
+export function createMonitor(readerWriter) {
+	if (readerWriter instanceof DuplexCollection) {
+		return new MonitoredReaderWriter(readerWriter);
+	}
+	return new MonitoredReader(readerWriter);
 }
 
 /**
