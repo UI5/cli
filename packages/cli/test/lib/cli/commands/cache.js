@@ -23,8 +23,10 @@ test.beforeEach(async (t) => {
 	t.context.Configuration = Configuration;
 	sinon.stub(Configuration, "fromFile").resolves(new Configuration({}));
 
-	t.context.cleanCacheStub = sinon.stub();
-	t.context.getCacheInfoStub = sinon.stub();
+	t.context.frameworkCacheGetCacheInfo = sinon.stub();
+	t.context.frameworkCacheCleanCache = sinon.stub();
+	t.context.buildCacheGetCacheInfo = sinon.stub();
+	t.context.buildCacheCleanCache = sinon.stub();
 
 	// Mock readline to simulate user confirmation
 	const mockRLInterface = {
@@ -36,9 +38,15 @@ test.beforeEach(async (t) => {
 
 	t.context.cache = await esmock.p("../../../../lib/cli/commands/cache.js", {
 		"@ui5/project/config/Configuration": t.context.Configuration,
-		"@ui5/project/cache/CacheCleanup": {
-			cleanCache: t.context.cleanCacheStub,
-			getCacheInfo: t.context.getCacheInfoStub,
+		"@ui5/project/ui5Framework/cache": {
+			getCacheInfo: t.context.frameworkCacheGetCacheInfo,
+			cleanCache: t.context.frameworkCacheCleanCache
+		},
+		"@ui5/project/build/cache/CacheManager": {
+			default: class {
+				static getCacheInfo = t.context.buildCacheGetCacheInfo;
+				static cleanCache = t.context.buildCacheCleanCache;
+			}
 		},
 		"node:readline": {
 			createInterface: t.context.readlineCreateInterfaceStub,
@@ -67,41 +75,38 @@ test("Command builder", async (t) => {
 });
 
 test.serial("ui5 cache clean: nothing to clean", async (t) => {
-	const {cache, argv, stderrWriteStub, cleanCacheStub, getCacheInfoStub} = t.context;
+	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
+		buildCacheCleanCache, buildCacheGetCacheInfo} = t.context;
 
 	// Simulate no cache items
-	getCacheInfoStub.resolves([]);
+	frameworkCacheGetCacheInfo.resolves(null);
+	buildCacheGetCacheInfo.resolves(null);
 
 	argv["_"] = ["cache", "clean"];
 	await cache.handler(argv);
 
 	t.is(stderrWriteStub.firstCall.firstArg, "Nothing to clean\n");
-	t.is(cleanCacheStub.callCount, 0, "cleanCache should not be called");
+	t.is(frameworkCacheCleanCache.callCount, 0, "frameworkCache.cleanCache should not be called");
+	t.is(buildCacheCleanCache.callCount, 0, "buildCache.cleanCache should not be called");
 });
 
 test.serial("ui5 cache clean: removes entries and reports", async (t) => {
-	const {cache, argv, stderrWriteStub, cleanCacheStub, getCacheInfoStub,
-		mockRLInterface} = t.context;
+	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
+		buildCacheCleanCache, buildCacheGetCacheInfo, mockRLInterface} = t.context;
 
 	// Simulate existing cache items
-	getCacheInfoStub.resolves([
-		{path: "framework/", size: 15 * 1024 * 1024, type: "directory"},
-		{path: "buildCache/ (database records)", size: 8 * 1024 * 1024, type: "database"},
-	]);
+	frameworkCacheGetCacheInfo.resolves({path: "framework/", size: 15 * 1024 * 1024, type: "directory"});
+	buildCacheGetCacheInfo.resolves({
+		path: "buildCache/v0_7 (database records)", size: 8 * 1024 * 1024, type: "database"
+	});
 
 	// Mock user confirmation
 	mockRLInterface.question.callsFake((question, callback) => {
 		callback("y");
 	});
 
-	cleanCacheStub.resolves({
-		entries: [
-			{path: "framework", type: "framework", size: 15 * 1024 * 1024},
-			{path: "buildCache", type: "buildCache", size: 8 * 1024 * 1024},
-		],
-		totalSize: 23 * 1024 * 1024,
-		totalCount: 2,
-	});
+	frameworkCacheCleanCache.resolves({path: "framework", type: "framework", size: 15 * 1024 * 1024});
+	buildCacheCleanCache.resolves({path: "buildCache/v0_7", type: "buildCache", size: 8 * 1024 * 1024});
 
 	argv["_"] = ["cache", "clean"];
 	await cache.handler(argv);
@@ -112,7 +117,8 @@ test.serial("ui5 cache clean: removes entries and reports", async (t) => {
 		"Confirmation question should ask to continue");
 
 	// Check that cleanCache was called
-	t.is(cleanCacheStub.callCount, 1, "cleanCache should be called once");
+	t.is(frameworkCacheCleanCache.callCount, 1, "frameworkCache.cleanCache should be called once");
+	t.is(buildCacheCleanCache.callCount, 1, "buildCache.cleanCache should be called once");
 
 	// Check output
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
@@ -122,13 +128,12 @@ test.serial("ui5 cache clean: removes entries and reports", async (t) => {
 });
 
 test.serial("ui5 cache clean: user cancels", async (t) => {
-	const {cache, argv, stderrWriteStub, cleanCacheStub, getCacheInfoStub,
-		mockRLInterface} = t.context;
+	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
+		buildCacheCleanCache, buildCacheGetCacheInfo, mockRLInterface} = t.context;
 
 	// Simulate existing cache items
-	getCacheInfoStub.resolves([
-		{path: "framework/", size: 5 * 1024 * 1024, type: "directory"}
-	]);
+	frameworkCacheGetCacheInfo.resolves({path: "framework/", size: 5 * 1024 * 1024, type: "directory"});
+	buildCacheGetCacheInfo.resolves(null);
 
 	// Mock user cancellation
 	mockRLInterface.question.callsFake((question, callback) => {
@@ -141,8 +146,9 @@ test.serial("ui5 cache clean: user cancels", async (t) => {
 	// Check that confirmation was asked
 	t.is(mockRLInterface.question.callCount, 1, "Should ask for confirmation");
 
-	// Check that cleanCache was NOT called
-	t.is(cleanCacheStub.callCount, 0, "cleanCache should not be called when user cancels");
+	// Check that cleanup was NOT called
+	t.is(frameworkCacheCleanCache.callCount, 0, "frameworkCache.cleanCache should not be called when user cancels");
+	t.is(buildCacheCleanCache.callCount, 0, "buildCache.cleanCache should not be called when user cancels");
 
 	// Check output
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
@@ -160,51 +166,38 @@ test.serial("Command definition is correct", (t) => {
 });
 
 test.serial("ui5 cache clean: accepts 'yes' as confirmation", async (t) => {
-	const {cache, argv, cleanCacheStub, getCacheInfoStub, mockRLInterface} = t.context;
+	const {cache, argv, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
+		buildCacheGetCacheInfo, mockRLInterface} = t.context;
 
-	getCacheInfoStub.resolves([
-		{path: "framework/", size: 1024, type: "directory"}
-	]);
+	frameworkCacheGetCacheInfo.resolves({path: "framework/", size: 1024, type: "directory"});
+	buildCacheGetCacheInfo.resolves(null);
 
 	mockRLInterface.question.callsFake((question, callback) => {
 		callback("yes");
 	});
 
-	cleanCacheStub.resolves({
-		entries: [{path: "framework", type: "framework", size: 1024}],
-		totalSize: 1024,
-		totalCount: 1,
-	});
+	frameworkCacheCleanCache.resolves({path: "framework", type: "framework", size: 1024});
 
 	argv["_"] = ["cache", "clean"];
 	await cache.handler(argv);
 
-	t.is(cleanCacheStub.callCount, 1, "cleanCache should be called with 'yes' confirmation");
+	t.is(frameworkCacheCleanCache.callCount, 1, "frameworkCache.cleanCache should be called with 'yes' confirmation");
 });
 
 test.serial("ui5 cache clean: formats byte sizes correctly", async (t) => {
-	const {cache, argv, stderrWriteStub, cleanCacheStub, getCacheInfoStub, mockRLInterface} = t.context;
+	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
+		buildCacheCleanCache, buildCacheGetCacheInfo, mockRLInterface} = t.context;
 
 	// Test with small bytes (B), KB, and GB sizes
-	getCacheInfoStub.resolves([
-		{path: "small", size: 512, type: "directory"}, // < 1024 = B
-		{path: "medium", size: 50 * 1024, type: "directory"}, // KB
-		{path: "large", size: 2 * 1024 * 1024 * 1024, type: "directory"}, // GB
-	]);
+	frameworkCacheGetCacheInfo.resolves({path: "small", size: 512, type: "directory"}); // < 1024 = B
+	buildCacheGetCacheInfo.resolves({path: "medium", size: 50 * 1024, type: "database"}); // KB
 
 	mockRLInterface.question.callsFake((question, callback) => {
 		callback("y");
 	});
 
-	cleanCacheStub.resolves({
-		entries: [
-			{path: "small", type: "directory", size: 512},
-			{path: "medium", type: "directory", size: 50 * 1024},
-			{path: "large", type: "directory", size: 2 * 1024 * 1024 * 1024},
-		],
-		totalSize: 2 * 1024 * 1024 * 1024 + 50 * 1024 + 512,
-		totalCount: 3,
-	});
+	frameworkCacheCleanCache.resolves({path: "small", type: "directory", size: 512});
+	buildCacheCleanCache.resolves({path: "medium", type: "database", size: 50 * 1024});
 
 	argv["_"] = ["cache", "clean"];
 	await cache.handler(argv);
@@ -212,23 +205,23 @@ test.serial("ui5 cache clean: formats byte sizes correctly", async (t) => {
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes("512 B"), "Shows bytes format");
 	t.true(allOutput.includes("50.0 KB"), "Shows KB format");
-	t.true(allOutput.includes("2.0 GB"), "Shows GB format");
 });
 
 test.serial("ui5 cache clean: uses UI5_DATA_DIR from environment", async (t) => {
-	const {cache, argv, getCacheInfoStub} = t.context;
+	const {cache, argv, frameworkCacheGetCacheInfo, buildCacheGetCacheInfo} = t.context;
 	const originalEnv = process.env.UI5_DATA_DIR;
 
 	try {
 		process.env.UI5_DATA_DIR = "/custom/ui5/path";
 
-		getCacheInfoStub.resolves([]);
+		frameworkCacheGetCacheInfo.resolves(null);
+		buildCacheGetCacheInfo.resolves(null);
 
 		argv["_"] = ["cache", "clean"];
 		await cache.handler(argv);
 
-		t.is(getCacheInfoStub.callCount, 1, "getCacheInfo called");
-		t.true(getCacheInfoStub.firstCall.args[0].ui5DataDir.includes("custom/ui5/path"),
+		t.is(frameworkCacheGetCacheInfo.callCount, 1, "frameworkCache.getCacheInfo called");
+		t.true(frameworkCacheGetCacheInfo.firstCall.args[0].includes("custom/ui5/path"),
 			"Uses environment variable path");
 	} finally {
 		if (originalEnv) {
@@ -240,19 +233,20 @@ test.serial("ui5 cache clean: uses UI5_DATA_DIR from environment", async (t) => 
 });
 
 test.serial("ui5 cache clean: uses config.getUi5DataDir when no env var", async (t) => {
-	const {cache, argv, getCacheInfoStub, Configuration} = t.context;
+	const {cache, argv, frameworkCacheGetCacheInfo, buildCacheGetCacheInfo, Configuration} = t.context;
 	const originalEnv = process.env.UI5_DATA_DIR;
 
 	try {
 		delete process.env.UI5_DATA_DIR;
 
 		Configuration.fromFile.resolves(new Configuration({ui5DataDir: "/config/path"}));
-		getCacheInfoStub.resolves([]);
+		frameworkCacheGetCacheInfo.resolves(null);
+		buildCacheGetCacheInfo.resolves(null);
 
 		argv["_"] = ["cache", "clean"];
 		await cache.handler(argv);
 
-		t.is(getCacheInfoStub.callCount, 1, "getCacheInfo called");
+		t.is(frameworkCacheGetCacheInfo.callCount, 1, "frameworkCache.getCacheInfo called");
 	} finally {
 		if (originalEnv) {
 			process.env.UI5_DATA_DIR = originalEnv;

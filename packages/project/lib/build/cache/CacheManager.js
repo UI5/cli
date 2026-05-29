@@ -10,7 +10,7 @@ const log = getLogger("build:cache:CacheManager");
 const cacheManagerInstances = new Map();
 
 // Cache version for compatibility management
-export const CACHE_VERSION = "v0_7";
+const CACHE_VERSION = "v0_7";
 
 /**
  * Manages persistence for the build cache using a unified SQLite-backed storage
@@ -336,5 +336,67 @@ export default class CacheManager {
 			this.#storage.close();
 			cacheManagerInstances.delete(this.#cacheDir);
 		}
+	}
+
+	/**
+	 * Get build cache info for the current version.
+	 *
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<{path: string, size: number, type: string}|null>} Build cache info or null
+	 */
+	static async getCacheInfo(ui5DataDir) {
+		const buildCacheDir = path.join(ui5DataDir, "buildCache");
+		const dbDir = path.join(buildCacheDir, CACHE_VERSION);
+
+		try {
+			const storage = new BuildCacheStorage(dbDir);
+			try {
+				if (storage.hasRecords()) {
+					const size = storage.getDatabaseSize();
+					return {
+						path: `buildCache/${CACHE_VERSION}`,
+						size,
+						type: "database"
+					};
+				}
+			} finally {
+				storage.close();
+			}
+		} catch {
+			// Skip if database can't be opened
+		}
+		return null;
+	}
+
+	/**
+	 * Clean build cache by clearing all records from SQLite database for the current version.
+	 *
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<{path: string, type: string, size: number}|null>} Removal result or null
+	 */
+	static async cleanCache(ui5DataDir) {
+		const buildCacheDir = path.join(ui5DataDir, "buildCache");
+		const dbDir = path.join(buildCacheDir, CACHE_VERSION);
+
+		try {
+			const storage = new BuildCacheStorage(dbDir);
+			try {
+				if (storage.hasRecords()) {
+					const freedSize = storage.clearAllRecords();
+					return {
+						path: `buildCache/${CACHE_VERSION}`,
+						type: "buildCache",
+						size: freedSize
+					};
+				}
+			} finally {
+				storage.close();
+			}
+		} catch {
+			// Skip if database can't be cleared
+		}
+		return null;
 	}
 }
