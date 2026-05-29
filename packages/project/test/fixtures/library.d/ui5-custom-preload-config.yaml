@@ -1,5 +1,5 @@
 ---
-specVersion: "2.3"
+specVersion: "5.0"
 type: library
 metadata:
   name: library.d
@@ -9,3 +9,7 @@ resources:
     paths:
       src: main/src
       test: main/test
+builder:
+  libraryPreload:
+    excludes:
+        - "library/d/some.js"
