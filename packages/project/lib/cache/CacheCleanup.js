@@ -33,32 +33,6 @@ async function getDirectorySize(dirPath) {
 }
 
 /**
- * Clean a single directory by removing it entirely.
- *
- * @param {string} dirPath Absolute path to directory
- * @param {string} displayPath Path to display in results
- * @param {string} type Type of cache entry
- * @returns {Promise<Array<{path: string, type: string, size: number}>>} Removed entries
- */
-async function cleanDirectory(dirPath, displayPath, type) {
-	const removed = [];
-	try {
-		await fs.access(dirPath);
-	} catch {
-		return removed;
-	}
-
-	const size = await getDirectorySize(dirPath);
-	try {
-		await fs.rm(dirPath, {recursive: true, force: true});
-		removed.push({path: displayPath, type, size});
-	} catch {
-		// Skip on failure
-	}
-	return removed;
-}
-
-/**
  * Clean build cache directory by clearing all records from the SQLite database.
  *
  * @param {string} buildCacheDir Path to buildCache/
@@ -102,7 +76,11 @@ async function cleanBuildCache(buildCacheDir) {
 }
 
 /**
- * Scans the UI5 data directory and removes all cache entries.
+ * Cleans cache directories for framework libraries and incremental build cache.
+ *
+ * Removes:
+ * - framework/ directory: All UI5 framework libraries, download cache, staging files, and locks
+ * - buildCache/ entries: Clears database records (preserves database files)
  *
  * @param {object} options
  * @param {string} options.ui5DataDir Resolved absolute path to UI5 data directory
@@ -112,32 +90,23 @@ async function cleanBuildCache(buildCacheDir) {
 export async function cleanCache({ui5DataDir}) {
 	const allRemoved = [];
 
-	// Clean framework packages
-	allRemoved.push(...await cleanDirectory(
-		path.join(ui5DataDir, "framework", "packages"),
-		"framework/packages",
-		"framework"
-	));
-
-	// Clean cacache
-	allRemoved.push(...await cleanDirectory(
-		path.join(ui5DataDir, "framework", "cacache"),
-		"framework/cacache",
-		"cacache"
-	));
-
-	// Clean build cache (special: clears DB records, not files)
-	allRemoved.push(...await cleanBuildCache(path.join(ui5DataDir, "buildCache")));
-
-	// Clean misc dirs
-	const miscDirs = [
-		["framework/staging", "staging"],
-		["framework/locks", "locks"],
-		["server", "server"],
-	];
-	for (const [rel, type] of miscDirs) {
-		allRemoved.push(...await cleanDirectory(path.join(ui5DataDir, rel), rel, type));
+	// Clean entire framework directory (packages, cacache, staging, locks, etc.)
+	const frameworkDir = path.join(ui5DataDir, "framework");
+	try {
+		await fs.access(frameworkDir);
+		const size = await getDirectorySize(frameworkDir);
+		await fs.rm(frameworkDir, {recursive: true, force: true});
+		allRemoved.push({
+			path: "framework",
+			type: "framework",
+			size
+		});
+	} catch {
+		// Framework directory doesn't exist or couldn't be removed
 	}
+
+	// Clean build cache (clears DB records, preserves files)
+	allRemoved.push(...await cleanBuildCache(path.join(ui5DataDir, "buildCache")));
 
 	const totalSize = allRemoved.reduce((sum, entry) => sum + entry.size, 0);
 	return {
