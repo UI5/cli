@@ -2,6 +2,7 @@ import test from "ava";
 import supertest from "supertest";
 import {serve} from "../../../lib/server.js";
 import {graphFromPackageDependencies} from "@ui5/project/graph";
+import {isolatedUi5DataDir} from "../../utils/buildCacheIsolation.js";
 
 let request;
 let server;
@@ -19,7 +20,8 @@ test.before(async (t) => {
 	};
 
 	server = await serve(graph, {
-		port: 3333
+		port: 3333,
+		ui5DataDir: isolatedUi5DataDir(t),
 	});
 	request = supertest("http://localhost:3333");
 });
@@ -377,7 +379,8 @@ test("Stop server", async (t) => {
 	});
 
 	const serveResult = await serve(graph, {
-		port: port
+		port: port,
+		ui5DataDir: isolatedUi5DataDir(t),
 	});
 
 	const res = await request.get("/resources/library/a/.library");
@@ -509,7 +512,8 @@ test("CSP (sap policies)", async (t) => {
 	const serveResult = await serve(graph, {
 		port,
 		sendSAPTargetCSP: true,
-		simpleIndex: false
+		simpleIndex: false,
+		ui5DataDir: isolatedUi5DataDir(t),
 	});
 
 	const [
@@ -623,7 +627,8 @@ test("CSP serveCSPReports", async (t) => {
 	const serveResult = await serve(graph, {
 		port,
 		serveCSPReports: true,
-		simpleIndex: false
+		simpleIndex: false,
+		ui5DataDir: isolatedUi5DataDir(t),
 	});
 
 	const cspReport = {
@@ -678,7 +683,8 @@ test("CSP with ignore paths", async (t) => {
 		port,
 		serveCSPReports: true,
 		sendSAPTargetCSP: true,
-		simpleIndex: false
+		simpleIndex: false,
+		ui5DataDir: isolatedUi5DataDir(t),
 	});
 	const testrunnerRequest1 = request.get("/test-resources/sap/ui/qunit/testrunner.html")
 		.expect(200);

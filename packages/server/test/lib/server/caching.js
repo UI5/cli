@@ -2,18 +2,20 @@ import test from "ava";
 import supertest from "supertest";
 import {graphFromPackageDependencies} from "@ui5/project/graph";
 import {serve} from "../../../lib/server.js";
+import {isolatedUi5DataDir} from "../../utils/buildCacheIsolation.js";
 
 let request;
 let server;
 
 // Start server before running tests
-test.before(async () => {
+test.before(async (t) => {
 	const graph = await graphFromPackageDependencies({
 		cwd: "./test/fixtures/application.a"
 	});
 
 	server = await serve(graph, {
-		port: 3350
+		port: 3350,
+		ui5DataDir: isolatedUi5DataDir(t),
 	});
 	request = supertest("http://localhost:3350");
 });

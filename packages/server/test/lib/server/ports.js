@@ -5,6 +5,7 @@ import http from "node:http";
 import portscanner from "portscanner";
 import sinonGlobal from "sinon";
 import {graphFromPackageDependencies} from "@ui5/project/graph";
+import {isolatedUi5DataDir} from "../../utils/buildCacheIsolation.js";
 
 test.beforeEach((t) => {
 	t.context.sinon = sinonGlobal.createSandbox();
@@ -33,7 +34,8 @@ test.serial("Start server - Port is already taken and an error occurs", async (t
 	});
 
 	const startServer = serve(graph, {
-		port
+		port,
+		ui5DataDir: isolatedUi5DataDir(t),
 	});
 
 	const error = await t.throwsAsync(startServer);
@@ -85,7 +87,8 @@ test.serial("Start server together with node server - Port is already taken and 
 	});
 	const server = await serve(graph, {
 		port,
-		changePortIfInUse: true
+		changePortIfInUse: true,
+		ui5DataDir: isolatedUi5DataDir(t),
 	});
 
 	t.deepEqual(server.port, nextFoundPort, "Resolves with correct port");
@@ -116,7 +119,8 @@ test.serial("Start server - Port can not be determined and an error occurs", asy
 	});
 	const startServer = serve(graph, {
 		port: 3990,
-		changePortIfInUse: true
+		changePortIfInUse: true,
+		ui5DataDir: isolatedUi5DataDir(t),
 	});
 
 	const error = await t.throwsAsync(startServer);
@@ -157,7 +161,8 @@ test.serial(
 
 		const startServer = serve(graph, {
 			port: portStart,
-			changePortIfInUse: true
+			changePortIfInUse: true,
+			ui5DataDir: isolatedUi5DataDir(t),
 		});
 
 		const error = await t.throwsAsync(startServer);
@@ -195,12 +200,14 @@ test.serial("Start server twice - Port is already taken and the next one is used
 	t.plan(3);
 	const port = 3380;
 	const nextFoundPort = 3381;
+	const ui5DataDir = isolatedUi5DataDir(t);
 	const graph1 = await graphFromPackageDependencies({
 		cwd: "./test/fixtures/application.a"
 	});
 	const serveResult1 = await serve(graph1, {
 		port: port,
-		changePortIfInUse: true
+		changePortIfInUse: true,
+		ui5DataDir,
 	});
 	t.deepEqual(serveResult1.port, port, "Resolves with correct port");
 
@@ -209,7 +216,8 @@ test.serial("Start server twice - Port is already taken and the next one is used
 	});
 	const serveResult2 = await serve(graph2, {
 		port: port,
-		changePortIfInUse: true
+		changePortIfInUse: true,
+		ui5DataDir,
 	});
 	t.deepEqual(serveResult2.port, nextFoundPort, "Resolves with correct port");
 

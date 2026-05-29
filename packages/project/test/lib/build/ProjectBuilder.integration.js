@@ -27,7 +27,6 @@ test.beforeEach((t) => {
 
 test.afterEach.always((t) => {
 	t.context.sinon.restore();
-	delete process.env.UI5_DATA_DIR;
 
 	process.off("ui5.log", t.context.logEventStub);
 	process.off("ui5.build-metadata", t.context.buildMetadataEventStub);
@@ -2703,13 +2702,13 @@ class FixtureTester {
 		// Public
 		this.fixturePath = getTmpPath(fixtureName);
 		this.destPath = getTmpPath(`${fixtureName}/dist`);
+		this.ui5DataDir = getTmpPath(`${fixtureName}/.ui5`);
 	}
 
 	async _initialize() {
 		if (this._initialized) {
 			return;
 		}
-		process.env.UI5_DATA_DIR = getTmpPath(`${this._fixtureName}/.ui5`);
 		await rmrf(this.fixturePath); // Clean up any previous test runs
 		await fs.cp(getFixturePath(this._fixtureName), this.fixturePath, {recursive: true});
 		this._initialized = true;
@@ -2725,7 +2724,7 @@ class FixtureTester {
 		});
 
 		// Execute the build
-		await graph.build(config);
+		await graph.build({...config, ui5DataDir: this.ui5DataDir});
 
 		// Apply assertions if provided
 		if (assertions) {

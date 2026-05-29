@@ -3,6 +3,7 @@ import supertest from "supertest";
 import {serve} from "../../../lib/server.js";
 import {getSslCertificate} from "../../../lib/sslUtil.js";
 import {graphFromPackageDependencies} from "@ui5/project/graph";
+import {isolatedUi5DataDir} from "../../utils/buildCacheIsolation.js";
 import path from "node:path";
 
 let request;
@@ -29,7 +30,8 @@ if (nodeVersion < 24) {
 			port: 3366,
 			h2: true,
 			key,
-			cert
+			cert,
+			ui5DataDir: isolatedUi5DataDir(t),
 		});
 		request = supertest("https://localhost:3366");
 	});
