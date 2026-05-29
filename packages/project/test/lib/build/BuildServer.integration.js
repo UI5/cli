@@ -630,6 +630,40 @@ test.serial("Serve application.a with --cache=Force (2)", async (t) => {
 	await setTimeout(50);
 });
 
+// Regression: a non-abort build error used to leave #activeBuild set, deadlocking the BuildServer
+// so subsequent resource requests would hang forever. The fix in #processBuildRequests clears
+// #activeBuild in a finally block and emits "error" instead of throwing — verify a second request
+// still rejects (with the same root cause) instead of hanging.
+test.serial("Build server recovers from non-abort build error (no deadlock)", async (t) => {
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
+
+	const errorEvents = [];
+	await fixtureTester.serveProject({config: {cache: Cache.Force}, expectBuildErrors: true});
+	fixtureTester.buildServer.on("error", (err) => errorEvents.push(err));
+
+	// First request triggers a build that fails because cache=Force has no cache
+	const firstError = await t.throwsAsync(async () => {
+		await fixtureTester.requestResource({resource: "/test.js"});
+	});
+	t.true(
+		firstError.message.includes(`Cache is in "Force" mode but no cache found for project application.a`),
+		"First request rejects with the Force-mode cache miss"
+	);
+
+	// Second request must reject again (not hang) — proves #activeBuild was cleared after the failure
+	const secondError = await t.throwsAsync(async () => {
+		await fixtureTester.requestResource({resource: "/test.js"});
+	});
+	t.true(
+		secondError.message.includes(`Cache is in "Force" mode but no cache found for project application.a`),
+		`Second request rejects with the same error instead of deadlocking. Got: ${secondError && secondError.message}`
+	);
+
+	// Each failed build emits exactly one "error" event
+	await setTimeout(50);
+	t.is(errorEvents.length, 2, "Two build errors were emitted, one per failed build attempt");
+});
+
 // ProjectBuildCache's StageCache must be cleared correctly when a build is aborted.
 // A task that completed during an aborted attempt has already called recordTaskResult,
 // which adds its stage to the in-memory StageCache. On retry,
