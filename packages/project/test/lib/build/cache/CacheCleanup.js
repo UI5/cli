@@ -2,9 +2,9 @@ import test from "ava";
 import path from "node:path";
 import fs from "node:fs/promises";
 import {rimraf} from "rimraf";
-import {cleanCache} from "../../../lib/cache/CacheCleanup.js";
+import {cleanCache} from "../../../../lib/build/cache/CacheCleanup.js";
 
-const TEST_DIR = path.join(import.meta.dirname, "..", "..", "tmp", "CacheCleanup");
+const TEST_DIR = path.join(import.meta.dirname, "..", "..", "..", "tmp", "CacheCleanup");
 
 test.after.always(async () => {
 	await rimraf(TEST_DIR).catch(() => {});
