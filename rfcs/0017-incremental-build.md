@@ -163,9 +163,9 @@ The `Project Builder` shall be enhanced to:
 
 The `Task Runner` shall be enhanced to:
 
-1. _[Not yet integrated]_ Request the build signature of any tasks implementing the `determineBuildSignature` method at the beginning of the build process (see [Build Task API Changes](#build-task-api-changes)). These signatures are then incorporated into the overall build signature of the project (see [Cache Creation](#cache-creation)).
+1. Request the build signature of any tasks implementing the `determineBuildSignature` method at the beginning of the build process (see [Build Task API Changes](#build-task-api-changes)). These signatures are then incorporated into the overall build signature of the project (see [Cache Creation](#cache-creation)).
 2. Before executing each task, allow the `Project Build Cache` to prepare the task execution and determine whether the task needs to be executed or can be skipped based on valid cache data.
-3. _[Not yet integrated]_ Before executing a task, call the `determineExpectedOutput` method if provided. This allows the task to specify which resources it expects to write during its execution. The `Project Build Cache` can then use this information to detect and remove stale output resources that were produced in a previous execution of the task, but are no longer produced in the current execution.
+3. Before executing a task, call the `determineExpectedOutput` method if provided. This allows the task to specify which resources it expects to write during its execution. The `Project Build Cache` can then use this information to detect and remove stale output resources that were produced in a previous execution of the task, but are no longer produced in the current execution.
 4. Execute the task, optionally providing it with a list of changed resource paths since the last execution. This can be used by tasks supporting `differential builds` to only process changed resources (see [Build Task API Changes](#build-task-api-changes) below).
 5. After a task has been executed, allow the `Project Build Cache` to update the cache using information on which resources have been read during the task's execution as well as its output resources.
 	* The resources read by a task are determined by providing the task with `workspace` and `dependencies` reader/writer instances that have been wrapped in ["Monitored Reader"](#monitored-reader) instances. They are responsible for observing which resources are accessed during the task's execution.
@@ -193,7 +193,7 @@ Build tasks can now optionally support "differential builds" by implementing the
 	* Returns: `undefined` or an arbitrary string representing the build signature for the task. This can be used to incorporate task-specific configuration files (e.g. tsconfig.json for a TypeScript compilation task) into the build signature of the project, causing the cache to be invalidated if those files change. The string should not be a hash value (the build signature hash is calculated later). If `undefined` is returned, or if the method is not implemented, it is assumed that the task's cache remains valid until relevant input resources change.
 	* This method is called once at the beginning of every build. The return value is used to calculate a unique signature for the task based on its configuration. This signature is then incorporated into the overall build signature of the project (see [Cache Creation](#cache-creation) below).
 	* Might return a list of file paths that shall be watched for changes (when running in watch mode). On change, the build signature is recalculated and the cache invalidated if it has changed.
-* **async determineExpectedOutput({workspace, dependencies, cacheUtil, log, options})**: _**Not yet integrated. Stale output detection is essential for cache correctness — without it, resources from a previous build that are no longer produced will persist in the cache. This concept must be finalized before the incremental build is considered complete.**_
+* **async determineExpectedOutput({workspace, dependencies, cacheUtil, log, options})**: Stale output detection is essential for cache correctness — without it, resources from a previous build that are no longer produced will persist in the cache. The exact shape of this API is still under discussion; alternatives such as inferring expected output from previous executions are also being considered.
 	* `workspace`: Reader to access resources of the project's `workspace` (read only)
 	* `dependencies`: Reader to access resources of the project's dependencies
 	* `cacheUtil`: Same as above
@@ -304,7 +304,7 @@ This signature is used to determine whether an existing cache can be used in a g
 
 The signature is a hash represented as a hexadecimal string.
 
-A mechanism for custom tasks to contribute to the build signature via `determineBuildSignature()` is defined in the Task API but not yet integrated into the build flow.
+A mechanism for custom tasks to contribute to the build signature via `determineBuildSignature()` is defined in the Task API.
 
 ### Index Cache
 
@@ -585,9 +585,9 @@ This is resolved by storing A's source files in the CAS at the end of A's build 
 
 A mechanism to free unused cache resources is required. The SQLite database can grow over time as new project versions and build configurations accumulate entries.
 
-_**Not yet implemented.**_ A future implementation should use some form of LRU eviction based on last-access timestamps or entry age. The garbage collection check should run as a non-blocking process after a successful `ui5 build` or `ui5 serve` command completes. If configured thresholds (age or size) have been exceeded, unused entries are removed.
+The eviction strategy is still open. A reasonable starting point is some form of LRU eviction based on last-access timestamps or entry age, run as a non-blocking step after a successful `ui5 build` or `ui5 serve` once configured thresholds (age or size) are exceeded.
 
-Additionally, a dedicated command, such as `ui5 cache clean`, shall be introduced. This command allows users to manually trigger a cache purge, providing options to specify criteria such as maximum age or size. Similarly, a command `ui5 cache verify` may be provided to check the integrity of the cache. In the meantime, users can simply delete the `~/.ui5/buildCache/` directory to clear all caches.
+Additionally, a dedicated command, such as `ui5 cache clean`, shall be introduced. This command allows users to manually trigger a cache purge, providing options to specify criteria such as maximum age or size. Similarly, a command `ui5 cache verify` may be provided to check the integrity of the cache. As a fallback, users can simply delete the `~/.ui5/buildCache/` directory to clear all caches.
 
 ### Watch Mode
 
@@ -623,8 +623,6 @@ The server emits events (`buildFinished`, `sourcesChanged`, `error`) that can be
 
 #### Live Reload
 
-_**Not yet implemented.**_
-
 The server may implement live-reload functionality to inform connected clients about changes in the build result. This can be achieved using WebSockets or Server-Sent Events (SSE).
 
 This is an essential feature, since after saving an edited file, the user might not know when the build has finished and the changes are available in the browser. Although the server shall also pause requests for the affected project until the build has finished, an automatic refresh of the page improves the developer experience significantly.
@@ -637,13 +635,14 @@ The `ui5 serve` command integrates the incremental build via `BuildServer`. On s
 
 The following new arguments shall be added to the `ui5 build` and `ui5 serve` commands:
 
-* `--cache-mode`: _**Not yet implemented for the build cache.** (Note: The existing `--cache-mode` parameter controls framework dependency resolution caching, not the build cache. A separate parameter or repurposing is needed.)_
+* `--cache`: Controls how the build cache is used.
 	* Possible modes:
-		* Default: Use the cache if available
-		* Force: Always use the cache. If it is incomplete or invalid, fail the build
-		* Read-only: Do not create or update the cache but make use of any existing cache if available (useful for CI/CD)
-		* Off: Do not use the cache at all
-* `--watch`: _**Not yet implemented for `ui5 build`.**_ Enables watch mode, causing the build to be re-triggered whenever a source file or relevant configuration file changes.
+		* `Default`: Use the cache if available
+		* `Force`: Use the cache only. If it is incomplete or invalid, fail the build
+		* `ReadOnly`: Do not create or update the cache but make use of any existing cache if available (useful for CI/CD)
+		* `Off`: Do not use the cache at all
+	* The previous `--cache-mode` argument, which controlled framework dependency resolution caching, has been renamed to `--snapshot-cache` to avoid the naming collision with the build cache.
+* `--watch`: Enables watch mode, causing the build to be re-triggered whenever a source file or relevant configuration file changes.
 	* This parameter is only relevant for the `ui5 build` command. The `ui5 serve` command always uses watch mode internally.
 
 ## How we teach this
@@ -676,16 +675,15 @@ An alternative to using the incremental build in the UI5 CLI server would be to 
 * ✅ How to distinguish projects with build cache from pre-built projects (with project manifest)
 	* Check presence of "sourceMetadata" attribute. Only with "sourceMetadata" can the cache be used for incremental (re-)builds of the project. Otherwise it is "only" a build *result* that can be used for building dependent projects.
 * ✅ Storage format: SQLite with unified content + metadata tables was chosen over cacache + file-based metadata or LevelDB.
-* Cache related topics
-	* Allow tasks to store additional information in the cache
-* Some tasks might be relevant for the server only (e.g. code coverage); come up with a way to configure that
-	* This will implicitly cause the creation of different caches for server and build. This might just be an acceptable and easy to understand trade-off.
-* What if a task ceases to create a resource because of a change in another resource? The previously created version of the resource would still be served from the cache. (`determineExpectedOutput` is designed to address this but not yet integrated.)
+* ✅ `--cache` option for the build cache, separate from the framework dependency snapshot cache (renamed to `--snapshot-cache`).
+* Allow tasks to store additional information in the cache.
+* Some tasks might be relevant for the server only (e.g. code coverage); come up with a way to configure that. This will implicitly cause the creation of different caches for server and build, which might just be an acceptable and easy to understand trade-off.
+* The exact shape of `determineExpectedOutput` (or an alternative mechanism) for detecting stale outputs when a task ceases to produce a previously cached resource. Without this, the cached version of the now-removed resource would still be served from the cache.
+* Whether watch mode shall also watch configuration files relevant for the build signature (e.g. `ui5.yaml`, `package.json`, `tsconfig.json`). If any of those files change, a different cache would have to be used.
+* Garbage collection strategy: LRU vs. age-based vs. size-based eviction, and whether the check runs implicitly after a build/serve or only on explicit `ui5 cache clean`.
+* Cross-process build coordination: SQLite's database-level concurrency does not coordinate higher-level build activity. Whether to add filesystem-based shared/exclusive locks per build signature (as proposed in [Concurrency](#concurrency)) depends on how often parallel builds of the same project occur in practice.
+* Cache corruption and crash recovery: how to handle cases where a cache write was interrupted (verification command, automatic detection, or rebuild on read failure).
 * Measure performance in BAS. Find out whether this approach results in acceptable performance.
-* Test with selected (community) custom tasks
-* Add a debug command to verify the integrity of a cache by rebuilding the project and comparing the result with the cache
-* Cache corruption and crash recovery: Consider cases where cache write has been interrupted
-* Integration of `determineBuildSignature` and `determineExpectedOutput` into the build flow
-* `--cache-mode` parameter for build cache (separate from the existing framework dependency cache mode)
-* `--watch` for `ui5 build`
-* Live reload
+* Test with selected (community) custom tasks.
+* Add a debug command (e.g. `ui5 cache verify`) to verify the integrity of a cache by rebuilding the project and comparing the result with the cache.
+* Live reload protocol and security model.
