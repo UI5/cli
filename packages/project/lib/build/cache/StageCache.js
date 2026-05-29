@@ -100,6 +100,36 @@ export default class StageCache {
 	}
 
 	/**
+	 * Discards all pending cache queue entries from the in-memory cache
+	 *
+	 * Removes every entry that has been added via {@link #addSignature} since the last
+	 * {@link #flushCacheQueue} call (i.e. since the last successful persistence).
+	 *
+	 * This is intended to be called at the start of a build to clean up entries that
+	 * a prior aborted build left behind. Successful builds flush the queue in
+	 * {@link ProjectBuildCache#writeCache}, so this is a no-op in the common case.
+	 *
+	 * @public
+	 */
+	discardPending() {
+		const queue = this.#cacheQueue;
+		if (queue.length === 0) {
+			return;
+		}
+		this.#cacheQueue = [];
+		for (const [stageId, signature] of queue) {
+			const sigMap = this.#stageIdToSignatures.get(stageId);
+			if (!sigMap) {
+				continue;
+			}
+			sigMap.delete(signature);
+			if (sigMap.size === 0) {
+				this.#stageIdToSignatures.delete(stageId);
+			}
+		}
+	}
+
+	/**
 	 * Checks if there are pending entries in the cache queue
 	 *
 	 * @public
