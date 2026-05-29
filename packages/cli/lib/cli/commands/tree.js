@@ -1,6 +1,8 @@
 // Tree
 import baseMiddleware from "../middlewares/base.js";
 import chalk from "chalk";
+import {getLogger} from "@ui5/logger";
+const log = getLogger("cli:commands:tree");
 
 const tree = {
 	command: "tree",
@@ -29,13 +31,30 @@ tree.builder = function(cli) {
 			type: "string"
 		})
 		.option("cache-mode", {
+			// Deprecated
+			hidden: true,
+			describe:
+				"As of UI5 CLI version 5, renamed to '--snapshot-cache'. " +
+				"Use '--snapshot-cache' to control this behavior.",
+			type: "string",
+			choices: ["Default", "Force", "Off"],
+		})
+		.coerce("cache-mode", (opt) => {
+			// Log a warning if this option is used
+			if (opt !== undefined) {
+				log.warn("As of UI5 CLI version 5, '--cache-mode' is renamed to '--snapshot-cache'. " +
+					"Use '--snapshot-cache' to control this behavior.");
+			}
+			return opt;
+		})
+		.option("snapshot-cache", {
 			describe:
 				"Cache mode to use when consuming SNAPSHOT versions of framework dependencies. " +
 				"The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the cache only and " +
 				"does not create any requests. 'Off' invalidates any existing cache and updates from the repository",
 			type: "string",
-			default: "Default",
-			choices: ["Default", "Force", "Off"]
+			defaultDescription: "Default", // Use "defaultDescription" to allow undefined (needed for evaluation)
+			choices: ["Default", "Force", "Off"],
 		});
 };
 
@@ -51,13 +70,13 @@ tree.handler = async function(argv) {
 		graph = await graphFromStaticFile({
 			filePath: argv.dependencyDefinition,
 			versionOverride: argv.frameworkVersion,
-			cacheMode: argv.cacheMode,
+			snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
 		});
 	} else {
 		graph = await graphFromPackageDependencies({
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
-			cacheMode: argv.cacheMode,
+			snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
 			workspaceConfigPath: argv.workspaceConfig,
 			workspaceName: argv.workspace === false ? null : argv.workspace,
 		});

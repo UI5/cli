@@ -2,6 +2,7 @@ import path from "node:path";
 import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
+import yargs from "yargs";
 
 function getDefaultArgv() {
 	// This has been taken from the actual argv object yargs provides
@@ -20,11 +21,14 @@ function getDefaultArgv() {
 		"createBuildManifest": false,
 		"dest": "./dist",
 		"clean-dest": false,
+		"cache": "Default",
 		"cleanDest": false,
 		"experimental-css-variables": false,
 		"experimentalCssVariables": false,
 		"cache-mode": "Default",
 		"cacheMode": "Default",
+		"snapshot-cache": "Default",
+		"snapshotCache": "Default",
 		"output-style": "Default",
 		"$0": "ui5"
 	};
@@ -34,6 +38,7 @@ function getDefaultBuilderArgs() {
 	return {
 		destPath: "./dist",
 		cleanDest: false,
+		cache: "Default",
 		dependencyIncludes: {
 			includeAllDependencies: false,
 			includeDependency: undefined,
@@ -64,7 +69,8 @@ test.beforeEach(async (t) => {
 	t.context.getBuilderSettings = sinon.stub().returns(undefined);
 	const fakeGraph = {
 		getRoot: sinon.stub().returns({
-			getBuilderSettings: t.context.getBuilderSettings
+			getBuilderSettings: t.context.getBuilderSettings,
+			getRootPath: sinon.stub().returns("/root/path")
 		}),
 		build: t.context.builder
 	};
@@ -131,15 +137,15 @@ test.serial("ui5 build --framework-version", async (t) => {
 			versionOverride: "1.99.0",
 			workspaceConfigPath: undefined,
 			workspaceName: undefined,
-			cacheMode: "Default",
+			snapshotCache: "Default",
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
 
-test.serial("ui5 build --cache-mode", async (t) => {
+test.serial("ui5 build --snapshot-cache", async (t) => {
 	const {build, argv, graphFromPackageDependenciesStub} = t.context;
 
-	argv.cacheMode = "Off";
+	argv.snapshotCache = "Off";
 
 	await build.handler(argv);
 
@@ -150,7 +156,7 @@ test.serial("ui5 build --cache-mode", async (t) => {
 			versionOverride: undefined,
 			workspaceConfigPath: undefined,
 			workspaceName: undefined,
-			cacheMode: "Off",
+			snapshotCache: "Off",
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
@@ -169,7 +175,7 @@ test.serial("ui5 build --config", async (t) => {
 			versionOverride: undefined,
 			workspaceConfigPath: undefined,
 			workspaceName: undefined,
-			cacheMode: "Default",
+			snapshotCache: "Default",
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
@@ -188,7 +194,7 @@ test.serial("ui5 build --workspace", async (t) => {
 			versionOverride: undefined,
 			workspaceConfigPath: undefined,
 			workspaceName: "dolphin",
-			cacheMode: "Default",
+			snapshotCache: "Default",
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
@@ -207,7 +213,7 @@ test.serial("ui5 build --no-workspace", async (t) => {
 			versionOverride: undefined,
 			workspaceConfigPath: undefined,
 			workspaceName: null,
-			cacheMode: "Default",
+			snapshotCache: "Default",
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
@@ -227,7 +233,7 @@ test.serial("ui5 build --workspace-config", async (t) => {
 			versionOverride: undefined,
 			workspaceConfigPath: fakePath,
 			workspaceName: undefined,
-			cacheMode: "Default",
+			snapshotCache: "Default",
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
@@ -245,7 +251,7 @@ test.serial("ui5 build --dependency-definition", async (t) => {
 			filePath: "dependencies.yaml",
 			rootConfigPath: undefined,
 			versionOverride: undefined,
-			cacheMode: "Default",
+			snapshotCache: "Default",
 		}, "generateProjectGraph.graphFromStaticFile got called with expected arguments"
 	);
 });
@@ -264,7 +270,7 @@ test.serial("ui5 build --dependency-definition --config", async (t) => {
 			filePath: "dependencies.yaml",
 			rootConfigPath: "ui5-test.yaml",
 			versionOverride: undefined,
-			cacheMode: "Default",
+			snapshotCache: "Default",
 		}, "generateProjectGraph.graphFromStaticFile got called with expected arguments"
 	);
 });
@@ -284,7 +290,7 @@ test.serial("ui5 build --dependency-definition --config --framework-version", as
 			filePath: "dependencies.yaml",
 			rootConfigPath: "ui5-test.yaml",
 			versionOverride: "1.99.0",
-			cacheMode: "Default",
+			snapshotCache: "Default",
 		}, "generateProjectGraph.graphFromStaticFile got called with expected arguments"
 	);
 });
@@ -377,4 +383,68 @@ test.serial("ui5 build --output-style", async (t) => {
 	expectedBuilderArgs.outputStyle = "Flat";
 	t.deepEqual(builder.getCall(0).args[0], expectedBuilderArgs,
 		"Build with activated outputStyle='Flat' is called with expected arguments");
+});
+
+test.serial("ui5 build builder: --cache coerce normalizes letter case", async (t) => {
+	const {build} = t.context;
+
+	const parseCache = async (value) => {
+		const cli = yargs().exitProcess(false);
+		build.builder(cli);
+		const argv = await cli.parseAsync(["--cache", value]);
+		return argv.cache;
+	};
+
+	t.is(await parseCache("default"), "Default");
+	t.is(await parseCache("FORCE"), "Force");
+	t.is(await parseCache("OfF"), "Off");
+});
+
+test.serial("ui5 build builder: --cache coerce maps read-only variants to 'ReadOnly'", async (t) => {
+	const {build} = t.context;
+
+	const parseCache = async (value) => {
+		const cli = yargs().exitProcess(false);
+		build.builder(cli);
+		const argv = await cli.parseAsync(["--cache", value]);
+		return argv.cache;
+	};
+
+	t.is(await parseCache("readonly"), "ReadOnly");
+	t.is(await parseCache("READONLY"), "ReadOnly");
+	t.is(await parseCache("read-only"), "ReadOnly");
+	t.is(await parseCache("Read-Only"), "ReadOnly");
+});
+
+test.serial("ui5 build builder: --output-style coerce normalizes letter case", async (t) => {
+	const {build} = t.context;
+
+	const parseOutputStyle = async (value) => {
+		const cli = yargs().exitProcess(false);
+		build.builder(cli);
+		const argv = await cli.parseAsync(["--output-style", value]);
+		return argv.outputStyle;
+	};
+
+	t.is(await parseOutputStyle("flat"), "Flat");
+	t.is(await parseOutputStyle("nAmEsPaCe"), "Namespace");
+});
+
+test.serial("ui5 build builder: --cache-mode coerce logs deprecation warning", async (t) => {
+	const logWarn = sinon.stub();
+	const build = await esmock.p("../../../../lib/cli/commands/build.js", {
+		"@ui5/logger": {
+			getLogger: () => ({warn: logWarn})
+		}
+	});
+
+	const cli = yargs().exitProcess(false);
+	build.builder(cli);
+
+	const argv = await cli.parseAsync(["--cache-mode", "Force"]);
+	t.is(argv.cacheMode, "Force");
+	t.is(logWarn.callCount, 1, "log.warn got called once");
+	t.regex(logWarn.getCall(0).args[0], /'--cache-mode' is renamed to '--snapshot-cache'/);
+
+	esmock.purge(build);
 });

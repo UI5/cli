@@ -1,4 +1,6 @@
 import baseMiddleware from "../middlewares/base.js";
+import {getLogger} from "@ui5/logger";
+const log = getLogger("cli:commands:build");
 
 const build = {
 	command: "build",
@@ -83,6 +85,24 @@ build.builder = function(cli) {
 			default: false,
 			type: "boolean"
 		})
+		.option("cache", {
+			describe:
+				"Cache mode to use for building UI5 projects. " +
+				"The 'Default' behavior is to always use the cache if available. 'Force' uses the cache only. " +
+				"If the cache is unavailable or invalid, the build fails. 'ReadOnly' does not create or update any " +
+				"cache but makes use of a cache if available. 'Off' does not use any cache and always triggers " +
+				"a rebuild of the project",
+			type: "string",
+			default: "Default",
+			choices: ["Default", "Force", "ReadOnly", "Off"],
+		})
+		.coerce("cache", (opt) => {
+			const lower = opt.toLowerCase();
+			if (lower === "readonly" || lower === "read-only") {
+				return "ReadOnly";
+			}
+			return lower.charAt(0).toUpperCase() + lower.slice(1);
+		})
 		.option("create-build-manifest", {
 			describe: "Store build metadata in a '.ui5' directory in the build destination, " +
 				"allowing reuse of the build result in other builds",
@@ -106,13 +126,30 @@ build.builder = function(cli) {
 			type: "string"
 		})
 		.option("cache-mode", {
+			// Deprecated
+			hidden: true,
+			describe:
+				"As of UI5 CLI version 5, renamed to '--snapshot-cache'. " +
+				"Use '--snapshot-cache' to control this behavior.",
+			type: "string",
+			choices: ["Default", "Force", "Off"],
+		})
+		.coerce("cache-mode", (opt) => {
+			// Log a warning if this option is used
+			if (opt !== undefined) {
+				log.warn("As of UI5 CLI version 5, '--cache-mode' is renamed to '--snapshot-cache'. " +
+					"Use '--snapshot-cache' to control this behavior.");
+			}
+			return opt;
+		})
+		.option("snapshot-cache", {
 			describe:
 				"Cache mode to use when consuming SNAPSHOT versions of framework dependencies. " +
 				"The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the cache only and " +
 				"does not create any requests. 'Off' invalidates any existing cache and updates from the repository",
 			type: "string",
-			default: "Default",
-			choices: ["Default", "Force", "Off"]
+			defaultDescription: "Default", // Use "defaultDescription" to allow undefined (needed for evaluation)
+			choices: ["Default", "Force", "Off"],
 		})
 		.option("experimental-css-variables", {
 			describe:
@@ -159,13 +196,13 @@ async function handleBuild(argv) {
 			filePath: argv.dependencyDefinition,
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
-			cacheMode: argv.cacheMode,
+			snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
 		});
 	} else {
 		graph = await graphFromPackageDependencies({
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
-			cacheMode: argv.cacheMode,
+			snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
 			workspaceConfigPath: argv.workspaceConfig,
 			workspaceName: argv.workspace === false ? null : argv.workspace,
 		});
@@ -194,6 +231,7 @@ async function handleBuild(argv) {
 		excludedTasks: argv["exclude-task"],
 		cssVariables: argv["experimental-css-variables"],
 		outputStyle: argv["output-style"],
+		cache: argv["cache"],
 	});
 }
 

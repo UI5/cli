@@ -3,6 +3,7 @@ import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
 import chalk from "chalk";
+import yargs from "yargs";
 
 function getDefaultArgv() {
 	// This has been taken from the actual argv object yargs provides
@@ -26,6 +27,8 @@ function getDefaultArgv() {
 		"serveCspReports": false,
 		"cache-mode": "Default",
 		"cacheMode": "Default",
+		"snapshot-cache": "Default",
+		"snapshotCache": "Default",
 		"$0": "ui5"
 	};
 }
@@ -34,9 +37,12 @@ test.beforeEach(async (t) => {
 	t.context.argv = getDefaultArgv();
 
 	t.context.server = {
-		serve: sinon.stub().returns({
-			h2: false,
-			port: 8080
+		serve: sinon.stub().callsFake((graph, config, errorCallback) => {
+			t.context.serverErrorCallback = errorCallback;
+			return {
+				h2: false,
+				port: 8080
+			};
 		})
 	};
 	t.context.sslUtil = {
@@ -60,12 +66,13 @@ test.beforeEach(async (t) => {
 
 	t.context.consoleOutput = "";
 	t.context.processStderrWrite = sinon.stub(process.stderr, "write").callsFake((message) => {
-		// NOTE: This fake impl only supports one string arg passed to console.log
 		t.context.consoleOutput += message;
 	});
-	t.context.processStdoutWrite = sinon.stub(process.stdout, "write").callsFake((message) => {
-		// NOTE: This fake impl only supports one string arg passed to console.log
-		t.context.consoleOutput += message;
+	t.context.handlerReady = new Promise((resolve) => {
+		t.context.processStdoutWrite = sinon.stub(process.stdout, "write").callsFake((message) => {
+			t.context.consoleOutput += message;
+			resolve();
+		});
 	});
 
 	t.context.open = sinon.stub();
@@ -86,14 +93,15 @@ test.afterEach.always((t) => {
 test.serial("ui5 serve: default", async (t) => {
 	const {argv, serve, graph, server, fakeGraph} = t.context;
 
-	await serve.handler(argv);
+	serve.handler(argv);
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -101,10 +109,11 @@ URL: http://localhost:8080
 `);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args, [
+	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -115,6 +124,7 @@ URL: http://localhost:8080
 			simpleIndex: false,
 		}
 	]);
+	t.is(typeof server.serve.getCall(0).args[2], "function");
 });
 
 test.serial("ui5 serve --h2", async (t) => {
@@ -132,14 +142,15 @@ test.serial("ui5 serve --h2", async (t) => {
 
 	argv.h2 = true;
 
-	await serve.handler(argv);
+	serve.handler(argv);
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -147,10 +158,11 @@ URL: https://localhost:8443
 `);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args, [
+	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			changePortIfInUse: true,
 			h2: true,
 			key: "random-key",
@@ -174,14 +186,15 @@ test.serial("ui5 serve --accept-remote-connections", async (t) => {
 
 	argv.acceptRemoteConnections = true;
 
-	await serve.handler(argv);
+	serve.handler(argv);
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `
@@ -197,10 +210,11 @@ URL: http://localhost:8080
 `);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args, [
+	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
 		fakeGraph,
 		{
 			acceptRemoteConnections: true,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -214,18 +228,23 @@ URL: http://localhost:8080
 });
 
 test.serial("ui5 serve --open", async (t) => {
-	const {argv, serve, graph, server, fakeGraph, open} = t.context;
+	const {argv, serve, graph, server, fakeGraph} = t.context;
+
+	const openCalled = new Promise((resolve) => {
+		t.context.open.callsFake(resolve);
+	});
 
 	argv.open = "index.html";
 
-	await serve.handler(argv);
+	serve.handler(argv);
+	await openCalled;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -233,10 +252,11 @@ URL: http://localhost:8080
 `);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args, [
+	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -248,25 +268,30 @@ URL: http://localhost:8080
 		}
 	]);
 
-	t.is(open.callCount, 1);
-	t.deepEqual(open.getCall(0).args, [
+	t.is(t.context.open.callCount, 1);
+	t.deepEqual(t.context.open.getCall(0).args, [
 		"http://localhost:8080/index.html"
 	]);
 });
 
 test.serial("ui5 serve --open (opens default url)", async (t) => {
-	const {argv, serve, graph, server, fakeGraph, open} = t.context;
+	const {argv, serve, graph, server, fakeGraph} = t.context;
+
+	const openCalled = new Promise((resolve) => {
+		t.context.open.callsFake(resolve);
+	});
 
 	argv.open = true;
 
-	await serve.handler(argv);
+	serve.handler(argv);
+	await openCalled;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -274,10 +299,11 @@ URL: http://localhost:8080
 `);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args, [
+	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -289,8 +315,8 @@ URL: http://localhost:8080
 		}
 	]);
 
-	t.is(open.callCount, 1);
-	t.deepEqual(open.getCall(0).args, [
+	t.is(t.context.open.callCount, 1);
+	t.deepEqual(t.context.open.getCall(0).args, [
 		"http://localhost:8080"
 	]);
 });
@@ -301,14 +327,15 @@ test.serial("ui5 serve --config", async (t) => {
 	const fakePath = path.join("/", "path", "to", "ui5.yaml");
 	argv.config = fakePath;
 
-	await serve.handler(argv);
+	serve.handler(argv);
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: fakePath, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -316,10 +343,11 @@ URL: http://localhost:8080
 `);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args, [
+	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -338,13 +366,14 @@ test.serial("ui5 serve --dependency-definition", async (t) => {
 	const fakePath = path.join("/", "path", "to", "dependencies.yaml");
 	argv.dependencyDefinition = fakePath;
 
-	await serve.handler(argv);
+	serve.handler(argv);
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromPackageDependencies.callCount, 0);
 	t.is(graph.graphFromStaticFile.callCount, 1);
 	t.deepEqual(graph.graphFromStaticFile.getCall(0).args, [{
 		filePath: fakePath, versionOverride: undefined,
-		cacheMode: "Default", rootConfigPath: undefined
+		snapshotCache: "Default", rootConfigPath: undefined
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -352,10 +381,11 @@ URL: http://localhost:8080
 `);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args, [
+	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -377,13 +407,14 @@ test.serial("ui5 serve --dependency-definition / --config", async (t) => {
 	const fakeConfigPath = path.join("/", "path", "to", "ui5.yaml");
 	argv.config = fakeConfigPath;
 
-	await serve.handler(argv);
+	serve.handler(argv);
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromPackageDependencies.callCount, 0);
 	t.is(graph.graphFromStaticFile.callCount, 1);
 	t.deepEqual(graph.graphFromStaticFile.getCall(0).args, [{
 		filePath: fakeDependenciesPath, versionOverride: undefined,
-		cacheMode: "Default", rootConfigPath: fakeConfigPath
+		snapshotCache: "Default", rootConfigPath: fakeConfigPath
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -391,10 +422,11 @@ URL: http://localhost:8080
 `);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args, [
+	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -412,14 +444,15 @@ test.serial("ui5 serve --framework-version", async (t) => {
 
 	argv.frameworkVersion = "1.234.5";
 
-	await serve.handler(argv);
+	serve.handler(argv);
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: "1.234.5",
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -427,10 +460,11 @@ URL: http://localhost:8080
 `);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args, [
+	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -443,19 +477,20 @@ URL: http://localhost:8080
 	]);
 });
 
-test.serial("ui5 serve --cache-mode", async (t) => {
+test.serial("ui5 serve --snapshotCache", async (t) => {
 	const {argv, serve, graph, server, fakeGraph} = t.context;
 
-	argv.cacheMode = "Force";
+	argv.snapshotCache = "Force";
 
-	await serve.handler(argv);
+	serve.handler(argv);
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Force",
+		snapshotCache: "Force",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -463,10 +498,11 @@ URL: http://localhost:8080
 `);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args, [
+	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -484,14 +520,15 @@ test.serial("ui5 serve --workspace", async (t) => {
 
 	argv.workspace = "dolphin";
 
-	await serve.handler(argv);
+	serve.handler(argv);
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: "dolphin",
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -499,10 +536,11 @@ URL: http://localhost:8080
 `);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args, [
+	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -520,14 +558,15 @@ test.serial("ui5 serve --no-workspace", async (t) => {
 
 	argv.workspace = false;
 
-	await serve.handler(argv);
+	serve.handler(argv);
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: null,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -535,10 +574,11 @@ URL: http://localhost:8080
 `);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args, [
+	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -557,14 +597,15 @@ test.serial("ui5 serve --workspace-config", async (t) => {
 	const fakePath = path.join("/", "path", "to", "ui5-workspace.yaml");
 	argv.workspaceConfig = fakePath;
 
-	await serve.handler(argv);
+	serve.handler(argv);
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: fakePath, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -572,10 +613,11 @@ URL: http://localhost:8080
 `);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args, [
+	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -593,14 +635,15 @@ test.serial("ui5 serve --sap-csp-policies", async (t) => {
 
 	argv.sapCspPolicies = true;
 
-	await serve.handler(argv);
+	serve.handler(argv);
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -608,10 +651,11 @@ URL: http://localhost:8080
 `);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args, [
+	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -629,14 +673,15 @@ test.serial("ui5 serve --serve-csp-reports", async (t) => {
 
 	argv.serveCspReports = true;
 
-	await serve.handler(argv);
+	serve.handler(argv);
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -644,10 +689,11 @@ URL: http://localhost:8080
 `);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args, [
+	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -665,14 +711,15 @@ test.serial("ui5 serve --simple-index", async (t) => {
 
 	argv.simpleIndex = true;
 
-	await serve.handler(argv);
+	serve.handler(argv);
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -680,10 +727,11 @@ URL: http://localhost:8080
 `);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args, [
+	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: true,
 			h2: false,
@@ -708,14 +756,15 @@ test.serial("ui5 serve with ui5.yaml port setting", async (t) => {
 		port: 3333
 	});
 
-	await serve.handler(argv);
+	serve.handler(argv);
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -723,10 +772,11 @@ URL: http://localhost:3333
 `);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args, [
+	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			cert: undefined,
 			changePortIfInUse: false,
 			h2: false,
@@ -758,14 +808,15 @@ test.serial("ui5 serve --h2 with ui5.yaml port setting", async (t) => {
 
 	argv.h2 = true;
 
-	await serve.handler(argv);
+	serve.handler(argv);
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -773,10 +824,11 @@ URL: https://localhost:4444
 `);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args, [
+	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			changePortIfInUse: false,
 			h2: true,
 			key: "random-key",
@@ -815,14 +867,15 @@ test.serial("ui5 serve --h2 with ui5.yaml port setting and port CLI argument", a
 	argv.h2 = true;
 	argv.port = 5555;
 
-	await serve.handler(argv);
+	serve.handler(argv);
+	await t.context.handlerReady;
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
-		cacheMode: "Default",
+		snapshotCache: "Default",
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
@@ -830,10 +883,11 @@ URL: https://localhost:5555
 `);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args, [
+	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
 		fakeGraph,
 		{
 			acceptRemoteConnections: false,
+			cache: undefined,
 			changePortIfInUse: false,
 			h2: true,
 			key: "random-key",
@@ -850,4 +904,63 @@ URL: https://localhost:5555
 		"/home/.ui5/server/server.key",
 		"/home/.ui5/server/server.crt"
 	]);
+});
+
+test.serial("ui5 serve: Error callback propagates to handler", async (t) => {
+	const {argv, serve} = t.context;
+
+	const handlerPromise = serve.handler(argv);
+	await t.context.handlerReady;
+
+	t.context.serverErrorCallback(new Error("Server crashed"));
+
+	await t.throwsAsync(handlerPromise, {message: "Server crashed"});
+});
+
+test.serial("ui5 serve builder: --cache coerce normalizes letter case", async (t) => {
+	const {serve} = t.context;
+
+	const parseCache = async (value) => {
+		const cli = yargs().exitProcess(false);
+		serve.builder(cli);
+		const argv = await cli.parseAsync(["--cache", value]);
+		return argv.cache;
+	};
+
+	t.is(await parseCache("default"), "Default");
+	t.is(await parseCache("FORCE"), "Force");
+	t.is(await parseCache("OfF"), "Off");
+});
+
+test.serial("ui5 serve builder: --cache coerce maps read-only variants to 'ReadOnly'", async (t) => {
+	const {serve} = t.context;
+
+	const parseCache = async (value) => {
+		const cli = yargs().exitProcess(false);
+		serve.builder(cli);
+		const argv = await cli.parseAsync(["--cache", value]);
+		return argv.cache;
+	};
+
+	t.is(await parseCache("readonly"), "ReadOnly");
+	t.is(await parseCache("read-only"), "ReadOnly");
+});
+
+test.serial("ui5 serve builder: --cache-mode coerce logs deprecation warning", async (t) => {
+	const logWarn = sinon.stub();
+	const serve = await esmock.p("../../../../lib/cli/commands/serve.js", {
+		"@ui5/logger": {
+			getLogger: () => ({warn: logWarn})
+		}
+	});
+
+	const cli = yargs().exitProcess(false);
+	serve.builder(cli);
+
+	const argv = await cli.parseAsync(["--cache-mode", "Force"]);
+	t.is(argv.cacheMode, "Force");
+	t.is(logWarn.callCount, 1, "log.warn got called once");
+	t.regex(logWarn.getCall(0).args[0], /'--cache-mode' is renamed to '--snapshot-cache'/);
+
+	esmock.purge(serve);
 });
