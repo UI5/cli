@@ -1,7 +1,6 @@
 import {Readable, PassThrough} from "node:stream";
 import {buffer as streamToBuffer} from "node:stream/consumers";
 import ssri from "ssri";
-import clone from "clone";
 import posixPath from "node:path/posix";
 import {setTimeout} from "node:timers/promises";
 import {Mutex} from "async-mutex";
@@ -12,6 +11,23 @@ let deprecatedGetStreamCalled = false;
 let deprecatedGetStatInfoCalled = false;
 
 const ALLOWED_SOURCE_METADATA_KEYS = ["adapter", "fsPath", "contentModified"];
+
+// Deep-copy an fs.Stats-like object while preserving prototype methods and
+// internal-slot-backed values (Date, Temporal.Instant, Map, Set, typed arrays, …).
+// structuredClone rejects functions (used by synthetic statInfo objects), so
+// function-valued own properties are copied by reference; data values go
+// through structuredClone, which keeps internal slots intact.
+function cloneStatInfo(statInfo) {
+	if (!statInfo || typeof statInfo !== "object") {
+		return statInfo;
+	}
+	const target = Object.create(Object.getPrototypeOf(statInfo));
+	for (const key of Object.getOwnPropertyNames(statInfo)) {
+		const value = statInfo[key];
+		target[key] = typeof value === "function" ? value : structuredClone(value);
+	}
+	return target;
+}
 
 const CONTENT_TYPES = {
 	BUFFER: "buffer",
@@ -796,12 +812,12 @@ class Resource {
 
 		const options = {
 			path: this.#path,
-			statInfo: this.#statInfo, // Will be cloned in constructor
+			statInfo: cloneStatInfo(this.#statInfo),
 			isDirectory: this.#isDirectory,
 			byteSize: this.#isDirectory ? undefined : await this.getSize(),
 			lastModified: this.#lastModified,
 			integrity: this.#isDirectory ? undefined : (this.#contentType ? await this.getIntegrity() : undefined),
-			sourceMetadata: clone(this.#sourceMetadata)
+			sourceMetadata: structuredClone(this.#sourceMetadata)
 		};
 
 		switch (this.#contentType) {
