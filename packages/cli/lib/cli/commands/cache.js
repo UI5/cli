@@ -20,14 +20,20 @@ cacheCommand.builder = function(cli) {
 		.demandCommand(1, "Command required. Available command is 'clean'")
 		.command("clean", "Remove all cached UI5 data", {
 			handler: handleCache,
-			builder: noop,
+			builder: function(yargs) {
+				return yargs.option("interactive", {
+					describe: "Show confirmation prompt before cleaning. Use --no-interactive to skip (e.g. for CI)",
+					default: true,
+					type: "boolean",
+				});
+			},
 			middlewares: [baseMiddleware],
 		})
 		.example("$0 cache clean",
-			"Remove all cached UI5 data");
+			"Remove all cached UI5 data")
+		.example("$0 cache clean --no-interactive",
+			"Remove all cached UI5 data without confirmation (CI mode)");
 };
-
-function noop() {}
 
 /**
  * Format a byte size as a human-readable string.
@@ -66,7 +72,9 @@ async function confirm(question) {
 	});
 }
 
-async function handleCache() {
+async function handleCache(argv) {
+	const interactive = argv?.interactive !== false;
+
 	// Resolve UI5 data directory
 	let ui5DataDir = process.env.UI5_DATA_DIR;
 	if (!ui5DataDir) {
@@ -105,11 +113,13 @@ async function handleCache() {
 	}
 	process.stderr.write(chalk.bold(`\nTotal: ${formatSize(totalSize)}\n\n`));
 
-	// Ask for confirmation
-	const confirmed = await confirm("Do you want to continue? (y/N) ");
-	if (!confirmed) {
-		process.stderr.write("Cancelled\n");
-		return;
+	// Ask for confirmation (skip in non-interactive mode)
+	if (interactive) {
+		const confirmed = await confirm("Do you want to continue? (y/N) ");
+		if (!confirmed) {
+			process.stderr.write("Cancelled\n");
+			return;
+		}
 	}
 
 	// Perform the actual cleanup (orchestrate both domains)
