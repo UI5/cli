@@ -2041,3 +2041,51 @@ test("getInode: Preserved across setBuffer", (t) => {
 	t.is(resource.getInode(), inode,
 		"Inode is unchanged after setBuffer (same on-disk slot, content modified)");
 });
+
+test("Resource: clone preserves prototype methods on real fs.Stats", async (t) => {
+	const fsPath = path.join("test", "fixtures", "application.a", "webapp", "index.html");
+	const statInfo = await stat(fsPath);
+
+	const resource = new Resource({
+		path: "/some/path",
+		statInfo,
+		buffer: Buffer.from("Content")
+	});
+
+	const clonedStat = (await resource.clone()).getStatInfo();
+
+	t.is(typeof clonedStat.isFile, "function", "isFile method preserved on clone");
+	t.true(clonedStat.isFile(), "isFile() returns the expected value");
+	t.true(clonedStat.mtime instanceof Date, "mtime is still a Date");
+	// The original mtime is computed lazily from mtimeMs via a prototype getter.
+	// Both sides should yield the same time without throwing.
+	t.is(clonedStat.mtime.getTime(), statInfo.mtime.getTime(), "mtime time value preserved");
+	// Regression: JSON.stringify must not throw on the cloned stat. On Node 26
+	// fs.Stats exposes Temporal.Instant getters whose toJSON requires the
+	// internal slot — copying those values via a plain `clone` package strips
+	// the slot and breaks JSON.stringify. structuredClone-based copying keeps
+	// the prototype intact and lets the lazy getters compute fresh values.
+	t.notThrows(() => JSON.stringify(clonedStat), "cloned statInfo can be JSON-stringified");
+});
+
+test("Resource: clone deep-copies Date values in synthetic statInfo", async (t) => {
+	const mtime = new Date("2024-01-02T03:04:05Z");
+	const resource = new Resource({
+		path: "/some/path",
+		statInfo: {
+			isFile: () => true,
+			isDirectory: () => false,
+			mtime,
+		},
+		buffer: Buffer.from("Content")
+	});
+
+	const clonedStat = (await resource.clone()).getStatInfo();
+
+	t.true(clonedStat.mtime instanceof Date, "mtime is a Date on the clone");
+	t.not(clonedStat.mtime, mtime, "mtime is a fresh Date instance");
+	t.is(clonedStat.mtime.getTime(), mtime.getTime(), "mtime time value preserved");
+	// Sanity-check that the cloned Date is fully functional (the bug exposed by
+	// the old `clone` package was that Date copies lost their internal slot).
+	t.notThrows(() => clonedStat.mtime.toJSON(), "cloned Date supports toJSON");
+});
