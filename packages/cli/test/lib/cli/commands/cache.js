@@ -1,4 +1,5 @@
 import test from "ava";
+import path from "node:path";
 import sinon from "sinon";
 import esmock from "esmock";
 import Configuration from "@ui5/project/config/Configuration";
@@ -221,7 +222,7 @@ test.serial("ui5 cache clean: uses UI5_DATA_DIR from environment", async (t) => 
 		await cache.handler(argv);
 
 		t.is(frameworkCacheGetCacheInfo.callCount, 1, "frameworkCache.getCacheInfo called");
-		t.true(frameworkCacheGetCacheInfo.firstCall.args[0].includes("custom/ui5/path"),
+		t.true(frameworkCacheGetCacheInfo.firstCall.args[0].includes(path.join("custom", "ui5", "path")),
 			"Uses environment variable path");
 	} finally {
 		if (originalEnv) {
