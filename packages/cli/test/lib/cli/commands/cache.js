@@ -71,7 +71,7 @@ test("Command builder", async (t) => {
 	t.is(result, cliStub, "Builder returns cli instance");
 	t.is(cliStub.demandCommand.callCount, 1, "demandCommand called once");
 	t.is(cliStub.command.callCount, 1, "command called once");
-	t.is(cliStub.example.callCount, 1, "example called once");
+	t.is(cliStub.example.callCount, 2, "example called twice");
 });
 
 test.serial("ui5 cache clean: nothing to clean", async (t) => {
@@ -252,4 +252,33 @@ test.serial("ui5 cache clean: uses config.getUi5DataDir when no env var", async 
 			process.env.UI5_DATA_DIR = originalEnv;
 		}
 	}
+});
+
+test.serial("ui5 cache clean --no-interactive: skips confirmation prompt", async (t) => {
+	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
+		buildCacheCleanCache, buildCacheGetCacheInfo, mockRLInterface} = t.context;
+
+	frameworkCacheGetCacheInfo.resolves({path: "framework/", size: 10 * 1024 * 1024, type: "directory"});
+	buildCacheGetCacheInfo.resolves({
+		path: "buildCache/v0_7 (database records)", size: 5 * 1024 * 1024, type: "database"
+	});
+
+	frameworkCacheCleanCache.resolves({path: "framework", type: "framework", size: 10 * 1024 * 1024});
+	buildCacheCleanCache.resolves({path: "buildCache/v0_7", type: "buildCache", size: 5 * 1024 * 1024});
+
+	argv["_"] = ["cache", "clean"];
+	argv["interactive"] = false;
+	await cache.handler(argv);
+
+	// Confirmation should NOT be asked
+	t.is(mockRLInterface.question.callCount, 0, "Should not ask for confirmation in non-interactive mode");
+
+	// Cleanup should still proceed
+	t.is(frameworkCacheCleanCache.callCount, 1, "frameworkCache.cleanCache should be called");
+	t.is(buildCacheCleanCache.callCount, 1, "buildCache.cleanCache should be called");
+
+	// Check output
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("following items from cache will be removed"), "Shows items to be removed");
+	t.true(allOutput.includes("Success"), "Shows success message");
 });
