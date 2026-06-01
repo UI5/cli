@@ -812,6 +812,79 @@ test("projectSourcesChanged after SourceChangedDuringBuildError does not corrupt
 	);
 });
 
+test("Retry after SourceChangedDuringBuildError when prior build set NO_CACHE: " +
+	"resultCacheState resets to PENDING_VALIDATION", async (t) => {
+	// Regression test for "Unexpected result cache state after restoring dependency indices
+	// for project ...: no_cache".
+	//
+	// Sequence:
+	//   1. Initial build: prepareProjectBuildAndValidateCache validates the result cache,
+	//      finds no match, transitions resultCacheState to NO_CACHE.
+	//   2. allTasksCompleted detects a source change during build (file changed after the
+	//      build started but before the watcher's abort signal propagated). It throws
+	//      SourceChangedDuringBuildError and resets indexState — but historically did not
+	//      reset resultCacheState, leaving it stuck on NO_CACHE.
+	//   3. BuildServer re-enqueues the project. The retry's prepareProjectBuildAndValidateCache
+	//      enters the RESTORING_DEPENDENCY_INDICES branch, which asserts resultCacheState ===
+	//      PENDING_VALIDATION. With the leftover NO_CACHE the assertion threw.
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+
+	const initialResource = createMockResource("/test.js", "hash1", 1000, 100, 1);
+	const changedResource = createMockResource("/test.js", "hash2", 2000, 200, 2);
+	let revalidate = false;
+	project.getSourceReader.callsFake(() => ({
+		byGlob: sinon.stub().callsFake(() => {
+			return Promise.resolve([revalidate ? changedResource : initialResource]);
+		}),
+		byPath: sinon.stub().resolves(initialResource)
+	}));
+
+	const indexCache = {
+		version: "1.0",
+		indexTree: {
+			version: 1,
+			indexTimestamp: 1000,
+			root: {
+				hash: "hash1",
+				children: {
+					"test.js": {
+						hash: "hash1",
+						metadata: {path: "/test.js", lastModified: 1000, size: 100, inode: 1}
+					}
+				}
+			}
+		},
+		tasks: []
+	};
+	cacheManager.readIndexCache.resolves(indexCache);
+	// readResultMetadata returns null by default → #findResultCache returns false → NO_CACHE.
+
+	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+
+	const mockDependencyReader = {
+		byGlob: sinon.stub().resolves([]),
+		byPath: sinon.stub().resolves(null)
+	};
+
+	// Step 1: initial build path — drives resultCacheState to NO_CACHE.
+	await cache.prepareProjectBuildAndValidateCache(mockDependencyReader);
+
+	// Step 2: source changed during build — flip the source reader to the modified resource.
+	revalidate = true;
+	const error = await t.throwsAsync(() => cache.allTasksCompleted());
+	t.true(error.message.includes("test.project"), "SourceChangedDuringBuildError thrown");
+
+	// Step 3: BuildServer retry — must NOT throw "Unexpected result cache state".
+	revalidate = false; // pretend the file is stable on the retry
+	await cache.initSourceIndex();
+	await t.notThrowsAsync(
+		() => cache.prepareProjectBuildAndValidateCache(mockDependencyReader),
+		"prepareProjectBuildAndValidateCache succeeds on retry"
+	);
+});
+
 test("prepareProjectBuildAndValidateCache: returns false for empty cache", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();

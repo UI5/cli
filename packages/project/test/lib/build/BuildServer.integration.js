@@ -3,6 +3,7 @@ import sinonGlobal from "sinon";
 import {fileURLToPath} from "node:url";
 import {setTimeout} from "node:timers/promises";
 import fs from "node:fs/promises";
+import {appendFileSync} from "node:fs";
 import {graphFromPackageDependencies} from "../../../lib/graph/graph.js";
 import {setLogLevel} from "@ui5/logger";
 import Cache from "../../../lib/build/cache/Cache.js";
@@ -761,6 +762,81 @@ test.serial(
 			"attempt must not be reused on retry");
 	}
 );
+
+// Regression: a build that hits the NO_CACHE state in prepareProjectBuildAndValidateCache
+// (because the source signature does not match anything in the persistent cache) and then
+// throws SourceChangedDuringBuildError from allTasksCompleted used to fail on retry with
+// "Unexpected result cache state after restoring dependency indices for project XYZ: no_cache".
+// The fix resets #resultCacheState to PENDING_VALIDATION in the source-changed branch.
+//
+// Repro recipe — must hit *all* of these conditions on the same ProjectBuildCache instance:
+//   1. A first build runs to completion, populating the persistent index + result cache.
+//   2. The project is invalidated (a real source change observed by the watcher) so the next
+//      reader request drives a second build.
+//   3. The second build's #initSourceIndex finds an existing index cache and transitions to
+//      RESTORING_DEPENDENCY_INDICES (rather than INITIAL, which short-circuits prepare).
+//   4. prepareProjectBuildAndValidateCache sees a source-signature mismatch against the
+//      persisted result cache and sets #resultCacheState = NO_CACHE.
+//   5. A *further* on-disk source change lands during the second build, but the watcher path
+//      is stubbed so the abort signal is never set. allTasksCompleted's revalidateSourceIndex
+//      then throws SourceChangedDuringBuildError instead of taking the abort path.
+test.serial("Source change during second build retries cleanly without no_cache error", async (t) => {
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "library.d");
+	await fixtureTester.serveProject({
+		config: {excludedTasks: ["minify"]}
+	});
+
+	const changedFilePath = `${fixtureTester.fixturePath}/main/src/library/d/some.js`;
+	const originalContent = await fs.readFile(changedFilePath, {encoding: "utf8"});
+
+	// Build 1 — populates the on-disk index + result cache.
+	await fixtureTester.requestResource({resource: "/resources/library/d/some.js"});
+
+	// Invalidate the project for build 2 by touching the source file. Use the live watcher
+	// path here: a real modification needs to flow through _projectResourceChanged so the
+	// project transitions to INVALIDATED and the next request enqueues a rebuild.
+	await fs.writeFile(changedFilePath, originalContent + "\n// pre-build-2 change\n");
+	await setTimeout(500); // let the watcher fire and settle
+
+	// Now suppress further watcher-driven aborts. The mid-build modification below is meant
+	// to flow through #revalidateSourceIndex inside allTasksCompleted, *not* through the
+	// watcher — otherwise the abort path runs first and the no_cache assertion never fires.
+	t.context.sinon.stub(fixtureTester.buildServer, "_projectResourceChanged");
+
+	// During build 2's task pipeline, append a second on-disk change. Hook the first task
+	// that is *not* short-circuited from cache (replaceCopyright) so the synchronous write
+	// lands well before allTasksCompleted's #revalidateSourceIndex reads from disk.
+	let triggered = false;
+	const handler = (event) => {
+		if (
+			!triggered &&
+			event.projectName === "library.d" &&
+			event.status === "task-start" &&
+			event.taskName === "replaceCopyright"
+		) {
+			triggered = true;
+			appendFileSync(changedFilePath, "\n// mid-build-2 change\n");
+		}
+	};
+	process.on("ui5.project-build-status", handler);
+
+	let resource;
+	try {
+		// Without the fix this rejects with
+		// "Unexpected result cache state after restoring dependency indices for project XYZ: no_cache".
+		resource = await fixtureTester._reader.byPath("/resources/library/d/some.js");
+	} finally {
+		process.off("ui5.project-build-status", handler);
+	}
+
+	t.true(triggered, "Test setup precondition: source change handler fired during build 2");
+
+	const servedContent = await resource.getString();
+	t.true(servedContent.includes("pre-build-2 change"),
+		"Retry served content reflecting the pre-build-2 change");
+	t.true(servedContent.includes("mid-build-2 change"),
+		"Retry served content reflecting the mid-build-2 change");
+});
 
 function getFixturePath(fixtureName) {
 	return fileURLToPath(new URL(`../../fixtures/${fixtureName}`, import.meta.url));
