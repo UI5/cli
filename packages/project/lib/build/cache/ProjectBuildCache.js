@@ -1288,6 +1288,12 @@ export default class ProjectBuildCache {
 			this.#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
 			this.#sourceIndex = null;
 			this.#taskCache.clear();
+			// Result cache state must also be reset: prepareProjectBuildAndValidateCache may have
+			// already transitioned it to NO_CACHE or FRESH_AND_IN_USE in the aborted build. The
+			// retry's prepareProjectBuildAndValidateCache asserts PENDING_VALIDATION after the
+			// dependency-index restore step, so a leftover non-PENDING_VALIDATION value would
+			// trip that assertion.
+			this.#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
 
 			throw new SourceChangedDuringBuildError(this.#project.getName());
 		}
