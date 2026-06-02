@@ -3,7 +3,7 @@ import path from "node:path";
 import os from "node:os";
 import process from "node:process";
 import baseMiddleware from "../middlewares/base.js";
-import Configuration from "@ui5/project/config/Configuration";
+import {getUi5DataDir} from "../../framework/utils.js";
 import * as frameworkCache from "@ui5/project/ui5Framework/cache";
 import CacheManager from "@ui5/project/build/cache/CacheManager";
 
@@ -78,17 +78,11 @@ function padLabel(label) {
 }
 
 async function handleCache(argv) {
-	// Resolve UI5 data directory
-	let ui5DataDir = process.env.UI5_DATA_DIR;
-	if (!ui5DataDir) {
-		const config = await Configuration.fromFile();
-		ui5DataDir = config.getUi5DataDir();
-	}
-	if (ui5DataDir) {
-		ui5DataDir = path.resolve(process.cwd(), ui5DataDir);
-	} else {
-		ui5DataDir = path.join(os.homedir(), ".ui5");
-	}
+	// Resolve UI5 data directory — uses the same resolution chain as ui5 build/serve:
+	// UI5_DATA_DIR env var → ui5DataDir config (~/.ui5rc) → default ~/.ui5
+	// Relative paths are resolved against process.cwd() (project root when invoked from the project).
+	const ui5DataDir =
+		(await getUi5DataDir({cwd: process.cwd()})) ?? path.join(os.homedir(), ".ui5");
 
 	// Abort early if a framework operation is holding a lock — before prompting the user
 	if (await frameworkCache.isFrameworkLocked(ui5DataDir)) {
@@ -100,6 +94,9 @@ async function handleCache(argv) {
 		return;
 	}
 
+	// Inform the user immediately — getCacheInfo (especially countFiles) may take a moment
+	process.stderr.write(`Checking cache at ${chalk.bold(ui5DataDir)} …\n`);
+
 	// Check what items exist before cleaning (orchestrate both domains)
 	const frameworkInfo = await frameworkCache.getCacheInfo(ui5DataDir);
 	const buildInfo = await CacheManager.getCacheInfo(ui5DataDir);
@@ -109,18 +106,26 @@ async function handleCache(argv) {
 		return;
 	}
 
+	// Compute absolute paths once — producers return relative sub-path segments
+	const frameworkAbsPath = frameworkInfo ? path.join(ui5DataDir, frameworkInfo.path) : null;
+	const buildAbsPath = buildInfo ? path.join(ui5DataDir, buildInfo.path) : null;
+
+	// Capture build size now — reused for the ✓ line to avoid a before/after mismatch
+	// (getDatabaseSize ≠ VACUUM-freed bytes returned by clearAllRecords)
+	const buildPreSize = buildInfo?.size ?? 0;
+
 	// Display items that will be removed
 	process.stderr.write(chalk.bold("\nThe following cached data will be removed:\n\n"));
 	if (frameworkInfo) {
 		const detail = formatFileCount(frameworkInfo.count);
 		process.stderr.write(
-			`  ${chalk.yellow("•")} ${padLabel(LABEL_FRAMEWORK)}   ${frameworkInfo.path}   (${detail})\n`
+			`  ${chalk.yellow("•")} ${padLabel(LABEL_FRAMEWORK)}   ${frameworkAbsPath}   (${detail})\n`
 		);
 	}
 	if (buildInfo) {
-		const detail = buildInfo.size > 0 ? formatSize(buildInfo.size) : "";
+		const detail = buildPreSize > 0 ? formatSize(buildPreSize) : "";
 		process.stderr.write(
-			`  ${chalk.yellow("•")} ${padLabel(LABEL_BUILD)}   ${buildInfo.path}   (${detail})\n`
+			`  ${chalk.yellow("•")} ${padLabel(LABEL_BUILD)}   ${buildAbsPath}   (${detail})\n`
 		);
 	}
 	process.stderr.write("\n");
@@ -147,14 +152,15 @@ async function handleCache(argv) {
 		const detail = formatFileCount(frameworkResult.count);
 		process.stderr.write(
 			`${chalk.green("✓")} Removed ${chalk.bold(LABEL_FRAMEWORK)}` +
-			`   (${frameworkResult.path} · ${detail})\n`
+			`   (${frameworkAbsPath} · ${detail})\n`
 		);
 	}
 	if (buildResult) {
-		const detail = buildResult.size > 0 ? formatSize(buildResult.size) : "";
+		// Use pre-clean size so the number matches what was shown before confirmation
+		const detail = buildPreSize > 0 ? formatSize(buildPreSize) : "";
 		process.stderr.write(
 			`${chalk.green("✓")} Removed ${chalk.bold(LABEL_BUILD)}` +
-			`   (${buildResult.path}${detail ? ` · ${detail}` : ""})\n`
+			`   (${buildAbsPath}${detail ? ` · ${detail}` : ""})\n`
 		);
 	}
 
