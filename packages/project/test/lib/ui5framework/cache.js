@@ -2,7 +2,12 @@ import test from "ava";
 import path from "node:path";
 import fs from "node:fs/promises";
 import os from "node:os";
+import {promisify} from "node:util";
+import lockfileLib from "lockfile";
 import {getCacheInfo, cleanCache} from "../../../lib/ui5Framework/cache.js";
+
+const lockfileLock = promisify(lockfileLib.lock);
+const lockfileUnlock = promisify(lockfileLib.unlock);
 
 test.beforeEach(async (t) => {
 	const testDir = path.join(os.tmpdir(), `ui5-framework-cache-test-${Date.now()}-${Math.random()}`);
@@ -95,5 +100,43 @@ test("cleanCache: removes nested directories", async (t) => {
 	t.truthy(result);
 
 	// Verify directory and subdirectories were removed
+	await t.throwsAsync(fs.access(frameworkDir));
+});
+
+test("cleanCache: throws when active lockfiles exist", async (t) => {
+	const frameworkDir = path.join(t.context.testDir, "framework");
+	const lockDir = path.join(frameworkDir, "locks");
+	await fs.mkdir(lockDir, {recursive: true});
+	await fs.writeFile(path.join(frameworkDir, "test.txt"), "content");
+
+	const lockPath = path.join(lockDir, "test-package.lock");
+	await lockfileLock(lockPath, {stale: 60000});
+	try {
+		const err = await t.throwsAsync(cleanCache(t.context.testDir));
+		t.true(err.message.includes("currently locked by an active operation"));
+	} finally {
+		await lockfileUnlock(lockPath);
+	}
+});
+
+test("cleanCache: removes directory when lockfiles are stale", async (t) => {
+	const frameworkDir = path.join(t.context.testDir, "framework");
+	const lockDir = path.join(frameworkDir, "locks");
+	await fs.mkdir(lockDir, {recursive: true});
+	await fs.writeFile(path.join(frameworkDir, "test.txt"), "content");
+
+	// Create a real lock with a very short stale threshold, then wait for it to expire.
+	// lockfile.check uses ctime — fs.utimes only changes mtime, so backdating mtime won't work.
+	const lockPath = path.join(lockDir, "stale-package.lock");
+	await lockfileLock(lockPath, {stale: 50}); // stale after 50ms
+	await lockfileUnlock(lockPath); // unlock so ctime stops being "now" — file still exists on disk
+	// Wait long enough for the 50ms threshold to pass
+	await new Promise((resolve) => setTimeout(resolve, 100));
+
+	const result = await cleanCache(t.context.testDir);
+	t.truthy(result);
+	t.is(result.path, "framework");
+	t.true(result.size > 0);
+
 	await t.throwsAsync(fs.access(frameworkDir));
 });
