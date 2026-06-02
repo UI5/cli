@@ -1,13 +1,20 @@
-import path from "node:path";
 import fs from "node:fs/promises";
+import path from "node:path";
+import {
+	FRAMEWORK_DIR_NAME,
+	getFrameworkDir,
+	getFrameworkLockDir,
+	hasActiveLocks,
+} from "./_frameworkPaths.js";
 
 /**
  * Get the size of a directory tree recursively.
+ * Returns 0 if the directory does not exist or any entry is unreadable.
  *
  * @param {string} dirPath Absolute path to directory
  * @returns {Promise<number>} Total size in bytes
  */
-async function getDirectorySize(dirPath) {
+export async function getDirectorySize(dirPath) {
 	let total = 0;
 	let entries;
 	try {
@@ -38,13 +45,13 @@ async function getDirectorySize(dirPath) {
  * @returns {Promise<{path: string, size: number}|null>} Framework cache info or null
  */
 export async function getCacheInfo(ui5DataDir) {
-	const frameworkDir = path.join(ui5DataDir, "framework");
+	const frameworkDir = getFrameworkDir(ui5DataDir);
 	try {
 		await fs.access(frameworkDir);
 		const size = await getDirectorySize(frameworkDir);
 		if (size > 0) {
 			return {
-				path: "framework/",
+				path: FRAMEWORK_DIR_NAME + "/",
 				size,
 			};
 		}
@@ -55,24 +62,43 @@ export async function getCacheInfo(ui5DataDir) {
 }
 
 /**
+ * Check whether an active (non-stale) framework lock is currently held,
+ * indicating an ongoing download or installation.
+ *
+ * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+ * @returns {Promise<boolean>} True if an active lock is held
+ */
+export async function isFrameworkLocked(ui5DataDir) {
+	return hasActiveLocks(getFrameworkLockDir(ui5DataDir));
+}
+
+/**
  * Clean framework cache directory.
+ *
+ * Checks for active lockfiles before removing the directory to prevent
+ * deleting files while a download is in progress.
  *
  * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
  * @returns {Promise<{path: string, size: number}|null>} Removal result or null
+ * @throws {Error} If framework packages are currently being installed (active lockfiles detected)
  */
 export async function cleanCache(ui5DataDir) {
-	const frameworkDir = path.join(ui5DataDir, "framework");
-	try {
-		const size = await getDirectorySize(frameworkDir);
-		if (size > 0) {
-			await fs.rm(frameworkDir, {recursive: true, force: true});
-			return {
-				path: "framework",
-				size
-			};
-		}
-	} catch {
-		// Directory doesn't exist or couldn't be removed
+	const frameworkDir = getFrameworkDir(ui5DataDir);
+	const size = await getDirectorySize(frameworkDir);
+	if (size === 0) {
+		return null;
 	}
-	return null;
+
+	if (await hasActiveLocks(getFrameworkLockDir(ui5DataDir))) {
+		throw new Error(
+			"Framework cache is currently locked by an active operation. " +
+			"Please wait for it to finish and try again."
+		);
+	}
+
+	await fs.rm(frameworkDir, {recursive: true, force: true});
+	return {
+		path: FRAMEWORK_DIR_NAME,
+		size,
+	};
 }

@@ -5,6 +5,7 @@ import {promisify} from "node:util";
 import Registry from "./Registry.js";
 import AbstractInstaller from "../AbstractInstaller.js";
 import {rmrf} from "../../utils/fs.js";
+import {getFrameworkDir} from "../_frameworkPaths.js";
 const stat = promisify(fs.stat);
 const readFile = promisify(fs.readFile);
 const rename = promisify(fs.rename);
@@ -27,15 +28,15 @@ class Installer extends AbstractInstaller {
 			throw new Error(`Installer: Missing parameter "cwd"`);
 		}
 		this._packagesDir = packagesDir ?
-			path.resolve(packagesDir) : path.join(ui5DataDir, "framework", "packages");
+			path.resolve(packagesDir) : path.join(getFrameworkDir(ui5DataDir), "packages");
 
 		log.verbose(`Installing to: ${this._packagesDir}`);
 
 		this._cwd = cwd;
 		this._caCacheDir = cacheDir ?
-			path.resolve(cacheDir) : path.join(ui5DataDir, "framework", "cacache");
+			path.resolve(cacheDir) : path.join(getFrameworkDir(ui5DataDir), "cacache");
 		this._stagingDir = stagingDir ?
-			path.resolve(stagingDir) : path.join(ui5DataDir, "framework", "staging");
+			path.resolve(stagingDir) : path.join(getFrameworkDir(ui5DataDir), "staging");
 	}
 
 	getRegistry() {

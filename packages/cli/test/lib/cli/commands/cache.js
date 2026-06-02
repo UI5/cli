@@ -26,6 +26,7 @@ test.beforeEach(async (t) => {
 
 	t.context.frameworkCacheGetCacheInfo = sinon.stub();
 	t.context.frameworkCacheCleanCache = sinon.stub();
+	t.context.frameworkCacheIsFrameworkLocked = sinon.stub().resolves(false);
 	t.context.buildCacheGetCacheInfo = sinon.stub();
 	t.context.buildCacheCleanCache = sinon.stub();
 
@@ -36,7 +37,8 @@ test.beforeEach(async (t) => {
 		"@ui5/project/config/Configuration": t.context.Configuration,
 		"@ui5/project/ui5Framework/cache": {
 			getCacheInfo: t.context.frameworkCacheGetCacheInfo,
-			cleanCache: t.context.frameworkCacheCleanCache
+			cleanCache: t.context.frameworkCacheCleanCache,
+			isFrameworkLocked: t.context.frameworkCacheIsFrameworkLocked,
 		},
 		"@ui5/project/build/cache/CacheManager": {
 			default: class {
@@ -53,6 +55,8 @@ test.beforeEach(async (t) => {
 test.afterEach.always((t) => {
 	sinon.restore();
 	esmock.purge(t.context.cache);
+	// Reset exit code — some tests verify that the handler sets process.exitCode = 1
+	process.exitCode = undefined;
 });
 
 test("Command builder", async (t) => {
@@ -291,4 +295,45 @@ test.serial("ui5 cache clean: single entry with zero size and GB formatting", as
 
 	const gbOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(gbOutput.includes("2.5 GB"), "Shows GB format");
+});
+
+test.serial("ui5 cache clean: aborts when framework cache is locked", async (t) => {
+	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
+		buildCacheCleanCache, frameworkCacheIsFrameworkLocked} = t.context;
+
+	// Simulate active lock
+	frameworkCacheIsFrameworkLocked.resolves(true);
+
+	argv["_"] = ["cache", "clean"];
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("Error:"), "Shows Error (not Warning)");
+	t.true(allOutput.includes("currently locked by an active operation"), "Shows lock conflict message");
+	t.false(allOutput.includes("Success"), "Does not show success message");
+
+	// Neither getCacheInfo nor cleanCache should be called after a lock abort
+	t.is(frameworkCacheGetCacheInfo.callCount, 0, "getCacheInfo should not be called when locked");
+	t.is(frameworkCacheCleanCache.callCount, 0, "cleanCache should not be called when locked");
+	t.is(buildCacheCleanCache.callCount, 0, "buildCache.cleanCache should not be called when locked");
+	t.is(process.exitCode, 1, "Exit code should be 1");
+});
+
+test.serial("ui5 cache clean --yes: also aborts when framework cache is locked", async (t) => {
+	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache,
+		buildCacheCleanCache, frameworkCacheIsFrameworkLocked} = t.context;
+
+	// Simulate active lock — --yes must NOT bypass the lock check
+	frameworkCacheIsFrameworkLocked.resolves(true);
+
+	argv["_"] = ["cache", "clean"];
+	argv["yes"] = true;
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("Error:"), "Shows Error even with --yes");
+	t.false(allOutput.includes("Success"), "Does not show success message");
+	t.is(frameworkCacheCleanCache.callCount, 0, "cleanCache should not be called when locked");
+	t.is(buildCacheCleanCache.callCount, 0, "buildCache.cleanCache should not be called when locked");
+	t.is(process.exitCode, 1, "Exit code should be 1");
 });

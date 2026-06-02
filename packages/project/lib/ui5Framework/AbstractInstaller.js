@@ -2,6 +2,7 @@ import path from "node:path";
 import {mkdirp} from "../utils/fs.js";
 import {promisify} from "node:util";
 import {getLogger} from "@ui5/logger";
+import {LOCK_STALE_MS, getFrameworkLockDir} from "./_frameworkPaths.js";
 const log = getLogger("ui5Framework:Installer");
 
 // File name must not start with one or multiple dots and should not contain characters other than:
@@ -22,7 +23,7 @@ class AbstractInstaller {
 		if (!ui5DataDir) {
 			throw new Error(`Installer: Missing parameter "ui5DataDir"`);
 		}
-		this._lockDir = path.join(ui5DataDir, "framework", "locks");
+		this._lockDir = getFrameworkLockDir(ui5DataDir);
 	}
 
 	async _synchronize(lockName, callback) {
@@ -36,7 +37,7 @@ class AbstractInstaller {
 		log.verbose("Locking " + lockPath);
 		await lock(lockPath, {
 			wait: 10000,
-			stale: 60000,
+			stale: LOCK_STALE_MS,
 			retries: 10
 		});
 		try {
