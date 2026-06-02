@@ -103,6 +103,108 @@ task:
   path: lib/tasks/renderMarkdownFiles.js
 ```
 
+## Incremental Build Support
+
+Starting with UI5 CLI v5, the UI5 Builder supports **incremental builds** by caching task data. Custom tasks can opt into this behavior to improve performance.
+
+### How Incremental Builds Work for Tasks
+
+1. **First Execution**: The task runs normally and its outputs are cached
+1. **Resource Tracking**: The build system tracks which resources the task reads and writes
+1. **Cache Validation**: On subsequent builds, if the task's inputs haven't changed, the cached outputs are reused and the task is skipped
+1. **Incremental Execution**: If only some inputs changed, the task can optionally process only those changed resources (see [supportsDifferentialBuilds()](#supportsDifferentialBuilds()) below)
+
+### Making Your Task Cache-Aware (Differential Builds)
+
+Custom build tasks can now optionally support **differential builds** by implementing the following new features.
+
+::: info Info
+When a task supports differential builds, it is the task author's responsibility to ensure correctness. Specifically, if a task's output for resource A depends on the content of resource B, the task must account for this when processing only the changed resources. Tasks that cannot reliably determine such cross-resource dependencies should not enable differential build support. For example, bundling tasks — where the output depends on the content of many input resources — may not support differential builds until a more robust solution is available.
+:::
+
+#### `supportsDifferentialBuilds()`
+
+TODO: Check this section again
+
+Indicates whether your task can process only changed resources:
+
+```js
+/**
+ * Indicates whether this task can perform differential builds
+ * 
+ * @returns {boolean} True if the task can process only modified resources
+ */
+export function supportsDifferentialBuilds() {
+    return true;  // This task can process only changed files
+}
+```
+
+When this returns `true`, your task's main function receives an additional parameter indicating which resources have changed. The task can then process only those resources instead of all resources.
+
+#### `determineBuildSignature({log, options})`
+
+TODO: Check this section again
+
+Returns `undefined` or an arbitrary string representing the build signature for the task. This can be used to incorporate task-specific configuration files into the build signature of the project, causing the cache to be invalidated if those files change. The string should not be a hash value (the build signature hash is calculated later). If `undefined` is returned, or if the method is not implemented, it is assumed that the task's cache remains valid until relevant input resources change.
+
+This method is called once at the beginning of every build. The return value is used to calculate a unique signature for the task based on its configuration. This signature is then incorporated into the overall build signature of the project.
+
+```js
+/**
+ * Determines the build signature for this task
+ * 
+ * Configuration changes that affect output should be reflected in this signature
+ * 
+ * @param {object} parameters
+ * @param {@ui5/logger/Logger} parameters.log Logger instance
+ * @param {object} parameters.options Task options from ui5.yaml
+ * @returns {Promise<string | undefined>} Build signature string
+ */
+export async function determineBuildSignature({log, options}) {
+    return "TODO:";
+}
+```
+
+**Example use case:** A TypeScript compilation task that includes the TypeScript version and `tsconfig.json` settings in its signature, so the cache is invalidated when compiler settings change.
+
+#### `determineExpectedOutput({workspace, dependencies, log, options})`
+
+TODO: Check this section again
+
+Declares which resources the task is expected to produce. This allows the build system to detect and remove stale outputs when the task stops producing files it previously created.
+
+This method is called right before the task is being executed. It is used to detect stale output resources that were produced in a previous execution of the task, but are no longer produced in the current execution. Such stale resources must be removed from the build output to avoid inconsistencies.
+
+```js
+/**
+ * Determines which resources this task is expected to produce
+ * 
+ * @param {object} parameters
+ * @param {module:@ui5/fs.DuplexCollection} parameters.workspace Reader/Writer for project resources
+ * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader for dependency resources
+ * @param {@ui5/logger/Logger} parameters.log Logger instance
+ * @param {object} parameters.options Task options from ui5.yaml
+ * @returns {Promise<Array<string>>} Array of resource paths this task will produce
+ */
+export async function determineExpectedOutput({workspace, dependencies, log, options}) {
+    // Return the paths of resources this task will create
+    const sourceFiles = await workspace.byGlob("**/*.ts");
+    return sourceFiles.map(resource => 
+        resource.getPath().replace(/\.ts$/, ".js")
+    );
+}
+```
+
+**Example use case:** A code generator that creates JavaScript files from TypeScript sources. If a `.ts` file is deleted, the corresponding `.js` file should also be removed.
+
+### Best Practices for Cache-Aware Tasks
+
+1. **Keep tasks deterministic**: Given the same inputs, always produce the same outputs
+2. **Use `determineBuildSignature`**: Include all configuration that affects output in the build signature
+3. **Opt into differential builds carefully**: Only set `supportsDifferentialBuilds = true` if your task can safely process files independently
+4. **Declare expected outputs**: Implement `determineExpectedOutput` if your task generates new files (not just modifies existing ones)
+5. **Test cache behavior**: Verify that your task produces identical results whether running from cache or fresh execution
+
 ## Task Implementation
 
 A custom task implementation needs to return a function with the following signature:

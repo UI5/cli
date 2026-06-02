@@ -29,6 +29,107 @@ UI5 CLI 5.x introduces **Specification Version 5.0**, which enables the new Comp
 
 Projects using older **Specification Versions** are expected to be **fully compatible with UI5 CLI v5**.
 
+## Incremental Build
+
+UI5 CLI v5 introduces **incremental builds with caching** for both commands `ui5 build` and `ui5 serve`. This fundamental architectural change significantly improves build performance by reusing cached results from previous builds.
+
+### What Changed
+
+**Previous Behavior (v4 and earlier):**
+- Every source change resulted in an entire rebuild of all projects
+- Every build executed all tasks from scratch
+- No caching between builds or server sessions
+
+**New Behavior (v5):**
+- Only relevant projects are rebuilt
+- Only modified resources and affected tasks are reprocessed
+- **For `ui5 build`**: Caches are used automatically when available
+- **For `ui5 serve`**: When a source file change occured and a request was made, the server automatically detects this, tries to use caches and only rebuilds when none are available
+
+### Impact on Your Workflow
+
+#### Performance
+
+- **First build**: Probably slower, as the cache is populated with all build outputs
+- **Subsequent builds**: Significantly faster — only modified resources and affected tasks are reprocessed
+- **Quick iterations**: Changes to individual files typically rebuild very quickly
+- **Cache reuse**: Caches are used between server restarts and multiple build sessions
+
+TODO: Include some performance stats?
+
+### New CLI Options
+
+#### `--cache` Option
+
+Both `ui5 build` and `ui5 serve` now support a `--cache` option to control this build cache behavior:
+
+| Mode | Description |
+|------|-------------|
+| `Default` | Use cache if available, create/update as needed (default) |
+| `Force` | Only use cache; fail if unavailable or invalid |
+| `ReadOnly` | Use cache but don't write to file system |
+| `Off` | Disable caching and rebuild from scratch |
+
+Example:
+```sh
+ui5 serve --cache ReadOnly  # Use a cache if available, rebuild if not (don't write)
+ui5 serve --cache Off  # Disable build caching
+ui5 build --cache Force  # Always try to use the cache and fail if not available
+```
+
+#### Watch Mode
+<br>
+
+##### ui5 serve
+When using `ui5 serve`, the development server automatically:
+
+1. **Watches source files** for changes (files in `src/`, `webapp/`, `test/`, etc.)
+1. **Triggers automatic rebuilds** when changes are detected and a request is made (when Live Reload is enabled, this is automatically handled)
+
+<br>
+
+##### ui5 build
+When using `ui5 build --watch`, the UI5 CLI also **watches source files** and **triggers automatic rebuilds** when changes are detected.
+
+::: tip
+Watch mode monitors your source files only. Changes to configuration files (`ui5.yaml`, `package.json`) or custom task implementations require a server restart (or build restart for `ui5 build`).
+:::
+
+#### Live Reload
+
+When using `ui5 serve --live-reload` or adding `liveReload` to the ui5.yaml config (TODO: Adjust UI5 CLI - Server Config docs), the development server **notifies the browser** to reload the page automatically. In this scenario, manual refreshes to trigger a rebuild are not required.
+
+TODO: Add bit more explanation about technical details (e.g. Websockets / SSE) once it's implemented. --> which browsers are supported?
+
+### Cache Management
+
+By default, the build cache is stored in `~/.ui5/buildCache/`. You can:
+
+- **Customize the location:**
+  see [Changing UI5 CLI's Data Directory](../pages/Troubleshooting.md#changing-ui5-clis-data-directory)
+
+- **Adjust caching behavior**:
+  ```sh
+  ui5 build --cache Off
+  ui5 serve --cache ReadOnly
+  ```
+
+- **Clear the cache:**
+  ```
+  TODO: Add cache clean command explanation
+  ```
+
+- **Verify the cache:**
+  ```
+  TODO: Add cache verify command explanation
+  ```
+
+### Migration Checklist
+
+- **Specification Version**: Make sure to use at least **Specification Version 5.0** in your UI5 config
+- **New performance expectations**: First build might be slower, but subsequent builds are much faster
+- **Review custom middleware**: With this feature, tasks are executed in server sessions. For this reason, some (custom) middleware might be obsolete or cause problems (TODO: Add which specific middleware??). Projects might need to adapt their configuration
+
 ## Rename of Command Option
 
 With UI5 CLI v5, the option `--cache-mode` (for commands `ui5 build` and `ui5 serve`) has been renamed to `--snapshot-cache`.

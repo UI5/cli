@@ -3,6 +3,20 @@ When developing a UI5 project on your local system, you should use the UI5 Serve
 
 However, you might have good reasons to also use the UI5 Builder during development. In such cases, feel free to let us know! Maybe your use case could be covered by a future enhancement of the UI5 Server.
 
+## Incremental Build and Caching
+
+Starting with UI5 CLI v5, both `ui5 serve` and `ui5 build` use the **Incremental Build** to improve performance:
+
+- Build results are cached and reused across builds and server sessions
+- Only modified resources and affected build tasks are reprocessed
+- The server automatically watches source files and triggers rebuilds when changes are detected
+- Custom build tasks from dependencies execute automatically — no manual middleware configuration needed
+
+For more details, see:
+- [UI5 Server: Incremental Build and Caching](./Server.md#incremental-build-and-caching)
+- [UI5 Builder: Incremental Build and Caching](./Builder.md#incremental-build-and-caching)
+- [Migration Guide: Incremental Build](../updates/migrate-v5.md#incremental-build)
+
 ## Project Dependencies
 
 UI5 CLI differentiates between "framework dependencies" and "project dependencies".

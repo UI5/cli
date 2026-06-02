@@ -23,6 +23,66 @@ Please be aware of the following risks when using the server:
 
 :::
 
+
+## Development Server
+
+Starting with UI5 CLI v5, the development server integrates with the **Incremental Build**. This architectural change brings significant benefits while introducing some behavioral differences compared to previous versions.
+
+### How It Works
+
+When you start the server with `ui5 serve`:
+
+1. **On-Demand Building**: The server builds your project only when a request comes in, and only if no cache exists or the cache is stale
+1. **File Watching**: The server monitors your source files for changes
+1. **Incremental Rebuilds**: When changes are detected and a new request is sent, an automatic rebuild is triggered containing only relevant build tasks
+1. **Live Reload**: If live reload is enabled, the browser automatically refreshes once a rebuild completes (see [Live Reload](#live-reload) section)
+1. **Cached Results**: Build outputs are cached to gain performance during subsequent builds
+
+### Benefits
+
+- **Faster Subsequent Builds**: The incremental build cache significantly speeds up rebuilds after the first run
+- **Automatic Dependency Task Execution**: Custom build tasks defined in your project's dependencies (libraries, modules) are now executed automatically during the build. You no longer need to configure custom middleware to handle these tasks.
+- **Theme Pre-Compilation**: Themes are now pre-compiled by the `buildThemes` task during the build, improving performance (see [Removed Middleware](#standard-middleware) section)
+
+### Server Cache Control
+
+You can control the build cache behavior using the `--cache` option:
+
+- `--cache Default` (default): Use the cache if available, create it if missing
+- `--cache Force`: Only use the cache; fail if the cache is unavailable or invalid
+- `--cache ReadOnly`: Use existing cache but don't update it (useful for CI/CD)
+- `--cache Off`: Disable caching entirely and always perform a full rebuild
+
+Example:
+```sh
+ui5 serve --cache Off
+```
+In this scenario, when a source file change is made and a request comes in, always perform a full rebuild (even if this source version already existed sometime ago).
+
+::: warning Important
+Build caches created by `ui5 build` and `ui5 serve` are **separate and cannot be mixed**. Each command maintains its own cache optimized for its specific use case.
+:::
+
+For more details on build caching, see the [UI5 Builder documentation](./Builder.md).
+
+### Watch Mode Behavior
+
+The server automatically watches your source files and triggers rebuilds when changes are detected:
+
+- **Monitored files**: All files in your project's source directories (`src/`, `webapp/`, `test/`, etc.)
+- **Not monitored**: Configuration files (`ui5.yaml`, `package.json`), custom task implementations, and dependency files
+
+::: tip
+Changes to configuration files or custom tasks require a server restart to take effect.
+:::
+
+### Live Reload
+
+When Live Reload is enabled, the server automatically triggers a rebuild (utilizing caches) and notifies connected browsers to automatically refresh the page. This feature requires:
+
+TODO: Add explanation once live reload is implemented (CLI option + yaml config)
+TODO: Mention that this supersedes ui5-livereload-middleware
+
 ## Standard Middleware
 
 ::: info Removed Middleware
@@ -86,6 +146,12 @@ Answers all non-read requests (POST, PUT, DELETE, etc.) that have not been answe
 
 ### serveIndex
 In case a directory has been requested, this middleware renders an HTML with a list of the directory's content.
+
+## Standard Tasks
+With UI5 CLI v5, a set of Standard Tasks is executed during a server build...
+(excluding "minify", "generateLibraryPreload", "generateComponentPreload", "generateBundle")
+TODO: Add list/table of standard tasks for ui5 serve (similar to Builder docs) with reference to the API docs (for more info)
+TODO: Add --exclude-task explanation once and whether it's merged: "You may exclude unnecessary tasks to speed up development even more: ui5 serve --exclude-task enhanceManifest
 
 ## SSL Certificates
 When starting the UI5 Server in HTTPS- or HTTP/2 mode, for example by using UI5 CLI parameter `--h2`, you will be prompted for the automatic generation of a local SSL certificate if necessary.
