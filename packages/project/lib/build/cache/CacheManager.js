@@ -1,5 +1,6 @@
 import path from "node:path";
 import os from "node:os";
+import {access} from "node:fs/promises";
 import Configuration from "../../config/Configuration.js";
 import {getLogger} from "@ui5/logger";
 import BuildCacheStorage from "./BuildCacheStorage.js";
@@ -396,6 +397,13 @@ export default class CacheManager {
 		const buildCacheDir = path.join(ui5DataDir, "buildCache");
 		const dbDir = path.join(buildCacheDir, CACHE_VERSION);
 
+		const dbPath = path.join(dbDir, "cache.db");
+		try {
+			await access(dbPath);
+		} catch {
+			return null;
+		}
+
 		try {
 			const storage = new BuildCacheStorage(dbDir);
 			try {
@@ -425,6 +433,13 @@ export default class CacheManager {
 	static async cleanCache(ui5DataDir) {
 		const buildCacheDir = path.join(ui5DataDir, "buildCache");
 		const dbDir = path.join(buildCacheDir, CACHE_VERSION);
+
+		const dbPath = path.join(dbDir, "cache.db");
+		try {
+			await access(dbPath);
+		} catch {
+			return null;
+		}
 
 		try {
 			const storage = new BuildCacheStorage(dbDir);
