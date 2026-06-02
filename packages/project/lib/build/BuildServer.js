@@ -52,21 +52,15 @@ class BuildServer extends EventEmitter {
 	/**
 	 * Creates a new BuildServer instance
 	 *
-	 * Initializes readers for different project combinations and optionally enqueues an
-	 * initial build of specified dependencies. File watching is set up separately via
-	 * {@link BuildServer.create}, which awaits watcher readiness before returning.
+	 * Initializes readers for different project combinations. File watching and any initial
+	 * builds are set up separately via {@link BuildServer.create}, which awaits watcher
+	 * readiness before enqueueing initial builds and returning.
 	 *
 	 * @private
 	 * @param {@ui5/project/graph/ProjectGraph} graph Project graph containing all projects
 	 * @param {@ui5/project/build/ProjectBuilder} projectBuilder Builder instance for executing builds
-	 * @param {boolean} initialBuildRootProject Whether to build the root project in the initial build
-	 * @param {string[]} initialBuildIncludedDependencies Project names to include in initial build
-	 * @param {string[]} initialBuildExcludedDependencies Project names to exclude from initial build
 	 */
-	constructor(
-		graph, projectBuilder,
-		initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies
-	) {
+	constructor(graph, projectBuilder) {
 		super();
 		this.#graph = graph;
 		this.#rootProjectName = graph.getRoot().getName();
@@ -94,20 +88,6 @@ class BuildServer extends EventEmitter {
 		for (const dep of dependencies) {
 			this.#projectBuildStatus.set(dep.getName(), new ProjectBuildStatus());
 		}
-
-		if (initialBuildRootProject) {
-			log.verbose("Enqueueing root project for initial build");
-			this.#enqueueBuild(this.#rootProjectName);
-		}
-		if (initialBuildIncludedDependencies.length > 0) {
-			// Enqueue initial build dependencies
-			for (const projectName of initialBuildIncludedDependencies) {
-				if (!initialBuildExcludedDependencies.includes(projectName)) {
-					log.verbose(`Enqueueing project '${projectName}' for initial build`);
-					this.#enqueueBuild(projectName);
-				}
-			}
-		}
 	}
 
 	/**
@@ -117,6 +97,9 @@ class BuildServer extends EventEmitter {
 	 * <code>graph.serve()</code> resolves would be missed. The race is most pronounced on
 	 * Windows, where chokidar's <code>ReadDirectoryChangesW</code> backend has noticeably
 	 * higher startup latency than inotify/FSEvents.
+	 *
+	 * Initial builds are enqueued only after the watcher is ready, so any source changes
+	 * occurring during those builds are reliably detected.
 	 *
 	 * @public
 	 * @param {@ui5/project/graph/ProjectGraph} graph Project graph containing all projects
@@ -130,12 +113,29 @@ class BuildServer extends EventEmitter {
 		graph, projectBuilder,
 		initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies
 	) {
-		const buildServer = new BuildServer(
-			graph, projectBuilder,
+		const buildServer = new BuildServer(graph, projectBuilder);
+		await buildServer.#initWatcher();
+		buildServer.#enqueueInitialBuilds(
 			initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies
 		);
-		await buildServer.#initWatcher();
 		return buildServer;
+	}
+
+	#enqueueInitialBuilds(
+		initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies
+	) {
+		if (initialBuildRootProject) {
+			log.verbose("Enqueueing root project for initial build");
+			this.#enqueueBuild(this.#rootProjectName);
+		}
+		if (initialBuildIncludedDependencies.length > 0) {
+			for (const projectName of initialBuildIncludedDependencies) {
+				if (!initialBuildExcludedDependencies.includes(projectName)) {
+					log.verbose(`Enqueueing project '${projectName}' for initial build`);
+					this.#enqueueBuild(projectName);
+				}
+			}
+		}
 	}
 
 	async #initWatcher() {
