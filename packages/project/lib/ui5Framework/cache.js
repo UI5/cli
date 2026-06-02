@@ -45,7 +45,7 @@ export async function getCacheInfo(ui5DataDir) {
 		const count = await countFiles(frameworkDir);
 		if (count > 0) {
 			return {
-				path: FRAMEWORK_DIR_NAME + "/",
+				path: FRAMEWORK_DIR_NAME,
 				count,
 			};
 		}
