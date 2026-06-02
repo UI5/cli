@@ -65,6 +65,16 @@ async function handleCache(argv) {
 		ui5DataDir = path.join(os.homedir(), ".ui5");
 	}
 
+	// Abort early if a framework operation is holding a lock — before prompting the user
+	if (await frameworkCache.isFrameworkLocked(ui5DataDir)) {
+		process.stderr.write(
+			`${chalk.red("Error:")} Framework cache is currently locked by an active operation. ` +
+			"Please wait for it to finish and try again.\n"
+		);
+		process.exitCode = 1;
+		return;
+	}
+
 	// Check what items exist before cleaning (orchestrate both domains)
 	const items = [];
 	const frameworkInfo = await frameworkCache.getCacheInfo(ui5DataDir);
