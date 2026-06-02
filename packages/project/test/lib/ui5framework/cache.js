@@ -40,7 +40,7 @@ test("getCacheInfo: detects framework directory with files", async (t) => {
 	const result = await getCacheInfo(t.context.testDir);
 	t.truthy(result);
 	t.is(result.path, "framework/");
-	t.true(result.size > 0);
+	t.is(result.count, 1);
 });
 
 test("getCacheInfo: returns null for empty framework directory", async (t) => {
@@ -51,7 +51,7 @@ test("getCacheInfo: returns null for empty framework directory", async (t) => {
 	t.is(result, null);
 });
 
-test("getCacheInfo: calculates size recursively", async (t) => {
+test("getCacheInfo: counts files recursively", async (t) => {
 	const frameworkDir = path.join(t.context.testDir, "framework");
 	const subDir = path.join(frameworkDir, "packages");
 	await fs.mkdir(subDir, {recursive: true});
@@ -60,7 +60,7 @@ test("getCacheInfo: calculates size recursively", async (t) => {
 
 	const result = await getCacheInfo(t.context.testDir);
 	t.truthy(result);
-	t.true(result.size >= 10); // At least 5 + 5 bytes
+	t.is(result.count, 2);
 });
 
 test("cleanCache: returns null for non-existent directory", async (t) => {
@@ -84,7 +84,7 @@ test("cleanCache: removes framework directory", async (t) => {
 	const result = await cleanCache(t.context.testDir);
 	t.truthy(result);
 	t.is(result.path, "framework");
-	t.true(result.size > 0);
+	t.is(result.count, 1);
 
 	// Verify directory was removed
 	await t.throwsAsync(fs.access(frameworkDir));
@@ -98,6 +98,7 @@ test("cleanCache: removes nested directories", async (t) => {
 
 	const result = await cleanCache(t.context.testDir);
 	t.truthy(result);
+	t.is(result.count, 1);
 
 	// Verify directory and subdirectories were removed
 	await t.throwsAsync(fs.access(frameworkDir));
@@ -136,7 +137,7 @@ test("cleanCache: removes directory when lockfiles are stale", async (t) => {
 	const result = await cleanCache(t.context.testDir);
 	t.truthy(result);
 	t.is(result.path, "framework");
-	t.true(result.size > 0);
+	t.is(result.count, 1); // only test.txt remains — stale lock file is deleted by lockfileUnlock
 
 	await t.throwsAsync(fs.access(frameworkDir));
 });

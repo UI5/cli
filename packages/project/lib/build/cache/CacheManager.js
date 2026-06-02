@@ -448,7 +448,7 @@ export default class CacheManager {
 					const freedSize = storage.clearAllRecords();
 					return {
 						path: `buildCache/${CACHE_VERSION}`,
-						size: freedSize
+						size: freedSize,
 					};
 				}
 			} finally {
