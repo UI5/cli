@@ -35,6 +35,11 @@ cacheCommand.builder = function(cli) {
 			"Remove all cached UI5 data without confirmation (CI mode)");
 };
 
+const LABEL_FRAMEWORK = "UI5 Framework packages";
+const LABEL_BUILD = "Build cache (DB)";
+// Pad labels to equal width for two-column alignment
+const LABEL_WIDTH = Math.max(LABEL_FRAMEWORK.length, LABEL_BUILD.length);
+
 /**
  * Format a byte size as a human-readable string.
  *
@@ -50,6 +55,26 @@ function formatSize(bytes) {
 		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 	}
 	return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+/**
+ * Format a count with its singular/plural word, e.g. "340 files" or "1 file".
+ *
+ * @param {number} count
+ * @returns {string}
+ */
+function formatFileCount(count) {
+	return `${count} ${count === 1 ? "file" : "files"}`;
+}
+
+/**
+ * Pad a label to the shared column width.
+ *
+ * @param {string} label
+ * @returns {string}
+ */
+function padLabel(label) {
+	return label.padEnd(LABEL_WIDTH);
 }
 
 async function handleCache(argv) {
@@ -76,30 +101,29 @@ async function handleCache(argv) {
 	}
 
 	// Check what items exist before cleaning (orchestrate both domains)
-	const items = [];
 	const frameworkInfo = await frameworkCache.getCacheInfo(ui5DataDir);
-	if (frameworkInfo) {
-		items.push(frameworkInfo);
-	}
 	const buildInfo = await CacheManager.getCacheInfo(ui5DataDir);
-	if (buildInfo) {
-		items.push(buildInfo);
-	}
 
-	if (items.length === 0) {
+	if (!frameworkInfo && !buildInfo) {
 		process.stderr.write("Nothing to clean\n");
 		return;
 	}
 
 	// Display items that will be removed
-	process.stderr.write(chalk.bold("\nThe following items from cache will be removed:\n"));
-	let totalSize = 0;
-	for (const item of items) {
-		totalSize += item.size;
-		const sizeStr = item.size > 0 ? ` (${formatSize(item.size)})` : "";
-		process.stderr.write(`  ${chalk.yellow("•")} ${item.path}${sizeStr}\n`);
+	process.stderr.write(chalk.bold("\nThe following cached data will be removed:\n\n"));
+	if (frameworkInfo) {
+		const detail = formatFileCount(frameworkInfo.count);
+		process.stderr.write(
+			`  ${chalk.yellow("•")} ${padLabel(LABEL_FRAMEWORK)}   ${frameworkInfo.path}   (${detail})\n`
+		);
 	}
-	process.stderr.write(chalk.bold(`\nTotal: ${formatSize(totalSize)}\n\n`));
+	if (buildInfo) {
+		const detail = buildInfo.size > 0 ? formatSize(buildInfo.size) : "";
+		process.stderr.write(
+			`  ${chalk.yellow("•")} ${padLabel(LABEL_BUILD)}   ${buildInfo.path}   (${detail})\n`
+		);
+	}
+	process.stderr.write("\n");
 
 	// Ask for confirmation (skip with --yes)
 	if (!argv.yes) {
@@ -115,27 +139,34 @@ async function handleCache(argv) {
 	}
 
 	// Perform the actual cleanup (orchestrate both domains)
-	const removed = [];
 	const frameworkResult = await frameworkCache.cleanCache(ui5DataDir);
-	if (frameworkResult) {
-		removed.push(frameworkResult);
-	}
 	const buildResult = await CacheManager.cleanCache(ui5DataDir);
-	if (buildResult) {
-		removed.push(buildResult);
-	}
 
 	process.stderr.write("\n");
-	for (const entry of removed) {
-		const sizeStr = entry.size > 0 ? ` (${formatSize(entry.size)})` : "";
-		process.stderr.write(`${chalk.green("✓")} Removed ${chalk.bold(entry.path)}${sizeStr}\n`);
+	if (frameworkResult) {
+		const detail = formatFileCount(frameworkResult.count);
+		process.stderr.write(
+			`${chalk.green("✓")} Removed ${chalk.bold(LABEL_FRAMEWORK)}` +
+			`   (${frameworkResult.path} · ${detail})\n`
+		);
+	}
+	if (buildResult) {
+		const detail = buildResult.size > 0 ? formatSize(buildResult.size) : "";
+		process.stderr.write(
+			`${chalk.green("✓")} Removed ${chalk.bold(LABEL_BUILD)}` +
+			`   (${buildResult.path}${detail ? ` · ${detail}` : ""})\n`
+		);
 	}
 
-	const totalRemoved = removed.reduce((sum, entry) => sum + entry.size, 0);
-	process.stderr.write(
-		`\n${chalk.green("Success:")} Cleaned ${removed.length} ${removed.length === 1 ? "entry" : "entries"}` +
-		(totalRemoved > 0 ? `, freed ${formatSize(totalRemoved)}` : "") + "\n"
-	);
+	// Success summary
+	const cleaned = [];
+	if (frameworkResult) {
+		cleaned.push(LABEL_FRAMEWORK);
+	}
+	if (buildResult) {
+		cleaned.push(LABEL_BUILD);
+	}
+	process.stderr.write(`\n${chalk.green("Success:")} Cleaned ${cleaned.join(" and ")}\n`);
 }
 
 export default cacheCommand;

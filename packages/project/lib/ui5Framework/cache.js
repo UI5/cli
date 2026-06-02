@@ -8,13 +8,13 @@ import {
 } from "./_frameworkPaths.js";
 
 /**
- * Get the size of a directory tree recursively.
+ * Count all files in a directory tree recursively.
  * Returns 0 if the directory does not exist or any entry is unreadable.
  *
  * @param {string} dirPath Absolute path to directory
- * @returns {Promise<number>} Total size in bytes
+ * @returns {Promise<number>} Total file count
  */
-export async function getDirectorySize(dirPath) {
+async function countFiles(dirPath) {
 	let total = 0;
 	let entries;
 	try {
@@ -23,16 +23,10 @@ export async function getDirectorySize(dirPath) {
 		return 0;
 	}
 	for (const entry of entries) {
-		const entryPath = path.join(dirPath, entry.name);
 		if (entry.isDirectory()) {
-			total += await getDirectorySize(entryPath);
+			total += await countFiles(path.join(dirPath, entry.name));
 		} else {
-			try {
-				const stat = await fs.stat(entryPath);
-				total += stat.size;
-			} catch {
-				// Skip inaccessible files
-			}
+			total++;
 		}
 	}
 	return total;
@@ -42,17 +36,17 @@ export async function getDirectorySize(dirPath) {
  * Get framework cache info.
  *
  * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
- * @returns {Promise<{path: string, size: number}|null>} Framework cache info or null
+ * @returns {Promise<{path: string, count: number}|null>} Framework cache info or null
  */
 export async function getCacheInfo(ui5DataDir) {
 	const frameworkDir = getFrameworkDir(ui5DataDir);
 	try {
 		await fs.access(frameworkDir);
-		const size = await getDirectorySize(frameworkDir);
-		if (size > 0) {
+		const count = await countFiles(frameworkDir);
+		if (count > 0) {
 			return {
 				path: FRAMEWORK_DIR_NAME + "/",
-				size,
+				count,
 			};
 		}
 	} catch {
@@ -79,13 +73,13 @@ export async function isFrameworkLocked(ui5DataDir) {
  * deleting files while a download is in progress.
  *
  * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
- * @returns {Promise<{path: string, size: number}|null>} Removal result or null
- * @throws {Error} If framework packages are currently being installed (active lockfiles detected)
+ * @returns {Promise<{path: string, count: number}|null>} Removal result or null
+ * @throws {Error} If a framework operation is currently active (active lockfiles detected)
  */
 export async function cleanCache(ui5DataDir) {
 	const frameworkDir = getFrameworkDir(ui5DataDir);
-	const size = await getDirectorySize(frameworkDir);
-	if (size === 0) {
+	const count = await countFiles(frameworkDir);
+	if (count === 0) {
 		return null;
 	}
 
@@ -99,6 +93,6 @@ export async function cleanCache(ui5DataDir) {
 	await fs.rm(frameworkDir, {recursive: true, force: true});
 	return {
 		path: FRAMEWORK_DIR_NAME,
-		size,
+		count,
 	};
 }
