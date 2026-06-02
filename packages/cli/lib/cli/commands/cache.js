@@ -2,7 +2,6 @@ import chalk from "chalk";
 import path from "node:path";
 import os from "node:os";
 import process from "node:process";
-import readline from "node:readline";
 import baseMiddleware from "../middlewares/base.js";
 import Configuration from "@ui5/project/config/Configuration";
 import * as frameworkCache from "@ui5/project/ui5Framework/cache";
@@ -21,9 +20,10 @@ cacheCommand.builder = function(cli) {
 		.command("clean", "Remove all cached UI5 data", {
 			handler: handleCache,
 			builder: function(yargs) {
-				return yargs.option("interactive", {
-					describe: "Show confirmation prompt before cleaning. Use --no-interactive to skip (e.g. for CI)",
-					default: true,
+				return yargs.option("yes", {
+					alias: "y",
+					describe: "Skip confirmation prompt (e.g. for CI)",
+					default: false,
 					type: "boolean",
 				});
 			},
@@ -31,7 +31,7 @@ cacheCommand.builder = function(cli) {
 		})
 		.example("$0 cache clean",
 			"Remove all cached UI5 data")
-		.example("$0 cache clean --no-interactive",
+		.example("$0 cache clean --yes",
 			"Remove all cached UI5 data without confirmation (CI mode)");
 };
 
@@ -52,29 +52,7 @@ function formatSize(bytes) {
 	return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
-/**
- * Prompt user for confirmation.
- *
- * @param {string} question The question to ask
- * @returns {Promise<boolean>} True if user confirmed
- */
-async function confirm(question) {
-	const rl = readline.createInterface({
-		input: process.stdin,
-		output: process.stderr
-	});
-
-	return new Promise((resolve) => {
-		rl.question(question, (answer) => {
-			rl.close();
-			resolve(answer.toLowerCase() === "y" || answer.toLowerCase() === "yes");
-		});
-	});
-}
-
 async function handleCache(argv) {
-	const interactive = argv?.interactive !== false;
-
 	// Resolve UI5 data directory
 	let ui5DataDir = process.env.UI5_DATA_DIR;
 	if (!ui5DataDir) {
@@ -113,9 +91,13 @@ async function handleCache(argv) {
 	}
 	process.stderr.write(chalk.bold(`\nTotal: ${formatSize(totalSize)}\n\n`));
 
-	// Ask for confirmation (skip in non-interactive mode)
-	if (interactive) {
-		const confirmed = await confirm("Do you want to continue? (y/N) ");
+	// Ask for confirmation (skip with --yes)
+	if (!argv.yes) {
+		const {default: yesno} = await import("yesno");
+		const confirmed = await yesno({
+			question: "Do you want to continue? (y/N)",
+			defaultValue: false
+		});
 		if (!confirmed) {
 			process.stderr.write("Cancelled\n");
 			return;
