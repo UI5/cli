@@ -91,16 +91,16 @@ test.serial("ui5 cache clean: removes entries and reports", async (t) => {
 		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
 	// Simulate existing cache items
-	frameworkCacheGetCacheInfo.resolves({path: "framework/", size: 15 * 1024 * 1024, type: "directory"});
+	frameworkCacheGetCacheInfo.resolves({path: "framework/", size: 15 * 1024 * 1024});
 	buildCacheGetCacheInfo.resolves({
-		path: "buildCache/v0_7 (database records)", size: 8 * 1024 * 1024, type: "database"
+		path: "buildCache/v0_7 (database records)", size: 8 * 1024 * 1024
 	});
 
 	// Mock user confirmation
 	yesnoStub.resolves(true);
 
-	frameworkCacheCleanCache.resolves({path: "framework", type: "framework", size: 15 * 1024 * 1024});
-	buildCacheCleanCache.resolves({path: "buildCache/v0_7", type: "buildCache", size: 8 * 1024 * 1024});
+	frameworkCacheCleanCache.resolves({path: "framework", size: 15 * 1024 * 1024});
+	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 8 * 1024 * 1024});
 
 	argv["_"] = ["cache", "clean"];
 	await cache.handler(argv);
@@ -126,7 +126,7 @@ test.serial("ui5 cache clean: user cancels", async (t) => {
 		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
 	// Simulate existing cache items
-	frameworkCacheGetCacheInfo.resolves({path: "framework/", size: 5 * 1024 * 1024, type: "directory"});
+	frameworkCacheGetCacheInfo.resolves({path: "framework/", size: 5 * 1024 * 1024});
 	buildCacheGetCacheInfo.resolves(null);
 
 	// Mock user cancellation
@@ -162,13 +162,13 @@ test.serial("ui5 cache clean: formats byte sizes correctly", async (t) => {
 		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
 	// Test with B, KB sizes
-	frameworkCacheGetCacheInfo.resolves({path: "small", size: 512, type: "directory"});
-	buildCacheGetCacheInfo.resolves({path: "medium", size: 50 * 1024, type: "database"});
+	frameworkCacheGetCacheInfo.resolves({path: "small", size: 512});
+	buildCacheGetCacheInfo.resolves({path: "medium", size: 50 * 1024});
 
 	yesnoStub.resolves(true);
 
-	frameworkCacheCleanCache.resolves({path: "small", type: "directory", size: 512});
-	buildCacheCleanCache.resolves({path: "medium", type: "database", size: 50 * 1024});
+	frameworkCacheCleanCache.resolves({path: "small", size: 512});
+	buildCacheCleanCache.resolves({path: "medium", size: 50 * 1024});
 
 	argv["_"] = ["cache", "clean"];
 	await cache.handler(argv);
@@ -229,13 +229,13 @@ test.serial("ui5 cache clean --yes: skips confirmation prompt", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
 		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
-	frameworkCacheGetCacheInfo.resolves({path: "framework/", size: 10 * 1024 * 1024, type: "directory"});
+	frameworkCacheGetCacheInfo.resolves({path: "framework/", size: 10 * 1024 * 1024});
 	buildCacheGetCacheInfo.resolves({
-		path: "buildCache/v0_7 (database records)", size: 5 * 1024 * 1024, type: "database"
+		path: "buildCache/v0_7 (database records)", size: 5 * 1024 * 1024
 	});
 
-	frameworkCacheCleanCache.resolves({path: "framework", type: "framework", size: 10 * 1024 * 1024});
-	buildCacheCleanCache.resolves({path: "buildCache/v0_7", type: "buildCache", size: 5 * 1024 * 1024});
+	frameworkCacheCleanCache.resolves({path: "framework", size: 10 * 1024 * 1024});
+	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 5 * 1024 * 1024});
 
 	argv["_"] = ["cache", "clean"];
 	argv["yes"] = true;
@@ -259,12 +259,12 @@ test.serial("ui5 cache clean: single entry with zero size and GB formatting", as
 		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
 	// Single cache item with size 0 — covers singular "entry", no "freed", and size=0 branches
-	frameworkCacheGetCacheInfo.resolves({path: "framework/", size: 0, type: "directory"});
+	frameworkCacheGetCacheInfo.resolves({path: "framework/", size: 0});
 	buildCacheGetCacheInfo.resolves(null);
 
 	yesnoStub.resolves(true);
 
-	frameworkCacheCleanCache.resolves({path: "framework", type: "framework", size: 0});
+	frameworkCacheCleanCache.resolves({path: "framework", size: 0});
 
 	argv["_"] = ["cache", "clean"];
 	await cache.handler(argv);
@@ -282,9 +282,9 @@ test.serial("ui5 cache clean: single entry with zero size and GB formatting", as
 	frameworkCacheCleanCache.resetBehavior();
 	buildCacheGetCacheInfo.resetBehavior();
 	buildCacheCleanCache.resetBehavior();
-	frameworkCacheGetCacheInfo.resolves({path: "large", size: 2.5 * 1024 * 1024 * 1024, type: "directory"});
+	frameworkCacheGetCacheInfo.resolves({path: "large", size: 2.5 * 1024 * 1024 * 1024});
 	buildCacheGetCacheInfo.resolves(null);
-	frameworkCacheCleanCache.resolves({path: "large", type: "directory", size: 2.5 * 1024 * 1024 * 1024});
+	frameworkCacheCleanCache.resolves({path: "large", size: 2.5 * 1024 * 1024 * 1024});
 
 	argv["yes"] = true;
 	await cache.handler(argv);
