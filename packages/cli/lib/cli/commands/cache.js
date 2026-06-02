@@ -9,7 +9,7 @@ import CacheManager from "@ui5/project/build/cache/CacheManager";
 
 const cacheCommand = {
 	command: "cache",
-	describe: "Manage UI5 CLI cache",
+	describe: "Manage the UI5 CLI cache (downloaded framework packages and incremental build data)",
 	middlewares: [baseMiddleware],
 	handler: handleCache
 };
@@ -20,19 +20,22 @@ cacheCommand.builder = function(cli) {
 		.command("clean", "Remove all cached UI5 data", {
 			handler: handleCache,
 			builder: function(yargs) {
-				return yargs.option("yes", {
-					alias: "y",
-					describe: "Skip confirmation prompt (e.g. for CI)",
-					default: false,
-					type: "boolean",
-				});
+				return yargs
+					.option("yes", {
+						alias: "y",
+						describe: "Skip the confirmation prompt, e.g. for use in CI pipelines",
+						default: false,
+						type: "boolean",
+					})
+					.example("$0 cache clean",
+						"Remove all cached UI5 data after confirming the prompt")
+					.example("$0 cache clean --yes",
+						"Remove all cached UI5 data without confirmation (e.g. in CI)")
+					.example("UI5_DATA_DIR=/custom/path $0 cache clean",
+						"Remove cached data from a non-default UI5 data directory");
 			},
 			middlewares: [baseMiddleware],
-		})
-		.example("$0 cache clean",
-			"Remove all cached UI5 data")
-		.example("$0 cache clean --yes",
-			"Remove all cached UI5 data without confirmation (CI mode)");
+		});
 };
 
 const LABEL_FRAMEWORK = "UI5 Framework packages";

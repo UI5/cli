@@ -77,12 +77,13 @@ test("Command builder", async (t) => {
 	t.is(result, cliStub, "Builder returns cli instance");
 	t.is(cliStub.demandCommand.callCount, 1, "demandCommand called once");
 	t.is(cliStub.command.callCount, 1, "command called once");
-	t.is(cliStub.example.callCount, 2, "example called twice");
+	t.is(cliStub.example.callCount, 0, "example not called on parent command");
 });
 
 test.serial("Command definition is correct", (t) => {
 	t.is(t.context.cache.command, "cache");
-	t.is(t.context.cache.describe, "Manage UI5 CLI cache");
+	t.is(t.context.cache.describe,
+		"Manage the UI5 CLI cache (downloaded framework packages and incremental build data)");
 	t.is(typeof t.context.cache.builder, "function");
 	t.is(typeof t.context.cache.handler, "function");
 });
