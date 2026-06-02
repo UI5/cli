@@ -267,7 +267,6 @@ test.serial("getCacheInfo: returns info for cache with records", async (t) => {
 	t.truthy(result);
 	t.true(result.path.includes("buildCache"));
 	t.true(result.path.includes("v0_7"));
-	t.is(result.type, "database");
 	t.true(result.size > 0);
 });
 
@@ -302,7 +301,6 @@ test.serial("cleanCache: clears cache and returns result", async (t) => {
 	t.truthy(result);
 	t.true(result.path.includes("buildCache"));
 	t.true(result.path.includes("v0_7"));
-	t.is(result.type, "buildCache");
 	t.true(result.size >= 0);
 
 	// Verify cache is empty

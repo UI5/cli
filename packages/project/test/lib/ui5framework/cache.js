@@ -35,7 +35,6 @@ test("getCacheInfo: detects framework directory with files", async (t) => {
 	const result = await getCacheInfo(t.context.testDir);
 	t.truthy(result);
 	t.is(result.path, "framework/");
-	t.is(result.type, "directory");
 	t.true(result.size > 0);
 });
 
@@ -80,7 +79,6 @@ test("cleanCache: removes framework directory", async (t) => {
 	const result = await cleanCache(t.context.testDir);
 	t.truthy(result);
 	t.is(result.path, "framework");
-	t.is(result.type, "framework");
 	t.true(result.size > 0);
 
 	// Verify directory was removed

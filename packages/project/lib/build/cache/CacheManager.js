@@ -390,7 +390,7 @@ export default class CacheManager {
 	 *
 	 * @static
 	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
-	 * @returns {Promise<{path: string, size: number, type: string}|null>} Build cache info or null
+	 * @returns {Promise<{path: string, size: number}|null>} Build cache info or null
 	 */
 	static async getCacheInfo(ui5DataDir) {
 		const buildCacheDir = path.join(ui5DataDir, "buildCache");
@@ -404,7 +404,6 @@ export default class CacheManager {
 					return {
 						path: `buildCache/${CACHE_VERSION}`,
 						size,
-						type: "database"
 					};
 				}
 			} finally {
@@ -421,7 +420,7 @@ export default class CacheManager {
 	 *
 	 * @static
 	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
-	 * @returns {Promise<{path: string, type: string, size: number}|null>} Removal result or null
+	 * @returns {Promise<{path: string, size: number}|null>} Removal result or null
 	 */
 	static async cleanCache(ui5DataDir) {
 		const buildCacheDir = path.join(ui5DataDir, "buildCache");
@@ -434,7 +433,6 @@ export default class CacheManager {
 					const freedSize = storage.clearAllRecords();
 					return {
 						path: `buildCache/${CACHE_VERSION}`,
-						type: "buildCache",
 						size: freedSize
 					};
 				}

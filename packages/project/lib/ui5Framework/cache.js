@@ -35,7 +35,7 @@ async function getDirectorySize(dirPath) {
  * Get framework cache info.
  *
  * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
- * @returns {Promise<{path: string, size: number, type: string}|null>} Framework cache info or null
+ * @returns {Promise<{path: string, size: number}|null>} Framework cache info or null
  */
 export async function getCacheInfo(ui5DataDir) {
 	const frameworkDir = path.join(ui5DataDir, "framework");
@@ -46,7 +46,6 @@ export async function getCacheInfo(ui5DataDir) {
 			return {
 				path: "framework/",
 				size,
-				type: "directory"
 			};
 		}
 	} catch {
@@ -59,7 +58,7 @@ export async function getCacheInfo(ui5DataDir) {
  * Clean framework cache directory.
  *
  * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
- * @returns {Promise<{path: string, type: string, size: number}|null>} Removal result or null
+ * @returns {Promise<{path: string, size: number}|null>} Removal result or null
  */
 export async function cleanCache(ui5DataDir) {
 	const frameworkDir = path.join(ui5DataDir, "framework");
@@ -69,7 +68,6 @@ export async function cleanCache(ui5DataDir) {
 			await fs.rm(frameworkDir, {recursive: true, force: true});
 			return {
 				path: "framework",
-				type: "framework",
 				size
 			};
 		}
