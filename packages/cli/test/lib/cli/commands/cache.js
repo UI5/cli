@@ -29,13 +29,8 @@ test.beforeEach(async (t) => {
 	t.context.buildCacheGetCacheInfo = sinon.stub();
 	t.context.buildCacheCleanCache = sinon.stub();
 
-	// Mock readline to simulate user confirmation
-	const mockRLInterface = {
-		question: sinon.stub(),
-		close: sinon.stub()
-	};
-	t.context.readlineCreateInterfaceStub = sinon.stub().returns(mockRLInterface);
-	t.context.mockRLInterface = mockRLInterface;
+	// Mock yesno to simulate user confirmation
+	t.context.yesnoStub = sinon.stub();
 
 	t.context.cache = await esmock.p("../../../../lib/cli/commands/cache.js", {
 		"@ui5/project/config/Configuration": t.context.Configuration,
@@ -49,8 +44,8 @@ test.beforeEach(async (t) => {
 				static cleanCache = t.context.buildCacheCleanCache;
 			}
 		},
-		"node:readline": {
-			createInterface: t.context.readlineCreateInterfaceStub,
+		"yesno": {
+			default: t.context.yesnoStub,
 		},
 	});
 });
@@ -93,7 +88,7 @@ test.serial("ui5 cache clean: nothing to clean", async (t) => {
 
 test.serial("ui5 cache clean: removes entries and reports", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
-		buildCacheCleanCache, buildCacheGetCacheInfo, mockRLInterface} = t.context;
+		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
 	// Simulate existing cache items
 	frameworkCacheGetCacheInfo.resolves({path: "framework/", size: 15 * 1024 * 1024, type: "directory"});
@@ -102,9 +97,7 @@ test.serial("ui5 cache clean: removes entries and reports", async (t) => {
 	});
 
 	// Mock user confirmation
-	mockRLInterface.question.callsFake((question, callback) => {
-		callback("y");
-	});
+	yesnoStub.resolves(true);
 
 	frameworkCacheCleanCache.resolves({path: "framework", type: "framework", size: 15 * 1024 * 1024});
 	buildCacheCleanCache.resolves({path: "buildCache/v0_7", type: "buildCache", size: 8 * 1024 * 1024});
@@ -113,8 +106,8 @@ test.serial("ui5 cache clean: removes entries and reports", async (t) => {
 	await cache.handler(argv);
 
 	// Check that confirmation was asked
-	t.is(mockRLInterface.question.callCount, 1, "Should ask for confirmation");
-	t.true(mockRLInterface.question.firstCall.args[0].includes("continue"),
+	t.is(yesnoStub.callCount, 1, "Should ask for confirmation");
+	t.true(yesnoStub.firstCall.args[0].question.includes("continue"),
 		"Confirmation question should ask to continue");
 
 	// Check that cleanCache was called
@@ -130,22 +123,20 @@ test.serial("ui5 cache clean: removes entries and reports", async (t) => {
 
 test.serial("ui5 cache clean: user cancels", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
-		buildCacheCleanCache, buildCacheGetCacheInfo, mockRLInterface} = t.context;
+		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
 	// Simulate existing cache items
 	frameworkCacheGetCacheInfo.resolves({path: "framework/", size: 5 * 1024 * 1024, type: "directory"});
 	buildCacheGetCacheInfo.resolves(null);
 
 	// Mock user cancellation
-	mockRLInterface.question.callsFake((question, callback) => {
-		callback("n");
-	});
+	yesnoStub.resolves(false);
 
 	argv["_"] = ["cache", "clean"];
 	await cache.handler(argv);
 
 	// Check that confirmation was asked
-	t.is(mockRLInterface.question.callCount, 1, "Should ask for confirmation");
+	t.is(yesnoStub.callCount, 1, "Should ask for confirmation");
 
 	// Check that cleanup was NOT called
 	t.is(frameworkCacheCleanCache.callCount, 0, "frameworkCache.cleanCache should not be called when user cancels");
@@ -166,36 +157,15 @@ test.serial("Command definition is correct", (t) => {
 	t.is(typeof t.context.cache.handler, "function");
 });
 
-test.serial("ui5 cache clean: accepts 'yes' as confirmation", async (t) => {
-	const {cache, argv, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
-		buildCacheGetCacheInfo, mockRLInterface} = t.context;
-
-	frameworkCacheGetCacheInfo.resolves({path: "framework/", size: 1024, type: "directory"});
-	buildCacheGetCacheInfo.resolves(null);
-
-	mockRLInterface.question.callsFake((question, callback) => {
-		callback("yes");
-	});
-
-	frameworkCacheCleanCache.resolves({path: "framework", type: "framework", size: 1024});
-
-	argv["_"] = ["cache", "clean"];
-	await cache.handler(argv);
-
-	t.is(frameworkCacheCleanCache.callCount, 1, "frameworkCache.cleanCache should be called with 'yes' confirmation");
-});
-
 test.serial("ui5 cache clean: formats byte sizes correctly", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
-		buildCacheCleanCache, buildCacheGetCacheInfo, mockRLInterface} = t.context;
+		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
-	// Test with small bytes (B), KB, and GB sizes
-	frameworkCacheGetCacheInfo.resolves({path: "small", size: 512, type: "directory"}); // < 1024 = B
-	buildCacheGetCacheInfo.resolves({path: "medium", size: 50 * 1024, type: "database"}); // KB
+	// Test with B, KB sizes
+	frameworkCacheGetCacheInfo.resolves({path: "small", size: 512, type: "directory"});
+	buildCacheGetCacheInfo.resolves({path: "medium", size: 50 * 1024, type: "database"});
 
-	mockRLInterface.question.callsFake((question, callback) => {
-		callback("y");
-	});
+	yesnoStub.resolves(true);
 
 	frameworkCacheCleanCache.resolves({path: "small", type: "directory", size: 512});
 	buildCacheCleanCache.resolves({path: "medium", type: "database", size: 50 * 1024});
@@ -255,9 +225,9 @@ test.serial("ui5 cache clean: uses config.getUi5DataDir when no env var", async 
 	}
 });
 
-test.serial("ui5 cache clean --no-interactive: skips confirmation prompt", async (t) => {
+test.serial("ui5 cache clean --yes: skips confirmation prompt", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
-		buildCacheCleanCache, buildCacheGetCacheInfo, mockRLInterface} = t.context;
+		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
 	frameworkCacheGetCacheInfo.resolves({path: "framework/", size: 10 * 1024 * 1024, type: "directory"});
 	buildCacheGetCacheInfo.resolves({
@@ -268,11 +238,11 @@ test.serial("ui5 cache clean --no-interactive: skips confirmation prompt", async
 	buildCacheCleanCache.resolves({path: "buildCache/v0_7", type: "buildCache", size: 5 * 1024 * 1024});
 
 	argv["_"] = ["cache", "clean"];
-	argv["interactive"] = false;
+	argv["yes"] = true;
 	await cache.handler(argv);
 
 	// Confirmation should NOT be asked
-	t.is(mockRLInterface.question.callCount, 0, "Should not ask for confirmation in non-interactive mode");
+	t.is(yesnoStub.callCount, 0, "Should not ask for confirmation with --yes");
 
 	// Cleanup should still proceed
 	t.is(frameworkCacheCleanCache.callCount, 1, "frameworkCache.cleanCache should be called");
@@ -282,4 +252,43 @@ test.serial("ui5 cache clean --no-interactive: skips confirmation prompt", async
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes("following items from cache will be removed"), "Shows items to be removed");
 	t.true(allOutput.includes("Success"), "Shows success message");
+});
+
+test.serial("ui5 cache clean: single entry with zero size and GB formatting", async (t) => {
+	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
+		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
+
+	// Single cache item with size 0 — covers singular "entry", no "freed", and size=0 branches
+	frameworkCacheGetCacheInfo.resolves({path: "framework/", size: 0, type: "directory"});
+	buildCacheGetCacheInfo.resolves(null);
+
+	yesnoStub.resolves(true);
+
+	frameworkCacheCleanCache.resolves({path: "framework", type: "framework", size: 0});
+
+	argv["_"] = ["cache", "clean"];
+	await cache.handler(argv);
+
+	t.is(frameworkCacheCleanCache.callCount, 1, "frameworkCache.cleanCache should be called");
+	t.is(buildCacheCleanCache.callCount, 1, "buildCache.cleanCache should be called");
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("1 entry"), "Summary uses singular 'entry'");
+	t.false(allOutput.includes("freed"), "Should not show 'freed' for zero-size removal");
+
+	// Reset and test GB formatting
+	stderrWriteStub.resetHistory();
+	frameworkCacheGetCacheInfo.resetBehavior();
+	frameworkCacheCleanCache.resetBehavior();
+	buildCacheGetCacheInfo.resetBehavior();
+	buildCacheCleanCache.resetBehavior();
+	frameworkCacheGetCacheInfo.resolves({path: "large", size: 2.5 * 1024 * 1024 * 1024, type: "directory"});
+	buildCacheGetCacheInfo.resolves(null);
+	frameworkCacheCleanCache.resolves({path: "large", type: "directory", size: 2.5 * 1024 * 1024 * 1024});
+
+	argv["yes"] = true;
+	await cache.handler(argv);
+
+	const gbOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(gbOutput.includes("2.5 GB"), "Shows GB format");
 });
