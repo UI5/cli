@@ -545,13 +545,15 @@ export default class BuildCacheStorage {
 	hasRecords() {
 		const tables = ["content", "index_cache", "stage_metadata", "task_metadata", "result_metadata"];
 		for (const table of tables) {
-			const count = this.#db.prepare(`SELECT COUNT(*) as count FROM ${table}`).get()?.count ?? 0;
-			if (count > 0) {
+			const {is_populated: isPopulated} =
+				this.#db.prepare(`SELECT EXISTS(SELECT 1 FROM ${table} LIMIT 1) as is_populated`).get();
+			if (isPopulated) {
 				return true;
 			}
 		}
 		return false;
 	}
+
 	/**
 	 * Closes the database connection
 	 */
