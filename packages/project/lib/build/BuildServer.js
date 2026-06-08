@@ -6,6 +6,10 @@ import {SourceChangedDuringBuildError} from "./cache/ProjectBuildCache.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("build:BuildServer");
 
+// Debounce window for the `sourcesChanged` event so a burst of file changes
+// results in a single notification.
+const SOURCES_CHANGED_DEBOUNCE_MS = 100;
+
 class AbortBuildError extends Error {
 	constructor(message) {
 		super(message);
@@ -44,6 +48,7 @@ class BuildServer extends EventEmitter {
 	#pendingBuildRequest = new Set();
 	#activeBuild = null;
 	#processBuildRequestsTimeout;
+	#sourcesChangedTimeout;
 	#destroyed = false;
 	#allReader;
 	#rootReader;
@@ -154,6 +159,7 @@ class BuildServer extends EventEmitter {
 	async destroy() {
 		this.#destroyed = true;
 		clearTimeout(this.#processBuildRequestsTimeout);
+		clearTimeout(this.#sourcesChangedTimeout);
 		await this.#watchHandler.destroy();
 		try {
 			if (this.#activeBuild) {
@@ -308,10 +314,14 @@ class BuildServer extends EventEmitter {
 			this.#resourceChangeQueue.set(project.getName(), new Set([filePath]));
 		}
 
-		// : Emit event debounced
-		// Emit change event immediately so that consumers can react to it (like browser reloading)
-		// const changedResourcePaths = [...changes.values()].flat();
-		// this.emit("sourcesChanged", changedResourcePaths);
+		// Debounced emit so a burst of file changes results in a single reload notification
+		if (this.#sourcesChangedTimeout) {
+			clearTimeout(this.#sourcesChangedTimeout);
+		}
+		this.#sourcesChangedTimeout = setTimeout(() => {
+			this.#sourcesChangedTimeout = null;
+			this.emit("sourcesChanged");
+		}, SOURCES_CHANGED_DEBOUNCE_MS);
 	}
 
 	#flushResourceChanges() {
@@ -556,3 +566,11 @@ class ProjectBuildStatus {
 
 
 export default BuildServer;
+
+// Export internals for testing only
+/* istanbul ignore else */
+if (process.env.NODE_ENV === "test") {
+	BuildServer.__internals__ = {
+		SOURCES_CHANGED_DEBOUNCE_MS
+	};
+}

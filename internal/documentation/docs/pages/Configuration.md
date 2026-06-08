@@ -650,6 +650,7 @@ server:
   settings:
     httpPort: 1337
     httpsPort: 1443
+    liveReload: true
 ```
 
 :::
@@ -661,6 +662,8 @@ If the default port is already in use, the next highest free port will be used.
 A project can also configure alternative default ports. If the configured port is already in use, an error will be thrown.
 
 The default and configured server ports can always be overwritten with the CLI parameter `--port`.
+
+The `liveReload` setting controls whether the browser automatically reloads when project sources change. It defaults to `true` when running `ui5 serve` and can be overridden via the CLI parameter `--live-reload`. Requires [Specification Version](#specification-versions) 5.0 or higher.
 
 ## Extension Configuration
 
@@ -808,6 +811,10 @@ Version | UI5 CLI Release
 **0.1** | v0.0.1+
 
 ### Specification Version 5.0
+
+**Features:**
+
+- Adds new server setting [`server.settings.liveReload`](#server-configuration) to control automatic browser reload on source changes
 
 Specification Version 5.0 projects are supported by [UI5 CLI](https://github.com/UI5/cli) v5.0.0 and above.
 
