@@ -36,6 +36,13 @@ serve.builder = function(cli) {
 			default: false,
 			type: "boolean"
 		})
+		.option("live-reload", {
+			describe:
+				"Automatically reload the browser when project sources change. " +
+				"Overrides the 'liveReload' setting in the project's server configuration",
+			defaultDescription: "true",
+			type: "boolean"
+		})
 		.option("accept-remote-connections", {
 			describe: "Accept remote connections. By default the server only accepts connections from localhost",
 			default: false,
@@ -109,7 +116,7 @@ serve.builder = function(cli) {
 				"The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the cache only and " +
 				"does not create any requests. 'Off' invalidates any existing cache and updates from the repository",
 			type: "string",
-			defaultDescription: "Default", // Use "defaultdescription" to allow undefined (needed for evaluation)
+			defaultDescription: "Default", // Use "defaultDescription" to allow undefined (needed for evaluation)
 			choices: ["Default", "Force", "Off"],
 		})
 		.example("ui5 serve", "Start a web server for the current project")
@@ -165,11 +172,22 @@ serve.handler = async function(argv) {
 		}
 	}
 
+	let liveReload = argv.liveReload;
+	if (liveReload === undefined) {
+		const serverSettings = graph.getRoot().getServerSettings();
+		if (serverSettings && serverSettings.liveReload !== undefined) {
+			liveReload = serverSettings.liveReload;
+		} else {
+			liveReload = true;
+		}
+	}
+
 	const serverConfig = {
 		port,
 		changePortIfInUse,
 		h2: argv.h2,
 		simpleIndex: !!argv.simpleIndex,
+		liveReload: !!liveReload,
 		acceptRemoteConnections: !!argv.acceptRemoteConnections,
 		cert: argv.h2 ? argv.cert : undefined,
 		key: argv.h2 ? argv.key : undefined,
