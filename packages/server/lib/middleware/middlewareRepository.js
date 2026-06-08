@@ -2,6 +2,7 @@ const middlewareInfos = {
 	compression: {path: "compression"},
 	cors: {path: "cors"},
 	csp: {path: "./csp.js"},
+	liveReloadClient: {path: "./liveReloadClient.js"},
 	serveResources: {path: "./serveResources.js"},
 	serveIndex: {path: "./serveIndex.js"},
 	discovery: {path: "./discovery.js"},

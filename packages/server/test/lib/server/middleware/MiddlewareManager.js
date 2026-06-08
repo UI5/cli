@@ -462,7 +462,7 @@ test("addStandardMiddleware: Adds standard middleware in correct order", async (
 	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
 	await middlewareManager.addStandardMiddleware();
 
-	t.is(addMiddlewareStub.callCount, 9, "Expected count of middleware got added");
+	t.is(addMiddlewareStub.callCount, 10, "Expected count of middleware got added");
 	const addedMiddlewareNames = [];
 	for (let i = 0; i < addMiddlewareStub.callCount; i++) {
 		addedMiddlewareNames.push(addMiddlewareStub.getCall(i).args[0]);
@@ -471,6 +471,7 @@ test("addStandardMiddleware: Adds standard middleware in correct order", async (
 		"csp",
 		"compression",
 		"cors",
+		"liveReloadClient",
 		"discovery",
 		"serveResources",
 		"testRunner",
