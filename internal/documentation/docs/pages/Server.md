@@ -80,6 +80,8 @@ To prevent intermediate proxies from idle-closing the WebSocket, the client send
 
 When the WebSocket connection is lost (e.g. because the server was restarted), the client polls the WebSocket endpoint every second and reloads the page once the server accepts connections again. While the browser tab is hidden, polling pauses until it becomes visible again.
 
+Live reload is enabled by default with `ui5 serve`. It can be controlled via the `--live-reload` CLI flag or, for projects with specVersion 5.0 or higher, via the `server.settings.liveReload` configuration option. See [Configuration](./Configuration.md) for details.
+
 ### serveResources
 This middleware resolves requests using the [ui5-fs](https://github.com/SAP/ui5-fs)-file system abstraction.
 
