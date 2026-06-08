@@ -40,6 +40,7 @@ A project can also add custom middleware to the server by using the [Custom Serv
 | `csp` | See chapter [csp](#csp) |
 | `compression` | Standard [Express compression middleware](http://expressjs.com/en/resources/middleware/compression.html) |
 | `cors` | Standard [Express cors middleware](http://expressjs.com/en/resources/middleware/cors.html) |
+| `liveReloadClient` | See chapter [liveReload](#livereload) |
 | `discovery` |  See chapter [discovery](#discovery) |
 | `serveResources` | See chapter [serveResources](#serveresources) |
 | `testRunner` | See chapter [testRunner](#testrunner) |
@@ -66,6 +67,18 @@ With `serveCSPReports` set to `true`, the CSP reports are collected and can be d
 ### discovery
 
 This middleware lists project files with URLs under several `/discovery` endpoints. This is exclusively used by the OpenUI5 test suite application.
+
+### liveReload
+
+When live reload is active, the UI5 server opens a WebSocket connection that notifies the browser of source changes and triggers a page reload.
+
+Reloads are driven by the `BuildServer`, which emits a debounced `sourcesChanged` event whenever watched source files change. A burst of changes therefore results in a single reload notification.
+
+The `liveReloadClient` middleware serves the client script at `/.ui5/liveReload/client.js`. The script tag is automatically injected into HTML responses by the `serveResources` middleware.
+
+To prevent intermediate proxies from idle-closing the WebSocket, the client sends a keepalive message every 30 seconds while the connection is open. The server echoes the same message back.
+
+When the WebSocket connection is lost (e.g. because the server was restarted), the client polls the WebSocket endpoint every second and reloads the page once the server accepts connections again. While the browser tab is hidden, polling pauses until it becomes visible again.
 
 ### serveResources
 This middleware resolves requests using the [ui5-fs](https://github.com/SAP/ui5-fs)-file system abstraction.
