@@ -204,6 +204,125 @@ test.serial("Serve application.a, request application resource", async (t) => {
 	t.true(servedFileContent.includes(`test("line added");`), "Resource contains changed file content");
 });
 
+test.serial("Serve application.a, create and delete a source file", async (t) => {
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
+
+	await fixtureTester.serveProject();
+
+	// Create a new source file in application.a *before* the first resource request
+	const createdFilePath = `${fixtureTester.fixturePath}/webapp/created.js`;
+	await fs.writeFile(createdFilePath, `test("created file");\n`);
+	await fixtureTester.fireWatcherEvent("create", createdFilePath);
+
+	// #1 first request — initial build picks up the just-created file
+	const createdRes = await fixtureTester.requestResource({
+		resource: "/created.js",
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+	const createdContent = await createdRes.getString();
+	t.true(createdContent.includes(`test("created file");`),
+		"Created resource contains the expected content");
+
+	// #2 request again with cache — no rebuild expected
+	await fixtureTester.requestResource({
+		resource: "/created.js",
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// Create a *second* new file after the first build has populated the persistent cache
+	const anotherFilePath = `${fixtureTester.fixturePath}/webapp/another.js`;
+	await fs.writeFile(anotherFilePath, `test("another file");\n`);
+	await fixtureTester.fireWatcherEvent("create", anotherFilePath);
+
+	// #3 request the second created resource — rebuild reuses cached task results
+	const anotherRes = await fixtureTester.requestResource({
+		resource: "/another.js",
+		assertions: {
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"escapeNonAsciiCharacters",
+						"replaceCopyright",
+						"enhanceManifest",
+						"generateFlexChangesBundle",
+					]
+				}
+			}
+		}
+	});
+	const anotherContent = await anotherRes.getString();
+	t.true(anotherContent.includes(`test("another file");`),
+		"Second created resource contains the expected content");
+
+	// Delete the second file again
+	await fs.rm(anotherFilePath);
+	await fixtureTester.fireWatcherEvent("delete", anotherFilePath);
+
+	// #4 the originally created file is still served and the cache from builds #1 and #2 is reused
+	await fixtureTester.requestResource({
+		resource: "/created.js",
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// #5 the second file is no longer served, but requesting it triggers a build of the dependencies
+	// because the file is not known anymore and might come from a different project.
+	// Note: This is special for applications, which are served at root level. For libraries, the server
+	// can determine whether a resources is inside a project namespace and only trigger a build for the affected
+	// project. The logic could be improved, especially like in this case where the requested resource is outside
+	// of /resources or /test-resources.
+	await fixtureTester.requestResource({
+		resource: "/another.js",
+		notFound: true,
+		assertions: {
+			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+			}
+		}
+	});
+
+	// Delete the first source file again
+	await fs.rm(createdFilePath);
+	await fixtureTester.fireWatcherEvent("delete", createdFilePath);
+
+	// #6 request the deleted resource — must no longer be served
+	// Partial rebuild is needed as there is no complete cache of the project without the file
+	await fixtureTester.requestResource({
+		resource: "/created.js",
+		notFound: true,
+		assertions: {
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"escapeNonAsciiCharacters",
+						"replaceCopyright",
+						"enhanceManifest",
+						"generateFlexChangesBundle",
+					]
+				}
+			}
+		}
+	});
+
+	// Sanity check: the original /test.js is still served from the rebuilt project
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {}
+		}
+	});
+});
+
 test.serial("Serve application.a, request library resource", async (t) => {
 	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
 
@@ -973,9 +1092,14 @@ class FixtureTester {
 		this._reader = this.buildServer.getReader();
 	}
 
-	async requestResource({resource, assertions}) {
+	async requestResource({resource, notFound = false, assertions}) {
 		this._sinon.resetHistory();
 		const res = await this._reader.byPath(resource);
+		if (notFound) {
+			this._t.is(res, null, `Resource '${resource}' must not be served`);
+		} else {
+			this._t.truthy(res, `Resource '${resource}' must be served`);
+		}
 		// Apply assertions if provided
 		if (assertions) {
 			this._assertBuild(assertions);
