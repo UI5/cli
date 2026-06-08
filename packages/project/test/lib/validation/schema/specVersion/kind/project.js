@@ -285,3 +285,47 @@ test("Legacy: Special characters in name (module)", async (t) => {
 		}
 	});
 });
+
+test("server.settings.liveReload (specVersion 5.0)", async (t) => {
+	await assertValidation(t, {
+		"specVersion": "5.0",
+		"type": "application",
+		"metadata": {
+			"name": "my-application"
+		},
+		"server": {
+			"settings": {
+				"liveReload": true
+			}
+		}
+	});
+});
+
+test("server.settings.liveReload (legacy specVersion)", async (t) => {
+	await assertValidation(t, {
+		"specVersion": "4.0",
+		"type": "application",
+		"metadata": {
+			"name": "my-application"
+		},
+		"server": {
+			"settings": {
+				"liveReload": true
+			}
+		}
+	}, [{
+		instancePath: "/server/settings",
+		keyword: "errorMessage",
+		message: "The 'liveReload' setting is only supported with specVersion '5.0' and higher.",
+		params: {
+			errors: [{
+				emUsed: true,
+				instancePath: "/server/settings",
+				keyword: "not",
+				message: "must NOT be valid",
+				params: {},
+				schemaPath: "#/allOf/1/then/properties/server/properties/settings/not",
+			}],
+		}
+	}]);
+});

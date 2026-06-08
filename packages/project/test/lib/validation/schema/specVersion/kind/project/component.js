@@ -960,6 +960,21 @@ SpecificationVersion.getVersionsForRange(">=5.0").forEach(function(specVersion) 
 			},
 		}]);
 	});
+
+	test(`Server liveReload setting (specVersion ${specVersion})`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "component",
+			"metadata": {
+				"name": "my.component"
+			},
+			"server": {
+				"settings": {
+					"liveReload": true
+				}
+			}
+		});
+	});
 });
 
 project.defineTests(test, assertValidation, "component");

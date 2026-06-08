@@ -265,6 +265,38 @@ SpecificationVersion.getVersionsForRange(">=4.0").forEach(function(specVersion) 
 			},
 		]);
 	});
+
+	test(`Server liveReload setting (specVersion ${specVersion})`, async (t) => {
+		const config = {
+			"specVersion": specVersion,
+			"type": "library",
+			"metadata": {
+				"name": "my.library"
+			},
+			"server": {
+				"settings": {
+					"liveReload": true
+				}
+			}
+		};
+		if (new SpecificationVersion(specVersion).gte("5.0")) {
+			await assertValidation(t, config);
+		} else {
+			await assertValidation(t, config, [{
+				instancePath: "/server/settings",
+				keyword: "errorMessage",
+				message: "The 'liveReload' setting is only supported with specVersion '5.0' and higher.",
+				params: {
+					errors: [{
+						instancePath: "/server/settings",
+						keyword: "not",
+						message: "must NOT be valid",
+						params: {},
+					}],
+				}
+			}]);
+		}
+	});
 });
 
 SpecificationVersion.getVersionsForRange("2.0 - 3.2").forEach(function(specVersion) {

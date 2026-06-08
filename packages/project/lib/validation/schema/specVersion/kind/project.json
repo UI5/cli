@@ -24,6 +24,33 @@
 					}
 				}
 			}
+		},
+		{
+			"if": {
+				"type": "object",
+				"properties": {
+					"specVersion": {
+						"not": {"const": "5.0"}
+					}
+				}
+			},
+			"then": {
+				"type": "object",
+				"properties": {
+					"server": {
+						"type": "object",
+						"properties": {
+							"settings": {
+								"type": "object",
+								"not": {
+									"required": ["liveReload"]
+								},
+								"errorMessage": "The 'liveReload' setting is only supported with specVersion '5.0' and higher."
+							}
+						}
+					}
+				}
+			}
 		}
 	],
 	"properties": {
@@ -691,6 +718,9 @@
 						},
 						"httpsPort": {
 							"type": "number"
+						},
+						"liveReload": {
+							"type": "boolean"
 						}
 					}
 				},
