@@ -1,15 +1,92 @@
 import test from "ava";
 import sinonGlobal from "sinon";
+import esmock from "esmock";
 import {fileURLToPath} from "node:url";
 import {setTimeout} from "node:timers/promises";
 import fs from "node:fs/promises";
 import {appendFileSync} from "node:fs";
-import {graphFromPackageDependencies} from "../../../lib/graph/graph.js";
+import path from "node:path";
 import {setLogLevel} from "@ui5/logger";
 import Cache from "../../../lib/build/cache/Cache.js";
 
 // Ensures that all logging code paths are tested
 setLogLevel("silly");
+
+// Mock @parcel/watcher for the entire import tree reachable from graph.js so the build server's
+// WatchHandler does not try to subscribe to real FSEvents/inotify/ReadDirectoryChangesW handles.
+// Tests fire watcher events deterministically via FixtureTester#fireWatcherEvent instead of
+// waiting for OS-level event delivery, which is both flaky (timing-dependent) and impossible
+// inside sandboxed environments where FSEvents/inotify access is restricted.
+const watcherMock = createParcelWatcherMock();
+const {graphFromPackageDependencies} = await esmock.p("../../../lib/graph/graph.js", {}, {
+	"@parcel/watcher": {
+		default: watcherMock.api,
+		...watcherMock.api,
+	},
+});
+
+function createParcelWatcherMock() {
+	// One entry per active subscription. WatchHandler subscribes once per source path per project,
+	// so a single project can produce 1..N entries (e.g. Library has src + test paths).
+	// Subscription paths are stored normalized to native separators (path.normalize) so prefix
+	// matching works regardless of whether tests pass POSIX-style paths on Windows.
+	const subscriptions = [];
+
+	const api = {
+		async subscribe(subPath, callback) {
+			const subscription = {path: path.normalize(subPath), callback};
+			subscriptions.push(subscription);
+			return {
+				async unsubscribe() {
+					const idx = subscriptions.indexOf(subscription);
+					if (idx !== -1) {
+						subscriptions.splice(idx, 1);
+					}
+				},
+			};
+		},
+	};
+
+	// Find the subscription whose watched path is the longest path-segment prefix of `filePath`,
+	// i.e. the callback that the real watcher would have invoked for an event on that file.
+	// `filePath` is expected to already be in native form.
+	function findSubscription(filePath) {
+		let match = null;
+		for (const sub of subscriptions) {
+			const isPrefix = filePath === sub.path ||
+				filePath.startsWith(sub.path + path.sep);
+			if (isPrefix && (!match || sub.path.length > match.path.length)) {
+				match = sub;
+			}
+		}
+		return match;
+	}
+
+	async function fire(type, filePath) {
+		// Tests build paths via template strings ("${fixturePath}/foo/bar"), which produces
+		// POSIX-style separators on Windows. The real @parcel/watcher always emits native paths,
+		// and WatchHandler/getVirtualPath compare against fsPath.join() output, so normalize
+		// before both matching and dispatch.
+		const nativePath = path.normalize(filePath);
+		const sub = findSubscription(nativePath);
+		if (!sub) {
+			throw new Error(
+				`No watcher subscription registered for path '${nativePath}'. ` +
+				`Active subscriptions: ${subscriptions.map((s) => s.path).join(", ") || "(none)"}`);
+		}
+		sub.callback(null, [{type, path: nativePath}]);
+		// Yield to the microtask queue so the synchronous "change" handler in WatchHandler and
+		// the resulting BuildServer#_projectResourceChanged invalidation propagate before the
+		// next request enqueues a build.
+		await new Promise((resolve) => setImmediate(resolve));
+	}
+
+	function reset() {
+		subscriptions.length = 0;
+	}
+
+	return {api, fire, reset};
+}
 
 test.beforeEach((t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
@@ -29,6 +106,7 @@ test.beforeEach((t) => {
 
 test.afterEach.always(async (t) => {
 	await t.context.fixtureTester.teardown();
+	watcherMock.reset();
 	t.context.sinon.restore();
 
 	process.off("ui5.log", t.context.logEventStub);
@@ -49,21 +127,21 @@ test.serial("Serve application.a, initial file changes", async (t) => {
 	// Directly change a source file in application.a before requesting it
 	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
 	await fs.appendFile(changedFilePath, `\ntest("initial change");\n`);
+	await fixtureTester.fireWatcherEvent("update", changedFilePath);
 
 	// Request the changed resource immediately
 	const resourceRequestPromise = fixtureTester.requestResource({
 		resource: "/test.js"
 	});
 
-	await setTimeout(500);
-
 	// Directly change the source file again, which should abort the current build and trigger a new one
 	await fs.appendFile(changedFilePath, `\ntest("second change");\n`);
+	await fixtureTester.fireWatcherEvent("update", changedFilePath);
 	await fs.appendFile(changedFilePath, `\ntest("third change");\n`);
+	await fixtureTester.fireWatcherEvent("update", changedFilePath);
 
 	// Wait for the resource to be served
 	await resourceRequestPromise;
-	await setTimeout(500);
 
 	const resource2 = await fixtureTester.requestResource({
 		resource: "/test.js"
@@ -101,8 +179,7 @@ test.serial("Serve application.a, request application resource", async (t) => {
 	// Change a source file in application.a
 	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
 	await fs.appendFile(changedFilePath, `\ntest("line added");\n`);
-
-	await setTimeout(500); // Wait for the file watcher to detect and propagate the change
+	await fixtureTester.fireWatcherEvent("update", changedFilePath);
 
 	// #3 request with cache and changes
 	const res = await fixtureTester.requestResource({
@@ -158,8 +235,7 @@ test.serial("Serve application.a, request library resource", async (t) => {
 			`<documentation>Library A (updated #1)</documentation>`
 		)
 	);
-
-	await setTimeout(500); // Wait for the file watcher to detect and propagate the change
+	await fixtureTester.fireWatcherEvent("update", changedFilePath);
 
 	// #3 request with cache and changes
 	const dotLibraryResource = await fixtureTester.requestResource({
@@ -236,8 +312,7 @@ test.serial("Serve library", async (t) => {
 			` */\n// Test 1`
 		)
 	);
-
-	await setTimeout(500); // Wait for the file watcher to detect and propagate the change
+	await fixtureTester.fireWatcherEvent("update", changedFilePath);
 
 	// #3 request with cache and changes
 	const resourceContent1 = await fixtureTester.requestResource({
@@ -266,8 +341,7 @@ test.serial("Serve library", async (t) => {
 	// Restore original file content
 
 	await fs.writeFile(changedFilePath, originalContent);
-
-	await setTimeout(500); // Wait for the file watcher to detect and propagate the change
+	await fixtureTester.fireWatcherEvent("update", changedFilePath);
 
 	// #4 request with cache (no changes)
 	const resourceContent2 = await fixtureTester.requestResource({
@@ -310,6 +384,7 @@ test.serial("Serve application.a, request application resource AND library resou
 	// Change a source file in application.a and library.a
 	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
 	await fs.appendFile(changedFilePath, `\ntest("line added");\n`);
+	await fixtureTester.fireWatcherEvent("update", changedFilePath);
 	const changedFilePath2 = `${fixtureTester.fixturePath}/node_modules/collection/library.a/src/library/a/.library`;
 	await fs.writeFile(
 		changedFilePath2,
@@ -318,8 +393,7 @@ test.serial("Serve application.a, request application resource AND library resou
 			`<documentation>Library A (updated #1)</documentation>`
 		)
 	);
-
-	await setTimeout(500); // Wait for the file watcher to detect and propagate the changes
+	await fixtureTester.fireWatcherEvent("update", changedFilePath2);
 
 	// #3 request with cache and changes
 	const [resource1, resource2] = await fixtureTester.requestResources({
@@ -381,8 +455,7 @@ test.serial("Serve application.a with --cache=Default", async (t) => {
 	// Change a source file in application.a
 	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
 	await fs.appendFile(changedFilePath, `\ntest("line added for cache test");\n`);
-
-	await setTimeout(500); // Wait for the file watcher to detect and propagate the changes
+	await fixtureTester.fireWatcherEvent("update", changedFilePath);
 
 	// #3: Request with valid cache, source changes --> only affected tasks rebuild
 	await fixtureTester.requestResource({
@@ -433,8 +506,7 @@ test.serial("Serve application.a with --cache=Off", async (t) => {
 	// Change a source file in application.a
 	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
 	await fs.appendFile(changedFilePath, `\ntest("line added for ReadOnly test");\n`);
-
-	await setTimeout(500); // Wait for the file watcher to detect and propagate the changes
+	await fixtureTester.fireWatcherEvent("update", changedFilePath);
 
 	await fixtureTester.requestResource({
 		resource: "/test.js",
@@ -517,8 +589,7 @@ test.serial("Serve application.a with --cache=ReadOnly", async (t) => {
 	// Change a source file in application.a
 	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
 	await fs.appendFile(changedFilePath, `\ntest("line added for ReadOnly test");\n`);
-
-	await setTimeout(500); // Wait for the file watcher to detect and propagate the changes
+	await fixtureTester.fireWatcherEvent("update", changedFilePath);
 
 	// #3: Request with cache=ReadOnly --> affected tasks rebuild, BUT cache not updated
 	await fixtureTester.requestResource({
@@ -595,8 +666,7 @@ test.serial("Serve application.a with --cache=Force (1)", async (t) => {
 	// Change a source file in application.a
 	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
 	await fs.appendFile(changedFilePath, `\ntest("line added for Force test");\n`);
-
-	await setTimeout(500); // Wait for the file watcher to detect and propagate the changes
+	await fixtureTester.fireWatcherEvent("update", changedFilePath);
 
 	// #3: Request with cache=Force --> ERROR (cache invalid due to source changes)
 	const error = await t.throwsAsync(async () => {
@@ -796,7 +866,7 @@ test.serial("Source change during second build retries cleanly without no_cache 
 	// path here: a real modification needs to flow through _projectResourceChanged so the
 	// project transitions to INVALIDATED and the next request enqueues a rebuild.
 	await fs.writeFile(changedFilePath, originalContent + "\n// pre-build-2 change\n");
-	await setTimeout(500); // let the watcher fire and settle
+	await fixtureTester.fireWatcherEvent("update", changedFilePath);
 
 	// Now suppress further watcher-driven aborts. The mid-build modification below is meant
 	// to flow through #revalidateSourceIndex inside allTasksCompleted, *not* through the
@@ -921,6 +991,13 @@ class FixtureTester {
 			this._assertBuild(assertions);
 		}
 		return returnedResources;
+	}
+
+	// Fires a synthetic watcher event through the in-process @parcel/watcher mock. Replaces the
+	// real-world cycle of "modify file on disk -> wait for the OS to surface the FS event" with
+	// a deterministic in-process call so tests can drive change notifications precisely.
+	async fireWatcherEvent(type, filePath) {
+		await watcherMock.fire(type, filePath);
 	}
 
 	_assertBuild(assertions) {
