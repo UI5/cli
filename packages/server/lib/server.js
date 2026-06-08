@@ -1,6 +1,8 @@
+import {getRandomValues} from "node:crypto";
 import express from "express";
 import portscanner from "portscanner";
 import MiddlewareManager from "./middleware/MiddlewareManager.js";
+import attachLiveReloadServer from "./liveReload/server.js";
 import {createReaderCollection} from "@ui5/fs/resourceFactory";
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
 import {getLogger} from "@ui5/logger";
@@ -121,6 +123,7 @@ async function _addSsl({app, key, cert}) {
  * @param {string} [options.key] Path to private key to be used for https
  * @param {string} [options.cert] Path to certificate to be used for for https
  * @param {boolean} [options.simpleIndex=false] Use a simplified view for the server directory listing
+ * @param {boolean} [options.liveReload=false] Automatically reload connected browsers when project sources change
  * @param {boolean} [options.acceptRemoteConnections=false] If true, listens to remote connections and
  * 															not only to localhost connections
  * @param {boolean|module:@ui5/server.SAPTargetCSPOptions} [options.sendSAPTargetCSP=false]
@@ -142,7 +145,7 @@ async function _addSsl({app, key, cert}) {
 export async function serve(graph, {
 	port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
 	acceptRemoteConnections = false, sendSAPTargetCSP = false,
-	simpleIndex = false, serveCSPReports = false, cache = Cache.Default,
+	simpleIndex = false, liveReload = false, serveCSPReports = false, cache = Cache.Default,
 	ui5DataDir,
 }, error) {
 	const rootProject = graph.getRoot();
@@ -203,6 +206,13 @@ export async function serve(graph, {
 		}
 	});
 
+	// Random 72 bits (9 * 8 bits), base64url-encoded to a 12-character string, should be sufficient for uniqueness.
+	// OWASP recommends at least 64 bits of entropy for session IDs:
+	// https://owasp.org/www-community/vulnerabilities/Insufficient_Session-ID_Length
+	const webSocketToken = liveReload ?
+		Buffer.from(getRandomValues(new Uint8Array(9))).toString("base64url") :
+		null;
+
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject,
@@ -211,7 +221,11 @@ export async function serve(graph, {
 		options: {
 			sendSAPTargetCSP,
 			serveCSPReports,
-			simpleIndex
+			simpleIndex,
+			liveReload: {
+				active: liveReload,
+				token: webSocketToken
+			}
 		}
 	});
 
@@ -236,10 +250,16 @@ export async function serve(graph, {
 		throw err;
 	}
 
+	let liveReloadHandle;
+	if (liveReload) {
+		liveReloadHandle = attachLiveReloadServer({httpServer: server, buildServer, token: webSocketToken});
+	}
+
 	return {
 		h2,
 		port,
 		close: function(callback) {
+			liveReloadHandle?.close();
 			buildServer.destroy().then(() => {
 				server.close(callback);
 			}, () => {
