@@ -17,6 +17,8 @@ Or update your global install via: `npm i --global @ui5/cli@next`
 
 - **Rename: Command Option `--cache-mode` is now `--snapshot-cache`**
 
+- **@ui5/server: Live Reload is enabled by default for `ui5 serve`**
+
 
 ## Node.js and npm Version Support
 
@@ -205,6 +207,19 @@ Delete the custom `test/Test.qunit.html` file from your test directory. This fil
 
 Depending on your project setup, you might need to update additional paths in configuration files or test runners to reflect the new structure.
 The test suite is now served under the standard `/test-resources/` path with the component's full namespace (e.g. `/test-resources/sap/ui/demo/todo/testsuite.qunit.html`).
+
+## Live Reload
+
+UI5 CLI v5 introduces a built-in [Live Reload](../pages/Server.md#livereload) feature for the development server. When running `ui5 serve`, the browser automatically reloads whenever project sources change. Live Reload is implemented via a WebSocket connection.
+
+Live Reload is **enabled by default**. It can be controlled via:
+
+- The new `--live-reload` CLI flag for `ui5 serve` (defaults to `true`). Pass `--no-live-reload` to disable it.
+- The new `server.settings.liveReload` configuration option in `ui5.yaml`. This setting is only available with [Specification Version 5.0](../pages/Configuration#specification-version-5-0) and higher.
+
+::: warning Custom Live Reload Middleware
+If your project uses a custom middleware that provides live reload functionality (e.g. [@sap-ux/reload-middleware](https://www.npmjs.com/package/@sap-ux/reload-middleware) or [ui5-middleware-livereload](https://www.npmjs.com/package/ui5-middleware-livereload)), the page may refresh more often than necessary when combined with the built-in feature. When upgrading, either remove the custom middleware or disable the built-in Live Reload via the `--no-live-reload` CLI flag or the `server.settings.liveReload` configuration option.
+:::
 
 ## Removal of Standard Server Middleware
 
