@@ -61,13 +61,19 @@ function formatSize(bytes) {
 }
 
 /**
- * Format a count with its singular/plural word, e.g. "340 files" or "1 file".
+ * Format a library stats detail string, e.g. "2 projects, 3 libraries, 4 versions".
+ * Each word is independently singular/plural.
  *
- * @param {number} count
+ * @param {number} libraryCount
+ * @param {number} projectCount
+ * @param {number} versionCount
  * @returns {string}
  */
-function formatFileCount(count) {
-	return `${count} ${count === 1 ? "file" : "files"}`;
+function formatLibraryStats(libraryCount, projectCount, versionCount) {
+	const p = `${projectCount} ${projectCount === 1 ? "project" : "projects"}`;
+	const l = `${libraryCount} ${libraryCount === 1 ? "library" : "libraries"}`;
+	const v = `${versionCount} ${versionCount === 1 ? "version" : "versions"}`;
+	return `${p}, ${l}, ${v}`;
 }
 
 /**
@@ -97,7 +103,7 @@ async function handleCache(argv) {
 		return;
 	}
 
-	// Inform the user immediately — getCacheInfo (especially countFiles) may take a moment
+	// Inform the user immediately — getPackageStats may take a moment on a large cache
 	process.stderr.write(`Checking cache at ${chalk.bold(ui5DataDir)} …\n`);
 
 	// Check what items exist before cleaning (orchestrate both domains)
@@ -120,7 +126,8 @@ async function handleCache(argv) {
 	// Display items that will be removed
 	process.stderr.write(chalk.bold("\nThe following cached data will be removed:\n\n"));
 	if (frameworkInfo) {
-		const detail = formatFileCount(frameworkInfo.count);
+		const detail = formatLibraryStats(
+			frameworkInfo.libraryCount, frameworkInfo.projectCount, frameworkInfo.versionCount);
 		process.stderr.write(
 			`  ${chalk.yellow("•")} ${padLabel(LABEL_FRAMEWORK)}   ${frameworkAbsPath}   (${detail})\n`
 		);
@@ -152,7 +159,8 @@ async function handleCache(argv) {
 
 	process.stderr.write("\n");
 	if (frameworkResult) {
-		const detail = formatFileCount(frameworkResult.count);
+		const detail = formatLibraryStats(
+			frameworkResult.libraryCount, frameworkResult.projectCount, frameworkResult.versionCount);
 		process.stderr.write(
 			`${chalk.green("✓")} Removed ${chalk.bold(LABEL_FRAMEWORK)}` +
 			`   (${frameworkAbsPath} · ${detail})\n`
