@@ -2,7 +2,7 @@ import path from "node:path";
 import {mkdirp} from "../utils/fs.js";
 import {promisify} from "node:util";
 import {getLogger} from "@ui5/logger";
-import {LOCK_STALE_MS, getFrameworkLockDir} from "./_frameworkPaths.js";
+import {LOCK_STALE_MS, CLEANUP_LOCK_NAME, getFrameworkLockDir} from "./_frameworkPaths.js";
 const log = getLogger("ui5Framework:Installer");
 
 // File name must not start with one or multiple dots and should not contain characters other than:
@@ -32,8 +32,20 @@ class AbstractInstaller {
 		} = await import("lockfile");
 		const lock = promisify(lockfile.lock);
 		const unlock = promisify(lockfile.unlock);
+		const check = promisify(lockfile.check);
 		const lockPath = this._getLockPath(lockName);
 		await mkdirp(this._lockDir);
+
+		// Refuse to start if cache cleanup is in progress — proceeding would write
+		// into a directory that is being deleted by a concurrent 'ui5 cache clean'.
+		const cleanupLockPath = path.join(this._lockDir, CLEANUP_LOCK_NAME);
+		if (await check(cleanupLockPath, {stale: LOCK_STALE_MS})) {
+			throw new Error(
+				"Framework cache is currently being cleaned. " +
+				"Please wait for the cache clean operation to finish and try again."
+			);
+		}
+
 		log.verbose("Locking " + lockPath);
 		await lock(lockPath, {
 			wait: 10000,

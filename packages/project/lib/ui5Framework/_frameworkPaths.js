@@ -8,6 +8,10 @@ export const FRAMEWORK_DIR_NAME = "framework";
 // Lockfile staleness threshold — must match the value used by AbstractInstaller#_synchronize
 export const LOCK_STALE_MS = 60000;
 
+// Lock name acquired exclusively by cache cleanup — checked by installers to detect
+// an in-progress cache deletion before acquiring a per-package lock.
+export const CLEANUP_LOCK_NAME = "cache-cleanup.lock";
+
 /**
  * Resolve the absolute path to the framework directory within a UI5 data directory.
  *
