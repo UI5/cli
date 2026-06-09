@@ -10,17 +10,17 @@ import {
 	hasActiveLocks,
 } from "./_frameworkPaths.js";
 
-// CLEANUP_LOCK_NAME is imported from _frameworkPaths.js and also used by
-// AbstractInstaller._synchronize to detect in-progress cache deletions.
-
 /**
- * Count unique projects, libraries, and versions in the packages/ subdirectory.
+ * Count unique libraries and versions in the packages/ subdirectory.
  * Uses a 3-level readdir walk (project → library → version) with no recursion into
  * package contents. Inner levels are parallelised with Promise.all to avoid serial
  * I/O on large caches.
  *
+ * Library names are deduplicated globally: sap.m under @openui5 and @sapui5 counts
+ * as one library.
+ *
  * @param {string} packagesDir Absolute path to the packages directory
- * @returns {Promise<{projects: number, libraries: number, versions: number}|null>}
+ * @returns {Promise<{libraries: number, versions: number}|null>}
  *   Null if the directory does not exist or contains no installed libraries.
  */
 async function getPackageStats(packagesDir) {
@@ -33,7 +33,6 @@ async function getPackageStats(packagesDir) {
 
 	const librarySet = new Set();
 	const versionSet = new Set();
-	let totalProjects = 0;
 
 	await Promise.all(projectDirs.filter((e) => e.isDirectory()).map(async (project) => {
 		let libDirs;
@@ -44,7 +43,6 @@ async function getPackageStats(packagesDir) {
 			return;
 		}
 
-		let projectHasLibs = false;
 		await Promise.all(libDirs.filter((e) => e.isDirectory()).map(async (lib) => {
 			let versionDirs;
 			try {
@@ -56,68 +54,23 @@ async function getPackageStats(packagesDir) {
 			const installedVersions = versionDirs.filter((v) => v.isDirectory());
 			if (installedVersions.length > 0) {
 				librarySet.add(lib.name); // deduplicated: sap.m counts once across all projects
-				projectHasLibs = true;
 				for (const v of installedVersions) {
 					versionSet.add(v.name);
 				}
 			}
 		}));
-
-		if (projectHasLibs) {
-			totalProjects++;
-		}
 	}));
 
 	return librarySet.size > 0 ?
-		{projects: totalProjects, libraries: librarySet.size, versions: versionSet.size} :
+		{libraries: librarySet.size, versions: versionSet.size} :
 		null;
-}
-
-/**
- * Recursively remove a directory, calling onProgress(entryPath) for every
- * entry (file or directory) just before it is deleted.
- *
- * Skips any entry whose name matches skipName — used to preserve the locks/
- * directory during cache cleanup so the cleanup lock remains valid throughout.
- *
- * Uses manual traversal instead of fs.rm so callers can observe deletion
- * progress. Intentionally serial — parallelising unlink() calls does not
- * improve throughput on a single filesystem and makes the progress callback
- * ordering unpredictable.
- *
- * @param {string} dirPath Absolute path to the directory to remove
- * @param {function(string): void|Promise<void>} onProgress Called with the path of each
- *   entry immediately before it is deleted
- * @param {string} [skipName] Directory name to skip at the top level of dirPath
- * @returns {Promise<void>}
- */
-async function rmRecursive(dirPath, onProgress, skipName) {
-	let entries;
-	try {
-		entries = await fs.readdir(dirPath, {withFileTypes: true});
-	} catch {
-		return;
-	}
-	for (const entry of entries) {
-		if (skipName && entry.name === skipName) {
-			continue;
-		}
-		const entryPath = path.join(dirPath, entry.name);
-		await onProgress(entryPath);
-		if (entry.isDirectory()) {
-			await rmRecursive(entryPath, onProgress);
-			await fs.rmdir(entryPath);
-		} else {
-			await fs.unlink(entryPath);
-		}
-	}
 }
 
 /**
  * Get framework cache info.
  *
  * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
- * @returns {Promise<{path: string, libraryCount: number, projectCount: number, versionCount: number}|null>}
+ * @returns {Promise<{path: string, libraryCount: number, versionCount: number}|null>}
  *   Framework cache info, or null if no packages are installed.
  */
 export async function getCacheInfo(ui5DataDir) {
@@ -135,7 +88,6 @@ export async function getCacheInfo(ui5DataDir) {
 	return {
 		path: FRAMEWORK_DIR_NAME,
 		libraryCount: stats.libraries,
-		projectCount: stats.projects,
 		versionCount: stats.versions,
 	};
 }
@@ -160,14 +112,11 @@ export async function isFrameworkLocked(ui5DataDir) {
  * the deletion and removed only after the lock is released.
  *
  * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
- * @param {function(string): void} [onProgress] Optional callback invoked with
- *   the absolute path of each entry just before it is deleted. Use for
- *   progress display. Omit for silent deletion (falls back to fs.rm).
- * @returns {Promise<{path: string, libraryCount: number, projectCount: number, versionCount: number}|null>}
+ * @returns {Promise<{path: string, libraryCount: number, versionCount: number}|null>}
  *   Removal result, or null if nothing was installed.
  * @throws {Error} If a framework operation is currently active (active lockfiles detected)
  */
-export async function cleanCache(ui5DataDir, onProgress) {
+export async function cleanCache(ui5DataDir) {
 	const frameworkDir = getFrameworkDir(ui5DataDir);
 
 	try {
@@ -200,23 +149,18 @@ export async function cleanCache(ui5DataDir, onProgress) {
 
 	await lock(lockPath, {stale: LOCK_STALE_MS});
 	try {
-		if (onProgress) {
-			// Delete everything except locks/ so our lock stays valid throughout
-			await rmRecursive(frameworkDir, onProgress, "locks");
-		} else {
-			// Fast path: delete everything except locks/ with fs.rm, then locks/ separately
-			const entries = await fs.readdir(frameworkDir, {withFileTypes: true});
-			await Promise.all(
-				entries
-					.filter((e) => e.name !== "locks")
-					.map((e) => {
-						const p = path.join(frameworkDir, e.name);
-						return e.isDirectory() ?
-							fs.rm(p, {recursive: true, force: true}) :
-							fs.unlink(p);
-					})
-			);
-		}
+		// Delete everything inside framework/ except locks/ so our lock stays valid throughout
+		const entries = await fs.readdir(frameworkDir, {withFileTypes: true});
+		await Promise.all(
+			entries
+				.filter((e) => e.name !== "locks")
+				.map((e) => {
+					const p = path.join(frameworkDir, e.name);
+					return e.isDirectory() ?
+						fs.rm(p, {recursive: true, force: true}) :
+						fs.unlink(p);
+				})
+		);
 	} finally {
 		await unlock(lockPath);
 		// Remove the locks directory (and our lock file) now that we are done
@@ -231,7 +175,6 @@ export async function cleanCache(ui5DataDir, onProgress) {
 	return {
 		path: FRAMEWORK_DIR_NAME,
 		libraryCount: stats.libraries,
-		projectCount: stats.projects,
 		versionCount: stats.versions,
 	};
 }
