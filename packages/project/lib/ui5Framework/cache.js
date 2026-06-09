@@ -13,7 +13,6 @@ import {
  * package contents. Inner levels are parallelised with Promise.all to avoid serial
  * I/O on large caches.
  *
- *
  * @param {string} packagesDir Absolute path to the packages directory
  * @returns {Promise<{projects: number, libraries: number, versions: number}|null>}
  *   Null if the directory does not exist or contains no installed libraries.
@@ -63,9 +62,42 @@ async function getPackageStats(packagesDir) {
 		}
 	}));
 
-	return librarySet.size > 0
-		? {projects: totalProjects, libraries: librarySet.size, versions: versionSet.size}
-		: null;
+	return librarySet.size > 0 ?
+		{projects: totalProjects, libraries: librarySet.size, versions: versionSet.size} :
+		null;
+}
+
+/**
+ * Recursively remove a directory, calling onProgress(entryPath) for every
+ * entry (file or directory) just before it is deleted.
+ *
+ * Uses manual traversal instead of fs.rm so callers can observe deletion
+ * progress. Intentionally serial — parallelising unlink() calls does not
+ * improve throughput on a single filesystem and makes the progress callback
+ * ordering unpredictable.
+ *
+ * @param {string} dirPath Absolute path to the directory to remove
+ * @param {function(string): void} onProgress Called with the path of each
+ *   entry immediately before it is deleted
+ * @returns {Promise<void>}
+ */
+async function rmRecursive(dirPath, onProgress) {
+	let entries;
+	try {
+		entries = await fs.readdir(dirPath, {withFileTypes: true});
+	} catch {
+		return;
+	}
+	for (const entry of entries) {
+		const entryPath = path.join(dirPath, entry.name);
+		onProgress(entryPath);
+		if (entry.isDirectory()) {
+			await rmRecursive(entryPath, onProgress);
+			await fs.rmdir(entryPath);
+		} else {
+			await fs.unlink(entryPath);
+		}
+	}
 }
 
 /**
@@ -113,11 +145,14 @@ export async function isFrameworkLocked(ui5DataDir) {
  * deleting files while a download is in progress.
  *
  * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+ * @param {function(string): void} [onProgress] Optional callback invoked with
+ *   the absolute path of each entry just before it is deleted. Use for
+ *   progress display. Omit for silent deletion (falls back to fs.rm).
  * @returns {Promise<{path: string, libraryCount: number, projectCount: number, versionCount: number}|null>}
  *   Removal result, or null if nothing was installed.
  * @throws {Error} If a framework operation is currently active (active lockfiles detected)
  */
-export async function cleanCache(ui5DataDir) {
+export async function cleanCache(ui5DataDir, onProgress) {
 	const frameworkDir = getFrameworkDir(ui5DataDir);
 
 	try {
@@ -138,7 +173,13 @@ export async function cleanCache(ui5DataDir) {
 		);
 	}
 
-	await fs.rm(frameworkDir, {recursive: true, force: true});
+	if (onProgress) {
+		await rmRecursive(frameworkDir, onProgress);
+		await fs.rmdir(frameworkDir);
+	} else {
+		await fs.rm(frameworkDir, {recursive: true, force: true});
+	}
+
 	return {
 		path: FRAMEWORK_DIR_NAME,
 		libraryCount: stats.libraries,
