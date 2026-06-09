@@ -61,8 +61,8 @@ test("getCacheInfo: counts projects, libraries and versions", async (t) => {
 	t.truthy(result);
 	t.is(result.path, "framework");
 	t.is(result.projectCount, 2);
-	t.is(result.libraryCount, 2);  // sap.m counted once (deduplicated across projects)
-	t.is(result.versionCount, 3);  // 1.120.0, 1.148.0, 1.38.1
+	t.is(result.libraryCount, 2); // sap.m counted once (deduplicated across projects)
+	t.is(result.versionCount, 3); // 1.120.0, 1.148.0, 1.38.1
 });
 
 test("getCacheInfo: deduplicates library names across projects", async (t) => {

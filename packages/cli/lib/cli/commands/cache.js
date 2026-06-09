@@ -6,6 +6,7 @@ import baseMiddleware from "../middlewares/base.js";
 import {getUi5DataDir} from "../../framework/utils.js";
 import * as frameworkCache from "@ui5/project/ui5Framework/cache";
 import CacheManager from "@ui5/project/build/cache/CacheManager";
+import prettyHrtime from "pretty-hrtime";
 
 const cacheCommand = {
 	command: "cache",
@@ -86,6 +87,64 @@ function padLabel(label) {
 	return label.padEnd(LABEL_WIDTH);
 }
 
+const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+const PROGRESS_DEBOUNCE_MS = 150;
+// Reserve enough columns for the fixed parts of the progress line so the path
+// never causes the line to wrap on a standard 80-column terminal.
+const PATH_MAX_COLS = 40;
+
+/**
+ * Build a progress handler for framework cache deletion.
+ * Returns a function to pass as onProgress to cleanCache(), plus a finalise()
+ * to call when deletion completes (clears the in-progress line).
+ *
+ * The line is written to stderr with \r so it overwrites itself on each tick,
+ * producing a single updating line rather than a scrolling log.
+ *
+ * @param {string} label Short label shown on the progress line
+ * @param {[number, number]} startHrtime process.hrtime() snapshot taken when deletion began
+ * @param {function([number, number]): string} prettyHrtime Formatting function from the pretty-hrtime package
+ * @returns {{onProgress: function(string): void, finalise: function(): void}}
+ */
+function createProgressHandler(label, startHrtime, prettyHrtime) {
+	let lastPrintMs = 0;
+	let frameIndex = 0;
+	let lastVisibleLen = 0;
+
+	function onProgress(entryPath) {
+		const now = Date.now();
+		if (now - lastPrintMs < PROGRESS_DEBOUNCE_MS) return;
+		lastPrintMs = now;
+
+		const elapsed = prettyHrtime(process.hrtime(startHrtime));
+		const spinner = SPINNER_FRAMES[frameIndex % SPINNER_FRAMES.length];
+		frameIndex++;
+
+		// Trim path so the whole line stays within 80 columns
+		let displayPath = entryPath;
+		if (displayPath.length > PATH_MAX_COLS) {
+			displayPath = "…" + displayPath.slice(-(PATH_MAX_COLS - 1));
+		}
+
+		// Build visible text (no ANSI) first to get accurate length for overwrite padding
+		const visibleText = `  ${spinner} ${label}   ${displayPath}   ${elapsed}`;
+		// Then the styled version for actual output
+		const styledText = `  ${spinner} ${label}   ${chalk.dim(displayPath)}   ${elapsed}`;
+
+		// Pad to cover any longer previous line, then overwrite in place
+		const padded = styledText + " ".repeat(Math.max(0, lastVisibleLen - visibleText.length));
+		lastVisibleLen = visibleText.length;
+
+		process.stderr.write(`\r${padded}`);
+	}
+
+	function finalise() {
+		process.stderr.write(`\r${" ".repeat(lastVisibleLen)}\r`);
+	}
+
+	return {onProgress, finalise};
+}
+
 async function handleCache(argv) {
 	// Resolve UI5 data directory — uses the same resolution chain as ui5 build/serve:
 	// UI5_DATA_DIR env var → ui5DataDir config (~/.ui5rc) → default ~/.ui5
@@ -154,7 +213,16 @@ async function handleCache(argv) {
 	}
 
 	// Perform the actual cleanup (orchestrate both domains)
-	const frameworkResult = await frameworkCache.cleanCache(ui5DataDir);
+	let frameworkResult;
+	if (frameworkInfo) {
+		const startHrtime = process.hrtime();
+		const {onProgress, finalise} = createProgressHandler(LABEL_FRAMEWORK, startHrtime, prettyHrtime);
+		try {
+			frameworkResult = await frameworkCache.cleanCache(ui5DataDir, onProgress);
+		} finally {
+			finalise();
+		}
+	}
 	const buildResult = await CacheManager.cleanCache(ui5DataDir);
 
 	process.stderr.write("\n");
