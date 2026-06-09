@@ -19,8 +19,8 @@ function getDefaultArgv() {
 // Stable absolute path used as the resolved ui5DataDir in most tests
 const TEST_UI5_DATA_DIR = path.resolve("/test/ui5/home");
 
-// Typical framework stub result shape
-const FRAMEWORK_STUB = {path: "framework", projectCount: 2, libraryCount: 18, versionCount: 5};
+// Typical framework stub result shape: { path, libraryCount, versionCount }
+const FRAMEWORK_STUB = {path: "framework", libraryCount: 18, versionCount: 5};
 
 test.beforeEach(async (t) => {
 	t.context.argv = getDefaultArgv();
@@ -200,18 +200,14 @@ test.serial("ui5 cache clean: removes both entries and reports", async (t) => {
 	t.true(allOutput.includes("Checking cache at"), "Prints checking line");
 	t.true(allOutput.includes(TEST_UI5_DATA_DIR), "Shows resolved ui5DataDir");
 
-	// Absolute paths in listing
-	const expectedFrameworkAbs = path.join(TEST_UI5_DATA_DIR, "framework");
-	const expectedBuildAbs = path.join(TEST_UI5_DATA_DIR, "buildCache/v0_7");
-	t.true(allOutput.includes(expectedFrameworkAbs), "Shows absolute framework path");
-	t.true(allOutput.includes(expectedBuildAbs), "Shows absolute build cache path");
+	// Absolute paths
+	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "framework")), "Shows absolute framework path");
+	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "buildCache/v0_7")), "Shows absolute build path");
 
-	// Framework detail: projects, libraries, versions
-	t.true(allOutput.includes("2 projects"), "Shows project count");
-	t.true(allOutput.includes("18 libraries"), "Shows library count");
-	t.true(allOutput.includes("5 versions"), "Shows version count");
+	// New format: "5 versions of 18 libraries"
+	t.true(allOutput.includes("5 versions of 18 libraries"), "Shows new library stats format");
 
-	// Build cache detail: pre-clean size reused (not VACUUM-freed 7 MB)
+	// Build cache size — pre-clean size reused (not VACUUM-freed 7 MB)
 	t.true(allOutput.includes("8.0 MB"), "Shows pre-clean build cache size");
 	t.false(allOutput.includes("7.0 MB"), "Does not show VACUUM-freed size");
 
@@ -240,31 +236,11 @@ test.serial("ui5 cache clean: user cancels", async (t) => {
 	t.false(allOutput.includes("Success"), "Does not show success message");
 });
 
-test.serial("ui5 cache clean: framework only — singular labels", async (t) => {
+test.serial("ui5 cache clean: framework only — formats library stats correctly", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
 		buildCacheGetCacheInfo, yesnoStub} = t.context;
 
-	const singleStub = {path: "framework", projectCount: 1, libraryCount: 1, versionCount: 1};
-	frameworkCacheGetCacheInfo.resolves(singleStub);
-	buildCacheGetCacheInfo.resolves(null);
-	yesnoStub.resolves(true);
-	frameworkCacheCleanCache.resolves(singleStub);
-
-	argv["_"] = ["cache", "clean"];
-	await cache.handler(argv);
-
-	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes("1 project,"), "Uses singular 'project'");
-	t.true(allOutput.includes("1 library,"), "Uses singular 'library'");
-	t.true(allOutput.includes("1 version"), "Uses singular 'version'");
-	t.false(allOutput.includes("Build cache (DB)"), "Does not mention build cache");
-	t.true(allOutput.includes("Cleaned UI5 Framework packages"), "Success mentions framework only");
-});
-
-test.serial("ui5 cache clean: framework only — plural labels", async (t) => {
-	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
-		buildCacheGetCacheInfo, yesnoStub} = t.context;
-
+	// Plural
 	frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
 	buildCacheGetCacheInfo.resolves(null);
 	yesnoStub.resolves(true);
@@ -273,10 +249,41 @@ test.serial("ui5 cache clean: framework only — plural labels", async (t) => {
 	argv["_"] = ["cache", "clean"];
 	await cache.handler(argv);
 
+	let allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("5 versions of 18 libraries"), "Shows plural format");
+	t.false(allOutput.includes("Build cache (DB)"), "Does not mention build cache");
+
+	// Singular — reset stubs
+	stderrWriteStub.resetHistory();
+	const singleStub = {path: "framework", libraryCount: 1, versionCount: 1};
+	frameworkCacheGetCacheInfo.resetBehavior();
+	frameworkCacheCleanCache.resetBehavior();
+	frameworkCacheGetCacheInfo.resolves(singleStub);
+	frameworkCacheCleanCache.resolves(singleStub);
+
+	argv["yes"] = true;
+	await cache.handler(argv);
+
+	allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("1 version of 1 library"), "Uses singular 'version' and 'library'");
+});
+
+test.serial("ui5 cache clean: thousands separator in library stats", async (t) => {
+	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
+		buildCacheGetCacheInfo, yesnoStub} = t.context;
+
+	const largeStub = {path: "framework", libraryCount: 155, versionCount: 1189};
+	frameworkCacheGetCacheInfo.resolves(largeStub);
+	buildCacheGetCacheInfo.resolves(null);
+	yesnoStub.resolves(true);
+	frameworkCacheCleanCache.resolves(largeStub);
+
+	argv["_"] = ["cache", "clean"];
+	await cache.handler(argv);
+
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes("2 projects"), "Uses plural 'projects'");
-	t.true(allOutput.includes("18 libraries"), "Uses plural 'libraries'");
-	t.true(allOutput.includes("5 versions"), "Uses plural 'versions'");
+	t.true(allOutput.includes("1,189 versions of 155 libraries"),
+		"Shows thousands separator for large counts");
 });
 
 test.serial("ui5 cache clean: build only", async (t) => {
