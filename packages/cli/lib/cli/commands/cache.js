@@ -102,8 +102,8 @@ const PATH_MAX_COLS = 40;
  * producing a single updating line rather than a scrolling log.
  *
  * @param {string} label Short label shown on the progress line
- * @param {[number, number]} startHrtime process.hrtime() snapshot taken when deletion began
- * @param {function([number, number]): string} prettyHrtime Formatting function from the pretty-hrtime package
+ * @param {Array} startHrtime process.hrtime() snapshot taken when deletion began
+ * @param {Function} prettyHrtime Formatting function from the pretty-hrtime package
  * @returns {{onProgress: function(string): void, finalise: function(): void}}
  */
 function createProgressHandler(label, startHrtime, prettyHrtime) {
