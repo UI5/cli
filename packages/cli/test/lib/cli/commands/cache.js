@@ -19,6 +19,9 @@ function getDefaultArgv() {
 // Stable absolute path used as the resolved ui5DataDir in most tests
 const TEST_UI5_DATA_DIR = path.resolve("/test/ui5/home");
 
+// Typical framework stub result shape
+const FRAMEWORK_STUB = {path: "framework", projectCount: 2, libraryCount: 18, versionCount: 5};
+
 test.beforeEach(async (t) => {
 	t.context.argv = getDefaultArgv();
 	t.context.stderrWriteStub = sinon.stub(process.stderr, "write");
@@ -108,7 +111,6 @@ test.serial("ui5 cache clean: falls back to ~/.ui5 when getUi5DataDir returns un
 	const {cache, argv, getUi5DataDirStub, frameworkCacheGetCacheInfo, buildCacheGetCacheInfo,
 		stderrWriteStub} = t.context;
 
-	// Simulate no env var, no config — getUi5DataDir returns undefined
 	getUi5DataDirStub.resolves(undefined);
 	frameworkCacheGetCacheInfo.resolves(null);
 	buildCacheGetCacheInfo.resolves(null);
@@ -118,11 +120,7 @@ test.serial("ui5 cache clean: falls back to ~/.ui5 when getUi5DataDir returns un
 
 	const expectedDefault = path.join(os.homedir(), ".ui5");
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes(expectedDefault),
-		"Falls back to ~/.ui5 and shows it in checking line");
-
-	// getCacheInfo called with the default path
-	t.is(frameworkCacheGetCacheInfo.callCount, 1, "getCacheInfo called");
+	t.true(allOutput.includes(expectedDefault), "Falls back to ~/.ui5 and shows it in checking line");
 	t.is(frameworkCacheGetCacheInfo.firstCall.args[0], expectedDefault,
 		"getCacheInfo receives ~/.ui5 as ui5DataDir");
 });
@@ -136,18 +134,14 @@ test.serial("ui5 cache clean: uses resolved path from getUi5DataDir", async (t) 
 	argv["_"] = ["cache", "clean"];
 	await cache.handler(argv);
 
-	// The stub returns TEST_UI5_DATA_DIR — verify it was passed to getCacheInfo
 	t.is(frameworkCacheGetCacheInfo.firstCall.args[0], TEST_UI5_DATA_DIR,
 		"getCacheInfo receives the path returned by getUi5DataDir");
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes(TEST_UI5_DATA_DIR),
-		"Resolved ui5DataDir shown in checking line");
+	t.true(allOutput.includes(TEST_UI5_DATA_DIR), "Resolved ui5DataDir shown in checking line");
 });
 
 test.serial("ui5 cache clean: relative path from config is resolved via getUi5DataDir", async (t) => {
-	// getUi5DataDir already resolves relative paths against cwd — verify the cache
-	// command uses the already-resolved absolute path rather than doing its own resolution.
 	const {cache, argv, getUi5DataDirStub, frameworkCacheGetCacheInfo, buildCacheGetCacheInfo} = t.context;
 
 	const resolvedPath = path.resolve(process.cwd(), "./custom-cache");
@@ -177,20 +171,20 @@ test.serial("ui5 cache clean: nothing to clean", async (t) => {
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes("Checking cache at"), "Prints checking line");
 	t.true(allOutput.includes("Nothing to clean"), "Prints nothing to clean");
-	t.is(frameworkCacheCleanCache.callCount, 0, "frameworkCache.cleanCache should not be called");
-	t.is(buildCacheCleanCache.callCount, 0, "buildCache.cleanCache should not be called");
+	t.is(frameworkCacheCleanCache.callCount, 0, "frameworkCache.cleanCache not called");
+	t.is(buildCacheCleanCache.callCount, 0, "buildCache.cleanCache not called");
 });
 
 test.serial("ui5 cache clean: removes both entries and reports", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
 		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
-	frameworkCacheGetCacheInfo.resolves({path: "framework", count: 340});
+	frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
 	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 8 * 1024 * 1024});
 
 	yesnoStub.resolves(true);
 
-	frameworkCacheCleanCache.resolves({path: "framework", count: 340});
+	frameworkCacheCleanCache.resolves(FRAMEWORK_STUB);
 	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 7 * 1024 * 1024}); // VACUUM freed less
 
 	argv["_"] = ["cache", "clean"];
@@ -202,25 +196,26 @@ test.serial("ui5 cache clean: removes both entries and reports", async (t) => {
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 
-	// Checking line with absolute path
+	// Checking line
 	t.true(allOutput.includes("Checking cache at"), "Prints checking line");
 	t.true(allOutput.includes(TEST_UI5_DATA_DIR), "Shows resolved ui5DataDir");
 
-	// Listing shows absolute paths
+	// Absolute paths in listing
 	const expectedFrameworkAbs = path.join(TEST_UI5_DATA_DIR, "framework");
 	const expectedBuildAbs = path.join(TEST_UI5_DATA_DIR, "buildCache/v0_7");
 	t.true(allOutput.includes(expectedFrameworkAbs), "Shows absolute framework path");
 	t.true(allOutput.includes(expectedBuildAbs), "Shows absolute build cache path");
 
-	// Labels and detail
-	t.true(allOutput.includes("UI5 Framework packages"), "Shows framework label");
-	t.true(allOutput.includes("Build cache (DB)"), "Shows build cache label");
-	t.true(allOutput.includes("340 files"), "Shows framework file count");
-	t.true(allOutput.includes("8.0 MB"), "Shows build cache pre-clean size");
-	t.false(allOutput.includes("7.0 MB"), "Does not show VACUUM-freed size (pre-clean size reused)");
-	t.false(allOutput.includes("Total:"), "Does not show total line");
+	// Framework detail: projects, libraries, versions
+	t.true(allOutput.includes("2 projects"), "Shows project count");
+	t.true(allOutput.includes("18 libraries"), "Shows library count");
+	t.true(allOutput.includes("5 versions"), "Shows version count");
 
-	// Success
+	// Build cache detail: pre-clean size reused (not VACUUM-freed 7 MB)
+	t.true(allOutput.includes("8.0 MB"), "Shows pre-clean build cache size");
+	t.false(allOutput.includes("7.0 MB"), "Does not show VACUUM-freed size");
+
+	t.false(allOutput.includes("Total:"), "Does not show total line");
 	t.true(allOutput.includes("Cleaned UI5 Framework packages and Build cache (DB)"),
 		"Shows success summary");
 });
@@ -229,9 +224,8 @@ test.serial("ui5 cache clean: user cancels", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
 		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
-	frameworkCacheGetCacheInfo.resolves({path: "framework", count: 10});
+	frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
 	buildCacheGetCacheInfo.resolves(null);
-
 	yesnoStub.resolves(false);
 
 	argv["_"] = ["cache", "clean"];
@@ -246,22 +240,43 @@ test.serial("ui5 cache clean: user cancels", async (t) => {
 	t.false(allOutput.includes("Success"), "Does not show success message");
 });
 
-test.serial("ui5 cache clean: framework only", async (t) => {
+test.serial("ui5 cache clean: framework only — singular labels", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
 		buildCacheGetCacheInfo, yesnoStub} = t.context;
 
-	frameworkCacheGetCacheInfo.resolves({path: "framework", count: 1});
+	const singleStub = {path: "framework", projectCount: 1, libraryCount: 1, versionCount: 1};
+	frameworkCacheGetCacheInfo.resolves(singleStub);
 	buildCacheGetCacheInfo.resolves(null);
 	yesnoStub.resolves(true);
-	frameworkCacheCleanCache.resolves({path: "framework", count: 1});
+	frameworkCacheCleanCache.resolves(singleStub);
 
 	argv["_"] = ["cache", "clean"];
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes("1 file"), "Uses singular 'file'");
+	t.true(allOutput.includes("1 project,"), "Uses singular 'project'");
+	t.true(allOutput.includes("1 library,"), "Uses singular 'library'");
+	t.true(allOutput.includes("1 version"), "Uses singular 'version'");
 	t.false(allOutput.includes("Build cache (DB)"), "Does not mention build cache");
 	t.true(allOutput.includes("Cleaned UI5 Framework packages"), "Success mentions framework only");
+});
+
+test.serial("ui5 cache clean: framework only — plural labels", async (t) => {
+	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
+		buildCacheGetCacheInfo, yesnoStub} = t.context;
+
+	frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
+	buildCacheGetCacheInfo.resolves(null);
+	yesnoStub.resolves(true);
+	frameworkCacheCleanCache.resolves(FRAMEWORK_STUB);
+
+	argv["_"] = ["cache", "clean"];
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("2 projects"), "Uses plural 'projects'");
+	t.true(allOutput.includes("18 libraries"), "Uses plural 'libraries'");
+	t.true(allOutput.includes("5 versions"), "Uses plural 'versions'");
 });
 
 test.serial("ui5 cache clean: build only", async (t) => {
@@ -317,9 +332,9 @@ test.serial("ui5 cache clean --yes: skips confirmation prompt", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
 		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
-	frameworkCacheGetCacheInfo.resolves({path: "framework", count: 100});
+	frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
 	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 5 * 1024 * 1024});
-	frameworkCacheCleanCache.resolves({path: "framework", count: 100});
+	frameworkCacheCleanCache.resolves(FRAMEWORK_STUB);
 	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 5 * 1024 * 1024});
 
 	argv["_"] = ["cache", "clean"];
