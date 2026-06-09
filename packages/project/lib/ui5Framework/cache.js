@@ -1,11 +1,17 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import {promisify} from "node:util";
 import {
 	FRAMEWORK_DIR_NAME,
+	LOCK_STALE_MS,
+	CLEANUP_LOCK_NAME,
 	getFrameworkDir,
 	getFrameworkLockDir,
 	hasActiveLocks,
 } from "./_frameworkPaths.js";
+
+// CLEANUP_LOCK_NAME is imported from _frameworkPaths.js and also used by
+// AbstractInstaller._synchronize to detect in-progress cache deletions.
 
 /**
  * Count unique projects, libraries, and versions in the packages/ subdirectory.
@@ -71,17 +77,21 @@ async function getPackageStats(packagesDir) {
  * Recursively remove a directory, calling onProgress(entryPath) for every
  * entry (file or directory) just before it is deleted.
  *
+ * Skips any entry whose name matches skipName — used to preserve the locks/
+ * directory during cache cleanup so the cleanup lock remains valid throughout.
+ *
  * Uses manual traversal instead of fs.rm so callers can observe deletion
  * progress. Intentionally serial — parallelising unlink() calls does not
  * improve throughput on a single filesystem and makes the progress callback
  * ordering unpredictable.
  *
  * @param {string} dirPath Absolute path to the directory to remove
- * @param {function(string): void} onProgress Called with the path of each
+ * @param {function(string): void|Promise<void>} onProgress Called with the path of each
  *   entry immediately before it is deleted
+ * @param {string} [skipName] Directory name to skip at the top level of dirPath
  * @returns {Promise<void>}
  */
-async function rmRecursive(dirPath, onProgress) {
+async function rmRecursive(dirPath, onProgress, skipName) {
 	let entries;
 	try {
 		entries = await fs.readdir(dirPath, {withFileTypes: true});
@@ -89,8 +99,11 @@ async function rmRecursive(dirPath, onProgress) {
 		return;
 	}
 	for (const entry of entries) {
+		if (skipName && entry.name === skipName) {
+			continue;
+		}
 		const entryPath = path.join(dirPath, entry.name);
-		onProgress(entryPath);
+		await onProgress(entryPath);
 		if (entry.isDirectory()) {
 			await rmRecursive(entryPath, onProgress);
 			await fs.rmdir(entryPath);
@@ -141,8 +154,10 @@ export async function isFrameworkLocked(ui5DataDir) {
 /**
  * Clean framework cache directory.
  *
- * Checks for active lockfiles before removing the directory to prevent
- * deleting files while a download is in progress.
+ * Acquires a cleanup lock before deletion so that concurrent installer
+ * processes see an active lock and wait rather than writing into a
+ * partially-deleted cache. The locks/ directory is preserved throughout
+ * the deletion and removed only after the lock is released.
  *
  * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
  * @param {function(string): void} [onProgress] Optional callback invoked with
@@ -166,18 +181,51 @@ export async function cleanCache(ui5DataDir, onProgress) {
 		return null;
 	}
 
-	if (await hasActiveLocks(getFrameworkLockDir(ui5DataDir))) {
+	const lockDir = getFrameworkLockDir(ui5DataDir);
+	const lockPath = path.join(lockDir, CLEANUP_LOCK_NAME);
+
+	if (await hasActiveLocks(lockDir)) {
 		throw new Error(
 			"Framework cache is currently locked by an active operation. " +
 			"Please wait for it to finish and try again."
 		);
 	}
 
-	if (onProgress) {
-		await rmRecursive(frameworkDir, onProgress);
-		await fs.rmdir(frameworkDir);
-	} else {
-		await fs.rm(frameworkDir, {recursive: true, force: true});
+	// Ensure the locks directory exists before acquiring our lock
+	await fs.mkdir(lockDir, {recursive: true});
+
+	const {default: lockfile} = await import("lockfile");
+	const lock = promisify(lockfile.lock);
+	const unlock = promisify(lockfile.unlock);
+
+	await lock(lockPath, {stale: LOCK_STALE_MS});
+	try {
+		if (onProgress) {
+			// Delete everything except locks/ so our lock stays valid throughout
+			await rmRecursive(frameworkDir, onProgress, "locks");
+		} else {
+			// Fast path: delete everything except locks/ with fs.rm, then locks/ separately
+			const entries = await fs.readdir(frameworkDir, {withFileTypes: true});
+			await Promise.all(
+				entries
+					.filter((e) => e.name !== "locks")
+					.map((e) => {
+						const p = path.join(frameworkDir, e.name);
+						return e.isDirectory() ?
+							fs.rm(p, {recursive: true, force: true}) :
+							fs.unlink(p);
+					})
+			);
+		}
+	} finally {
+		await unlock(lockPath);
+		// Remove the locks directory (and our lock file) now that we are done
+		await fs.rm(lockDir, {recursive: true, force: true});
+		// Remove the now-empty framework directory itself
+		await fs.rmdir(frameworkDir).catch(() => {
+			// If rmdir fails (e.g. something else recreated a file), ignore — the
+			// important thing is the cache content is gone and the lock is released.
+		});
 	}
 
 	return {

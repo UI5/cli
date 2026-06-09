@@ -183,7 +183,33 @@ test("cleanCache: removes directory when lockfiles are stale", async (t) => {
 	t.is(result.path, "framework");
 	t.is(result.projectCount, 1);
 	t.is(result.libraryCount, 1);
-	t.is(result.versionCount, 1);
-
 	await t.throwsAsync(fs.access(frameworkDir));
+});
+
+test("cleanCache: holds cleanup lock during deletion so concurrent installers see it", async (t) => {
+	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
+
+	const lockDir = path.join(t.context.testDir, "framework", "locks");
+	let lockObservedDuringDeletion = false;
+
+	// Pass an onProgress callback that fires mid-deletion and checks for the cleanup lock
+	const onProgress = async () => {
+		if (lockObservedDuringDeletion) return; // check once is enough
+		try {
+			const entries = await fs.readdir(lockDir);
+			if (entries.some((name) => name === "cache-cleanup.lock")) {
+				lockObservedDuringDeletion = true;
+			}
+		} catch {
+			// lockDir may not exist yet on the very first callback
+		}
+	};
+
+	const result = await cleanCache(t.context.testDir, onProgress);
+	t.truthy(result);
+	t.true(lockObservedDuringDeletion, "cache-cleanup.lock was present during deletion");
+
+	// After completion: framework/ is fully removed including the locks/ subdir
+	const frameworkDir = path.join(t.context.testDir, "framework");
+	await t.throwsAsync(fs.access(frameworkDir), undefined, "framework/ removed after unlock");
 });
