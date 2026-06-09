@@ -6,7 +6,6 @@ import baseMiddleware from "../middlewares/base.js";
 import {getUi5DataDir} from "../../framework/utils.js";
 import * as frameworkCache from "@ui5/project/ui5Framework/cache";
 import CacheManager from "@ui5/project/build/cache/CacheManager";
-import prettyHrtime from "pretty-hrtime";
 
 const cacheCommand = {
 	command: "cache",
@@ -33,7 +32,17 @@ cacheCommand.builder = function(cli) {
 					.example("$0 cache clean --yes",
 						"Remove all cached UI5 data without confirmation (e.g. in CI)")
 					.example("UI5_DATA_DIR=/custom/path $0 cache clean",
-						"Remove cached data from a non-default UI5 data directory");
+						"Remove cached data from a non-default UI5 data directory")
+					.epilogue(
+						"The cache is stored in the UI5 data directory (default: ~/.ui5).\n" +
+						"Override the location with the UI5_DATA_DIR environment variable or\n" +
+						"the 'ui5DataDir' configuration option (see 'ui5 config --help').\n\n" +
+						"Two cache types are removed:\n" +
+						"  UI5 Framework packages  Downloaded UI5 library files " +
+							"(~/.ui5/framework/)\n" +
+						"  Build cache (DB)        Incremental build data " +
+							"(~/.ui5/buildCache/)"
+					);
 			},
 			middlewares: [baseMiddleware],
 		});
@@ -62,19 +71,17 @@ function formatSize(bytes) {
 }
 
 /**
- * Format a library stats detail string, e.g. "2 projects, 3 libraries, 4 versions".
- * Each word is independently singular/plural.
+ * Format framework cache stats as a human-readable detail string.
+ * E.g. "1,189 versions of 155 libraries" or "1 version of 1 library".
  *
  * @param {number} libraryCount
- * @param {number} projectCount
  * @param {number} versionCount
  * @returns {string}
  */
-function formatLibraryStats(libraryCount, projectCount, versionCount) {
-	const p = `${projectCount} ${projectCount === 1 ? "project" : "projects"}`;
-	const l = `${libraryCount} ${libraryCount === 1 ? "library" : "libraries"}`;
-	const v = `${versionCount} ${versionCount === 1 ? "version" : "versions"}`;
-	return `${p}, ${l}, ${v}`;
+function formatFrameworkStats(libraryCount, versionCount) {
+	const v = `${versionCount.toLocaleString("en-US")} ${versionCount === 1 ? "version" : "versions"}`;
+	const l = `${libraryCount.toLocaleString("en-US")} ${libraryCount === 1 ? "library" : "libraries"}`;
+	return `${v} of ${l}`;
 }
 
 /**
@@ -85,64 +92,6 @@ function formatLibraryStats(libraryCount, projectCount, versionCount) {
  */
 function padLabel(label) {
 	return label.padEnd(LABEL_WIDTH);
-}
-
-const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-const PROGRESS_DEBOUNCE_MS = 150;
-// Reserve enough columns for the fixed parts of the progress line so the path
-// never causes the line to wrap on a standard 80-column terminal.
-const PATH_MAX_COLS = 40;
-
-/**
- * Build a progress handler for framework cache deletion.
- * Returns a function to pass as onProgress to cleanCache(), plus a finalise()
- * to call when deletion completes (clears the in-progress line).
- *
- * The line is written to stderr with \r so it overwrites itself on each tick,
- * producing a single updating line rather than a scrolling log.
- *
- * @param {string} label Short label shown on the progress line
- * @param {Array} startHrtime process.hrtime() snapshot taken when deletion began
- * @param {Function} prettyHrtime Formatting function from the pretty-hrtime package
- * @returns {{onProgress: function(string): void, finalise: function(): void}}
- */
-function createProgressHandler(label, startHrtime, prettyHrtime) {
-	let lastPrintMs = 0;
-	let frameIndex = 0;
-	let lastVisibleLen = 0;
-
-	function onProgress(entryPath) {
-		const now = Date.now();
-		if (now - lastPrintMs < PROGRESS_DEBOUNCE_MS) return;
-		lastPrintMs = now;
-
-		const elapsed = prettyHrtime(process.hrtime(startHrtime));
-		const spinner = SPINNER_FRAMES[frameIndex % SPINNER_FRAMES.length];
-		frameIndex++;
-
-		// Trim path so the whole line stays within 80 columns
-		let displayPath = entryPath;
-		if (displayPath.length > PATH_MAX_COLS) {
-			displayPath = "…" + displayPath.slice(-(PATH_MAX_COLS - 1));
-		}
-
-		// Build visible text (no ANSI) first to get accurate length for overwrite padding
-		const visibleText = `  ${spinner} ${label}   ${displayPath}   ${elapsed}`;
-		// Then the styled version for actual output
-		const styledText = `  ${spinner} ${label}   ${chalk.dim(displayPath)}   ${elapsed}`;
-
-		// Pad to cover any longer previous line, then overwrite in place
-		const padded = styledText + " ".repeat(Math.max(0, lastVisibleLen - visibleText.length));
-		lastVisibleLen = visibleText.length;
-
-		process.stderr.write(`\r${padded}`);
-	}
-
-	function finalise() {
-		process.stderr.write(`\r${" ".repeat(lastVisibleLen)}\r`);
-	}
-
-	return {onProgress, finalise};
 }
 
 async function handleCache(argv) {
@@ -185,8 +134,7 @@ async function handleCache(argv) {
 	// Display items that will be removed
 	process.stderr.write(chalk.bold("\nThe following cached data will be removed:\n\n"));
 	if (frameworkInfo) {
-		const detail = formatLibraryStats(
-			frameworkInfo.libraryCount, frameworkInfo.projectCount, frameworkInfo.versionCount);
+		const detail = formatFrameworkStats(frameworkInfo.libraryCount, frameworkInfo.versionCount);
 		process.stderr.write(
 			`  ${chalk.yellow("•")} ${padLabel(LABEL_FRAMEWORK)}   ${frameworkAbsPath}   (${detail})\n`
 		);
@@ -213,22 +161,12 @@ async function handleCache(argv) {
 	}
 
 	// Perform the actual cleanup (orchestrate both domains)
-	let frameworkResult;
-	if (frameworkInfo) {
-		const startHrtime = process.hrtime();
-		const {onProgress, finalise} = createProgressHandler(LABEL_FRAMEWORK, startHrtime, prettyHrtime);
-		try {
-			frameworkResult = await frameworkCache.cleanCache(ui5DataDir, onProgress);
-		} finally {
-			finalise();
-		}
-	}
+	const frameworkResult = await frameworkCache.cleanCache(ui5DataDir);
 	const buildResult = await CacheManager.cleanCache(ui5DataDir);
 
 	process.stderr.write("\n");
 	if (frameworkResult) {
-		const detail = formatLibraryStats(
-			frameworkResult.libraryCount, frameworkResult.projectCount, frameworkResult.versionCount);
+		const detail = formatFrameworkStats(frameworkResult.libraryCount, frameworkResult.versionCount);
 		process.stderr.write(
 			`${chalk.green("✓")} Removed ${chalk.bold(LABEL_FRAMEWORK)}` +
 			`   (${frameworkAbsPath} · ${detail})\n`

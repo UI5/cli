@@ -26,7 +26,6 @@ test.afterEach.always(async (t) => {
 async function mkPackage(testDir, project, library, version) {
 	const dir = path.join(testDir, "framework", "packages", project, library, version);
 	await fs.mkdir(dir, {recursive: true});
-	// A real package directory has at least a package.json
 	await fs.writeFile(path.join(dir, "package.json"), JSON.stringify({name: `${project}/${library}`, version}));
 }
 
@@ -38,7 +37,6 @@ test("getCacheInfo: non-existent framework directory returns null", async (t) =>
 });
 
 test("getCacheInfo: framework dir exists but no packages/ subdir returns null", async (t) => {
-	// cacache/ or staging/ without packages/ — nothing meaningful to show
 	await fs.mkdir(path.join(t.context.testDir, "framework", "cacache"), {recursive: true});
 	const result = await getCacheInfo(t.context.testDir);
 	t.is(result, null);
@@ -50,8 +48,8 @@ test("getCacheInfo: packages/ exists but is empty returns null", async (t) => {
 	t.is(result, null);
 });
 
-test("getCacheInfo: counts projects, libraries and versions", async (t) => {
-	// 2 projects, 2 unique library names, 3 unique versions
+test("getCacheInfo: counts libraries and versions", async (t) => {
+	// 2 unique library names across 2 scopes, 3 unique versions
 	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
 	await mkPackage(t.context.testDir, "@openui5", "sap.ui.core", "1.120.0");
 	await mkPackage(t.context.testDir, "@openui5", "sap.ui.core", "1.148.0");
@@ -60,20 +58,17 @@ test("getCacheInfo: counts projects, libraries and versions", async (t) => {
 	const result = await getCacheInfo(t.context.testDir);
 	t.truthy(result);
 	t.is(result.path, "framework");
-	t.is(result.projectCount, 2);
-	t.is(result.libraryCount, 2); // sap.m counted once (deduplicated across projects)
+	t.is(result.libraryCount, 2); // sap.m counted once (deduplicated across scopes)
 	t.is(result.versionCount, 3); // 1.120.0, 1.148.0, 1.38.1
 });
 
-test("getCacheInfo: deduplicates library names across projects", async (t) => {
-	// sap.m appears under both projects — should count as 1 library
+test("getCacheInfo: deduplicates library names across scopes", async (t) => {
 	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
 	await mkPackage(t.context.testDir, "@sapui5", "sap.m", "1.38.1");
 
 	const result = await getCacheInfo(t.context.testDir);
 	t.truthy(result);
-	t.is(result.projectCount, 2);
-	t.is(result.libraryCount, 1); // sap.m is the same library regardless of project
+	t.is(result.libraryCount, 1); // sap.m is the same library regardless of scope
 	t.is(result.versionCount, 2); // 1.120.0 and 1.38.1
 });
 
@@ -84,17 +79,15 @@ test("getCacheInfo: deduplicates versions across libraries", async (t) => {
 
 	const result = await getCacheInfo(t.context.testDir);
 	t.truthy(result);
-	t.is(result.projectCount, 1);
 	t.is(result.libraryCount, 2);
 	t.is(result.versionCount, 1); // 1.120.0 deduplicated
 });
 
-test("getCacheInfo: single project, library and version", async (t) => {
+test("getCacheInfo: single library and version", async (t) => {
 	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
 
 	const result = await getCacheInfo(t.context.testDir);
 	t.truthy(result);
-	t.is(result.projectCount, 1);
 	t.is(result.libraryCount, 1);
 	t.is(result.versionCount, 1);
 });
@@ -107,7 +100,6 @@ test("cleanCache: returns null for non-existent framework directory", async (t) 
 });
 
 test("cleanCache: returns null when packages/ has no installed libraries", async (t) => {
-	// Empty packages/ — nothing to report or delete
 	await fs.mkdir(path.join(t.context.testDir, "framework", "packages"), {recursive: true});
 	const result = await cleanCache(t.context.testDir);
 	t.is(result, null);
@@ -123,15 +115,13 @@ test("cleanCache: removes framework directory and returns stats", async (t) => {
 
 	t.truthy(result);
 	t.is(result.path, "framework");
-	t.is(result.projectCount, 1);
 	t.is(result.libraryCount, 2);
 	t.is(result.versionCount, 2); // 1.120.0, 1.148.0
 
-	// Directory was removed
 	await t.throwsAsync(fs.access(frameworkDir));
 });
 
-test("cleanCache: removes directory with multiple projects", async (t) => {
+test("cleanCache: removes directory with multiple scopes", async (t) => {
 	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
 	await mkPackage(t.context.testDir, "@sapui5", "sap.m", "1.38.1");
 
@@ -139,7 +129,6 @@ test("cleanCache: removes directory with multiple projects", async (t) => {
 	const result = await cleanCache(t.context.testDir);
 
 	t.truthy(result);
-	t.is(result.projectCount, 2);
 	t.is(result.libraryCount, 1); // sap.m deduplicated
 	t.is(result.versionCount, 2);
 
@@ -168,12 +157,10 @@ test("cleanCache: removes directory when lockfiles are stale", async (t) => {
 	const lockDir = path.join(t.context.testDir, "framework", "locks");
 	await fs.mkdir(lockDir, {recursive: true});
 
-	// Create a real lock with a very short stale threshold, then wait for it to expire.
 	// lockfile.check uses ctime — fs.utimes only changes mtime, so backdating mtime won't work.
 	const lockPath = path.join(lockDir, "stale-package.lock");
 	await lockfileLock(lockPath, {stale: 50}); // stale after 50ms
 	await lockfileUnlock(lockPath); // unlock so ctime stops being "now" — file still exists on disk
-	// Wait long enough for the 50ms threshold to pass
 	await new Promise((resolve) => setTimeout(resolve, 100));
 
 	const frameworkDir = path.join(t.context.testDir, "framework");
@@ -181,35 +168,40 @@ test("cleanCache: removes directory when lockfiles are stale", async (t) => {
 
 	t.truthy(result);
 	t.is(result.path, "framework");
-	t.is(result.projectCount, 1);
 	t.is(result.libraryCount, 1);
+	t.is(result.versionCount, 1);
+
 	await t.throwsAsync(fs.access(frameworkDir));
 });
 
-test("cleanCache: holds cleanup lock during deletion so concurrent installers see it", async (t) => {
+test("cleanCache: holds cleanup lock during deletion", async (t) => {
 	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
 
 	const lockDir = path.join(t.context.testDir, "framework", "locks");
-	let lockObservedDuringDeletion = false;
+	let lockObservedBeforeCompletion = false;
 
-	// Pass an onProgress callback that fires mid-deletion and checks for the cleanup lock
-	const onProgress = async () => {
-		if (lockObservedDuringDeletion) return; // check once is enough
+	// Start cleanCache without awaiting — run the lock check in parallel
+	const cleanPromise = cleanCache(t.context.testDir);
+
+	// Poll for the cleanup lock to appear, with a short delay between attempts
+	for (let i = 0; i < 50; i++) {
+		await new Promise((resolve) => setTimeout(resolve, 20));
 		try {
 			const entries = await fs.readdir(lockDir);
 			if (entries.some((name) => name === "cache-cleanup.lock")) {
-				lockObservedDuringDeletion = true;
+				lockObservedBeforeCompletion = true;
+				break;
 			}
 		} catch {
-			// lockDir may not exist yet on the very first callback
+			// locks/ not created yet
 		}
-	};
+	}
 
-	const result = await cleanCache(t.context.testDir, onProgress);
+	const result = await cleanPromise;
 	t.truthy(result);
-	t.true(lockObservedDuringDeletion, "cache-cleanup.lock was present during deletion");
+	t.true(lockObservedBeforeCompletion, "cache-cleanup.lock was present during deletion");
 
-	// After completion: framework/ is fully removed including the locks/ subdir
+	// After completion: framework/ is fully removed
 	const frameworkDir = path.join(t.context.testDir, "framework");
-	await t.throwsAsync(fs.access(frameworkDir), undefined, "framework/ removed after unlock");
+	await t.throwsAsync(fs.access(frameworkDir));
 });
