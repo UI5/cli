@@ -64,26 +64,30 @@ class Installer extends AbstractInstaller {
 	}
 
 	async fetchPackageManifest({pkgName, version}) {
-		const targetDir = this._getTargetDirForPackage({pkgName, version});
-		try {
-			const pkg = await this.readJson(path.join(targetDir, "package.json"));
-			return {
-				name: pkg.name,
-				dependencies: pkg.dependencies,
-				devDependencies: pkg.devDependencies
-			};
-		} catch (err) {
-			if (err.code === "ENOENT") { // "File or directory does not exist"
-				const manifest = await this.getRegistry().requestPackageManifest(pkgName, version);
+		// Hold a lock during the manifest fetch so cache cleanup cannot delete
+		// framework/cacache/ while pacote writes temporary files there.
+		return this._synchronize(`manifest-${pkgName}@${version}`, async () => {
+			const targetDir = this._getTargetDirForPackage({pkgName, version});
+			try {
+				const pkg = await this.readJson(path.join(targetDir, "package.json"));
 				return {
-					name: manifest.name,
-					dependencies: manifest.dependencies,
-					devDependencies: manifest.devDependencies
+					name: pkg.name,
+					dependencies: pkg.dependencies,
+					devDependencies: pkg.devDependencies
 				};
-			} else {
-				throw err;
+			} catch (err) {
+				if (err.code === "ENOENT") { // "File or directory does not exist"
+					const manifest = await this.getRegistry().requestPackageManifest(pkgName, version);
+					return {
+						name: manifest.name,
+						dependencies: manifest.dependencies,
+						devDependencies: manifest.devDependencies
+					};
+				} else {
+					throw err;
+				}
 			}
-		}
+		});
 	}
 
 	async installPackage({pkgName, version}) {

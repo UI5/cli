@@ -133,13 +133,6 @@ export async function cleanCache(ui5DataDir) {
 	const lockDir = getFrameworkLockDir(ui5DataDir);
 	const lockPath = path.join(lockDir, CLEANUP_LOCK_NAME);
 
-	if (await hasActiveLocks(lockDir)) {
-		throw new Error(
-			"Framework cache is currently locked by an active operation. " +
-			"Please wait for it to finish and try again."
-		);
-	}
-
 	// Ensure the locks directory exists before acquiring our lock
 	await fs.mkdir(lockDir, {recursive: true});
 
@@ -147,8 +140,16 @@ export async function cleanCache(ui5DataDir) {
 	const lock = promisify(lockfile.lock);
 	const unlock = promisify(lockfile.unlock);
 
+	// Acquire first, then check — ensures installers running concurrently will see
+	// the cleanup lock and abort before writing into a directory being deleted.
 	await lock(lockPath, {stale: LOCK_STALE_MS});
 	try {
+		if (await hasActiveLocks(lockDir, {exclude: CLEANUP_LOCK_NAME})) {
+			throw new Error(
+				"Framework cache is currently locked by an active operation. " +
+				"Please wait for it to finish and try again."
+			);
+		}
 		// Delete everything inside framework/ except locks/ so our lock stays valid throughout
 		const entries = await fs.readdir(frameworkDir, {withFileTypes: true});
 		await Promise.all(
@@ -162,14 +163,8 @@ export async function cleanCache(ui5DataDir) {
 				})
 		);
 	} finally {
-		await unlock(lockPath);
-		// Remove the locks directory (and our lock file) now that we are done
+		await unlock(lockPath).catch(() => {});
 		await fs.rm(lockDir, {recursive: true, force: true});
-		// Remove the now-empty framework directory itself
-		await fs.rmdir(frameworkDir).catch(() => {
-			// If rmdir fails (e.g. something else recreated a file), ignore — the
-			// important thing is the cache content is gone and the lock is released.
-		});
 	}
 
 	return {

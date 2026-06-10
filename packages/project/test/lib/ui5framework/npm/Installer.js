@@ -11,6 +11,9 @@ test.beforeEach(async (t) => {
 
 	t.context.lockStub = sinon.stub();
 	t.context.unlockStub = sinon.stub();
+	// Configure stubs to call back immediately so promisify-wrapped lock/unlock resolve
+	t.context.lockStub.yieldsAsync();
+	t.context.unlockStub.yieldsAsync();
 	t.context.renameStub = sinon.stub().yieldsAsync();
 	t.context.statStub = sinon.stub().yieldsAsync();
 

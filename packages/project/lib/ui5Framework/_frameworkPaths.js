@@ -10,6 +10,13 @@ export const LOCK_STALE_MS = 60000;
 
 // Lock name acquired exclusively by cache cleanup — checked by installers to detect
 // an in-progress cache deletion before acquiring a per-package lock.
+//
+// Lock naming convention (files live in getFrameworkLockDir(); slashes in package
+// names are replaced with dashes by AbstractInstaller#_sanitizeFileName):
+//   cache-cleanup.lock            — held by ui5 cache clean for the full deletion
+//   install-{pkg}@{ver}.lock      — held by maven Installer for the full install lifecycle
+//   manifest-{pkg}@{ver}.lock     — held by npm Installer during manifest fetch (cacache writes)
+//   package-{pkg}@{ver}.lock      — held by both installers during package extraction
 export const CLEANUP_LOCK_NAME = "cache-cleanup.lock";
 
 /**
@@ -37,9 +44,11 @@ export function getFrameworkLockDir(ui5DataDir) {
  * indicating an ongoing download or installation.
  *
  * @param {string} lockDir Absolute path to a locks directory
+ * @param {object} [options]
+ * @param {string} [options.exclude] Lock file name to skip (e.g. the caller's own lock)
  * @returns {Promise<boolean>} True if any non-stale lockfiles are held
  */
-export async function hasActiveLocks(lockDir) {
+export async function hasActiveLocks(lockDir, {exclude} = {}) {
 	let entries;
 	try {
 		entries = await fs.readdir(lockDir);
@@ -47,7 +56,7 @@ export async function hasActiveLocks(lockDir) {
 		return false;
 	}
 
-	const lockFiles = entries.filter((name) => name.endsWith(".lock"));
+	const lockFiles = entries.filter((name) => name.endsWith(".lock") && name !== exclude);
 	if (lockFiles.length === 0) {
 		return false;
 	}
