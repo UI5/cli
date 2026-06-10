@@ -14,8 +14,8 @@ export const LOCK_STALE_MS = 60000;
 // Lock naming convention (files live in getFrameworkLockDir(); slashes in package
 // names are replaced with dashes by AbstractInstaller#_sanitizeFileName):
 //   cache-cleanup.lock            — held by ui5 cache clean for the full deletion
-//   install-{pkg}@{ver}.lock      — held by maven Installer for the full install lifecycle
-//   manifest-{pkg}@{ver}.lock     — held by npm Installer during manifest fetch (cacache writes)
+//   maven-{pkg}@{ver}.lock        — held by maven Installer for the full install lifecycle
+//   npm-{pkg}@{ver}.lock          — held by npm Installer during manifest fetch (cacache writes)
 //   package-{pkg}@{ver}.lock      — held by both installers during package extraction
 export const CLEANUP_LOCK_NAME = "cache-cleanup.lock";
 

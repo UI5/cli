@@ -66,7 +66,7 @@ class Installer extends AbstractInstaller {
 	async fetchPackageManifest({pkgName, version}) {
 		// Hold a lock during the manifest fetch so cache cleanup cannot delete
 		// framework/cacache/ while pacote writes temporary files there.
-		return this._synchronize(`manifest-${pkgName}@${version}`, async () => {
+		return this._synchronize(`npm-${pkgName}@${version}`, async () => {
 			const targetDir = this._getTargetDirForPackage({pkgName, version});
 			try {
 				const pkg = await this.readJson(path.join(targetDir, "package.json"));
