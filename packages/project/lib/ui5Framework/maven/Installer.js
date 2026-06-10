@@ -301,7 +301,7 @@ class Installer extends AbstractInstaller {
 	 * @returns {@ui5/project/ui5Framework/maven/Installer~InstalledPackage}
 	 */
 	async installPackage({pkgName, groupId, artifactId, version, classifier, extension}) {
-		return this._synchronize(`install-${pkgName}@${version}`, async () => {
+		return this._synchronize(`maven-${pkgName}@${version}`, async () => {
 			const {revision} = await this._fetchArtifactMetadata({
 				pkgName, groupId, artifactId, version, classifier, extension
 			});
