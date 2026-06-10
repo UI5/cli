@@ -22,6 +22,9 @@ test.beforeEach(async (t) => {
 
 	t.context.lockStub = sinon.stub();
 	t.context.unlockStub = sinon.stub();
+	// Configure stubs to call back immediately so promisify-wrapped calls resolve
+	t.context.lockStub.yieldsAsync();
+	t.context.unlockStub.yieldsAsync();
 	t.context.zipStub = class StreamZipStub {
 		extract = sinon.stub().resolves();
 		close = sinon.stub().resolves();
