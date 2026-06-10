@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import {promisify} from "node:util";
 
 // Directory name for framework packages within ui5DataDir
-export const FRAMEWORK_DIR_NAME = "framework";
+const FRAMEWORK_DIR_NAME = "framework";
 
 // Lockfile staleness threshold — must match the value used by AbstractInstaller#_synchronize
 export const LOCK_STALE_MS = 60000;
