@@ -36,16 +36,6 @@ class AbstractInstaller {
 		const lockPath = this._getLockPath(lockName);
 		await mkdirp(this._lockDir);
 
-		// Refuse to start if cache cleanup is in progress — proceeding would write
-		// into a directory that is being deleted by a concurrent 'ui5 cache clean'.
-		const cleanupLockPath = path.join(this._lockDir, CLEANUP_LOCK_NAME);
-		if (await check(cleanupLockPath, {stale: LOCK_STALE_MS})) {
-			throw new Error(
-				"Framework cache is currently being cleaned. " +
-				"Please wait for the cache clean operation to finish and try again."
-			);
-		}
-
 		log.verbose("Locking " + lockPath);
 		await lock(lockPath, {
 			wait: 10000,
@@ -53,6 +43,15 @@ class AbstractInstaller {
 			retries: 10
 		});
 		try {
+			// Abort if cache cleanup is in progress. Checking after acquiring our lock
+			// ensures cleanCache's hasActiveLocks scan will see us if both run concurrently.
+			const cleanupLockPath = path.join(this._lockDir, CLEANUP_LOCK_NAME);
+			if (await check(cleanupLockPath, {stale: LOCK_STALE_MS})) {
+				throw new Error(
+					"Framework cache is currently being cleaned. " +
+					"Please wait for the cache clean operation to finish and try again."
+				);
+			}
 			const res = await callback();
 			return res;
 		} finally {
