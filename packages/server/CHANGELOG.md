@@ -4,6 +4,31 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v4.0.7...HEAD).
 
+## [5.0.0-alpha.5](https://github.com/UI5/cli/compare/server-v5.0.0-alpha.4...server-v5.0.0-alpha.5) (2026-06-11)
+
+
+### Features
+
+* **server:** Integrate BuildServer into dev server ([997ba31](https://github.com/UI5/cli/commit/997ba3132c3ea623ed4dfe5f27ca95051666f29c))
+
+
+### Bug Fixes
+
+* **server:** Explicitly bind to IPv4 loopback ([d913c56](https://github.com/UI5/cli/commit/d913c56a173c62c3c450c2dde358b1081b57db02))
+
+
+### Dependencies
+
+* Bump qs and express ([#1396](https://github.com/UI5/cli/issues/1396)) ([a0e173b](https://github.com/UI5/cli/commit/a0e173b2bf53d3888702ea50b4dde75295aa82d0))
+* Update npm dependencies ([0ac8ebb](https://github.com/UI5/cli/commit/0ac8ebbb5ffe9fc6e4455244cf5da50e4c540c5c))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+    * @ui5/fs bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+    * @ui5/logger bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+  * devDependencies
+    * @ui5/project bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+
 ## [5.0.0-alpha.4](https://github.com/UI5/cli/compare/server-v5.0.0-alpha.3...server-v5.0.0-alpha.4) (2026-03-24)
 
 

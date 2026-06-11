@@ -4,6 +4,33 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v4.0.11...HEAD).
 
+## [5.0.0-alpha.5](https://github.com/UI5/cli/compare/builder-v5.0.0-alpha.4...builder-v5.0.0-alpha.5) (2026-06-11)
+
+
+### Features
+
+* **builder:** Adapt build tasks for incremental builds ([ace5ebb](https://github.com/UI5/cli/commit/ace5ebb6bf10b7d72db6397460f12e9040121456))
+
+
+### Bug Fixes
+
+* **builder:** Also detect import.meta as ESM indicator ([5d1dcb7](https://github.com/UI5/cli/commit/5d1dcb719056eba85dc13271493baa8d5cbd1bd1))
+* **builder:** Reduce noise from ESM parse errors ([4e7f69a](https://github.com/UI5/cli/commit/4e7f69aede38571dcd4643414ff54ab6131a5c73))
+* **builder:** Skip ESM modules during bundling and log errors ([20bcdf2](https://github.com/UI5/cli/commit/20bcdf212c30569a6aba5c7c61d5717bfd9b1d0b))
+* **builder:** Update lbt/bundle/Resolver to ensure deterministic ordering of raw modules ([9d19923](https://github.com/UI5/cli/commit/9d19923437f41f511cb51fb8477e7a2dec1f0d13))
+
+
+### Dependencies
+
+* Bump espree from 10.4.0 to 11.2.0 ([#1381](https://github.com/UI5/cli/issues/1381)) ([29a00b2](https://github.com/UI5/cli/commit/29a00b236e4c410e4a47ccb0842e851ff9e2ab4a))
+* Update npm dependencies ([0ac8ebb](https://github.com/UI5/cli/commit/0ac8ebbb5ffe9fc6e4455244cf5da50e4c540c5c))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/fs bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+    * @ui5/logger bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+  * devDependencies
+    * @ui5/project bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+
 ## [5.0.0-alpha.4](https://github.com/UI5/cli/compare/builder-v5.0.0-alpha.3...builder-v5.0.0-alpha.4) (2026-03-24)
 
 

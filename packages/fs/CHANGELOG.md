@@ -4,6 +4,21 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v4.0.2...HEAD).
 
+## [5.0.0-alpha.5](https://github.com/UI5/cli/compare/fs-v5.0.0-alpha.4...fs-v5.0.0-alpha.5) (2026-06-11)
+
+
+### Features
+
+* **fs:** Enhance API for incremental builds ([df050e2](https://github.com/UI5/cli/commit/df050e2c28ccfdadeda028057534d92e9398c29d))
+
+
+### Dependencies
+
+* Update npm dependencies ([0ac8ebb](https://github.com/UI5/cli/commit/0ac8ebbb5ffe9fc6e4455244cf5da50e4c540c5c))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/logger bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+
 ## [5.0.0-alpha.4](https://github.com/UI5/cli/compare/fs-v5.0.0-alpha.3...fs-v5.0.0-alpha.4) (2026-03-24)
 
 
