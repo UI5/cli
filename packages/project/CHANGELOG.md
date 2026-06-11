@@ -4,6 +4,31 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v4.0.6...HEAD).
 
+## [5.0.0-alpha.5](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.4...project-v5.0.0-alpha.5) (2026-06-11)
+
+
+### Features
+
+* **cli:** Add --cache option for build and serve commands ([#1368](https://github.com/UI5/cli/issues/1368)) ([13e7ac5](https://github.com/UI5/cli/commit/13e7ac5a5f32f603049c900e39eba9c9febf47fe))
+* **project:** Add BuildServer for watch mode and incremental rebuilds ([9d5192d](https://github.com/UI5/cli/commit/9d5192db914e1b5c90869fa8a2d8f124dc6f63da))
+* **project:** Add hash-tree-based resource change tracking ([fc9dc4e](https://github.com/UI5/cli/commit/fc9dc4e077486967661d7172bf9a2fa88859ae1e))
+* **project:** Add resource request graph and per-stage/task caches ([6dd1235](https://github.com/UI5/cli/commit/6dd1235fbad2e62595604b4a14f714d9a9b20c92))
+* **project:** Add SQLite-backed build cache storage ([ca96789](https://github.com/UI5/cli/commit/ca96789183909dcd0e9c760eb9e7144efe2d9bf1))
+* **project:** Implement differential builds in ProjectBuilder/TaskRunner ([e7c48b5](https://github.com/UI5/cli/commit/e7c48b5dfea30039a296f909a602e3ef79859667))
+
+
+### Dependencies
+
+* Bump make-fetch-happen from 15.0.4 to 15.0.5 ([#1341](https://github.com/UI5/cli/issues/1341)) ([a204e65](https://github.com/UI5/cli/commit/a204e65697844b54e1bce51e41fb8c55c7ff158c))
+* Bump read-package-up from 11.0.0 to 12.0.0 ([#1349](https://github.com/UI5/cli/issues/1349)) ([9d5693a](https://github.com/UI5/cli/commit/9d5693a53388fcd0a43cff033bbb1b347a426c89))
+* Update npm dependencies ([0ac8ebb](https://github.com/UI5/cli/commit/0ac8ebbb5ffe9fc6e4455244cf5da50e4c540c5c))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/fs bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+    * @ui5/logger bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+  * peerDependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+
 ## [5.0.0-alpha.4](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.3...project-v5.0.0-alpha.4) (2026-03-24)
 
 
