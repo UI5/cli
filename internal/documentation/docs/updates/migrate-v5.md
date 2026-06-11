@@ -29,6 +29,47 @@ UI5 CLI 5.x introduces **Specification Version 5.0**, which enables the new Comp
 
 Projects using older **Specification Versions** are expected to be **fully compatible with UI5 CLI v5**.
 
+## Build Cache
+
+UI5 CLI v5 introduces **builds with caching** for both commands `ui5 build` and `ui5 serve`. This fundamental architectural change significantly improves build performance by reusing cached results from previous builds.
+
+### What Changed
+
+**Previous Behavior (v4 and earlier):**
+- Every source change resulted in an entire rebuild of all projects
+- Every build re-executed all tasks
+- No caching between builds or server sessions
+
+**New Behavior (v5):**
+- Only relevant projects are rebuilt
+- Only modified resources and affected tasks are re-processed
+
+### Impact on Your Workflow
+
+- **First build**: Probably slightly slower, as the cache is populated with all build outputs
+- **Subsequent builds**: Significantly faster — only modified resources and affected tasks are reprocessed
+- **Quick iterations**: Changes to individual files typically rebuild very quickly
+- **Cross-session**: Caches are used between server restarts and build runs
+
+### For `ui5 build`
+
+When `ui5 build` is executed, build caches are automatically serialized and reused when available.
+
+::: tip Tip for Single Builds (e.g. CI/CD)
+If you plan to execute a build only once (e.g. during a CI run), consider using `--cache "Off"` (see [Build Cache Control](../pages/Builder.md#build-cache-control)) to skip cache serialization.
+:::
+
+### For `ui5 serve`
+
+During a server session (started by `ui5 serve`), source changes are automatically being monitered. Then, if a request was made, the server detects this, tries to use caches and only rebuilds when none are available. For more information see [Watch Mode Behavior](../pages/Server.md#watch-mode-behavior).
+
+::: info Review custom middleware
+
+With this feature, **build tasks are executed in server sessions**. For this reason, some custom middleware might be obsolete or cause problems. Projects utilizing such might need to adapt their configuration.
+
+E.g. Middleware for browser live reloads is obsolete and can be removed. Also, middleware for Typescript transpilation is not required anymore (as long as the respective task is still set up).
+:::
+
 ## Rename of Command Option
 
 With UI5 CLI v5, the option `--cache-mode` (for commands `ui5 build` and `ui5 serve`) has been renamed to `--snapshot-cache`.

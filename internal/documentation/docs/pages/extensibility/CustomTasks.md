@@ -286,11 +286,37 @@ module.exports.determineRequiredDependencies = async function({availableDependen
 ```
 :::
 
+### "Cache-aware" Tasks 
+
+Due to UI5 Builder and UI5 Server supporting **build caches** of task data, custom tasks can opt into this behavior to improve performance. This is done by implementing the following features:
+
+#### `supportsDifferentialBuilds()`
+
+This method indicates whether your task can perform differential builds:
+
+```js
+/**
+ * Indicates whether this task can perform differential builds
+ * 
+ * @returns {boolean} True if the task can process only modified resources
+ */
+export function supportsDifferentialBuilds() {
+    return true;
+}
+```
+
+When this returns `true`, your task's main function receives an additional parameter indicating which resources have changed. The task can then process only those resources instead of all resources.
+
+::: info Best Practices for Cache-aware Tasks
+1. **Keep tasks deterministic**: Given the same inputs, always produce the same outputs
+2. **Opt into differential builds carefully**: Only set `supportsDifferentialBuilds = true` if your task can safely process files independently
+:::
+
 ### Examples
 
 The following code snippets show examples for custom task implementations.
 
-### Example: lib/tasks/renderMarkdownFiles.js
+#### Example: lib/tasks/renderMarkdownFiles.js
 
 This example is making use of the `resourceFactory` [TaskUtil](https://ui5.github.io/cli/v5/api/@ui5_project_build_helpers_TaskUtil.html)
 API to create new resources based on the output of a third-party module for rendering Markdown files. The created resources are added to the build
@@ -364,7 +390,7 @@ Tasks should ideally use the reader/writer APIs provided by UI5 CLI for working 
 
 :::
 
-### Example: lib/tasks/compileLicenseSummary.js
+#### Example: lib/tasks/compileLicenseSummary.js
 
 This example is making use of multiple [TaskUtil](https://ui5.github.io/cli/v5/api/@ui5_project_build_helpers_TaskUtil.html)
 APIs to retrieve additional information about the project currently being built (`taskUtil.getProject()`) and its direct dependencies
