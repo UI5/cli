@@ -34,33 +34,6 @@ There can be optional configuration parameters which are passed directly to the 
 
 An optional mountPath for which the middleware function is invoked can be provided. It will be passed to the `app.use` call (see [express API reference](https://expressjs.com/en/4x/api.html#app.use)).
 
-### With Incremental Build
-
-**Change in UI5 CLI v5:** The development server now integrates with the incremental build system. When a request comes in, the server builds the project on-demand (if no cache exists or the cache is stale) before serving resources.
-
-- **Custom build tasks from dependencies execute automatically**: If your reusable library or module defines custom build tasks, they will be executed during the build phase. You no longer need to configure custom middleware at the root project level to handle tasks from dependencies.
-
-- **Middleware receives pre-built resources**: The `resources` parameter passed to your middleware implementation provides access to fully built resources, including outputs from all build tasks (both standard and custom).
-
-#### Accessing Build Outputs in Middleware
-
-The `resources` readers provided to your middleware return pre-built resources:
-
-```js
-export default function({resources, log}) {
-    return async function (req, res, next) {
-        // This returns the built resource, including all task transformations
-        const resource = await resources.all.byPath(req.path);
-        
-        if (resource) {
-            const content = await resource.getString();
-            // The content has already been processed by all build tasks
-        }
-        next();
-    }
-}
-```
-
 ### Execution order
 
 Note that middleware configurations are applied in the order they are defined. When referencing another custom middleware, it has to be defined *before* that reference.

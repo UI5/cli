@@ -14,63 +14,6 @@ For every type there is a set of default tasks. You can disable single tasks usi
   <VPButton class="no-decoration" text="📚 API Reference" href="https://ui5.github.io/cli/v5/api/index.html"/>
 </div>
 
-## Incremental Build and Caching
-
-Starting with UI5 CLI v5, UI5 project building integrates the **Incremental Build**. This architectural change brings significant benefits while introducing some behavioral differences compared to previous versions. Instead of rebuilding everything from scratch, the UI5 Builder tracks which resources have changed and which build tasks need to be re-executed:
-
-### How It Works
-
-When you start a project build with `ui5 build`:
-
-1. **Cache Population and Reuse**: The UI5 CLI builds your project caching build results and metadata
-1. **File Watching**: When Watch Mode is enabled, the CLI monitors your source files for changes and triggers automatic rebuilds (see [Watch Mode](#watch-mode) section)
-1. **Incremental Rebuilds**: When a rebuild is triggered, only relevant tasks are re-executed and cached results from unrelated ones are used
-1. **Cached Results**: Build outputs are cached to gain performance during subsequent builds
-
-### Build Cache Control
-
-You can control the build cache behavior using the `--cache` option:
-
-- `--cache Default` (default): Use the cache if available, create it if missing
-- `--cache Force`: Only use the cache; fail if the cache is unavailable or invalid
-- `--cache ReadOnly`: Use existing cache but don't update it (useful for CI/CD)
-- `--cache Off`: Disable caching entirely and always perform a full rebuild
-
-Example:
-```sh
-ui5 build --cache Off
-```
-In this scenario, when a source file change is made, always perform a full rebuild (even if this source version already existed sometime ago).
-
-::: warning Important
-Build caches created by `ui5 build` and `ui5 serve` are **separate and cannot be mixed**. Each command maintains its own cache optimized for its specific use case.
-:::
-
-For more details on server caching, see the [UI5 Server documentation](./Server.md).
-
-### Watch Mode
-
-The `ui5 build` command supports a `--watch` flag that monitors source files for changes and automatically triggers incremental rebuilds:
-
-```sh
-ui5 build --watch
-```
-
-When watch mode is enabled:
-- Source files in your project are monitored for changes
-- Incremental rebuilds are triggered automatically when changes are detected
-- Only affected tasks are re-executed
-
-::: tip
-Watch mode monitors your source files only. Changes to configuration files (`ui5.yaml`, `package.json`) or custom task implementations require restarting the build command.
-:::
-
-::: info Info
-For `ui5 serve`, this behavior is always turned on automatically.
-:::
-
-TODO: check this section again once it's implemented
-
 ## Tasks
 Tasks are specific build steps to be executed during build phase.
 
@@ -256,3 +199,30 @@ sap.ui.define([], () => {
     text-decoration: inherit;
 }
 </style>
+
+## Build Cache Control
+
+The UI5 Builder integrates **build caches**. Instead of rebuilding everything from scratch, the UI5 Builder tracks which resources have changed and which build tasks need to be re-executed:
+
+You can control the build cache behavior using the `--cache` option:
+
+- `--cache Default` (default): Use the cache if available, create it if missing
+- `--cache Force`: Only use the cache; fail if the cache is unavailable or invalid
+- `--cache ReadOnly`: Use existing cache but don't update it (useful for CI/CD)
+- `--cache Off`: Disable caching entirely and always perform a full rebuild
+
+Example:
+```sh
+ui5 build --cache Off
+```
+In this scenario, when a source file change is made, always perform a full rebuild (even if this source version already existed sometime ago).
+
+::: info
+By default, the build cache is stored inside UI5 CLI's Data Dir (`~/.ui5/buildCache/`). You can customize the location (see [Changing UI5 CLI's Data Directory](./Troubleshooting#changing-ui5-cli-s-data-directory)).
+:::
+
+::: info
+Build caches created by `ui5 build` and `ui5 serve` are **separate and cannot be mixed**. Each command maintains its own cache optimized for its specific use case. For more details on server caching, see the [UI5 Server documentation](./Server.md).
+:::
+
+

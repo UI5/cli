@@ -662,9 +662,6 @@ A project can also configure alternative default ports. If the configured port i
 
 The default and configured server ports can always be overwritten with the CLI parameter `--port`.
 
-
-TODO: Add Live Reload configuration once it's implemented
-
 ## Extension Configuration
 
 ::: details Example
