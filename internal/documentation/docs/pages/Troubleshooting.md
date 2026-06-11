@@ -12,17 +12,31 @@ Please follow our [Contribution Guidelines](https://github.com/UI5/cli/blob/main
 ## UI5 Project
 ### `~/.ui5` Taking too Much Disk Space
 
-There are possibly many versions of UI5 framework dependencies installed on your system, taking a large amount of disk space.
+There are possibly many versions of UI5 framework dependencies and incremental build data stored on your system, taking a large amount of disk space.
 
 #### Resolution
 
-Remove the `.ui5/framework/` directory from your user's home directory:
+Use the dedicated cache clean command, which safely removes all cached data:
 
 ```sh
-rm -rf ~/.ui5/framework/
+ui5 cache clean
 ```
 
+This will display the cache location, the amount of data that will be removed, and ask for confirmation before proceeding. To skip the confirmation prompt (e.g. in CI environments), use the `--yes` flag:
+
+```sh
+ui5 cache clean --yes
+```
+
+The command removes two types of cached data:
+- **UI5 Framework packages** — downloaded UI5 library files (`~/.ui5/framework/`)
+- **Build cache (DB)** — incremental build data (`~/.ui5/buildCache/`)
+
 Any missing framework dependencies will be downloaded again during the next UI5 CLI invocation.
+
+::: info
+If you have configured a custom data directory via `UI5_DATA_DIR` or `ui5DataDir`, the cache will be cleaned from that location instead of `~/.ui5`. See [Changing UI5 CLI's Data Directory](#changing-ui5-clis-data-directory) below.
+:::
 
 ## Environment Variables
 ### Changing the Log Level
