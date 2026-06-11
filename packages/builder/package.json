@@ -96,7 +96,7 @@
 		"cheerio": "1.0.0",
 		"escape-unicode": "^0.3.0",
 		"escope": "^4.0.0",
-		"espree": "^10.4.0",
+		"espree": "^11.2.0",
 		"graceful-fs": "^4.2.11",
 		"jsdoc": "^4.0.4",
 		"less-openui5": "^0.11.6",
