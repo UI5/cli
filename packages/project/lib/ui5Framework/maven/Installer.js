@@ -301,71 +301,69 @@ class Installer extends AbstractInstaller {
 	 * @returns {@ui5/project/ui5Framework/maven/Installer~InstalledPackage}
 	 */
 	async installPackage({pkgName, groupId, artifactId, version, classifier, extension}) {
-		return this._synchronize(`maven-${pkgName}@${version}`, async () => {
-			const {revision} = await this._fetchArtifactMetadata({
-				pkgName, groupId, artifactId, version, classifier, extension
-			});
-
-			const coordinates = {
-				groupId, artifactId,
-				version, revision,
-				classifier, extension
-			};
-
-			const targetDir = this._getTargetDirForPackage(pkgName, revision);
-			const installed = await this._projectExists(targetDir);
-
-			if (!installed) {
-				await this._synchronize(`package-${pkgName}@${revision}`, async () => {
-					const installed = await this._projectExists(targetDir);
-
-					if (installed) {
-						log.verbose(`Already installed: ${pkgName} in SNAPSHOT version ${revision}`);
-						return;
-					}
-
-					const stagingDir = this._getStagingDirForPackage(pkgName, revision);
-
-					// Check whether staging dir already exists and remove it
-					if (await this._pathExists(stagingDir)) {
-						log.verbose(`Removing stale staging directory at ${stagingDir}...`);
-						await rmrf(stagingDir);
-					}
-
-					await mkdirp(stagingDir);
-
-					const {artifactPath, removeArtifact} = await this.installArtifact(coordinates);
-
-					log.verbose(`Extracting archive at ${artifactPath} to ${stagingDir}...`);
-					const zip = new StreamZip({file: artifactPath});
-					let rootDir = null;
-					if (extension === "jar") {
-						rootDir = "META-INF";
-					}
-					await zip.extract(rootDir, stagingDir);
-					await zip.close();
-
-					// Check whether target dir already exists and remove it
-					if (await this._pathExists(targetDir)) {
-						log.verbose(`Removing existing target directory at ${targetDir}...`);
-						await rmrf(targetDir);
-					}
-
-					// Do not create target dir itself to prevent EPERM error in following rename operation
-					// (https://github.com/UI5/cli/issues/487)
-					await mkdirp(path.dirname(targetDir));
-					log.verbose(`Promoting staging directory from ${stagingDir} to ${targetDir}...`);
-					await rename(stagingDir, targetDir);
-
-					await removeArtifact();
-				});
-			} else {
-				log.verbose(`Already installed: ${pkgName} in SNAPSHOT version ${revision}`);
-			}
-			return {
-				pkgPath: targetDir
-			};
+		const {revision} = await this._fetchArtifactMetadata({
+			pkgName, groupId, artifactId, version, classifier, extension
 		});
+
+		const coordinates = {
+			groupId, artifactId,
+			version, revision,
+			classifier, extension
+		};
+
+		const targetDir = this._getTargetDirForPackage(pkgName, revision);
+		const installed = await this._projectExists(targetDir);
+
+		if (!installed) {
+			await this._synchronize(`package-${pkgName}@${revision}`, async () => {
+				const installed = await this._projectExists(targetDir);
+
+				if (installed) {
+					log.verbose(`Already installed: ${pkgName} in SNAPSHOT version ${revision}`);
+					return;
+				}
+
+				const stagingDir = this._getStagingDirForPackage(pkgName, revision);
+
+				// Check whether staging dir already exists and remove it
+				if (await this._pathExists(stagingDir)) {
+					log.verbose(`Removing stale staging directory at ${stagingDir}...`);
+					await rmrf(stagingDir);
+				}
+
+				await mkdirp(stagingDir);
+
+				const {artifactPath, removeArtifact} = await this.installArtifact(coordinates);
+
+				log.verbose(`Extracting archive at ${artifactPath} to ${stagingDir}...`);
+				const zip = new StreamZip({file: artifactPath});
+				let rootDir = null;
+				if (extension === "jar") {
+					rootDir = "META-INF";
+				}
+				await zip.extract(rootDir, stagingDir);
+				await zip.close();
+
+				// Check whether target dir already exists and remove it
+				if (await this._pathExists(targetDir)) {
+					log.verbose(`Removing existing target directory at ${targetDir}...`);
+					await rmrf(targetDir);
+				}
+
+				// Do not create target dir itself to prevent EPERM error in following rename operation
+				// (https://github.com/UI5/cli/issues/487)
+				await mkdirp(path.dirname(targetDir));
+				log.verbose(`Promoting staging directory from ${stagingDir} to ${targetDir}...`);
+				await rename(stagingDir, targetDir);
+
+				await removeArtifact();
+			});
+		} else {
+			log.verbose(`Already installed: ${pkgName} in SNAPSHOT version ${revision}`);
+		}
+		return {
+			pkgPath: targetDir
+		};
 	}
 
 	/**
