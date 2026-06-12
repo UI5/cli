@@ -9,7 +9,7 @@ import CacheManager from "@ui5/project/build/cache/CacheManager";
 
 const cacheCommand = {
 	command: "cache",
-	describe: "Manage the UI5 CLI cache (downloaded framework packages and incremental build data)",
+	describe: "Manage the UI5 CLI cache (downloaded framework packages and build data)",
 	middlewares: [baseMiddleware],
 	handler: handleCache
 };
@@ -40,7 +40,7 @@ cacheCommand.builder = function(cli) {
 						"Two cache types are removed:\n" +
 						"  UI5 Framework packages  Downloaded UI5 library files " +
 							"(~/.ui5/framework/)\n" +
-						"  Build cache (DB)        Incremental build data " +
+						"  Build cache (DB)        build data " +
 							"(~/.ui5/buildCache/)"
 					);
 			},
