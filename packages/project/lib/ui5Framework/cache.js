@@ -148,6 +148,19 @@ export async function cleanCache(ui5DataDir) {
 				"Please wait for it to finish and try again."
 			);
 		}
+
+		// Use cacache's own rm.all to clear the pacote download cache.
+		// This respects cacache's internal structure (content-v2/, index-v5/)
+		// and clears in-memory memoization, which a plain fs.rm would not do.
+		const caCacheDir = path.join(frameworkDir, "cacache");
+		try {
+			await fs.access(caCacheDir);
+			const {rm: cacacheRm} = await import("cacache");
+			await cacacheRm.all(caCacheDir);
+		} catch {
+			// cacache dir doesn't exist or cacache not available — no-op
+		}
+
 		// Delete everything inside framework/ except locks/ so our lock stays valid throughout
 		const entries = await fs.readdir(frameworkDir, {withFileTypes: true});
 		await Promise.all(
