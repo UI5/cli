@@ -122,6 +122,7 @@ URL: http://localhost:8080
 			sendSAPTargetCSP: false,
 			serveCSPReports: false,
 			simpleIndex: false,
+			liveReload: true,
 		}
 	]);
 	t.is(typeof server.serve.getCall(0).args[2], "function");
@@ -171,6 +172,7 @@ URL: https://localhost:8443
 			sendSAPTargetCSP: false,
 			serveCSPReports: false,
 			simpleIndex: false,
+			liveReload: true,
 		}
 	]);
 
@@ -223,6 +225,7 @@ URL: http://localhost:8080
 			sendSAPTargetCSP: false,
 			serveCSPReports: false,
 			simpleIndex: false,
+			liveReload: true,
 		}
 	]);
 });
@@ -265,6 +268,7 @@ URL: http://localhost:8080
 			sendSAPTargetCSP: false,
 			serveCSPReports: false,
 			simpleIndex: false,
+			liveReload: true,
 		}
 	]);
 
@@ -312,6 +316,7 @@ URL: http://localhost:8080
 			sendSAPTargetCSP: false,
 			serveCSPReports: false,
 			simpleIndex: false,
+			liveReload: true,
 		}
 	]);
 
@@ -356,6 +361,7 @@ URL: http://localhost:8080
 			sendSAPTargetCSP: false,
 			serveCSPReports: false,
 			simpleIndex: false,
+			liveReload: true,
 		}
 	]);
 });
@@ -393,7 +399,8 @@ URL: http://localhost:8080
 			port: 8080,
 			sendSAPTargetCSP: false,
 			serveCSPReports: false,
-			simpleIndex: false
+			simpleIndex: false,
+			liveReload: true
 		}
 	]);
 });
@@ -434,7 +441,8 @@ URL: http://localhost:8080
 			port: 8080,
 			sendSAPTargetCSP: false,
 			serveCSPReports: false,
-			simpleIndex: false
+			simpleIndex: false,
+			liveReload: true
 		}
 	]);
 });
@@ -473,6 +481,7 @@ URL: http://localhost:8080
 			sendSAPTargetCSP: false,
 			serveCSPReports: false,
 			simpleIndex: false,
+			liveReload: true,
 		}
 	]);
 });
@@ -511,6 +520,7 @@ URL: http://localhost:8080
 			sendSAPTargetCSP: false,
 			serveCSPReports: false,
 			simpleIndex: false,
+			liveReload: true,
 		}
 	]);
 });
@@ -549,6 +559,7 @@ URL: http://localhost:8080
 			sendSAPTargetCSP: false,
 			serveCSPReports: false,
 			simpleIndex: false,
+			liveReload: true,
 		}
 	]);
 });
@@ -587,6 +598,7 @@ URL: http://localhost:8080
 			sendSAPTargetCSP: false,
 			serveCSPReports: false,
 			simpleIndex: false,
+			liveReload: true,
 		}
 	]);
 });
@@ -626,6 +638,7 @@ URL: http://localhost:8080
 			sendSAPTargetCSP: false,
 			serveCSPReports: false,
 			simpleIndex: false,
+			liveReload: true,
 		}
 	]);
 });
@@ -664,6 +677,7 @@ URL: http://localhost:8080
 			sendSAPTargetCSP: true,
 			serveCSPReports: false,
 			simpleIndex: false,
+			liveReload: true,
 		}
 	]);
 });
@@ -702,6 +716,7 @@ URL: http://localhost:8080
 			sendSAPTargetCSP: false,
 			serveCSPReports: true,
 			simpleIndex: false,
+			liveReload: true,
 		}
 	]);
 });
@@ -740,8 +755,62 @@ URL: http://localhost:8080
 			sendSAPTargetCSP: false,
 			serveCSPReports: false,
 			simpleIndex: true,
+			liveReload: true,
 		}
 	]);
+});
+
+test.serial("ui5 serve --no-live-reload", async (t) => {
+	const {argv, serve, server} = t.context;
+
+	argv.liveReload = false;
+
+	serve.handler(argv);
+	await t.context.handlerReady;
+
+	t.is(server.serve.callCount, 1);
+	t.is(server.serve.getCall(0).args[1].liveReload, false);
+});
+
+test.serial("ui5 serve --live-reload", async (t) => {
+	const {argv, serve, server} = t.context;
+
+	argv.liveReload = true;
+
+	serve.handler(argv);
+	await t.context.handlerReady;
+
+	t.is(server.serve.callCount, 1);
+	t.is(server.serve.getCall(0).args[1].liveReload, true);
+});
+
+test.serial("ui5 serve with ui5.yaml liveReload=false setting", async (t) => {
+	const {argv, serve, server, getServerSettings} = t.context;
+
+	getServerSettings.returns({
+		liveReload: false
+	});
+
+	serve.handler(argv);
+	await t.context.handlerReady;
+
+	t.is(server.serve.callCount, 1);
+	t.is(server.serve.getCall(0).args[1].liveReload, false);
+});
+
+test.serial("ui5 serve --live-reload overrides ui5.yaml liveReload setting", async (t) => {
+	const {argv, serve, server, getServerSettings} = t.context;
+
+	argv.liveReload = true;
+	getServerSettings.returns({
+		liveReload: false
+	});
+
+	serve.handler(argv);
+	await t.context.handlerReady;
+
+	t.is(server.serve.callCount, 1);
+	t.is(server.serve.getCall(0).args[1].liveReload, true);
 });
 
 test.serial("ui5 serve with ui5.yaml port setting", async (t) => {
@@ -785,6 +854,7 @@ URL: http://localhost:3333
 			sendSAPTargetCSP: false,
 			serveCSPReports: false,
 			simpleIndex: false,
+			liveReload: true,
 		}
 	]);
 });
@@ -837,6 +907,7 @@ URL: https://localhost:4444
 			sendSAPTargetCSP: false,
 			serveCSPReports: false,
 			simpleIndex: false,
+			liveReload: true,
 		}
 	]);
 
@@ -896,6 +967,7 @@ URL: https://localhost:5555
 			sendSAPTargetCSP: false,
 			serveCSPReports: false,
 			simpleIndex: false,
+			liveReload: true,
 		}
 	]);
 

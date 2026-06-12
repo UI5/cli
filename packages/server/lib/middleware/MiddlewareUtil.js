@@ -1,4 +1,3 @@
-import parseurl from "parseurl";
 import mime from "mime-types";
 import {
 	createReaderCollection,
@@ -8,6 +7,7 @@ import {
 	createLinkReader,
 	createFlatReader
 } from "@ui5/fs/resourceFactory";
+import getPathname from "../helper/getPathname.js";
 
 /**
  * Convenience functions for UI5 Server middleware.
@@ -55,9 +55,7 @@ class MiddlewareUtil {
 	 * @public
 	 */
 	getPathname(req) {
-		let {pathname} = parseurl(req);
-		pathname = decodeURIComponent(pathname);
-		return pathname;
+		return getPathname(req);
 	}
 
 	/**

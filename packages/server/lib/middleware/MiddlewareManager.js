@@ -33,7 +33,8 @@ const LEGACY_MIDDLEWARE_MAPPING = {
 class MiddlewareManager {
 	constructor({graph, rootProject, sources, resources, buildReader, options = {
 		sendSAPTargetCSP: false,
-		serveCSPReports: false
+		serveCSPReports: false,
+		liveReload: false
 	}}) {
 		if (!graph || !rootProject || !resources || !resources.all ||
 			!resources.rootProject || !resources.dependencies) {
@@ -251,10 +252,25 @@ class MiddlewareManager {
 		});
 		await this.addMiddleware("compression");
 		await this.addMiddleware("cors");
+		await this.addMiddleware("liveReloadClient", {
+			wrapperCallback: ({middleware}) =>
+				({middlewareUtil}) => middleware({
+					middlewareUtil,
+					active: this.options.liveReload,
+				})
+		});
 		await this.addMiddleware("discovery", {
 			mountPath: "/discovery"
 		});
-		await this.addMiddleware("serveResources");
+		await this.addMiddleware("serveResources", {
+			wrapperCallback: ({middleware}) => {
+				return ({resources, middlewareUtil}) => middleware({
+					resources,
+					middlewareUtil,
+					injectLiveReloadClient: this.options.liveReload
+				});
+			}
+		});
 		await this.addMiddleware("testRunner");
 		await this.addMiddleware("versionInfo", {
 			mountPath: "/resources/sap-ui-version.json"
@@ -263,7 +279,7 @@ class MiddlewareManager {
 		//	as it will reject them with a 405 (Method not allowed) instead of 404 like our old tooling
 		await this.addMiddleware("nonReadRequests");
 		await this.addMiddleware("serveIndex", {
-			wrapperCallback: ({middleware: middleware}) => {
+			wrapperCallback: ({middleware}) => {
 				return ({resources, middlewareUtil}) => middleware({
 					resources,
 					middlewareUtil,

@@ -14,15 +14,15 @@ function getSpecificationVersion(specVersion) {
 }
 
 test.serial("getPathname", async (t) => {
-	const parseurlStub = sinon.stub().returns({pathname: "path%20name"});
+	const getPathnameStub = sinon.stub().returns("path name");
 	const MiddlewareUtil = await esmock("../../../../lib/middleware/MiddlewareUtil.js", {
-		parseurl: parseurlStub
+		"../../../../lib/helper/getPathname.js": {default: getPathnameStub}
 	});
 	const middlewareUtil = new MiddlewareUtil({graph: "graph", project: "project"});
 	const pathname = middlewareUtil.getPathname("req");
 
-	t.is(parseurlStub.callCount, 1, "parseurl got called once");
-	t.is(parseurlStub.getCall(0).args[0], "req", "parseurl got called with correct argument");
+	t.is(getPathnameStub.callCount, 1, "getPathname helper got called once");
+	t.is(getPathnameStub.getCall(0).args[0], "req", "getPathname got called with correct argument");
 	t.is(pathname, "path name", "Correct pathname returned");
 });
 
