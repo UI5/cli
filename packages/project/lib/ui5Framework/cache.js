@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import {promisify} from "node:util";
 import {
+	FRAMEWORK_DIR_NAME,
 	LOCK_STALE_MS,
 	CLEANUP_LOCK_NAME,
 	getFrameworkDir,
@@ -85,7 +86,7 @@ export async function getCacheInfo(ui5DataDir) {
 		return null;
 	}
 	return {
-		path: "framework",
+		path: FRAMEWORK_DIR_NAME,
 		libraryCount: stats.libraries,
 		versionCount: stats.versions,
 	};
@@ -179,7 +180,7 @@ export async function cleanCache(ui5DataDir) {
 	}
 
 	return {
-		path: "framework",
+		path: FRAMEWORK_DIR_NAME,
 		libraryCount: stats.libraries,
 		versionCount: stats.versions,
 	};
