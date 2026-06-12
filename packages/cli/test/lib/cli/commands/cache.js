@@ -86,7 +86,7 @@ test("Command builder", async (t) => {
 test.serial("Command definition is correct", (t) => {
 	t.is(t.context.cache.command, "cache");
 	t.is(t.context.cache.describe,
-		"Manage the UI5 CLI cache (downloaded framework packages and incremental build data)");
+		"Manage the UI5 CLI cache (downloaded framework packages and build data)");
 	t.is(typeof t.context.cache.builder, "function");
 	t.is(typeof t.context.cache.handler, "function");
 });

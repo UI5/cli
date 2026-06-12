@@ -12,7 +12,7 @@ Please follow our [Contribution Guidelines](https://github.com/UI5/cli/blob/main
 ## UI5 Project
 ### `~/.ui5` Taking too Much Disk Space
 
-There are possibly many versions of UI5 framework dependencies and incremental build data stored on your system, taking a large amount of disk space.
+There are possibly many versions of UI5 framework dependencies installed on your system, taking a large amount of disk space.
 
 #### Resolution
 
@@ -30,7 +30,7 @@ ui5 cache clean --yes
 
 The command removes two types of cached data:
 - **UI5 Framework packages** — downloaded UI5 library files (`~/.ui5/framework/`)
-- **Build cache (DB)** — incremental build data (`~/.ui5/buildCache/`)
+- **Build cache (DB)** — build data (`~/.ui5/buildCache/`)
 
 Any missing framework dependencies will be downloaded again during the next UI5 CLI invocation.
 
