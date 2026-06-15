@@ -15,6 +15,7 @@ export const LOCK_STALE_MS = 60000;
 // names are replaced with dashes by AbstractInstaller#_sanitizeFileName):
 //   cache-cleanup.lock       — held by ui5 cache clean for the full deletion
 //   package-{pkg}@{ver}.lock — held by both installers during package extraction
+//   (callers may add their own lock files to signal activity to cache cleanup)
 export const CLEANUP_LOCK_NAME = "cache-cleanup.lock";
 
 /**

@@ -1,7 +1,11 @@
 import path from "node:path";
 import os from "node:os";
+import fs from "node:fs/promises";
+import {promisify} from "node:util";
 import chalk from "chalk";
 import baseMiddleware from "../middlewares/base.js";
+import {getUi5DataDir} from "../../framework/utils.js";
+import lockfile from "lockfile";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("cli:commands:serve");
 
@@ -207,42 +211,76 @@ serve.handler = async function(argv) {
 		reject(err);
 	});
 
-	const protocol = h2 ? "https" : "http";
-	let browserUrl = protocol + "://localhost:" + actualPort;
-	if (argv.acceptRemoteConnections) {
-		process.stderr.write("\n");
-		process.stderr.write(chalk.bold("⚠️  This server is accepting connections from all hosts on your network"));
-		process.stderr.write("\n");
-		process.stderr.write(chalk.dim.underline("Please Note:"));
-		process.stderr.write("\n");
-		process.stderr.write(chalk.bold.dim(
-			"* This server is intended for development purposes only. Do not use it in production."));
-		process.stderr.write("\n");
-		process.stderr.write(chalk.dim(
-			"* Vulnerable (custom-)middleware can pose a threat to your system when exposed to the network"));
-		process.stderr.write("\n");
-		process.stderr.write(chalk.dim(
-			"* The use of proxy-middleware with preconfigured credentials might enable unauthorized access " +
-			"to a target system for third parties on your network"));
-		process.stderr.write("\n\n");
-	}
-	process.stdout.write("Server started");
-	process.stdout.write("\n");
-	process.stdout.write("URL: " + browserUrl);
-	process.stdout.write("\n");
-
-	if (argv.open !== undefined) {
-		if (typeof argv.open === "string") {
-			let relPath = argv.open || "/";
-			if (!relPath.startsWith("/")) {
-				relPath = "/" + relPath;
-			}
-			browserUrl += relPath;
+	// Acquire a port-specific server lock so that 'ui5 cache clean' cannot delete
+	// framework files that the server reads on every HTTP request. Multiple concurrent
+	// servers each hold their own lock; cleanCache sees any active lock and refuses.
+	const ui5DataDir = (await getUi5DataDir({cwd: process.cwd()})) ??
+		path.join(os.homedir(), ".ui5");
+	const lockDir = path.join(ui5DataDir, "framework", "locks");
+	const lockPath = path.join(lockDir, `server-${actualPort}.lock`);
+	await fs.mkdir(lockDir, {recursive: true});
+	const lockFn = promisify(lockfile.lock);
+	const unlockFn = promisify(lockfile.unlock);
+	await lockFn(lockPath, {stale: 60000});
+	let lockReleased = false;
+	const releaseServerLock = async () => {
+		if (lockReleased) return;
+		lockReleased = true;
+		await unlockFn(lockPath).catch(() => {});
+	};
+	// Signal handlers must be synchronous — Node does not await async handlers before exit.
+	const onSignal = () => {
+		if (!lockReleased) {
+			lockReleased = true;
+			lockfile.unlockSync(lockPath);
 		}
-		const {default: open} = await import("open");
-		open(browserUrl);
+		process.exit(0);
+	};
+	process.once("SIGINT", onSignal);
+	process.once("SIGTERM", onSignal);
+
+	try {
+		const protocol = h2 ? "https" : "http";
+		let browserUrl = protocol + "://localhost:" + actualPort;
+		if (argv.acceptRemoteConnections) {
+			process.stderr.write("\n");
+			process.stderr.write(chalk.bold("⚠️  This server is accepting connections from all hosts on your network"));
+			process.stderr.write("\n");
+			process.stderr.write(chalk.dim.underline("Please Note:"));
+			process.stderr.write("\n");
+			process.stderr.write(chalk.bold.dim(
+				"* This server is intended for development purposes only. Do not use it in production."));
+			process.stderr.write("\n");
+			process.stderr.write(chalk.dim(
+				"* Vulnerable (custom-)middleware can pose a threat to your system when exposed to the network"));
+			process.stderr.write("\n");
+			process.stderr.write(chalk.dim(
+				"* The use of proxy-middleware with preconfigured credentials might enable unauthorized access " +
+				"to a target system for third parties on your network"));
+			process.stderr.write("\n\n");
+		}
+		process.stdout.write("Server started");
+		process.stdout.write("\n");
+		process.stdout.write("URL: " + browserUrl);
+		process.stdout.write("\n");
+
+		if (argv.open !== undefined) {
+			if (typeof argv.open === "string") {
+				let relPath = argv.open || "/";
+				if (!relPath.startsWith("/")) {
+					relPath = "/" + relPath;
+				}
+				browserUrl += relPath;
+			}
+			const {default: open} = await import("open");
+			open(browserUrl);
+		}
+		await pOnError; // Await errors that should bubble into the yargs handler
+	} finally {
+		process.off("SIGINT", onSignal);
+		process.off("SIGTERM", onSignal);
+		await releaseServerLock();
 	}
-	await pOnError; // Await errors that should bubble into the yargs handler
 };
 
 export default serve;
