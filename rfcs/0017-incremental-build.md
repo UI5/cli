@@ -623,11 +623,31 @@ The server emits events (`buildFinished`, `sourcesChanged`, `error`) that can be
 
 #### Live Reload
 
-The server may implement live-reload functionality to inform connected clients about changes in the build result. This can be achieved using WebSockets or Server-Sent Events (SSE).
+The server provides live-reload functionality to inform connected browsers about changes in the build result and trigger an automatic page reload. This shortens the edit/test cycle: after saving a source file, the user does not need to manually refresh the browser to see the result.
 
-This is an essential feature, since after saving an edited file, the user might not know when the build has finished and the changes are available in the browser. Although the server shall also pause requests for the affected project until the build has finished, an automatic refresh of the page improves the developer experience significantly.
+It is implemented as follows:
 
-For this purpose, a script shall be injected into the served HTML pages that establishes a connection to the server and listens for change notifications. Upon receiving a notification, the script shall trigger a page reload to reflect the latest changes. The endpoint shall be secured using a token-based mechanism to prevent unauthorized access.
+* The `BuildServer` emits a debounced `sourcesChanged` event whenever watched source files change. A burst of file changes (e.g. from saving multiple files at once or from editor format-on-save) results in a single notification.
+* A `liveReloadClient` middleware serves a client script at `/.ui5/liveReload/client.js`.
+* The `serveResources` middleware injects a `<script>` tag referencing this client into the `<head>` of HTML responses. Injection happens as early as possible in the document so the WebSocket connection is established before any application script runs.
+* A WebSocket server is attached to the HTTP server at `/.ui5/liveReload/ws`. On `sourcesChanged`, it broadcasts a `{type: "reload"}` message to all connected clients, which then reload the page.
+* To prevent intermediate proxies from idle-closing the WebSocket, the client sends a `{type: "ping"}` message every 30 seconds while the connection is open. The server echoes the same message back.
+* When the WebSocket connection is lost (e.g. because the server was restarted), the client polls the WebSocket endpoint every second and reloads the page once the server accepts connections again. While the browser tab is hidden, polling pauses until it becomes visible.
+
+##### Authorization
+
+Browser-originated upgrades (i.e. requests that carry an `Origin` header) are gated by a per-process token to mitigate Cross-site WebSocket Hijacking. The token is generated on server startup (72 random bits, base64url-encoded) and is substituted into the served client script template. Clients pass the token as a `?token=` query parameter; the server compares it using a constant-time comparison.
+
+Upgrades without an `Origin` header are not gated, since they cannot originate from a browser context where the Same-Origin Policy applies — they would already have full unauthenticated HTTP access to the dev server.
+
+Reconnect probes from stale clients (whose page was loaded before the server was restarted, and which therefore can't know the new token) use the `ui5-ping` WebSocket subprotocol. The server accepts such handshakes without a token check and immediately closes the connection without enrolling the socket — confirming "server is up" without exchanging any data.
+
+Live reload is enabled by default for `ui5 serve`. It can be controlled via:
+
+* The CLI flag `--live-reload` / `--no-live-reload` for `ui5 serve`.
+* The project configuration setting `server.settings.liveReload` in `ui5.yaml`. This setting requires Specification Version 5.0 or higher.
+
+The CLI flag overrides the project configuration. When neither is set, live reload defaults to `true`.
 
 ## Integration in UI5 CLI
 
@@ -644,6 +664,12 @@ The following new arguments shall be added to the `ui5 build` and `ui5 serve` co
 	* The previous `--cache-mode` argument, which controlled framework dependency resolution caching, has been renamed to `--snapshot-cache` to avoid the naming collision with the build cache.
 * `--watch`: Enables watch mode, causing the build to be re-triggered whenever a source file or relevant configuration file changes.
 	* This parameter is only relevant for the `ui5 build` command. The `ui5 serve` command always uses watch mode internally.
+
+The following new argument shall be added to the `ui5 serve` command:
+
+* `--live-reload` / `--no-live-reload`: Controls whether the browser automatically reloads when project sources change. Defaults to `true`. Overrides the `server.settings.liveReload` setting in the project's server configuration.
+
+A new project configuration setting `server.settings.liveReload` is introduced for Specification Version 5.0 and higher, controlling the same behavior at the project level.
 
 ## How we teach this
 
@@ -670,6 +696,10 @@ All of this should be communicated in the UI5 CLI documentation and in blog post
 
 An alternative to using the incremental build in the UI5 CLI server would be to apply custom middleware of dependencies.
 
+### Server-Sent Events (SSE) instead of WebSockets for Live Reload
+
+Server-Sent Events were considered as an alternative transport. When not used over HTTP/2, SSE is subject to a [per-browser limit of 6 open connections](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events) that applies across all tabs to the same server. Since the UI5 server still defaults to HTTP/1.1 (HTTP/2 is opt-in via `--h2`), this limit is the common case. With live reload enabled, one of the 6 connections is permanently occupied by the SSE channel, leaving only 5 for resource loading and impacting performance. In the worst case, this leads to a dead-lock where SSE connections block any further requests — for example, opening the `test.html` page in OpenUI5, which resolves all QUnit testsuites via iframes, could hit this limit. WebSockets are not subject to this limit and were therefore chosen as the transport.
+
 ## Unresolved Questions and Bikeshedding
 
 * ✅ How to distinguish projects with build cache from pre-built projects (with project manifest)
@@ -686,4 +716,3 @@ An alternative to using the incremental build in the UI5 CLI server would be to 
 * Measure performance in BAS. Find out whether this approach results in acceptable performance.
 * Test with selected (community) custom tasks.
 * Add a debug command (e.g. `ui5 cache verify`) to verify the integrity of a cache by rebuilding the project and comparing the result with the cache.
-* Live reload protocol and security model.
