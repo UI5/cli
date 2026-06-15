@@ -116,7 +116,7 @@ class BuildContext {
 		}
 		const project = this._graph.getProject(projectName);
 		const projectBuildContext = await ProjectBuildContext.create(
-			this, project, await this.getCacheManager(), this._buildSignatureBase);
+			this, project, this._buildSignatureBase, await this.getCacheManager());
 		this._projectBuildContexts.set(projectName, projectBuildContext);
 		return projectBuildContext;
 	}

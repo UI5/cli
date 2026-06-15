@@ -85,6 +85,7 @@ test("Standard build", async (t) => {
 			supportsDifferentialBuilds: true,
 		},
 		generateJsdoc: {
+			determineBuildSignature: generateJsdocTaskDefinition.determineBuildSignature,
 			requiresDependencies: true,
 			taskFunction: generateJsdocTaskDefinition.taskFunction
 		},
@@ -226,6 +227,7 @@ test("Standard build with legacy spec version", (t) => {
 			supportsDifferentialBuilds: true,
 		},
 		generateJsdoc: {
+			determineBuildSignature: generateJsdocTaskDefinition.determineBuildSignature,
 			requiresDependencies: true,
 			taskFunction: generateJsdocTaskDefinition.taskFunction
 		},
@@ -356,6 +358,7 @@ test("Custom bundles", async (t) => {
 			supportsDifferentialBuilds: true,
 		},
 		generateJsdoc: {
+			determineBuildSignature: generateJsdocTaskDefinition.determineBuildSignature,
 			requiresDependencies: true,
 			taskFunction: generateJsdocTaskDefinition.taskFunction
 		},
@@ -679,6 +682,7 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 	const generateComponentPreloadTaskDefinition = tasks.get("generateComponentPreload");
 	const generateBundleTaskDefinition = tasks.get("generateBundle");
 	const generateThemeDesignerResourcesTaskDefinition = tasks.get("generateThemeDesignerResources");
+	const generateJsdocTaskDefinition = tasks.get("generateJsdoc");
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
 			options: {
@@ -706,6 +710,7 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 			supportsDifferentialBuilds: true,
 		},
 		generateJsdoc: {
+			determineBuildSignature: generateJsdocTaskDefinition.determineBuildSignature,
 			requiresDependencies: true,
 			taskFunction: async () => {},
 		},

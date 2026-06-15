@@ -1,6 +1,7 @@
 import ProjectBuildLogger from "@ui5/logger/internal/loggers/ProjectBuild";
 import TaskUtil from "./TaskUtil.js";
 import TaskRunner from "../TaskRunner.js";
+import TaskDefinitions from "../TaskDefinitions.js";
 import {getProjectSignature} from "./getBuildSignature.js";
 import ProjectBuildCache from "../cache/ProjectBuildCache.js";
 
@@ -12,15 +13,18 @@ import ProjectBuildCache from "../cache/ProjectBuildCache.js";
  */
 class ProjectBuildContext {
 	/**
-	 * Creates a new ProjectBuildContext instance
+	 * Creates a new ProjectBuildContext instance.
+	 *
+	 * Note: This constructor only performs synchronous wiring (logger, TaskUtil, TaskDefinitions).
+	 * It does NOT compute the build signature or initialize the build cache, since both depend on
+	 * `TaskDefinitions#getBuildSignatures()`, which is async. Use the static
+	 * {@link ProjectBuildContext.create} factory to obtain a fully initialized instance.
 	 *
 	 * @param {@ui5/project/build/helpers/BuildContext} buildContext Overall build context
 	 * @param {@ui5/project/specifications/Project} project Project instance to build
-	 * @param {string} buildSignature Signature of the build configuration
-	 * @param {@ui5/project/build/cache/ProjectBuildCache} buildCache Build cache instance
 	 * @throws {Error} If 'buildContext' or 'project' is missing
 	 */
-	constructor(buildContext, project, buildSignature, buildCache) {
+	constructor(buildContext, project) {
 		if (!buildContext) {
 			throw new Error(`Missing parameter 'buildContext'`);
 		}
@@ -34,37 +38,50 @@ class ProjectBuildContext {
 			projectName: project.getName(),
 			projectType: project.getType()
 		});
-		this._buildSignature = buildSignature;
-		this._buildCache = buildCache;
+
+		this._taskUtil = new TaskUtil({
+			projectBuildContext: this
+		});
+		this._taskDefinitions = new TaskDefinitions(
+			buildContext.getGraph(), project, this._taskUtil, buildContext.getTaskRepository());
+
+		// Populated by ProjectBuildContext.create()
+		this._buildSignature = null;
+		this._buildCache = null;
+
 		this._queues = {
 			cleanup: []
 		};
 	}
 
 	/**
-	 * Factory method to create and initialize a ProjectBuildContext instance
+	 * Factory method to create and fully initialize a ProjectBuildContext instance.
 	 *
-	 * This is the recommended way to create a ProjectBuildContext as it ensures
-	 * proper initialization of the build signature and cache.
+	 * Performs the async work that the constructor cannot: collecting task build signatures,
+	 * computing the project build signature, and constructing the {@link ProjectBuildCache}.
+	 * This is the only supported way to obtain a usable instance for production code; callers
+	 * must not call {@link getBuildSignature} or {@link getBuildCache} on an instance created
+	 * via `new` directly.
+	 *
+	 * Source index initialization is deliberately kept separate ({@link initSourceIndex}) so
+	 * multiple project contexts can initialize their indices in parallel.
 	 *
 	 * @param {@ui5/project/build/helpers/BuildContext} buildContext Overall build context
 	 * @param {@ui5/project/specifications/Project} project Project instance to build
-	 * @param {object} cacheManager Cache manager instance
 	 * @param {string} baseSignature Base signature for the build
+	 * @param {object} cacheManager Cache manager instance
 	 * @returns {Promise<@ui5/project/build/helpers/ProjectBuildContext>} Initialized context instance
 	 */
-	static async create(buildContext, project, cacheManager, baseSignature) {
-		const buildSignature = getProjectSignature(
-			baseSignature, project, buildContext.getGraph(), buildContext.getTaskRepository());
+	static async create(buildContext, project, baseSignature, cacheManager) {
+		const ctx = new ProjectBuildContext(buildContext, project);
+
+		const taskSignatures = await ctx._taskDefinitions.getBuildSignatures();
+		ctx._buildSignature = getProjectSignature(
+			baseSignature, taskSignatures, project, buildContext.getGraph(), buildContext.getTaskRepository());
+
 		const cacheMode = buildContext.getBuildConfig().cache;
-		const buildCache = await ProjectBuildCache.create(
-			project, buildSignature, cacheManager, cacheMode);
-		return new ProjectBuildContext(
-			buildContext,
-			project,
-			buildSignature,
-			buildCache
-		);
+		ctx._buildCache = new ProjectBuildCache(project, ctx._buildSignature, cacheManager, cacheMode);
+		return ctx;
 	}
 
 	/**
@@ -192,18 +209,9 @@ class ProjectBuildContext {
 	/**
 	 * Gets the task utility instance for this build context
 	 *
-	 * Creates a TaskUtil instance on first access and caches it for subsequent calls.
-	 * The TaskUtil provides helper functions for tasks during execution.
-	 *
 	 * @returns {@ui5/project/build/helpers/TaskUtil} Task utility instance
 	 */
 	getTaskUtil() {
-		if (!this._taskUtil) {
-			this._taskUtil = new TaskUtil({
-				projectBuildContext: this
-			});
-		}
-
 		return this._taskUtil;
 	}
 
@@ -224,7 +232,8 @@ class ProjectBuildContext {
 				taskUtil: this.getTaskUtil(),
 				graph: this._buildContext.getGraph(),
 				taskRepository: this._buildContext.getTaskRepository(),
-				buildConfig: this._buildContext.getBuildConfig()
+				buildConfig: this._buildContext.getBuildConfig(),
+				taskDefinitions: this._taskDefinitions
 			});
 		}
 		return this._taskRunner;
