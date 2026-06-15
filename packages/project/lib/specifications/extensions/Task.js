@@ -21,7 +21,7 @@ class Task extends Extension {
 	* @public
 	*/
 	async getTask() {
-		return (await this._getImplementation()).task;
+		return (await this._getImplementation()).default;
 	}
 
 	/**
@@ -34,7 +34,7 @@ class Task extends Extension {
 	/**
 	* @public
 	*/
-	async getBuildSignatureCallback() {
+	async getDetermineBuildSignatureCallback() {
 		return (await this._getImplementation()).determineBuildSignature;
 	}
 
@@ -57,11 +57,11 @@ class Task extends Extension {
 	 * @private
 	*/
 	async _getImplementation() {
-		const taskPath = path.join(this.getRootPath(), this._config.task.path);
-		const {default: task, determineRequiredDependencies} = await import(pathToFileURL(taskPath));
-		return {
-			task, determineRequiredDependencies
-		};
+		if (!this._modulePromise) {
+			const taskPath = path.join(this.getRootPath(), this._config.task.path);
+			this._modulePromise = import(pathToFileURL(taskPath).href);
+		}
+		return this._modulePromise;
 	}
 
 	/**

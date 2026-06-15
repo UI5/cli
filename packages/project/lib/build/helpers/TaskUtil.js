@@ -348,6 +348,50 @@ class TaskUtil {
 		}
 		return baseInterface;
 	}
+
+	getReadOnlyInterface(specVersion) {
+		if (specVersion.lte("2.1")) {
+			// Tasks defining specVersion <= 2.1 do not have access to any TaskUtil APIs
+			return undefined;
+		}
+
+		const baseInterface = {
+			STANDARD_TAGS: this.STANDARD_TAGS,
+		};
+		bindFunctions(this, baseInterface, [
+			"getTag", "isRootProject"
+		]);
+
+		if (specVersion.gte("3.0")) {
+			// getProject function, returning an interfaced project instance
+			baseInterface.getProject = (projectName) => {
+				const project = this.getProject(projectName);
+				const baseProjectInterface = {};
+				bindFunctions(project, baseProjectInterface, [
+					"getType", "getName", "getVersion", "getNamespace",
+					"getRootReader", "getReader", "getRootPath", "getSourcePath",
+					"getCustomConfiguration", "isFrameworkProject", "getFrameworkName",
+					"getFrameworkVersion", "getFrameworkDependencies"
+				]);
+				return baseProjectInterface;
+			};
+			// getDependencies function, returning an array of project names
+			baseInterface.getDependencies = (projectName) => {
+				return this.getDependencies(projectName);
+			};
+
+			baseInterface.resourceFactory = Object.create(null);
+			[
+				// Once new functions get added, extract this array into a variable
+				// and enhance based on spec version once new functions get added
+				"createResource", "createReaderCollection", "createReaderCollectionPrioritized",
+				"createFilterReader", "createLinkReader", "createFlatReader",
+			].forEach((factoryFunction) => {
+				baseInterface.resourceFactory[factoryFunction] = this.resourceFactory[factoryFunction];
+			});
+		}
+		return baseInterface;
+	}
 }
 
 function bindFunctions(sourceObject, targetObject, funcNames) {

@@ -90,6 +90,7 @@ export default class ProjectBuildCache {
 	 * Creates a new ProjectBuildCache instance
 	 * Use ProjectBuildCache.create() instead
 	 *
+	 * @public
 	 * @param {@ui5/project/specifications/Project} project Project instance
 	 * @param {string} buildSignature Build signature for the current build
 	 * @param {object} cacheManager Cache manager instance for reading/writing cache data

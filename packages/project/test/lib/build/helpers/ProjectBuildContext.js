@@ -14,6 +14,17 @@ test.afterEach.always((t) => {
 
 import ProjectBuildContext from "../../../../lib/build/helpers/ProjectBuildContext.js";
 
+// Default stub that satisfies the synchronous wiring done by the
+// ProjectBuildContext constructor (TaskDefinitions needs getGraph + getTaskRepository).
+// Tests that exercise additional buildContext methods spread their own stubs on top.
+function createBuildContextStub(overrides = {}) {
+	return {
+		getGraph: () => ({}),
+		getTaskRepository: () => ({}),
+		...overrides
+	};
+}
+
 test("Missing parameters", (t) => {
 	t.throws(() => {
 		new ProjectBuildContext(
@@ -42,9 +53,9 @@ test("isRootProject: true", (t) => {
 		getName: () => "root project",
 		getType: () => "type",
 	};
-	const buildContext = {
+	const buildContext = createBuildContextStub({
 		getRootProject: () => rootProject
-	};
+	});
 	const projectBuildContext = new ProjectBuildContext(
 		buildContext,
 		rootProject
@@ -54,9 +65,9 @@ test("isRootProject: true", (t) => {
 });
 
 test("isRootProject: false", (t) => {
-	const buildContext = {
+	const buildContext = createBuildContextStub({
 		getRootProject: () => "root project"
-	};
+	});
 	const project = {
 		getName: () => "not the root project",
 		getType: () => "type",
@@ -71,9 +82,9 @@ test("isRootProject: false", (t) => {
 
 test("getBuildOption", (t) => {
 	const getOptionStub = sinon.stub().returns("pony");
-	const buildContext = {
+	const buildContext = createBuildContextStub({
 		getOption: getOptionStub
-	};
+	});
 	const project = {
 		getName: () => "project",
 		getType: () => "type",
@@ -88,7 +99,7 @@ test("getBuildOption", (t) => {
 });
 
 test("registerCleanupTask", (t) => {
-	const buildContext = {};
+	const buildContext = createBuildContextStub();
 	const project = {
 		getName: () => "project",
 		getType: () => "type",
@@ -105,7 +116,7 @@ test("registerCleanupTask", (t) => {
 });
 
 test("executeCleanupTasks", (t) => {
-	const buildContext = {};
+	const buildContext = createBuildContextStub();
 	const project = {
 		getName: () => "project",
 		getType: () => "type",
@@ -127,7 +138,7 @@ test("executeCleanupTasks", (t) => {
 
 test.serial("getResourceTagCollection", async (t) => {
 	const ProjectBuildContext = (await import("../../../../lib/build/helpers/ProjectBuildContext.js")).default;
-	const buildContext = {};
+	const buildContext = createBuildContextStub();
 	const project = {
 		getName: () => "project",
 		getType: () => "type",
@@ -162,7 +173,7 @@ test("getResourceTagCollection: Assigns project to resource if necessary", (t) =
 		getName: () => "project",
 		getType: () => "type",
 	};
-	const buildContext = {};
+	const buildContext = createBuildContextStub();
 	const projectBuildContext = new ProjectBuildContext(
 		buildContext,
 		fakeProject
@@ -194,13 +205,13 @@ test("getProject", (t) => {
 		getType: () => "type",
 	};
 	const getProjectStub = sinon.stub().returns("pony");
-	const buildContext = {
+	const buildContext = createBuildContextStub({
 		getGraph: () => {
 			return {
 				getProject: getProjectStub
 			};
 		}
-	};
+	});
 	const projectBuildContext = new ProjectBuildContext(
 		buildContext,
 		project
@@ -220,13 +231,13 @@ test("getProject: No name provided", (t) => {
 		getType: () => "type",
 	};
 	const getProjectStub = sinon.stub().returns("pony");
-	const buildContext = {
+	const buildContext = createBuildContextStub({
 		getGraph: () => {
 			return {
 				getProject: getProjectStub
 			};
 		}
-	};
+	});
 	const projectBuildContext = new ProjectBuildContext(
 		buildContext,
 		project
@@ -242,13 +253,13 @@ test("getDependencies", (t) => {
 		getType: () => "type",
 	};
 	const getDependenciesStub = sinon.stub().returns(["dep a", "dep b"]);
-	const buildContext = {
+	const buildContext = createBuildContextStub({
 		getGraph: () => {
 			return {
 				getDependencies: getDependenciesStub
 			};
 		}
-	};
+	});
 	const projectBuildContext = new ProjectBuildContext(
 		buildContext,
 		project
@@ -266,13 +277,13 @@ test("getDependencies: No name provided", (t) => {
 		getType: () => "type",
 	};
 	const getDependenciesStub = sinon.stub().returns(["dep a", "dep b"]);
-	const buildContext = {
+	const buildContext = createBuildContextStub({
 		getGraph: () => {
 			return {
 				getDependencies: getDependenciesStub
 			};
 		}
-	};
+	});
 	const projectBuildContext = new ProjectBuildContext(
 		buildContext,
 		project
@@ -285,7 +296,7 @@ test("getDependencies: No name provided", (t) => {
 });
 
 test("getTaskUtil", (t) => {
-	const buildContext = {};
+	const buildContext = createBuildContextStub();
 	const project = {
 		getName: () => "project",
 		getType: () => "type",
@@ -320,7 +331,8 @@ test.serial("getTaskRunner", async (t) => {
 				buildCache: "buildCache",
 				taskUtil: "taskUtil",
 				taskRepository: "taskRepository",
-				buildConfig: "buildConfig"
+				buildConfig: "buildConfig",
+				taskDefinitions: projectBuildContext._taskDefinitions
 			}, "TaskRunner created with expected constructor arguments");
 		}
 	}
@@ -336,10 +348,10 @@ test.serial("getTaskRunner", async (t) => {
 	const buildCache = {};
 	const projectBuildContext = new ProjectBuildContext(
 		buildContext,
-		project,
-		undefined,
-		buildCache,
+		project
 	);
+	// _buildCache is normally set by ProjectBuildContext.create(); inject directly for this unit test
+	projectBuildContext._buildCache = buildCache;
 
 	projectBuildContext.getTaskUtil = () => "taskUtil";
 
@@ -353,16 +365,15 @@ test("possiblyRequiresBuild: has no build-manifest", (t) => {
 		getType: sinon.stub().returns("bar"),
 		getBuildManifest: () => null
 	};
-	const buildContext = {};
+	const buildContext = createBuildContextStub();
 	const buildCache = {
 		isFresh: sinon.stub().returns(false)
 	};
 	const projectBuildContext = new ProjectBuildContext(
 		buildContext,
-		project,
-		undefined,
-		buildCache
+		project
 	);
+	projectBuildContext._buildCache = buildCache;
 	t.true(projectBuildContext.possiblyRequiresBuild(), "Project without build-manifest requires to be build");
 });
 
@@ -377,7 +388,7 @@ test("possiblyRequiresBuild: has build-manifest", (t) => {
 			};
 		}
 	};
-	const buildContext = {};
+	const buildContext = createBuildContextStub();
 	const projectBuildContext = new ProjectBuildContext(
 		buildContext,
 		project
@@ -397,7 +408,7 @@ test.serial("getBuildMetadata", (t) => {
 		}
 	};
 	const getTimeStub = sinon.stub(Date.prototype, "getTime").callThrough().onFirstCall().returns(1659016800000);
-	const buildContext = {};
+	const buildContext = createBuildContextStub();
 	const projectBuildContext = new ProjectBuildContext(
 		buildContext,
 		project
@@ -416,7 +427,7 @@ test("getBuildMetadata: has no build-manifest", (t) => {
 		getType: sinon.stub().returns("bar"),
 		getBuildManifest: () => null
 	};
-	const buildContext = {};
+	const buildContext = createBuildContextStub();
 	const projectBuildContext = new ProjectBuildContext(
 		buildContext,
 		project

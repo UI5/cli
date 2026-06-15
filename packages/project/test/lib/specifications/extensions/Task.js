@@ -100,15 +100,15 @@ test("Task with illegal suffix", async (t) => {
 		"Threw with expected error message");
 });
 
-test("getBuildSignatureCallback (CJS)", async (t) => {
+test("getDetermineBuildSignatureCallback (CJS)", async (t) => {
 	const extension = await Specification.create(clone(basicCjsTaskInput));
-	const callback = await extension.getBuildSignatureCallback();
+	const callback = await extension.getDetermineBuildSignatureCallback();
 	t.is(callback, undefined, "Returns undefined when not exported");
 });
 
-test("getBuildSignatureCallback (ESM)", async (t) => {
+test("getDetermineBuildSignatureCallback (ESM)", async (t) => {
 	const extension = await Specification.create(clone(basicEsmTaskInput));
-	const callback = await extension.getBuildSignatureCallback();
+	const callback = await extension.getDetermineBuildSignatureCallback();
 	t.is(callback, undefined, "Returns undefined when not exported");
 });
 

@@ -16,13 +16,14 @@ export function getBaseSignature(buildConfig) {
  *
  * @private
  * @param {string} baseSignature
+ * @param {string} taskSignatures
  * @param {@ui5/project/lib/Project} project The project to create the cache integrity for
  * @param {@ui5/project/lib/graph/ProjectGraph} graph The project graph
  * @param {@ui5/builder/tasks/taskRepository} taskRepository The task repository (used to determine the effective
  * versions of ui5-builder and ui5-fs)
  */
-export function getProjectSignature(baseSignature, project, graph, taskRepository) {
-	const key = baseSignature + project.getId() + JSON.stringify(project.getConfig()) +
+export function getProjectSignature(baseSignature, taskSignatures, project, graph, taskRepository) {
+	const key = baseSignature + taskSignatures + project.getId() + JSON.stringify(project.getConfig()) +
 		JSON.stringify(taskRepository.getVersions());
 	// TODO: Add signatures of relevant custom tasks
 

@@ -9,6 +9,7 @@ import {enhanceBundlesWithDefaults} from "../../validation/validator.js";
  * @param {object} parameters.project
  * @param {object} parameters.taskUtil
  * @param {Function} parameters.getTask
+ * @returns {Map<string, object>} Map of task names and their configuration
  */
 export default function({project, taskUtil, getTask}) {
 	const tasks = new Map();
@@ -44,6 +45,9 @@ export default function({project, taskUtil, getTask}) {
 
 	tasks.set("generateJsdoc", {
 		requiresDependencies: true,
+		determineBuildSignature: async () => {
+			return project.getVersion();
+		},
 		taskFunction: async ({workspace, dependencies, taskUtil, options}) => {
 			const patterns = ["/resources/**/*.js"];
 			// Add excludes
