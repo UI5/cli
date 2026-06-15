@@ -93,7 +93,7 @@ test.afterEach.always((t) => {
 	esmock.purge(t.context.build);
 });
 
-test.serial("ui5 build (default) ", async (t) => {
+test.serial("ui5 build (default)", async (t) => {
 	const {build, argv, builder, expectedBuilderArgs} = t.context;
 
 	await build.handler(argv);

@@ -101,6 +101,18 @@ export default [{
 
 		"jsdoc/valid-types": 0,
 		"ava/assertion-arguments": 0,
+		// Rules introduced or made stricter in ESLint v10 / eslint-plugin-ava v17
+		// that produce too much noise for the existing codebase:
+		"preserve-caught-error": 0,
+		"no-useless-assignment": 0,
+		"no-unassigned-vars": 0,
+		"ava/no-useless-t-pass": 0,
+		"ava/no-conditional-assertion": 0,
+		"ava/no-nested-assertions": 0,
+		"ava/require-assertion": 0,
+		"ava/prefer-t-throws": 0,
+		"ava/no-async-fn-without-await": 0,
+		"ava/use-true-false": 0,
 	},
 }
 ];
