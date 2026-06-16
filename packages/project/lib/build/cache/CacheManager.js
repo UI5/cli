@@ -291,22 +291,6 @@ export default class CacheManager {
 	}
 
 	/**
-	 * Writes a resource to the content-addressable storage
-	 *
-	 * If the resource content (identified by integrity hash) already exists,
-	 * the write is skipped (deduplication).
-	 *
-	 * @public
-	 * @param {@ui5/fs/Resource} resource Resource to cache
-	 * @returns {Promise<void>}
-	 */
-	async writeStageResource(resource) {
-		const integrity = await resource.getIntegrity();
-		const buffer = await resource.getBuffer();
-		this.#storage.putContent(integrity, buffer);
-	}
-
-	/**
 	 * Writes content directly to the CAS with pre-fetched integrity and buffer
 	 *
 	 * @public

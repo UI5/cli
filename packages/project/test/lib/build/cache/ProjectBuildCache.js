@@ -65,7 +65,6 @@ function createMockCacheManager() {
 		writeResultMetadata: sinon.stub(),
 		readTaskMetadata: sinon.stub().returns(null),
 		writeTaskMetadata: sinon.stub(),
-		writeStageResource: sinon.stub().resolves(),
 		hasContent: sinon.stub().returns(false),
 		readContent: sinon.stub().returns(Buffer.from("test")),
 		readContentRaw: sinon.stub().returns(Buffer.from("test")),
@@ -1365,8 +1364,8 @@ test("freezeUntransformedSources: fast path — reuses all entries from previous
 
 	await cache.allTasksCompleted();
 
-	// writeStageResource should NOT be called — all metadata was reused
-	t.is(cacheManager.writeStageResource.callCount, 0,
+	// CAS writes should NOT happen — all metadata was reused
+	t.is(cacheManager.putCompressedContent.callCount, 0,
 		"No CAS writes needed when all metadata is reused");
 
 	// writeStageCache SHOULD be called with the reused metadata
