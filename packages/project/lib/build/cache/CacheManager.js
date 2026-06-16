@@ -103,9 +103,9 @@ export default class CacheManager {
 	 * @param {string} projectId Project identifier
 	 * @param {string} buildSignature Build signature hash
 	 * @param {string} kind "source" or "result"
-	 * @returns {Promise<object|null>} Parsed index cache object or null if not found
+	 * @returns {object|null} Parsed index cache object or null if not found
 	 */
-	async readIndexCache(projectId, buildSignature, kind) {
+	readIndexCache(projectId, buildSignature, kind) {
 		return this.#storage.readIndexCache(projectId, buildSignature, kind);
 	}
 
@@ -117,9 +117,8 @@ export default class CacheManager {
 	 * @param {string} buildSignature Build signature hash
 	 * @param {string} kind "source" or "result"
 	 * @param {object} index Index object containing resource tree and task metadata
-	 * @returns {Promise<void>}
 	 */
-	async writeIndexCache(projectId, buildSignature, kind, index) {
+	writeIndexCache(projectId, buildSignature, kind, index) {
 		this.#storage.writeIndexCache(projectId, buildSignature, kind, index);
 	}
 
@@ -131,9 +130,9 @@ export default class CacheManager {
 	 * @param {string} buildSignature Build signature hash
 	 * @param {string} stageId Stage identifier
 	 * @param {string} stageSignature Stage signature hash
-	 * @returns {Promise<object|null>} Parsed stage metadata or null if not found
+	 * @returns {object|null} Parsed stage metadata or null if not found
 	 */
-	async readStageCache(projectId, buildSignature, stageId, stageSignature) {
+	readStageCache(projectId, buildSignature, stageId, stageSignature) {
 		return this.#storage.readStageCache(projectId, buildSignature, stageId, stageSignature);
 	}
 
@@ -146,9 +145,8 @@ export default class CacheManager {
 	 * @param {string} stageId Stage identifier
 	 * @param {string} stageSignature Stage signature hash
 	 * @param {object} metadata Stage metadata object to serialize
-	 * @returns {Promise<void>}
 	 */
-	async writeStageCache(projectId, buildSignature, stageId, stageSignature, metadata) {
+	writeStageCache(projectId, buildSignature, stageId, stageSignature, metadata) {
 		this.#storage.writeStageCache(projectId, buildSignature, stageId, stageSignature, metadata);
 	}
 
@@ -160,9 +158,9 @@ export default class CacheManager {
 	 * @param {string} buildSignature Build signature hash
 	 * @param {string} taskName Task name
 	 * @param {string} type "project" or "dependency"
-	 * @returns {Promise<object|null>} Parsed task metadata or null if not found
+	 * @returns {object|null} Parsed task metadata or null if not found
 	 */
-	async readTaskMetadata(projectId, buildSignature, taskName, type) {
+	readTaskMetadata(projectId, buildSignature, taskName, type) {
 		return this.#storage.readTaskMetadata(projectId, buildSignature, taskName, type);
 	}
 
@@ -175,9 +173,8 @@ export default class CacheManager {
 	 * @param {string} taskName Task name
 	 * @param {string} type "project" or "dependency"
 	 * @param {object} metadata Task metadata object to serialize
-	 * @returns {Promise<void>}
 	 */
-	async writeTaskMetadata(projectId, buildSignature, taskName, type, metadata) {
+	writeTaskMetadata(projectId, buildSignature, taskName, type, metadata) {
 		this.#storage.writeTaskMetadata(projectId, buildSignature, taskName, type, metadata);
 	}
 
@@ -188,9 +185,9 @@ export default class CacheManager {
 	 * @param {string} projectId Project identifier
 	 * @param {string} buildSignature Build signature hash
 	 * @param {string} stageSignature Stage signature hash
-	 * @returns {Promise<object|null>} Parsed result metadata or null if not found
+	 * @returns {object|null} Parsed result metadata or null if not found
 	 */
-	async readResultMetadata(projectId, buildSignature, stageSignature) {
+	readResultMetadata(projectId, buildSignature, stageSignature) {
 		return this.#storage.readResultMetadata(projectId, buildSignature, stageSignature);
 	}
 
@@ -202,9 +199,8 @@ export default class CacheManager {
 	 * @param {string} buildSignature Build signature hash
 	 * @param {string} stageSignature Stage signature hash
 	 * @param {object} metadata Result metadata object to serialize
-	 * @returns {Promise<void>}
 	 */
-	async writeResultMetadata(projectId, buildSignature, stageSignature, metadata) {
+	writeResultMetadata(projectId, buildSignature, stageSignature, metadata) {
 		this.#storage.writeResultMetadata(projectId, buildSignature, stageSignature, metadata);
 	}
 
