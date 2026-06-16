@@ -313,45 +313,18 @@ export default class CacheManager {
 	}
 
 	/**
-	 * Begins a batch transaction for multiple content writes
+	 * Runs the given synchronous callback inside a database transaction.
+	 *
+	 * The transaction is committed when the callback returns and rolled back if it throws.
+	 * Callers do not need to manage begin/commit/rollback themselves — any combination of
+	 * metadata and content writes performed in the callback is committed atomically.
+	 *
+	 * @public
+	 * @param {Function} fn Synchronous callback performing the writes
+	 * @returns {*} Whatever the callback returns
 	 */
-	beginContentBatch() {
-		this.#storage.beginContentBatch();
-	}
-
-	/**
-	 * Commits the current content batch transaction
-	 */
-	endContentBatch() {
-		this.#storage.endContentBatch();
-	}
-
-	/**
-	 * Rolls back the current content batch transaction
-	 */
-	rollbackContentBatch() {
-		this.#storage.rollbackContentBatch();
-	}
-
-	/**
-	 * Begins a batch transaction for multiple metadata writes
-	 */
-	beginMetadataBatch() {
-		this.#storage.beginMetadataBatch();
-	}
-
-	/**
-	 * Commits the current metadata batch transaction
-	 */
-	endMetadataBatch() {
-		this.#storage.endMetadataBatch();
-	}
-
-	/**
-	 * Rolls back the current metadata batch transaction
-	 */
-	rollbackMetadataBatch() {
-		this.#storage.rollbackMetadataBatch();
+	transaction(fn) {
+		return this.#storage.transaction(fn);
 	}
 
 	/**

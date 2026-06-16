@@ -232,130 +232,130 @@ test("Read throws wrapped error after close", (t) => {
 	t.truthy(err.cause);
 });
 
-// ===== Metadata batch transactions =====
+// ===== Transactions =====
 
-test("beginMetadataBatch/endMetadataBatch: Multiple writes commit atomically", (t) => {
+test("transaction: Multiple writes commit atomically", (t) => {
 	const {storage} = t.context;
-	storage.beginMetadataBatch();
-	storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
-	storage.writeTaskMetadata("project-a", "sig-1", "minify", "project", {v: 2});
-	storage.writeResultMetadata("project-a", "sig-1", "result-sig-1", {v: 3});
-	storage.endMetadataBatch();
+	storage.transaction(() => {
+		storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
+		storage.writeTaskMetadata("project-a", "sig-1", "minify", "project", {v: 2});
+		storage.writeResultMetadata("project-a", "sig-1", "result-sig-1", {v: 3});
+	});
 
 	t.deepEqual(storage.readIndexCache("project-a", "sig-1", "source"), {v: 1});
 	t.deepEqual(storage.readTaskMetadata("project-a", "sig-1", "minify", "project"), {v: 2});
 	t.deepEqual(storage.readResultMetadata("project-a", "sig-1", "result-sig-1"), {v: 3});
 });
 
-test("rollbackMetadataBatch: Discards uncommitted writes", (t) => {
+test("transaction: Throwing callback rolls back all writes", (t) => {
 	const {storage} = t.context;
-	storage.beginMetadataBatch();
-	storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
-	storage.writeTaskMetadata("project-a", "sig-1", "minify", "project", {v: 2});
-	storage.rollbackMetadataBatch();
+	t.throws(() => {
+		storage.transaction(() => {
+			storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
+			storage.writeTaskMetadata("project-a", "sig-1", "minify", "project", {v: 2});
+			throw new Error("boom");
+		});
+	}, {message: "boom"});
 
 	t.is(storage.readIndexCache("project-a", "sig-1", "source"), null);
 	t.is(storage.readTaskMetadata("project-a", "sig-1", "minify", "project"), null);
 });
 
-test("close: Rolls back uncommitted metadata batch", (t) => {
+test("transaction: Combined metadata and content writes commit atomically", (t) => {
 	const {storage} = t.context;
-	storage.beginMetadataBatch();
-	storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
+	storage.transaction(() => {
+		storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
+		storage.putContent("sha256-tx", Buffer.from("tx content"));
+	});
+
+	t.deepEqual(storage.readIndexCache("project-a", "sig-1", "source"), {v: 1});
+	t.deepEqual(storage.readContent("sha256-tx"), Buffer.from("tx content"));
+});
+
+test("transaction: Throwing rolls back both metadata and content writes", (t) => {
+	const {storage} = t.context;
+	t.throws(() => {
+		storage.transaction(() => {
+			storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
+			storage.putContent("sha256-rb", Buffer.from("will be rolled back"));
+			throw new Error("nope");
+		});
+	}, {message: "nope"});
+
+	t.is(storage.readIndexCache("project-a", "sig-1", "source"), null);
+	t.false(storage.hasContent("sha256-rb"));
+});
+
+test("transaction: Returns the callback's return value", (t) => {
+	const {storage} = t.context;
+	const result = storage.transaction(() => {
+		storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
+		return 42;
+	});
+	t.is(result, 42);
+});
+
+test("transaction: Nested calls throw", (t) => {
+	const {storage} = t.context;
+	t.throws(() => {
+		storage.transaction(() => {
+			storage.transaction(() => {});
+		});
+	}, {message: /Nested transactions are not supported/});
+
+	// After the failed nested call the outer transaction was rolled back and
+	// the storage is usable again
+	storage.transaction(() => {
+		storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
+	});
+	t.deepEqual(storage.readIndexCache("project-a", "sig-1", "source"), {v: 1});
+});
+
+test("transaction: Async callback throws and rolls back", (t) => {
+	const {storage} = t.context;
+	t.throws(() => {
+		storage.transaction(async () => {
+			storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
+		});
+	}, {message: /Async callbacks are not supported/});
+
+	// Writes performed before the throw are rolled back
+	t.is(storage.readIndexCache("project-a", "sig-1", "source"), null);
+
+	// Storage remains usable after the rollback
+	storage.transaction(() => {
+		storage.writeIndexCache("project-a", "sig-1", "source", {v: 2});
+	});
+	t.deepEqual(storage.readIndexCache("project-a", "sig-1", "source"), {v: 2});
+});
+
+test("transaction: Callback returning a thenable throws and rolls back", (t) => {
+	const {storage} = t.context;
+	t.throws(() => {
+		storage.transaction(() => {
+			storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
+			return Promise.resolve("nope");
+		});
+	}, {message: /Async callbacks are not supported/});
+
+	t.is(storage.readIndexCache("project-a", "sig-1", "source"), null);
+});
+
+test("close: Rolls back uncommitted transaction", (t) => {
+	const {storage} = t.context;
+	// Simulate an interrupted transaction by throwing inside the callback
+	// without rethrowing — close() should still leave the DB in a clean state.
+	t.throws(() => {
+		storage.transaction(() => {
+			storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
+			throw new Error("interrupted");
+		});
+	}, {message: "interrupted"});
 	storage.close();
 
 	const fresh = new BuildCacheStorage(t.context.dbDir);
 	t.is(fresh.readIndexCache("project-a", "sig-1", "source"), null);
 	fresh.close();
-});
-
-test("beginMetadataBatch: Nested calls are idempotent", (t) => {
-	const {storage} = t.context;
-	storage.beginMetadataBatch();
-	storage.beginMetadataBatch();
-	storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
-	storage.endMetadataBatch();
-
-	t.deepEqual(storage.readIndexCache("project-a", "sig-1", "source"), {v: 1});
-});
-
-// ===== Standalone content batch transactions =====
-
-test("Standalone content batch: Commit persists content", (t) => {
-	const {storage} = t.context;
-	storage.beginContentBatch();
-	storage.putContent("sha256-batch1", Buffer.from("batch item 1"));
-	storage.putContent("sha256-batch2", Buffer.from("batch item 2"));
-	storage.endContentBatch();
-
-	t.deepEqual(storage.readContent("sha256-batch1"), Buffer.from("batch item 1"));
-	t.deepEqual(storage.readContent("sha256-batch2"), Buffer.from("batch item 2"));
-});
-
-test("Standalone content batch: Rollback discards content", (t) => {
-	const {storage} = t.context;
-	storage.beginContentBatch();
-	storage.putContent("sha256-rollback", Buffer.from("should be discarded"));
-	storage.rollbackContentBatch();
-
-	t.false(storage.hasContent("sha256-rollback"));
-});
-
-test("beginContentBatch: Nested calls are idempotent", (t) => {
-	const {storage} = t.context;
-	storage.beginContentBatch();
-	storage.beginContentBatch();
-	storage.putContent("sha256-idempotent", Buffer.from("idempotent"));
-	storage.endContentBatch();
-
-	t.deepEqual(storage.readContent("sha256-idempotent"), Buffer.from("idempotent"));
-});
-
-// ===== Nested content batch inside metadata batch (SAVEPOINT) =====
-
-test("Nested content batch: Content persists when both batches commit", (t) => {
-	const {storage} = t.context;
-	storage.beginMetadataBatch();
-	storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
-
-	storage.beginContentBatch();
-	storage.putContent("sha256-nested", Buffer.from("nested content"));
-	storage.endContentBatch();
-
-	storage.endMetadataBatch();
-
-	t.deepEqual(storage.readIndexCache("project-a", "sig-1", "source"), {v: 1});
-	t.deepEqual(storage.readContent("sha256-nested"), Buffer.from("nested content"));
-});
-
-test("Nested content batch rollback: Metadata survives, content is discarded", (t) => {
-	const {storage} = t.context;
-	storage.beginMetadataBatch();
-	storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
-
-	storage.beginContentBatch();
-	storage.putContent("sha256-rolled-back", Buffer.from("will be rolled back"));
-	storage.rollbackContentBatch();
-
-	storage.endMetadataBatch();
-
-	t.deepEqual(storage.readIndexCache("project-a", "sig-1", "source"), {v: 1});
-	t.false(storage.hasContent("sha256-rolled-back"));
-});
-
-test("Metadata rollback: Both metadata and nested content are discarded", (t) => {
-	const {storage} = t.context;
-	storage.beginMetadataBatch();
-	storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
-
-	storage.beginContentBatch();
-	storage.putContent("sha256-outer-rb", Buffer.from("will be discarded"));
-	storage.endContentBatch();
-
-	storage.rollbackMetadataBatch();
-
-	t.is(storage.readIndexCache("project-a", "sig-1", "source"), null);
-	t.false(storage.hasContent("sha256-outer-rb"));
 });
 
 // ===== Validity =====

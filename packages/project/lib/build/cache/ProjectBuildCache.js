@@ -1164,29 +1164,14 @@ export default class ProjectBuildCache {
 			resourceMetadata[path] = meta;
 		}
 
-		const hasContentWrites = prepared.casRows.length > 0;
-		this.#cacheManager.beginMetadataBatch();
-		try {
-			if (hasContentWrites) {
-				this.#cacheManager.beginContentBatch();
-				for (const {integrity, compressedBuffer} of prepared.casRows) {
-					this.#cacheManager.putCompressedContent(integrity, compressedBuffer);
-				}
+		this.#cacheManager.transaction(() => {
+			for (const {integrity, compressedBuffer} of prepared.casRows) {
+				this.#cacheManager.putCompressedContent(integrity, compressedBuffer);
 			}
 			this.#cacheManager.writeStageCache(
 				this.#project.getId(), this.#buildSignature, "source", sourceSignature,
 				{resourceMetadata});
-			if (hasContentWrites) {
-				this.#cacheManager.endContentBatch();
-			}
-			this.#cacheManager.endMetadataBatch();
-		} catch (err) {
-			if (hasContentWrites) {
-				this.#cacheManager.rollbackContentBatch();
-			}
-			this.#cacheManager.rollbackMetadataBatch();
-			throw err;
-		}
+		});
 
 		this.#collectKnownIntegrities(resourceMetadata);
 
@@ -1504,15 +1489,9 @@ export default class ProjectBuildCache {
 			}
 		}
 
-		const hasContentWrites = allCasRows.length > 0;
-		this.#cacheManager.beginMetadataBatch();
-		try {
-			if (hasContentWrites) {
-				this.#cacheManager.beginContentBatch();
-				for (const {integrity, compressedBuffer} of allCasRows) {
-					this.#cacheManager.putCompressedContent(integrity, compressedBuffer);
-				}
-				this.#cacheManager.endContentBatch();
+		this.#cacheManager.transaction(() => {
+			for (const {integrity, compressedBuffer} of allCasRows) {
+				this.#cacheManager.putCompressedContent(integrity, compressedBuffer);
 			}
 			if (resultPrepared) {
 				this.#cacheManager.writeResultMetadata(
@@ -1533,17 +1512,7 @@ export default class ProjectBuildCache {
 					sourceIndexPrepared.projectId, sourceIndexPrepared.buildSignature,
 					sourceIndexPrepared.kind, sourceIndexPrepared.index);
 			}
-			if (hasContentWrites) {
-				this.#cacheManager.endContentBatch();
-			}
-			this.#cacheManager.endMetadataBatch();
-		} catch (err) {
-			if (hasContentWrites) {
-				this.#cacheManager.rollbackContentBatch();
-			}
-			this.#cacheManager.rollbackMetadataBatch();
-			throw err;
-		}
+		});
 
 		if (log.isLevelEnabled("perf")) {
 			log.perf(
