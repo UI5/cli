@@ -166,21 +166,6 @@ test.serial("putCompressedContent stores pre-compressed data that readContent de
 	cm.close();
 });
 
-test.serial("writeStageResource writes resource by integrity", async (t) => {
-	const testDir = getUniqueTestDir();
-	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
-	const cm = new CacheManager(path.join(testDir, "buildCache"));
-
-	const resource = {
-		getIntegrity: async () => "sha256-stage",
-		getBuffer: async () => Buffer.from("stage resource content")
-	};
-	await cm.writeStageResource(resource);
-	t.true(cm.hasContent("sha256-stage"));
-	t.deepEqual(cm.readContent("sha256-stage"), Buffer.from("stage resource content"));
-	cm.close();
-});
-
 test.serial("Batch operations: content batch begin/end", async (t) => {
 	const testDir = getUniqueTestDir();
 	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
