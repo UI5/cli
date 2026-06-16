@@ -222,7 +222,7 @@ By default, the build cache is stored inside UI5 CLI's Data Dir (`~/.ui5/buildCa
 :::
 
 ::: info
-Build caches created by `ui5 build` and `ui5 serve` are **separate and cannot be mixed**. Each command maintains its own cache optimized for its specific use case. For more details on server caching, see the [UI5 Server documentation](./Server.md).
+By default, build caches created by `ui5 build` and `ui5 serve` are **separate and cannot be mixed**. Each command executes a distinct set of tasks, resulting in separate caches tailored to its specific use case. For more details on server caching, see the [UI5 Server documentation](./Server.md).
 :::
 
 

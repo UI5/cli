@@ -128,6 +128,14 @@ A custom task implementation needs to return a function with the following signa
  *      Namespace of the project currently being built
  * @param {string} parameters.options.configuration
  *      Custom task configuration, as defined in the project's ui5.yaml
+ * @param {string[] | undefined} parameters.changedProjectResourcePaths
+ *      List of changed resource paths since last execution.
+ *      Only use if the task supports differential builds (supportsDifferentialBuilds=true).
+ *      Returns undefined if unsupported or no cache is available.
+ * @param {string[] | undefined} parameters.changedDependencyResourcePaths
+ *      List of changed dependency resource paths since last execution.
+ *      Only use if the task supports differential builds (supportsDifferentialBuilds=true).
+ *      Returns undefined if unsupported or no cache is available.
  * @param {string} parameters.options.taskName
  *      Name of the custom task.
  *      This parameter is only provided to custom task extensions
@@ -166,6 +174,14 @@ export default async function({dependencies, log, options, taskUtil, workspace})
  *      Namespace of the project currently being built
  * @param {string} parameters.options.configuration
  *      Custom task configuration, as defined in the project's ui5.yaml
+ * @param {string[] | undefined} parameters.changedProjectResourcePaths
+ *      List of changed resource paths since last execution.
+ *      Only use if the task supports differential builds (supportsDifferentialBuilds=true).
+ *      Returns undefined if unsupported or no cache is available.
+ * @param {string[] | undefined} parameters.changedDependencyResourcePaths
+ *      List of changed dependency resource paths since last execution.
+ *      Only use if the task supports differential builds (supportsDifferentialBuilds=true).
+ *      Returns undefined if unsupported or no cache is available.
  * @param {string} parameters.options.taskName
  *      Name of the custom task.
  *      This parameter is only provided to custom task extensions
@@ -288,24 +304,42 @@ module.exports.determineRequiredDependencies = async function({availableDependen
 
 ### "Cache-aware" Tasks 
 
-Due to UI5 Builder and UI5 Server supporting **build caches** of task data, custom tasks can opt into this behavior to improve performance. This is done by implementing the following features:
+Due to UI5 Builder and UI5 Server supporting **build caches** of task data, custom tasks can opt into this behavior to improve performance. This is done by exporting optional callback functions in your task implementation:
 
 #### `supportsDifferentialBuilds()`
 
-This method indicates whether your task can perform differential builds:
-
-```js
+::: code-group
+```js [ESM]
 /**
- * Indicates whether this task can perform differential builds
- * 
- * @returns {boolean} True if the task can process only modified resources
+ * Indicates whether the task supports differential builds
+ *
+ * Tasks that support differential builds can use incremental cache invalidation,
+ * processing only changed resources rather than rebuilding from scratch.
+ *
+ * @public
+ * @returns {boolean} True if differential builds are supported
  */
 export function supportsDifferentialBuilds() {
     return true;
 }
 ```
 
-When this returns `true`, your task's main function receives an additional parameter indicating which resources have changed. The task can then process only those resources instead of all resources.
+```js [CommonJS]
+/**
+ * Indicates whether the task supports differential builds
+ *
+ * Tasks that support differential builds can use incremental cache invalidation,
+ * processing only changed resources rather than rebuilding from scratch.
+ *
+ * @public
+ * @returns {boolean} True if differential builds are supported
+ */
+module.exports.supportsDifferentialBuilds = function() {
+    return true;
+}
+```
+
+When this returns `true`, your task's main function receives an additional parameter `changedProjectResourcePaths` providing an array of changed resource paths (strings) since its last execution. The task can then process only those resources instead of all resources. If this callback is not provided (or it returns a falsy value), your task will not be able to use incremental cache invalidation and processes all resources from scratch.
 
 ::: info Best Practices for Cache-aware Tasks
 1. **Keep tasks deterministic**: Given the same inputs, always produce the same outputs
@@ -321,6 +355,7 @@ The following code snippets show examples for custom task implementations.
 This example is making use of the `resourceFactory` [TaskUtil](https://ui5.github.io/cli/v5/api/@ui5_project_build_helpers_TaskUtil.html)
 API to create new resources based on the output of a third-party module for rendering Markdown files. The created resources are added to the build
 result by writing them into the provided `workspace`.
+In addition, differential builds are supported by this task which re-processes only changed resources.
 
 ::: code-group
 
@@ -331,26 +366,37 @@ import renderMarkdown from "./renderMarkdown.js";
 /*
 * Render all .md (Markdown) files in the project to HTML
 */
-export default async function({dependencies, log, options, taskUtil, workspace}) {
+export default async function({dependencies, log, options, taskUtil, workspace, changedProjectResourcePaths}) {
     const {createResource} = taskUtil.resourceFactory;
-    const textResources = await workspace.byGlob("**/*.md");
-    await Promise.all(textResources.map(async (resource) => {
-        const markdownResourcePath = resource.getPath();
+    let textResources;
+	
+	if (changedProjectResourcePaths) {
+		textResources = await Promise.all(changedProjectResourcePaths.map((resource) => workspace.byPath(resource)));
+	} else {
+		textResources = await workspace.byGlob("**/*.md");
+	}
 
-        log.info(`Rendering markdown file ${markdownResourcePath}...`);
-        const htmlString = await renderMarkdown(await resource.getString(), options.configuration);
+	await Promise.all(textResources.map(async (resource) => {
+		const markdownResourcePath = resource.getPath();
 
-        // Note: @ui5/fs virtual paths are always (on *all* platforms) POSIX. Therefore using path.posix here
-        const newResourceName = path.posix.basename(markdownResourcePath, ".md") + ".html";
-        const newResourcePath = path.posix.join(path.posix.dirname(markdownResourcePath), newResourceName);
+		log.info(`Rendering markdown file ${markdownResourcePath}...`);
+		const htmlString = await renderMarkdown(await resource.getString(), options.configuration);
 
-        const markdownResource = createResource({
-            path: newResourcePath,
-            string: htmlString
-        });
-        await workspace.write(markdownResource);
-    }));
+		// Note: @ui5/fs virtual paths are always (on *all* platforms) POSIX. Therefore using path.posix here
+		const newResourceName = path.posix.basename(markdownResourcePath, ".md") + ".html";
+		const newResourcePath = path.posix.join(path.posix.dirname(markdownResourcePath), newResourceName);
+
+		const markdownResource = createResource({
+			path: newResourcePath,
+			string: htmlString
+		});
+		await workspace.write(markdownResource);
+	}));
 };
+
+export function supportsDifferentialBuilds() {
+    return true;
+}
 ```
 
 ```js [CommonJS]
@@ -360,10 +406,17 @@ const renderMarkdown = require("./renderMarkdown.js");
 /*
 * Render all .md (Markdown) files in the project to HTML
 */
-module.exports = async function({dependencies, log, options, taskUtil, workspace}) {
+module.exports = async function({dependencies, log, options, taskUtil, workspace, changedProjectResourcePaths}) {
     const {createResource} = taskUtil.resourceFactory;
-    const textResources = await workspace.byGlob("**/*.md");
-    await Promise.all(textResources.map(async (resource) => {
+	let textResources;
+	
+	if (changedProjectResourcePaths) {
+		textResources = await Promise.all(changedProjectResourcePaths.map((resource) => workspace.byPath(resource)));
+	} else {
+		textResources = await workspace.byGlob("**/*.md");
+	}
+	
+	await Promise.all(textResources.map(async (resource) => {
         const markdownResourcePath = resource.getPath();
 
         log.info(`Rendering markdown file ${markdownResourcePath}...`);
@@ -380,6 +433,10 @@ module.exports = async function({dependencies, log, options, taskUtil, workspace
         await workspace.write(markdownResource);
     }));
 };
+
+module.exports.supportsDifferentialBuilds = function() {
+    return true;
+}
 ```
 :::
 

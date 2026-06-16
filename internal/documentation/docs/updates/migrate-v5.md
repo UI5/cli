@@ -31,7 +31,7 @@ Projects using older **Specification Versions** are expected to be **fully compa
 
 ## Build Cache
 
-UI5 CLI v5 introduces **builds with caching** for both commands `ui5 build` and `ui5 serve`. This fundamental architectural change significantly improves build performance by reusing cached results from previous builds.
+UI5 CLI v5 introduces **builds with caching** for both commands `ui5 build` and `ui5 serve`. This fundamental architectural change significantly improves build performance by reusing cached results from previous builds and simplifies development with the Server by making most custom middleware obsolete.
 
 ### What Changed
 
@@ -39,10 +39,12 @@ UI5 CLI v5 introduces **builds with caching** for both commands `ui5 build` and 
 - Every source change resulted in an entire rebuild of all projects
 - Every build re-executed all tasks
 - No caching between builds or server sessions
+- Custom middleware required for special actions
 
 **New Behavior (v5):**
 - Only relevant projects are rebuilt
 - Only modified resources and affected tasks are re-processed
+- Custom middleware obsolete by replacing with build tasks
 
 ### Impact on Your Workflow
 
@@ -61,13 +63,12 @@ If you plan to execute a build only once (e.g. during a CI run), consider using 
 
 ### For `ui5 serve`
 
-During a server session (started by `ui5 serve`), source changes are automatically being monitered. Then, if a request was made, the server detects this, tries to use caches and only rebuilds when none are available. For more information see [Watch Mode Behavior](../pages/Server.md#watch-mode-behavior).
+The UI5 Server now performs a build of the project. When started with `ui5 serve`, a similar build to `ui5 build` is executed containing standard and custom tasks (see [exceptions](../pages/Server.md#standard-tasks)).
 
-::: info Review custom middleware
+During a server session, source changes are automatically being monitered. Then, if a request was made, the server detects this, tries to use caches and only rebuilds when none are available. For more information see [Watch Mode Behavior](../pages/Server.md#watch-mode-behavior).
 
-With this feature, **build tasks are executed in server sessions**. For this reason, some custom middleware might be obsolete or cause problems. Projects utilizing such might need to adapt their configuration.
-
-E.g. Middleware for browser live reloads is obsolete and can be removed. Also, middleware for Typescript transpilation is not required anymore (as long as the respective task is still set up).
+::: tip Review custom middleware
+Due to **build tasks now being executed in server sessions**, custom middleware becomes obsolete if a corresponding task can perform the same actions (e.g. Typescript transpilation). However, custom middleware for non-build purposes such as proxies are not affected by this, and are still a valid use case.
 :::
 
 ## Rename of Command Option
@@ -251,13 +252,13 @@ The test suite is now served under the standard `/test-resources/` path with the
 
 The following middleware has been removed from the [standard middlewares list](../pages/Server.md#standard-middleware):
 
-* `serveThemes` — Theme compilation (LESS to CSS) is now handled by the `buildThemes` build task during the incremental build, rather than on demand during runtime. The resulting CSS files are served via the `serveResources` middleware. This change improves performance through build-time compilation and caching while maintaining the same functionality.
+* `serveThemes` — Theme compilation (LESS to CSS) is now handled by the `buildThemes` build task. Due to server sessions now also performing builds, this task gets executed during a server start, rather than on demand during runtime. The resulting CSS files are served via the `serveResources` middleware. This change improves performance through build-time compilation and caching while maintaining the same functionality.
 
 **Backward Compatibility:**
 If your project or any custom middleware references a removed middleware via `beforeMiddleware` or `afterMiddleware`, UI5 CLI will automatically remap the reference to the nearest remaining middleware and log a deprecation warning. Your custom middleware will still be executed in the expected order.
 
 **What Changed:**
-- Theme CSS files (`library.css`, `library-RTL.css`, etc.) are now **pre-built** during the incremental build
+- Theme CSS files (`library.css`, `library-RTL.css`, etc.) are now **pre-built**
 - Files are served via `serveResources` instead of being compiled on demand
 - The same CSS files are available at the same URLs as before
 
