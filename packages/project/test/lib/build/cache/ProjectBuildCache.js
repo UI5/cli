@@ -222,7 +222,7 @@ test("setTasks initializes project stages", async (t) => {
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 	await cache.initSourceIndex();
 
-	await cache.setTasks(["task1", "task2", "task3"]);
+	cache.setTasks(["task1", "task2", "task3"]);
 
 	t.true(project.getProjectResources().initStages.calledOnce, "initStages called once");
 	t.deepEqual(
@@ -238,7 +238,7 @@ test("setTasks with empty task list", async (t) => {
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 	await cache.initSourceIndex();
 
-	await cache.setTasks([]);
+	cache.setTasks([]);
 
 	t.true(project.getProjectResources().initStages.calledWith([]), "initStages called with empty array");
 });
@@ -309,7 +309,7 @@ test("prepareTaskExecutionAndValidateCache: task needs execution when no cache e
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 	await cache.initSourceIndex();
 
-	await cache.setTasks(["myTask"]);
+	cache.setTasks(["myTask"]);
 	const canUseCache = await cache.prepareTaskExecutionAndValidateCache("myTask");
 
 	t.false(canUseCache, "Task cannot use cache");
@@ -322,7 +322,7 @@ test("prepareTaskExecutionAndValidateCache: switches project to correct stage", 
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 	await cache.initSourceIndex();
 
-	await cache.setTasks(["task1", "task2"]);
+	cache.setTasks(["task1", "task2"]);
 	await cache.prepareTaskExecutionAndValidateCache("task2");
 
 	t.true(project.getProjectResources().useStage.calledWith("task/task2"), "Switched to task2 stage");
@@ -334,7 +334,7 @@ test("recordTaskResult: creates task cache", async (t) => {
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 	await cache.initSourceIndex();
 
-	await cache.setTasks(["newTask"]);
+	cache.setTasks(["newTask"]);
 	await cache.prepareTaskExecutionAndValidateCache("newTask");
 
 	const projectRequests = {paths: new Set(["/input.js"]), patterns: new Set()};
@@ -352,7 +352,7 @@ test("recordTaskResult with empty requests", async (t) => {
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 	await cache.initSourceIndex();
 
-	await cache.setTasks(["task1"]);
+	cache.setTasks(["task1"]);
 	await cache.prepareTaskExecutionAndValidateCache("task1");
 
 	const projectRequests = {paths: new Set(), patterns: new Set()};
@@ -373,7 +373,7 @@ test("recordTaskResult with cacheInfo: merges resources from previous stage, ski
 		const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 		await cache.initSourceIndex();
 
-		await cache.setTasks(["myTask"]);
+		cache.setTasks(["myTask"]);
 		await cache.prepareTaskExecutionAndValidateCache("myTask");
 
 		// Resources written by the delta execution
@@ -425,7 +425,7 @@ test("recordTaskResult with cacheInfo: calls importTagOperations with previous s
 		const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 		await cache.initSourceIndex();
 
-		await cache.setTasks(["myTask"]);
+		cache.setTasks(["myTask"]);
 		await cache.prepareTaskExecutionAndValidateCache("myTask");
 
 		const writeStub = sinon.stub().resolves();
@@ -474,7 +474,7 @@ test("recordTaskResult with cacheInfo: merges tag operations with current delta 
 		const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 		await cache.initSourceIndex();
 
-		await cache.setTasks(["myTask"]);
+		cache.setTasks(["myTask"]);
 		await cache.prepareTaskExecutionAndValidateCache("myTask");
 
 		// Delta execution's own tag operations — /a.js IsDebugVariant overrides previous value
@@ -548,7 +548,7 @@ test("recordTaskResult with cacheInfo: uses cacheInfo.newSignature as stage sign
 		const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 		await cache.initSourceIndex();
 
-		await cache.setTasks(["myTask"]);
+		cache.setTasks(["myTask"]);
 		await cache.prepareTaskExecutionAndValidateCache("myTask");
 
 		const writtenRes = createMockResource("/a.js", "hash-a", 2000, 200, 2);
@@ -597,7 +597,7 @@ test("recordTaskResult with cacheInfo: uses getCachedWriter fallback when getWri
 		const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 		await cache.initSourceIndex();
 
-		await cache.setTasks(["myTask"]);
+		cache.setTasks(["myTask"]);
 		await cache.prepareTaskExecutionAndValidateCache("myTask");
 
 		const writeStub = sinon.stub().resolves();
@@ -1062,7 +1062,7 @@ test("Empty task list doesn't fail", async (t) => {
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 	await cache.initSourceIndex();
 
-	await cache.setTasks([]);
+	cache.setTasks([]);
 
 	t.true(project.getProjectResources().initStages.calledWith([]), "initStages called with empty array");
 });
@@ -1090,7 +1090,7 @@ async function buildCacheWithTaskResult(resources, writtenPaths = []) {
 	await cache.initSourceIndex();
 
 	// Set up and execute a task
-	await cache.setTasks(["myTask"]);
+	cache.setTasks(["myTask"]);
 	await cache.prepareTaskExecutionAndValidateCache("myTask");
 
 	// Simulate task writing some resources
@@ -1216,7 +1216,7 @@ test("freezeUntransformedSources: throws when source file not found", async (t) 
 
 	const cache = await ProjectBuildCache.create(project, "test-sig", cacheManager);
 	await cache.initSourceIndex();
-	await cache.setTasks(["myTask"]);
+	cache.setTasks(["myTask"]);
 	await cache.prepareTaskExecutionAndValidateCache("myTask");
 
 	project.getProjectResources().getStage.returns({
@@ -1322,7 +1322,7 @@ async function buildCacheWithWarmCacheAndTaskResult({
 	await cache.initSourceIndex();
 
 	// Set up and execute a task
-	await cache.setTasks(["myTask"]);
+	cache.setTasks(["myTask"]);
 	await cache.prepareTaskExecutionAndValidateCache("myTask");
 
 	// Simulate task writing some resources
