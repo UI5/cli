@@ -29,8 +29,8 @@ test.serial("Index cache: round-trip via CacheManager", async (t) => {
 	const cm = new CacheManager(path.join(testDir, "buildCache"));
 
 	const data = {indexTimestamp: 1234, root: {name: "", hash: "abc"}};
-	await cm.writeIndexCache("project-x", "build-sig", "source", data);
-	const result = await cm.readIndexCache("project-x", "build-sig", "source");
+	cm.writeIndexCache("project-x", "build-sig", "source", data);
+	const result = cm.readIndexCache("project-x", "build-sig", "source");
 	t.deepEqual(result, data);
 	cm.close();
 });
@@ -41,8 +41,8 @@ test.serial("Stage cache: round-trip via CacheManager", async (t) => {
 	const cm = new CacheManager(path.join(testDir, "buildCache"));
 
 	const data = {resourceMetadata: {"/a.js": {integrity: "hash-a"}}};
-	await cm.writeStageCache("project-x", "build-sig", "task/minify", "stage-sig", data);
-	const result = await cm.readStageCache("project-x", "build-sig", "task/minify", "stage-sig");
+	cm.writeStageCache("project-x", "build-sig", "task/minify", "stage-sig", data);
+	const result = cm.readStageCache("project-x", "build-sig", "task/minify", "stage-sig");
 	t.deepEqual(result, data);
 	cm.close();
 });
@@ -53,8 +53,8 @@ test.serial("Task metadata: round-trip via CacheManager", async (t) => {
 	const cm = new CacheManager(path.join(testDir, "buildCache"));
 
 	const data = {requestSetGraph: {nodes: []}};
-	await cm.writeTaskMetadata("project-x", "build-sig", "minify", "project", data);
-	const result = await cm.readTaskMetadata("project-x", "build-sig", "minify", "project");
+	cm.writeTaskMetadata("project-x", "build-sig", "minify", "project", data);
+	const result = cm.readTaskMetadata("project-x", "build-sig", "minify", "project");
 	t.deepEqual(result, data);
 	cm.close();
 });
@@ -65,8 +65,8 @@ test.serial("Result metadata: round-trip via CacheManager", async (t) => {
 	const cm = new CacheManager(path.join(testDir, "buildCache"));
 
 	const data = {stageSignatures: {"task/minify": "sig-abc"}};
-	await cm.writeResultMetadata("project-x", "build-sig", "result-sig", data);
-	const result = await cm.readResultMetadata("project-x", "build-sig", "result-sig");
+	cm.writeResultMetadata("project-x", "build-sig", "result-sig", data);
+	const result = cm.readResultMetadata("project-x", "build-sig", "result-sig");
 	t.deepEqual(result, data);
 	cm.close();
 });
@@ -76,10 +76,10 @@ test.serial("Cache miss returns null for all metadata types", async (t) => {
 	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
 	const cm = new CacheManager(path.join(testDir, "buildCache"));
 
-	t.is(await cm.readIndexCache("no-project", "no-sig", "source"), null);
-	t.is(await cm.readStageCache("no-project", "no-sig", "no-stage", "no-sig"), null);
-	t.is(await cm.readTaskMetadata("no-project", "no-sig", "no-task", "project"), null);
-	t.is(await cm.readResultMetadata("no-project", "no-sig", "no-sig"), null);
+	t.is(cm.readIndexCache("no-project", "no-sig", "source"), null);
+	t.is(cm.readStageCache("no-project", "no-sig", "no-stage", "no-sig"), null);
+	t.is(cm.readTaskMetadata("no-project", "no-sig", "no-task", "project"), null);
+	t.is(cm.readResultMetadata("no-project", "no-sig", "no-sig"), null);
 	cm.close();
 });
 
@@ -215,10 +215,10 @@ test.serial("Batch operations: metadata batch begin/end", async (t) => {
 	const cm = new CacheManager(path.join(testDir, "buildCache"));
 
 	cm.beginMetadataBatch();
-	await cm.writeIndexCache("proj-batch", "sig", "source", {data: true});
+	cm.writeIndexCache("proj-batch", "sig", "source", {data: true});
 	cm.endMetadataBatch();
 
-	const result = await cm.readIndexCache("proj-batch", "sig", "source");
+	const result = cm.readIndexCache("proj-batch", "sig", "source");
 	t.deepEqual(result, {data: true});
 	cm.close();
 });
@@ -229,10 +229,10 @@ test.serial("Batch operations: metadata batch rollback", async (t) => {
 	const cm = new CacheManager(path.join(testDir, "buildCache"));
 
 	cm.beginMetadataBatch();
-	await cm.writeIndexCache("proj-rollback", "sig", "source", {data: true});
+	cm.writeIndexCache("proj-rollback", "sig", "source", {data: true});
 	cm.rollbackMetadataBatch();
 
-	const result = await cm.readIndexCache("proj-rollback", "sig", "source");
+	const result = cm.readIndexCache("proj-rollback", "sig", "source");
 	t.is(result, null, "Metadata should not exist after rollback");
 	cm.close();
 });

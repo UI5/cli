@@ -57,14 +57,14 @@ function createMockProject(name = "test.project", id = "test-project-id") {
 // Helper to create mock CacheManager instances
 function createMockCacheManager() {
 	return {
-		readIndexCache: sinon.stub().resolves(null),
-		writeIndexCache: sinon.stub().resolves(),
-		readStageCache: sinon.stub().resolves(null),
-		writeStageCache: sinon.stub().resolves(),
-		readResultMetadata: sinon.stub().resolves(null),
-		writeResultMetadata: sinon.stub().resolves(),
-		readTaskMetadata: sinon.stub().resolves(null),
-		writeTaskMetadata: sinon.stub().resolves(),
+		readIndexCache: sinon.stub().returns(null),
+		writeIndexCache: sinon.stub(),
+		readStageCache: sinon.stub().returns(null),
+		writeStageCache: sinon.stub(),
+		readResultMetadata: sinon.stub().returns(null),
+		writeResultMetadata: sinon.stub(),
+		readTaskMetadata: sinon.stub().returns(null),
+		writeTaskMetadata: sinon.stub(),
 		writeStageResource: sinon.stub().resolves(),
 		hasContent: sinon.stub().returns(false),
 		readContent: sinon.stub().returns(Buffer.from("test")),
@@ -176,7 +176,7 @@ test("Create with existing index cache", async (t) => {
 		return Promise.resolve(null);
 	});
 
-	cacheManager.readIndexCache.resolves(indexCache);
+	cacheManager.readIndexCache.returns(indexCache);
 
 	const cache = await ProjectBuildCache.create(project, buildSignature, cacheManager);
 	await cache.initSourceIndex();
@@ -289,7 +289,7 @@ test("allTasksCompleted returns changed resource paths", async (t) => {
 		},
 		tasks: []
 	};
-	cacheManager.readIndexCache.resolves(indexCache);
+	cacheManager.readIndexCache.returns(indexCache);
 
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 	await cache.initSourceIndex();
@@ -676,7 +676,7 @@ test("projectSourcesChanged: marks cache as requiring validation", async (t) => 
 		},
 		tasks: []
 	};
-	cacheManager.readIndexCache.resolves(indexCache);
+	cacheManager.readIndexCache.returns(indexCache);
 
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 	await cache.initSourceIndex();
@@ -718,7 +718,7 @@ test("dependencyResourcesChanged: marks cache as requiring validation", async (t
 		},
 		tasks: []
 	};
-	cacheManager.readIndexCache.resolves(indexCache);
+	cacheManager.readIndexCache.returns(indexCache);
 
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 	await cache.initSourceIndex();
@@ -781,7 +781,7 @@ test("projectSourcesChanged after SourceChangedDuringBuildError does not corrupt
 		},
 		tasks: []
 	};
-	cacheManager.readIndexCache.resolves(indexCache);
+	cacheManager.readIndexCache.returns(indexCache);
 
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 	await cache.initSourceIndex();
@@ -857,7 +857,7 @@ test("Retry after SourceChangedDuringBuildError when prior build set NO_CACHE: "
 		},
 		tasks: []
 	};
-	cacheManager.readIndexCache.resolves(indexCache);
+	cacheManager.readIndexCache.returns(indexCache);
 	// readResultMetadata returns null by default → #findResultCache returns false → NO_CACHE.
 
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
@@ -960,7 +960,7 @@ test("_refreshDependencyIndices: updates dependency indices", async (t) => {
 		return Promise.resolve(null);
 	});
 
-	cacheManager.readIndexCache.resolves(indexCache);
+	cacheManager.readIndexCache.returns(indexCache);
 
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 	await cache.initSourceIndex();
@@ -1025,7 +1025,7 @@ test("writeCache: skips writing unchanged caches", async (t) => {
 		},
 		tasks: []
 	};
-	cacheManager.readIndexCache.resolves(indexCache);
+	cacheManager.readIndexCache.returns(indexCache);
 
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 	await cache.initSourceIndex();
@@ -1317,7 +1317,7 @@ async function buildCacheWithWarmCacheAndTaskResult({
 		return Promise.resolve(null);
 	});
 
-	cacheManager.readIndexCache.resolves(indexCache);
+	cacheManager.readIndexCache.returns(indexCache);
 
 	const cache = await ProjectBuildCache.create(project, buildSignature, cacheManager);
 	await cache.initSourceIndex();
@@ -1509,7 +1509,7 @@ test("restoreFrozenSources: cache miss skips gracefully", async (t) => {
 		},
 		tasks: [["task1", false]]
 	};
-	cacheManager.readIndexCache.resolves(indexCache);
+	cacheManager.readIndexCache.returns(indexCache);
 	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
 		return Promise.resolve({
 			requestSetGraph: {nodes: [], nextId: 1},
@@ -1520,7 +1520,7 @@ test("restoreFrozenSources: cache miss skips gracefully", async (t) => {
 	});
 
 	// readResultMetadata returns metadata WITH sourceStageSignature
-	cacheManager.readResultMetadata.resolves({
+	cacheManager.readResultMetadata.returns({
 		stageSignatures: {"task/task1": "sig1-sig2"},
 		sourceStageSignature: "source-sig-123"
 	});
@@ -1593,7 +1593,7 @@ test("restoreFrozenSources: cache hit creates CAS reader", async (t) => {
 		},
 		tasks: [["task1", false]]
 	};
-	cacheManager.readIndexCache.resolves(indexCache);
+	cacheManager.readIndexCache.returns(indexCache);
 	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
 		return Promise.resolve({
 			requestSetGraph: {nodes: [], nextId: 1},
@@ -1604,7 +1604,7 @@ test("restoreFrozenSources: cache hit creates CAS reader", async (t) => {
 	});
 
 	// readResultMetadata returns metadata WITH sourceStageSignature
-	cacheManager.readResultMetadata.resolves({
+	cacheManager.readResultMetadata.returns({
 		stageSignatures: {"task/task1": "sig1-sig2"},
 		sourceStageSignature: "source-sig-456"
 	});
@@ -1717,7 +1717,7 @@ async function createCacheInRestoringState({
 		});
 	});
 
-	cacheManager.readIndexCache.resolves(indexCache);
+	cacheManager.readIndexCache.returns(indexCache);
 
 	const cache = await ProjectBuildCache.create(project, buildSignature, cacheManager);
 	await cache.initSourceIndex();
