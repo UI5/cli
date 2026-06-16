@@ -293,7 +293,7 @@ function guide() {
 				}]
 			}
 
-			for (let file of fs.readdirSync(path.join("docs", "api"))) {
+			for (let file of fs.readdirSync(path.join("docs", "api")).sort()) {
 				file = file.replace(".md", "");
 				const treePath = file.replace("module-", "").split("_");
 				appendToTree(tree, file, treePath, 0);
@@ -302,8 +302,21 @@ function guide() {
 			function appendToTree(tree, file, treePath, index) {
 				// If it's the last leaf
 				if (treePath.length - 1 === index) {
+					const text = treePath[index].replace("module-", "");
+					// If a branch with the same name was already created (e.g. processing
+					// "@ui5_logger_Logger" before "module-@ui5_logger"), attach this leaf
+					// as "main" inside it instead of pushing a duplicate sibling.
+					for (const treeItem of tree.items) {
+						if (treeItem.text === text && !treeItem.link) {
+							treeItem.items.unshift({
+								text: "main",
+								link: "/api/" + file
+							});
+							return;
+						}
+					}
 					tree.items.push({
-						text: treePath[index].replace("module-", ""),
+						text,
 						link: "/api/" + file
 					});
 					return;
@@ -314,6 +327,20 @@ function guide() {
 				// Checks if the leaf does already exist and adds new leafs to it
 				for (const treeItem of tree.items) {
 					if (treeItem.text === treePath[index]) {
+						// If the existing entry is a leaf (no items) — created earlier from a
+						// "module-..." file with the same name as this branch — promote it to
+						// a branch and move the existing leaf to "main" inside it, so the new
+						// child can be attached. Without this the recursive push would crash
+						// on the missing items array (filesystem-order-dependent on Linux CI).
+						if (!treeItem.items) {
+							const existingLink = treeItem.link;
+							delete treeItem.link;
+							treeItem.collapsed = treeItem.text !== "@ui5";
+							treeItem.items = [{
+								text: "main",
+								link: existingLink
+							}];
+						}
 						appendToTree(treeItem, file, treePath, index+1);
 						found = true;
 						break;
