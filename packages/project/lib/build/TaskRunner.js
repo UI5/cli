@@ -461,9 +461,11 @@ class TaskRunner {
 				}
 			};
 			if (usingCache) {
-				params.changedProjectResourcePaths = cacheInfo.changedProjectResourcePaths;
+				params.changedProjectResourcePaths = [];
+				params.changedProjectResourcePaths.push(...cacheInfo.changedProjectResourcePaths);
 				if (provideDependenciesReader) {
-					params.changedDependencyResourcePaths = cacheInfo.changedDependencyResourcePaths;
+					params.changedDependencyResourcePaths = [];
+					params.changedDependencyResourcePaths.push(...cacheInfo.changedDependencyResourcePaths);
 				}
 			}
 			const specVersion = task.getSpecVersion();
