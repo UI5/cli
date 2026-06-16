@@ -152,7 +152,7 @@ test("Create with existing index cache", async (t) => {
 	// Mock task metadata responses
 	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
 		if (type === "project") {
-			return Promise.resolve({
+			return {
 				requestSetGraph: {
 					nodes: [],
 					nextId: 1
@@ -160,9 +160,9 @@ test("Create with existing index cache", async (t) => {
 				rootIndices: [],
 				deltaIndices: [],
 				unusedAtLeastOnce: false
-			});
+			};
 		} else if (type === "dependencies") {
-			return Promise.resolve({
+			return {
 				requestSetGraph: {
 					nodes: [],
 					nextId: 1
@@ -170,9 +170,9 @@ test("Create with existing index cache", async (t) => {
 				rootIndices: [],
 				deltaIndices: [],
 				unusedAtLeastOnce: false
-			});
+			};
 		}
-		return Promise.resolve(null);
+		return null;
 	});
 
 	cacheManager.readIndexCache.returns(indexCache);
@@ -936,7 +936,7 @@ test("_refreshDependencyIndices: updates dependency indices", async (t) => {
 	// Mock task metadata responses
 	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
 		if (type === "project") {
-			return Promise.resolve({
+			return {
 				requestSetGraph: {
 					nodes: [],
 					nextId: 1
@@ -944,9 +944,9 @@ test("_refreshDependencyIndices: updates dependency indices", async (t) => {
 				rootIndices: [],
 				deltaIndices: [],
 				unusedAtLeastOnce: false
-			});
+			};
 		} else if (type === "dependencies") {
-			return Promise.resolve({
+			return {
 				requestSetGraph: {
 					nodes: [],
 					nextId: 1
@@ -954,9 +954,9 @@ test("_refreshDependencyIndices: updates dependency indices", async (t) => {
 				rootIndices: [],
 				deltaIndices: [],
 				unusedAtLeastOnce: false
-			});
+			};
 		}
-		return Promise.resolve(null);
+		return null;
 	});
 
 	cacheManager.readIndexCache.returns(indexCache);
@@ -1299,21 +1299,21 @@ async function buildCacheWithWarmCacheAndTaskResult({
 
 	// Mock task metadata for the cached task
 	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
-		return Promise.resolve({
+		return {
 			requestSetGraph: {nodes: [], nextId: 1},
 			rootIndices: [],
 			deltaIndices: [],
 			unusedAtLeastOnce: false
-		});
+		};
 	});
 
 	// Return previous frozen source metadata when readStageCache is called
 	// with the cached source signature during initSourceIndex
 	cacheManager.readStageCache.callsFake((projectId, buildSig, stageId, stageSignature) => {
 		if (stageId === "source" && stageSignature === cachedSourceSignature && previousFrozenMetadata) {
-			return Promise.resolve({resourceMetadata: previousFrozenMetadata});
+			return {resourceMetadata: previousFrozenMetadata};
 		}
-		return Promise.resolve(null);
+		return null;
 	});
 
 	cacheManager.readIndexCache.returns(indexCache);
@@ -1510,12 +1510,12 @@ test("restoreFrozenSources: cache miss skips gracefully", async (t) => {
 	};
 	cacheManager.readIndexCache.returns(indexCache);
 	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
-		return Promise.resolve({
+		return {
 			requestSetGraph: {nodes: [], nextId: 1},
 			rootIndices: [],
 			deltaIndices: [],
 			unusedAtLeastOnce: true
-		});
+		};
 	});
 
 	// readResultMetadata returns metadata WITH sourceStageSignature
@@ -1527,14 +1527,14 @@ test("restoreFrozenSources: cache miss skips gracefully", async (t) => {
 	// readStageCache for task stage returns valid data, but for "source" stage returns null
 	cacheManager.readStageCache.callsFake((projectId, buildSig, stageName, signature) => {
 		if (stageName === "source") {
-			return Promise.resolve(null); // Cache miss for source stage
+			return null; // Cache miss for source stage
 		}
 		// Return valid stage for task stages
-		return Promise.resolve({
+		return {
 			resourceMetadata: {"/a.js": {integrity: "hash-a", lastModified: 1000, size: 100, inode: 1}},
 			projectTagOperations: {},
 			buildTagOperations: {},
-		});
+		};
 	});
 
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
@@ -1594,12 +1594,12 @@ test("restoreFrozenSources: cache hit creates CAS reader", async (t) => {
 	};
 	cacheManager.readIndexCache.returns(indexCache);
 	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
-		return Promise.resolve({
+		return {
 			requestSetGraph: {nodes: [], nextId: 1},
 			rootIndices: [],
 			deltaIndices: [],
 			unusedAtLeastOnce: true
-		});
+		};
 	});
 
 	// readResultMetadata returns metadata WITH sourceStageSignature
@@ -1611,17 +1611,17 @@ test("restoreFrozenSources: cache hit creates CAS reader", async (t) => {
 	// readStageCache returns valid data for both task and source stages
 	cacheManager.readStageCache.callsFake((projectId, buildSig, stageName, signature) => {
 		if (stageName === "source") {
-			return Promise.resolve({
+			return {
 				resourceMetadata: {
 					"/b.js": {integrity: "hash-b", lastModified: 1000, size: 100, inode: 2}
 				},
-			});
+			};
 		}
-		return Promise.resolve({
+		return {
 			resourceMetadata: {"/a.js": {integrity: "hash-a", lastModified: 1000, size: 100, inode: 1}},
 			projectTagOperations: {},
 			buildTagOperations: {},
-		});
+		};
 	});
 
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
@@ -1708,12 +1708,12 @@ async function createCacheInRestoringState({
 	};
 
 	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
-		return Promise.resolve({
+		return {
 			requestSetGraph: {nodes: [], nextId: 1},
 			rootIndices: [],
 			deltaIndices: [],
 			unusedAtLeastOnce: false
-		});
+		};
 	});
 
 	cacheManager.readIndexCache.returns(indexCache);

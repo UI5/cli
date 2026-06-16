@@ -369,7 +369,7 @@ export default class ProjectBuildCache {
 		}
 
 		const resultSignature = existingSignatures[0];
-		const resultMetadata = await this.#cacheManager.readResultMetadata(
+		const resultMetadata = this.#cacheManager.readResultMetadata(
 			this.#project.getId(), this.#buildSignature, resultSignature);
 
 		if (!resultMetadata) {
@@ -690,7 +690,7 @@ export default class ProjectBuildCache {
 			return;
 		}
 
-		// Only read signatures that exist — store promises, don't await
+		// Only read signatures that exist
 		const prefetchMap = new Map();
 		for (const sig of existingSignatures) {
 			prefetchMap.set(sig, this.#cacheManager.readStageCache(
@@ -730,14 +730,11 @@ export default class ProjectBuildCache {
 		if (prefetchMap) {
 			this.#prefetchedStageReads.delete(stageName);
 			for (const stageSignature of stageSignatures) {
-				const promise = prefetchMap.get(stageSignature);
-				if (promise) {
-					const stageMetadata = await promise;
-					if (stageMetadata) {
-						log.verbose(`Found prefetched cached stage for task ${stageName} ` +
-							`with signature ${stageSignature}`);
-						return this.#processStageCacheMetadata(stageName, stageSignature, stageMetadata);
-					}
+				const stageMetadata = prefetchMap.get(stageSignature);
+				if (stageMetadata) {
+					log.verbose(`Found prefetched cached stage for task ${stageName} ` +
+						`with signature ${stageSignature}`);
+					return this.#processStageCacheMetadata(stageName, stageSignature, stageMetadata);
 				}
 			}
 			// Filter out already-checked signatures from disk lookup
@@ -754,7 +751,7 @@ export default class ProjectBuildCache {
 			return;
 		}
 		const stageSignature = existingSignatures[0];
-		const stageMetadata = await this.#cacheManager.readStageCache(
+		const stageMetadata = this.#cacheManager.readStageCache(
 			this.#project.getId(), this.#buildSignature, stageName, stageSignature);
 		if (!stageMetadata) {
 			return;
@@ -1113,11 +1110,10 @@ export default class ProjectBuildCache {
 		const sourceSignature = this.#sourceIndex.getSignature();
 		const previousMetadata = this.#cachedFrozenSourceMetadata;
 
-		let resourceMetadata;
+		let pathsToRead;
+		const reusedMetadata = Object.create(null);
 		if (previousMetadata) {
-			// Delta path: reuse previous metadata for unchanged untransformed paths
-			const pathsToRead = [];
-			const reusedMetadata = Object.create(null);
+			pathsToRead = [];
 			for (const p of untransformedPaths) {
 				if (previousMetadata[p]) {
 					reusedMetadata[p] = previousMetadata[p];
@@ -1125,56 +1121,15 @@ export default class ProjectBuildCache {
 					pathsToRead.push(p);
 				}
 			}
-
-			if (pathsToRead.length === 0) {
-				// Fast path: all metadata reused from previous build
-				resourceMetadata = reusedMetadata;
-				if (log.isLevelEnabled("perf")) {
-					log.perf(
-						`#freezeUntransformedSources for project ${this.#project.getName()}: ` +
-						`reused all ${untransformedPaths.length} entries from previous metadata`);
-				}
-			} else {
-				// Delta path: read only new/newly-untransformed paths
-				const sourceReader = this.#project.getSourceReader();
-				const readStart = log.isLevelEnabled("perf") ? performance.now() : 0;
-				const resources = await Promise.all(pathsToRead.map(async (resourcePath) => {
-					const resource = await sourceReader.byPath(resourcePath);
-					if (!resource) {
-						throw new Error(
-							`Source file ${resourcePath} not found during CAS freeze ` +
-							`for project ${this.#project.getName()}`);
-					}
-					return resource;
-				}));
-				if (log.isLevelEnabled("perf")) {
-					log.perf(
-						`#freezeUntransformedSources byPath reads for project ${this.#project.getName()} ` +
-						`completed in ${(performance.now() - readStart).toFixed(2)} ms ` +
-						`(${resources.length} of ${untransformedPaths.length} resources)`);
-				}
-
-				const writeStart = log.isLevelEnabled("perf") ? performance.now() : 0;
-				const deltaMetadata = await this.#writeStageResources(
-					resources, "source", sourceSignature, this.#knownCasIntegrities);
-				if (log.isLevelEnabled("perf")) {
-					log.perf(
-						`#freezeUntransformedSources writeStageResources for project ` +
-						`${this.#project.getName()} ` +
-						`completed in ${(performance.now() - writeStart).toFixed(2)} ms`);
-				}
-
-				// Merge: reused entries + delta entries
-				resourceMetadata = reusedMetadata;
-				for (const [path, meta] of Object.entries(deltaMetadata)) {
-					resourceMetadata[path] = meta;
-				}
-			}
 		} else {
-			// Cold cache: read all untransformed sources (no previous metadata available)
+			pathsToRead = untransformedPaths;
+		}
+
+		let prepared = {resourceMetadata: Object.create(null), casRows: []};
+		if (pathsToRead.length > 0) {
 			const sourceReader = this.#project.getSourceReader();
 			const readStart = log.isLevelEnabled("perf") ? performance.now() : 0;
-			const resources = await Promise.all(untransformedPaths.map(async (resourcePath) => {
+			const resources = await Promise.all(pathsToRead.map(async (resourcePath) => {
 				const resource = await sourceReader.byPath(resourcePath);
 				if (!resource) {
 					throw new Error(
@@ -1187,26 +1142,54 @@ export default class ProjectBuildCache {
 				log.perf(
 					`#freezeUntransformedSources byPath reads for project ${this.#project.getName()} ` +
 					`completed in ${(performance.now() - readStart).toFixed(2)} ms ` +
-					`(${resources.length} resources)`);
+					`(${resources.length} of ${untransformedPaths.length} resources)`);
 			}
 
-			const writeStart = log.isLevelEnabled("perf") ? performance.now() : 0;
-			resourceMetadata = await this.#writeStageResources(
-				resources, "source", sourceSignature, this.#knownCasIntegrities);
+			const prepStart = log.isLevelEnabled("perf") ? performance.now() : 0;
+			prepared = await this.#prepareStageResources(resources, "source");
 			if (log.isLevelEnabled("perf")) {
 				log.perf(
-					`#freezeUntransformedSources writeStageResources for project ` +
+					`#freezeUntransformedSources prepareStageResources for project ` +
 					`${this.#project.getName()} ` +
-					`completed in ${(performance.now() - writeStart).toFixed(2)} ms`);
+					`completed in ${(performance.now() - prepStart).toFixed(2)} ms`);
 			}
+		} else if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`#freezeUntransformedSources for project ${this.#project.getName()}: ` +
+				`reused all ${untransformedPaths.length} entries from previous metadata`);
+		}
+
+		// Merge reused entries with freshly-prepared entries
+		const resourceMetadata = reusedMetadata;
+		for (const [path, meta] of Object.entries(prepared.resourceMetadata)) {
+			resourceMetadata[path] = meta;
+		}
+
+		const hasContentWrites = prepared.casRows.length > 0;
+		this.#cacheManager.beginMetadataBatch();
+		try {
+			if (hasContentWrites) {
+				this.#cacheManager.beginContentBatch();
+				for (const {integrity, compressedBuffer} of prepared.casRows) {
+					this.#cacheManager.putCompressedContent(integrity, compressedBuffer);
+				}
+			}
+			this.#cacheManager.writeStageCache(
+				this.#project.getId(), this.#buildSignature, "source", sourceSignature,
+				{resourceMetadata});
+			if (hasContentWrites) {
+				this.#cacheManager.endContentBatch();
+			}
+			this.#cacheManager.endMetadataBatch();
+		} catch (err) {
+			if (hasContentWrites) {
+				this.#cacheManager.rollbackContentBatch();
+			}
+			this.#cacheManager.rollbackMetadataBatch();
+			throw err;
 		}
 
 		this.#collectKnownIntegrities(resourceMetadata);
-
-		// Persist source stage metadata in the stage cache
-		await this.#cacheManager.writeStageCache(
-			this.#project.getId(), this.#buildSignature, "source", sourceSignature,
-			{resourceMetadata});
 
 		log.verbose(
 			`Stored ${untransformedPaths.length} untransformed source files of project ` +
@@ -1228,7 +1211,7 @@ export default class ProjectBuildCache {
 	 *   stage was persisted
 	 */
 	async #restoreFrozenSources(sourceStageSignature) {
-		const stageMetadata = await this.#cacheManager.readStageCache(
+		const stageMetadata = this.#cacheManager.readStageCache(
 			this.#project.getId(), this.#buildSignature, "source", sourceStageSignature);
 
 		if (!stageMetadata) {
@@ -1357,10 +1340,8 @@ export default class ProjectBuildCache {
 		this.#changedProjectSourcePaths = [];
 
 		const sourceReader = this.#project.getSourceReader();
-		const [resources, indexCache] = await Promise.all([
-			await sourceReader.byGlob("/**/*"),
-			await this.#cacheManager.readIndexCache(this.#project.getId(), this.#buildSignature, "source"),
-		]);
+		const resources = await sourceReader.byGlob("/**/*");
+		const indexCache = this.#cacheManager.readIndexCache(this.#project.getId(), this.#buildSignature, "source");
 		if (indexCache) {
 			log.verbose(`Using cached resource index for project ${this.#project.getName()}`);
 			// Create and diff resource index
@@ -1375,7 +1356,7 @@ export default class ProjectBuildCache {
 			// that were never written to CAS).
 			const cachedSourceSignature = indexCache.indexTree.root.hash;
 			if (cachedSourceSignature) {
-				const sourceStageMetadata = await this.#cacheManager.readStageCache(
+				const sourceStageMetadata = this.#cacheManager.readStageCache(
 					this.#project.getId(), this.#buildSignature, "source", cachedSourceSignature);
 				if (sourceStageMetadata?.resourceMetadata) {
 					this.#collectKnownIntegrities(sourceStageMetadata.resourceMetadata);
@@ -1386,13 +1367,13 @@ export default class ProjectBuildCache {
 			// Import task caches
 			const buildTaskCaches = await Promise.all(
 				indexCache.tasks.map(async ([taskName, supportsDifferentialBuilds]) => {
-					const projectRequests = await this.#cacheManager.readTaskMetadata(
+					const projectRequests = this.#cacheManager.readTaskMetadata(
 						this.#project.getId(), this.#buildSignature, taskName, "project");
 					if (!projectRequests) {
 						throw new Error(`Failed to load project request cache for task ` +
 							`${taskName} in project ${this.#project.getName()}`);
 					}
-					const dependencyRequests = await this.#cacheManager.readTaskMetadata(
+					const dependencyRequests = this.#cacheManager.readTaskMetadata(
 						this.#project.getId(), this.#buildSignature, taskName, "dependencies");
 					if (!dependencyRequests) {
 						throw new Error(`Failed to load dependency request cache for task ` +
@@ -1505,21 +1486,66 @@ export default class ProjectBuildCache {
 
 		// Default and Force modes: Write cache normally
 		const cacheWriteStart = performance.now();
+
+		// Gather all cache data before opening any transactions
+		const stagePrepared = await this.#prepareTaskStageCache();
+		const resultPrepared = this.#prepareResultCache();
+		const taskRequestPrepared = this.#prepareTaskRequestCache();
+		const sourceIndexPrepared = this.#prepareSourceIndex();
+
+		// Calculate CAS rows - dedupe across stages (identical integrity produced by two stages writes once)
+		const seenIntegrities = new Set();
+		const allCasRows = [];
+		for (const {casRows} of stagePrepared) {
+			for (const row of casRows) {
+				if (!seenIntegrities.has(row.integrity)) {
+					seenIntegrities.add(row.integrity);
+					allCasRows.push(row);
+				}
+			}
+		}
+
+		const hasContentWrites = allCasRows.length > 0;
 		this.#cacheManager.beginMetadataBatch();
 		try {
-			await Promise.all([
-				this.#writeResultCache(),
-
-				this.#writeTaskStageCache(),
-				this.#writeTaskRequestCache(),
-
-				this.#writeSourceIndex(),
-			]);
+			if (hasContentWrites) {
+				this.#cacheManager.beginContentBatch();
+				for (const {integrity, compressedBuffer} of allCasRows) {
+					this.#cacheManager.putCompressedContent(integrity, compressedBuffer);
+				}
+				this.#cacheManager.endContentBatch();
+			}
+			if (resultPrepared) {
+				this.#cacheManager.writeResultMetadata(
+					resultPrepared.projectId, resultPrepared.buildSignature,
+					resultPrepared.stageSignature, resultPrepared.metadata);
+			}
+			for (const {stageId, stageSignature, metadata} of stagePrepared) {
+				this.#cacheManager.writeStageCache(
+					this.#project.getId(), this.#buildSignature,
+					stageId, stageSignature, metadata);
+			}
+			for (const {taskName, type, metadata} of taskRequestPrepared) {
+				this.#cacheManager.writeTaskMetadata(
+					this.#project.getId(), this.#buildSignature, taskName, type, metadata);
+			}
+			if (sourceIndexPrepared) {
+				this.#cacheManager.writeIndexCache(
+					sourceIndexPrepared.projectId, sourceIndexPrepared.buildSignature,
+					sourceIndexPrepared.kind, sourceIndexPrepared.index);
+			}
+			if (hasContentWrites) {
+				this.#cacheManager.endContentBatch();
+			}
 			this.#cacheManager.endMetadataBatch();
 		} catch (err) {
+			if (hasContentWrites) {
+				this.#cacheManager.rollbackContentBatch();
+			}
 			this.#cacheManager.rollbackMetadataBatch();
 			throw err;
 		}
+
 		if (log.isLevelEnabled("perf")) {
 			log.perf(
 				`Wrote build cache for project ${this.#project.getName()} in ` +
@@ -1528,51 +1554,65 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Stores the signatures of all stages that lead to the current build result. This can be used to
-	 * recreate the build result
+	 * Builds the result-cache payload, or returns null if the result stage is unchanged.
 	 *
-	 * @returns {Promise<void>}
+	 * @returns {{projectId: string, buildSignature: string, stageSignature: string, metadata: object}|null}
 	 */
-	async #writeResultCache() {
+	#prepareResultCache() {
 		const stageSignature = this.#currentResultSignature;
 		if (stageSignature === this.#cachedResultSignature) {
 			// No changes to already cached result stage
-			return;
+			return null;
 		}
-		log.verbose(`Storing result metadata for project ${this.#project.getName()} ` +
+		log.verbose(`Preparing result metadata for project ${this.#project.getName()} ` +
 			`using result stage signature ${stageSignature}`);
 		const stageSignatures = Object.create(null);
 		for (const [stageName, stageSigs] of this.#currentStageSignatures.entries()) {
 			stageSignatures[stageName] = stageSigs.join("-");
 		}
 
-		const metadata = {
-			stageSignatures,
-			sourceStageSignature: this.#sourceIndex.getSignature(),
+		return {
+			projectId: this.#project.getId(),
+			buildSignature: this.#buildSignature,
+			stageSignature,
+			metadata: {
+				stageSignatures,
+				sourceStageSignature: this.#sourceIndex.getSignature(),
+			},
 		};
-		await this.#cacheManager.writeResultMetadata(
-			this.#project.getId(), this.#buildSignature, stageSignature, metadata);
 	}
 
 	/**
-	 * Writes all pending task stage caches to persistent storage
+	 * Prepares all pending task stage caches for persistence.
 	 *
-	 * @returns {Promise<void>}
+	 * Gathers resources, computes integrity, gzip-compresses payloads.
+	 *
+	 * Per-stage iteration is sequential so that integrities collected from one stage
+	 * are visible to the next, preserving CAS dedupe.
+	 *
+	 * @returns {Promise<Array<{
+	 *   stageId: string,
+	 *   stageSignature: string,
+	 *   metadata: object,
+	 *   casRows: Array<{integrity: string, compressedBuffer: Buffer}>
+	 * }>>}
 	 */
-	async #writeTaskStageCache() {
+	async #prepareTaskStageCache() {
 		if (!this.#stageCache.hasPendingCacheQueue()) {
-			return;
+			return [];
 		}
-		// Store stage caches
-		log.verbose(`Storing stage caches for project ${this.#project.getName()} ` +
+		log.verbose(`Preparing stage caches for project ${this.#project.getName()} ` +
 			`with build signature ${this.#buildSignature}`);
 		const stageQueue = this.#stageCache.flushCacheQueue();
-		await Promise.all(stageQueue.map(async ([stageId, stageSignature]) => {
+
+		const payloads = [];
+		for (const [stageId, stageSignature] of stageQueue) {
 			const {stage, projectTagOperations, buildTagOperations} =
 				this.#stageCache.getCacheForSignature(stageId, stageSignature);
 			const writer = stage.getWriter();
 
 			let metadata;
+			const casRowsForStage = [];
 			if (writer.getMapping) {
 				const writerMapping = writer.getMapping();
 				// Ensure unique readers are used
@@ -1584,27 +1624,31 @@ export default class ProjectBuildCache {
 					resourceMapping[virPath] = readerIdx;
 				}
 
-				const resourceMetadata = await Promise.all(readers.map(async (reader, idx) => {
+				const perReader = await Promise.all(readers.map(async (reader) => {
 					const resources = await reader.byGlob("/**/*");
-
-					return await this.#writeStageResources(
-						resources, stageId, stageSignature, this.#knownCasIntegrities);
+					return await this.#prepareStageResources(resources, stageId);
 				}));
+				const resourceMetadata = [];
+				for (const r of perReader) {
+					resourceMetadata.push(r.resourceMetadata);
+					casRowsForStage.push(...r.casRows);
+				}
 				this.#collectKnownIntegrities(resourceMetadata);
 
 				metadata = {resourceMapping, resourceMetadata};
 			} else {
 				const resources = await writer.byGlob("/**/*");
-				const resourceMetadata = await this.#writeStageResources(
-					resources, stageId, stageSignature, this.#knownCasIntegrities);
-				this.#collectKnownIntegrities(resourceMetadata);
-				metadata = {resourceMetadata};
+				const prep = await this.#prepareStageResources(resources, stageId);
+				casRowsForStage.push(...prep.casRows);
+				this.#collectKnownIntegrities(prep.resourceMetadata);
+				metadata = {resourceMetadata: prep.resourceMetadata};
 			}
 			metadata.projectTagOperations = tagOpsToObject(projectTagOperations);
 			metadata.buildTagOperations = tagOpsToObject(buildTagOperations);
-			await this.#cacheManager.writeStageCache(
-				this.#project.getId(), this.#buildSignature, stageId, stageSignature, metadata);
-		}));
+
+			payloads.push({stageId, stageSignature, metadata, casRows: casRowsForStage});
+		}
+		return payloads;
 	}
 
 	/**
@@ -1625,15 +1669,18 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Writes stage resources to persistent storage and returns their metadata
+	 * Prepares stage resources for persistence: gathers metadata, dedupes against the CAS,
+	 * and gzip-compresses payloads for content writes.
 	 *
-	 * @param {@ui5/fs/Resource[]} resources Array of resources to write
-	 * @param {string} stageId Stage identifier
-	 * @param {string} stageSignature Stage signature
-	 * @param {Set<string>} [knownCasIntegrities] Set of integrity hashes known to exist in CAS
-	 * @returns {Promise<Object<string, object>>} Resource metadata indexed by path
+	 * @param {@ui5/fs/Resource[]} resources Array of resources to prepare
+	 * @param {string} stageId Stage identifier (for perf logging)
+	 * @returns {Promise<{
+	 *   resourceMetadata: Object<string, object>,
+	 *   casRows: Array<{integrity: string, compressedBuffer: Buffer}>
+	 * }>}
+	 *   Resource metadata indexed by path, plus the list of CAS rows the caller must insert.
 	 */
-	async #writeStageResources(resources, stageId, stageSignature, knownCasIntegrities) {
+	async #prepareStageResources(resources, stageId) {
 		const resourceMetadata = Object.create(null);
 		let casSkipped = 0;
 
@@ -1642,7 +1689,7 @@ export default class ProjectBuildCache {
 		await Promise.all(resources.map(async (res) => {
 			const integrity = await res.getIntegrity();
 
-			if (knownCasIntegrities?.has(integrity)) {
+			if (this.#knownCasIntegrities.has(integrity)) {
 				casSkipped++;
 			} else {
 				const buffer = await res.getBuffer();
@@ -1657,7 +1704,7 @@ export default class ProjectBuildCache {
 			};
 		}));
 
-		// Phase 1.5: Batch-check which integrities already exist in the DB
+		// Phase 2: Batch-check which integrities already exist in the DB (sync read, no batch)
 		if (toWrite.length > 0) {
 			const existingIntegrities = this.#cacheManager.findExistingContentIntegrities(
 				toWrite.map(({integrity}) => integrity)
@@ -1668,11 +1715,10 @@ export default class ProjectBuildCache {
 			}
 		}
 
-		// Phase 2: Parallel async compression (outside transaction)
+		// Phase 3: Parallel async compression
+		const casRows = [];
 		if (toWrite.length > 0) {
 			const concurrency = Math.min(os.availableParallelism(), 8);
-			const compressed = new Array(toWrite.length);
-
 			for (let i = 0; i < toWrite.length; i += concurrency) {
 				const chunk = toWrite.slice(i, i + concurrency);
 				const results = await Promise.all(chunk.map(({buffer}) => {
@@ -1684,77 +1730,68 @@ export default class ProjectBuildCache {
 					);
 				}));
 				for (let j = 0; j < results.length; j++) {
-					compressed[i + j] = results[j];
+					casRows.push({integrity: chunk[j].integrity, compressedBuffer: results[j]});
 				}
-			}
-
-			// Phase 3: Batch insert pre-compressed content in transaction
-			this.#cacheManager.beginContentBatch();
-			try {
-				for (let i = 0; i < toWrite.length; i++) {
-					this.#cacheManager.putCompressedContent(toWrite[i].integrity, compressed[i]);
-				}
-				this.#cacheManager.endContentBatch();
-			} catch (err) {
-				this.#cacheManager.rollbackContentBatch();
-				throw err;
 			}
 		}
 
 		if (log.isLevelEnabled("perf") && casSkipped > 0) {
 			log.perf(
-				`#writeStageResources for stage ${stageId}: ` +
-				`${casSkipped} CAS skipped, ${resources.length - casSkipped} CAS written`);
+				`#prepareStageResources for stage ${stageId}: ` +
+				`${casSkipped} CAS skipped, ${resources.length - casSkipped} CAS to write`);
 		}
-		return resourceMetadata;
+		return {resourceMetadata, casRows};
 	}
 
 	/**
-	 * Writes task request metadata to persistent storage
+	 * Builds task-request metadata payloads for all tasks with new or modified entries.
 	 *
-	 * @returns {Promise<void>}
+	 * @returns {Array<{taskName: string, type: string, metadata: object}>}
 	 */
-	async #writeTaskRequestCache() {
-		// Store task caches
+	#prepareTaskRequestCache() {
+		const out = [];
 		for (const [taskName, taskCache] of this.#taskCache) {
-			if (taskCache.hasNewOrModifiedCacheEntries()) {
-				const [projectRequests, dependencyRequests] = taskCache.toCacheObjects();
-				log.verbose(`Storing task cache metadata for task ${taskName} in project ${this.#project.getName()}`);
-				const writes = [];
-				if (projectRequests) {
-					writes.push(this.#cacheManager.writeTaskMetadata(
-						this.#project.getId(), this.#buildSignature, taskName, "project", projectRequests));
-				}
-				if (dependencyRequests) {
-					writes.push(this.#cacheManager.writeTaskMetadata(
-						this.#project.getId(), this.#buildSignature, taskName, "dependencies", dependencyRequests));
-				}
-				await Promise.all(writes);
+			if (!taskCache.hasNewOrModifiedCacheEntries()) {
+				continue;
+			}
+			const [projectRequests, dependencyRequests] = taskCache.toCacheObjects();
+			log.verbose(`Preparing task cache metadata for task ${taskName} in project ${this.#project.getName()}`);
+			if (projectRequests) {
+				out.push({taskName, type: "project", metadata: projectRequests});
+			}
+			if (dependencyRequests) {
+				out.push({taskName, type: "dependencies", metadata: dependencyRequests});
 			}
 		}
+		return out;
 	}
 
 	/**
-	 * Writes the source index cache to persistent storage
+	 * Builds the source-index payload, or returns null if the source index is unchanged.
 	 *
-	 * @returns {Promise<void>}
+	 * @returns {{projectId: string, buildSignature: string, kind: string, index: object}|null}
 	 */
-	async #writeSourceIndex() {
+	#prepareSourceIndex() {
 		if (this.#cachedSourceSignature === this.#sourceIndex.getSignature()) {
 			// No changes to already cached result index
-			return;
+			return null;
 		}
-		log.verbose(`Storing resource index cache for project ${this.#project.getName()} ` +
+		log.verbose(`Preparing resource index cache for project ${this.#project.getName()} ` +
 			`with build signature ${this.#buildSignature}`);
 		const sourceIndexObject = this.#sourceIndex.toCacheObject();
 		const tasks = [];
 		for (const [taskName, taskCache] of this.#taskCache) {
 			tasks.push([taskName, taskCache.getSupportsDifferentialBuilds() ? 1 : 0]);
 		}
-		await this.#cacheManager.writeIndexCache(this.#project.getId(), this.#buildSignature, "source", {
-			...sourceIndexObject,
-			tasks,
-		});
+		return {
+			projectId: this.#project.getId(),
+			buildSignature: this.#buildSignature,
+			kind: "source",
+			index: {
+				...sourceIndexObject,
+				tasks,
+			},
+		};
 	}
 
 	/**
