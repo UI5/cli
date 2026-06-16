@@ -233,7 +233,7 @@ export default class ProjectBuildCache {
 		if (this.#resultCacheState === RESULT_CACHE_STATES.PENDING_VALIDATION) {
 			log.verbose(`Project ${this.#project.getName()} cache requires validation due to detected changes.`);
 			const findStart = performance.now();
-			const changedResourcesOrFalse = await this.#findResultCache();
+			const changedResourcesOrFalse = this.#findResultCache();
 			if (log.isLevelEnabled("perf")) {
 				log.perf(
 					`Validated result cache for project ${this.#project.getName()} ` +
@@ -345,11 +345,11 @@ export default class ProjectBuildCache {
 	 * If found, creates a reader for the cached stage and sets it as the project's
 	 * result stage.
 	 *
-	 * @returns {Promise<string[]|false>}
+	 * @returns {string[]|false}
 	 *   Array of resource paths written by the cached result stage (empty if the result stage remains unchanged),
 	 *   or false if no cache found
 	 */
-	async #findResultCache() {
+	#findResultCache() {
 		const resultSignatures = this.#getPossibleResultStageSignatures();
 		if (resultSignatures.includes(this.#currentResultSignature)) {
 			log.verbose(
@@ -382,7 +382,7 @@ export default class ProjectBuildCache {
 		const {stageSignatures, sourceStageSignature} = resultMetadata;
 
 		const importStagesStart = log.isLevelEnabled("perf") ? performance.now() : 0;
-		const writtenResourcePaths = await this.#importStages(stageSignatures);
+		const writtenResourcePaths = this.#importStages(stageSignatures);
 		if (log.isLevelEnabled("perf")) {
 			log.perf(
 				`#findResultCache importStages for project ${this.#project.getName()} ` +
@@ -392,7 +392,7 @@ export default class ProjectBuildCache {
 
 		// Restore CAS-backed source reader from the stored source stage
 		const restoreSourcesStart = log.isLevelEnabled("perf") ? performance.now() : 0;
-		await this.#restoreFrozenSources(sourceStageSignature);
+		this.#restoreFrozenSources(sourceStageSignature);
 		if (log.isLevelEnabled("perf")) {
 			log.perf(
 				`#findResultCache restoreFrozenSources for project ${this.#project.getName()} ` +
@@ -410,23 +410,23 @@ export default class ProjectBuildCache {
 	 * Imports cached stages and sets them in the project
 	 *
 	 * @param {Object<string, string>} stageSignatures Map of stage names to their signatures
-	 * @returns {Promise<string[]>} Array of resource paths written by all imported stages
+	 * @returns {string[]} Array of resource paths written by all imported stages
 	 */
-	async #importStages(stageSignatures) {
+	#importStages(stageSignatures) {
 		const stageNames = Object.keys(stageSignatures);
 		if (this.#project.getProjectResources().getStage()?.getId() === "initial") {
 			// Only initialize stages once
 			this.#project.getProjectResources().initStages(stageNames);
 		}
-		const importedStages = await Promise.all(stageNames.map(async (stageName) => {
+		const importedStages = stageNames.map((stageName) => {
 			const stageSignature = stageSignatures[stageName];
-			const stageCache = await this.#findStageCache(stageName, [stageSignature]);
+			const stageCache = this.#findStageCache(stageName, [stageSignature]);
 			if (!stageCache) {
 				throw new Error(`Inconsistent result cache: Could not find cached stage ` +
 					`${stageName} with signature ${stageSignature} for project ${this.#project.getName()}`);
 			}
 			return [stageName, stageCache];
-		}));
+		});
 		this.#project.getProjectResources().useResultStage();
 
 		// When #currentStageSignatures is empty, this is the initial import from persistent cache.
@@ -555,7 +555,7 @@ export default class ProjectBuildCache {
 			return createStageSignature(...signaturePair);
 		});
 
-		const stageCache = await this.#findStageCache(stageName, stageSignatures);
+		const stageCache = this.#findStageCache(stageName, stageSignatures);
 		const oldStageSig = this.#currentStageSignatures.get(stageName)?.join("-");
 		if (stageCache) {
 			this.#project.getProjectResources().setStage(stageName, stageCache.stage,
@@ -604,7 +604,7 @@ export default class ProjectBuildCache {
 				return createStageSignature(...signaturePair);
 			});
 			const deltaSignatures = [...projDeltaSignatures, ...depDeltaSignatures, ...deltaDeltaSignatures];
-			const deltaStageCache = await this.#findStageCache(stageName, deltaSignatures);
+			const deltaStageCache = this.#findStageCache(stageName, deltaSignatures);
 			if (deltaStageCache) {
 				// Store dependency signature for later use in result stage signature calculation
 				const [foundProjectSig, foundDepSig] = deltaStageCache.signature.split("-");
@@ -708,10 +708,10 @@ export default class ProjectBuildCache {
 	 *
 	 * @param {string} stageName Name of the stage to find
 	 * @param {string[]} stageSignatures Possible signatures for the stage
-	 * @returns {Promise<@ui5/project/build/cache/ProjectBuildCache~StageCacheEntry|undefined>}
+	 * @returns {@ui5/project/build/cache/ProjectBuildCache~StageCacheEntry|undefined}
 	 *   Cached stage entry or undefined if not found
 	 */
-	async #findStageCache(stageName, stageSignatures) {
+	#findStageCache(stageName, stageSignatures) {
 		if (!stageSignatures.length) {
 			return;
 		}
@@ -1013,9 +1013,8 @@ export default class ProjectBuildCache {
 	 *
 	 * @public
 	 * @param {string[]} taskNames Array of task names to initialize stages for
-	 * @returns {Promise<void>}
 	 */
-	async setTasks(taskNames) {
+	setTasks(taskNames) {
 		const stageNames = taskNames.map((taskName) => this.#getStageNameForTask(taskName));
 		this.#project.getProjectResources().initStages(stageNames);
 
@@ -1210,7 +1209,7 @@ export default class ProjectBuildCache {
 	 * @param {string} sourceStageSignature The source index signature used when the source
 	 *   stage was persisted
 	 */
-	async #restoreFrozenSources(sourceStageSignature) {
+	#restoreFrozenSources(sourceStageSignature) {
 		const stageMetadata = this.#cacheManager.readStageCache(
 			this.#project.getId(), this.#buildSignature, "source", sourceStageSignature);
 
