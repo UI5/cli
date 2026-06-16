@@ -21,8 +21,7 @@ export default class BuildCacheStorage {
 	#db;
 	#stmts;
 	#dbPath;
-	#inMetadataBatch = false;
-	#inContentBatch = false;
+	#inTransaction = false;
 
 	/**
 	 * @param {string} dbDir Directory in which to create the cache.db file
@@ -395,85 +394,47 @@ export default class BuildCacheStorage {
 		);
 	}
 
-	// ===== Batch transactions =====
+	// ===== Transactions =====
 
 	/**
-	 * Begins a metadata batch transaction (outer transaction)
+	 * Runs the given synchronous callback inside a database transaction.
+	 *
+	 * The transaction is committed when the callback returns and rolled back if it throws.
+	 * Callers do not have to manage BEGIN/COMMIT/ROLLBACK themselves — passing a
+	 * callback that performs both metadata and content writes is sufficient.
+	 *
+	 * Nested calls are not supported and will throw.
+	 * Async callbacks (or any callback that returns a thenable) are not supported
+	 * and will throw, rolling back the transaction.
+	 *
+	 * @param {Function} fn Synchronous callback that performs the writes
+	 * @returns {*} Whatever the callback returns
 	 */
-	beginMetadataBatch() {
-		if (!this.#inMetadataBatch) {
-			this.#db.exec("BEGIN");
-			this.#inMetadataBatch = true;
+	transaction(fn) {
+		if (this.#inTransaction) {
+			throw new Error("BuildCacheStorage#transaction: Nested transactions are not supported");
 		}
-	}
-
-	/**
-	 * Commits the current metadata batch transaction
-	 */
-	endMetadataBatch() {
-		if (this.#inMetadataBatch) {
+		this.#db.exec("BEGIN");
+		this.#inTransaction = true;
+		try {
+			const result = fn();
+			if (result && typeof result.then === "function") {
+				throw new Error(
+					"BuildCacheStorage#transaction: Async callbacks are not supported. " +
+					"The callback must be synchronous."
+				);
+			}
 			this.#db.exec("COMMIT");
-			this.#inMetadataBatch = false;
+			this.#inTransaction = false;
+			return result;
+		} catch (err) {
+			try {
+				this.#db.exec("ROLLBACK");
+			} finally {
+				this.#inTransaction = false;
+			}
+			throw err;
 		}
-	}
-
-	/**
-	 * Rolls back the current metadata batch transaction
-	 */
-	rollbackMetadataBatch() {
-		if (this.#inMetadataBatch) {
-			this.#db.exec("ROLLBACK");
-			this.#inMetadataBatch = false;
-		}
-	}
-
-	/**
-	 * Begins a content batch transaction.
-	 * Uses SAVEPOINT when nested inside a metadata batch, plain BEGIN otherwise.
-	 */
-	beginContentBatch() {
-		if (this.#inContentBatch) {
-			return;
-		}
-		if (this.#inMetadataBatch) {
-			this.#db.exec("SAVEPOINT content_batch");
-		} else {
-			this.#db.exec("BEGIN");
-		}
-		this.#inContentBatch = true;
-	}
-
-	/**
-	 * Commits the current content batch transaction.
-	 * Uses RELEASE when nested inside a metadata batch, plain COMMIT otherwise.
-	 */
-	endContentBatch() {
-		if (!this.#inContentBatch) {
-			return;
-		}
-		if (this.#inMetadataBatch) {
-			this.#db.exec("RELEASE content_batch");
-		} else {
-			this.#db.exec("COMMIT");
-		}
-		this.#inContentBatch = false;
-	}
-
-	/**
-	 * Rolls back the current content batch transaction.
-	 * Uses ROLLBACK TO + RELEASE when nested inside a metadata batch, plain ROLLBACK otherwise.
-	 */
-	rollbackContentBatch() {
-		if (!this.#inContentBatch) {
-			return;
-		}
-		if (this.#inMetadataBatch) {
-			this.#db.exec("ROLLBACK TO content_batch");
-			this.#db.exec("RELEASE content_batch");
-		} else {
-			this.#db.exec("ROLLBACK");
-		}
-		this.#inContentBatch = false;
 	}
 
 	// ===== Batch existence checks =====
@@ -554,11 +515,12 @@ export default class BuildCacheStorage {
 	 * Closes the database connection
 	 */
 	close() {
-		if (this.#inContentBatch) {
-			this.rollbackContentBatch();
-		}
-		if (this.#inMetadataBatch) {
-			this.rollbackMetadataBatch();
+		if (this.#inTransaction) {
+			try {
+				this.#db.exec("ROLLBACK");
+			} finally {
+				this.#inTransaction = false;
+			}
 		}
 		this.#db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
 		this.#db.close();

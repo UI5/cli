@@ -166,58 +166,40 @@ test.serial("putCompressedContent stores pre-compressed data that readContent de
 	cm.close();
 });
 
-test.serial("Batch operations: content batch begin/end", async (t) => {
+test.serial("transaction: commits combined metadata and content writes atomically", async (t) => {
 	const testDir = getUniqueTestDir();
 	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
 	const cm = new CacheManager(path.join(testDir, "buildCache"));
 
-	cm.beginContentBatch();
-	cm.putContent("sha256-batch1", Buffer.from("batch1"));
-	cm.putContent("sha256-batch2", Buffer.from("batch2"));
-	cm.endContentBatch();
+	const result = cm.transaction(() => {
+		cm.putContent("sha256-batch1", Buffer.from("batch1"));
+		cm.putContent("sha256-batch2", Buffer.from("batch2"));
+		cm.writeIndexCache("proj-batch", "sig", "source", {data: true});
+		return "ok";
+	});
 
+	t.is(result, "ok");
 	t.true(cm.hasContent("sha256-batch1"));
 	t.true(cm.hasContent("sha256-batch2"));
+	t.deepEqual(cm.readIndexCache("proj-batch", "sig", "source"), {data: true});
 	cm.close();
 });
 
-test.serial("Batch operations: content batch rollback", async (t) => {
+test.serial("transaction: throwing rolls back metadata and content writes", async (t) => {
 	const testDir = getUniqueTestDir();
 	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
 	const cm = new CacheManager(path.join(testDir, "buildCache"));
 
-	cm.beginContentBatch();
-	cm.putContent("sha256-rollback", Buffer.from("rollback"));
-	cm.rollbackContentBatch();
+	t.throws(() => {
+		cm.transaction(() => {
+			cm.putContent("sha256-rollback", Buffer.from("rollback"));
+			cm.writeIndexCache("proj-rollback", "sig", "source", {data: true});
+			throw new Error("boom");
+		});
+	}, {message: "boom"});
 
 	t.false(cm.hasContent("sha256-rollback"), "Content should not exist after rollback");
-	cm.close();
-});
-
-test.serial("Batch operations: metadata batch begin/end", async (t) => {
-	const testDir = getUniqueTestDir();
-	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
-	const cm = new CacheManager(path.join(testDir, "buildCache"));
-
-	cm.beginMetadataBatch();
-	cm.writeIndexCache("proj-batch", "sig", "source", {data: true});
-	cm.endMetadataBatch();
-
-	const result = cm.readIndexCache("proj-batch", "sig", "source");
-	t.deepEqual(result, {data: true});
-	cm.close();
-});
-
-test.serial("Batch operations: metadata batch rollback", async (t) => {
-	const testDir = getUniqueTestDir();
-	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
-	const cm = new CacheManager(path.join(testDir, "buildCache"));
-
-	cm.beginMetadataBatch();
-	cm.writeIndexCache("proj-rollback", "sig", "source", {data: true});
-	cm.rollbackMetadataBatch();
-
-	const result = cm.readIndexCache("proj-rollback", "sig", "source");
-	t.is(result, null, "Metadata should not exist after rollback");
+	t.is(cm.readIndexCache("proj-rollback", "sig", "source"), null,
+		"Metadata should not exist after rollback");
 	cm.close();
 });
