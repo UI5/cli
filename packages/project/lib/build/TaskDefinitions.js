@@ -82,7 +82,7 @@ export default class TaskDefinitions {
 		return tasks;
 	}
 
-	async _addCustomTask(taskDef, tasks) {
+	_addCustomTask(taskDef, tasks) {
 		const project = this.#project;
 		const graph = this.#graph;
 

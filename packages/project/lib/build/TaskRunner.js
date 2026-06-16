@@ -262,7 +262,8 @@ class TaskRunner {
 	 * 3. Inserts the task at the correct position based on beforeTask/afterTask configuration
 	 *
 	 * Validation and de-duplication of the task name (incl. resolving the task extension from
-	 * the project graph) is handled upstream by {@link TaskDefinitions#_addCustomTask}.
+	 * the project graph) is handled upstream by
+	 * [TaskDefinitions#_addCustomTask]{@link @ui5/project/build/TaskDefinitions#_addCustomTask}.
 	 *
 	 * @param {string} taskName Unique task name
 	 * @param {object} taskDef Custom task definition from project configuration
