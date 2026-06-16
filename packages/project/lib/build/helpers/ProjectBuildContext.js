@@ -58,12 +58,13 @@ class ProjectBuildContext {
 	 * Factory method to create and fully initialize a ProjectBuildContext instance.
 	 *
 	 * Performs the async work that the constructor cannot: collecting task build signatures,
-	 * computing the project build signature, and constructing the {@link ProjectBuildCache}.
+	 * computing the project build signature, and constructing the
+	 * [ProjectBuildCache]{@link @ui5/project/build/cache/ProjectBuildCache}.
 	 * This is the only supported way to obtain a usable instance for production code; callers
-	 * must not call {@link getBuildSignature} or {@link getBuildCache} on an instance created
+	 * must not call {@link #getBuildSignature} or {@link #getBuildCache} on an instance created
 	 * via `new` directly.
 	 *
-	 * Source index initialization is deliberately kept separate ({@link initSourceIndex}) so
+	 * Source index initialization is deliberately kept separate ({@link #initSourceIndex}) so
 	 * multiple project contexts can initialize their indices in parallel.
 	 *
 	 * @param {@ui5/project/build/helpers/BuildContext} buildContext Overall build context
