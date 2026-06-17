@@ -11,6 +11,10 @@
         // Fix is available in VitePress 2.x with esbuild v0.25.x, but no stable release yet (only alpha).
         "GHSA-67mh-4wv8-2f99|vitepress>vite>esbuild",
 
+        // esbuild: Missing binary integrity verification in Deno module enables remote code execution via NPM_CONFIG_REGISTRY
+        // Not applicable as we don't use Deno.
+        "GHSA-gv7w-rqvm-qjhr|vitepress>vite>esbuild",
+
         // GHSA-4w7w-66w2-5vf9 is a path traversal in Vite's dev server allowing .map file reads outside
         // the project root when the server is network-exposed (--host).
         // Not a risk here: the dev server is only used locally (never exposed to the network) and all
@@ -21,12 +25,21 @@
         // A fix would require upgrading to VitePress 2.x (which depends on Vite 6+), but no stable release yet.
         "GHSA-4w7w-66w2-5vf9|vitepress>vite",
 
-        // GHSA-w5hq-g745-h8pq: uuid v3/v5/v6 fail to validate output buffer bounds, allowing silent
-        // partial writes. Not a risk here: istanbul-lib-processinfo only uses uuid.v4() (which is
-        // unaffected) and nyc is a dev-only test coverage tool — no untrusted input reaches uuid.
+        // GHSA-fx2h-pf6j-xcff: vite: `server.fs.deny` bypass on Windows alternate paths
+        // Allows bypassing restrictions to read files like .env in the project. Not applicable to our case as
+        // this project does not have .env files and in general does not contain any sensitive information
         //
-        // Fixed in uuid >= 14.0.0, but nyc's dependency chain pins uuid 8.x.
-        // Upgrading nyc to 18.x to pick up the fix.
-        "GHSA-w5hq-g745-h8pq|nyc>istanbul-lib-processinfo>uuid"
+        // No fix available for Vite 5.x; patches exist only for Vite >= 6.4.3.
+        "GHSA-fx2h-pf6j-xcff|vitepress>vite",
+
+        // GHSA-v6wh-96g9-6wx3: launch-editor: NTLMv2 hash disclosure via UNC path handling on Windows
+        // Not applicable as we don't use launch-editor.
+        "GHSA-v6wh-96g9-6wx3|vitepress>vite",
+
+        // JS-YAML: Quadratic-complexity DoS in merge key handling via repeated aliases
+        // This only affects js-yaml within our test dependencies where every YAML file is under our control
+        // so it is not applicable to our use case.
+        "GHSA-h67p-54hq-rp68|*>@istanbuljs/load-nyc-config>js-yaml",
+        "GHSA-h67p-54hq-rp68|ava>*>js-yaml"
     ]
 }
