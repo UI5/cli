@@ -1,4 +1,5 @@
 import test from "ava";
+import path from "node:path";
 import sinon from "sinon";
 import esmock from "esmock";
 import {EventEmitter} from "node:events";
@@ -57,6 +58,14 @@ function createMocks(mockServer) {
 		},
 		"@ui5/fs/ReaderCollectionPrioritized": {
 			default: class MockReaderCollectionPrioritized {}
+		},
+		"lockfile": {
+			lock: sinon.stub().callsFake((_path, _opts, cb) => cb(null)),
+			unlock: sinon.stub().callsFake((_path, cb) => cb(null)),
+			unlockSync: sinon.stub()
+		},
+		"node:fs/promises": {
+			mkdir: sinon.stub().resolves()
 		}
 	};
 }
@@ -94,6 +103,14 @@ test("server.on('error') rejects the serve promise", async (t) => {
 		},
 		"@ui5/fs/ReaderCollectionPrioritized": {
 			default: class MockReaderCollectionPrioritized {}
+		},
+		"lockfile": {
+			lock: sinon.stub().callsFake((_path, _opts, cb) => cb(null)),
+			unlock: sinon.stub().callsFake((_path, cb) => cb(null)),
+			unlockSync: sinon.stub()
+		},
+		"node:fs/promises": {
+			mkdir: sinon.stub().resolves()
 		}
 	};
 
@@ -138,4 +155,60 @@ test("close() still calls server.close when buildServer.destroy() rejects", asyn
 		result.close(resolve);
 	});
 	t.true(mockServer.close.calledOnce, "server.close was called despite destroy rejection");
+});
+
+// ─── Server lock lifecycle ────────────────────────────────────────────────────
+
+test("serve() acquires server-{port}.lock after _listen resolves", async (t) => {
+	const mockServer = createMockServer();
+	const mockBuildServer = createMockBuildServer();
+	const mocks = createMocks(mockServer);
+	const lockStub = mocks["lockfile"].lock;
+
+	const {serve} = await esmock("../../../lib/server.js", mocks);
+	const graph = createMockGraph(mockBuildServer);
+
+	const ui5DataDir = path.join("test", "tmp", "lock-test-acquire");
+	const result = await serve(graph, {port: 3001, ui5DataDir});
+
+	t.true(lockStub.calledOnce, "lockfile.lock called once");
+	const lockPath = lockStub.firstCall.args[0];
+	t.true(lockPath.endsWith(`server-3001.lock`), `lock path ends with server-3001.lock, got: ${lockPath}`);
+
+	result.close(() => {});
+});
+
+test("close() releases the server lock", async (t) => {
+	const mockServer = createMockServer();
+	const mockBuildServer = createMockBuildServer();
+	const mocks = createMocks(mockServer);
+	const unlockSyncStub = mocks["lockfile"].unlockSync;
+
+	const {serve} = await esmock("../../../lib/server.js", mocks);
+	const graph = createMockGraph(mockBuildServer);
+
+	const ui5DataDir = path.join("test", "tmp", "lock-test-release");
+	const result = await serve(graph, {port: 3002, ui5DataDir});
+
+	await new Promise((resolve) => result.close(resolve));
+
+	t.true(unlockSyncStub.calledOnce, "lockfile.unlockSync called once on close");
+});
+
+test("close() releases the lock only once (idempotent)", async (t) => {
+	const mockServer = createMockServer();
+	const mockBuildServer = createMockBuildServer();
+	const mocks = createMocks(mockServer);
+	const unlockSyncStub = mocks["lockfile"].unlockSync;
+
+	const {serve} = await esmock("../../../lib/server.js", mocks);
+	const graph = createMockGraph(mockBuildServer);
+
+	const ui5DataDir = path.join("test", "tmp", "lock-test-idempotent");
+	const result = await serve(graph, {port: 3003, ui5DataDir});
+
+	await new Promise((resolve) => result.close(resolve));
+	await new Promise((resolve) => result.close(resolve));
+
+	t.is(unlockSyncStub.callCount, 1, "unlockSync called exactly once even when close() called twice");
 });

@@ -47,7 +47,8 @@ test.beforeEach(async (t) => {
 			t.context.handlerReadyResolvers.resolve();
 			return {
 				h2: false,
-				port: 8080
+				port: 8080,
+				close: sinon.stub().callsArg(0)
 			};
 		})
 	};
@@ -85,13 +86,6 @@ test.beforeEach(async (t) => {
 		"@ui5/server": t.context.server,
 		"@ui5/server/internal/sslUtil": t.context.sslUtil,
 		"@ui5/project/graph": t.context.graph,
-		"../../../../lib/framework/utils.js": {
-			getUi5DataDir: sinon.stub().resolves(undefined)
-		},
-		"lockfile": {
-			lock: sinon.stub().yieldsAsync(),
-			unlock: sinon.stub().yieldsAsync()
-		},
 		"open": t.context.open
 	});
 });
