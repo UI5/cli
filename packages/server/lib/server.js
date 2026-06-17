@@ -1,6 +1,11 @@
 import {getRandomValues} from "node:crypto";
+import path from "node:path";
+import os from "node:os";
+import fs from "node:fs/promises";
+import {promisify} from "node:util";
 import express from "express";
 import portscanner from "portscanner";
+import lockfile from "lockfile";
 import MiddlewareManager from "./middleware/MiddlewareManager.js";
 import attachLiveReloadServer from "./liveReload/server.js";
 import {createReaderCollection} from "@ui5/fs/resourceFactory";
@@ -255,11 +260,27 @@ export async function serve(graph, {
 		liveReloadHandle = attachLiveReloadServer({httpServer: server, buildServer, token: webSocketToken});
 	}
 
+	// Acquire a port-specific lock so that 'ui5 cache clean' cannot delete framework
+	// files while the server is actively serving them. The lock is released in close().
+	// Lock dir path mirrors the convention in _frameworkPaths.js.
+	const resolvedUi5DataDir = ui5DataDir ?? path.join(os.homedir(), ".ui5");
+	const lockDir = path.join(resolvedUi5DataDir, "framework", "locks");
+	const lockPath = path.join(lockDir, `server-${port}.lock`);
+	await fs.mkdir(lockDir, {recursive: true});
+	await promisify(lockfile.lock)(lockPath, {stale: 60000});
+	let lockReleased = false;
+	const releaseServerLock = () => {
+		if (lockReleased) return;
+		lockReleased = true;
+		lockfile.unlockSync(lockPath);
+	};
+
 	return {
 		h2,
 		port,
 		close: function(callback) {
 			liveReloadHandle?.close();
+			releaseServerLock();
 			buildServer.destroy().then(() => {
 				server.close(callback);
 			}, () => {

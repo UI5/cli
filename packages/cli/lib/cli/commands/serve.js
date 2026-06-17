@@ -1,11 +1,7 @@
 import path from "node:path";
 import os from "node:os";
-import fs from "node:fs/promises";
-import {promisify} from "node:util";
 import chalk from "chalk";
 import baseMiddleware from "../middlewares/base.js";
-import {getUi5DataDir} from "../../framework/utils.js";
-import lockfile from "lockfile";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("cli:commands:serve");
 
@@ -207,34 +203,14 @@ serve.handler = async function(argv) {
 	}
 
 	const {promise: pOnError, reject} = Promise.withResolvers();
-	const {h2, port: actualPort} = await serverServe(graph, serverConfig, function(err) {
+	const serverResult = await serverServe(graph, serverConfig, function(err) {
 		reject(err);
 	});
 
-	// Acquire a port-specific server lock so that 'ui5 cache clean' cannot delete
-	// framework files that the server reads on every HTTP request. Multiple concurrent
-	// servers each hold their own lock; cleanCache sees any active lock and refuses.
-	const ui5DataDir = (await getUi5DataDir({cwd: process.cwd()})) ??
-		path.join(os.homedir(), ".ui5");
-	const lockDir = path.join(ui5DataDir, "framework", "locks");
-	const lockPath = path.join(lockDir, `server-${actualPort}.lock`);
-	await fs.mkdir(lockDir, {recursive: true});
-	const lockFn = promisify(lockfile.lock);
-	const unlockFn = promisify(lockfile.unlock);
-	await lockFn(lockPath, {stale: 60000});
-	let lockReleased = false;
-	const releaseServerLock = async () => {
-		if (lockReleased) return;
-		lockReleased = true;
-		await unlockFn(lockPath).catch(() => {});
-	};
-	// Signal handlers must be synchronous — Node does not await async handlers before exit.
+	const {h2, port: actualPort} = serverResult;
+
 	const onSignal = () => {
-		if (!lockReleased) {
-			lockReleased = true;
-			lockfile.unlockSync(lockPath);
-		}
-		process.exit(0);
+		serverResult.close(() => process.exit(0));
 	};
 	process.once("SIGINT", onSignal);
 	process.once("SIGTERM", onSignal);
@@ -279,7 +255,6 @@ serve.handler = async function(argv) {
 	} finally {
 		process.off("SIGINT", onSignal);
 		process.off("SIGTERM", onSignal);
-		await releaseServerLock();
 	}
 };
 
