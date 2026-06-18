@@ -1,9 +1,8 @@
 import chalk from "chalk";
 import path from "node:path";
-import os from "node:os";
 import process from "node:process";
 import baseMiddleware from "../middlewares/base.js";
-import {getUi5DataDir} from "../../framework/utils.js";
+import {getDefaultUi5DataDir} from "@ui5/project/utils/dataDir";
 import * as frameworkCache from "@ui5/project/ui5Framework/cache";
 import CacheManager from "@ui5/project/build/cache/CacheManager";
 
@@ -98,8 +97,7 @@ async function handleCache(argv) {
 	// Resolve UI5 data directory — uses the same resolution chain as ui5 build/serve:
 	// UI5_DATA_DIR env var → ui5DataDir config (~/.ui5rc) → default ~/.ui5
 	// Relative paths are resolved against process.cwd() (project root when invoked from the project).
-	const ui5DataDir =
-		(await getUi5DataDir({cwd: process.cwd()})) ?? path.join(os.homedir(), ".ui5");
+	const ui5DataDir = await getDefaultUi5DataDir({cwd: process.cwd()});
 
 	// Abort early if a framework operation is holding a lock — before prompting the user
 	if (await frameworkCache.isFrameworkLocked(ui5DataDir)) {

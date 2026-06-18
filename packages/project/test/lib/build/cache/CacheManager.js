@@ -123,13 +123,10 @@ test.serial("hasResourceForStage throws without integrity", async (t) => {
 
 test.serial("create() returns singleton per cache directory", async (t) => {
 	const testDir = getUniqueTestDir();
-	process.env.UI5_DATA_DIR = testDir;
 
 	const CacheManager = await esmock("../../../../lib/build/cache/CacheManager.js", {
-		"../../../../lib/config/Configuration.js": {
-			default: {
-				fromFile: sinon.stub().resolves({getUi5DataDir: () => null})
-			}
+		"../../../../lib/utils/dataDir.js": {
+			getDefaultUi5DataDir: sinon.stub().resolves(testDir)
 		}
 	});
 
