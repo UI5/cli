@@ -41,8 +41,7 @@ test.beforeEach(async (t) => {
 			t.context.serverErrorCallback = errorCallback;
 			return {
 				h2: false,
-				port: 8080,
-				close: sinon.stub().callsArg(0)
+				port: 8080
 			};
 		})
 	};

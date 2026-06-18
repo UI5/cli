@@ -274,6 +274,18 @@ export async function serve(graph, {
 		lockReleased = true;
 		lockfile.unlockSync(lockPath);
 	};
+	const processSignals = {
+		"SIGHUP": 128 + 1,
+		"SIGINT": 128 + 2,
+		"SIGTERM": 128 + 15,
+		"SIGBREAK": 128 + 21
+	};
+	for (const [signal, exitCode] of Object.entries(processSignals)) {
+		process.on(signal, () => {
+			releaseServerLock();
+			process.exit(exitCode);
+		});
+	}
 
 	return {
 		h2,

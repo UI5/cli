@@ -209,53 +209,42 @@ serve.handler = async function(argv) {
 
 	const {h2, port: actualPort} = serverResult;
 
-	const onSignal = () => {
-		serverResult.close(() => process.exit(0));
-	};
-	process.once("SIGINT", onSignal);
-	process.once("SIGTERM", onSignal);
-
-	try {
-		const protocol = h2 ? "https" : "http";
-		let browserUrl = protocol + "://localhost:" + actualPort;
-		if (argv.acceptRemoteConnections) {
-			process.stderr.write("\n");
-			process.stderr.write(chalk.bold("⚠️  This server is accepting connections from all hosts on your network"));
-			process.stderr.write("\n");
-			process.stderr.write(chalk.dim.underline("Please Note:"));
-			process.stderr.write("\n");
-			process.stderr.write(chalk.bold.dim(
-				"* This server is intended for development purposes only. Do not use it in production."));
-			process.stderr.write("\n");
-			process.stderr.write(chalk.dim(
-				"* Vulnerable (custom-)middleware can pose a threat to your system when exposed to the network"));
-			process.stderr.write("\n");
-			process.stderr.write(chalk.dim(
-				"* The use of proxy-middleware with preconfigured credentials might enable unauthorized access " +
-				"to a target system for third parties on your network"));
-			process.stderr.write("\n\n");
-		}
-		process.stdout.write("Server started");
-		process.stdout.write("\n");
-		process.stdout.write("URL: " + browserUrl);
-		process.stdout.write("\n");
-
-		if (argv.open !== undefined) {
-			if (typeof argv.open === "string") {
-				let relPath = argv.open || "/";
-				if (!relPath.startsWith("/")) {
-					relPath = "/" + relPath;
-				}
-				browserUrl += relPath;
-			}
-			const {default: open} = await import("open");
-			open(browserUrl);
-		}
-		await pOnError; // Await errors that should bubble into the yargs handler
-	} finally {
-		process.off("SIGINT", onSignal);
-		process.off("SIGTERM", onSignal);
+	const protocol = h2 ? "https" : "http";
+	let browserUrl = protocol + "://localhost:" + actualPort;
+	if (argv.acceptRemoteConnections) {
+		process.stderr.write("\n");
+		process.stderr.write(chalk.bold("⚠️  This server is accepting connections from all hosts on your network"));
+		process.stderr.write("\n");
+		process.stderr.write(chalk.dim.underline("Please Note:"));
+		process.stderr.write("\n");
+		process.stderr.write(chalk.bold.dim(
+			"* This server is intended for development purposes only. Do not use it in production."));
+		process.stderr.write("\n");
+		process.stderr.write(chalk.dim(
+			"* Vulnerable (custom-)middleware can pose a threat to your system when exposed to the network"));
+		process.stderr.write("\n");
+		process.stderr.write(chalk.dim(
+			"* The use of proxy-middleware with preconfigured credentials might enable unauthorized access " +
+			"to a target system for third parties on your network"));
+		process.stderr.write("\n\n");
 	}
+	process.stdout.write("Server started");
+	process.stdout.write("\n");
+	process.stdout.write("URL: " + browserUrl);
+	process.stdout.write("\n");
+
+	if (argv.open !== undefined) {
+		if (typeof argv.open === "string") {
+			let relPath = argv.open || "/";
+			if (!relPath.startsWith("/")) {
+				relPath = "/" + relPath;
+			}
+			browserUrl += relPath;
+		}
+		const {default: open} = await import("open");
+		open(browserUrl);
+	}
+	await pOnError; // Await errors that should bubble into the yargs handler
 };
 
 export default serve;
