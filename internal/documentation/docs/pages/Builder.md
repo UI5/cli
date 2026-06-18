@@ -199,3 +199,30 @@ sap.ui.define([], () => {
     text-decoration: inherit;
 }
 </style>
+
+## Build Cache Control
+
+The UI5 Builder integrates **build caches**. Instead of rebuilding everything from scratch, the UI5 Builder tracks which resources have changed and which build tasks need to be re-executed:
+
+You can control the build cache behavior using the `--cache` option:
+
+- `--cache Default` (default): Use the cache if available, create it if missing
+- `--cache Force`: Only use the cache; fail if the cache is unavailable or invalid
+- `--cache ReadOnly`: Use existing cache but don't update it (useful for CI/CD)
+- `--cache Off`: Disable caching entirely and always perform a full rebuild
+
+Example:
+```sh
+ui5 build --cache Off
+```
+In this scenario, when a source file is changed, always perform a full rebuild, even if this source version existed previously.
+
+::: info
+By default, the build cache is stored inside UI5 CLI's Data Dir (`~/.ui5/buildCache/`). You can customize the location (see [Changing UI5 CLI's Data Directory](./Troubleshooting#changing-ui5-cli-s-data-directory)).
+:::
+
+::: info
+By default, build caches created by `ui5 build` and `ui5 serve` are **separate and cannot be mixed**. Each command executes a distinct set of tasks, resulting in separate caches tailored to its specific use case. For more details on server caching, see the [UI5 Server documentation](./Server.md).
+:::
+
+
