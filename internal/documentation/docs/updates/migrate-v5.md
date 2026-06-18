@@ -44,7 +44,7 @@ UI5 CLI v5 introduces **builds with caching** for both the `ui5 build` and `ui5 
 **New Behavior (v5):**
 - Only relevant projects are rebuilt
 - Only modified resources and affected tasks are re-processed
-- Custom middleware obsolete by replacing with build tasks
+- Some custom middleware is now obsolete as it can be replaced with build tasks
 
 ### Impact on Your Workflow
 
