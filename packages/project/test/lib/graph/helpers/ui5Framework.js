@@ -54,19 +54,15 @@ test.beforeEach(async (t) => {
 	t.context.Sapui5MavenSnapshotResolverResolveVersionStub = sinon.stub();
 	t.context.Sapui5MavenSnapshotResolverStub.resolveVersion = t.context.Sapui5MavenSnapshotResolverResolveVersionStub;
 
-	t.context.getUi5DataDirStub = sinon.stub().returns(undefined);
-
-	t.context.ConfigurationStub = {
-		fromFile: sinon.stub().resolves({
-			getUi5DataDir: t.context.getUi5DataDirStub
-		})
-	};
+	t.context.getDefaultUi5DataDirStub = sinon.stub().resolves(undefined);
 
 	t.context.ui5Framework = await esmock.p("../../../../lib/graph/helpers/ui5Framework.js", {
 		"@ui5/logger": ui5Logger,
 		"../../../../lib/ui5Framework/Sapui5Resolver.js": t.context.Sapui5ResolverStub,
 		"../../../../lib/ui5Framework/Sapui5MavenSnapshotResolver.js": t.context.Sapui5MavenSnapshotResolverStub,
-		"../../../../lib/config/Configuration.js": t.context.ConfigurationStub,
+		"../../../../lib/utils/dataDir.js": {
+			getDefaultUi5DataDir: t.context.getDefaultUi5DataDirStub
+		},
 	});
 	t.context.utils = t.context.ui5Framework._utils;
 });
@@ -1108,6 +1104,7 @@ test.serial("enrichProjectGraph should use UI5 data dir from env var", async (t)
 	process.env.UI5_DATA_DIR = "./ui5-data-dir-from-env-var";
 
 	const expectedUi5DataDir = path.resolve(dependencyTree.path, "./ui5-data-dir-from-env-var");
+	t.context.getDefaultUi5DataDirStub.resolves(expectedUi5DataDir);
 
 	await ui5Framework.enrichProjectGraph(projectGraph);
 
@@ -1122,7 +1119,7 @@ test.serial("enrichProjectGraph should use UI5 data dir from env var", async (t)
 });
 
 test.serial("enrichProjectGraph should use UI5 data dir from configuration", async (t) => {
-	const {sinon, ui5Framework, utils, Sapui5ResolverInstallStub, getUi5DataDirStub} = t.context;
+	const {sinon, ui5Framework, utils, Sapui5ResolverInstallStub, getDefaultUi5DataDirStub} = t.context;
 
 	const dependencyTree = {
 		id: "test1",
@@ -1161,9 +1158,8 @@ test.serial("enrichProjectGraph should use UI5 data dir from configuration", asy
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	getUi5DataDirStub.returns("./ui5-data-dir-from-config");
-
 	const expectedUi5DataDir = path.resolve(dependencyTree.path, "./ui5-data-dir-from-config");
+	getDefaultUi5DataDirStub.resolves(expectedUi5DataDir);
 
 	await ui5Framework.enrichProjectGraph(projectGraph);
 
@@ -1178,7 +1174,7 @@ test.serial("enrichProjectGraph should use UI5 data dir from configuration", asy
 });
 
 test.serial("enrichProjectGraph should use absolute UI5 data dir from configuration", async (t) => {
-	const {sinon, ui5Framework, utils, Sapui5ResolverInstallStub, getUi5DataDirStub} = t.context;
+	const {sinon, ui5Framework, utils, Sapui5ResolverInstallStub, getDefaultUi5DataDirStub} = t.context;
 
 	const dependencyTree = {
 		id: "test1",
@@ -1217,9 +1213,8 @@ test.serial("enrichProjectGraph should use absolute UI5 data dir from configurat
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	getUi5DataDirStub.returns("/absolute-ui5-data-dir-from-config");
-
 	const expectedUi5DataDir = path.resolve("/absolute-ui5-data-dir-from-config");
+	getDefaultUi5DataDirStub.resolves(expectedUi5DataDir);
 
 	await ui5Framework.enrichProjectGraph(projectGraph);
 

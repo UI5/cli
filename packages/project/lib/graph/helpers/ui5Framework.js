@@ -2,8 +2,7 @@ import Module from "../Module.js";
 import ProjectGraph from "../ProjectGraph.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:helpers:ui5Framework");
-import Configuration from "../../config/Configuration.js";
-import path from "node:path";
+import {getDefaultUi5DataDir} from "../../utils/dataDir.js";
 
 class ProjectProcessor {
 	constructor({libraryMetadata, graph, workspace}) {
@@ -349,14 +348,7 @@ export default {
 		}
 
 		// ENV var should take precedence over the dataDir from the configuration.
-		let ui5DataDir = process.env.UI5_DATA_DIR;
-		if (!ui5DataDir) {
-			const config = await Configuration.fromFile();
-			ui5DataDir = config.getUi5DataDir();
-		}
-		if (ui5DataDir) {
-			ui5DataDir = path.resolve(cwd, ui5DataDir);
-		}
+		const ui5DataDir = await getDefaultUi5DataDir({cwd});
 
 		if (options.versionOverride) {
 			version = await Resolver.resolveVersion(options.versionOverride, {
