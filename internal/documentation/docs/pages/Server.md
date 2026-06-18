@@ -88,7 +88,7 @@ Answers all non-read requests (POST, PUT, DELETE, etc.) that have not been answe
 In case a directory has been requested, this middleware renders an HTML with a list of the directory's content.
 
 ## Standard Tasks
-As with the UI5 Builder, a set of standard tasks is being executed during a server build. However, following tasks are being **excluded by default**:
+As with the UI5 Builder, a set of standard tasks is being executed during a server build. However, the following tasks are being **excluded by default**:
 - `minify`
 - `generateLibraryPreload`
 - `generateComponentPreload`
@@ -113,7 +113,7 @@ Example:
 ```sh
 ui5 serve --cache Off
 ```
-In this scenario, when a source file change is made and a request comes in, the server always performs a full rebuild (even if this source version already existed sometime ago).
+In this scenario, when a source file changes and a request comes in, the server always performs a full rebuild, even if this source version existed previously.
 
 ::: info
 By default, build caches created by `ui5 build` and `ui5 serve` are **separate and cannot be mixed**. Each command executes a distinct set of tasks, resulting in separate caches tailored to its specific use case. For more details on builder caching, see the [UI5 Builder documentation](./Builder.md).
@@ -121,7 +121,7 @@ By default, build caches created by `ui5 build` and `ui5 serve` are **separate a
 
 ### Watch Mode Behavior
 
-Once started with `ui5 serve`, the server automatically keeps watch over changes to the source files throughout the session. When a request arrives, it checks for cached results first and only triggers a rebuild of the respective resources and tasks if no cache is available.
+Once started with `ui5 serve`, the server automatically monitors changes to the source files throughout the session. When a request arrives, it checks for cached results first and only triggers a rebuild of the respective resources and tasks if no cache is available.
 
 - **Monitored files**: All files in your project's source directories (`src/`, `webapp/`, `test/`, etc.)
 - **Not monitored**: Configuration files (`ui5.yaml`, `package.json`), custom task implementations, and dependency files

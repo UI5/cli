@@ -215,7 +215,7 @@ Example:
 ```sh
 ui5 build --cache Off
 ```
-In this scenario, when a source file change is made, always perform a full rebuild (even if this source version already existed sometime ago).
+In this scenario, when a source file is changed, always perform a full rebuild, even if this source version existed previously.
 
 ::: info
 By default, the build cache is stored inside UI5 CLI's Data Dir (`~/.ui5/buildCache/`). You can customize the location (see [Changing UI5 CLI's Data Directory](./Troubleshooting#changing-ui5-cli-s-data-directory)).

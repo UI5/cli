@@ -31,15 +31,15 @@ Projects using older **Specification Versions** are expected to be **fully compa
 
 ## Build Cache
 
-UI5 CLI v5 introduces **builds with caching** for both commands `ui5 build` and `ui5 serve`. This fundamental architectural change significantly improves build performance by reusing cached results from previous builds and simplifies development with the Server by making most custom middleware obsolete.
+UI5 CLI v5 introduces **builds with caching** for both the `ui5 build` and `ui5 serve` commands. This fundamental architectural change significantly improves build performance by reusing cached results from previous builds. It also simplifies development with the server by making most custom middleware obsolete.
 
 ### What Changed
 
 **Previous Behavior (v4 and earlier):**
-- Every source change resulted in an entire rebuild of all projects
+- Every source change resulted in a full rebuild of all projects
 - Every build re-executed all tasks
 - No caching between builds or server sessions
-- Custom middleware required for special actions
+- Custom middleware was required for special actions
 
 **New Behavior (v5):**
 - Only relevant projects are rebuilt
@@ -48,7 +48,7 @@ UI5 CLI v5 introduces **builds with caching** for both commands `ui5 build` and 
 
 ### Impact on Your Workflow
 
-- **First build**: Probably slightly slower, as the cache is populated with all build outputs
+- **First build**: Probably slightly slower as the cache is populated with all build outputs
 - **Subsequent builds**: Significantly faster — only modified resources and affected tasks are reprocessed
 - **Quick iterations**: Changes to individual files typically rebuild very quickly
 - **Cross-session**: Caches are used between server restarts and build runs
@@ -58,17 +58,17 @@ UI5 CLI v5 introduces **builds with caching** for both commands `ui5 build` and 
 When `ui5 build` is executed, build caches are automatically serialized and reused when available.
 
 ::: tip Tip for Single Builds (e.g. CI/CD)
-If you plan to execute a build only once (e.g. during a CI run), consider using `--cache "Off"` (see [Build Cache Control](../pages/Builder.md#build-cache-control)) to skip cache serialization.
+If you plan to execute a build only once (for example during a CI run), consider using `--cache "Off"` (see [Build Cache Control](../pages/Builder.md#build-cache-control)) to skip cache serialization.
 :::
 
 ### For `ui5 serve`
 
 The UI5 Server now performs a build of the project. When started with `ui5 serve`, a similar build to `ui5 build` is executed containing standard and custom tasks (see [exceptions](../pages/Server.md#standard-tasks)).
 
-During a server session, source changes are automatically being monitered. Then, if a request was made, the server detects this, tries to use caches and only rebuilds when none are available. For more information see [Watch Mode Behavior](../pages/Server.md#watch-mode-behavior).
+During a server session, source changes are automatically monitored. When a request is made, the server detects this, tries to use caches, and only rebuilds when none are available. For more information, see [Watch Mode Behavior](../pages/Server.md#watch-mode-behavior).
 
 ::: tip Review custom middleware
-Due to **build tasks now being executed in server sessions**, custom middleware becomes obsolete if a corresponding task can perform the same actions (e.g. Typescript transpilation). However, custom middleware for non-build purposes such as proxies are not affected by this, and are still a valid use case.
+Due to **build tasks now being executed in server sessions**, custom middleware becomes obsolete if a corresponding task can perform the same actions (for example, Typescript transpilation). However, custom middleware for non-build purposes, such as proxies, are not affected by this and are still a valid use case.
 :::
 
 ## Rename of Command Option
@@ -252,7 +252,7 @@ The test suite is now served under the standard `/test-resources/` path with the
 
 The following middleware has been removed from the [standard middlewares list](../pages/Server.md#standard-middleware):
 
-* `serveThemes` — Theme compilation (LESS to CSS) is now handled by the `buildThemes` build task. Due to server sessions now also performing builds, this task gets executed during a server start, rather than on demand during runtime. The resulting CSS files are served via the `serveResources` middleware. This change improves performance through build-time compilation and caching while maintaining the same functionality.
+* `serveThemes` — The `buildThemes` build task now handles theme compilation (LESS to CSS). Because server sessions now also perform builds, this task runs during a server start instead of on demand during runtime. The resulting CSS files are served by the `serveResources` middleware. This change improves performance through build-time compilation and caching while maintaining the same functionality.
 
 **Backward Compatibility:**
 If your project or any custom middleware references a removed middleware via `beforeMiddleware` or `afterMiddleware`, UI5 CLI will automatically remap the reference to the nearest remaining middleware and log a deprecation warning. Your custom middleware will still be executed in the expected order.

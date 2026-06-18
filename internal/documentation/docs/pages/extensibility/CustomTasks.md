@@ -130,11 +130,11 @@ A custom task implementation needs to return a function with the following signa
  *      Custom task configuration, as defined in the project's ui5.yaml
  * @param {string[] | undefined} parameters.changedProjectResourcePaths
  *      List of changed resource paths since last execution.
- *      Only use if the task supports differential builds (supportsDifferentialBuilds=true).
+ *      Only used if the task supports differential builds (supportsDifferentialBuilds=true).
  *      Returns undefined if unsupported or no cache is available.
  * @param {string[] | undefined} parameters.changedDependencyResourcePaths
  *      List of changed dependency resource paths since last execution.
- *      Only use if the task supports differential builds (supportsDifferentialBuilds=true).
+ *      Only used if the task supports differential builds (supportsDifferentialBuilds=true).
  *      Returns undefined if unsupported or no cache is available.
  * @param {string} parameters.options.taskName
  *      Name of the custom task.
@@ -176,11 +176,11 @@ export default async function({dependencies, log, options, taskUtil, workspace})
  *      Custom task configuration, as defined in the project's ui5.yaml
  * @param {string[] | undefined} parameters.changedProjectResourcePaths
  *      List of changed resource paths since last execution.
- *      Only use if the task supports differential builds (supportsDifferentialBuilds=true).
+ *      Only used if the task supports differential builds (supportsDifferentialBuilds=true).
  *      Returns undefined if unsupported or no cache is available.
  * @param {string[] | undefined} parameters.changedDependencyResourcePaths
  *      List of changed dependency resource paths since last execution.
- *      Only use if the task supports differential builds (supportsDifferentialBuilds=true).
+ *      Only used if the task supports differential builds (supportsDifferentialBuilds=true).
  *      Returns undefined if unsupported or no cache is available.
  * @param {string} parameters.options.taskName
  *      Name of the custom task.
@@ -304,7 +304,7 @@ module.exports.determineRequiredDependencies = async function({availableDependen
 
 ### "Cache-aware" Tasks 
 
-Due to UI5 Builder and UI5 Server supporting **build caches** of task data, custom tasks can opt into this behavior to improve performance. This is done by exporting optional callback functions in your task implementation:
+Due to UI5 Builder and UI5 Server supporting **build caches** of task data, custom tasks can opt into this behavior to improve performance. To do this, export optional callback functions in your task implementation:
 
 #### `supportsDifferentialBuilds()`
 
@@ -339,7 +339,7 @@ module.exports.supportsDifferentialBuilds = function() {
 }
 ```
 
-When this returns `true`, your task's main function receives an additional parameter `changedProjectResourcePaths` providing an array of changed resource paths (strings) since its last execution. The task can then process only those resources instead of all resources. If this callback is not provided (or it returns a falsy value), your task will not be able to use incremental cache invalidation and processes all resources from scratch.
+When this returns `true`, your task's main function receives an additional parameter `changedProjectResourcePaths`. This parameter provides an array of changed resource paths (strings) since its last execution. The task then processes only those resources instead of all resources. If this callback isn't provided or returns a falsy value, your task can't use incremental cache invalidation and processes all resources from scratch.
 
 ::: info Best Practices for Cache-aware Tasks
 1. **Keep tasks deterministic**: Given the same inputs, always produce the same outputs
@@ -355,7 +355,7 @@ The following code snippets show examples for custom task implementations.
 This example is making use of the `resourceFactory` [TaskUtil](https://ui5.github.io/cli/v5/api/@ui5_project_build_helpers_TaskUtil.html)
 API to create new resources based on the output of a third-party module for rendering Markdown files. The created resources are added to the build
 result by writing them into the provided `workspace`.
-In addition, differential builds are supported by this task which re-processes only changed resources.
+In addition, this task supports differential builds, which re-process only changed resources.
 
 ::: code-group
 
