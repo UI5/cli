@@ -27,7 +27,7 @@ jobs:
           - "packages/project"
           - "packages/server"
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     # Check each package if compliance is correctly set up.
     # Each one of these packages would be published separately.
@@ -43,7 +43,7 @@ jobs:
     needs: [packages-compliance-check]
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     
     - name: REUSE check for full repository
       uses: fsfe/reuse-action@676e2d560c9a403aa252096d99fcab3e1132b0f5 # v6.0.0
