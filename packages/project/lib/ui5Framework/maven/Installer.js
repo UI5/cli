@@ -8,7 +8,6 @@ import Registry from "./Registry.js";
 import AbstractInstaller from "../AbstractInstaller.js";
 import SnapshotCache from "./SnapshotCache.js";
 import {rmrf} from "../../utils/fs.js";
-import {getFrameworkDir} from "../_frameworkPaths.js";
 const stat = promisify(fs.stat);
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
@@ -34,10 +33,10 @@ class Installer extends AbstractInstaller {
 	constructor({ui5DataDir, snapshotEndpointUrlCb, snapshotCache = SnapshotCache.Default}) {
 		super(ui5DataDir);
 
-		this._artifactsDir = path.join(getFrameworkDir(ui5DataDir), "artifacts");
-		this._packagesDir = path.join(getFrameworkDir(ui5DataDir), "packages");
-		this._metadataDir = path.join(getFrameworkDir(ui5DataDir), "metadata");
-		this._stagingDir = path.join(getFrameworkDir(ui5DataDir), "staging");
+		this._artifactsDir = path.join(ui5DataDir, "framework", "artifacts");
+		this._packagesDir = path.join(ui5DataDir, "framework", "packages");
+		this._metadataDir = path.join(ui5DataDir, "framework", "metadata");
+		this._stagingDir = path.join(ui5DataDir, "framework", "staging");
 
 		this._snapshotCache = snapshotCache;
 		this._snapshotEndpointUrlCb = snapshotEndpointUrlCb;

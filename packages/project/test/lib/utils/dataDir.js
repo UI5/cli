@@ -3,8 +3,6 @@ import path from "node:path";
 import os from "node:os";
 import sinon from "sinon";
 import esmock from "esmock";
-import {getLockDir, LOCK_STALE_MS} from "../../../lib/utils/dataDir.js";
-
 test.beforeEach(async (t) => {
 	t.context.originalUi5DataDirEnv = process.env.UI5_DATA_DIR;
 	delete process.env.UI5_DATA_DIR;
@@ -41,7 +39,7 @@ test.serial("getDefaultUi5DataDir: returns value from UI5_DATA_DIR env var (abso
 	const {getDefaultUi5DataDir} = t.context;
 	process.env.UI5_DATA_DIR = "/custom/data/dir";
 	const result = await getDefaultUi5DataDir({cwd: "/some/project"});
-	t.is(result, "/custom/data/dir");
+	t.is(result, path.resolve("/custom/data/dir"));
 	t.is(t.context.ConfigurationStub.fromFile.callCount, 0, "Configuration not read when env var is set");
 });
 
@@ -56,7 +54,7 @@ test.serial("getDefaultUi5DataDir: returns value from Configuration (absolute)",
 	const {getDefaultUi5DataDir} = t.context;
 	t.context.configGetUi5DataDirStub.returns("/config/data/dir");
 	const result = await getDefaultUi5DataDir({cwd: "/some/project"});
-	t.is(result, "/config/data/dir");
+	t.is(result, path.resolve("/config/data/dir"));
 });
 
 test.serial("getDefaultUi5DataDir: resolves relative Configuration value against cwd", async (t) => {
@@ -71,7 +69,7 @@ test.serial("getDefaultUi5DataDir: env var takes precedence over Configuration",
 	process.env.UI5_DATA_DIR = "/env/data";
 	t.context.configGetUi5DataDirStub.returns("/config/data");
 	const result = await getDefaultUi5DataDir({cwd: "/some/project"});
-	t.is(result, "/env/data");
+	t.is(result, path.resolve("/env/data"));
 });
 
 test.serial("getDefaultUi5DataDir: uses process.cwd() when cwd is not provided", async (t) => {
@@ -79,21 +77,4 @@ test.serial("getDefaultUi5DataDir: uses process.cwd() when cwd is not provided",
 	t.context.configGetUi5DataDirStub.returns("relative/data");
 	const result = await getDefaultUi5DataDir();
 	t.is(result, path.resolve(process.cwd(), "relative/data"));
-});
-
-// ─── getLockDir ───────────────────────────────────────────────────────────────
-
-test("getLockDir: returns ~/.ui5/locks for the default data dir", (t) => {
-	const result = getLockDir(path.join(os.homedir(), ".ui5"));
-	t.is(result, path.join(os.homedir(), ".ui5", "locks"));
-});
-
-test("getLockDir: appends locks to any given ui5DataDir", (t) => {
-	t.is(getLockDir("/custom/data"), path.join("/custom/data", "locks"));
-});
-
-// ─── LOCK_STALE_MS ────────────────────────────────────────────────────────────
-
-test("LOCK_STALE_MS: is exported and equals 60000", (t) => {
-	t.is(LOCK_STALE_MS, 60000);
 });

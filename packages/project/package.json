@@ -29,6 +29,7 @@
 		"./ui5Framework/maven/SnapshotCache": "./lib/ui5Framework/maven/SnapshotCache.js",
 		"./ui5Framework/cache": "./lib/ui5Framework/cache.js",
 		"./utils/dataDir": "./lib/utils/dataDir.js",
+		"./utils/lock": "./lib/utils/lock.js",
 		"./validation/validator": "./lib/validation/validator.js",
 		"./validation/ValidationError": "./lib/validation/ValidationError.js",
 		"./graph/ProjectGraph": "./lib/graph/ProjectGraph.js",
