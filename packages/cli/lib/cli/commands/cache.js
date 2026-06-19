@@ -99,11 +99,12 @@ async function handleCache(argv) {
 	// Relative paths are resolved against process.cwd() (project root when invoked from the project).
 	const ui5DataDir = await getDefaultUi5DataDir({cwd: process.cwd()});
 
-	// Abort early if a framework operation is holding a lock — before prompting the user
+	// Abort early if a lock is active — before prompting the user
 	if (await frameworkCache.isFrameworkLocked(ui5DataDir)) {
 		process.stderr.write(
-			`${chalk.red("Error:")} Framework cache is currently locked by an active operation. ` +
-			"Please wait for it to finish and try again.\n"
+			`${chalk.red("Error:")} A UI5 server or build process is currently running. ` +
+			"Cannot clean the cache while it is in use. " +
+			"Please stop all running 'ui5 serve' or wait for 'ui5 build' processes to finish.\n"
 		);
 		process.exitCode = 1;
 		return;

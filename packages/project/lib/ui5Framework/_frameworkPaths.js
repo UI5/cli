@@ -1,21 +1,22 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import {promisify} from "node:util";
+import {getLockDir, LOCK_STALE_MS} from "../utils/dataDir.js";
+
+export {LOCK_STALE_MS};
 
 // Directory name for framework packages within ui5DataDir
 export const FRAMEWORK_DIR_NAME = "framework";
 
-// Lockfile staleness threshold — must match the value used by AbstractInstaller#_synchronize
-export const LOCK_STALE_MS = 60000;
-
 // Lock name acquired exclusively by cache cleanup — checked by installers to detect
 // an in-progress cache deletion before acquiring a per-package lock.
 //
-// Lock naming convention (files live in getFrameworkLockDir(); slashes in package
+// Lock naming convention (files live in getLockDir(); slashes in package
 // names are replaced with dashes by AbstractInstaller#_sanitizeFileName):
 //   cache-cleanup.lock       — held by ui5 cache clean for the full deletion
 //   package-{pkg}@{ver}.lock — held by both installers during package extraction
-//   (callers may add their own lock files to signal activity to cache cleanup)
+//   server-{port}.lock       — held by ui5 serve for the full server lifetime
+//   build-{pid}.lock         — held by ui5 build for the full build duration
 export const CLEANUP_LOCK_NAME = "cache-cleanup.lock";
 
 /**
@@ -28,15 +29,8 @@ export function getFrameworkDir(ui5DataDir) {
 	return path.join(ui5DataDir, FRAMEWORK_DIR_NAME);
 }
 
-/**
- * Resolve the absolute path to the framework locks directory within a UI5 data directory.
- *
- * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
- * @returns {string} Absolute path to the framework locks directory
- */
-export function getFrameworkLockDir(ui5DataDir) {
-	return path.join(ui5DataDir, FRAMEWORK_DIR_NAME, "locks");
-}
+// Re-export for consumers that previously imported from here
+export {getLockDir as getFrameworkLockDir};
 
 /**
  * Check whether any active (non-stale) lockfiles exist in the given locks directory,
