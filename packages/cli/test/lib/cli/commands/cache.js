@@ -29,10 +29,10 @@ test.beforeEach(async (t) => {
 	delete process.env.UI5_DATA_DIR;
 
 	t.context.getDefaultUi5DataDirStub = sinon.stub().resolves(TEST_UI5_DATA_DIR);
+	t.context.hasActiveLocksStub = sinon.stub().resolves(false);
 
 	t.context.frameworkCacheGetCacheInfo = sinon.stub();
 	t.context.frameworkCacheCleanCache = sinon.stub();
-	t.context.frameworkCacheIsFrameworkLocked = sinon.stub().resolves(false);
 	t.context.buildCacheGetCacheInfo = sinon.stub();
 	t.context.buildCacheCleanCache = sinon.stub();
 
@@ -42,10 +42,13 @@ test.beforeEach(async (t) => {
 		"@ui5/project/utils/dataDir": {
 			getDefaultUi5DataDir: t.context.getDefaultUi5DataDirStub,
 		},
+		"@ui5/project/utils/lock": {
+			getLockDir: sinon.stub().callsFake((dir) => `${dir}/locks`),
+			hasActiveLocks: t.context.hasActiveLocksStub,
+		},
 		"@ui5/project/ui5Framework/cache": {
 			getCacheInfo: t.context.frameworkCacheGetCacheInfo,
 			cleanCache: t.context.frameworkCacheCleanCache,
-			isFrameworkLocked: t.context.frameworkCacheIsFrameworkLocked,
 		},
 		"@ui5/project/build/cache/CacheManager": {
 			default: class {
@@ -341,9 +344,9 @@ test.serial("ui5 cache clean --yes: skips confirmation prompt", async (t) => {
 
 test.serial("ui5 cache clean: aborts when framework cache is locked", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
-		buildCacheCleanCache, frameworkCacheIsFrameworkLocked} = t.context;
+		buildCacheCleanCache, hasActiveLocksStub} = t.context;
 
-	frameworkCacheIsFrameworkLocked.resolves(true);
+	hasActiveLocksStub.resolves(true);
 
 	argv["_"] = ["cache", "clean"];
 	await cache.handler(argv);
@@ -360,9 +363,9 @@ test.serial("ui5 cache clean: aborts when framework cache is locked", async (t) 
 
 test.serial("ui5 cache clean --yes: also aborts when framework cache is locked", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache,
-		buildCacheCleanCache, frameworkCacheIsFrameworkLocked} = t.context;
+		buildCacheCleanCache, hasActiveLocksStub} = t.context;
 
-	frameworkCacheIsFrameworkLocked.resolves(true);
+	hasActiveLocksStub.resolves(true);
 
 	argv["_"] = ["cache", "clean"];
 	argv["yes"] = true;

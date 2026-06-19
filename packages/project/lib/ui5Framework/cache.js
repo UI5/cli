@@ -87,17 +87,6 @@ export async function getCacheInfo(ui5DataDir) {
 }
 
 /**
- * Check whether an active (non-stale) framework lock is currently held,
- * indicating an ongoing download or installation.
- *
- * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
- * @returns {Promise<boolean>} True if an active lock is held
- */
-export async function isFrameworkLocked(ui5DataDir) {
-	return hasActiveLocks(getLockDir(ui5DataDir));
-}
-
-/**
  * Clean framework cache directory.
  *
  * Acquires a cleanup lock before deletion so that concurrent installer

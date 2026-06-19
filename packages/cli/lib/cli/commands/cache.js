@@ -3,6 +3,7 @@ import path from "node:path";
 import process from "node:process";
 import baseMiddleware from "../middlewares/base.js";
 import {getDefaultUi5DataDir} from "@ui5/project/utils/dataDir";
+import {getLockDir, hasActiveLocks} from "@ui5/project/utils/lock";
 import * as frameworkCache from "@ui5/project/ui5Framework/cache";
 import CacheManager from "@ui5/project/build/cache/CacheManager";
 
@@ -100,7 +101,7 @@ async function handleCache(argv) {
 	const ui5DataDir = await getDefaultUi5DataDir({cwd: process.cwd()});
 
 	// Abort early if a lock is active — before prompting the user
-	if (await frameworkCache.isFrameworkLocked(ui5DataDir)) {
+	if (await hasActiveLocks(getLockDir(ui5DataDir))) {
 		process.stderr.write(
 			`${chalk.red("Error:")} A UI5 server or build process is currently running. ` +
 			"Cannot clean the cache while it is in use. " +
