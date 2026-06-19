@@ -350,7 +350,7 @@ test.serial("ui5 cache clean: aborts when framework cache is locked", async (t) 
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes("Error:"), "Shows Error");
-	t.true(allOutput.includes("currently locked by an active operation"), "Shows lock message");
+	t.true(allOutput.includes("currently running"), "Shows lock message");
 	t.false(allOutput.includes("Success"), "Does not show success");
 	t.is(frameworkCacheGetCacheInfo.callCount, 0, "getCacheInfo not called when locked");
 	t.is(frameworkCacheCleanCache.callCount, 0, "cleanCache not called when locked");

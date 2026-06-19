@@ -142,7 +142,7 @@ test("cleanCache: removes directory with multiple scopes", async (t) => {
 test("cleanCache: throws when active lockfiles exist", async (t) => {
 	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
 
-	const lockDir = path.join(t.context.testDir, "framework", "locks");
+	const lockDir = path.join(t.context.testDir, "locks");
 	await fs.mkdir(lockDir, {recursive: true});
 
 	const lockPath = path.join(lockDir, "test-package.lock");
@@ -158,7 +158,7 @@ test("cleanCache: throws when active lockfiles exist", async (t) => {
 test("cleanCache: removes directory when lockfiles are stale", async (t) => {
 	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
 
-	const lockDir = path.join(t.context.testDir, "framework", "locks");
+	const lockDir = path.join(t.context.testDir, "locks");
 	await fs.mkdir(lockDir, {recursive: true});
 
 	// lockfile.check uses ctime — fs.utimes only changes mtime, so backdating mtime won't work.
@@ -187,7 +187,7 @@ test("cleanCache: throws when installer lock exists (regression guard)", async (
 	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
 
 	// Simulate an in-progress install by placing a non-stale package lock
-	const lockDir = path.join(t.context.testDir, "framework", "locks");
+	const lockDir = path.join(t.context.testDir, "locks");
 	await fs.mkdir(lockDir, {recursive: true});
 	const pkgLockPath = path.join(lockDir, "package-@openui5-sap.m@1.120.0.lock");
 	await lockfileLock(pkgLockPath, {stale: 60000});
@@ -207,7 +207,7 @@ test("cleanCache: throws when installer lock exists (regression guard)", async (
 test("cleanCache: cleanup lock is held when installer lock is detected (acquire-then-check)", async (t) => {
 	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
 
-	const lockDir = path.join(t.context.testDir, "framework", "locks");
+	const lockDir = path.join(t.context.testDir, "locks");
 	await fs.mkdir(lockDir, {recursive: true});
 
 	// Place an installer lock that cleanCache will detect
@@ -230,10 +230,5 @@ test("cleanCache: cleanup lock is held when installer lock is detected (acquire-
 	t.truthy(thrownError, "cleanCache should throw when installer lock is present");
 	t.true(thrownError?.message?.includes("currently locked by an active operation"),
 		"Error is the expected lock conflict message");
-
-	// The finally block in cleanCache removes locks/ even when the post-lock check throws.
-	// Verify the directory is cleaned up — confirms cleanup lock was released correctly.
-	await t.throwsAsync(fs.access(lockDir),
-		undefined, "locks/ directory removed after cleanup lock released");
 });
 

@@ -261,10 +261,15 @@ export async function serve(graph, {
 	}
 
 	// Acquire a port-specific lock so that 'ui5 cache clean' cannot delete framework
-	// files while the server is actively serving them. The lock is released in close().
-	// Lock dir path mirrors the convention in _frameworkPaths.js.
+	// files while the server is actively serving them.
+	// Note: The lock directory path is intentionally inlined here rather than imported
+	// from @ui5/project/utils/dataDir (getLockDir). @ui5/project is only a devDependency
+	// of @ui5/server and cannot be a runtime dependency without breaking the package's
+	// published contract. The path convention ("locks/" directly under ui5DataDir) must
+	// stay in sync with getLockDir() in packages/project/lib/utils/dataDir.js.
+	// Stale value (60000ms) must match LOCK_STALE_MS in that same file.
 	const resolvedUi5DataDir = ui5DataDir ?? path.join(os.homedir(), ".ui5");
-	const lockDir = path.join(resolvedUi5DataDir, "framework", "locks");
+	const lockDir = path.join(resolvedUi5DataDir, "locks");
 	const lockPath = path.join(lockDir, `server-${port}.lock`);
 	await fs.mkdir(lockDir, {recursive: true});
 	await promisify(lockfile.lock)(lockPath, {stale: 60000});

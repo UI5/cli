@@ -3,6 +3,7 @@ import path from "node:path";
 import os from "node:os";
 import sinon from "sinon";
 import esmock from "esmock";
+import {getLockDir, LOCK_STALE_MS} from "../../../lib/utils/dataDir.js";
 
 test.beforeEach(async (t) => {
 	t.context.originalUi5DataDirEnv = process.env.UI5_DATA_DIR;
@@ -78,4 +79,21 @@ test.serial("getDefaultUi5DataDir: uses process.cwd() when cwd is not provided",
 	t.context.configGetUi5DataDirStub.returns("relative/data");
 	const result = await getDefaultUi5DataDir();
 	t.is(result, path.resolve(process.cwd(), "relative/data"));
+});
+
+// ─── getLockDir ───────────────────────────────────────────────────────────────
+
+test("getLockDir: returns ~/.ui5/locks for the default data dir", (t) => {
+	const result = getLockDir(path.join(os.homedir(), ".ui5"));
+	t.is(result, path.join(os.homedir(), ".ui5", "locks"));
+});
+
+test("getLockDir: appends locks to any given ui5DataDir", (t) => {
+	t.is(getLockDir("/custom/data"), path.join("/custom/data", "locks"));
+});
+
+// ─── LOCK_STALE_MS ────────────────────────────────────────────────────────────
+
+test("LOCK_STALE_MS: is exported and equals 60000", (t) => {
+	t.is(LOCK_STALE_MS, 60000);
 });

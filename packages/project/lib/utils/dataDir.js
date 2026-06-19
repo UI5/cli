@@ -2,6 +2,11 @@ import path from "node:path";
 import os from "node:os";
 import Configuration from "../config/Configuration.js";
 
+// Lockfile staleness threshold shared across all lock users (framework installer,
+// cache cleanup, server, build). Must be consistent so that hasActiveLocks()
+// and individual lock acquisitions agree on when a lock is stale.
+export const LOCK_STALE_MS = 60000;
+
 /**
  * Resolves the UI5 data directory using the standard precedence chain:
  * <ol>
@@ -27,4 +32,18 @@ export async function getDefaultUi5DataDir({cwd} = {}) {
 		return path.resolve(cwd ?? process.cwd(), ui5DataDir);
 	}
 	return path.join(os.homedir(), ".ui5");
+}
+
+/**
+ * Resolve the absolute path to the shared locks directory within a UI5 data directory.
+ *
+ * All process-coordination lock files (framework installer, cache cleanup, server,
+ * build) live here so that <code>ui5 cache clean</code> can scan a single directory
+ * regardless of which subsystem holds the lock.
+ *
+ * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+ * @returns {string} Absolute path to the locks directory (<code>~/.ui5/locks/</code>)
+ */
+export function getLockDir(ui5DataDir) {
+	return path.join(ui5DataDir, "locks");
 }

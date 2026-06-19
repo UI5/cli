@@ -6,9 +6,9 @@ import {
 	LOCK_STALE_MS,
 	CLEANUP_LOCK_NAME,
 	getFrameworkDir,
-	getFrameworkLockDir,
 	hasActiveLocks,
 } from "./_frameworkPaths.js";
+import {getLockDir} from "../utils/dataDir.js";
 
 /**
  * Count unique libraries and versions in the packages/ subdirectory.
@@ -100,7 +100,7 @@ export async function getCacheInfo(ui5DataDir) {
  * @returns {Promise<boolean>} True if an active lock is held
  */
 export async function isFrameworkLocked(ui5DataDir) {
-	return hasActiveLocks(getFrameworkLockDir(ui5DataDir));
+	return hasActiveLocks(getLockDir(ui5DataDir));
 }
 
 /**
@@ -130,7 +130,7 @@ export async function cleanCache(ui5DataDir) {
 		return null;
 	}
 
-	const lockDir = getFrameworkLockDir(ui5DataDir);
+	const lockDir = getLockDir(ui5DataDir);
 	const lockPath = path.join(lockDir, CLEANUP_LOCK_NAME);
 
 	await fs.mkdir(lockDir, {recursive: true});
@@ -162,11 +162,10 @@ export async function cleanCache(ui5DataDir) {
 			// cacache dir doesn't exist or cacache not available — no-op
 		}
 
-		// Delete everything inside framework/ except locks/ so our lock stays valid throughout
+		// Delete everything inside framework/
 		const entries = await fs.readdir(frameworkDir, {withFileTypes: true});
 		await Promise.all(
 			entries
-				.filter((e) => e.name !== "locks")
 				.map((e) => {
 					const p = path.join(frameworkDir, e.name);
 					return e.isDirectory() ?
@@ -176,7 +175,6 @@ export async function cleanCache(ui5DataDir) {
 		);
 	} finally {
 		await unlock(lockPath).catch(() => {});
-		await fs.rm(lockDir, {recursive: true, force: true});
 	}
 
 	return {
