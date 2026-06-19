@@ -49,7 +49,7 @@ export async function frameworkResolverResolveVersion({frameworkName, frameworkV
 	});
 }
 
-export async function getUi5DataDir({cwd}) {
+async function getUi5DataDir({cwd}) {
 	// ENV var should take precedence over the dataDir from the configuration.
 	let ui5DataDir = process.env.UI5_DATA_DIR;
 	if (!ui5DataDir) {

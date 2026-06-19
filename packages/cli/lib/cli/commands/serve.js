@@ -203,11 +203,9 @@ serve.handler = async function(argv) {
 	}
 
 	const {promise: pOnError, reject} = Promise.withResolvers();
-	const serverResult = await serverServe(graph, serverConfig, function(err) {
+	const {h2, port: actualPort} = await serverServe(graph, serverConfig, function(err) {
 		reject(err);
 	});
-
-	const {h2, port: actualPort} = serverResult;
 
 	const protocol = h2 ? "https" : "http";
 	let browserUrl = protocol + "://localhost:" + actualPort;
