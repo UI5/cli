@@ -1,14 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import {promisify} from "node:util";
-import {
-	FRAMEWORK_DIR_NAME,
-	LOCK_STALE_MS,
-	CLEANUP_LOCK_NAME,
-	getFrameworkDir,
-	hasActiveLocks,
-} from "./_frameworkPaths.js";
-import {getLockDir} from "../utils/dataDir.js";
+import {getLockDir, CLEANUP_LOCK_NAME, hasActiveLocks, withLock} from "../utils/lock.js";
+
+const FRAMEWORK_DIR_NAME = "framework";
 
 /**
  * Count unique libraries and versions in the packages/ subdirectory.
@@ -74,7 +68,7 @@ async function getPackageStats(packagesDir) {
  *   Framework cache info, or null if no packages are installed.
  */
 export async function getCacheInfo(ui5DataDir) {
-	const frameworkDir = getFrameworkDir(ui5DataDir);
+	const frameworkDir = path.join(ui5DataDir, FRAMEWORK_DIR_NAME);
 	try {
 		await fs.access(frameworkDir);
 	} catch {
@@ -117,7 +111,7 @@ export async function isFrameworkLocked(ui5DataDir) {
  * @throws {Error} If a framework operation is currently active (active lockfiles detected)
  */
 export async function cleanCache(ui5DataDir) {
-	const frameworkDir = getFrameworkDir(ui5DataDir);
+	const frameworkDir = path.join(ui5DataDir, FRAMEWORK_DIR_NAME);
 
 	try {
 		await fs.access(frameworkDir);
@@ -133,16 +127,9 @@ export async function cleanCache(ui5DataDir) {
 	const lockDir = getLockDir(ui5DataDir);
 	const lockPath = path.join(lockDir, CLEANUP_LOCK_NAME);
 
-	await fs.mkdir(lockDir, {recursive: true});
-
-	const {default: lockfile} = await import("lockfile");
-	const lock = promisify(lockfile.lock);
-	const unlock = promisify(lockfile.unlock);
-
 	// Acquire first, then check — ensures installers running concurrently will see
 	// the cleanup lock and abort before writing into a directory being deleted.
-	await lock(lockPath, {stale: LOCK_STALE_MS});
-	try {
+	await withLock(lockPath, async () => {
 		if (await hasActiveLocks(lockDir, {exclude: CLEANUP_LOCK_NAME})) {
 			throw new Error(
 				"Framework cache is currently locked by an active operation. " +
@@ -173,9 +160,7 @@ export async function cleanCache(ui5DataDir) {
 						fs.unlink(p);
 				})
 		);
-	} finally {
-		await unlock(lockPath).catch(() => {});
-	}
+	});
 
 	return {
 		path: FRAMEWORK_DIR_NAME,

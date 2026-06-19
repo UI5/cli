@@ -1,12 +1,10 @@
 import path from "node:path";
-import {mkdir} from "node:fs/promises";
-import {promisify} from "node:util";
-import lockfile from "lockfile";
 import OutputStyleEnum from "../build/helpers/ProjectBuilderOutputStyle.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:ProjectGraph");
 import Cache from "../../../project/lib/build/cache/Cache.js";
-import {getDefaultUi5DataDir, getLockDir, LOCK_STALE_MS} from "../utils/dataDir.js";
+import {getDefaultUi5DataDir} from "../utils/dataDir.js";
+import {getLockDir, withLock} from "../utils/lock.js";
 
 
 /**
@@ -760,19 +758,12 @@ class ProjectGraph {
 		});
 
 		const resolvedUi5DataDir = ui5DataDir ?? await getDefaultUi5DataDir();
-		const lockDir = getLockDir(resolvedUi5DataDir);
-		const lockPath = path.join(lockDir, `build-${process.pid}.lock`);
-		await mkdir(lockDir, {recursive: true});
-		await promisify(lockfile.lock)(lockPath, {stale: LOCK_STALE_MS});
-		try {
-			return await builder.buildToTarget({
-				destPath, cleanDest,
-				includedDependencies, excludedDependencies,
-				dependencyIncludes,
-			});
-		} finally {
-			lockfile.unlockSync(lockPath);
-		}
+		const lockPath = path.join(getLockDir(resolvedUi5DataDir), `build-${process.pid}.lock`);
+		return withLock(lockPath, () => builder.buildToTarget({
+			destPath, cleanDest,
+			includedDependencies, excludedDependencies,
+			dependencyIncludes,
+		}));
 	}
 
 	async serve({

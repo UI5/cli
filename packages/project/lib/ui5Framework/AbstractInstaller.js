@@ -1,9 +1,6 @@
 import path from "node:path";
-import {mkdirp} from "../utils/fs.js";
-import {promisify} from "node:util";
 import {getLogger} from "@ui5/logger";
-import {LOCK_STALE_MS, CLEANUP_LOCK_NAME} from "./_frameworkPaths.js";
-import {getLockDir} from "../utils/dataDir.js";
+import {getLockDir, CLEANUP_LOCK_NAME, hasActiveLocks, withLock} from "../utils/lock.js";
 const log = getLogger("ui5Framework:Installer");
 
 // File name must not start with one or multiple dots and should not contain characters other than:
@@ -28,37 +25,19 @@ class AbstractInstaller {
 	}
 
 	async _synchronize(lockName, callback) {
-		const {
-			default: lockfile
-		} = await import("lockfile");
-		const lock = promisify(lockfile.lock);
-		const unlock = promisify(lockfile.unlock);
-		const check = promisify(lockfile.check);
 		const lockPath = this._getLockPath(lockName);
-		await mkdirp(this._lockDir);
-
 		log.verbose("Locking " + lockPath);
-		await lock(lockPath, {
-			wait: 10000,
-			stale: LOCK_STALE_MS,
-			retries: 10
-		});
-		try {
+		return withLock(lockPath, async () => {
 			// Abort if cache cleanup is in progress. Checking after acquiring our lock
 			// ensures cleanCache's hasActiveLocks scan will see us if both run concurrently.
-			const cleanupLockPath = path.join(this._lockDir, CLEANUP_LOCK_NAME);
-			if (await check(cleanupLockPath, {stale: LOCK_STALE_MS})) {
+			if (await hasActiveLocks(this._lockDir, {include: CLEANUP_LOCK_NAME})) {
 				throw new Error(
 					"Framework cache is currently being cleaned. " +
 					"Please wait for the cache clean operation to finish and try again."
 				);
 			}
-			const res = await callback();
-			return res;
-		} finally {
-			log.verbose("Unlocking " + lockPath);
-			await unlock(lockPath);
-		}
+			return callback();
+		}, {wait: 10000, retries: 10});
 	}
 
 	_sanitizeFileName(fileName) {

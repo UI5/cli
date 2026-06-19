@@ -22,9 +22,6 @@ test.beforeEach(async (t) => {
 
 	t.context.lockStub = sinon.stub();
 	t.context.unlockStub = sinon.stub();
-	// Configure stubs to call back immediately so promisify-wrapped calls resolve
-	t.context.lockStub.yieldsAsync();
-	t.context.unlockStub.yieldsAsync();
 	t.context.zipStub = class StreamZipStub {
 		extract = sinon.stub().resolves();
 		close = sinon.stub().resolves();
@@ -39,13 +36,11 @@ test.beforeEach(async (t) => {
 	});
 
 	t.context.AbstractInstaller = await esmock.p("../../../../lib/ui5Framework/AbstractInstaller.js", {
-		"../../../../lib/utils/fs.js": {
-			mkdirp: t.context.mkdirpStub,
-			rmrf: t.context.rmrfStub
-		},
-		"lockfile": {
-			lock: t.context.lockStub,
-			unlock: t.context.unlockStub
+		"../../../../lib/utils/lock.js": {
+			getLockDir: sinon.stub().callsFake((dir) => path.join(dir, "locks")),
+			CLEANUP_LOCK_NAME: "cache-cleanup.lock",
+			hasActiveLocks: sinon.stub().resolves(false),
+			withLock: sinon.stub().callsFake(async (_path, cb) => cb())
 		}
 	});
 
