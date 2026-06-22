@@ -43,6 +43,13 @@ test.beforeEach(async (t) => {
 		// BuildReader is constructed in the BuildServer constructor but not exercised here.
 		"../../../lib/build/BuildReader.js": class BuildReader {},
 		"../../../lib/build/helpers/WatchHandler.js": FakeWatchHandler,
+		"../../../lib/utils/lock.js": {
+			getLockDir: sinon.stub().returns("/fake/locks"),
+			acquireLock: sinon.stub().resolves(() => {})
+		},
+		"../../../lib/utils/dataDir.js": {
+			resolveUi5DataDir: sinon.stub().resolves("/fake/ui5data")
+		},
 	})).default;
 	t.context.BuildServer = BuildServer;
 	t.context.SOURCES_CHANGED_DEBOUNCE_MS = BuildServer.__internals__.SOURCES_CHANGED_DEBOUNCE_MS;
