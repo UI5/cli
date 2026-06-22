@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import {getLockDir, CLEANUP_LOCK_NAME, hasActiveLocks, withLock} from "../utils/lock.js";
+import {getLockDir, CLEANUP_LOCK_NAME, hasActiveLocks, acquireLock} from "../utils/lock.js";
 
 const FRAMEWORK_DIR_NAME = "framework";
 
@@ -118,7 +118,8 @@ export async function cleanCache(ui5DataDir) {
 
 	// Acquire first, then check — ensures installers running concurrently will see
 	// the cleanup lock and abort before writing into a directory being deleted.
-	await withLock(lockPath, async () => {
+	const releaseCleanupLock = await acquireLock(lockPath);
+	try {
 		if (await hasActiveLocks(lockDir, {exclude: CLEANUP_LOCK_NAME})) {
 			throw new Error(
 				"Framework cache is currently locked by an active operation. " +
@@ -149,7 +150,9 @@ export async function cleanCache(ui5DataDir) {
 						fs.unlink(p);
 				})
 		);
-	});
+	} finally {
+		releaseCleanupLock();
+	}
 
 	return {
 		path: FRAMEWORK_DIR_NAME,

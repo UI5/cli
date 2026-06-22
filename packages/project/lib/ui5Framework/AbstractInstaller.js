@@ -1,6 +1,6 @@
 import path from "node:path";
 import {getLogger} from "@ui5/logger";
-import {getLockDir, CLEANUP_LOCK_NAME, hasActiveLocks, withLock} from "../utils/lock.js";
+import {getLockDir, CLEANUP_LOCK_NAME, hasActiveLocks, acquireLock} from "../utils/lock.js";
 const log = getLogger("ui5Framework:Installer");
 
 // File name must not start with one or multiple dots and should not contain characters other than:
@@ -27,7 +27,8 @@ class AbstractInstaller {
 	async _synchronize(lockName, callback) {
 		const lockPath = this._getLockPath(lockName);
 		log.verbose("Locking " + lockPath);
-		return withLock(lockPath, async () => {
+		const releaseLock = await acquireLock(lockPath, {wait: 10000, retries: 10});
+		try {
 			// Abort if cache cleanup is in progress. Checking after acquiring our lock
 			// ensures cleanCache's hasActiveLocks scan will see us if both run concurrently.
 			if (await hasActiveLocks(this._lockDir, {include: CLEANUP_LOCK_NAME})) {
@@ -37,7 +38,9 @@ class AbstractInstaller {
 				);
 			}
 			return callback();
-		}, {wait: 10000, retries: 10});
+		} finally {
+			releaseLock();
+		}
 	}
 
 	_sanitizeFileName(fileName) {

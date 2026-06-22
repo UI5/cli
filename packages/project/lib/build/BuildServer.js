@@ -1,9 +1,13 @@
 import EventEmitter from "node:events";
+import {getRandomValues} from "node:crypto";
 import {createReaderCollectionPrioritized} from "@ui5/fs/resourceFactory";
 import BuildReader from "./BuildReader.js";
 import WatchHandler from "./helpers/WatchHandler.js";
 import {SourceChangedDuringBuildError} from "./cache/ProjectBuildCache.js";
+import {getLockDir, acquireLock} from "../utils/lock.js";
+import {resolveUi5DataDir} from "../utils/dataDir.js";
 import {getLogger} from "@ui5/logger";
+import path from "node:path";
 const log = getLogger("build:BuildServer");
 
 // Debounce window for the `sourcesChanged` event so a burst of file changes
@@ -53,6 +57,7 @@ class BuildServer extends EventEmitter {
 	#allReader;
 	#rootReader;
 	#dependenciesReader;
+	#releaseLock;
 
 	/**
 	 * Creates a new BuildServer instance
@@ -119,11 +124,19 @@ class BuildServer extends EventEmitter {
 		initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies
 	) {
 		const buildServer = new BuildServer(graph, projectBuilder);
+		await buildServer.#acquireLock();
 		await buildServer.#initWatcher();
 		buildServer.#enqueueInitialBuilds(
 			initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies
 		);
 		return buildServer;
+	}
+
+	async #acquireLock() {
+		const resolvedUi5DataDir = this.#projectBuilder._ui5DataDir ?? await resolveUi5DataDir();
+		const lockId = Buffer.from(getRandomValues(new Uint8Array(4))).toString("hex");
+		const lockPath = path.join(getLockDir(resolvedUi5DataDir), `server-${process.pid}-${lockId}.lock`);
+		this.#releaseLock = await acquireLock(lockPath);
 	}
 
 	#enqueueInitialBuilds(
@@ -171,6 +184,9 @@ class BuildServer extends EventEmitter {
 			// (e.g. Force-mode stale-cache errors). Otherwise the SQLite handle leaks
 			// and subsequent fs.rm of the cache directory fails with EBUSY on Windows.
 			this.#projectBuilder.closeCacheManager();
+			if (this.#releaseLock) {
+				this.#releaseLock();
+			}
 		}
 	}
 

@@ -5,6 +5,10 @@ import composeProjectList from "./helpers/composeProjectList.js";
 import BuildContext from "./helpers/BuildContext.js";
 import prettyHrtime from "pretty-hrtime";
 import OutputStyleEnum from "./helpers/ProjectBuilderOutputStyle.js";
+import path from "node:path";
+import {getLockDir, acquireLock} from "../utils/lock.js";
+import {resolveUi5DataDir} from "../utils/dataDir.js";
+import {getRandomValues} from "node:crypto";
 
 /**
  * @public
@@ -13,7 +17,7 @@ import OutputStyleEnum from "./helpers/ProjectBuilderOutputStyle.js";
  */
 class ProjectBuilder {
 	#log;
-	#buildIsRunning = false;
+	#buildLockRelease = null;
 
 	/**
 	 * Build Configuration
@@ -122,6 +126,7 @@ class ProjectBuilder {
 		}
 
 		this._graph = graph;
+		this._ui5DataDir = ui5DataDir;
 		this._buildContext = new BuildContext(graph, taskRepository, buildConfig, {ui5DataDir});
 		this.#log = new BuildLogger("ProjectBuilder");
 	}
@@ -135,7 +140,7 @@ class ProjectBuilder {
 	 * @throws {Error} If a build is currently running
 	 */
 	resourcesChanged(changes) {
-		if (this.#buildIsRunning) {
+		if (this.#buildLockRelease) {
 			throw new Error(`Unable to safely propagate resource changes. Build is currently running.`);
 		}
 		return this._buildContext.propagateResourceChanges(changes);
@@ -312,10 +317,15 @@ class ProjectBuilder {
 	 * @throws {Error} If a build is already running
 	 */
 	async #build(requestedProjects, projectBuiltCallback, signal) {
-		if (this.#buildIsRunning) {
+		if (this.#buildLockRelease) {
 			throw new Error("A build is already running");
 		}
-		this.#buildIsRunning = true;
+
+		const resolvedUi5DataDir = this._ui5DataDir ?? await resolveUi5DataDir();
+		const lockId = Buffer.from(getRandomValues(new Uint8Array(4))).toString("hex");
+		const lockPath = path.join(getLockDir(resolvedUi5DataDir), `build-${process.pid}-${lockId}.lock`);
+		this.#buildLockRelease = await acquireLock(lockPath);
+
 		let cleanupSigHooks;
 		const pCacheWrites = [];
 		try {
@@ -408,7 +418,8 @@ class ProjectBuilder {
 				this._deregisterCleanupSigHooks(cleanupSigHooks);
 			}
 			await this._executeCleanupTasks();
-			this.#buildIsRunning = false;
+			this.#buildLockRelease();
+			this.#buildLockRelease = null;
 		}
 	}
 

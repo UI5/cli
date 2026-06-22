@@ -90,28 +90,27 @@ export async function hasActiveLocks(lockDir, {include, exclude} = {}) {
 }
 
 /**
- * Acquire a lockfile, execute a callback, and release the lock in a finally block.
+ * Acquire a lockfile and return a release function.
  *
- * Creates the lock directory if it does not exist. The lock is always released via
- * <code>unlockSync</code> — safe to call from a finally block inside an async function.
+ * Use this for process-lifetime locks where the lock must outlive a single function
+ * call (e.g. <code>ui5 serve</code>, <code>ui5 build</code>). The returned
+ * <code>release</code> function must be called to release the lock on graceful
+ * shutdown. On abnormal process exit (signals, crashes), lockfile's own
+ * signal-exit handler handles cleanup automatically.
  *
- * For process-lifetime locks (e.g. ui5 serve) where the lock must outlive a single
- * function call, manage the lock manually instead of using this helper.
+ * Creates the lock directory if it does not exist.
  *
  * @param {string} lockPath Absolute path to the lock file
- * @param {Function} callback Async function to execute while the lock is held
  * @param {object} [options]
  * @param {number} [options.wait] Milliseconds to wait for the lock before giving up
  * @param {number} [options.retries] Number of times to retry acquiring the lock
- * @returns {Promise<*>} Resolves with the return value of <code>callback</code>
+ * @returns {Promise<Function>} Resolves with a synchronous <code>release()</code> function
  */
-export async function withLock(lockPath, callback, {wait, retries} = {}) {
+export async function acquireLock(lockPath, {wait, retries} = {}) {
 	await mkdir(path.dirname(lockPath), {recursive: true});
 	const {default: lockfile} = await import("lockfile");
 	await promisify(lockfile.lock)(lockPath, {stale: LOCK_STALE_MS, wait, retries});
-	try {
-		return await callback();
-	} finally {
+	return () => {
 		lockfile.unlockSync(lockPath);
-	}
+	};
 }
