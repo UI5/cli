@@ -21,7 +21,7 @@ test.beforeEach(async (t) => {
 			getLockDir: sinon.stub().callsFake((dir) => path.join(dir, "locks")),
 			CLEANUP_LOCK_NAME: "cache-cleanup.lock",
 			hasActiveLocks: sinon.stub().resolves(false),
-			withLock: sinon.stub().callsFake(async (_path, cb) => cb())
+			acquireLock: sinon.stub().callsFake(async () => () => {})
 		}
 	});
 	t.context.Installer = await esmock.p("../../../../lib/ui5Framework/npm/Installer.js", {
