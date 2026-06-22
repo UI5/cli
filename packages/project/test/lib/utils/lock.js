@@ -1,6 +1,5 @@
 import test from "ava";
 import path from "node:path";
-import os from "node:os";
 import fs from "node:fs/promises";
 import {promisify} from "node:util";
 import lockfileLib from "lockfile";
@@ -8,8 +7,10 @@ import {getLockDir, LOCK_STALE_MS, CLEANUP_LOCK_NAME, withLock} from "../../../l
 
 const lockfileUnlock = promisify(lockfileLib.unlock);
 
+const TEST_DIR = path.join(import.meta.dirname, "..", "..", "..", "tmp", "utils-lock");
+
 test.beforeEach(async (t) => {
-	const testDir = path.join(os.tmpdir(), `ui5-lock-test-${Date.now()}-${Math.random()}`);
+	const testDir = path.join(TEST_DIR, `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 	await fs.mkdir(testDir, {recursive: true});
 	t.context.testDir = testDir;
 	t.context.lockPath = path.join(testDir, "test.lock");
@@ -17,17 +18,12 @@ test.beforeEach(async (t) => {
 
 test.afterEach.always(async (t) => {
 	await lockfileUnlock(t.context.lockPath).catch(() => {});
-	await fs.rm(t.context.testDir, {recursive: true, force: true});
 });
 
 // ─── getLockDir ───────────────────────────────────────────────────────────────
 
-test("getLockDir: returns ~/.ui5/locks for the default data dir", (t) => {
-	t.is(getLockDir(path.join(os.homedir(), ".ui5")), path.join(os.homedir(), ".ui5", "locks"));
-});
-
-test("getLockDir: appends locks to any given ui5DataDir", (t) => {
-	t.is(getLockDir("/custom/data"), path.join("/custom/data", "locks"));
+test("getLockDir: appends locks subdirectory to the given ui5DataDir", (t) => {
+	t.is(getLockDir("/some/ui5/data"), path.join("/some/ui5/data", "locks"));
 });
 
 // ─── LOCK_STALE_MS ────────────────────────────────────────────────────────────

@@ -1,7 +1,6 @@
 import test from "ava";
 import path from "node:path";
 import fs from "node:fs/promises";
-import os from "node:os";
 import {promisify} from "node:util";
 import lockfileLib from "lockfile";
 import {getCacheInfo, cleanCache} from "../../../lib/ui5Framework/cache.js";
@@ -9,17 +8,14 @@ import {getCacheInfo, cleanCache} from "../../../lib/ui5Framework/cache.js";
 const lockfileLock = promisify(lockfileLib.lock);
 const lockfileUnlock = promisify(lockfileLib.unlock);
 
+const TEST_DIR = path.join(import.meta.dirname, "..", "..", "tmp", "ui5framework-cache");
+
 test.beforeEach(async (t) => {
-	const testDir = path.join(os.tmpdir(), `ui5-framework-cache-test-${Date.now()}-${Math.random()}`);
+	const testDir = path.join(TEST_DIR, `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 	await fs.mkdir(testDir, {recursive: true});
 	t.context.testDir = testDir;
 });
 
-test.afterEach.always(async (t) => {
-	if (t.context.testDir) {
-		await fs.rm(t.context.testDir, {recursive: true, force: true});
-	}
-});
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 

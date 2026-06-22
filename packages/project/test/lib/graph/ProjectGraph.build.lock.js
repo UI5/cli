@@ -1,5 +1,4 @@
 import path from "node:path";
-import os from "node:os";
 import fs from "node:fs/promises";
 import {promisify} from "node:util";
 import sinon from "sinon";
@@ -14,17 +13,16 @@ const applicationAPath = path.join(
 	import.meta.dirname, "..", "..", "fixtures", "application.a"
 );
 
+const TEST_DIR = path.join(import.meta.dirname, "..", "..", "tmp", "graph-build-lock");
+
 test.beforeEach(async (t) => {
-	const testDir = path.join(os.tmpdir(), `ui5-graph-lock-test-${Date.now()}-${Math.random()}`);
+	const testDir = path.join(TEST_DIR, `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 	await fs.mkdir(testDir, {recursive: true});
 	t.context.testDir = testDir;
 });
 
-test.afterEach.always(async (t) => {
+test.afterEach.always((t) => {
 	sinon.restore();
-	if (t.context.testDir) {
-		await fs.rm(t.context.testDir, {recursive: true, force: true});
-	}
 });
 
 test("build(): creates build-{pid}.lock in the locks directory", async (t) => {
