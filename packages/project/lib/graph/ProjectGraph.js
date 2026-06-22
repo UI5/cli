@@ -1,14 +1,7 @@
-import path from "node:path";
-import {mkdir} from "node:fs/promises";
-import {getRandomValues} from "node:crypto";
-import {promisify} from "node:util";
-import lockfile from "lockfile";
 import OutputStyleEnum from "../build/helpers/ProjectBuilderOutputStyle.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:ProjectGraph");
 import Cache from "../../../project/lib/build/cache/Cache.js";
-import {resolveUi5DataDir} from "../utils/dataDir.js";
-import {getLockDir, LOCK_STALE_MS, withLock} from "../utils/lock.js";
 
 
 /**
@@ -760,14 +753,11 @@ class ProjectGraph {
 			},
 			ui5DataDir,
 		});
-
-		const resolvedUi5DataDir = ui5DataDir ?? await resolveUi5DataDir();
-		const lockPath = path.join(getLockDir(resolvedUi5DataDir), `build-${process.pid}.lock`);
-		return withLock(lockPath, () => builder.buildToTarget({
+		return await builder.buildToTarget({
 			destPath, cleanDest,
 			includedDependencies, excludedDependencies,
 			dependencyIncludes,
-		}));
+		});
 	}
 
 	async serve({
@@ -800,22 +790,10 @@ class ProjectGraph {
 			},
 			ui5DataDir,
 		});
-
-		// Acquire a process-lifetime lock so that 'ui5 cache clean' cannot delete
-		// framework files while the server is actively serving them.
-		// A random suffix ensures uniqueness when multiple server instances run in
-		// the same process (e.g. programmatic API callers, integration tests).
-		// On abnormal exit (signals), lockfile's own signal-exit handler handles cleanup.
-		const resolvedUi5DataDir = ui5DataDir ?? await resolveUi5DataDir();
-		const lockId = Buffer.from(getRandomValues(new Uint8Array(4))).toString("hex");
-		const lockPath = path.join(getLockDir(resolvedUi5DataDir), `server-${process.pid}-${lockId}.lock`);
-		await mkdir(path.dirname(lockPath), {recursive: true});
-		await promisify(lockfile.lock)(lockPath, {stale: LOCK_STALE_MS});
-
 		const {
 			default: BuildServer
 		} = await import("../build/BuildServer.js");
-		return await BuildServer.create(this, builder,
+		return BuildServer.create(this, builder,
 			initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies);
 	}
 
