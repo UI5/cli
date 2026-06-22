@@ -28,7 +28,7 @@ test.beforeEach(async (t) => {
 	// Prevent real env var from leaking into tests
 	delete process.env.UI5_DATA_DIR;
 
-	t.context.getDefaultUi5DataDirStub = sinon.stub().resolves(TEST_UI5_DATA_DIR);
+	t.context.resolveUi5DataDirStub = sinon.stub().resolves(TEST_UI5_DATA_DIR);
 	t.context.hasActiveLocksStub = sinon.stub().resolves(false);
 
 	t.context.frameworkCacheGetCacheInfo = sinon.stub();
@@ -40,7 +40,7 @@ test.beforeEach(async (t) => {
 
 	t.context.cache = await esmock.p("../../../../lib/cli/commands/cache.js", {
 		"@ui5/project/utils/dataDir": {
-			getDefaultUi5DataDir: t.context.getDefaultUi5DataDirStub,
+			resolveUi5DataDir: t.context.resolveUi5DataDirStub,
 		},
 		"@ui5/project/utils/lock": {
 			getLockDir: sinon.stub().callsFake((dir) => `${dir}/locks`),
@@ -95,8 +95,8 @@ test.serial("Command definition is correct", (t) => {
 
 // ─── ui5DataDir resolution ──────────────────────────────────────────────────
 
-test.serial("ui5 cache clean: passes process.cwd() to getDefaultUi5DataDir", async (t) => {
-	const {cache, argv, getDefaultUi5DataDirStub, frameworkCacheGetCacheInfo,
+test.serial("ui5 cache clean: passes process.cwd() to resolveUi5DataDir", async (t) => {
+	const {cache, argv, resolveUi5DataDirStub, frameworkCacheGetCacheInfo,
 		buildCacheGetCacheInfo} = t.context;
 
 	frameworkCacheGetCacheInfo.resolves(null);
@@ -105,12 +105,12 @@ test.serial("ui5 cache clean: passes process.cwd() to getDefaultUi5DataDir", asy
 	argv["_"] = ["cache", "clean"];
 	await cache.handler(argv);
 
-	t.is(getDefaultUi5DataDirStub.callCount, 1, "getDefaultUi5DataDir called once");
-	t.deepEqual(getDefaultUi5DataDirStub.firstCall.args[0], {cwd: process.cwd()},
-		"Passes {cwd: process.cwd()} to getDefaultUi5DataDir");
+	t.is(resolveUi5DataDirStub.callCount, 1, "resolveUi5DataDir called once");
+	t.deepEqual(resolveUi5DataDirStub.firstCall.args[0], {cwd: process.cwd()},
+		"Passes {cwd: process.cwd()} to resolveUi5DataDir");
 });
 
-test.serial("ui5 cache clean: uses resolved path from getDefaultUi5DataDir", async (t) => {
+test.serial("ui5 cache clean: uses resolved path from resolveUi5DataDir", async (t) => {
 	const {cache, argv, frameworkCacheGetCacheInfo, buildCacheGetCacheInfo, stderrWriteStub} = t.context;
 
 	frameworkCacheGetCacheInfo.resolves(null);
@@ -120,18 +120,18 @@ test.serial("ui5 cache clean: uses resolved path from getDefaultUi5DataDir", asy
 	await cache.handler(argv);
 
 	t.is(frameworkCacheGetCacheInfo.firstCall.args[0], TEST_UI5_DATA_DIR,
-		"getCacheInfo receives the path returned by getDefaultUi5DataDir");
+		"getCacheInfo receives the path returned by resolveUi5DataDir");
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes(TEST_UI5_DATA_DIR), "Resolved ui5DataDir shown in checking line");
 });
 
-test.serial("ui5 cache clean: relative path from config is resolved via getDefaultUi5DataDir", async (t) => {
-	const {cache, argv, getDefaultUi5DataDirStub, frameworkCacheGetCacheInfo,
+test.serial("ui5 cache clean: relative path from config is resolved via resolveUi5DataDir", async (t) => {
+	const {cache, argv, resolveUi5DataDirStub, frameworkCacheGetCacheInfo,
 		buildCacheGetCacheInfo} = t.context;
 
 	const resolvedPath = path.resolve(process.cwd(), "./custom-cache");
-	getDefaultUi5DataDirStub.resolves(resolvedPath);
+	resolveUi5DataDirStub.resolves(resolvedPath);
 	frameworkCacheGetCacheInfo.resolves(null);
 	buildCacheGetCacheInfo.resolves(null);
 
@@ -139,7 +139,7 @@ test.serial("ui5 cache clean: relative path from config is resolved via getDefau
 	await cache.handler(argv);
 
 	t.is(frameworkCacheGetCacheInfo.firstCall.args[0], resolvedPath,
-		"getCacheInfo receives the pre-resolved absolute path from getDefaultUi5DataDir");
+		"getCacheInfo receives the pre-resolved absolute path from resolveUi5DataDir");
 });
 
 // ─── Basic flow ─────────────────────────────────────────────────────────────

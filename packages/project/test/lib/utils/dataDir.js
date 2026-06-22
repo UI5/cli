@@ -14,10 +14,10 @@ test.beforeEach(async (t) => {
 		})
 	};
 
-	const {getDefaultUi5DataDir} = await esmock("../../../lib/utils/dataDir.js", {
+	const {resolveUi5DataDir} = await esmock("../../../lib/utils/dataDir.js", {
 		"../../../lib/config/Configuration.js": t.context.ConfigurationStub
 	});
-	t.context.getDefaultUi5DataDir = getDefaultUi5DataDir;
+	t.context.resolveUi5DataDir = resolveUi5DataDir;
 });
 
 test.afterEach.always((t) => {
@@ -29,52 +29,52 @@ test.afterEach.always((t) => {
 	sinon.restore();
 });
 
-test.serial("getDefaultUi5DataDir: returns ~/.ui5 when nothing is configured", async (t) => {
-	const {getDefaultUi5DataDir} = t.context;
-	const result = await getDefaultUi5DataDir({cwd: "/some/project"});
+test.serial("resolveUi5DataDir: returns ~/.ui5 when nothing is configured", async (t) => {
+	const {resolveUi5DataDir} = t.context;
+	const result = await resolveUi5DataDir({cwd: "/some/project"});
 	t.is(result, path.join(os.homedir(), ".ui5"));
 });
 
-test.serial("getDefaultUi5DataDir: returns value from UI5_DATA_DIR env var (absolute)", async (t) => {
-	const {getDefaultUi5DataDir} = t.context;
+test.serial("resolveUi5DataDir: returns value from UI5_DATA_DIR env var (absolute)", async (t) => {
+	const {resolveUi5DataDir} = t.context;
 	process.env.UI5_DATA_DIR = "/custom/data/dir";
-	const result = await getDefaultUi5DataDir({cwd: "/some/project"});
+	const result = await resolveUi5DataDir({cwd: "/some/project"});
 	t.is(result, path.resolve("/custom/data/dir"));
 	t.is(t.context.ConfigurationStub.fromFile.callCount, 0, "Configuration not read when env var is set");
 });
 
-test.serial("getDefaultUi5DataDir: resolves relative UI5_DATA_DIR env var against cwd", async (t) => {
-	const {getDefaultUi5DataDir} = t.context;
+test.serial("resolveUi5DataDir: resolves relative UI5_DATA_DIR env var against cwd", async (t) => {
+	const {resolveUi5DataDir} = t.context;
 	process.env.UI5_DATA_DIR = "relative/data";
-	const result = await getDefaultUi5DataDir({cwd: "/some/project"});
+	const result = await resolveUi5DataDir({cwd: "/some/project"});
 	t.is(result, path.resolve("/some/project", "relative/data"));
 });
 
-test.serial("getDefaultUi5DataDir: returns value from Configuration (absolute)", async (t) => {
-	const {getDefaultUi5DataDir} = t.context;
+test.serial("resolveUi5DataDir: returns value from Configuration (absolute)", async (t) => {
+	const {resolveUi5DataDir} = t.context;
 	t.context.configGetUi5DataDirStub.returns("/config/data/dir");
-	const result = await getDefaultUi5DataDir({cwd: "/some/project"});
+	const result = await resolveUi5DataDir({cwd: "/some/project"});
 	t.is(result, path.resolve("/config/data/dir"));
 });
 
-test.serial("getDefaultUi5DataDir: resolves relative Configuration value against cwd", async (t) => {
-	const {getDefaultUi5DataDir} = t.context;
+test.serial("resolveUi5DataDir: resolves relative Configuration value against cwd", async (t) => {
+	const {resolveUi5DataDir} = t.context;
 	t.context.configGetUi5DataDirStub.returns("my-data");
-	const result = await getDefaultUi5DataDir({cwd: "/some/project"});
+	const result = await resolveUi5DataDir({cwd: "/some/project"});
 	t.is(result, path.resolve("/some/project", "my-data"));
 });
 
-test.serial("getDefaultUi5DataDir: env var takes precedence over Configuration", async (t) => {
-	const {getDefaultUi5DataDir} = t.context;
+test.serial("resolveUi5DataDir: env var takes precedence over Configuration", async (t) => {
+	const {resolveUi5DataDir} = t.context;
 	process.env.UI5_DATA_DIR = "/env/data";
 	t.context.configGetUi5DataDirStub.returns("/config/data");
-	const result = await getDefaultUi5DataDir({cwd: "/some/project"});
+	const result = await resolveUi5DataDir({cwd: "/some/project"});
 	t.is(result, path.resolve("/env/data"));
 });
 
-test.serial("getDefaultUi5DataDir: uses process.cwd() when cwd is not provided", async (t) => {
-	const {getDefaultUi5DataDir} = t.context;
+test.serial("resolveUi5DataDir: uses process.cwd() when cwd is not provided", async (t) => {
+	const {resolveUi5DataDir} = t.context;
 	t.context.configGetUi5DataDirStub.returns("relative/data");
-	const result = await getDefaultUi5DataDir();
+	const result = await resolveUi5DataDir();
 	t.is(result, path.resolve(process.cwd(), "relative/data"));
 });

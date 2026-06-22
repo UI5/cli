@@ -17,7 +17,7 @@ import Configuration from "../config/Configuration.js";
  * @param {string} [options.cwd=process.cwd()] Base directory for resolving relative paths
  * @returns {Promise<string>} Resolved absolute path to the UI5 data directory
  */
-export async function getDefaultUi5DataDir({cwd} = {}) {
+export async function resolveUi5DataDir({cwd} = {}) {
 	let ui5DataDir = process.env.UI5_DATA_DIR;
 	if (!ui5DataDir) {
 		const config = await Configuration.fromFile();
