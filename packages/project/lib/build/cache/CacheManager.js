@@ -73,7 +73,7 @@ export default class CacheManager {
 	 */
 	static async create(cwd, {ui5DataDir} = {}) {
 		if (!ui5DataDir) {
-			ui5DataDir = await resolveUi5DataDir({cwd});
+			ui5DataDir = await resolveUi5DataDir();
 		} else {
 			ui5DataDir = path.resolve(cwd, ui5DataDir);
 		}

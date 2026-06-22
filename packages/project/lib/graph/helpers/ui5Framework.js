@@ -348,7 +348,7 @@ export default {
 		}
 
 		// ENV var should take precedence over the dataDir from the configuration.
-		const ui5DataDir = await resolveUi5DataDir({cwd});
+		const ui5DataDir = await resolveUi5DataDir();
 
 		if (options.versionOverride) {
 			version = await Resolver.resolveVersion(options.versionOverride, {
