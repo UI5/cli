@@ -7,7 +7,7 @@ import OutputStyleEnum from "../build/helpers/ProjectBuilderOutputStyle.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:ProjectGraph");
 import Cache from "../../../project/lib/build/cache/Cache.js";
-import {getDefaultUi5DataDir} from "../utils/dataDir.js";
+import {resolveUi5DataDir} from "../utils/dataDir.js";
 import {getLockDir, LOCK_STALE_MS, withLock} from "../utils/lock.js";
 
 
@@ -761,7 +761,7 @@ class ProjectGraph {
 			ui5DataDir,
 		});
 
-		const resolvedUi5DataDir = ui5DataDir ?? await getDefaultUi5DataDir();
+		const resolvedUi5DataDir = ui5DataDir ?? await resolveUi5DataDir();
 		const lockPath = path.join(getLockDir(resolvedUi5DataDir), `build-${process.pid}.lock`);
 		return withLock(lockPath, () => builder.buildToTarget({
 			destPath, cleanDest,
@@ -805,7 +805,7 @@ class ProjectGraph {
 		// framework files while the server is actively serving them.
 		// A random suffix ensures uniqueness when multiple server instances run in
 		// the same process (e.g. programmatic API callers, integration tests).
-		const resolvedUi5DataDir = ui5DataDir ?? await getDefaultUi5DataDir();
+		const resolvedUi5DataDir = ui5DataDir ?? await resolveUi5DataDir();
 		const lockId = Buffer.from(getRandomValues(new Uint8Array(4))).toString("hex");
 		const lockPath = path.join(getLockDir(resolvedUi5DataDir), `server-${process.pid}-${lockId}.lock`);
 		let lockReleased = false;

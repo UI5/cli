@@ -1,6 +1,6 @@
 import path from "node:path";
 import {access} from "node:fs/promises";
-import {getDefaultUi5DataDir} from "../../utils/dataDir.js";
+import {resolveUi5DataDir} from "../../utils/dataDir.js";
 import {getLogger} from "@ui5/logger";
 import BuildCacheStorage from "./BuildCacheStorage.js";
 
@@ -73,7 +73,7 @@ export default class CacheManager {
 	 */
 	static async create(cwd, {ui5DataDir} = {}) {
 		if (!ui5DataDir) {
-			ui5DataDir = await getDefaultUi5DataDir({cwd});
+			ui5DataDir = await resolveUi5DataDir({cwd});
 		} else {
 			ui5DataDir = path.resolve(cwd, ui5DataDir);
 		}

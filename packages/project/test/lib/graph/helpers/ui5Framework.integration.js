@@ -136,7 +136,7 @@ test.beforeEach(async (t) => {
 		"../../../../lib/ui5Framework/Openui5Resolver.js": t.context.Openui5Resolver,
 		"../../../../lib/ui5Framework/Sapui5Resolver.js": t.context.Sapui5Resolver,
 		"../../../../lib/utils/dataDir.js": {
-			getDefaultUi5DataDir: sinon.stub().resolves(path.join(fakeBaseDir, "homedir", ".ui5"))
+			resolveUi5DataDir: sinon.stub().resolves(path.join(fakeBaseDir, "homedir", ".ui5"))
 		}
 	});
 

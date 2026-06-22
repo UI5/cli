@@ -126,7 +126,7 @@ test.serial("create() returns singleton per cache directory", async (t) => {
 
 	const CacheManager = await esmock("../../../../lib/build/cache/CacheManager.js", {
 		"../../../../lib/utils/dataDir.js": {
-			getDefaultUi5DataDir: sinon.stub().resolves(testDir)
+			resolveUi5DataDir: sinon.stub().resolves(testDir)
 		}
 	});
 
