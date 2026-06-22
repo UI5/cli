@@ -13,18 +13,16 @@ import Configuration from "../config/Configuration.js";
  * Relative paths are resolved against <code>cwd</code>.
  * This function always returns an absolute path — never <code>undefined</code>.
  *
- * @param {object} [options]
- * @param {string} [options.cwd=process.cwd()] Base directory for resolving relative paths
  * @returns {Promise<string>} Resolved absolute path to the UI5 data directory
  */
-export async function resolveUi5DataDir({cwd} = {}) {
+export async function resolveUi5DataDir() {
 	let ui5DataDir = process.env.UI5_DATA_DIR;
 	if (!ui5DataDir) {
 		const config = await Configuration.fromFile();
 		ui5DataDir = config.getUi5DataDir();
 	}
 	if (ui5DataDir) {
-		return path.resolve(cwd ?? process.cwd(), ui5DataDir);
+		return path.resolve(process.cwd(), ui5DataDir);
 	}
 	return path.join(os.homedir(), ".ui5");
 }

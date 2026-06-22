@@ -31,14 +31,14 @@ test.afterEach.always((t) => {
 
 test.serial("resolveUi5DataDir: returns ~/.ui5 when nothing is configured", async (t) => {
 	const {resolveUi5DataDir} = t.context;
-	const result = await resolveUi5DataDir({cwd: "/some/project"});
+	const result = await resolveUi5DataDir();
 	t.is(result, path.join(os.homedir(), ".ui5"));
 });
 
 test.serial("resolveUi5DataDir: returns value from UI5_DATA_DIR env var (absolute)", async (t) => {
 	const {resolveUi5DataDir} = t.context;
 	process.env.UI5_DATA_DIR = "/custom/data/dir";
-	const result = await resolveUi5DataDir({cwd: "/some/project"});
+	const result = await resolveUi5DataDir();
 	t.is(result, path.resolve("/custom/data/dir"));
 	t.is(t.context.ConfigurationStub.fromFile.callCount, 0, "Configuration not read when env var is set");
 });
@@ -46,29 +46,29 @@ test.serial("resolveUi5DataDir: returns value from UI5_DATA_DIR env var (absolut
 test.serial("resolveUi5DataDir: resolves relative UI5_DATA_DIR env var against cwd", async (t) => {
 	const {resolveUi5DataDir} = t.context;
 	process.env.UI5_DATA_DIR = "relative/data";
-	const result = await resolveUi5DataDir({cwd: "/some/project"});
-	t.is(result, path.resolve("/some/project", "relative/data"));
+	const result = await resolveUi5DataDir();
+	t.is(result, path.resolve("relative/data"));
 });
 
 test.serial("resolveUi5DataDir: returns value from Configuration (absolute)", async (t) => {
 	const {resolveUi5DataDir} = t.context;
 	t.context.configGetUi5DataDirStub.returns("/config/data/dir");
-	const result = await resolveUi5DataDir({cwd: "/some/project"});
+	const result = await resolveUi5DataDir();
 	t.is(result, path.resolve("/config/data/dir"));
 });
 
 test.serial("resolveUi5DataDir: resolves relative Configuration value against cwd", async (t) => {
 	const {resolveUi5DataDir} = t.context;
 	t.context.configGetUi5DataDirStub.returns("my-data");
-	const result = await resolveUi5DataDir({cwd: "/some/project"});
-	t.is(result, path.resolve("/some/project", "my-data"));
+	const result = await resolveUi5DataDir();
+	t.is(result, path.resolve("my-data"));
 });
 
 test.serial("resolveUi5DataDir: env var takes precedence over Configuration", async (t) => {
 	const {resolveUi5DataDir} = t.context;
 	process.env.UI5_DATA_DIR = "/env/data";
 	t.context.configGetUi5DataDirStub.returns("/config/data");
-	const result = await resolveUi5DataDir({cwd: "/some/project"});
+	const result = await resolveUi5DataDir();
 	t.is(result, path.resolve("/env/data"));
 });
 

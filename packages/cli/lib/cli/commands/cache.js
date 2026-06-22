@@ -98,7 +98,7 @@ async function handleCache(argv) {
 	// Resolve UI5 data directory — uses the same resolution chain as ui5 build/serve:
 	// UI5_DATA_DIR env var → ui5DataDir config (~/.ui5rc) → default ~/.ui5
 	// Relative paths are resolved against process.cwd() (project root when invoked from the project).
-	const ui5DataDir = await resolveUi5DataDir({cwd: process.cwd()});
+	const ui5DataDir = await resolveUi5DataDir();
 
 	// Abort early if a lock is active — before prompting the user
 	if (await hasActiveLocks(getLockDir(ui5DataDir))) {

@@ -95,21 +95,6 @@ test.serial("Command definition is correct", (t) => {
 
 // ─── ui5DataDir resolution ──────────────────────────────────────────────────
 
-test.serial("ui5 cache clean: passes process.cwd() to resolveUi5DataDir", async (t) => {
-	const {cache, argv, resolveUi5DataDirStub, frameworkCacheGetCacheInfo,
-		buildCacheGetCacheInfo} = t.context;
-
-	frameworkCacheGetCacheInfo.resolves(null);
-	buildCacheGetCacheInfo.resolves(null);
-
-	argv["_"] = ["cache", "clean"];
-	await cache.handler(argv);
-
-	t.is(resolveUi5DataDirStub.callCount, 1, "resolveUi5DataDir called once");
-	t.deepEqual(resolveUi5DataDirStub.firstCall.args[0], {cwd: process.cwd()},
-		"Passes {cwd: process.cwd()} to resolveUi5DataDir");
-});
-
 test.serial("ui5 cache clean: uses resolved path from resolveUi5DataDir", async (t) => {
 	const {cache, argv, frameworkCacheGetCacheInfo, buildCacheGetCacheInfo, stderrWriteStub} = t.context;
 
