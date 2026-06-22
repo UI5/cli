@@ -518,9 +518,7 @@ export default class BuildCacheStorage {
 	 * @returns {number} Number of bytes freed
 	 */
 	clearAllRecords() {
-		const {page_count: pageCountBefore} = this.#db.prepare("PRAGMA page_count").get();
-		const {page_size: pageSize} = this.#db.prepare("PRAGMA page_size").get();
-		const bytesBefore = pageCountBefore * pageSize;
+		const bytesBefore = this.getDatabaseSize();
 
 		this.#db.exec("BEGIN");
 		this.#db.exec("DELETE FROM content");
@@ -531,8 +529,7 @@ export default class BuildCacheStorage {
 		this.#db.exec("COMMIT");
 		this.#db.exec("VACUUM");
 
-		const {page_count: pageCountAfter} = this.#db.prepare("PRAGMA page_count").get();
-		const bytesAfter = pageCountAfter * pageSize;
+		const bytesAfter = this.getDatabaseSize();
 
 		return bytesBefore - bytesAfter;
 	}
