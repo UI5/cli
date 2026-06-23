@@ -94,6 +94,109 @@ function padLabel(label) {
 	return label.padEnd(LABEL_WIDTH);
 }
 
+/**
+ * Display information about the cached data that will be removed,
+ * including the absolute paths and details about the framework and build caches.
+ *
+ * @param {*} data
+ * @param {object} data.frameworkInfo
+ * @param {object} data.buildInfo
+ * @param {string} data.frameworkAbsPath
+ * @param {string} data.buildAbsPath
+ * @param {number} data.buildPreSize
+ */
+async function displayCacheInfo({
+	frameworkInfo,
+	buildInfo,
+	frameworkAbsPath,
+	buildAbsPath,
+	buildPreSize,
+}) {
+	// Display items that will be removed
+	process.stderr.write(chalk.bold("\nThe following cached data will be removed:\n\n"));
+	if (frameworkInfo) {
+		const detail = formatFrameworkStats(frameworkInfo.libraryCount, frameworkInfo.versionCount);
+		process.stderr.write(
+			`  ${chalk.yellow("•")} ${padLabel(LABEL_FRAMEWORK)}   ${frameworkAbsPath}   (${detail})\n`
+		);
+	}
+	if (buildInfo) {
+		const detail = buildPreSize > 0 ? formatSize(buildPreSize) : "";
+		process.stderr.write(
+			`  ${chalk.yellow("•")} ${padLabel(LABEL_BUILD)}   ${buildAbsPath}   (${detail})\n`
+		);
+	}
+	process.stderr.write("\n");
+}
+
+/**
+ * Display the result of the cache cleanup operation,
+ * including which caches were removed and their details.
+ *
+ * @param {object} data
+ * @param {object} data.frameworkResult
+ * @param {object} data.buildResult
+ * @param {string} data.frameworkAbsPath
+ * @param {string} data.buildAbsPath
+ * @param {number} data.buildPreSize
+ */
+async function displayCleanupResult({
+	frameworkResult,
+	buildResult,
+	frameworkAbsPath,
+	buildAbsPath,
+	buildPreSize,
+}) {
+	process.stderr.write("\n");
+	if (frameworkResult) {
+		const detail = formatFrameworkStats(
+			frameworkResult.libraryCount,
+			frameworkResult.versionCount,
+		);
+		process.stderr.write(
+			`${chalk.green("✓")} Removed ${chalk.bold(LABEL_FRAMEWORK)}` +
+				`   (${frameworkAbsPath} · ${detail})\n`,
+		);
+	}
+	if (buildResult) {
+		// Use pre-clean size so the number matches what was shown before confirmation
+		const detail = buildPreSize > 0 ? formatSize(buildPreSize) : "";
+		process.stderr.write(
+			`${chalk.green("✓")} Removed ${chalk.bold(LABEL_BUILD)}` +
+				`   (${buildAbsPath}${detail ? ` · ${detail}` : ""})\n`,
+		);
+	}
+
+	// Success summary
+	const cleaned = [];
+	if (frameworkResult) {
+		cleaned.push(LABEL_FRAMEWORK);
+	}
+	if (buildResult) {
+		cleaned.push(LABEL_BUILD);
+	}
+	process.stderr.write(
+		`\n${chalk.green("Success:")} Cleaned ${cleaned.join(" and ")}\n`,
+	);
+}
+
+/**
+ * Prompt the user for confirmation before proceeding with cache cleanup.
+ *
+ * @param {Yargs.Arguments} argv
+ * @returns {Promise<boolean>} Confirmation result
+ */
+async function getConfirmation(argv) {
+	if (argv.yes) {
+		return true;
+	}
+	const {default: yesno} = await import("yesno");
+	return yesno({
+		question: "Do you want to continue? (y/N)",
+		defaultValue: false
+	});
+}
+
 async function handleCache(argv) {
 	// Resolve UI5 data directory — uses the same resolution chain as ui5 build/serve:
 	// UI5_DATA_DIR env var → ui5DataDir config (~/.ui5rc) → default ~/.ui5
@@ -114,82 +217,44 @@ async function handleCache(argv) {
 	// Inform the user immediately — getPackageStats may take a moment on a large cache
 	process.stderr.write(`Checking cache at ${chalk.bold(ui5DataDir)} …\n`);
 
-	// Check what items exist before cleaning (orchestrate both domains)
 	const frameworkInfo = await frameworkCache.getCacheInfo(ui5DataDir);
 	const buildInfo = await CacheManager.getCacheInfo(ui5DataDir);
+
+	// Compute absolute paths once — producers return relative sub-path segments
+	const frameworkAbsPath = frameworkInfo ? path.join(ui5DataDir, frameworkInfo.path) : null;
+	const buildAbsPath = buildInfo ? path.join(ui5DataDir, buildInfo.path) : null;
+	const buildPreSize = buildInfo?.size ?? 0;
 
 	if (!frameworkInfo && !buildInfo) {
 		process.stderr.write("Nothing to clean\n");
 		return;
 	}
 
-	// Compute absolute paths once — producers return relative sub-path segments
-	const frameworkAbsPath = frameworkInfo ? path.join(ui5DataDir, frameworkInfo.path) : null;
-	const buildAbsPath = buildInfo ? path.join(ui5DataDir, buildInfo.path) : null;
+	await displayCacheInfo({
+		frameworkInfo,
+		buildInfo,
+		frameworkAbsPath,
+		buildAbsPath,
+		buildPreSize,
+	});
 
-	// Capture build size now — reused for the ✓ line to avoid a before/after mismatch
-	// (getDatabaseSize ≠ VACUUM-freed bytes returned by clearAllRecords)
-	const buildPreSize = buildInfo?.size ?? 0;
-
-	// Display items that will be removed
-	process.stderr.write(chalk.bold("\nThe following cached data will be removed:\n\n"));
-	if (frameworkInfo) {
-		const detail = formatFrameworkStats(frameworkInfo.libraryCount, frameworkInfo.versionCount);
-		process.stderr.write(
-			`  ${chalk.yellow("•")} ${padLabel(LABEL_FRAMEWORK)}   ${frameworkAbsPath}   (${detail})\n`
-		);
-	}
-	if (buildInfo) {
-		const detail = buildPreSize > 0 ? formatSize(buildPreSize) : "";
-		process.stderr.write(
-			`  ${chalk.yellow("•")} ${padLabel(LABEL_BUILD)}   ${buildAbsPath}   (${detail})\n`
-		);
-	}
-	process.stderr.write("\n");
-
-	// Ask for confirmation (skip with --yes)
-	if (!argv.yes) {
-		const {default: yesno} = await import("yesno");
-		const confirmed = await yesno({
-			question: "Do you want to continue? (y/N)",
-			defaultValue: false
-		});
-		if (!confirmed) {
-			process.stderr.write("Cancelled\n");
-			return;
-		}
+	const confirmed = await getConfirmation(argv);
+	if (!confirmed) {
+		process.stderr.write("Cancelled\n");
+		return;
 	}
 
 	// Perform the actual cleanup (orchestrate both domains)
 	const frameworkResult = await frameworkCache.cleanCache(ui5DataDir);
 	const buildResult = await CacheManager.cleanCache(ui5DataDir);
 
-	process.stderr.write("\n");
-	if (frameworkResult) {
-		const detail = formatFrameworkStats(frameworkResult.libraryCount, frameworkResult.versionCount);
-		process.stderr.write(
-			`${chalk.green("✓")} Removed ${chalk.bold(LABEL_FRAMEWORK)}` +
-			`   (${frameworkAbsPath} · ${detail})\n`
-		);
-	}
-	if (buildResult) {
-		// Use pre-clean size so the number matches what was shown before confirmation
-		const detail = buildPreSize > 0 ? formatSize(buildPreSize) : "";
-		process.stderr.write(
-			`${chalk.green("✓")} Removed ${chalk.bold(LABEL_BUILD)}` +
-			`   (${buildAbsPath}${detail ? ` · ${detail}` : ""})\n`
-		);
-	}
-
-	// Success summary
-	const cleaned = [];
-	if (frameworkResult) {
-		cleaned.push(LABEL_FRAMEWORK);
-	}
-	if (buildResult) {
-		cleaned.push(LABEL_BUILD);
-	}
-	process.stderr.write(`\n${chalk.green("Success:")} Cleaned ${cleaned.join(" and ")}\n`);
+	await displayCleanupResult({
+		frameworkResult,
+		buildResult,
+		frameworkAbsPath,
+		buildAbsPath,
+		buildPreSize,
+	});
 }
 
 export default cacheCommand;
