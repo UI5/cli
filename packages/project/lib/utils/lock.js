@@ -2,14 +2,12 @@ import path from "node:path";
 import {readdir} from "node:fs/promises";
 import {mkdir} from "node:fs/promises";
 import {promisify} from "node:util";
+import lockfile from "lockfile";
 
 /**
  * Lockfile staleness threshold shared across all lock users (framework installer,
  * cache cleanup, server, build). Must be consistent so that hasActiveLocks()
  * and individual lock acquisitions agree on when a lock is stale.
- *
- * Note: server.js in @ui5/server inlines this value as 60000 because it cannot
- * depend on @ui5/project at runtime. Keep the two in sync.
  */
 export const LOCK_STALE_MS = 60000;
 
@@ -24,17 +22,7 @@ export const CLEANUP_LOCK_NAME = "cache-cleanup.lock";
  * Resolve the absolute path to the shared locks directory within a UI5 data directory.
  *
  * All process-coordination lock files (framework installer, cache cleanup, server,
- * build) live here so that <code>ui5 cache clean</code> can scan a single directory
- * regardless of which subsystem holds the lock.
- *
- * Lock naming convention (slashes in package names are replaced with dashes by
- * AbstractInstaller#_sanitizeFileName):
- * <ul>
- *   <li><code>cache-cleanup.lock</code> — held by ui5 cache clean for the full deletion</li>
- *   <li><code>package-{pkg}@{ver}.lock</code> — held by both installers during package extraction</li>
- *   <li><code>server-{port}.lock</code> — held by ui5 serve for the full server lifetime</li>
- *   <li><code>build-{pid}.lock</code> — held by ui5 build for the full build duration</li>
- * </ul>
+ * build) live here.
  *
  * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
  * @returns {string} Absolute path to the locks directory (<code>~/.ui5/locks/</code>)
@@ -77,7 +65,6 @@ export async function hasActiveLocks(lockDir, {include, exclude} = {}) {
 		return false;
 	}
 
-	const {default: lockfile} = await import("lockfile");
 	const check = promisify(lockfile.check);
 	for (const lockFileName of lockFiles) {
 		const lockPath = path.join(lockDir, lockFileName);
@@ -92,10 +79,8 @@ export async function hasActiveLocks(lockDir, {include, exclude} = {}) {
 /**
  * Acquire a lockfile and return a release function.
  *
- * Use this for process-lifetime locks where the lock must outlive a single function
- * call (e.g. <code>ui5 serve</code>, <code>ui5 build</code>). The returned
- * <code>release</code> function must be called to release the lock on graceful
- * shutdown. On abnormal process exit (signals, crashes), lockfile's own
+ * The returned <code>release</code> function must be called to release the lock on graceful
+ * shutdown. On abnormal process exit (signals), lockfile's own
  * signal-exit handler handles cleanup automatically.
  *
  * Creates the lock directory if it does not exist.
@@ -108,9 +93,10 @@ export async function hasActiveLocks(lockDir, {include, exclude} = {}) {
  */
 export async function acquireLock(lockPath, {wait, retries} = {}) {
 	await mkdir(path.dirname(lockPath), {recursive: true});
-	const {default: lockfile} = await import("lockfile");
 	await promisify(lockfile.lock)(lockPath, {stale: LOCK_STALE_MS, wait, retries});
 	return () => {
+		// unlockSync is used here as in some cases the process may be exiting
+		// and async cleanup may not complete in time.
 		lockfile.unlockSync(lockPath);
 	};
 }
