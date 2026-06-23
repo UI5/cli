@@ -16,8 +16,3 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = ["2010 Sencha Inc.", "2011 LearnBoost", "2011 TJ Holowaychuk", "2014-2015 Douglas Christopher Wilson"]
 SPDX-License-Identifier = "MIT"
 
-[[annotations]]
-path = "lib/middleware/testRunner/**"
-precedence = "aggregate"
-SPDX-FileCopyrightText = "2026 SAP SE or an SAP affiliate company and OpenUI5 contributors"
-SPDX-License-Identifier = "Apache-2.0"

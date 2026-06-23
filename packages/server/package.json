@@ -49,7 +49,6 @@
 			"text-summary"
 		],
 		"exclude": [
-			"lib/middleware/testRunner/TestRunner.js",
 			"docs/**",
 			"coverage/**",
 			"test/**"

@@ -235,17 +235,16 @@ test("addMiddleware: Add middleware with afterMiddleware referencing removed mid
 		mountPath: "/pony"
 	});
 
-	// Custom middleware should be placed after testRunner (predecessor of serveThemes)
-	const testRunnerIdx = middlewareManager.middlewareExecutionOrder.indexOf("testRunner");
+	// Custom middleware should be placed in the slot the removed serveThemes originally occupied,
+	// i.e. directly after the serveThemes placeholder (and therefore directly before versionInfo).
+	const serveThemesIdx = middlewareManager.middlewareExecutionOrder.indexOf("serveThemes");
 	const customIdx = middlewareManager.middlewareExecutionOrder.indexOf("customMiddleware");
-	t.is(customIdx, testRunnerIdx + 1,
-		"Custom middleware is placed right after testRunner (predecessor of removed serveThemes)");
+	t.is(customIdx, serveThemesIdx + 1,
+		"Custom middleware is placed right after the serveThemes placeholder (original slot)");
 
 	t.is(warnSpy.callCount, 1, "Warning was logged");
 	t.true(warnSpy.getCall(0).args[0].includes("serveThemes"),
 		"Warning message mentions removed middleware");
-	t.true(warnSpy.getCall(0).args[0].includes("testRunner"),
-		"Warning message mentions fallback target");
 	t.true(warnSpy.getCall(0).args[0].includes("migrate-v5"),
 		"Warning message includes migration guide URL");
 });
@@ -274,17 +273,15 @@ test("addMiddleware: Add middleware with beforeMiddleware referencing removed mi
 		mountPath: "/pony"
 	});
 
-	// Custom middleware should be placed before versionInfo (successor of serveThemes)
-	const versionInfoIdx = middlewareManager.middlewareExecutionOrder.indexOf("versionInfo");
+	// Custom middleware should be placed directly before the serveThemes placeholder
+	const serveThemesIdx = middlewareManager.middlewareExecutionOrder.indexOf("serveThemes");
 	const customIdx = middlewareManager.middlewareExecutionOrder.indexOf("customMiddleware");
-	t.is(customIdx, versionInfoIdx - 1,
-		"Custom middleware is placed right before versionInfo (successor of removed serveThemes)");
+	t.is(customIdx, serveThemesIdx - 1,
+		"Custom middleware is placed right before the serveThemes placeholder (original slot)");
 
 	t.is(warnSpy.callCount, 1, "Warning was logged");
 	t.true(warnSpy.getCall(0).args[0].includes("serveThemes"),
 		"Warning message mentions removed middleware");
-	t.true(warnSpy.getCall(0).args[0].includes("versionInfo"),
-		"Warning message mentions fallback target");
 	t.true(warnSpy.getCall(0).args[0].includes("migrate-v5"),
 		"Warning message includes migration guide URL");
 });
@@ -316,18 +313,172 @@ test("addMiddleware: Multiple custom middlewares referencing removed middleware"
 		afterMiddleware: "serveThemes"
 	});
 
-	// Both should be placed after testRunner (predecessor of serveThemes)
-	// Since both reference the same position, they end up in reverse insertion order
-	const testRunnerIdx = middlewareManager.middlewareExecutionOrder.indexOf("testRunner");
+	// Both reference the same slot (right after the serveThemes placeholder).
+	// As with any two customs sharing a slot, they end up in reverse insertion order.
+	const serveThemesIdx = middlewareManager.middlewareExecutionOrder.indexOf("serveThemes");
 	const custom1Idx = middlewareManager.middlewareExecutionOrder.indexOf("customMiddleware1");
 	const custom2Idx = middlewareManager.middlewareExecutionOrder.indexOf("customMiddleware2");
 
-	t.is(custom2Idx, testRunnerIdx + 1,
-		"Second custom middleware is placed right after testRunner (inserted last)");
-	t.is(custom1Idx, testRunnerIdx + 2,
+	t.is(custom2Idx, serveThemesIdx + 1,
+		"Second custom middleware is placed right after the serveThemes placeholder (inserted last)");
+	t.is(custom1Idx, serveThemesIdx + 2,
 		"First custom middleware is placed after the second one (was pushed forward)");
 
 	t.is(warnSpy.callCount, 2, "Warning was logged for both middlewares");
+});
+
+test("addMiddleware: Add middleware with afterMiddleware referencing removed testRunner", async (t) => {
+	const {sinon} = t.context;
+	const warnSpy = sinon.spy();
+	const StubbedMiddlewareManager = await esmock("../../../../lib/middleware/MiddlewareManager.js", {
+		"@ui5/logger": {getLogger: sinon.stub().returns({warn: warnSpy})}
+	});
+	const middlewareManager = new StubbedMiddlewareManager({
+		graph: {},
+		rootProject: "root project",
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		}
+	});
+
+	await middlewareManager.addStandardMiddleware();
+
+	await middlewareManager.addMiddleware("customMiddleware", {
+		customMiddleware: () => {},
+		afterMiddleware: "testRunner",
+		mountPath: "/pony"
+	});
+
+	// Custom middleware should be placed directly after the testRunner placeholder,
+	// preserving the original testRunner slot (between testRunner and serveThemes).
+	const testRunnerIdx = middlewareManager.middlewareExecutionOrder.indexOf("testRunner");
+	const customIdx = middlewareManager.middlewareExecutionOrder.indexOf("customMiddleware");
+	t.is(customIdx, testRunnerIdx + 1,
+		"Custom middleware is placed right after the testRunner placeholder (original slot)");
+
+	t.is(warnSpy.callCount, 1, "Warning was logged");
+	t.true(warnSpy.getCall(0).args[0].includes("testRunner"),
+		"Warning message mentions removed middleware");
+	t.true(warnSpy.getCall(0).args[0].includes("migrate-v5"),
+		"Warning message includes migration guide URL");
+});
+
+test("addMiddleware: Add middleware with beforeMiddleware referencing removed testRunner", async (t) => {
+	const {sinon} = t.context;
+	const warnSpy = sinon.spy();
+	const StubbedMiddlewareManager = await esmock("../../../../lib/middleware/MiddlewareManager.js", {
+		"@ui5/logger": {getLogger: sinon.stub().returns({warn: warnSpy})}
+	});
+	const middlewareManager = new StubbedMiddlewareManager({
+		graph: {},
+		rootProject: "root project",
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		}
+	});
+
+	await middlewareManager.addStandardMiddleware();
+
+	await middlewareManager.addMiddleware("customMiddleware", {
+		customMiddleware: () => {},
+		beforeMiddleware: "testRunner",
+		mountPath: "/pony"
+	});
+
+	// Custom middleware should be placed directly before the testRunner placeholder
+	const testRunnerIdx = middlewareManager.middlewareExecutionOrder.indexOf("testRunner");
+	const customIdx = middlewareManager.middlewareExecutionOrder.indexOf("customMiddleware");
+	t.is(customIdx, testRunnerIdx - 1,
+		"Custom middleware is placed right before the testRunner placeholder (original slot)");
+
+	t.is(warnSpy.callCount, 1, "Warning was logged");
+	t.true(warnSpy.getCall(0).args[0].includes("testRunner"),
+		"Warning message mentions removed middleware");
+	t.true(warnSpy.getCall(0).args[0].includes("migrate-v5"),
+		"Warning message includes migration guide URL");
+});
+
+test("addMiddleware: Order between customs referencing different removed middlewares is preserved", async (t) => {
+	const {sinon} = t.context;
+	const warnSpy = sinon.spy();
+	const StubbedMiddlewareManager = await esmock("../../../../lib/middleware/MiddlewareManager.js", {
+		"@ui5/logger": {getLogger: sinon.stub().returns({warn: warnSpy})}
+	});
+	const middlewareManager = new StubbedMiddlewareManager({
+		graph: {},
+		rootProject: "root project",
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		}
+	});
+
+	await middlewareManager.addStandardMiddleware();
+
+	// Original execution order before removal was:
+	//   serveResources → testRunner → serveThemes → versionInfo
+	// "afterMiddleware: testRunner" originally executed before "afterMiddleware: serveThemes".
+	await middlewareManager.addMiddleware("afterTestRunner", {
+		customMiddleware: () => {},
+		afterMiddleware: "testRunner"
+	});
+	await middlewareManager.addMiddleware("afterServeThemes", {
+		customMiddleware: () => {},
+		afterMiddleware: "serveThemes"
+	});
+
+	const afterTestRunnerIdx = middlewareManager.middlewareExecutionOrder.indexOf("afterTestRunner");
+	const afterServeThemesIdx = middlewareManager.middlewareExecutionOrder.indexOf("afterServeThemes");
+	t.true(afterTestRunnerIdx < afterServeThemesIdx,
+		"Custom middleware referencing testRunner executes before one referencing serveThemes, " +
+		"preserving the original relative order");
+});
+
+test("applyMiddleware: Legacy placeholders are not mounted on the app", async (t) => {
+	const {sinon} = t.context;
+	const warnSpy = sinon.spy();
+	const StubbedMiddlewareManager = await esmock("../../../../lib/middleware/MiddlewareManager.js", {
+		"@ui5/logger": {getLogger: sinon.stub().returns({warn: warnSpy})}
+	});
+	const middlewareManager = new StubbedMiddlewareManager({
+		graph: {
+			getRoot: () => ({
+				getName: () => "my project",
+				getCustomMiddleware: () => []
+			})
+		},
+		rootProject: "root project",
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		}
+	});
+
+	const appUseStub = sinon.stub();
+	const result = await middlewareManager.applyMiddleware({use: appUseStub});
+
+	t.true(middlewareManager.middlewareExecutionOrder.includes("testRunner"),
+		"testRunner placeholder is part of the execution order");
+	t.true(middlewareManager.middlewareExecutionOrder.includes("serveThemes"),
+		"serveThemes placeholder is part of the execution order");
+
+	// Two entries in the execution order are placeholders without a corresponding middleware,
+	// so app.use must be called exactly that many times less than there are execution-order entries.
+	t.is(appUseStub.callCount, middlewareManager.middlewareExecutionOrder.length - 2,
+		"app.use is called for every entry except the two legacy placeholders");
+	t.true(appUseStub.getCalls().every((call) => call.args[1] !== undefined),
+		"No placeholder was mounted as middleware");
+
+	// Returned array length must equal the number of actually mounted middlewares,
+	// not the number of execution-order entries (which includes the legacy placeholders).
+	t.is(result.length, appUseStub.callCount,
+		"applyMiddleware result length equals number of mounted middlewares");
 });
 
 test("addMiddleware: Add middleware with afterMiddleware parameter", async (t) => {
@@ -459,10 +610,15 @@ test("addStandardMiddleware: Adds standard middleware in correct order", async (
 			dependencies: "ponies"
 		}
 	});
-	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
+	// Stub addMiddleware to also reflect added middlewares in middlewareExecutionOrder so that
+	// the relative position of the legacy placeholders (inserted directly into the execution order)
+	// can be asserted below.
+	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").callsFake(async (name) => {
+		middlewareManager.middlewareExecutionOrder.push(name);
+	});
 	await middlewareManager.addStandardMiddleware();
 
-	t.is(addMiddlewareStub.callCount, 10, "Expected count of middleware got added");
+	t.is(addMiddlewareStub.callCount, 9, "Expected count of middleware got added");
 	const addedMiddlewareNames = [];
 	for (let i = 0; i < addMiddlewareStub.callCount; i++) {
 		addedMiddlewareNames.push(addMiddlewareStub.getCall(i).args[0]);
@@ -474,11 +630,27 @@ test("addStandardMiddleware: Adds standard middleware in correct order", async (
 		"liveReloadClient",
 		"discovery",
 		"serveResources",
-		"testRunner",
 		"versionInfo",
 		"nonReadRequests",
 		"serveIndex"
 	], "Correct order of standard middlewares");
+
+	// Legacy placeholders for removed standard middlewares are inserted directly into the
+	// execution order (not via addMiddleware) between serveResources and versionInfo so that
+	// custom middlewares referencing them keep their original slot.
+	t.deepEqual(middlewareManager.middlewareExecutionOrder, [
+		"csp",
+		"compression",
+		"cors",
+		"liveReloadClient",
+		"discovery",
+		"serveResources",
+		"testRunner",
+		"serveThemes",
+		"versionInfo",
+		"nonReadRequests",
+		"serveIndex"
+	], "Legacy placeholders are inserted between serveResources and versionInfo");
 });
 
 test("addCustomMiddleware: No custom middleware defined", async (t) => {
