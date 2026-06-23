@@ -6,18 +6,23 @@ const FRAMEWORK_DIR_NAME = "framework";
 
 /**
  * Count unique libraries and versions in the packages/ subdirectory.
- * Uses a 3-level readdir walk (project → library → version) with no recursion into
- * package contents. Inner levels are parallelised with Promise.all to avoid serial
- * I/O on large caches.
  *
  * Library names are deduplicated globally: sap.m under @openui5 and @sapui5 counts
  * as one library.
  *
- * @param {string} packagesDir Absolute path to the packages directory
+ * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
  * @returns {Promise<{libraries: number, versions: number}|null>}
  *   Null if the directory does not exist or contains no installed libraries.
  */
-async function getPackageStats(packagesDir) {
+async function getPackageStats(ui5DataDir) {
+	const frameworkDir = path.join(ui5DataDir, FRAMEWORK_DIR_NAME);
+	try {
+		await fs.access(frameworkDir);
+	} catch {
+		return null;
+	}
+
+	const packagesDir = path.join(frameworkDir, "packages");
 	let projectDirs;
 	try {
 		projectDirs = await fs.readdir(packagesDir, {withFileTypes: true});
@@ -25,35 +30,22 @@ async function getPackageStats(packagesDir) {
 		return null;
 	}
 
-	const librarySet = new Set();
-	const versionSet = new Set();
-
-	await Promise.all(projectDirs.filter((e) => e.isDirectory()).map(async (project) => {
-		let libDirs;
-		try {
-			libDirs = await fs.readdir(
-				path.join(packagesDir, project.name), {withFileTypes: true});
-		} catch {
-			return;
-		}
-
-		await Promise.all(libDirs.filter((e) => e.isDirectory()).map(async (lib) => {
-			let versionDirs;
-			try {
-				versionDirs = await fs.readdir(
-					path.join(packagesDir, project.name, lib.name), {withFileTypes: true});
-			} catch {
-				return;
-			}
-			const installedVersions = versionDirs.filter((v) => v.isDirectory());
-			if (installedVersions.length > 0) {
-				librarySet.add(lib.name); // deduplicated: sap.m counts once across all projects
-				for (const v of installedVersions) {
-					versionSet.add(v.name);
+	const extractSubDir = (dirList) => {
+		return dirList.filter((e) => e.isDirectory())
+			.map((currentDir) => {
+				try {
+					return fs.readdir(path.join(currentDir.parentPath, currentDir.name), {withFileTypes: true});
+				} catch {
+					return;
 				}
-			}
-		}));
-	}));
+			});
+	};
+
+	const libDirs = (await Promise.all(extractSubDir(projectDirs))).flat();
+	const versionDirs = (await Promise.all(extractSubDir(libDirs))).flat();
+
+	const librarySet = new Set(libDirs.map((e) => e.name));
+	const versionSet = new Set(versionDirs.map((e) => e.name));
 
 	return librarySet.size > 0 ?
 		{libraries: librarySet.size, versions: versionSet.size} :
@@ -68,14 +60,7 @@ async function getPackageStats(packagesDir) {
  *   Framework cache info, or null if no packages are installed.
  */
 export async function getCacheInfo(ui5DataDir) {
-	const frameworkDir = path.join(ui5DataDir, FRAMEWORK_DIR_NAME);
-	try {
-		await fs.access(frameworkDir);
-	} catch {
-		return null;
-	}
-
-	const stats = await getPackageStats(path.join(frameworkDir, "packages"));
+	const stats = await getPackageStats(ui5DataDir);
 	if (!stats) {
 		return null;
 	}
@@ -91,8 +76,6 @@ export async function getCacheInfo(ui5DataDir) {
  *
  * Acquires a cleanup lock before deletion so that concurrent installer
  * processes see an active lock and wait rather than writing into a
- * partially-deleted cache. The locks/ directory is preserved throughout
- * the deletion and removed only after the lock is released.
  *
  * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
  * @returns {Promise<{path: string, libraryCount: number, versionCount: number}|null>}
@@ -100,21 +83,14 @@ export async function getCacheInfo(ui5DataDir) {
  * @throws {Error} If a framework operation is currently active (active lockfiles detected)
  */
 export async function cleanCache(ui5DataDir) {
-	const frameworkDir = path.join(ui5DataDir, FRAMEWORK_DIR_NAME);
-
-	try {
-		await fs.access(frameworkDir);
-	} catch {
-		return null;
-	}
-
-	const stats = await getPackageStats(path.join(frameworkDir, "packages"));
+	const stats = await getPackageStats(ui5DataDir);
 	if (!stats) {
 		return null;
 	}
 
 	const lockDir = getLockDir(ui5DataDir);
 	const lockPath = path.join(lockDir, CLEANUP_LOCK_NAME);
+	const frameworkDir = path.join(ui5DataDir, FRAMEWORK_DIR_NAME);
 
 	// Acquire first, then check — ensures installers running concurrently will see
 	// the cleanup lock and abort before writing into a directory being deleted.
@@ -141,15 +117,12 @@ export async function cleanCache(ui5DataDir) {
 
 		// Delete everything inside framework/
 		const entries = await fs.readdir(frameworkDir, {withFileTypes: true});
-		await Promise.all(
-			entries
-				.map((e) => {
-					const p = path.join(frameworkDir, e.name);
-					return e.isDirectory() ?
-						fs.rm(p, {recursive: true, force: true}) :
-						fs.unlink(p);
-				})
-		);
+		await Promise.all(entries.map((entry) => {
+			const curDir = path.join(frameworkDir, entry.name);
+			return entry.isDirectory() ?
+				fs.rm(curDir, {recursive: true, force: true}) :
+				fs.unlink(curDir);
+		}));
 	} finally {
 		releaseCleanupLock();
 	}
