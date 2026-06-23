@@ -58,6 +58,7 @@ class BuildServer extends EventEmitter {
 	#rootReader;
 	#dependenciesReader;
 	#releaseLock;
+	#ui5DataDir;
 
 	/**
 	 * Creates a new BuildServer instance
@@ -69,12 +70,14 @@ class BuildServer extends EventEmitter {
 	 * @private
 	 * @param {@ui5/project/graph/ProjectGraph} graph Project graph containing all projects
 	 * @param {@ui5/project/build/ProjectBuilder} projectBuilder Builder instance for executing builds
+	 * @param {string} [ui5DataDir] UI5 data directory to use for the build server
 	 */
-	constructor(graph, projectBuilder) {
+	constructor(graph, projectBuilder, ui5DataDir) {
 		super();
 		this.#graph = graph;
 		this.#rootProjectName = graph.getRoot().getName();
 		this.#projectBuilder = projectBuilder;
+		this.#ui5DataDir = ui5DataDir;
 
 		const buildServerInterface = {
 			getReaderForProject: this.#getReaderForProject.bind(this),
@@ -117,13 +120,14 @@ class BuildServer extends EventEmitter {
 	 * @param {boolean} initialBuildRootProject Whether to build the root project in the initial build
 	 * @param {string[]} initialBuildIncludedDependencies Project names to include in initial build
 	 * @param {string[]} initialBuildExcludedDependencies Project names to exclude from initial build
+	 * @param {string} [ui5DataDir] UI5 data directory to use for the build server
 	 * @returns {Promise<BuildServer>} Resolves once the watcher is ready
 	 */
 	static async create(
 		graph, projectBuilder,
-		initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies
+		initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies, ui5DataDir
 	) {
-		const buildServer = new BuildServer(graph, projectBuilder);
+		const buildServer = new BuildServer(graph, projectBuilder, ui5DataDir);
 		await buildServer.#acquireLock();
 		await buildServer.#initWatcher();
 		buildServer.#enqueueInitialBuilds(
@@ -133,7 +137,7 @@ class BuildServer extends EventEmitter {
 	}
 
 	async #acquireLock() {
-		const resolvedUi5DataDir = this.#projectBuilder._ui5DataDir ?? await resolveUi5DataDir();
+		const resolvedUi5DataDir = this.#ui5DataDir ?? await resolveUi5DataDir();
 		const lockId = Buffer.from(getRandomValues(new Uint8Array(4))).toString("hex");
 		const lockPath = path.join(getLockDir(resolvedUi5DataDir), `server-${process.pid}-${lockId}.lock`);
 		this.#releaseLock = await acquireLock(lockPath);
