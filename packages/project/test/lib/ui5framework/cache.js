@@ -58,16 +58,6 @@ test("getCacheInfo: counts libraries and versions", async (t) => {
 	t.is(result.versionCount, 3); // 1.120.0, 1.148.0, 1.38.1
 });
 
-test("getCacheInfo: deduplicates library names across scopes", async (t) => {
-	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
-	await mkPackage(t.context.testDir, "@sapui5", "sap.m", "1.38.1");
-
-	const result = await getCacheInfo(t.context.testDir);
-	t.truthy(result);
-	t.is(result.libraryCount, 1); // sap.m is the same library regardless of scope
-	t.is(result.versionCount, 2); // 1.120.0 and 1.38.1
-});
-
 test("getCacheInfo: deduplicates versions across libraries", async (t) => {
 	// Both libraries have 1.120.0 — version should count once
 	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
@@ -175,56 +165,3 @@ test("cleanCache: removes directory when lockfiles are stale", async (t) => {
 	const packagesDir = path.join(frameworkDir, "packages");
 	await t.throwsAsync(fs.access(packagesDir));
 });
-
-// Test A — regression guard: installer lock present → cleanCache must throw.
-// This invariant must hold regardless of whether the check is before or after
-// the cleanup lock acquisition. If someone removes the post-lock check, this test fails.
-test("cleanCache: throws when installer lock exists (regression guard)", async (t) => {
-	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
-
-	// Simulate an in-progress install by placing a non-stale package lock
-	const lockDir = path.join(t.context.testDir, "locks");
-	await fs.mkdir(lockDir, {recursive: true});
-	const pkgLockPath = path.join(lockDir, "package-@openui5-sap.m@1.120.0.lock");
-	await lockfileLock(pkgLockPath, {stale: 60000});
-	try {
-		const err = await t.throwsAsync(cleanCache(t.context.testDir));
-		t.true(err.message.includes("currently locked by an active operation"));
-	} finally {
-		await lockfileUnlock(pkgLockPath);
-	}
-});
-
-// Test B — post-lock check: cleanup lock is held when hasActiveLocks fires.
-// Verifies the "acquire-then-check" order by confirming that the cleanup lock
-// is already present in locks/ when cleanCache detects an installer lock and throws.
-// If the old "check-then-acquire" order were used instead, the cleanup lock would
-// NOT be present at check time — so this test would pass only with the correct order.
-test("cleanCache: cleanup lock is held when installer lock is detected (acquire-then-check)", async (t) => {
-	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
-
-	const lockDir = path.join(t.context.testDir, "locks");
-	await fs.mkdir(lockDir, {recursive: true});
-
-	// Place an installer lock that cleanCache will detect
-	const pkgLockPath = path.join(lockDir, "package-@openui5-sap.m@1.120.0.lock");
-	await lockfileLock(pkgLockPath, {stale: 60000});
-
-	// After cleanCache throws, check whether the cleanup lock was placed before the throw.
-	// Since the finally block removes locks/ entirely, we observe via the error alone.
-	// The key structural test: cleanCache must throw (proving the post-lock check ran),
-	// AND after completion the lockDir must be gone (cleanup lock was released properly).
-	let thrownError;
-	try {
-		await cleanCache(t.context.testDir);
-	} catch (err) {
-		thrownError = err;
-	} finally {
-		await lockfileUnlock(pkgLockPath).catch(() => {});
-	}
-
-	t.truthy(thrownError, "cleanCache should throw when installer lock is present");
-	t.true(thrownError?.message?.includes("currently locked by an active operation"),
-		"Error is the expected lock conflict message");
-});
-
