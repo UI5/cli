@@ -139,6 +139,9 @@ class BuildServer extends EventEmitter {
 	async #acquireLock() {
 		const resolvedUi5DataDir = this.#ui5DataDir ?? await resolveUi5DataDir();
 		const lockId = Buffer.from(getRandomValues(new Uint8Array(4))).toString("hex");
+		// The lock has unique name, so multiple processes can run concurrently.
+		// Also multiple BuildServer instances in the
+		// same process can run concurrently without collisions.
 		const lockPath = path.join(getLockDir(resolvedUi5DataDir), `server-${process.pid}-${lockId}.lock`);
 		this.#releaseLock = await acquireLock(lockPath);
 	}
@@ -189,6 +192,11 @@ class BuildServer extends EventEmitter {
 			// and subsequent fs.rm of the cache directory fails with EBUSY on Windows.
 			this.#projectBuilder.closeCacheManager();
 			if (this.#releaseLock) {
+				// In case of exceptions during the BuildServer lifecycle,
+				// the locks will become stale at certain point and will be
+				// automatically cleaned up by the lock manager.
+				// Note: this is a safe guard against lock leaks, but
+				// for the sake of clarity, the locks should be released in a predictable manner and explicitly.
 				this.#releaseLock();
 			}
 		}

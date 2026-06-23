@@ -66,12 +66,19 @@ export async function hasActiveLocks(lockDir, {include, exclude} = {}) {
 	}
 
 	const check = promisify(lockfile.check);
+	const unlock = promisify(lockfile.unlock);
+
 	for (const lockFileName of lockFiles) {
 		const lockPath = path.join(lockDir, lockFileName);
 		const isLocked = await check(lockPath, {stale: LOCK_STALE_MS});
 		if (isLocked) {
 			return true;
 		}
+
+		// This is a stale lock file that no longer serves its purpose.
+		// It's maybe there as some process crashed and didn't clean up after itself.
+		// We can try to remove it.
+		await unlock(lockPath).catch(() => {});
 	}
 	return false;
 }
