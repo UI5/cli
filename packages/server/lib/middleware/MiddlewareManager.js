@@ -5,15 +5,6 @@ const hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
 const log = getLogger("server:MiddlewareManager");
 
 /**
- * Mapping of removed standard middleware names to their predecessor and successor
- * in the original execution order. Used to remap custom middleware references
- * to the nearest remaining middleware when a removed middleware is referenced.
- */
-const LEGACY_MIDDLEWARE_MAPPING = {
-	serveThemes: {before: "testRunner", after: "versionInfo"}
-};
-
-/**
  * @private
  * @typedef {object} MiddlewareResources
  * @property {@ui5/fs/AbstractReader} all Reader or Collection to read resources of the
@@ -49,6 +40,7 @@ class MiddlewareManager {
 
 		this.middleware = Object.create(null);
 		this.middlewareExecutionOrder = [];
+		this.legacyMiddlewarePlaceholders = new Set();
 		this.middlewareUtil = new MiddlewareUtil({graph, project: rootProject});
 	}
 
@@ -64,10 +56,15 @@ class MiddlewareManager {
 		await this.addStandardMiddleware();
 		await this.addCustomMiddleware();
 
-		return this.middlewareExecutionOrder.map((name) => {
-			const m = this.middleware[name];
-			app.use(m.mountPath, m.middleware);
-		});
+		// Strip legacy placeholders for removed standard middlewares — they only existed
+		// in middlewareExecutionOrder to preserve slots for custom beforeMiddleware /
+		// afterMiddleware references and are not backed by an actual middleware.
+		return this.middlewareExecutionOrder
+			.filter((name) => !this.legacyMiddlewarePlaceholders.has(name))
+			.map((name) => {
+				const m = this.middleware[name];
+				app.use(m.mountPath, m.middleware);
+			});
 	}
 
 	/**
@@ -86,7 +83,7 @@ class MiddlewareManager {
 		customMiddleware, wrapperCallback, mountPath = "/",
 		beforeMiddleware, afterMiddleware
 	} = {}) {
-		if (this.middleware[middlewareName]) {
+		if (this.#isMiddlewareNameKnown(middlewareName)) {
 			throw new Error(`A middleware with the name ${middlewareName} has already been added`);
 		}
 
@@ -107,8 +104,7 @@ class MiddlewareManager {
 		}
 
 		if (beforeMiddleware || afterMiddleware) {
-			let refMiddlewareName = beforeMiddleware || afterMiddleware;
-			const originalRefMiddlewareName = refMiddlewareName; // Store original before any remapping
+			const refMiddlewareName = beforeMiddleware || afterMiddleware;
 			let refMiddlewareIdx = this.middlewareExecutionOrder.indexOf(refMiddlewareName);
 
 			if (refMiddlewareName === "connectUi5Proxy") {
@@ -119,33 +115,23 @@ class MiddlewareManager {
 					`Please see the migration guide at https://ui5.github.io/cli/updates/migrate-v3/`);
 			}
 
-			// Handle legacy middleware with graceful fallback
-			const legacyMapping = LEGACY_MIDDLEWARE_MAPPING[refMiddlewareName];
-			if (legacyMapping) {
-				// Replace with the appropriate fallback based on reference type
-				refMiddlewareName = afterMiddleware ? legacyMapping.before : legacyMapping.after;
-
+			// Warn when a removed standard middleware is referenced. The reference still resolves
+			// because the removed middleware is kept as a placeholder in middlewareExecutionOrder
+			// (see #addLegacyMiddlewarePlaceholder), preserving the original execution slot.
+			if (this.legacyMiddlewarePlaceholders.has(refMiddlewareName)) {
 				log.warn(
-					`Standard middleware "${originalRefMiddlewareName}" has been removed. ` +
+					`Standard middleware "${refMiddlewareName}" has been removed. ` +
 					`Custom middleware "${middlewareName}" defined in project ` +
-					`"${this.middlewareUtil.getProject()}" references it and ` +
-					`is now placed ${afterMiddleware ? "after" : "before"} ` +
-					`"${refMiddlewareName}" instead. ` +
+					`"${this.middlewareUtil.getProject()}" still references it. ` +
+					`The custom middleware will be executed in the slot the removed middleware ` +
+					`originally occupied, but the reference should be updated. ` +
 					`For details, see the migration guide at ` +
 					`https://ui5.github.io/cli/next/updates/migrate-v5`);
 			}
 
-			refMiddlewareIdx = this.middlewareExecutionOrder.indexOf(refMiddlewareName);
-
 			if (refMiddlewareIdx === -1) {
-				// Provide clear error message, including remapping context if applicable
-				const errorMsg = legacyMapping ?
-					`Could not find fallback middleware "${refMiddlewareName}" ` +
-					`(mapped from removed middleware "${originalRefMiddlewareName}"), ` +
-					`referenced by custom middleware "${middlewareName}"` :
-					`Could not find middleware ${refMiddlewareName}, referenced by custom ` +
-					`middleware ${middlewareName}`;
-				throw new Error(errorMsg);
+				throw new Error(`Could not find middleware ${refMiddlewareName}, referenced by custom ` +
+					`middleware ${middlewareName}`);
 			}
 			if (afterMiddleware) {
 				// Insert after index of referenced middleware
@@ -272,7 +258,8 @@ class MiddlewareManager {
 				});
 			}
 		});
-		await this.addMiddleware("testRunner");
+		this.#addLegacyMiddlewarePlaceholder("testRunner");
+		this.#addLegacyMiddlewarePlaceholder("serveThemes");
 		await this.addMiddleware("versionInfo", {
 			mountPath: "/resources/sap-ui-version.json"
 		});
@@ -327,11 +314,11 @@ class MiddlewareManager {
 			}
 
 			let middlewareName = middlewareDef.name;
-			if (this.middleware[middlewareName]) {
+			if (this.#isMiddlewareNameKnown(middlewareName)) {
 				// Middleware is already known
 				// => add a suffix to allow for multiple configurations of the same middleware
 				let suffixCounter = 0;
-				while (this.middleware[middlewareName]) {
+				while (this.#isMiddlewareNameKnown(middlewareName)) {
 					suffixCounter++; // Start at 1
 					middlewareName = `${middlewareDef.name}--${suffixCounter}`;
 				}
@@ -362,6 +349,35 @@ class MiddlewareManager {
 				afterMiddleware: middlewareDef.afterMiddleware
 			});
 		}
+	}
+
+	/**
+	 * Inserts a no-op placeholder for a removed standard middleware into the execution order.
+	 * Placeholders preserve the original slot so custom middlewares referencing the removed
+	 * middleware via beforeMiddleware / afterMiddleware keep their intended position.
+	 * They are stripped in applyMiddleware() before mounting on the express app.
+	 *
+	 * @private
+	 * @param {string} middlewareName Name of the removed standard middleware
+	 */
+	#addLegacyMiddlewarePlaceholder(middlewareName) {
+		this.legacyMiddlewarePlaceholders.add(middlewareName);
+		this.middlewareExecutionOrder.push(middlewareName);
+	}
+
+	/**
+	 * Returns whether the given middleware name is already known — either registered
+	 * in <code>this.middleware</code> or occupying a legacy placeholder slot.
+	 * Placeholder names are treated as known to avoid collisions in the execution order:
+	 * a custom middleware named e.g. "testRunner" would otherwise clash with the
+	 * placeholder inserted to preserve its original slot.
+	 *
+	 * @private
+	 * @param {string} middlewareName Middleware name to check
+	 * @returns {boolean}
+	 */
+	#isMiddlewareNameKnown(middlewareName) {
+		return !!(this.middleware[middlewareName] || this.legacyMiddlewarePlaceholders.has(middlewareName));
 	}
 }
 

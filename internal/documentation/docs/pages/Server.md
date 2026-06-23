@@ -28,7 +28,9 @@ Please be aware of the following risks when using the server:
 ::: info Removed Middleware
 The `serveThemes` middleware has been removed in UI5 CLI v5. Theme compilation is now handled by the `buildThemes` build task, which pre-compiles all theme CSS files. The resulting CSS files (including `library.css`, `library-RTL.css`, `library-parameters.json`, and CSS Variables resources) are served via the `serveResources` middleware, providing the same functionality with better performance through build-time compilation and caching.
 
-Custom middleware previously referencing `serveThemes` via `beforeMiddleware` or `afterMiddleware` will continue to work with automatic remapping and a deprecation warning. See the [v5 migration guide](../updates/migrate-v5.md) for details.
+The `testRunner` middleware has also been removed in UI5 CLI v5. The QUnit TestRunner (`testrunner.html`, `testrunner.css`, `TestRunner.js`) is now provided by the UI5 framework (`sap.ui.core`) and is served via the `serveResources` middleware.
+
+Custom middleware previously referencing `serveThemes` or `testRunner` via `beforeMiddleware` or `afterMiddleware` will continue to work with automatic remapping and a deprecation warning. See the [v5 migration guide](../updates/migrate-v5.md) for details.
 :::
 
 All available standard middleware are listed below in the order of their execution.
@@ -43,7 +45,6 @@ A project can also add custom middleware to the server by using the [Custom Serv
 | `liveReloadClient` | See chapter [liveReload](#livereload) |
 | `discovery` |  See chapter [discovery](#discovery) |
 | `serveResources` | See chapter [serveResources](#serveresources) |
-| `testRunner` | See chapter [testRunner](#testrunner) |
 | `versionInfo` | See chapter [versionInfo](#versioninfo)  |
 | `nonReadRequests` | See chapter [nonReadRequests](#nonreadrequests)  |
 | `serveIndex` | See chapter [serveIndex](#serveindex)  |
@@ -104,9 +105,6 @@ The following file content transformations are executed:
 
 - Escaping non-ASCII characters in `.properties` translation files based on a project's [configuration](./Configuration.md#encoding-of-properties-files)
 - Enhancing the `manifest.json` with supported locales determined by available `.properties` [translation files](./Builder.md#generation-of-supported-locales)
-
-### testRunner
-Serves a static version of the UI5 QUnit TestRunner at `/test-resources/sap/ui/qunit/testrunner.html`.
 
 ### versionInfo
 Generates and serves the version info file `/resources/sap-ui-version.json`, which is required for several framework functionalities.

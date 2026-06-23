@@ -19,6 +19,7 @@ Or update your global install via: `npm i --global @ui5/cli@next`
 
 - **@ui5/server: Live Reload is enabled by default for `ui5 serve`**
 
+- **@ui5/server: Standard middleware `serveThemes` and `testRunner` have been removed**
 
 ## Node.js and npm Version Support
 
@@ -268,21 +269,23 @@ If your project uses a custom middleware that provides live reload functionality
 The following middleware has been removed from the [standard middlewares list](../pages/Server.md#standard-middleware):
 
 * `serveThemes` — The `buildThemes` build task now handles theme compilation (LESS to CSS). Because server sessions now also perform builds, this task runs during a server start instead of on demand during runtime. The resulting CSS files are served by the `serveResources` middleware. This change improves performance through build-time compilation and caching while maintaining the same functionality.
+* `testRunner` — The UI5 QUnit TestRunner resources (`testrunner.html`, `testrunner.css`, `TestRunner.js`) are now provided by the UI5 framework (`sap.ui.core`) and served via the `serveResources` middleware. All supported UI5 releases ship the relevant testrunner resources, so the dedicated middleware is no longer needed.
 
 **Backward Compatibility:**
-If your project or any custom middleware references a removed middleware via `beforeMiddleware` or `afterMiddleware`, UI5 CLI will automatically remap the reference to the nearest remaining middleware and log a deprecation warning. Your custom middleware will still be executed in the expected order.
+If your project or any custom middleware references a removed middleware via `beforeMiddleware` or `afterMiddleware`, UI5 CLI keeps a no-op placeholder in the middleware execution order at the original slot. The custom middleware is executed in the same position as before and a deprecation warning is logged.
 
 **What Changed:**
 - Theme CSS files (`library.css`, `library-RTL.css`, etc.) are now **pre-built**
-- Files are served via `serveResources` instead of being compiled on demand
-- The same CSS files are available at the same URLs as before
+- Theme files are served via `serveResources` instead of being compiled on demand
+- TestRunner resources are served via `serveResources` from the UI5 framework instead of being shipped with UI5 CLI
 
 **Recommended Action:**
 Update your `ui5.yaml` configuration to reference an existing middleware instead.
 
 | Removed Middleware | Replacement Behavior | Recommended `afterMiddleware` |
 | ------------------ | -------------------- | ----------------------------- |
-| `serveThemes`      | CSS files pre-built by `buildThemes` task and served via `serveResources` | `testRunner` |
+| `serveThemes`      | CSS files pre-built by `buildThemes` task and served via `serveResources` | `serveResources` |
+| `testRunner`       | TestRunner resources served via `serveResources` from the UI5 framework | `serveResources` |
 
 ## Learn More
 

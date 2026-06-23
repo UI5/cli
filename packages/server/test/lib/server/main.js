@@ -686,13 +686,10 @@ test("CSP with ignore paths", async (t) => {
 		simpleIndex: false,
 		ui5DataDir: isolatedUi5DataDir(t),
 	});
-	const testrunnerRequest1 = request.get("/test-resources/sap/ui/qunit/testrunner.html")
-		.expect(200);
+	const testrunnerRequest1 = request.get("/test-resources/sap/ui/qunit/testrunner.html");
 	const testrunnerRequest2 = request.get("/index.html")
-		.set("Referer", `http://localhost:${port}/test-resources/sap/ui/qunit/testrunner.html`)
-		.expect(200);
-	const testrunnerRequest3 = request.get("/index.html")
-		.expect(200);
+		.set("Referer", `http://localhost:${port}/test-resources/sap/ui/qunit/testrunner.html`);
+	const testrunnerRequest3 = request.get("/index.html");
 	const [response1, response2, response3] = await Promise.all([
 		testrunnerRequest1, testrunnerRequest2, testrunnerRequest3
 	]);

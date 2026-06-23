@@ -7,7 +7,6 @@ const middlewareInfos = {
 	serveIndex: {path: "./serveIndex.js"},
 	discovery: {path: "./discovery.js"},
 	versionInfo: {path: "./versionInfo.js"},
-	testRunner: {path: "./testRunner.js"},
 	nonReadRequests: {path: "./nonReadRequests.js"}
 };
 
