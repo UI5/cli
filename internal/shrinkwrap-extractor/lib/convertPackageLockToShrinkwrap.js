@@ -139,7 +139,8 @@ function collectDependencies(node, relevantPackageLocations) {
 		node = node.target;
 	}
 	for (const edge of node.edgesOut.values()) {
-		if (edge.dev) {
+		if (edge.dev || !edge.to) {
+			// Skip dev dependencies and optional peer dependencies that are not installed
 			continue;
 		}
 		collectDependencies(edge.to, relevantPackageLocations);
