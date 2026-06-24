@@ -12,17 +12,37 @@ Please follow our [Contribution Guidelines](https://github.com/UI5/cli/blob/main
 ## UI5 Project
 ### `~/.ui5` Taking too Much Disk Space
 
-There are possibly many versions of UI5 framework dependencies installed on your system, taking a large amount of disk space.
+UI5 CLI stores several kinds of data under your user's home directory in `~/.ui5/`:
+
+| Directory | Contents | Safe to delete? |
+| ---- | ---- | ---- |
+| `~/.ui5/framework/` | Downloaded UI5 framework dependencies (one copy per version) | Yes — re-downloaded on next invocation |
+| `~/.ui5/buildCache/` | Build cache used by `ui5 build` and `ui5 serve` (see [Build Cache Control](./Builder.md#build-cache-control)) | Yes — rebuilt on next `ui5 build` / `ui5 serve` |
+| `~/.ui5/server/` | Locally generated SSL certificate and private key for HTTPS / HTTP/2 mode | Yes — regenerated on next HTTPS server start; the new certificate must be re-trusted |
+
+::: warning
+Only remove these directories when no UI5 CLI process and no `@ui5/*` API consumer is actively running. Deleting files that are in use can cause running builds or servers to fail or produce inconsistent results.
+:::
 
 #### Resolution
 
-Remove the `.ui5/framework/` directory from your user's home directory:
+To free disk space, remove the relevant subdirectory.
+
+To only remove framework downloads:
 
 ```sh
 rm -rf ~/.ui5/framework/
 ```
 
-Any missing framework dependencies will be downloaded again during the next UI5 CLI invocation.
+To only remove the build cache:
+
+```sh
+rm -rf ~/.ui5/buildCache/
+```
+
+::: info
+If you have configured a custom data directory via `UI5_DATA_DIR` or `ui5 config set ui5DataDir`, replace `~/.ui5/` with that path. See [Changing UI5 CLI's Data Directory](#changing-ui5-cli-s-data-directory).
+:::
 
 ## Environment Variables
 ### Changing the Log Level
