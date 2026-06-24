@@ -1,1 +1,0 @@
-import{c as a,Q as r,j as t,m as n}from"./chunks/framework.SX2VEkEc.js";const u=JSON.parse('{"title":"FAQ","description":"","frontmatter":{},"headers":[],"relativePath":"pages/FAQ.md","filePath":"pages/FAQ.md"}'),o={name:"pages/FAQ.md"};function s(i,e,p,h,c,l){return r(),t("div",null,[...e[0]||(e[0]=[n("",16)])])}const m=a(o,[["render",s]]);export{u as __pageData,m as default};
