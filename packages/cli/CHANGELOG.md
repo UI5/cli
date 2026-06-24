@@ -4,6 +4,28 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v4.0.26...HEAD).
 
+## [5.0.0-alpha.5](https://github.com/UI5/cli/compare/cli-v5.0.0-alpha.4...cli-v5.0.0-alpha.5) (2026-06-24)
+
+
+### Features
+
+* **cli:** Add --cache option for build and serve commands ([#1368](https://github.com/UI5/cli/issues/1368)) ([13e7ac5](https://github.com/UI5/cli/commit/13e7ac5a5f32f603049c900e39eba9c9febf47fe))
+* **cli:** Enable liveReload by default for ui5 serve ([16c0aed](https://github.com/UI5/cli/commit/16c0aedbf28c3ea3656f19e6b9e6616493c634dc))
+
+
+### Dependencies
+
+* Bump open from 10.2.0 to 11.0.0 ([dc6f952](https://github.com/UI5/cli/commit/dc6f952bf421a8b81a645d2982fa4dc251b9a634))
+* Bump yargs from 17.7.2 to 18.0.0 ([#1342](https://github.com/UI5/cli/issues/1342)) ([3de5ea9](https://github.com/UI5/cli/commit/3de5ea9b281f1a674e97b930d41a99bc96a29658))
+* Update npm dependencies ([0ac8ebb](https://github.com/UI5/cli/commit/0ac8ebbb5ffe9fc6e4455244cf5da50e4c540c5c))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+    * @ui5/fs bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+    * @ui5/logger bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+    * @ui5/project bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+    * @ui5/server bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+
 ## [5.0.0-alpha.4](https://github.com/UI5/cli/compare/cli-v5.0.0-alpha.3...cli-v5.0.0-alpha.4) (2026-03-24)
 
 

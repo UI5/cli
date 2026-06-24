@@ -4,6 +4,38 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v4.0.7...HEAD).
 
+## [5.0.0-alpha.5](https://github.com/UI5/cli/compare/server-v5.0.0-alpha.4...server-v5.0.0-alpha.5) (2026-06-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* Remove testRunner middleware
+
+### Features
+
+* Remove testRunner middleware ([11406ee](https://github.com/UI5/cli/commit/11406ee7ea9354cce380f23ea1e28b0c5837a9ff))
+* **server:** Add liveReload middleware ([9d9347e](https://github.com/UI5/cli/commit/9d9347e80fa25cf9869eeb35ea5a76d837ff66fe))
+* **server:** Integrate BuildServer into dev server ([997ba31](https://github.com/UI5/cli/commit/997ba3132c3ea623ed4dfe5f27ca95051666f29c))
+
+
+### Bug Fixes
+
+* **server:** Explicitly bind to IPv4 loopback ([d913c56](https://github.com/UI5/cli/commit/d913c56a173c62c3c450c2dde358b1081b57db02))
+
+
+### Dependencies
+
+* Bump body-parser from 2.2.2 to 2.3.0 ([#1422](https://github.com/UI5/cli/issues/1422)) ([be31142](https://github.com/UI5/cli/commit/be3114296ef215b5fa8cea712058de19b0a275e5))
+* Bump qs and express ([#1396](https://github.com/UI5/cli/issues/1396)) ([a0e173b](https://github.com/UI5/cli/commit/a0e173b2bf53d3888702ea50b4dde75295aa82d0))
+* Update npm dependencies ([0ac8ebb](https://github.com/UI5/cli/commit/0ac8ebbb5ffe9fc6e4455244cf5da50e4c540c5c))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+    * @ui5/fs bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+    * @ui5/logger bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+  * devDependencies
+    * @ui5/project bumped from ^5.0.0-alpha.4 to ^5.0.0-alpha.5
+
 ## [5.0.0-alpha.4](https://github.com/UI5/cli/compare/server-v5.0.0-alpha.3...server-v5.0.0-alpha.4) (2026-03-24)
 
 

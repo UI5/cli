@@ -4,6 +4,18 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logger/compare/v4.0.2...HEAD).
 
+## [5.0.0-alpha.5](https://github.com/UI5/cli/compare/logger-v5.0.0-alpha.4...logger-v5.0.0-alpha.5) (2026-06-24)
+
+
+### Features
+
+* **logger:** Add differential build logging support ([0c06880](https://github.com/UI5/cli/commit/0c0688047e699330b1a98a5845dc04b25db3db6c))
+
+
+### Dependencies
+
+* Update npm dependencies ([0ac8ebb](https://github.com/UI5/cli/commit/0ac8ebbb5ffe9fc6e4455244cf5da50e4c540c5c))
+
 ## [5.0.0-alpha.4](https://github.com/UI5/cli/compare/logger-v5.0.0-alpha.3...logger-v5.0.0-alpha.4) (2026-03-24)
 
 
