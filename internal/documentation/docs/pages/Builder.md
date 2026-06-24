@@ -219,6 +219,8 @@ In this scenario, when a source file is changed, always perform a full rebuild, 
 
 ::: info
 By default, the build cache is stored inside UI5 CLI's Data Dir (`~/.ui5/buildCache/`). You can customize the location (see [Changing UI5 CLI's Data Directory](./Troubleshooting#changing-ui5-cli-s-data-directory)).
+
+The cache may grow over time. It can be deleted at any time to reclaim disk space — it will be rebuilt on the next `ui5 build` or `ui5 serve` run. See [`~/.ui5` Taking too Much Disk Space](./Troubleshooting.md#ui5-taking-too-much-disk-space).
 :::
 
 ::: info
