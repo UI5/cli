@@ -794,7 +794,7 @@ class ProjectGraph {
 			default: BuildServer
 		} = await import("../build/BuildServer.js");
 		return BuildServer.create(this, builder,
-			initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies, ui5DataDir);
+			initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies);
 	}
 
 	/**

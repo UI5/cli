@@ -1035,26 +1035,6 @@ function getTmpPath(folderName) {
 	return fileURLToPath(new URL(`../../tmp/BuildServer/${folderName}`, import.meta.url));
 }
 
-// ─── Serve lock ───────────────────────────────────────────────────────────────
-
-test.serial("serve(): acquires server-{pid}-{hex} lock and releases it on destroy", async (t) => {
-	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
-	await fixtureTester.serveProject();
-
-	const lockDir = path.join(fixtureTester.ui5DataDir, "locks");
-	const lockFiles = await fs.readdir(lockDir);
-	const serverLocks = lockFiles.filter(
-		(f) => f.match(new RegExp(`^server-${process.pid}-[0-9a-f]+\\.lock$`)));
-	t.is(serverLocks.length, 1, "exactly one server lock file exists while server is running");
-
-	await fixtureTester.buildServer.destroy();
-
-	const lockFilesAfter = await fs.readdir(lockDir).catch(() => []);
-	const serverLocksAfter = lockFilesAfter.filter(
-		(f) => f.match(new RegExp(`^server-${process.pid}-[0-9a-f]+\\.lock$`)));
-	t.is(serverLocksAfter.length, 0, "lock file removed after buildServer.destroy()");
-});
-
 async function rmrf(dirPath) {
 	return fs.rm(dirPath, {recursive: true, force: true, maxRetries: 3, retryDelay: 200});
 }
