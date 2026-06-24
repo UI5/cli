@@ -1,13 +1,9 @@
 import EventEmitter from "node:events";
-import {getRandomValues} from "node:crypto";
 import {createReaderCollectionPrioritized} from "@ui5/fs/resourceFactory";
 import BuildReader from "./BuildReader.js";
 import WatchHandler from "./helpers/WatchHandler.js";
 import {SourceChangedDuringBuildError} from "./cache/ProjectBuildCache.js";
-import {getLockDir, acquireLock} from "../utils/lock.js";
-import {resolveUi5DataDir} from "../utils/dataDir.js";
 import {getLogger} from "@ui5/logger";
-import path from "node:path";
 const log = getLogger("build:BuildServer");
 
 // Debounce window for the `sourcesChanged` event so a burst of file changes
@@ -57,8 +53,6 @@ class BuildServer extends EventEmitter {
 	#allReader;
 	#rootReader;
 	#dependenciesReader;
-	#releaseLock;
-	#ui5DataDir;
 
 	/**
 	 * Creates a new BuildServer instance
@@ -70,14 +64,12 @@ class BuildServer extends EventEmitter {
 	 * @private
 	 * @param {@ui5/project/graph/ProjectGraph} graph Project graph containing all projects
 	 * @param {@ui5/project/build/ProjectBuilder} projectBuilder Builder instance for executing builds
-	 * @param {string} [ui5DataDir] UI5 data directory to use for the build server
 	 */
-	constructor(graph, projectBuilder, ui5DataDir) {
+	constructor(graph, projectBuilder) {
 		super();
 		this.#graph = graph;
 		this.#rootProjectName = graph.getRoot().getName();
 		this.#projectBuilder = projectBuilder;
-		this.#ui5DataDir = ui5DataDir;
 
 		const buildServerInterface = {
 			getReaderForProject: this.#getReaderForProject.bind(this),
@@ -120,30 +112,18 @@ class BuildServer extends EventEmitter {
 	 * @param {boolean} initialBuildRootProject Whether to build the root project in the initial build
 	 * @param {string[]} initialBuildIncludedDependencies Project names to include in initial build
 	 * @param {string[]} initialBuildExcludedDependencies Project names to exclude from initial build
-	 * @param {string} [ui5DataDir] UI5 data directory to use for the build server
 	 * @returns {Promise<BuildServer>} Resolves once the watcher is ready
 	 */
 	static async create(
 		graph, projectBuilder,
-		initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies, ui5DataDir
+		initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies
 	) {
-		const buildServer = new BuildServer(graph, projectBuilder, ui5DataDir);
-		await buildServer.#acquireLock();
+		const buildServer = new BuildServer(graph, projectBuilder);
 		await buildServer.#initWatcher();
 		buildServer.#enqueueInitialBuilds(
 			initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies
 		);
 		return buildServer;
-	}
-
-	async #acquireLock() {
-		const resolvedUi5DataDir = this.#ui5DataDir ?? await resolveUi5DataDir();
-		const lockId = Buffer.from(getRandomValues(new Uint8Array(4))).toString("hex");
-		// The lock has unique name, so multiple processes can run concurrently.
-		// Also multiple BuildServer instances in the
-		// same process can run concurrently without collisions.
-		const lockPath = path.join(getLockDir(resolvedUi5DataDir), `server-${process.pid}-${lockId}.lock`);
-		this.#releaseLock = await acquireLock(lockPath);
 	}
 
 	#enqueueInitialBuilds(
@@ -191,14 +171,6 @@ class BuildServer extends EventEmitter {
 			// (e.g. Force-mode stale-cache errors). Otherwise the SQLite handle leaks
 			// and subsequent fs.rm of the cache directory fails with EBUSY on Windows.
 			this.#projectBuilder.closeCacheManager();
-			if (this.#releaseLock) {
-				// In case of exceptions during the BuildServer lifecycle,
-				// the locks will become stale at certain point and will be
-				// automatically cleaned up by the lock manager.
-				// Note: this is a safe guard against lock leaks, but
-				// for the sake of clarity, the locks should be released in a predictable manner and explicitly.
-				this.#releaseLock();
-			}
 		}
 	}
 

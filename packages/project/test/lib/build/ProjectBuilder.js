@@ -81,15 +81,7 @@ test.beforeEach(async (t) => {
 		})
 	};
 
-	t.context.ProjectBuilder = await esmock("../../../lib/build/ProjectBuilder.js", {
-		"../../../lib/utils/lock.js": {
-			getLockDir: sinon.stub().returns("/fake/locks"),
-			acquireLock: sinon.stub().resolves(() => {})
-		},
-		"../../../lib/utils/dataDir.js": {
-			resolveUi5DataDir: sinon.stub().resolves("/fake/ui5data")
-		},
-	});
+	t.context.ProjectBuilder = await esmock("../../../lib/build/ProjectBuilder.js");
 });
 
 test.afterEach.always((t) => {
