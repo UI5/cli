@@ -4,11 +4,19 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      confirm_publish_cli:
+        description: "Type 'publish-cli' to re-run only the publish-cli job against the current main (e.g. when a prior run failed after the other packages were already published). The version published is whatever is in packages/cli/package.json on main."
+        required: true
+        type: string
 
 permissions: {}
 
 jobs:
   release-please:
+    # Skip on manual dispatch: the manual path exists only to re-run publish-cli.
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -59,7 +67,9 @@ jobs:
   publish-packages:
     runs-on: ubuntu-24.04
     needs: release-please
-    if: needs.release-please.outputs.releases_created == 'true'
+    # Never run on manual dispatch — the manual path is only for re-running publish-cli when the
+    # other packages were already published in a prior run. Republishing them would fail with 403.
+    if: github.event_name != 'workflow_dispatch' && needs.release-please.outputs.releases_created == 'true'
     permissions:
       id-token: write # Required for trusted publishing via OIDC (https://docs.npmjs.com/trusted-publishers)
     # The GitHub Actions Environment configured for the trusted publisher
@@ -90,7 +100,22 @@ jobs:
   publish-cli:
     runs-on: ubuntu-24.04
     needs: [release-please, publish-packages]
-    if: needs.release-please.outputs.releases_created == 'true'
+    # Two paths:
+    # 1. Automatic: release-please created releases and publish-packages succeeded
+    # 2. Manual:    workflow_dispatch with the confirmation input set to "publish-cli"
+    # `always()` is required so this job is not auto-skipped when the upstream jobs are skipped
+    # on the manual path.
+    if: |
+      always() && (
+        (
+          github.event_name == 'push'
+          && needs.release-please.outputs.releases_created == 'true'
+          && needs.publish-packages.result == 'success'
+        ) || (
+          github.event_name == 'workflow_dispatch'
+          && inputs.confirm_publish_cli == 'publish-cli'
+        )
+      )
     permissions:
       id-token: write # Required for trusted publishing via OIDC (https://docs.npmjs.com/trusted-publishers)
     # The GitHub Actions Environment configured for the trusted publisher
