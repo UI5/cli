@@ -204,6 +204,29 @@ test("Compare generated shrinkwrap with expected result", async (t) => {
 		"Generated shrinkwrap packages should match expected");
 });
 
+test("Optional peer dependencies with null edges should be excluded", async (t) => {
+	// Guards against: ws declares bufferutil and utf-8-validate as peerOptional, but they are not
+	// installed. Arborist represents these as edges with edge.to === null. The generator must skip
+	// them instead of throwing "Cannot read properties of null (reading 'location')".
+	const __dirname = import.meta.dirname;
+
+	const cwd = path.join(__dirname, "..", "fixture", "project.a");
+	const symlinkPath = await setupFixtureSymlink(cwd);
+	t.after(async () => await unlink(symlinkPath).catch(() => {}));
+
+	const shrinkwrapJson = await convertPackageLockToShrinkwrap(cwd, "@ui5/cli");
+
+	// ws itself must be present (it is a real production dep of @ui5/server)
+	assert.ok(shrinkwrapJson.packages["node_modules/ws"],
+		"ws should be included in the shrinkwrap");
+
+	// Its optional peer deps are not installed and must NOT appear
+	assert.equal(shrinkwrapJson.packages["node_modules/bufferutil"], undefined,
+		"bufferutil (optional peerDep of ws) must not be included");
+	assert.equal(shrinkwrapJson.packages["node_modules/utf-8-validate"], undefined,
+		"utf-8-validate (optional peerDep of ws) must not be included");
+});
+
 // Error handling tests
 test("Error handling - invalid target package name", async (t) => {
 	const __dirname = import.meta.dirname;
