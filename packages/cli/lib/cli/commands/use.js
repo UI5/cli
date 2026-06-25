@@ -1,5 +1,6 @@
 // Use
 import baseMiddleware from "../middlewares/base.js";
+import {applyProjectConfigOptions} from "../options.js";
 
 const useCommand = {
 	command: "use <framework-info>",
@@ -8,6 +9,7 @@ const useCommand = {
 };
 
 useCommand.builder = function(cli) {
+	applyProjectConfigOptions(cli);
 	return cli
 		.positional("framework-info", {
 			describe: "Framework name, version or both (name@version).\n" +

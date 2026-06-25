@@ -1,5 +1,6 @@
 // Remove
 import baseMiddleware from "../middlewares/base.js";
+import {applyProjectConfigOptions} from "../options.js";
 
 const removeCommand = {
 	command: "remove <framework-libraries..>",
@@ -8,6 +9,7 @@ const removeCommand = {
 };
 
 removeCommand.builder = function(cli) {
+	applyProjectConfigOptions(cli);
 	return cli
 		.positional("framework-libraries", {
 			describe: "Framework library names",

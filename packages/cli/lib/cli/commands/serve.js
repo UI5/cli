@@ -2,6 +2,7 @@ import path from "node:path";
 import os from "node:os";
 import chalk from "chalk";
 import baseMiddleware from "../middlewares/base.js";
+import {applyProjectConfigOptions, applyWorkspaceOptions, dedupeArray} from "../options.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("cli:commands:serve");
 
@@ -13,6 +14,8 @@ const serve = {
 };
 
 serve.builder = function(cli) {
+	applyProjectConfigOptions(cli);
+	applyWorkspaceOptions(cli);
 	return cli
 		.option("port", {
 			describe: "Port to bind on (default for HTTP: 8080, HTTP/2: 8443)",
@@ -82,6 +85,7 @@ serve.builder = function(cli) {
 			choices: ["Default", "Force", "ReadOnly", "Off"],
 		})
 		.coerce("cache", (opt) => {
+			opt = dedupeArray(opt);
 			const lower = opt.toLowerCase();
 			if (lower === "readonly" || lower === "read-only") {
 				return "ReadOnly";
@@ -103,6 +107,7 @@ serve.builder = function(cli) {
 			choices: ["Default", "Force", "Off"],
 		})
 		.coerce("cache-mode", (opt) => {
+			opt = dedupeArray(opt);
 			// Log a warning if this option is used
 			if (opt !== undefined) {
 				log.warn("As of UI5 CLI version 5, '--cache-mode' is renamed to '--snapshot-cache'. " +
@@ -119,6 +124,7 @@ serve.builder = function(cli) {
 			defaultDescription: "Default", // Use "defaultDescription" to allow undefined (needed for evaluation)
 			choices: ["Default", "Force", "Off"],
 		})
+		.coerce(["framework-version", "open", "port", "key", "cert"], dedupeArray)
 		.example("ui5 serve", "Start a web server for the current project")
 		.example("ui5 serve --h2", "Enable the HTTP/2 protocol for the web server (requires SSL certificate)")
 		.example("ui5 serve --config /path/to/ui5.yaml", "Use the project configuration from a custom path")

@@ -1,5 +1,6 @@
 // Add
 import base from "../middlewares/base.js";
+import {applyProjectConfigOptions} from "../options.js";
 const addCommand = {
 	command: "add [--development] [--optional] <framework-libraries..>",
 	describe: "Add SAPUI5/OpenUI5 framework libraries to the project configuration.",
@@ -7,6 +8,7 @@ const addCommand = {
 };
 
 addCommand.builder = function(cli) {
+	applyProjectConfigOptions(cli);
 	return cli
 		.positional("framework-libraries", {
 			describe: "Framework library names",
