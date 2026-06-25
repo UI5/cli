@@ -280,3 +280,40 @@ test.serial("ui5 --no-update-notifier", async (t) => {
 	t.regex(stdout, /@ui5\/cli:/, "Output includes version information");
 	t.false(failed, "Command should not fail");
 });
+
+// Strict-rejection tests for project/workspace options on commands that should not accept them.
+// These commands do not load a project graph, so the corresponding global options have been
+// removed from their builders in UI5 CLI v5.
+[
+	{command: "versions", flag: "--config", value: "foo"},
+	{command: "versions", flag: "--dependency-definition", value: "foo"},
+	{command: "versions", flag: "--workspace", value: "foo"},
+	{command: "versions", flag: "--workspace-config", value: "foo"},
+	{command: "init", flag: "--config", value: "foo"},
+	{command: "init", flag: "--workspace", value: "foo"},
+	{command: "config", flag: "--config", value: "foo", args: ["list"]},
+	{command: "config", flag: "--workspace", value: "foo", args: ["list"]},
+].forEach(({command, flag, value, args = []}) => {
+	test.serial(`ui5 ${command} ${flag}: rejects unknown argument`, async (t) => {
+		const {stderr, exitCode} = await ui5([command, ...args, flag, value], {reject: false});
+		t.is(exitCode, 1, "Command exits with error code 1");
+		t.regex(stripAnsi(stderr), new RegExp(`Unknown arguments?: .*\\b${flag.replace(/^--/, "")}\\b`),
+			"Stderr contains 'Unknown argument' message");
+	});
+});
+
+// Strict-rejection tests for workspace options on add/remove/use which do operate on ui5.yaml
+// but not within a workspace context.
+[
+	{command: "add", flag: "--workspace", value: "foo", args: ["sap.ui.core"]},
+	{command: "add", flag: "--workspace-config", value: "foo", args: ["sap.ui.core"]},
+	{command: "remove", flag: "--workspace", value: "foo", args: ["sap.ui.core"]},
+	{command: "use", flag: "--workspace", value: "foo", args: ["latest"]},
+].forEach(({command, flag, value, args}) => {
+	test.serial(`ui5 ${command} ${flag}: rejects unknown argument`, async (t) => {
+		const {stderr, exitCode} = await ui5([command, ...args, flag, value], {reject: false});
+		t.is(exitCode, 1, "Command exits with error code 1");
+		t.regex(stripAnsi(stderr), new RegExp(`Unknown arguments?: .*\\b${flag.replace(/^--/, "")}\\b`),
+			"Stderr contains 'Unknown argument' message");
+	});
+});

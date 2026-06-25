@@ -1,30 +1,11 @@
 import chalk from "chalk";
 import {isLogLevelEnabled} from "@ui5/logger";
 import ConsoleWriter from "@ui5/logger/writers/Console";
+import {dedupeArray} from "./options.js";
 
 export default function(cli) {
 	cli.usage("Usage: ui5 <command> [options]")
 		.demandCommand(1, "Command required")
-		.option("config", {
-			alias: "c",
-			describe: "Path to project configuration file in YAML format",
-			type: "string"
-		})
-		.option("dependency-definition", {
-			describe: "Path to a YAML file containing the project's dependency tree. " +
-		"This option will disable resolution of node package dependencies.",
-			type: "string"
-		})
-		.option("workspace-config", {
-			describe: "Path to workspace configuration file in YAML format",
-			type: "string"
-		})
-		.option("workspace", {
-			alias: "w",
-			describe: "Name of the workspace configuration to use",
-			default: "default",
-			type: "string"
-		})
 		.option("loglevel", {
 			alias: "log-level",
 			describe: "Set the logging level",
@@ -47,43 +28,11 @@ export default function(cli) {
 			default: false,
 			type: "boolean"
 		})
-		.coerce([
-			// base.js
-			"config", "dependency-definition", "workspace-config", "workspace", "log-level",
-
-			// tree.js, build.js & serve.js
-			"framework-version", "cache-mode",
-
-			// build.js
-			"dest",
-
-			// serve.js
-			"open", "port", "key", "cert",
-		], (arg) => {
-			// If an option is specified multiple times, yargs creates an array for all the values,
-			// independently of whether the option is of type "array" or "string".
-			// This is unexpected for options listed above, which should all only have only one definitive value.
-			// The yargs behavior could be disabled by using the parserConfiguration "duplicate-arguments-array": true
-			// However, yargs would then cease to create arrays for those options where we *do* expect the
-			// automatic creation of arrays in case the option is specified multiple times. Like "--include-task".
-			// Also see https://github.com/yargs/yargs/issues/1318
-			// Note: This is not necessary for options of type "boolean"
-			if (Array.isArray(arg)) {
-				// If the option is specified multiple times, use the value of the last option
-				return arg[arg.length - 1];
-			}
-			return arg;
-		})
+		.coerce(["log-level"], dedupeArray)
 		.showHelpOnFail(true)
 		.strict(true)
 		.alias("help", "h")
 		.alias("version", "v")
-		.example("ui5 <command> --dependency-definition /path/to/projectDependencies.yaml",
-			"Execute command using a static dependency tree instead of resolving node package dependencies")
-		.example("ui5 <command> --config /path/to/ui5.yaml",
-			"Execute command using a project configuration from custom path")
-		.example("ui5 <command> --workspace dolphin",
-			"Execute command using the 'dolphin' workspace of a ui5-workspace.yaml")
 		.example("ui5 <command> --log-level silly",
 			"Execute command with the maximum log output")
 		.fail(function(msg, err, yargs) {

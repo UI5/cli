@@ -1,4 +1,5 @@
 import baseMiddleware from "../middlewares/base.js";
+import {applyProjectConfigOptions, applyWorkspaceOptions, dedupeArray} from "../options.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("cli:commands:build");
 
@@ -10,6 +11,8 @@ const build = {
 };
 
 build.builder = function(cli) {
+	applyProjectConfigOptions(cli);
+	applyWorkspaceOptions(cli);
 	return cli
 		.command("jsdoc", "Build JSDoc resources", {
 			handler: handleBuild,
@@ -97,6 +100,7 @@ build.builder = function(cli) {
 			choices: ["Default", "Force", "ReadOnly", "Off"],
 		})
 		.coerce("cache", (opt) => {
+			opt = dedupeArray(opt);
 			const lower = opt.toLowerCase();
 			if (lower === "readonly" || lower === "read-only") {
 				return "ReadOnly";
@@ -135,6 +139,7 @@ build.builder = function(cli) {
 			choices: ["Default", "Force", "Off"],
 		})
 		.coerce("cache-mode", (opt) => {
+			opt = dedupeArray(opt);
 			// Log a warning if this option is used
 			if (opt !== undefined) {
 				log.warn("As of UI5 CLI version 5, '--cache-mode' is renamed to '--snapshot-cache'. " +
@@ -172,8 +177,10 @@ build.builder = function(cli) {
 			choices: ["Default", "Flat", "Namespace"],
 		})
 		.coerce("output-style", (opt) => {
+			opt = dedupeArray(opt);
 			return opt.charAt(0).toUpperCase() + opt.slice(1).toLowerCase();
 		})
+		.coerce(["framework-version", "dest"], dedupeArray)
 		.example("ui5 build", "Preload build for project without dependencies")
 		.example("ui5 build self-contained", "Self-contained build for project")
 		.example("ui5 build --exclude-task=* --include-task=minify generateComponentPreload",

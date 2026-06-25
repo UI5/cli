@@ -1,5 +1,6 @@
 // Tree
 import baseMiddleware from "../middlewares/base.js";
+import {applyProjectConfigOptions, applyWorkspaceOptions, dedupeArray} from "../options.js";
 import chalk from "chalk";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("cli:commands:tree");
@@ -14,6 +15,8 @@ const tree = {
 };
 
 tree.builder = function(cli) {
+	applyProjectConfigOptions(cli);
+	applyWorkspaceOptions(cli);
 	return cli
 		.option("flat", {
 			describe: "Output a flat list of all dependencies instead of a tree hierarchy",
@@ -40,6 +43,7 @@ tree.builder = function(cli) {
 			choices: ["Default", "Force", "Off"],
 		})
 		.coerce("cache-mode", (opt) => {
+			opt = dedupeArray(opt);
 			// Log a warning if this option is used
 			if (opt !== undefined) {
 				log.warn("As of UI5 CLI version 5, '--cache-mode' is renamed to '--snapshot-cache'. " +
@@ -55,7 +59,8 @@ tree.builder = function(cli) {
 			type: "string",
 			defaultDescription: "Default", // Use "defaultDescription" to allow undefined (needed for evaluation)
 			choices: ["Default", "Force", "Off"],
-		});
+		})
+		.coerce(["framework-version"], dedupeArray);
 };
 
 tree.handler = async function(argv) {

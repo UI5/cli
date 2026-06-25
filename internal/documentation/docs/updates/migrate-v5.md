@@ -15,7 +15,9 @@ Or update your global install via: `npm i --global @ui5/cli@next`
 
 - **@ui5/cli: `ui5 init` defaults to Specification Version 5.0**
 
-- **Rename: Command Option `--cache-mode` is now `--snapshot-cache`**
+- **@ui5/cli: Option `--cache-mode` has been renamed to `--snapshot-cache`**
+
+- **@ui5/cli: Project/Workspace options are now scoped per command**
 
 - **@ui5/server: Live Reload is enabled by default for `ui5 serve`**
 
@@ -79,6 +81,20 @@ Due to **build tasks now being executed in server sessions**, custom middleware 
 With UI5 CLI v5, the option `--cache-mode` (for commands `ui5 build` and `ui5 serve`) has been renamed to `--snapshot-cache`.
 
 When legacy `--cache-mode` is used, the behavior remains the same but a deprecation warning is logged. When both `--snapshot-cache` and `--cache-mode` are used, the `--snapshot-cache` flag always gets priority.
+
+## Project/Workspace Options Scoped per Command
+
+In previous versions, the options `--config` / `-c`, `--dependency-definition`, `--workspace-config`, and `--workspace` / `-w` were accepted by every UI5 CLI command. Several commands silently ignored them.
+
+With UI5 CLI v5, these options are now only accepted by commands that actually consume them. Passing them to other commands now fails with `Unknown argument: <option>`.
+
+| Command                       | `--config` / `--dependency-definition` | `--workspace` / `--workspace-config` |
+| ----------------------------- | -------------------------------------- | ------------------------------------ |
+| `ui5 build`, `serve`, `tree`  | ✓                                      | ✓                                    |
+| `ui5 add`, `remove`, `use`    | ✓                                      | —                                    |
+| `ui5 config`, `init`, `versions` | —                                   | —                                    |
+
+If you previously passed any of these options to a command that did not use them, remove them from your invocation.
 
 ## UI5 CLI Init Command
 
