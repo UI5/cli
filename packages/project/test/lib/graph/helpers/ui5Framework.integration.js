@@ -761,9 +761,6 @@ defineErrorTest(
 		frameworkName: "OpenUI5",
 		failMetadata: true,
 		failExtract: true,
-		// When both manifest fetch and extraction fail simultaneously, which error surfaces first
-		// depends on microtask scheduling and is not deterministic across Node versions. Both are
-		// valid: accept either "Failed to read manifest" or "Failed to extract package".
 		expectedErrorMessage: `Resolution of framework libraries failed with errors:
   1. Failed to resolve library sap.ui.lib1: Failed to read manifest of @openui5/sap.ui.lib1@1.75.0
   2. Failed to resolve library sap.ui.lib4: Failed to read manifest of @openui5/sap.ui.lib4@1.75.0`

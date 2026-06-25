@@ -1,25 +1,36 @@
+import path from "node:path";
+import {getRandomValues} from "node:crypto";
 import OutputStyleEnum from "../build/helpers/ProjectBuilderOutputStyle.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:ProjectGraph");
 import Cache from "../../../project/lib/build/cache/Cache.js";
+import {acquireLockSync, getLockDir} from "../utils/lock.js";
 
 
 /**
  * A rooted, directed graph representing a UI5 project, its dependencies and available extensions.
- * <br><br>
- * While it allows defining cyclic dependencies, both traversal functions will throw an error if they encounter cycles.
+ *
+ * When constructed with a <code>dataDir</code>, the graph immediately acquires a process-coordination
+ * lock to prevent concurrent <code>ui5 cache clean</code> operations. Call {@link destroy} to release
+ * it explicitly when the graph is no longer needed. Even without an explicit call, the
+ * <code>lockfile</code> package ensures the lock is released on process exit or unexpected termination.
  *
  * @public
  * @class
  * @alias @ui5/project/graph/ProjectGraph
  */
 class ProjectGraph {
+	#lockRelease = null;
+
 	/**
 	 * @public
 	 * @param {object} parameters Parameters
 	 * @param {string} parameters.rootProjectName Root project name
+	 * @param {string} [parameters.dataDir] Resolved UI5 data directory. When provided, a
+	 *   process-coordination lock is acquired immediately to block concurrent
+	 *   <code>ui5 cache clean</code> operations.
 	 */
-	constructor({rootProjectName}) {
+	constructor({rootProjectName, dataDir}) {
 		if (!rootProjectName) {
 			throw new Error(`Could not create ProjectGraph: Missing or empty parameter 'rootProjectName'`);
 		}
@@ -34,6 +45,8 @@ class ProjectGraph {
 		this._sealed = false;
 		this._hasUnresolvedOptionalDependencies = false; // Performance optimization flag
 		this._taskRepository = null;
+
+		this.#lockRelease = dataDir ? this.#lockGraph(getLockDir(dataDir)) : null;
 	}
 
 	/**
@@ -689,6 +702,20 @@ class ProjectGraph {
 	}
 
 	/**
+	 * Acquires a process-coordination lock scoped to this graph instance,
+	 * blocking concurrent <code>ui5 cache clean</code> operations.
+	 * The <code>lockfile</code> package releases the lock automatically on process exit
+	 * or unexpected termination; call {@link destroy} to release it explicitly.
+	 *
+	 * @param {string} lockDir Absolute path to the locks directory
+	 */
+	#lockGraph(lockDir) {
+		const lockId = Buffer.from(getRandomValues(new Uint8Array(4))).toString("hex");
+		const lockPath = path.join(lockDir, `graph-${process.pid}-${lockId}.lock`);
+		return acquireLockSync(lockPath);
+	}
+
+	/**
 	 * Executes a build on the graph
 	 *
 	 * @public
@@ -816,6 +843,19 @@ class ProjectGraph {
 	 */
 	isSealed() {
 		return this._sealed;
+	}
+
+	/**
+	 * Releases the process-coordination lock held by this graph.
+	 * Call this when the graph is no longer needed to unblock <code>ui5 cache clean</code>.
+	 *
+	 * @public
+	 */
+	destroy() {
+		if (this.#lockRelease) {
+			this.#lockRelease();
+			this.#lockRelease = null;
+		}
 	}
 
 	/**

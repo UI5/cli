@@ -3,6 +3,7 @@ import Module from "./Module.js";
 import ProjectGraph from "./ProjectGraph.js";
 import ShimCollection from "./ShimCollection.js";
 import {getLogger} from "@ui5/logger";
+import {resolveUi5DataDir} from "../utils/dataDir.js";
 const log = getLogger("graph:projectGraphBuilder");
 
 function _handleExtensions(graph, shimCollection, extensions) {
@@ -134,7 +135,8 @@ async function projectGraphBuilder(nodeProvider, workspace) {
 
 
 	const projectGraph = new ProjectGraph({
-		rootProjectName: rootProjectName
+		rootProjectName: rootProjectName,
+		dataDir: await resolveUi5DataDir(),
 	});
 	projectGraph.addProject(rootProject);
 
