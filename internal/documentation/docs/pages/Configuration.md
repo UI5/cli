@@ -31,7 +31,7 @@ A project must define a specification version (`specVersion`), to which its conf
 
 In addition, a project must define a `type`. This can be either `component`, `application`, `library`, `theme-library` (since Specification Version 1.1), or `module`.
 
-The type defines the default path mappings and build tasks. See [UI5 Builder: Types](./Builder.md#types) for details.
+The type defines the default path mappings and build tasks. See [UI5 Project: Types](./Project.md#types) for details.
 
 :::code-group Example
 
@@ -814,6 +814,7 @@ Version | UI5 CLI Release
 
 **Features:**
 
+- Adds support for the new [`component`](./Project.md#component) project type for developing UI5 components — including application, reusable UI, and faceless components — which, unlike `application`-type projects, are served under their own namespace so multiple can coexist in one environment
 - Adds new server setting [`server.settings.liveReload`](#server-configuration) to control automatic browser reload on source changes
 
 Specification Version 5.0 projects are supported by [UI5 CLI](https://github.com/UI5/cli) v5.0.0 and above.
