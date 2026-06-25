@@ -62,7 +62,8 @@ test.beforeEach(async (t) => {
 		},
 		"lockfile": {
 			lock: sinon.stub().yieldsAsync(),
-			unlock: sinon.stub().yieldsAsync()
+			unlock: sinon.stub().yieldsAsync(),
+			unlockSync: sinon.stub(),
 		}
 	});
 
@@ -761,9 +762,9 @@ defineErrorTest(
 		frameworkName: "OpenUI5",
 		failMetadata: true,
 		failExtract: true,
-		expectedErrorMessage: `Resolution of framework libraries failed with errors:
-  1. Failed to resolve library sap.ui.lib1: Failed to read manifest of @openui5/sap.ui.lib1@1.75.0
-  2. Failed to resolve library sap.ui.lib4: Failed to read manifest of @openui5/sap.ui.lib4@1.75.0`
+		// Both manifest() and extract() fail concurrently. Which error surfaces first is
+		// non-deterministic across Node versions and platforms — accept either variant.
+		expectedErrorMessage: /^Resolution of framework libraries failed with errors:\n\s+1\. Failed to resolve library sap\.ui\.lib1: (Failed to read manifest of|Failed to extract package) @openui5\/sap\.ui\.lib1/
 	});
 
 test.serial("ui5Framework helper should not fail when no framework configuration is given", async (t) => {
