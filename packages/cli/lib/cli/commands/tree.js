@@ -69,6 +69,7 @@ tree.handler = async function(argv) {
 	if (argv.dependencyDefinition) {
 		graph = await graphFromStaticFile({
 			filePath: argv.dependencyDefinition,
+			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
 			snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
 		});

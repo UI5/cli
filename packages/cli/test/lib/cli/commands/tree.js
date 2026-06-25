@@ -719,7 +719,7 @@ test.serial("ui5 tree --dependency-definition", async (t) => {
 	t.is(graph.graphFromPackageDependencies.callCount, 0);
 	t.is(graph.graphFromStaticFile.callCount, 1);
 	t.deepEqual(graph.graphFromStaticFile.getCall(0).args, [{
-		filePath: fakePath, versionOverride: undefined, snapshotCache: "Default"
+		filePath: fakePath, rootConfigPath: undefined, versionOverride: undefined, snapshotCache: "Default"
 	}]);
 
 	t.is(t.context.consoleOutput,
@@ -730,4 +730,38 @@ ${chalk.dim.italic("/home/project1")}
 ${chalk.bold.underline("Extensions (0):")}
 ${chalk.italic("None")}
 `);
+});
+
+test.serial("ui5 tree --dependency-definition --config", async (t) => {
+	const {argv, tree, traverseBreadthFirst, graph} = t.context;
+
+	const fakeDepDefPath = path.join("/", "path", "to", "dependencies.yaml");
+	const fakeConfigPath = path.join("/", "path", "to", "ui5-test.yaml");
+	argv.dependencyDefinition = fakeDepDefPath;
+	argv.config = fakeConfigPath;
+
+	traverseBreadthFirst.callsFake(async (fn) => {
+		await fn({
+			project: {
+				getName: sinon.stub().returns("project1"),
+				getNamespace: sinon.stub().returns("test/project1"),
+				getVersion: sinon.stub().returns("1.0.0"),
+				getType: sinon.stub().returns("application"),
+				getRootPath: sinon.stub().returns("/home/project1"),
+				isFrameworkProject: sinon.stub().returns(false),
+			},
+			dependencies: []
+		});
+	});
+
+	await tree.handler(argv);
+
+	t.is(graph.graphFromPackageDependencies.callCount, 0);
+	t.is(graph.graphFromStaticFile.callCount, 1);
+	t.deepEqual(graph.graphFromStaticFile.getCall(0).args, [{
+		filePath: fakeDepDefPath,
+		rootConfigPath: fakeConfigPath,
+		versionOverride: undefined,
+		snapshotCache: "Default"
+	}], "graphFromStaticFile got called with --config forwarded as rootConfigPath");
 });
