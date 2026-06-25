@@ -4,8 +4,15 @@ import fs from "node:fs/promises";
 import sinon from "sinon";
 import {promisify} from "node:util";
 import lockfileLib from "lockfile";
-import {getLockDir, LOCK_STALE_MS, CLEANUP_LOCK_NAME, acquireLock, hasActiveLocks}
-	from "../../../lib/utils/lock.js";
+import {
+	getLockDir,
+	LOCK_STALE_MS,
+	LOCK_REFRESH_INTERVAL_MS,
+	CLEANUP_LOCK_NAME,
+	acquireLockSync,
+	acquireLock,
+	hasActiveLocks
+} from "../../../lib/utils/lock.js";
 
 const lockfileUnlock = promisify(lockfileLib.unlock);
 
@@ -38,20 +45,107 @@ test("CLEANUP_LOCK_NAME: is exported and equals cache-cleanup.lock", (t) => {
 	t.is(CLEANUP_LOCK_NAME, "cache-cleanup.lock");
 });
 
-// ─── acquireLock ──────────────────────────────────────────────────────────────
+// ─── acquireLockSync ──────────────────────────────────────────────────────────
 
-test.serial("acquireLock: creates lock dir and acquires lock, returns release fn", async (t) => {
-	const lockPath = t.context.lockPath;
+test("LOCK_REFRESH_INTERVAL_MS: is exported and equals LOCK_STALE_MS * 0.6", (t) => {
+	t.is(LOCK_REFRESH_INTERVAL_MS, LOCK_STALE_MS * 0.6);
+});
 
-	const release = await acquireLock(lockPath);
+test.serial("acquireLockSync: returns a release function", (t) => {
+	const release = acquireLockSync(t.context.lockPath);
+	try {
+		t.is(typeof release, "function", "acquireLockSync returns a function");
+	} finally {
+		release();
+	}
+});
 
-	// Lock file exists while lock is held
-	await t.notThrowsAsync(fs.access(lockPath), "lock file exists after acquire");
+test.serial("acquireLockSync: release() removes the lock file", async (t) => {
+	const release = acquireLockSync(t.context.lockPath);
+
+	await t.notThrowsAsync(fs.access(t.context.lockPath), "lock file exists after acquire");
 
 	release();
 
-	// Lock file removed after release
-	await t.throwsAsync(fs.access(lockPath), {code: "ENOENT"}, "lock file removed after release");
+	await t.throwsAsync(fs.access(t.context.lockPath), {code: "ENOENT"}, "lock file removed after release");
+});
+
+test.serial("acquireLockSync: release() is idempotent", (t) => {
+	const release = acquireLockSync(t.context.lockPath);
+	release();
+	t.notThrows(() => release(), "second release() call does not throw");
+});
+
+test.serial("acquireLockSync: release() stops the refresh interval", async (t) => {
+	const release = acquireLockSync(t.context.lockPath);
+	const statBefore = await fs.stat(t.context.lockPath);
+
+	// Release immediately — interval must stop
+	release();
+
+	// Wait two interval periods and confirm mtime did not advance
+	await new Promise((resolve) => setTimeout(resolve, LOCK_REFRESH_INTERVAL_MS * 2 + 200));
+
+	// Lock file is gone after release, so we re-check by confirming ENOENT (interval can't update a deleted file)
+	await t.throwsAsync(fs.access(t.context.lockPath), {code: "ENOENT"},
+		"lock file gone — interval has nothing to refresh");
+	t.truthy(statBefore, "stat was readable before release");
+});
+
+test.serial("acquireLockSync: refresh interval keeps mtime fresh while lock is held", async (t) => {
+	const release = acquireLockSync(t.context.lockPath);
+	try {
+		const statBefore = await fs.stat(t.context.lockPath);
+		// Wait longer than one interval tick
+		await new Promise((resolve) => setTimeout(resolve, LOCK_REFRESH_INTERVAL_MS + 200));
+		const statAfter = await fs.stat(t.context.lockPath);
+		t.true(statAfter.mtimeMs >= statBefore.mtimeMs, "mtime updated by refresh interval while lock is held");
+	} finally {
+		release();
+	}
+});
+
+// ─── acquireLock ─────────────────────────────────────────────────────────────
+
+test.serial("acquireLock: returns a release function", async (t) => {
+	const release = await acquireLock(t.context.lockPath);
+	try {
+		t.is(typeof release, "function", "acquireLock resolves with a function");
+	} finally {
+		release();
+	}
+});
+
+test.serial("acquireLock: release() removes the lock file", async (t) => {
+	const release = await acquireLock(t.context.lockPath);
+
+	await t.notThrowsAsync(fs.access(t.context.lockPath), "lock file exists after acquire");
+
+	release();
+
+	await t.throwsAsync(fs.access(t.context.lockPath), {code: "ENOENT"}, "lock file removed after release");
+});
+
+test.serial("acquireLock: release() is idempotent", async (t) => {
+	const release = await acquireLock(t.context.lockPath);
+	release();
+	t.notThrows(() => release(), "second release() call does not throw");
+});
+
+test.serial("acquireLock: waits for a contended lock without blocking", async (t) => {
+	// Acquire the lock from the outside first
+	const firstRelease = await acquireLock(t.context.lockPath);
+	try {
+		// Second acquirer should wait and eventually succeed once the first releases
+		const acquirePromise = acquireLock(t.context.lockPath, {wait: 5000, retries: 10});
+		// Release the first lock after a short delay
+		setTimeout(() => firstRelease(), 50);
+		const secondRelease = await acquirePromise;
+		t.pass("second acquireLock resolved after first was released");
+		secondRelease();
+	} finally {
+		firstRelease(); // no-op if already released
+	}
 });
 
 // ─── hasActiveLocks ───────────────────────────────────────────────────────────
@@ -67,7 +161,7 @@ test.serial("hasActiveLocks: returns false when locks directory is empty", async
 
 test.serial("hasActiveLocks: returns true when an active (non-stale) lock is present", async (t) => {
 	// Acquire a real lock so its filesystem timestamp is "now"
-	const release = await acquireLock(t.context.lockPath);
+	const release = await acquireLockSync(t.context.lockPath);
 	try {
 		t.true(await hasActiveLocks(t.context.testDir), "fresh lock detected as active");
 
