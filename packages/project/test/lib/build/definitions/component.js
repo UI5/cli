@@ -86,13 +86,6 @@ test("Standard build", (t) => {
 		generateBundle: {
 			taskFunction: null
 		},
-		generateVersionInfo: {
-			requiresDependencies: true,
-			options: {
-				rootProject: project,
-				pattern: "/resources/**/.library"
-			}
-		},
 		generateCachebusterInfo: {
 			options: {
 				signatureType: "PONY"
@@ -198,13 +191,6 @@ test("Custom bundles", async (t) => {
 		generateBundle: {
 			requiresDependencies: true,
 			taskFunction: generateBundleTaskDefinition.taskFunction
-		},
-		generateVersionInfo: {
-			requiresDependencies: true,
-			options: {
-				rootProject: project,
-				pattern: "/resources/**/.library"
-			}
 		},
 		generateCachebusterInfo: {
 			options: {

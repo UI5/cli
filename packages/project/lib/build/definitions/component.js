@@ -111,14 +111,6 @@ export default function({project, taskUtil, getTask}) {
 		});
 	}
 
-	tasks.set("generateVersionInfo", {
-		requiresDependencies: true,
-		options: {
-			rootProject: project,
-			pattern: "/resources/**/.library"
-		}
-	});
-
 	tasks.set("generateCachebusterInfo", {
 		options: {
 			signatureType: project.getCachebusterSignatureType(),

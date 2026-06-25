@@ -33,7 +33,7 @@ When working with SAP Business Application Studio, there are several templates a
 You can find many guides on UI5 development with SAP Business Application Studio in the [Tutorial Navigator](https://developers.sap.com/tutorial-navigator.html?tag=topic:sapui5&tag=products:technology-platform/sap-business-application-studio).
 
 ## Enabling an Existing Project
-You can easily check whether or not a project (application or library) can already be used with the UI5 CLI by looking for a `ui5.yaml` file in the project's root directory.  
+You can easily check whether or not a project (application, component, or library) can already be used with the UI5 CLI by looking for a `ui5.yaml` file in the project's root directory.  
 This file (with some exceptions) is required for all projects and their dependencies (e.g. reuse libraries) to use them in the UI5 CLI.
 
 ### Setup
