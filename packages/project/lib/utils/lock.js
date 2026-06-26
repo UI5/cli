@@ -1,7 +1,6 @@
 import path from "node:path";
-import {readdir} from "node:fs/promises";
-import {mkdirSync} from "node:fs";
-import {utimesSync} from "node:fs";
+import {readdir, mkdir} from "node:fs/promises";
+import {mkdirSync, utimesSync} from "node:fs";
 import {promisify} from "node:util";
 import lockfile from "lockfile";
 import {getLogger} from "@ui5/logger";
@@ -102,7 +101,7 @@ export async function hasActiveLocks(lockDir, {include, exclude} = {}) {
  * @param {string} lockPath Absolute path to the lock file
  * @returns {Function} Synchronous <code>release()</code> function
  */
-function releaseLock(lockPath) {
+function resolveReleaseLockFn(lockPath) {
 	const interval = setInterval(() => {
 		const now = new Date();
 		utimesSync(lockPath, now, now);
@@ -143,7 +142,7 @@ export function acquireLockSync(lockPath, {retries} = {}) {
 	mkdirSync(path.dirname(lockPath), {recursive: true});
 	log.verbose(`Locking ${lockPath}`);
 	lockfile.lockSync(lockPath, {stale: LOCK_STALE_MS, retries});
-	return releaseLock(lockPath);
+	return resolveReleaseLockFn(lockPath);
 }
 
 /**
@@ -165,8 +164,8 @@ export function acquireLockSync(lockPath, {retries} = {}) {
  * @returns {Promise<Function>} Resolves with a synchronous <code>release()</code> function
  */
 export async function acquireLock(lockPath, {wait, retries} = {}) {
-	mkdirSync(path.dirname(lockPath), {recursive: true});
 	log.verbose(`Locking ${lockPath}`);
+	await mkdir(path.dirname(lockPath), {recursive: true});
 	await promisify(lockfile.lock)(lockPath, {stale: LOCK_STALE_MS, wait, retries});
-	return releaseLock(lockPath);
+	return resolveReleaseLockFn(lockPath);
 }
