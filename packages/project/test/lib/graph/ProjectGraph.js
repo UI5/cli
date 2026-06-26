@@ -82,8 +82,10 @@ test.beforeEach(async (t) => {
 			getLogger: sinon.stub().withArgs("graph:ProjectGraph").returns(t.context.log)
 		},
 		"../../../lib/utils/lock.js": {
-			acquireLock: sinon.stub().resolves(() => {}),
+			acquireLockSync: sinon.stub().returns(() => {}),
 			getLockDir: sinon.stub().returns("/test/locks"),
+			CLEANUP_LOCK_NAME: "cache-cleanup.lock",
+			hasActiveLocks: sinon.stub().resolves(false),
 		},
 	});
 });

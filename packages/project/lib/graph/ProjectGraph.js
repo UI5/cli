@@ -4,7 +4,7 @@ import OutputStyleEnum from "../build/helpers/ProjectBuilderOutputStyle.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:ProjectGraph");
 import Cache from "../../../project/lib/build/cache/Cache.js";
-import {acquireLock, CLEANUP_LOCK_NAME, hasActiveLocks, getLockDir} from "../utils/lock.js";
+import {acquireLockSync, CLEANUP_LOCK_NAME, hasActiveLocks, getLockDir} from "../utils/lock.js";
 
 
 /**
@@ -710,33 +710,38 @@ class ProjectGraph {
 	 * concurrent <code>ui5 cache clean</code> operations from running while framework
 	 * packages are being downloaded or the build/serve lifecycle is active.
 	 *
-	 * If a cache clean is already in progress, waits for it to finish before acquiring
-	 * the lock. If a cache clean starts after the lock is acquired it will detect this
-	 * graph's lock and abort. Throws if the cache clean is still active after the lock
-	 * is acquired (i.e. the timing gap could not be closed).
+	 * If a cache clean is already in progress, polls until it finishes (up to 10 s)
+	 * before acquiring the graph lock. The double-check after acquiring guards the
+	 * narrow window between the poll and the lock acquisition. Throws if a cache
+	 * clean is still active after that window.
 	 *
-	 * Must be called after construction and before {@link enrichProjectGraph}.
+	 * Called by projectGraphBuilder immediately after construction so the lock is
+	 * in place before any framework downloads or build/serve work begins.
 	 * The lock is released by {@link destroy}.
 	 */
 	async _preventCacheClean() {
 		const lockDir = getLockDir(this._ui5DataDir);
+		// Acquire our lock so any cache clean that starts now will detect us and abort.
+		// First acquire, then lock, so that the await of hasActiveLocks does not open a window for a race condition.
 		const lockId = Buffer.from(getRandomValues(new Uint8Array(4))).toString("hex");
 		const lockPath = path.join(lockDir, `graph-${process.pid}-${lockId}.lock`);
+		this.#lockRelease = acquireLockSync(lockPath);
 
-		// Use the async variant with wait+retries so that if a cache clean is currently
-		// holding cache-cleanup.lock, we yield to the event loop and retry rather than
-		// spin-blocking. Cache clean is expected to complete within seconds.
-		this.#lockRelease = await acquireLock(lockPath, {wait: 10000, retries: 10});
+		// Poll until any in-progress cache clean releases its lock, or we time out.
+		const POLL_INTERVAL_MS = 200;
+		const TIMEOUT_MS = 10000;
+		const deadline = Date.now() + TIMEOUT_MS;
+		while (await hasActiveLocks(lockDir, {include: CLEANUP_LOCK_NAME})) {
+			if (Date.now() >= deadline) {
+				this.#lockRelease.release();
+				this.#lockRelease = null;
 
-		// Check after acquiring our lock — if cache clean is still active at this point
-		// the timing gap could not be closed and it is unsafe to proceed.
-		if (await hasActiveLocks(lockDir, {include: CLEANUP_LOCK_NAME})) {
-			this.#lockRelease();
-			this.#lockRelease = null;
-			throw new Error(
-				"UI5 data directory is currently being cleaned. " +
-				"Please wait for the cache clean operation to finish and try again."
-			);
+				throw new Error(
+					"UI5 data directory is currently being cleaned. " +
+					"Please wait for the cache clean operation to finish and try again."
+				);
+			}
+			await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
 		}
 	}
 
