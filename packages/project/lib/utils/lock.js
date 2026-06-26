@@ -1,6 +1,6 @@
 import path from "node:path";
 import {readdir, mkdir} from "node:fs/promises";
-import {mkdirSync, utimesSync} from "node:fs";
+import {mkdirSync, utimesSync, existsSync} from "node:fs";
 import {promisify} from "node:util";
 import lockfile from "lockfile";
 import {getLogger} from "@ui5/logger";
@@ -103,6 +103,10 @@ export async function hasActiveLocks(lockDir, {include, exclude} = {}) {
  */
 function resolveReleaseLockFn(lockPath) {
 	const interval = setInterval(() => {
+		if (!existsSync(lockPath)) {
+			clearInterval(interval);
+			return;
+		}
 		const now = new Date();
 		utimesSync(lockPath, now, now);
 	}, LOCK_REFRESH_INTERVAL_MS);
