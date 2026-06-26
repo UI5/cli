@@ -137,7 +137,7 @@ async function projectGraphBuilder(nodeProvider, workspace) {
 
 	const projectGraph = new ProjectGraph({
 		rootProjectName: rootProjectName,
-		dataDir: await resolveUi5DataDir(),
+		ui5DataDir: await resolveUi5DataDir(),
 	});
 	projectGraph.addProject(rootProject);
 

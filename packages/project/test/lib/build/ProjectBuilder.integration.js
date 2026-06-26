@@ -2718,13 +2718,19 @@ class FixtureTester {
 		await this._initialize();
 		this._sinon.resetHistory();
 
+		// Point resolveUi5DataDir() to the fixture-isolated data dir so the graph
+		// constructor and the build cache use the same isolated path.
+		const oldUi5DataDir = process.env.UI5_DATA_DIR;
+		process.env.UI5_DATA_DIR = this.ui5DataDir;
 		const graph = await graphFromPackageDependencies({
 			...graphConfig,
 			cwd: this.fixturePath,
 		});
 
+		process.env.UI5_DATA_DIR = oldUi5DataDir;
+
 		// Execute the build
-		await graph.build({...config, ui5DataDir: this.ui5DataDir});
+		await graph.build({...config});
 
 		// Apply assertions if provided
 		if (assertions) {
