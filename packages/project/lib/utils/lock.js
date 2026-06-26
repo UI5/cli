@@ -134,7 +134,9 @@ function releaseLock(lockPath) {
  *
  * @param {string} lockPath Absolute path to the lock file
  * @param {object} [options]
- * @param {number} [options.retries] Number of times to retry acquiring the lock
+ * @param {number} [options.retries] Number of synchronous retries on contention.
+ *   Each retry blocks the event loop — only use with a unique lock path where
+ *   contention is impossible (e.g. a path containing a per-process random suffix).
  * @returns {Function} Synchronous <code>release()</code> function
  */
 export function acquireLockSync(lockPath, {retries} = {}) {

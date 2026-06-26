@@ -849,6 +849,11 @@ class ProjectGraph {
 	 * Releases the process-coordination lock held by this graph.
 	 * Call this when the graph is no longer needed to unblock <code>ui5 cache clean</code>.
 	 *
+	 * If not called explicitly, the <code>lockfile</code> package's <code>signal-exit</code>
+	 * handler releases the lock on normal process exit or signal termination. The lock file
+	 * will also be ignored by <code>ui5 cache clean</code> once it ages past the staleness
+	 * threshold (<code>LOCK_STALE_MS</code>).
+	 *
 	 * @public
 	 */
 	destroy() {

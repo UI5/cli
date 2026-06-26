@@ -75,7 +75,11 @@ export async function getCacheInfo(ui5DataDir) {
  * Clean framework cache directory.
  *
  * Acquires a cleanup lock before deletion so that concurrent installer
- * processes see an active lock and wait rather than writing into a
+ * processes see an active lock and abort rather than writing into a
+ * directory that is being deleted.
+ *
+ * The lock directory (<code>~/.ui5/locks/</code>) is outside
+ * <code>~/.ui5/framework/</code> and is not affected by the deletion.
  *
  * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
  * @returns {Promise<{path: string, libraryCount: number, versionCount: number}|null>}
