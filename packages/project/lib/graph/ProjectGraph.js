@@ -26,15 +26,19 @@ class ProjectGraph {
 	 * @public
 	 * @param {object} parameters Parameters
 	 * @param {string} parameters.rootProjectName Root project name
-	 * @param {string} [parameters.dataDir] Resolved UI5 data directory. When provided, a
-	 *   process-coordination lock is acquired immediately to block concurrent
-	 *   <code>ui5 cache clean</code> operations.
+	 * @param {string} [parameters.ui5DataDir] Explicit UI5 data directory to use for the build cache & locks.
+	 *   Overrides the <code>UI5_DATA_DIR</code> environment variable, the UI5 configuration file,
+	 *   and the default of <code>~/.ui5</code>.
 	 */
-	constructor({rootProjectName, dataDir}) {
+	constructor({rootProjectName, ui5DataDir}) {
 		if (!rootProjectName) {
 			throw new Error(`Could not create ProjectGraph: Missing or empty parameter 'rootProjectName'`);
 		}
+		if (!ui5DataDir) {
+			throw new Error(`Could not create ProjectGraph: Missing or empty parameter 'ui5DataDir'`);
+		}
 		this._rootProjectName = rootProjectName;
+		this._ui5DataDir = ui5DataDir;
 
 		this._projects = new Map(); // maps project name to instance (= nodes)
 		this._adjList = new Map(); // maps project name to dependencies (= edges)
@@ -45,8 +49,6 @@ class ProjectGraph {
 		this._sealed = false;
 		this._hasUnresolvedOptionalDependencies = false; // Performance optimization flag
 		this._taskRepository = null;
-
-		this.#lockRelease = dataDir ? this.#lockGraph(getLockDir(dataDir)) : null;
 	}
 
 	/**
@@ -707,12 +709,12 @@ class ProjectGraph {
 	 * The <code>lockfile</code> package releases the lock automatically on process exit
 	 * or unexpected termination; call {@link destroy} to release it explicitly.
 	 *
-	 * @param {string} lockDir Absolute path to the locks directory
 	 */
-	#lockGraph(lockDir) {
+	_lockGraph() {
+		const lockDir = getLockDir(this._ui5DataDir);
 		const lockId = Buffer.from(getRandomValues(new Uint8Array(4))).toString("hex");
 		const lockPath = path.join(lockDir, `graph-${process.pid}-${lockId}.lock`);
-		return acquireLockSync(lockPath);
+		this.#lockRelease = acquireLockSync(lockPath);
 	}
 
 	/**
@@ -743,10 +745,6 @@ class ProjectGraph {
 	 *   Processes build results into a specific directory structure.
 	 * @param {module:@ui5/project/build/cache/Cache} [parameters.cache=Default]
 	 *   Cache mode to use for building UI5 projects
-	 * @param {string} [parameters.ui5DataDir]
-	 *   Explicit UI5 data directory to use for the build cache. Overrides the
-	 *   <code>UI5_DATA_DIR</code> environment variable, the UI5 configuration file,
-	 *   and the default of <code>~/.ui5</code>.
 	 * @returns {Promise} Promise resolving to <code>undefined</code> once build has finished
 	 */
 	async build({
@@ -756,8 +754,7 @@ class ProjectGraph {
 		selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
 		includedTasks = [], excludedTasks = [],
 		outputStyle = OutputStyleEnum.Default,
-		cache = Cache.Default,
-		ui5DataDir,
+		cache = Cache.Default
 	}) {
 		this.seal(); // Do not allow further changes to the graph
 		if (this._builtOrServed) {
@@ -778,7 +775,7 @@ class ProjectGraph {
 				includedTasks, excludedTasks, outputStyle,
 				cache
 			},
-			ui5DataDir,
+			ui5DataDir: this._ui5DataDir,
 		});
 		return await builder.buildToTarget({
 			destPath, cleanDest,
@@ -792,8 +789,7 @@ class ProjectGraph {
 		initialBuildIncludedDependencies = [], initialBuildExcludedDependencies = [],
 		selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
 		includedTasks = [], excludedTasks = [],
-		cache = Cache.Default,
-		ui5DataDir,
+		cache = Cache.Default
 	}) {
 		this.seal(); // Do not allow further changes to the graph
 		if (this._builtOrServed) {
@@ -815,7 +811,7 @@ class ProjectGraph {
 				outputStyle: OutputStyleEnum.Default,
 				cache
 			},
-			ui5DataDir,
+			ui5DataDir: this._ui5DataDir,
 		});
 		const {
 			default: BuildServer
