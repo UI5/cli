@@ -710,7 +710,7 @@ class ProjectGraph {
 	 * or unexpected termination; call {@link destroy} to release it explicitly.
 	 *
 	 */
-	_lockGraph() {
+	_preventCacheClean() {
 		const lockDir = getLockDir(this._ui5DataDir);
 		const lockId = Buffer.from(getRandomValues(new Uint8Array(4))).toString("hex");
 		const lockPath = path.join(lockDir, `graph-${process.pid}-${lockId}.lock`);
