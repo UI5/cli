@@ -289,10 +289,7 @@ export default {
 	 *   Promise resolving with the given graph instance to allow method chaining
 	 */
 	enrichProjectGraph: async function(projectGraph, options = {}) {
-		// Lock the ProjectGraph for cache cleanup as it will be modified by adding framework dependencies to it.
-		// The lock will be released when the ProjectGraph is no longer used i.e.
-		// after ProjectGraph.build() or ProjectGraph.serve() finish or are terminated.
-		// projectGraph._preventCacheClean();
+		await projectGraph._preventCacheClean();
 
 		const {workspace, snapshotCache} = options;
 		const rootProject = projectGraph.getRoot();

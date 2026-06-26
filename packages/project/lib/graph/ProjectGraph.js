@@ -4,16 +4,18 @@ import OutputStyleEnum from "../build/helpers/ProjectBuilderOutputStyle.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:ProjectGraph");
 import Cache from "../../../project/lib/build/cache/Cache.js";
-import {acquireLockSync, getLockDir} from "../utils/lock.js";
+import {acquireLock, CLEANUP_LOCK_NAME, hasActiveLocks, getLockDir} from "../utils/lock.js";
 
 
 /**
  * A rooted, directed graph representing a UI5 project, its dependencies and available extensions.
  *
- * When constructed with a <code>dataDir</code>, the graph immediately acquires a process-coordination
- * lock to prevent concurrent <code>ui5 cache clean</code> operations. Call {@link destroy} to release
- * it explicitly when the graph is no longer needed. Even without an explicit call, the
- * <code>lockfile</code> package ensures the lock is released on process exit or unexpected termination.
+ * When constructed with a <code>ui5DataDir</code>, the graph acquires a process-coordination
+ * lock during {@link enrichProjectGraph} to prevent concurrent <code>ui5 cache clean</code>
+ * operations. If a cache clean is already running, the lock acquisition waits for it to finish
+ * before proceeding. Call {@link destroy} to release the lock explicitly when the graph is no
+ * longer needed. Even without an explicit call, the <code>lockfile</code> package ensures the
+ * lock is released on process exit or unexpected termination.
  *
  * @public
  * @class
@@ -704,17 +706,38 @@ class ProjectGraph {
 	}
 
 	/**
-	 * Acquires a process-coordination lock scoped to this graph instance,
-	 * blocking concurrent <code>ui5 cache clean</code> operations.
-	 * The <code>lockfile</code> package releases the lock automatically on process exit
-	 * or unexpected termination; call {@link destroy} to release it explicitly.
+	 * Acquires a process-coordination lock scoped to this graph instance to prevent
+	 * concurrent <code>ui5 cache clean</code> operations from running while framework
+	 * packages are being downloaded or the build/serve lifecycle is active.
 	 *
+	 * If a cache clean is already in progress, waits for it to finish before acquiring
+	 * the lock. If a cache clean starts after the lock is acquired it will detect this
+	 * graph's lock and abort. Throws if the cache clean is still active after the lock
+	 * is acquired (i.e. the timing gap could not be closed).
+	 *
+	 * Must be called after construction and before {@link enrichProjectGraph}.
+	 * The lock is released by {@link destroy}.
 	 */
-	_preventCacheClean() {
+	async _preventCacheClean() {
 		const lockDir = getLockDir(this._ui5DataDir);
 		const lockId = Buffer.from(getRandomValues(new Uint8Array(4))).toString("hex");
 		const lockPath = path.join(lockDir, `graph-${process.pid}-${lockId}.lock`);
-		this.#lockRelease = acquireLockSync(lockPath);
+
+		// Use the async variant with wait+retries so that if a cache clean is currently
+		// holding cache-cleanup.lock, we yield to the event loop and retry rather than
+		// spin-blocking. Cache clean is expected to complete within seconds.
+		this.#lockRelease = await acquireLock(lockPath, {wait: 10000, retries: 10});
+
+		// Check after acquiring our lock — if cache clean is still active at this point
+		// the timing gap could not be closed and it is unsafe to proceed.
+		if (await hasActiveLocks(lockDir, {include: CLEANUP_LOCK_NAME})) {
+			this.#lockRelease();
+			this.#lockRelease = null;
+			throw new Error(
+				"UI5 data directory is currently being cleaned. " +
+				"Please wait for the cache clean operation to finish and try again."
+			);
+		}
 	}
 
 	/**
@@ -756,6 +779,7 @@ class ProjectGraph {
 		outputStyle = OutputStyleEnum.Default,
 		cache = Cache.Default
 	}) {
+		this._preventCacheClean(); // Prevent concurrent cache clean operations while the graph is being built.
 		this.seal(); // Do not allow further changes to the graph
 		if (this._builtOrServed) {
 			throw new Error(
@@ -791,6 +815,7 @@ class ProjectGraph {
 		includedTasks = [], excludedTasks = [],
 		cache = Cache.Default
 	}) {
+		this._preventCacheClean(); // Prevent concurrent cache clean operations while the graph is being served
 		this.seal(); // Do not allow further changes to the graph
 		if (this._builtOrServed) {
 			throw new Error(
