@@ -33,6 +33,7 @@ test.beforeEach(async (t) => {
 
 	t.context.frameworkCacheGetCacheInfo = sinon.stub();
 	t.context.frameworkCacheCleanCache = sinon.stub();
+	t.context.frameworkCacheGetOrphanedInfo = sinon.stub().resolves([]);
 	t.context.buildCacheGetCacheInfo = sinon.stub();
 	t.context.buildCacheCleanCache = sinon.stub();
 
@@ -49,6 +50,7 @@ test.beforeEach(async (t) => {
 		"@ui5/project/ui5Framework/cache": {
 			getCacheInfo: t.context.frameworkCacheGetCacheInfo,
 			cleanCache: t.context.frameworkCacheCleanCache,
+			getOrphanedInfo: t.context.frameworkCacheGetOrphanedInfo,
 		},
 		"@ui5/project/build/cache/CacheManager": {
 			default: class {
@@ -362,4 +364,89 @@ test.serial("ui5 cache clean --yes: also aborts when framework cache is locked",
 	t.is(frameworkCacheCleanCache.callCount, 0, "cleanCache not called when locked");
 	t.is(buildCacheCleanCache.callCount, 0, "buildCache.cleanCache not called when locked");
 	t.is(process.exitCode, 1, "Exit code should be 1");
+});
+
+test.serial("ui5 cache clean: formats byte sizes correctly (< 1 KB)", async (t) => {
+	const {cache, argv, stderrWriteStub, buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
+
+	t.context.frameworkCacheGetCacheInfo.resolves(null);
+	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 500});
+	yesnoStub.resolves(true);
+	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 500});
+
+	argv["_"] = ["cache", "clean"];
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("500 B"), "Shows bytes format for size < 1 KB");
+});
+
+test.serial("ui5 cache clean: shows orphaned framework data in pre-confirmation summary", async (t) => {
+	const {cache, argv, stderrWriteStub, yesnoStub,
+		frameworkCacheCleanCache, frameworkCacheGetOrphanedInfo} = t.context;
+
+	t.context.frameworkCacheGetCacheInfo.resolves(null);
+	t.context.buildCacheGetCacheInfo.resolves(null);
+	frameworkCacheGetOrphanedInfo.resolves([
+		{path: ".framework_to_delete_abcd", libraryCount: 5, versionCount: 2},
+	]);
+	frameworkCacheCleanCache.resolves(null);
+
+	yesnoStub.resolves(true);
+
+	argv["_"] = ["cache", "clean"];
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("Orphaned framework data"), "Shows orphaned section in pre-confirm summary");
+	t.true(allOutput.includes("incomplete previous clean"), "Shows orphaned context message");
+	t.true(allOutput.includes("1 directory"), "Shows singular 'directory' for one orphan");
+	t.true(allOutput.includes(".framework_to_delete_abcd"), "Shows orphaned dir path");
+	t.true(allOutput.includes("2 versions of 5 libraries"), "Shows orphaned dir stats");
+});
+
+test.serial("ui5 cache clean: shows orphaned framework data in post-clean summary", async (t) => {
+	const {cache, argv, stderrWriteStub, frameworkCacheGetOrphanedInfo,
+		frameworkCacheCleanCache} = t.context;
+
+	t.context.frameworkCacheGetCacheInfo.resolves({path: "framework", libraryCount: 3, versionCount: 1});
+	t.context.buildCacheGetCacheInfo.resolves(null);
+	frameworkCacheGetOrphanedInfo.resolves([
+		{path: ".framework_to_delete_ab12", libraryCount: 3, versionCount: 1},
+		{path: ".framework_to_delete_cd34", libraryCount: 3, versionCount: 1},
+	]);
+	frameworkCacheCleanCache.resolves({
+		path: "framework", libraryCount: 3, versionCount: 1, orphaned: [],
+	});
+
+	argv["_"] = ["cache", "clean"];
+	argv["yes"] = true;
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("Removed Orphaned framework data"), "Shows orphaned section in result");
+	t.true(allOutput.includes("2 directories"), "Shows plural 'directories' for multiple orphans");
+	t.true(allOutput.includes(".framework_to_delete_ab12"), "Shows first orphaned dir path");
+	t.true(allOutput.includes(".framework_to_delete_cd34"), "Shows second orphaned dir path");
+});
+
+test.serial("ui5 cache clean: shows orphaned-only success summary when no active framework", async (t) => {
+	const {cache, argv, stderrWriteStub, frameworkCacheGetOrphanedInfo,
+		frameworkCacheCleanCache} = t.context;
+
+	t.context.frameworkCacheGetCacheInfo.resolves(null);
+	t.context.buildCacheGetCacheInfo.resolves(null);
+	frameworkCacheGetOrphanedInfo.resolves([
+		{path: ".framework_to_delete_zz99", libraryCount: 10, versionCount: 3},
+	]);
+	frameworkCacheCleanCache.resolves(null);
+
+	argv["_"] = ["cache", "clean"];
+	argv["yes"] = true;
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("Orphaned framework data"), "Shows orphaned section");
+	t.true(allOutput.includes("Cleaned Orphaned framework data"), "Success summary mentions orphaned data");
+	t.false(allOutput.includes("UI5 Framework packages"), "Does not mention main framework when absent");
 });
