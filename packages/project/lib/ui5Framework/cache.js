@@ -1,8 +1,16 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import {getRandomValues} from "node:crypto";
 import {getLockDir, CLEANUP_LOCK_NAME, hasActiveLocks, acquireLock} from "../utils/lock.js";
 
 const FRAMEWORK_DIR_NAME = "framework";
+
+/**
+ * Prefix used for staging directories created during an atomic framework cache clean.
+ * The directory is renamed to this prefix + a random hex suffix before deletion so that
+ * the original path immediately becomes unavailable to concurrent processes.
+ */
+const STAGING_DIR_PREFIX = ".framework_to_delete_";
 
 /**
  * Count unique libraries and versions in the packages/ subdirectory.
@@ -10,12 +18,11 @@ const FRAMEWORK_DIR_NAME = "framework";
  * Library names are deduplicated globally: sap.m under @openui5 and @sapui5 counts
  * as one library.
  *
- * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+ * @param {string} frameworkDir Absolute path to the framework directory
  * @returns {Promise<{libraries: number, versions: number}|null>}
  *   Null if the directory does not exist or contains no installed libraries.
  */
-async function getPackageStats(ui5DataDir) {
-	const frameworkDir = path.join(ui5DataDir, FRAMEWORK_DIR_NAME);
+async function getPackageStats(frameworkDir) {
 	try {
 		await fs.access(frameworkDir);
 	} catch {
@@ -60,7 +67,8 @@ async function getPackageStats(ui5DataDir) {
  *   Framework cache info, or null if no packages are installed.
  */
 export async function getCacheInfo(ui5DataDir) {
-	const stats = await getPackageStats(ui5DataDir);
+	const frameworkDir = path.join(ui5DataDir, FRAMEWORK_DIR_NAME);
+	const stats = await getPackageStats(frameworkDir);
 	if (!stats) {
 		return null;
 	}
@@ -72,33 +80,137 @@ export async function getCacheInfo(ui5DataDir) {
 }
 
 /**
- * Clean framework cache directory.
- *
- * Acquires a cleanup lock before deletion so that concurrent installer
- * processes see an active lock and abort rather than writing into a
- * directory that is being deleted.
- *
- * The lock directory (<code>~/.ui5/locks/</code>) is outside
- * <code>~/.ui5/framework/</code> and is not affected by the deletion.
+ * Scans ui5DataDir for orphaned staging directories left behind by previously
+ * interrupted clean operations (i.e. process killed after rename but before deletion).
+ * Returns stats per orphan without deleting anything.
  *
  * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
- * @returns {Promise<{path: string, libraryCount: number, versionCount: number}|null>}
- *   Removal result, or null if nothing was installed.
+ * @returns {Promise<Array<{path: string, libraryCount: number, versionCount: number}>>}
+ */
+export async function getOrphanedInfo(ui5DataDir) {
+	let entries;
+	try {
+		entries = await fs.readdir(ui5DataDir, {withFileTypes: true});
+	} catch {
+		return [];
+	}
+
+	const orphans = entries.filter(
+		(e) => e.isDirectory() && e.name.startsWith(STAGING_DIR_PREFIX)
+	);
+
+	if (orphans.length === 0) {
+		return [];
+	}
+
+	const results = await Promise.all(orphans.map(async (orphan) => {
+		const orphanDir = path.join(ui5DataDir, orphan.name);
+		const stats = await getPackageStats(orphanDir);
+		if (!stats) {
+			return null;
+		}
+		return {
+			path: orphan.name,
+			libraryCount: stats.libraries,
+			versionCount: stats.versions,
+		};
+	}));
+
+	return results.filter(Boolean);
+}
+
+/**
+ * Scans ui5DataDir for orphaned staging directories left behind by previously
+ * interrupted clean operations (i.e. process killed after rename but before deletion).
+ *
+ * Returns an array of result objects — one per orphaned directory found — each
+ * containing the path, library count and version count so the caller can include
+ * them in the cleanup summary.
+ *
+ * Deletion failures are swallowed per entry so one stuck directory does not prevent
+ * the others from being removed.
+ *
+ * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+ * @returns {Promise<Array<{path: string, libraryCount: number, versionCount: number}>>}
+ */
+async function cleanupOrphanedStagingDirs(ui5DataDir) {
+	const orphans = await getOrphanedInfo(ui5DataDir);
+
+	for (const orphan of orphans) {
+		const orphanDir = path.join(ui5DataDir, orphan.path);
+		try {
+			await fs.rm(orphanDir, {recursive: true, force: true});
+		} catch {
+			// Ignore deletion errors
+		}
+	}
+
+	return orphans;
+}
+
+/**
+ * Clean the framework cache directory.
+ *
+ * Strategy
+ * ────────
+ * Rather than deleting files one-by-one while holding the cleanup lock (which
+ * can take seconds on large caches), the clean uses an atomic rename to make the
+ * directory disappear in a single filesystem operation:
+ *
+ *  1. Acquire the cleanup lock and verify no other framework operation is active.
+ *  2. Clear cacache's in-process memoization (no path needed — global operation).
+ *  3. Atomically rename <code>framework/</code> to a hidden staging dir.
+ *     After this point the original path no longer exists: concurrent builds will
+ *     see it as absent and create a fresh <code>framework/</code> directory.
+ *  4. Release the cleanup lock immediately — it is now safe because the original
+ *     path is gone and the staging dir is not referenced by any other component.
+ *  5. Delete the staging dir recursively outside the lock — its contents are
+ *     now fully private to this operation.
+ *  6. Collect stats and scan for orphaned staging dirs from previous interrupted cleans.
+ *
+ * Orphaned staging dirs from previous interrupted runs are also collected and
+ * deleted, and their stats are included in the return value.
+ *
+ * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+ * @returns {Promise<{
+ *   path: string,
+ *   libraryCount: number,
+ *   versionCount: number,
+ *   orphaned: Array<{path: string, libraryCount: number, versionCount: number}>
+ * }|null>}
+ *   Removal result including orphaned-dir stats, or null if nothing was installed.
  * @throws {Error} If a framework operation is currently active (active lockfiles detected)
  */
 export async function cleanCache(ui5DataDir) {
-	const stats = await getPackageStats(ui5DataDir);
+	const frameworkDir = path.join(ui5DataDir, FRAMEWORK_DIR_NAME);
+	const stats = await getPackageStats(frameworkDir);
 	if (!stats) {
-		return null;
+		// Always clean up orphaned staging dirs from previously interrupted cleans,
+		// regardless of whether an active framework/ directory exists. Orphans can
+		// accumulate even after the framework has been fully cleaned.
+		const orphaned = await cleanupOrphanedStagingDirs(ui5DataDir);
+
+		if (orphaned.length > 0) {
+			return {
+				path: FRAMEWORK_DIR_NAME,
+				libraryCount: 0,
+				versionCount: 0,
+				orphaned
+			};
+		} else {
+			// No active framework to clean — return null only if there were also no orphans.
+			// If orphans were cleaned, still return null (caller handles orphan-only reporting separately).
+			return null;
+		}
 	}
 
 	const lockDir = getLockDir(ui5DataDir);
 	const lockPath = path.join(lockDir, CLEANUP_LOCK_NAME);
-	const frameworkDir = path.join(ui5DataDir, FRAMEWORK_DIR_NAME);
 
-	// Acquire first, then check — ensures installers running concurrently will see
-	// the cleanup lock and abort before writing into a directory being deleted.
+	// Acquire first, then check — ensures concurrent framework operations will see
+	// the cleanup lock and abort before we start the rename.
 	const releaseCleanupLock = await acquireLock(lockPath);
+
 	try {
 		if (await hasActiveLocks(lockDir, {exclude: CLEANUP_LOCK_NAME})) {
 			throw new Error(
@@ -107,33 +219,47 @@ export async function cleanCache(ui5DataDir) {
 			);
 		}
 
-		// Use cacache's own rm.all to clear the pacote download cache.
-		// This respects cacache's internal structure (content-v2/, index-v5/)
-		// and clears in-memory memoization, which a plain fs.rm would not do.
-		const caCacheDir = path.join(frameworkDir, "cacache");
+		// Clear cacache's in-process memoization before the rename.
+		// clearMemoized() operates globally (no path argument) and is synchronous,
+		// so it is safe to call here before the directory moves.
 		try {
-			await fs.access(caCacheDir);
-			const {rm: cacacheRm} = await import("cacache");
-			await cacacheRm.all(caCacheDir);
+			const {clearMemoized} = await import("cacache");
+			clearMemoized();
 		} catch {
-			// cacache dir doesn't exist or cacache not available — no-op
+			// cacache not available — no-op
 		}
 
-		// Delete everything inside framework/
-		const entries = await fs.readdir(frameworkDir, {withFileTypes: true});
-		await Promise.all(entries.map((entry) => {
-			const curDir = path.join(frameworkDir, entry.name);
-			return entry.isDirectory() ?
-				fs.rm(curDir, {recursive: true, force: true}) :
-				fs.unlink(curDir);
-		}));
-	} finally {
+		// Atomically rename framework/ to a staging directory.
+		// fs.rename is a single syscall and completes in microseconds.
+		// After this line the original path no longer exists.
+		const stagingDir = path.join(
+			ui5DataDir,
+			`${STAGING_DIR_PREFIX}${Buffer.from(getRandomValues(new Uint8Array(2))).toString("hex")}`
+		);
+		await fs.rename(frameworkDir, stagingDir);
+
+		// Release the lock immediately after the atomic rename.
+		// The original path is gone — no concurrent installer can write into it.
+		// Holding the lock during the slow recursive deletion below is unnecessary
+		// and would block other operations for no safety benefit.
 		releaseCleanupLock();
+
+		// Delete the staging directory. This is the slow part,
+		// but it is now outside the lock and fully private to this operation.
+		await fs.rm(stagingDir, {recursive: true, force: true});
+	} catch (err) {
+		// Release the lock if we haven't already (i.e. an error occurred before the rename).
+		releaseCleanupLock();
+		throw err;
 	}
+
+	// Collect and delete orphaned staging dirs from previously interrupted cleans.
+	const orphaned = await cleanupOrphanedStagingDirs(ui5DataDir);
 
 	return {
 		path: FRAMEWORK_DIR_NAME,
 		libraryCount: stats.libraries,
 		versionCount: stats.versions,
+		orphaned,
 	};
 }
