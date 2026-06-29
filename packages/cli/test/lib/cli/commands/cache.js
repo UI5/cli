@@ -44,7 +44,6 @@ test.beforeEach(async (t) => {
 			resolveUi5DataDir: t.context.resolveUi5DataDirStub,
 		},
 		"@ui5/project/utils/lock": {
-			getLockDir: sinon.stub().callsFake((dir) => `${dir}/locks`),
 			hasActiveLocks: t.context.hasActiveLocksStub,
 		},
 		"@ui5/project/ui5Framework/cache": {

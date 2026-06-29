@@ -214,7 +214,7 @@ export async function cleanCache(ui5DataDir) {
 	const releaseCleanupLock = await acquireLock(lockPath);
 	let orphaned = [];
 	try {
-		if (await hasActiveLocks(lockDir, {exclude: CLEANUP_LOCK_NAME})) {
+		if (await hasActiveLocks(ui5DataDir, {exclude: CLEANUP_LOCK_NAME})) {
 			throw new Error(
 				"Framework cache is currently locked by an active operation. " +
 				"Please wait for it to finish and try again."

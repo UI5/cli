@@ -20,10 +20,13 @@ const lockfileUnlock = promisify(lockfileLib.unlock);
 const TEST_DIR = path.join(import.meta.dirname, "..", "..", "..", "test", "tmp", "utils-lock");
 
 test.beforeEach(async (t) => {
-	const testDir = path.join(TEST_DIR, `${Date.now()}-${Math.random().toString(36).slice(2)}`);
-	await fs.mkdir(testDir, {recursive: true});
-	t.context.testDir = testDir;
-	t.context.lockPath = path.join(testDir, "test.lock");
+	// ui5DataDir — hasActiveLocks derives lockDir = ui5DataDir/locks/ internally
+	const ui5DataDir = path.join(TEST_DIR, `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+	const lockDir = path.join(ui5DataDir, "locks");
+	await fs.mkdir(lockDir, {recursive: true});
+	t.context.ui5DataDir = ui5DataDir;
+	t.context.lockDir = lockDir;
+	t.context.lockPath = path.join(lockDir, "test.lock");
 });
 
 test.afterEach.always(async (t) => {
@@ -169,19 +172,19 @@ test.serial("acquireLock: waits for a contended lock without blocking", async (t
 // ─── hasActiveLocks ───────────────────────────────────────────────────────────
 
 test.serial("hasActiveLocks: returns false when locks directory does not exist", async (t) => {
-	const missingDir = path.join(t.context.testDir, "does-not-exist");
+	const missingDir = path.join(t.context.ui5DataDir, "does-not-exist");
 	t.false(await hasActiveLocks(missingDir), "no locks dir => no active locks");
 });
 
 test.serial("hasActiveLocks: returns false when locks directory is empty", async (t) => {
-	t.false(await hasActiveLocks(t.context.testDir), "empty dir => no active locks");
+	t.false(await hasActiveLocks(t.context.ui5DataDir), "empty dir => no active locks");
 });
 
 test.serial("hasActiveLocks: returns true when an active (non-stale) lock is present", async (t) => {
 	// Acquire a real lock so its filesystem timestamp is "now"
 	const release = await acquireLockSync(t.context.lockPath);
 	try {
-		t.true(await hasActiveLocks(t.context.testDir), "fresh lock detected as active");
+		t.true(await hasActiveLocks(t.context.ui5DataDir), "fresh lock detected as active");
 
 		// Active locks must not be deleted by the scan
 		await t.notThrowsAsync(fs.access(t.context.lockPath), "active lock preserved");
@@ -193,8 +196,8 @@ test.serial("hasActiveLocks: returns true when an active (non-stale) lock is pre
 test.serial(
 	"hasActiveLocks: removes stale lock files left behind by crashed processes",
 	async (t) => {
-		const staleLockPathA = path.join(t.context.testDir, "crashed-a.lock");
-		const staleLockPathB = path.join(t.context.testDir, "crashed-b.lock");
+		const staleLockPathA = path.join(t.context.lockDir, "crashed-a.lock");
+		const staleLockPathB = path.join(t.context.lockDir, "crashed-b.lock");
 
 		await fs.writeFile(staleLockPathA, "");
 		await fs.writeFile(staleLockPathB, "");
@@ -214,7 +217,7 @@ test.serial(
 		);
 
 		try {
-			const result = await hasActiveLocksWithStubs(t.context.testDir);
+			const result = await hasActiveLocksWithStubs(t.context.ui5DataDir);
 
 			t.false(result, "all locks are stale => returns false");
 			t.is(checkStub.callCount, 2, "check called once per lock file");
@@ -232,8 +235,8 @@ test.serial(
 test.serial(
 	"hasActiveLocks: keeps active lock and removes stale neighbor in same scan",
 	async (t) => {
-		const staleLockPath = path.join(t.context.testDir, "stale.lock");
-		const activeLockPath = path.join(t.context.testDir, "active.lock");
+		const staleLockPath = path.join(t.context.lockDir, "stale.lock");
+		const activeLockPath = path.join(t.context.lockDir, "active.lock");
 
 		await fs.writeFile(staleLockPath, "");
 		await fs.writeFile(activeLockPath, "");
@@ -243,7 +246,7 @@ test.serial(
 		checkStub.withArgs(activeLockPath, sinon.match.any).yields(null, true);
 
 		try {
-			const result = await hasActiveLocks(t.context.testDir);
+			const result = await hasActiveLocks(t.context.ui5DataDir);
 
 			t.true(result, "scan returns true because one lock is active");
 
@@ -256,8 +259,8 @@ test.serial(
 );
 
 test.serial("hasActiveLocks: honours include option (allowlist)", async (t) => {
-	const includedLockPath = path.join(t.context.testDir, "included.lock");
-	const otherLockPath = path.join(t.context.testDir, "other.lock");
+	const includedLockPath = path.join(t.context.lockDir, "included.lock");
+	const otherLockPath = path.join(t.context.lockDir, "other.lock");
 
 	await fs.writeFile(includedLockPath, "");
 	await fs.writeFile(otherLockPath, "");
@@ -271,7 +274,7 @@ test.serial("hasActiveLocks: honours include option (allowlist)", async (t) => {
 	);
 
 	try {
-		const result = await hasActiveLocksWithStubs(t.context.testDir, {include: "included.lock"});
+		const result = await hasActiveLocksWithStubs(t.context.ui5DataDir, {include: "included.lock"});
 
 		t.true(result, "included lock detected as active");
 
@@ -284,8 +287,8 @@ test.serial("hasActiveLocks: honours include option (allowlist)", async (t) => {
 });
 
 test.serial("hasActiveLocks: honours exclude option (denylist)", async (t) => {
-	const excludedLockPath = path.join(t.context.testDir, "excluded.lock");
-	const otherLockPath = path.join(t.context.testDir, "other.lock");
+	const excludedLockPath = path.join(t.context.lockDir, "excluded.lock");
+	const otherLockPath = path.join(t.context.lockDir, "other.lock");
 
 	await fs.writeFile(excludedLockPath, "");
 	await fs.writeFile(otherLockPath, "");
@@ -299,7 +302,7 @@ test.serial("hasActiveLocks: honours exclude option (denylist)", async (t) => {
 	);
 
 	try {
-		const result = await hasActiveLocksWithStubs(t.context.testDir, {exclude: "excluded.lock"});
+		const result = await hasActiveLocksWithStubs(t.context.ui5DataDir, {exclude: "excluded.lock"});
 
 		t.true(result, "the non-excluded lock is detected");
 

@@ -21,6 +21,7 @@ class AbstractInstaller {
 		if (!ui5DataDir) {
 			throw new Error(`Installer: Missing parameter "ui5DataDir"`);
 		}
+		this._ui5DataDir = ui5DataDir;
 		this._lockDir = getLockDir(ui5DataDir);
 	}
 
@@ -31,7 +32,7 @@ class AbstractInstaller {
 		try {
 			// Abort if cache cleanup is in progress. Checking after acquiring our lock
 			// ensures cleanCache's hasActiveLocks scan will see us if both run concurrently.
-			if (await hasActiveLocks(this._lockDir, {include: CLEANUP_LOCK_NAME})) {
+			if (await hasActiveLocks(this._ui5DataDir, {include: CLEANUP_LOCK_NAME})) {
 				throw new Error(
 					"Framework cache is currently being cleaned. " +
 					"Please wait for the cache clean operation to finish and try again."
