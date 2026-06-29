@@ -2,6 +2,7 @@ import test from "ava";
 import path from "node:path";
 import fs from "node:fs/promises";
 import sinon from "sinon";
+import esmock from "esmock";
 import {promisify} from "node:util";
 import lockfileLib from "lockfile";
 import {
@@ -77,31 +78,48 @@ test.serial("acquireLockSync: release() is idempotent", (t) => {
 });
 
 test.serial("acquireLockSync: release() stops the refresh interval", async (t) => {
-	const release = acquireLockSync(t.context.lockPath);
-	const statBefore = await fs.stat(t.context.lockPath);
+	const clock = sinon.useFakeTimers({toFake: ["setInterval", "clearInterval", "setTimeout"]});
+	try {
+		const release = acquireLockSync(t.context.lockPath);
+		const statBefore = await fs.stat(t.context.lockPath);
 
-	// Release immediately — interval must stop
-	release();
+		// Release immediately — interval must stop
+		release();
 
-	// Wait two interval periods and confirm mtime did not advance
-	await new Promise((resolve) => setTimeout(resolve, LOCK_REFRESH_INTERVAL_MS * 2 + 200));
+		// Advance past two interval periods — if the interval were still running it would
+		// call utimesSync on the (now deleted) file and throw an uncaught ENOENT.
+		await clock.tickAsync(LOCK_REFRESH_INTERVAL_MS * 2 + 1);
 
-	// Lock file is gone after release, so we re-check by confirming ENOENT (interval can't update a deleted file)
-	await t.throwsAsync(fs.access(t.context.lockPath), {code: "ENOENT"},
-		"lock file gone — interval has nothing to refresh");
-	t.truthy(statBefore, "stat was readable before release");
+		await t.throwsAsync(fs.access(t.context.lockPath), {code: "ENOENT"},
+			"lock file gone — interval has nothing to refresh");
+		t.truthy(statBefore, "stat was readable before release");
+	} finally {
+		clock.restore();
+	}
 });
 
 test.serial("acquireLockSync: refresh interval keeps mtime fresh while lock is held", async (t) => {
-	const release = acquireLockSync(t.context.lockPath);
+	// Start fake timers at the current real time so new Date() in the interval
+	// returns a timestamp that advances beyond the file's creation mtime.
+	const clock = sinon.useFakeTimers({
+		now: Date.now(),
+		toFake: ["setInterval", "clearInterval", "setTimeout", "Date"],
+	});
 	try {
-		const statBefore = await fs.stat(t.context.lockPath);
-		// Wait longer than one interval tick
-		await new Promise((resolve) => setTimeout(resolve, LOCK_REFRESH_INTERVAL_MS + 200));
-		const statAfter = await fs.stat(t.context.lockPath);
-		t.true(statAfter.mtimeMs >= statBefore.mtimeMs, "mtime updated by refresh interval while lock is held");
+		const release = acquireLockSync(t.context.lockPath);
+		try {
+			const statBefore = await fs.stat(t.context.lockPath);
+			// Advance past one interval tick — Date now returns a later time, so
+			// utimesSync sets a later mtime that fs.stat will reflect.
+			await clock.tickAsync(LOCK_REFRESH_INTERVAL_MS + 1);
+			const statAfter = await fs.stat(t.context.lockPath);
+			t.true(statAfter.mtimeMs >= statBefore.mtimeMs,
+				"mtime updated by refresh interval while lock is held");
+		} finally {
+			release();
+		}
 	} finally {
-		release();
+		clock.restore();
 	}
 });
 
@@ -178,17 +196,25 @@ test.serial(
 		const staleLockPathA = path.join(t.context.testDir, "crashed-a.lock");
 		const staleLockPathB = path.join(t.context.testDir, "crashed-b.lock");
 
-		// Create two lock files on disk to simulate orphans from crashed processes.
 		await fs.writeFile(staleLockPathA, "");
 		await fs.writeFile(staleLockPathB, "");
 
-		// Stub lockfile.check so both files are reported as stale (returns false).
-		// This avoids any reliance on filesystem timestamps or fake timers and
-		// keeps the test focused on the cleanup branch of hasActiveLocks.
-		const checkStub = sinon.stub(lockfileLib, "check").yields(null, false);
+		// lock.js captures `check` and `unlock` at module load time via promisify().
+		// Stubbing lockfileLib.check after load has no effect — use esmock so lock.js
+		// captures the stubs when it first runs promisify() on the injected module.
+		const checkStub = sinon.stub().yields(null, false);
+		// Simulate lockfile.unlock deleting the file, as the real implementation does.
+		const unlockStub = sinon.stub().callsFake((lockPath, cb) => {
+			fs.unlink(lockPath).catch(() => {}).finally(() => cb(null));
+		});
+
+		const {hasActiveLocks: hasActiveLocksWithStubs} = await esmock.p(
+			"../../../lib/utils/lock.js",
+			{lockfile: {check: checkStub, unlock: unlockStub}}
+		);
 
 		try {
-			const result = await hasActiveLocks(t.context.testDir);
+			const result = await hasActiveLocksWithStubs(t.context.testDir);
 
 			t.false(result, "all locks are stale => returns false");
 			t.is(checkStub.callCount, 2, "check called once per lock file");
@@ -198,7 +224,7 @@ test.serial(
 			await t.throwsAsync(fs.access(staleLockPathB), {code: "ENOENT"},
 				"crashed-b.lock removed by hasActiveLocks");
 		} finally {
-			checkStub.restore();
+			esmock.purge(hasActiveLocksWithStubs);
 		}
 	},
 );
@@ -209,12 +235,9 @@ test.serial(
 		const staleLockPath = path.join(t.context.testDir, "stale.lock");
 		const activeLockPath = path.join(t.context.testDir, "active.lock");
 
-		// Create both lock files on disk
 		await fs.writeFile(staleLockPath, "");
 		await fs.writeFile(activeLockPath, "");
 
-		// Stub lockfile.check: stale.lock => false (stale), active.lock => true (live).
-		// Using explicit path matchers avoids any reliance on readdir order.
 		const checkStub = sinon.stub(lockfileLib, "check");
 		checkStub.withArgs(staleLockPath, sinon.match.any).yields(null, false);
 		checkStub.withArgs(activeLockPath, sinon.match.any).yields(null, true);
@@ -236,23 +259,27 @@ test.serial("hasActiveLocks: honours include option (allowlist)", async (t) => {
 	const includedLockPath = path.join(t.context.testDir, "included.lock");
 	const otherLockPath = path.join(t.context.testDir, "other.lock");
 
-	// Create lock files for both — only "included.lock" should be inspected.
 	await fs.writeFile(includedLockPath, "");
 	await fs.writeFile(otherLockPath, "");
 
-	const checkStub = sinon.stub(lockfileLib, "check").yields(null, true);
+	const checkStub = sinon.stub().yields(null, true);
+	const unlockStub = sinon.stub().yields(null);
+
+	const {hasActiveLocks: hasActiveLocksWithStubs} = await esmock.p(
+		"../../../lib/utils/lock.js",
+		{lockfile: {check: checkStub, unlock: unlockStub}}
+	);
 
 	try {
-		const result = await hasActiveLocks(t.context.testDir, {include: "included.lock"});
+		const result = await hasActiveLocksWithStubs(t.context.testDir, {include: "included.lock"});
 
 		t.true(result, "included lock detected as active");
 
-		// Only the included lock should have been passed to lockfile.check
 		t.is(checkStub.callCount, 1, "lockfile.check called exactly once");
 		t.is(checkStub.firstCall.args[0], includedLockPath,
 			"lockfile.check called with the included lock path only");
 	} finally {
-		checkStub.restore();
+		esmock.purge(hasActiveLocksWithStubs);
 	}
 });
 
@@ -263,18 +290,23 @@ test.serial("hasActiveLocks: honours exclude option (denylist)", async (t) => {
 	await fs.writeFile(excludedLockPath, "");
 	await fs.writeFile(otherLockPath, "");
 
-	const checkStub = sinon.stub(lockfileLib, "check").yields(null, true);
+	const checkStub = sinon.stub().yields(null, true);
+	const unlockStub = sinon.stub().yields(null);
+
+	const {hasActiveLocks: hasActiveLocksWithStubs} = await esmock.p(
+		"../../../lib/utils/lock.js",
+		{lockfile: {check: checkStub, unlock: unlockStub}}
+	);
 
 	try {
-		const result = await hasActiveLocks(t.context.testDir, {exclude: "excluded.lock"});
+		const result = await hasActiveLocksWithStubs(t.context.testDir, {exclude: "excluded.lock"});
 
 		t.true(result, "the non-excluded lock is detected");
 
-		// Only the non-excluded lock should have been passed to lockfile.check
 		t.is(checkStub.callCount, 1, "lockfile.check called exactly once");
 		t.is(checkStub.firstCall.args[0], otherLockPath,
 			"lockfile.check called with the non-excluded lock path only");
 	} finally {
-		checkStub.restore();
+		esmock.purge(hasActiveLocksWithStubs);
 	}
 });
