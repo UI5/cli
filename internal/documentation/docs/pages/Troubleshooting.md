@@ -45,7 +45,7 @@ The command removes two types of cached data:
 Any missing framework dependencies will be downloaded again during the next UI5 CLI invocation.
 
 ::: info
-If you have configured a custom data directory via `UI5_DATA_DIR` or `ui5DataDir`, the cache will be cleaned from that location instead of `~/.ui5`. See [Changing UI5 CLI's Data Directory](#changing-ui5-clis-data-directory) below.
+If you have configured a custom data directory via `UI5_DATA_DIR` or `ui5 config set ui5DataDir`, replace `~/.ui5/` with that path. See [Changing UI5 CLI's Data Directory](#changing-ui5-cli-s-data-directory).
 :::
 
 ## Environment Variables
