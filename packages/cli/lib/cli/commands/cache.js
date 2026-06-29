@@ -100,10 +100,10 @@ function padLabel(label) {
  * and any orphaned staging directories from previously interrupted clean operations.
  *
  * @param {object} data
- * @param {object} data.frameworkInfo
- * @param {object} data.buildInfo
- * @param {string} data.frameworkAbsPath
- * @param {string} data.buildAbsPath
+ * @param {object|null} data.frameworkInfo
+ * @param {object|null} data.buildInfo
+ * @param {string|null} data.frameworkAbsPath
+ * @param {string|null} data.buildAbsPath
  * @param {number} data.buildPreSize
  * @param {Array<{absPath: string, libraryCount: number, versionCount: number}>} data.orphanedInfo
  */
@@ -149,10 +149,10 @@ async function displayCacheInfo({
  * and any orphaned staging directories that were also cleaned up.
  *
  * @param {object} data
- * @param {object} data.frameworkResult
- * @param {object} data.buildResult
- * @param {string} data.frameworkAbsPath
- * @param {string} data.buildAbsPath
+ * @param {object|null} data.frameworkResult
+ * @param {object|null} data.buildResult
+ * @param {string|null} data.frameworkAbsPath
+ * @param {string|null} data.buildAbsPath
  * @param {number} data.buildPreSize
  * @param {Array<{absPath: string, libraryCount: number, versionCount: number}>} data.orphanedInfoWithAbsPaths
  */
@@ -237,85 +237,86 @@ async function handleCache(argv) {
 	// the cleanup lock and abort before the actual cleanup.
 	const releaseCleanupLock = await acquireLock(lockPath);
 
-	// Abort early if a lock is active — before prompting the user
-	if (await hasActiveLocks(ui5DataDir)) {
-		releaseCleanupLock(); // Release the lock before exiting
-		process.stderr.write(
-			`${chalk.red("Error:")} A UI5 server or build process is currently running. ` +
-			"Cannot clean the cache while it is in use. " +
-			"Please stop all running 'ui5 serve' or wait for 'ui5 build' processes to finish.\n"
+	try {
+		// Abort early if a lock is active — before prompting the user.
+		if (await hasActiveLocks(ui5DataDir, {exclude: CLEANUP_LOCK_NAME})) {
+			process.stderr.write(
+				`${chalk.red("Error:")} A UI5 server or build process is currently running. ` +
+				"Cannot clean the cache while it is in use. " +
+				"Please stop all running 'ui5 serve' or wait for 'ui5 build' processes to finish.\n"
+			);
+			process.exitCode = 1;
+			return;
+		}
+
+		process.stderr.write(`Checking cache at ${chalk.bold(ui5DataDir)} …\n`);
+
+		const [frameworkInfo, buildInfo, orphanedInfo] = await Promise.all([
+			frameworkCache.getCacheInfo(ui5DataDir),
+			CacheManager.getCacheInfo(ui5DataDir),
+			frameworkCache.getOrphanedInfo(ui5DataDir),
+		]);
+
+		// Compute absolute paths once — producers return relative sub-path segments
+		const frameworkAbsPath = frameworkInfo ? path.join(ui5DataDir, frameworkInfo.path) : null;
+		const buildAbsPath = buildInfo ? path.join(ui5DataDir, buildInfo.path) : null;
+		const buildPreSize = buildInfo?.size ?? 0;
+		const preCleanOrphanedInfo = orphanedInfo.map(
+			(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
 		);
-		process.exitCode = 1;
-		return;
+
+		if (!frameworkInfo && !buildInfo && orphanedInfo.length === 0) {
+			process.stderr.write("Nothing to clean\n");
+			return;
+		}
+
+		await displayCacheInfo({
+			frameworkInfo,
+			buildInfo,
+			frameworkAbsPath,
+			buildAbsPath,
+			buildPreSize,
+			orphanedInfo: preCleanOrphanedInfo,
+		});
+
+		const confirmed = await getConfirmation(argv);
+		if (!confirmed) {
+			process.stderr.write("Cancelled\n");
+			return;
+		}
+
+		const [frameworkResult, buildResult] = await Promise.all([
+			frameworkCache.cleanCache(ui5DataDir),
+			CacheManager.cleanCache(ui5DataDir),
+		]);
+
+		// Release the lock. Critical sections are done.
+		// The finally block will call releaseCleanupLock() again, which is a no-op (idempotent).
+		releaseCleanupLock();
+
+		// Clean additional resources that are safe to run outside the lock.
+		// For the framework cache this handles orphaned staging dirs from previous
+		// interrupted cleans. These are fully independent of any active operation.
+		const [additionalFrameworkResult] = await Promise.all([
+			frameworkCache.cleanAdditional(ui5DataDir),
+			// The same interface. No-op
+			CacheManager.cleanAdditional(ui5DataDir),
+		]);
+		const orphanedInfoWithAbsPaths = additionalFrameworkResult.map(
+			(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
+		);
+
+		await displayCleanupResult({
+			frameworkResult,
+			buildResult,
+			frameworkAbsPath,
+			buildAbsPath,
+			buildPreSize,
+			orphanedInfoWithAbsPaths,
+		});
+	} finally {
+		releaseCleanupLock();
 	}
-
-	// Inform the user immediately — getPackageStats may take a moment on a large cache
-	process.stderr.write(`Checking cache at ${chalk.bold(ui5DataDir)} …\n`);
-
-	const [frameworkInfo, buildInfo, orphanedInfo] = await Promise.all([
-		frameworkCache.getCacheInfo(ui5DataDir),
-		CacheManager.getCacheInfo(ui5DataDir),
-		frameworkCache.getOrphanedInfo(ui5DataDir),
-	]);
-
-	// Compute absolute paths once — producers return relative sub-path segments
-	const frameworkAbsPath = frameworkInfo ? path.join(ui5DataDir, frameworkInfo.path) : null;
-	const buildAbsPath = buildInfo ? path.join(ui5DataDir, buildInfo.path) : null;
-	const buildPreSize = buildInfo?.size ?? 0;
-	const preCleanOrphanedInfo = orphanedInfo.map(
-		(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
-	);
-
-	if (!frameworkInfo && !buildInfo && orphanedInfo.length === 0) {
-		process.stderr.write("Nothing to clean\n");
-		releaseCleanupLock(); // Release the lock before exiting
-		return;
-	}
-
-	await displayCacheInfo({
-		frameworkInfo,
-		buildInfo,
-		frameworkAbsPath,
-		buildAbsPath,
-		buildPreSize,
-		orphanedInfo: preCleanOrphanedInfo,
-	});
-
-	const confirmed = await getConfirmation(argv);
-	if (!confirmed) {
-		process.stderr.write("Cancelled\n");
-		releaseCleanupLock(); // Release the lock before exiting
-		return;
-	}
-
-	const [frameworkResult, buildResult] = await Promise.all([
-		frameworkCache.cleanCache(ui5DataDir),
-		CacheManager.cleanCache(ui5DataDir),
-	]);
-
-	// Release the lock. Critical sections are done.
-	releaseCleanupLock();
-
-	// Clean additional resources that are safe to run outside the lock.
-	// For the framework cache this handles orphaned staging dirs from previous
-	// interrupted cleans. These are fully independent of any active operation.
-	const [additionalFrameworkResult] = await Promise.all([
-		frameworkCache.cleanAdditional(ui5DataDir),
-		// The same interface. No-op
-		CacheManager.cleanAdditional(ui5DataDir),
-	]);
-	const orphanedInfoWithAbsPaths = additionalFrameworkResult.map(
-		(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
-	);
-
-	await displayCleanupResult({
-		frameworkResult,
-		buildResult,
-		frameworkAbsPath,
-		buildAbsPath,
-		buildPreSize,
-		orphanedInfoWithAbsPaths,
-	});
 }
 
 export default cacheCommand;
