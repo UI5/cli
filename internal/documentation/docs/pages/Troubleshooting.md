@@ -12,7 +12,17 @@ Please follow our [Contribution Guidelines](https://github.com/UI5/cli/blob/main
 ## UI5 Project
 ### `~/.ui5` Taking too Much Disk Space
 
-There are possibly many versions of UI5 framework dependencies installed on your system, taking a large amount of disk space.
+UI5 CLI stores several kinds of data under your user's home directory in `~/.ui5/`:
+
+| Directory | Contents | Safe to delete? |
+| ---- | ---- | ---- |
+| `~/.ui5/framework/` | Downloaded UI5 framework dependencies (one copy per version) | Yes — re-downloaded on next invocation |
+| `~/.ui5/buildCache/` | Build cache used by `ui5 build` and `ui5 serve` (see [Build Cache Control](./Builder.md#build-cache-control)) | Yes — rebuilt on next `ui5 build` / `ui5 serve` |
+| `~/.ui5/server/` | Locally generated SSL certificate and private key for HTTPS / HTTP/2 mode | Yes — regenerated on next HTTPS server start; the new certificate must be re-trusted |
+
+::: warning
+Only remove these directories when no UI5 CLI process and no `@ui5/*` API consumer is actively running. Deleting files that are in use can cause running builds or servers to fail or produce inconsistent results.
+:::
 
 #### Resolution
 
