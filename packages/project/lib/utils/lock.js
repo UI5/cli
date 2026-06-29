@@ -42,10 +42,11 @@ export function getLockDir(ui5DataDir) {
 }
 
 /**
- * Check whether any active (non-stale) lockfiles exist in the given locks directory,
- * indicating an ongoing download, installation, build, or server process.
+ * Check whether any active (non-stale) lockfiles exist in the locks directory
+ * for the given UI5 data directory, indicating an ongoing download, installation,
+ * build, or server process.
  *
- * @param {string} lockDir Absolute path to a locks directory
+ * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
  * @param {object} [options]
  * @param {string|string[]} [options.include] Only check these lock file names (allowlist).
  *   If provided, only files in this list are considered.
@@ -53,7 +54,8 @@ export function getLockDir(ui5DataDir) {
  *   If provided, these files are excluded from the scan.
  * @returns {Promise<boolean>} True if any matching non-stale lockfiles are held
  */
-export async function hasActiveLocks(lockDir, {include, exclude} = {}) {
+export async function hasActiveLocks(ui5DataDir, {include, exclude} = {}) {
+	const lockDir = getLockDir(ui5DataDir);
 	let entries;
 	try {
 		entries = await readdir(lockDir);

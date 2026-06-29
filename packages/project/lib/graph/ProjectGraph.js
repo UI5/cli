@@ -737,7 +737,7 @@ class ProjectGraph {
 		const POLL_INTERVAL_MS = 200;
 		const TIMEOUT_MS = 10000;
 		const deadline = Date.now() + TIMEOUT_MS;
-		while (await hasActiveLocks(lockDir, {include: CLEANUP_LOCK_NAME})) {
+		while (await hasActiveLocks(this._ui5DataDir, {include: CLEANUP_LOCK_NAME})) {
 			if (Date.now() >= deadline) {
 				this.#lockRelease.release();
 				this.#lockRelease = null;
