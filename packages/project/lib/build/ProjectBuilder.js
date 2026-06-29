@@ -398,7 +398,20 @@ class ProjectBuilder {
 				}
 				this.#log.info(`Build succeeded in ${this._getElapsedTime(startTime)}`);
 			} catch (err) {
-				this.#log.error(`Build failed`);
+				// A cooperative abort (e.g. caller aborted the signal, or the
+				// build cache invalidated mid-run via SourceChangedDuringBuildError)
+				// is not a build failure. The BuildServer turns it into a re-queue.
+				// Log at verbose so we don't shout an error at the user for what
+				// is a normal mid-build source change in `ui5 serve`.
+				const aborted = signal?.aborted === true ||
+					err?.name === "AbortBuildError" ||
+					err?.name === "SourceChangedDuringBuildError" ||
+					err?.name === "AbortError";
+				if (aborted) {
+					this.#log.verbose(`Build aborted: ${err?.message ?? err}`);
+				} else {
+					this.#log.error(`Build failed`);
+				}
 				throw err;
 			}
 			return processedProjectNames;

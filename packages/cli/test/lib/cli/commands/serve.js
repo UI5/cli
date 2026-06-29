@@ -1,4 +1,5 @@
 import path from "node:path";
+import os from "node:os";
 import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
@@ -89,6 +90,23 @@ test.afterEach.always((t) => {
 	sinon.restore();
 	esmock.purge(t.context.serve);
 });
+
+// Override a (possibly absent) data property on `target` for the duration of the
+// test. `sinon.replace` can't be used here because `process.stdout.isTTY` and
+// `process.env.UI5_LOG_LVL` may not exist as own properties under AVA, so we
+// drive `Object.defineProperty`/`delete` directly and let `t.teardown` restore.
+function overrideProperty(t, target, prop, value) {
+	const prevDescriptor = Object.getOwnPropertyDescriptor(target, prop);
+	Object.defineProperty(target, prop,
+		{value, configurable: true, writable: true, enumerable: true});
+	t.teardown(() => {
+		if (prevDescriptor) {
+			Object.defineProperty(target, prop, prevDescriptor);
+		} else {
+			delete target[prop];
+		}
+	});
+}
 
 test.serial("ui5 serve: default", async (t) => {
 	const {argv, serve, graph, server, fakeGraph} = t.context;
@@ -200,12 +218,12 @@ test.serial("ui5 serve --accept-remote-connections", async (t) => {
 	}]);
 
 	t.is(t.context.consoleOutput, `
-${chalk.bold("⚠️  This server is accepting connections from all hosts on your network")}
+${chalk.bold.yellow("△ This server is accepting connections from all hosts on your network")}
 ${chalk.dim.underline("Please Note:")}
-${chalk.bold.dim("* This server is intended for development purposes only. Do not use it in production.")}
-${chalk.dim("* Vulnerable (custom-)middleware can pose a threat to your system when exposed to the network")}
-${chalk.dim("* The use of proxy-middleware with preconfigured credentials might enable unauthorized access " +
-	"to a target system for third parties on your network")}
+${chalk.bold.dim("• This server is intended for development purposes only. Do not use it in production.")}
+${chalk.dim("• Vulnerable (custom-)middleware can pose a threat to your system when exposed to the network.")}
+${chalk.dim("• The use of proxy-middleware with preconfigured credentials might enable unauthorized access")}
+${chalk.dim("  to a target system for third parties on your network.")}
 
 Server started
 URL: http://localhost:8080
@@ -1033,6 +1051,228 @@ test.serial("ui5 serve builder: --cache-mode coerce logs deprecation warning", a
 	t.is(argv.cacheMode, "Force");
 	t.is(logWarn.callCount, 1, "log.warn got called once");
 	t.regex(logWarn.getCall(0).args[0], /'--cache-mode' is renamed to '--snapshot-cache'/);
+
+	esmock.purge(serve);
+});
+
+test.serial("banner gate: activates when stdout is a TTY and log level is info", async (t) => {
+	const {argv, graph, server, sslUtil, open} = t.context;
+	const bannerSetProject = sinon.stub();
+	const bannerSetUrls = sinon.stub();
+	const bannerInstance = {
+		setProject: bannerSetProject,
+		setUrls: bannerSetUrls,
+		stop: sinon.stub(),
+	};
+	const bannerObserve = sinon.stub().returns(bannerInstance);
+	const consoleStop = sinon.stub();
+	const consoleInit = sinon.stub();
+
+	// Project metadata accessors used by serve.js when wiring the banner.
+	t.context.fakeGraph.getRoot = () => ({
+		getServerSettings: t.context.getServerSettings,
+		getName: () => "my.app",
+		getType: () => "application",
+		getVersion: () => "1.0.0",
+		getFrameworkName: () => "SAPUI5",
+		getFrameworkVersion: () => "1.0.0",
+	});
+
+	overrideProperty(t, process.stdout, "isTTY", true);
+	const serve = await esmock.p("../../../../lib/cli/commands/serve.js", {
+		"@ui5/server": server,
+		"@ui5/server/internal/sslUtil": sslUtil,
+		"@ui5/project/graph": graph,
+		"open": open,
+		"../../../../lib/serve/Banner.js": {default: {observe: bannerObserve}},
+		"@ui5/logger/writers/Console": {default: {stop: consoleStop, init: consoleInit}},
+	});
+
+	serve.handler(argv).catch(() => {/* may reject on shutdown — ignore here */});
+	await new Promise((resolve) => setTimeout(resolve, 10));
+
+	t.is(consoleStop.callCount, 1, "Console.stop was called before the build starts");
+	t.is(bannerObserve.callCount, 1, "Banner.observe was called");
+	const observeOpts = bannerObserve.getCall(0).args[0];
+	t.is(observeOpts.brand.name, "UI5 CLI", "brand passed to observe up front");
+	t.false(observeOpts.acceptRemoteConnections,
+		"acceptRemoteConnections is fixed at observe time from argv");
+
+	t.is(bannerSetProject.callCount, 1, "banner.setProject was called after graph resolved");
+	const projectInfo = bannerSetProject.getCall(0).args[0];
+	t.is(projectInfo.name, "my.app");
+	t.is(projectInfo.type, "application");
+	t.is(projectInfo.framework.name, "SAPUI5");
+
+	t.is(bannerSetUrls.callCount, 1, "banner.setUrls was called after serverServe resolved");
+	const urlsInfo = bannerSetUrls.getCall(0).args[0];
+	t.is(urlsInfo.local, "http://localhost:8080");
+
+	esmock.purge(serve);
+});
+
+test.serial("banner gate: passes network address from os.networkInterfaces to banner urls.network", async (t) => {
+	const {argv, graph, server, sslUtil, open} = t.context;
+	const bannerSetUrls = sinon.stub();
+	const bannerInstance = {
+		setProject: sinon.stub(),
+		setUrls: bannerSetUrls,
+		stop: sinon.stub(),
+	};
+	const bannerObserve = sinon.stub().returns(bannerInstance);
+	const consoleStop = sinon.stub();
+	const consoleInit = sinon.stub();
+
+	// Simulate a host that exposes one non-internal IPv4 interface — the CLI
+	// is now responsible for discovering it; @ui5/server no longer reports it.
+	const osMock = {
+		default: {
+			...os,
+			networkInterfaces: () => ({
+				eth0: [{family: "IPv4", internal: false, address: "0.0.0.0"}],
+			}),
+		},
+	};
+
+	argv.acceptRemoteConnections = true;
+
+	t.context.fakeGraph.getRoot = () => ({
+		getServerSettings: t.context.getServerSettings,
+		getName: () => "my.app",
+		getType: () => "application",
+		getVersion: () => "1.0.0",
+		getFrameworkName: () => "SAPUI5",
+		getFrameworkVersion: () => "1.0.0",
+	});
+
+	overrideProperty(t, process.stdout, "isTTY", true);
+	const serve = await esmock.p("../../../../lib/cli/commands/serve.js", {
+		"@ui5/server": server,
+		"@ui5/server/internal/sslUtil": sslUtil,
+		"@ui5/project/graph": graph,
+		"open": open,
+		"node:os": osMock,
+		"../../../../lib/serve/Banner.js": {default: {observe: bannerObserve}},
+		"@ui5/logger/writers/Console": {default: {stop: consoleStop, init: consoleInit}},
+	});
+
+	serve.handler(argv).catch(() => {/* may reject on shutdown — ignore here */});
+	await new Promise((resolve) => setTimeout(resolve, 10));
+
+	t.true(bannerObserve.getCall(0).args[0].acceptRemoteConnections,
+		"observe received the remote-connections flag");
+	t.is(bannerSetUrls.callCount, 1);
+	const urlsInfo = bannerSetUrls.getCall(0).args[0];
+	t.is(urlsInfo.local, "http://localhost:8080");
+	t.deepEqual(urlsInfo.network, ["http://0.0.0.0:8080"],
+		"network URL is built from the IP discovered by the CLI");
+
+	esmock.purge(serve);
+});
+
+test.serial("banner gate: urls.network is undefined when no external IPv4 interface is available", async (t) => {
+	const {argv, graph, server, sslUtil, open} = t.context;
+	const bannerSetUrls = sinon.stub();
+	const bannerInstance = {
+		setProject: sinon.stub(),
+		setUrls: bannerSetUrls,
+		stop: sinon.stub(),
+	};
+	const bannerObserve = sinon.stub().returns(bannerInstance);
+	const consoleStop = sinon.stub();
+	const consoleInit = sinon.stub();
+
+	// User asked for remote connections but the host has no suitable IPv4
+	// interface (only loopback) — network URL must be omitted.
+	const osMock = {
+		default: {
+			...os,
+			networkInterfaces: () => ({
+				lo: [{family: "IPv4", internal: true, address: "127.0.0.1"}],
+			}),
+		},
+	};
+
+	argv.acceptRemoteConnections = true;
+
+	t.context.fakeGraph.getRoot = () => ({
+		getServerSettings: t.context.getServerSettings,
+		getName: () => "my.app",
+		getType: () => "application",
+		getVersion: () => "1.0.0",
+		getFrameworkName: () => "SAPUI5",
+		getFrameworkVersion: () => "1.0.0",
+	});
+
+	overrideProperty(t, process.stdout, "isTTY", true);
+	const serve = await esmock.p("../../../../lib/cli/commands/serve.js", {
+		"@ui5/server": server,
+		"@ui5/server/internal/sslUtil": sslUtil,
+		"@ui5/project/graph": graph,
+		"open": open,
+		"node:os": osMock,
+		"../../../../lib/serve/Banner.js": {default: {observe: bannerObserve}},
+		"@ui5/logger/writers/Console": {default: {stop: consoleStop, init: consoleInit}},
+	});
+
+	serve.handler(argv).catch(() => {/* may reject on shutdown — ignore here */});
+	await new Promise((resolve) => setTimeout(resolve, 10));
+
+	t.is(bannerSetUrls.callCount, 1);
+	const urlsInfo = bannerSetUrls.getCall(0).args[0];
+	t.is(urlsInfo.network, undefined,
+		"network URL is omitted when no external IPv4 is available");
+	t.true(bannerObserve.getCall(0).args[0].acceptRemoteConnections,
+		"observe received the remote-connections flag");
+
+	esmock.purge(serve);
+});
+
+test.serial("banner gate: falls back to plain output when log level is verbose", async (t) => {
+	const {argv, graph, server, sslUtil, open} = t.context;
+	const bannerObserve = sinon.stub().returns({start: sinon.stub(), stop: sinon.stub()});
+	const consoleStop = sinon.stub();
+
+	overrideProperty(t, process.stdout, "isTTY", true);
+	overrideProperty(t, process.env, "UI5_LOG_LVL", "verbose");
+	const serve = await esmock.p("../../../../lib/cli/commands/serve.js", {
+		"@ui5/server": server,
+		"@ui5/server/internal/sslUtil": sslUtil,
+		"@ui5/project/graph": graph,
+		"open": open,
+		"../../../../lib/serve/Banner.js": {default: {observe: bannerObserve}},
+		"@ui5/logger/writers/Console": {default: {stop: consoleStop, init: sinon.stub()}},
+	});
+
+	serve.handler(argv).catch(() => {/* ignore */});
+	await t.context.handlerReady;
+
+	t.is(bannerObserve.callCount, 0, "Banner.observe was NOT called when log level is verbose");
+	t.is(consoleStop.callCount, 0, "Console writer stays attached when log level is verbose");
+	t.regex(t.context.consoleOutput, /Server started/);
+	t.regex(t.context.consoleOutput, /URL: http:\/\/localhost:8080/);
+
+	esmock.purge(serve);
+});
+
+test.serial("banner gate: falls back to plain output when stdout is not a TTY", async (t) => {
+	const {argv, graph, server, sslUtil, open} = t.context;
+	const bannerObserve = sinon.stub().returns({start: sinon.stub(), stop: sinon.stub()});
+
+	overrideProperty(t, process.stdout, "isTTY", false);
+	const serve = await esmock.p("../../../../lib/cli/commands/serve.js", {
+		"@ui5/server": server,
+		"@ui5/server/internal/sslUtil": sslUtil,
+		"@ui5/project/graph": graph,
+		"open": open,
+		"../../../../lib/serve/Banner.js": {default: {observe: bannerObserve}},
+	});
+
+	serve.handler(argv).catch(() => {/* ignore */});
+	await t.context.handlerReady;
+
+	t.is(bannerObserve.callCount, 0, "Banner.observe was NOT called without a TTY");
+	t.regex(t.context.consoleOutput, /Server started/);
 
 	esmock.purge(serve);
 });

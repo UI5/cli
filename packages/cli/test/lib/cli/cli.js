@@ -26,6 +26,14 @@ test.beforeEach(async (t) => {
 	t.context.yargs = sinon.stub().returns(t.context.yargsInstance).named("yargs");
 
 	t.context.setVersion = sinon.stub().named("setVersion");
+	t.context.getVersionWithLocation = sinon.stub().named("getVersionWithLocation").callsFake(() => {
+		const call = t.context.setVersion.lastCall;
+		if (!call) {
+			return undefined;
+		}
+		const [version, location] = call.args;
+		return location ? `${version} (from ${location})` : version;
+	});
 	t.context.cliBase = sinon.stub().named("cliBase");
 
 	t.context.readdir = sinon.stub().resolves([
@@ -56,7 +64,8 @@ test.beforeEach(async (t) => {
 			hideBin: t.context.yargsHideBin
 		},
 		"../../../lib/cli/version.js": {
-			setVersion: t.context.setVersion
+			setVersion: t.context.setVersion,
+			getVersionWithLocation: t.context.getVersionWithLocation
 		},
 		"../../../lib/cli/base.js": t.context.cliBase,
 		"node:fs/promises": {
@@ -102,7 +111,8 @@ test.serial("CLI", async (t) => {
 
 	t.is(setVersion.callCount, 1);
 	t.deepEqual(setVersion.getCall(0).args, [
-		`0.0.0-test (from ${fileURLToPath(new URL("../../../bin/ui5.cjs", import.meta.url))})`
+		"0.0.0-test",
+		fileURLToPath(new URL("../../../bin/ui5.cjs", import.meta.url))
 	]);
 
 	t.is(yargsInstance.version.callCount, 1);

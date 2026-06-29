@@ -23,6 +23,34 @@ Please be aware of the following risks when using the server:
 
 :::
 
+## Live Status Banner
+
+When started in an interactive terminal, `ui5 serve` renders a live status banner that shows the server URLs, the root project's name/type/version, the configured UI5 framework, and a single-line status indicator that cycles between three states as you work:
+
+- **● ready** — the server is idle; no source changes are pending and no build is in flight.
+- **○ stale — files changed, waiting to rebuild** — one or more watched source files changed; the next request will trigger a rebuild.
+- **◐ building — *N*/*M* projects · *current project* · *current task*** — a build cycle is running. The counter, project name, and task name update in place.
+
+The status line stays pinned at the bottom of the terminal; warnings and errors scroll above it and remain in your terminal scrollback. While the banner is active, `info`-level log messages are suppressed — the status line already shows what they would report. The header repaints in place as more information becomes known (project graph resolved, server bound), so early frames may show dim placeholders for sections that have not been populated yet.
+
+The banner is automatically disabled and `ui5 serve` falls back to plain log output when:
+
+- `stdout` is not a TTY (e.g. output is piped to a file or another process).
+- The log level is set to `--silent`, `--perf`, `--verbose`, or `--silly` — these levels emit per-task chatter that the status line cannot represent.
+
+In every other case (the default `info` level, `--loglevel warn`, and `--loglevel error`), the banner is active.
+
+### Plain Output (Non-TTY)
+
+When the banner is disabled, `ui5 serve` prints the following to `stdout` once the server is ready:
+
+```text
+Server started
+URL: <url>
+```
+
+The remote-connections warning (when `--accept-remote-connections` is used) is written to `stderr`. Tools and scripts that capture the URL by parsing `ui5 serve` output should run the command in a non-TTY context (pipe, redirect, or CI environment), or pass `--verbose` to force plain output in an interactive terminal.
+
 ## Standard Middleware
 
 ::: info Removed Middleware

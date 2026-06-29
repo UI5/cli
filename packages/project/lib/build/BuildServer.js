@@ -4,11 +4,20 @@ import BuildReader from "./BuildReader.js";
 import WatchHandler from "./helpers/WatchHandler.js";
 import {SourceChangedDuringBuildError} from "./cache/ProjectBuildCache.js";
 import {getLogger} from "@ui5/logger";
+import ServeLogger from "@ui5/logger/internal/loggers/Serve";
 const log = getLogger("build:BuildServer");
 
 // Debounce window for the `sourcesChanged` event so a burst of file changes
 // results in a single notification.
 const SOURCES_CHANGED_DEBOUNCE_MS = 100;
+
+// The server's lifecycle state. Mutated exclusively through #setState.
+const SERVER_STATES = Object.freeze({
+	IDLE: "idle", // No pending requests, no recent changes.
+	STALE: "stale", // Pending changes / pending requests, queue not yet flushed.
+	BUILDING: "building", // A build is in flight.
+	ERROR: "error", // Last build cycle failed.
+});
 
 class AbortBuildError extends Error {
 	constructor(message) {
@@ -53,6 +62,10 @@ class BuildServer extends EventEmitter {
 	#allReader;
 	#rootReader;
 	#dependenciesReader;
+	#serveLogger = new ServeLogger("build:BuildServer");
+	// Server lifecycle state. Starts as `null` so the first #setState call
+	// always emits the initial state.
+	#serverState = null;
 
 	/**
 	 * Creates a new BuildServer instance
@@ -141,12 +154,17 @@ class BuildServer extends EventEmitter {
 				}
 			}
 		}
+		if (this.#pendingBuildRequest.size === 0) {
+			// No initial build was requested. Signal "idle" / "ready" right away.
+			this.#setState(SERVER_STATES.IDLE);
+		}
 	}
 
 	async #initWatcher() {
 		const watchHandler = new WatchHandler();
 		this.#watchHandler = watchHandler;
 		watchHandler.on("error", (err) => {
+			this.#setState(SERVER_STATES.ERROR, {error: err});
 			this.emit("error", err);
 		});
 		watchHandler.on("change", (eventType, resourcePath, project) => {
@@ -299,11 +317,10 @@ class BuildServer extends EventEmitter {
 		// First, invalidate all potentially affected projects (which also aborts any running builds)
 		for (const {project: affectedProject} of this.#graph.traverseDependents(project.getName(), true)) {
 			const projectBuildStatus = this.#projectBuildStatus.get(affectedProject.getName());
-			projectBuildStatus.invalidate(`Source change in project '${project.getName()}'`);
-			if (fileAddedOrRemoved) {
-				// Reset any cached readers in case files were added or removed
-				projectBuildStatus.resetReaderCache();
-			}
+			projectBuildStatus.invalidate({
+				reason: `Source change in project '${project.getName()}'`,
+				fileAddedOrRemoved,
+			});
 		}
 
 		// Enqueue resource change for processing before next build
@@ -312,6 +329,11 @@ class BuildServer extends EventEmitter {
 			queuedChanges.add(filePath);
 		} else {
 			this.#resourceChangeQueue.set(project.getName(), new Set([filePath]));
+		}
+
+		// If the server is currently idle, surface the new STALE state right away.
+		if (this.#serverState === SERVER_STATES.IDLE) {
+			this.#setState(SERVER_STATES.STALE);
 		}
 
 		// Debounced emit so a burst of file changes results in a single reload notification
@@ -368,7 +390,20 @@ class BuildServer extends EventEmitter {
 			clearTimeout(this.#processBuildRequestsTimeout);
 		}
 		this.#processBuildRequestsTimeout = setTimeout(() => {
-			this.#processBuildRequests().catch((err) => {
+			const cycleStart = process.hrtime();
+			this.#setState(SERVER_STATES.BUILDING);
+			this.#processBuildRequests().then(() => {
+				const hrtime = process.hrtime(cycleStart);
+				const staleProjects = this.#getStaleProjectNames();
+				log.verbose(`Build cycle done. Stale projects: `+
+					`${staleProjects.length} (${staleProjects.join(", ")})`);
+				if (staleProjects.length === 0) {
+					this.#setState(SERVER_STATES.IDLE, {hrtime});
+				} else {
+					this.#setState(SERVER_STATES.STALE, {hrtime, staleProjects});
+				}
+			}).catch((err) => {
+				this.#setState(SERVER_STATES.ERROR, {error: err});
 				this.emit("error", err);
 			});
 		}, 10);
@@ -400,9 +435,12 @@ class BuildServer extends EventEmitter {
 			this.#pendingBuildRequest.clear();
 
 			log.verbose(`Building projects: ${projectsToBuild.join(", ")}`);
-			const signal = AbortSignal.any(projectsToBuild.map((projectName) => {
-				return this.#projectBuildStatus.get(projectName).getAbortSignal();
-			}));
+			const abortSignals = projectsToBuild.map((projectName) => {
+				const status = this.#projectBuildStatus.get(projectName);
+				status.markBuilding();
+				return status.getAbortSignal();
+			});
+			const signal = AbortSignal.any(abortSignals);
 
 			// Process any queued resource changes (must be done before starting the build)
 			this.#flushResourceChanges();
@@ -414,7 +452,7 @@ class BuildServer extends EventEmitter {
 				includedDependencies: dependenciesToBuild,
 				signal,
 			}, (projectName, project) => {
-				// Project has been built and result can be used
+				// Project has been built and result can be used.
 				const projectBuildStatus = this.#projectBuildStatus.get(projectName);
 				projectBuildStatus.setReader(project.getReader({style: "runtime"}));
 			}).catch((err) => {
@@ -452,6 +490,7 @@ class BuildServer extends EventEmitter {
 				this.#activeBuild = null;
 			}
 			if (buildError) {
+				this.#setState(SERVER_STATES.ERROR, {error: buildError});
 				this.emit("error", buildError);
 				// Continue processing any remaining pending requests for unaffected projects.
 				continue;
@@ -468,12 +507,73 @@ class BuildServer extends EventEmitter {
 			}
 		}
 	}
+
+	#getStaleProjectNames() {
+		const stale = [];
+		for (const [name, status] of this.#projectBuildStatus) {
+			if (!status.isFresh()) {
+				stale.push(name);
+			}
+		}
+		return stale;
+	}
+
+	/**
+	 * Single source of truth for the server lifecycle state. Mutates
+	 * <code>#serverState</code> and emits the matching ServeLogger event for the
+	 * transition. A no-op when <code>next</code> equals the current state, so a
+	 * burst of source changes collapses into one IDLE→STALE emission.
+	 *
+	 * Transition policy:
+	 * <ul>
+	 *   <li>BUILDING → IDLE: buildDone(hrtime) then ready()</li>
+	 *   <li>BUILDING → STALE: buildDone(hrtime) then stale(names)</li>
+	 *   <li>BUILDING → ERROR: serveError(err) only — buildDone is skipped so
+	 *       consumers don't see a successful cycle close before the error</li>
+	 *   <li>any → ERROR: serveError(err)</li>
+	 *   <li>* → IDLE/STALE/BUILDING: ready()/stale()/building() as appropriate</li>
+	 * </ul>
+	 *
+	 * @param {string} next One of the SERVER_STATES values.
+	 * @param {object} [opts]
+	 * @param {Array<number>} [opts.hrtime] Build duration as a [seconds, nanoseconds]
+	 *     tuple produced by <code>process.hrtime(start)</code>; required when leaving
+	 *     BUILDING for IDLE/STALE.
+	 * @param {string[]} [opts.staleProjects] Stale project names; required when transitioning to STALE.
+	 * @param {Error} [opts.error] Error instance; required when transitioning to ERROR.
+	 */
+	#setState(next, {hrtime, staleProjects, error} = {}) {
+		if (this.#serverState === next) {
+			return;
+		}
+		const previous = this.#serverState;
+		this.#serverState = next;
+
+		if (previous === SERVER_STATES.BUILDING && next !== SERVER_STATES.ERROR) {
+			this.#serveLogger.buildDone(hrtime ?? [0, 0]);
+		}
+
+		switch (next) {
+		case SERVER_STATES.IDLE:
+			this.#serveLogger.ready();
+			break;
+		case SERVER_STATES.STALE:
+			this.#serveLogger.stale(staleProjects ?? this.#getStaleProjectNames());
+			break;
+		case SERVER_STATES.BUILDING:
+			this.#serveLogger.building();
+			break;
+		case SERVER_STATES.ERROR:
+			this.#serveLogger.serveError(error);
+			break;
+		}
+	}
 }
 
 const PROJECT_STATES = Object.freeze({
 	INITIAL: "initial",
 	INVALIDATED: "invalidated",
-	// TODO: New state BUILDING
+	BUILDING: "building",
 	FRESH: "fresh",
 });
 
@@ -483,15 +583,43 @@ class ProjectBuildStatus {
 	#reader;
 	#abortController = new AbortController();
 
-	invalidate(reason = "Project invalidated") {
+	/**
+	 * Flip the project to INVALIDATED, aborting any in-flight build.
+	 *
+	 * @param {object|string} [opts] Either a reason string (legacy shorthand)
+	 *   or an options object.
+	 * @param {string} [opts.reason="Project invalidated"] Reason passed to the
+	 *   AbortBuildError so the build server can distinguish abort causes.
+	 * @param {boolean} [opts.fileAddedOrRemoved=false] When true, the cached reader
+	 *   is also dropped so a subsequent build re-reads the underlying tree.
+	 *   Pure modifications keep the reader so callers waiting on its promise still resolve.
+	 */
+	invalidate(opts = {}) {
+		const {reason = "Project invalidated", fileAddedOrRemoved = false} =
+			typeof opts === "string" ? {reason: opts} : opts;
+		if (fileAddedOrRemoved) {
+			// Always evict the cached reader, even when already invalidated:
+			// a stale reader must not survive a file add/remove.
+			this.#reader = null;
+		}
 		if (this.#state === PROJECT_STATES.INVALIDATED) {
-			// Already invalidated
 			return;
 		}
 		this.#state = PROJECT_STATES.INVALIDATED;
 		// Ensure any running build is aborted. Then reset the abort controller
 		this.#abortController.abort(new AbortBuildError(reason));
 		this.#abortController = new AbortController();
+	}
+
+	/**
+	 * Marks the project as currently being built. Called at the start of each
+	 * build pass for projects in the batch. If a source change invalidates the
+	 * project mid-build, the state flips back to INVALIDATED via
+	 * <code>invalidate()</code>, which causes <code>setReader()</code> to drop
+	 * the late-arriving result.
+	 */
+	markBuilding() {
+		this.#state = PROJECT_STATES.BUILDING;
 	}
 
 	abortBuild(reason) {
@@ -511,6 +639,11 @@ class ProjectBuildStatus {
 	}
 
 	setReader(reader) {
+		if (this.#state !== PROJECT_STATES.BUILDING) {
+			// Project was re-invalidated mid-build; drop the stale reader and let
+			// the cycle-end logic re-queue a fresh build.
+			return;
+		}
 		this.#reader = reader;
 		this.#state = PROJECT_STATES.FRESH;
 		// Resolve any queued getReader promises
@@ -518,10 +651,6 @@ class ProjectBuildStatus {
 			resolve(reader);
 		}
 		this.#readerQueue = [];
-	}
-
-	resetReaderCache() {
-		this.#reader = null;
 	}
 
 	addReaderRequest(promiseResolvers) {
