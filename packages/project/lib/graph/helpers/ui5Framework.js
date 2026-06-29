@@ -289,6 +289,9 @@ export default {
 	 *   Promise resolving with the given graph instance to allow method chaining
 	 */
 	enrichProjectGraph: async function(projectGraph, options = {}) {
+		// Lock the graph so the entire lifecycle from this point — framework resolution,
+		// build, and serve — is treated as atomic by ui5 cache clean. Without this lock,
+		// cache clean could wipe framework packages or build data that the graph is actively using.
 		await projectGraph._preventCacheClean();
 
 		const {workspace, snapshotCache} = options;
