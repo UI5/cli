@@ -200,11 +200,11 @@ async function displayCleanupResult({
 	if (frameworkResult) {
 		cleaned.push(LABEL_FRAMEWORK);
 	}
+	if (orphanedInfoWithAbsPaths && orphanedInfoWithAbsPaths.length > 0) {
+		cleaned.push("Orphaned framework data");
+	}
 	if (buildResult) {
 		cleaned.push(LABEL_BUILD);
-	}
-	if (orphanedInfoWithAbsPaths && orphanedInfoWithAbsPaths.length > 0 && !frameworkResult) {
-		cleaned.push("Orphaned framework data");
 	}
 	process.stderr.write(
 		`\n${chalk.green("Success:")} Cleaned ${cleaned.join(" and ")}\n`,
@@ -257,6 +257,11 @@ async function handleCache(argv) {
 			frameworkCache.getOrphanedInfo(ui5DataDir),
 		]);
 
+		if (!frameworkInfo && !buildInfo && orphanedInfo.length === 0) {
+			process.stderr.write("Nothing to clean\n");
+			return;
+		}
+
 		// Compute absolute paths once — producers return relative sub-path segments
 		const frameworkAbsPath = frameworkInfo ? path.join(ui5DataDir, frameworkInfo.path) : null;
 		const buildAbsPath = buildInfo ? path.join(ui5DataDir, buildInfo.path) : null;
@@ -264,11 +269,6 @@ async function handleCache(argv) {
 		const preCleanOrphanedInfo = orphanedInfo.map(
 			(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
 		);
-
-		if (!frameworkInfo && !buildInfo && orphanedInfo.length === 0) {
-			process.stderr.write("Nothing to clean\n");
-			return;
-		}
 
 		await displayCacheInfo({
 			frameworkInfo,
