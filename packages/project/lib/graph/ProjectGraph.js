@@ -727,8 +727,8 @@ class ProjectGraph {
 		}
 
 		const lockDir = getLockDir(this._ui5DataDir);
-		// Acquire our lock so any cache clean that starts now will detect us and abort.
-		// First acquire, then lock, so that the await of hasActiveLocks does not open a window for a race condition.
+		// Acquire our lock first, so any cache clean that starts concurrently will detect us and abort.
+		// Only then check whether a cache clean is already in progress — this order closes the race window.
 		const lockId = Buffer.from(getRandomValues(new Uint8Array(4))).toString("hex");
 		const lockPath = path.join(lockDir, `graph-${process.pid}-${lockId}.lock`);
 		this.#lockRelease = acquireLockSync(lockPath);
