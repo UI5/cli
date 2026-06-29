@@ -739,7 +739,7 @@ class ProjectGraph {
 		const deadline = Date.now() + TIMEOUT_MS;
 		while (await hasActiveLocks(this._ui5DataDir, {include: CLEANUP_LOCK_NAME})) {
 			if (Date.now() >= deadline) {
-				this.#lockRelease.release();
+				this.#lockRelease?.();
 				this.#lockRelease = null;
 
 				throw new Error(
