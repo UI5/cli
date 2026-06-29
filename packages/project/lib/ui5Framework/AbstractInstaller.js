@@ -38,7 +38,7 @@ class AbstractInstaller {
 					"Please wait for the cache clean operation to finish and try again."
 				);
 			}
-			return callback();
+			return await callback();
 		} finally {
 			releaseLock();
 		}
