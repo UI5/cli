@@ -790,7 +790,6 @@ class ProjectGraph {
 		outputStyle = OutputStyleEnum.Default,
 		cache = Cache.Default
 	}) {
-		await this._preventCacheClean();
 		this.seal(); // Do not allow further changes to the graph
 		if (this._builtOrServed) {
 			throw new Error(
@@ -798,6 +797,7 @@ class ProjectGraph {
 				`Each graph can only be built or served once`);
 		}
 		this._builtOrServed = true;
+		await this._preventCacheClean();
 		const {
 			default: ProjectBuilder
 		} = await import("../build/ProjectBuilder.js");
@@ -832,7 +832,6 @@ class ProjectGraph {
 		includedTasks = [], excludedTasks = [],
 		cache = Cache.Default
 	}) {
-		await this._preventCacheClean();
 		this.seal(); // Do not allow further changes to the graph
 		if (this._builtOrServed) {
 			throw new Error(
@@ -840,6 +839,7 @@ class ProjectGraph {
 				`Each graph can only be built or served once`);
 		}
 		this._builtOrServed = true;
+		await this._preventCacheClean();
 		const {
 			default: ProjectBuilder
 		} = await import("../build/ProjectBuilder.js");
