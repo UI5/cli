@@ -3,6 +3,8 @@ import {readdir, mkdir} from "node:fs/promises";
 import {mkdirSync, utimesSync, existsSync} from "node:fs";
 import {promisify} from "node:util";
 import lockfile from "lockfile";
+const check = promisify(lockfile.check);
+const unlock = promisify(lockfile.unlock);
 import {getLogger} from "@ui5/logger";
 const log = getLogger("lock");
 
@@ -73,9 +75,6 @@ export async function hasActiveLocks(lockDir, {include, exclude} = {}) {
 		return false;
 	}
 
-	const check = promisify(lockfile.check);
-	const unlock = promisify(lockfile.unlock);
-
 	for (const lockFileName of lockFiles) {
 		const lockPath = path.join(lockDir, lockFileName);
 		const isLocked = await check(lockPath, {stale: LOCK_STALE_MS});
@@ -112,7 +111,9 @@ function resolveReleaseLockFn(lockPath) {
 
 	let released = false;
 	return function release() {
-		if (released) return;
+		if (released) {
+			return;
+		}
 		released = true;
 		clearInterval(interval);
 		lockfile.unlockSync(lockPath);
