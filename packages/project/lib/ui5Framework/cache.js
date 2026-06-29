@@ -151,7 +151,8 @@ export async function cleanAdditional(ui5DataDir) {
  * Clean the framework cache directory.
  *
  * Uses an atomic rename to make the framework directory disappear in a single
- * filesystem operation, then deletes the staging dir outside of any lock:
+ * filesystem operation. The caller is responsible for holding the cleanup lock
+ * for the full duration of this call:
  *
  *  1. Clear cacache's in-process memoization (no path needed — global operation).
  *  2. Atomically rename <code>framework/</code> to a hidden staging dir.
