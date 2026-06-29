@@ -411,4 +411,17 @@ export default class CacheManager {
 		}
 		return null;
 	}
+
+	/**
+	 * Clean additional build cache resources that are safe to remove independently
+	 * of any active process-coordination lock.
+	 *
+	 * @static
+	 * @param {string} _ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<Array>}
+	 */
+	static async cleanAdditional(_ui5DataDir) {
+		// No-op. Keep the cache clean interface aligned.
+		return [];
+	}
 }

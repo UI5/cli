@@ -3,13 +3,7 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import sinon from "sinon";
 import esmock from "esmock";
-import {promisify} from "node:util";
-import lockfileLib from "lockfile";
-import {getCacheInfo, cleanCache} from "../../../lib/ui5Framework/cache.js";
-import {getLockDir, CLEANUP_LOCK_NAME} from "../../../lib/utils/lock.js";
-
-const lockfileLock = promisify(lockfileLib.lock);
-const lockfileUnlock = promisify(lockfileLib.unlock);
+import {getCacheInfo, cleanCache, cleanAdditional} from "../../../lib/ui5Framework/cache.js";
 
 const TEST_DIR = path.join(import.meta.dirname, "..", "..", "tmp", "ui5framework-cache");
 
@@ -138,120 +132,52 @@ test("cleanCache: removes directory with multiple scopes", async (t) => {
 	t.is(await getCacheInfo(t.context.testDir), null);
 });
 
-test("cleanCache: returns empty orphaned array when no orphans exist", async (t) => {
+test("cleanCache: does not include orphaned field in result", async (t) => {
 	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
 
 	const result = await cleanCache(t.context.testDir);
 
 	t.truthy(result);
-	t.deepEqual(result.orphaned, [], "orphaned array is empty when no staging dirs exist");
+	t.false(Object.prototype.hasOwnProperty.call(result, "orphaned"),
+		"cleanCache result does not include orphaned — use cleanAdditional for that");
 });
 
-test("cleanCache: throws when active lockfiles exist", async (t) => {
+test("cleanCache: does not remove orphaned staging dirs — that is cleanAdditional's job", async (t) => {
 	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
 
-	const lockDir = path.join(t.context.testDir, "locks");
-	await fs.mkdir(lockDir, {recursive: true});
+	const orphanDir = path.join(t.context.testDir, ".framework_to_delete_abcd");
+	await mkPackageIn(orphanDir, "@openui5", "sap.ui.core", "1.100.0");
 
-	const lockPath = path.join(lockDir, "test-package.lock");
-	await lockfileLock(lockPath, {stale: 60000});
-	try {
-		const err = await t.throwsAsync(cleanCache(t.context.testDir));
-		t.true(err.message.includes("currently locked by an active operation"));
-	} finally {
-		await lockfileUnlock(lockPath);
-	}
+	await cleanCache(t.context.testDir);
+
+	// Orphan is still present after cleanCache — cleanAdditional handles it
+	await t.notThrowsAsync(fs.access(orphanDir), "orphaned dir is not touched by cleanCache");
 });
 
-test("cleanCache: removes directory when lockfiles are stale", async (t) => {
-	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
+// ─── cleanAdditional ──────────────────────────────────────────────────────────
 
-	const lockDir = path.join(t.context.testDir, "locks");
-	await fs.mkdir(lockDir, {recursive: true});
-
-	// lockfile.check uses ctime — fs.utimes only changes mtime, so backdating mtime won't work.
-	const lockPath = path.join(lockDir, "stale-package.lock");
-	await lockfileLock(lockPath, {stale: 50}); // stale after 50ms
-	await lockfileUnlock(lockPath); // unlock so ctime stops being "now" — file still exists on disk
-	await new Promise((resolve) => setTimeout(resolve, 100));
-
-	const result = await cleanCache(t.context.testDir);
-
-	t.truthy(result);
-	t.is(result.path, "framework");
-	t.is(result.libraryCount, 1);
-	t.is(result.versionCount, 1);
-	t.is(await getCacheInfo(t.context.testDir), null);
+test("cleanAdditional: returns empty array when no orphaned staging dirs exist", async (t) => {
+	const result = await cleanAdditional(t.context.testDir);
+	t.deepEqual(result, []);
 });
 
-test("cleanCache: lock is released immediately after rename, before deletion completes", async (t) => {
-	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
-
-	const lockDir = getLockDir(t.context.testDir);
-	const cleanupLockPath = path.join(lockDir, CLEANUP_LOCK_NAME);
-	let lockReleasedBeforeDeletion = false;
-
-	// Load a version of cleanCache with a stubbed fs.rm that checks the lock state
-	// at the moment the staging dir deletion begins. Uses esmock so the stub is
-	// injected into the module's own import — not a monkey-patch on the shared fs instance.
-	const rmStub = sinon.stub().callsFake(async (p, opts) => {
-		try {
-			await fs.access(cleanupLockPath);
-			// Lock file still exists — not yet released
-		} catch {
-			// Lock file is gone — released before deletion
-			lockReleasedBeforeDeletion = true;
-		}
-		return fs.rm(p, opts);
-	});
-
-	const {cleanCache: cleanCacheMocked} = await esmock.p(
-		"../../../lib/ui5Framework/cache.js",
-		{"node:fs/promises": {...fs, rm: rmStub}}
-	);
-
-	try {
-		await cleanCacheMocked(t.context.testDir);
-	} finally {
-		esmock.purge(cleanCacheMocked);
-	}
-
-	t.true(lockReleasedBeforeDeletion,
-		"cleanup lock is released before the staging directory deletion begins");
-});
-
-// ─── cleanCache: orphaned staging dir handling ────────────────────────────────
-
-test("cleanCache: detects and removes orphaned staging dirs, reports them in result", async (t) => {
-	// The primary framework to clean
-	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
-
-	// Simulate a staging dir left by an interrupted previous clean
+test("cleanAdditional: detects and removes orphaned staging dirs, reports them", async (t) => {
 	const orphanDir = path.join(t.context.testDir, ".framework_to_delete_abcd");
 	await mkPackageIn(orphanDir, "@openui5", "sap.ui.core", "1.100.0");
 	await mkPackageIn(orphanDir, "@openui5", "sap.ui.core", "1.110.0");
 
-	const result = await cleanCache(t.context.testDir);
+	const result = await cleanAdditional(t.context.testDir);
 
-	t.truthy(result);
-	t.is(result.path, "framework");
-
-	// Orphaned dir is reported in the result
-	t.is(result.orphaned.length, 1, "one orphaned dir reported");
-	const orphanResult = result.orphaned[0];
+	t.is(result.length, 1, "one orphaned dir reported");
+	const orphanResult = result[0];
 	t.true(orphanResult.path.startsWith(".framework_to_delete_"), "orphan path has staging prefix");
 	t.is(orphanResult.libraryCount, 1);
 	t.is(orphanResult.versionCount, 2);
 
-	// Both directories are physically gone
 	await t.throwsAsync(fs.access(orphanDir), {code: "ENOENT"}, "orphaned staging dir removed");
-	await t.throwsAsync(fs.access(path.join(t.context.testDir, "framework")), {code: "ENOENT"},
-		"primary framework dir removed");
 });
 
-test("cleanCache: removes multiple orphaned staging dirs and reports each", async (t) => {
-	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
-
+test("cleanAdditional: removes multiple orphaned staging dirs and reports each", async (t) => {
 	const orphan1 = path.join(t.context.testDir, ".framework_to_delete_1111");
 	const orphan2 = path.join(t.context.testDir, ".framework_to_delete_2222");
 
@@ -259,12 +185,11 @@ test("cleanCache: removes multiple orphaned staging dirs and reports each", asyn
 	await mkPackageIn(orphan2, "@openui5", "sap.ui.core", "1.91.0");
 	await mkPackageIn(orphan2, "@openui5", "sap.ui.core", "1.92.0");
 
-	const result = await cleanCache(t.context.testDir);
+	const result = await cleanAdditional(t.context.testDir);
 
-	t.is(result.orphaned.length, 2, "two orphaned dirs reported");
+	t.is(result.length, 2, "two orphaned dirs reported");
 
-	// Sort by path for deterministic assertions
-	const sorted = [...result.orphaned].sort((a, b) => a.path.localeCompare(b.path));
+	const sorted = [...result].sort((a, b) => a.path.localeCompare(b.path));
 	t.is(sorted[0].libraryCount, 1);
 	t.is(sorted[0].versionCount, 1);
 	t.is(sorted[1].libraryCount, 1);
@@ -274,15 +199,10 @@ test("cleanCache: removes multiple orphaned staging dirs and reports each", asyn
 	await t.throwsAsync(fs.access(orphan2), {code: "ENOENT"});
 });
 
-test("cleanCache: orphaned dir deletion failure is non-fatal", async (t) => {
-	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
-
-	// Create an orphan
+test("cleanAdditional: orphaned dir deletion failure is non-fatal", async (t) => {
 	const orphanDir = path.join(t.context.testDir, ".framework_to_delete_fail");
 	await mkPackageIn(orphanDir, "@openui5", "sap.m", "1.80.0");
 
-	// Use esmock to inject an fs.rm stub that fails only for the orphan dir,
-	// ensuring the stub intercepts calls inside cache.js (not the test's own fs binding).
 	const rmStub = sinon.stub().callsFake(async (p, opts) => {
 		if (p === orphanDir) {
 			throw new Error("simulated deletion failure");
@@ -290,18 +210,17 @@ test("cleanCache: orphaned dir deletion failure is non-fatal", async (t) => {
 		return fs.rm(p, opts);
 	});
 
-	const {cleanCache: cleanCacheMocked} = await esmock.p(
+	const {cleanAdditional: cleanAdditionalMocked} = await esmock.p(
 		"../../../lib/ui5Framework/cache.js",
 		{"node:fs/promises": {...fs, rm: rmStub}}
 	);
 
 	try {
-		// Should not throw — orphan deletion failure is swallowed
-		const result = await t.notThrowsAsync(cleanCacheMocked(t.context.testDir));
-		t.truthy(result, "cleanCache completes despite orphan deletion failure");
+		const result = await t.notThrowsAsync(cleanAdditionalMocked(t.context.testDir));
+		t.truthy(result, "cleanAdditional completes despite orphan deletion failure");
 	} finally {
-		esmock.purge(cleanCacheMocked);
-		// Cleanup the orphan manually since the stub prevented deletion
+		esmock.purge(cleanAdditionalMocked);
 		await fs.rm(orphanDir, {recursive: true, force: true}).catch(() => {});
 	}
 });
+
