@@ -68,9 +68,15 @@ export async function hasActiveLocks(ui5DataDir, {include, exclude} = {}) {
 	const excludeSet = exclude ? new Set([].concat(exclude)) : null;
 
 	const lockFiles = entries.filter((name) => {
-		if (!name.endsWith(".lock")) return false;
-		if (includeSet && !includeSet.has(name)) return false;
-		if (excludeSet && excludeSet.has(name)) return false;
+		if (!name.endsWith(".lock")) {
+			return false;
+		}
+		if (includeSet && !includeSet.has(name)) {
+			return false;
+		}
+		if (excludeSet && excludeSet.has(name)) {
+			return false;
+		}
 		return true;
 	});
 
