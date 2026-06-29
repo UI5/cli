@@ -184,10 +184,12 @@ async function cleanupOrphanedStagingDirs(ui5DataDir) {
 export async function cleanCache(ui5DataDir) {
 	const frameworkDir = path.join(ui5DataDir, FRAMEWORK_DIR_NAME);
 	const stats = await getPackageStats(frameworkDir);
+	// No active framework to clean. Exit early,
+	// but there may be orphaned staging dirs from previous interrupted cleans.
 	if (!stats) {
-		// Always clean up orphaned staging dirs from previously interrupted cleans,
-		// regardless of whether an active framework/ directory exists. Orphans can
-		// accumulate even after the framework has been fully cleaned.
+		// No need to lock here as the orphaned cleanup is and safe to run concurrently
+		// and independently of other operations.
+		// Note: In case of orphaned dirs have occupied much space, this cleanup might take a while.
 		const orphaned = await cleanupOrphanedStagingDirs(ui5DataDir);
 
 		if (orphaned.length > 0) {
@@ -210,7 +212,7 @@ export async function cleanCache(ui5DataDir) {
 	// Acquire first, then check — ensures concurrent framework operations will see
 	// the cleanup lock and abort before we start the rename.
 	const releaseCleanupLock = await acquireLock(lockPath);
-
+	let orphaned = [];
 	try {
 		if (await hasActiveLocks(lockDir, {exclude: CLEANUP_LOCK_NAME})) {
 			throw new Error(
@@ -244,17 +246,20 @@ export async function cleanCache(ui5DataDir) {
 		// and would block other operations for no safety benefit.
 		releaseCleanupLock();
 
-		// Delete the staging directory. This is the slow part,
-		// but it is now outside the lock and fully private to this operation.
+		// Delete the staging directory. Do not delegate to cleanupOrphanedStagingDirs()
+		// as this is the target dir we want to delete and the summary should not include it in the orphaned list.
 		await fs.rm(stagingDir, {recursive: true, force: true});
+
+		// Cleanup any orphaned staging directories from previous interrupted cleans.
+		// This operation is NOT prior the rename of the framework directory, because
+		// we want to release the lock as soon as possible after the rename.
+		// The orphaned cleanup is safe to run concurrently and independently of other operations.
+		orphaned = await cleanupOrphanedStagingDirs(ui5DataDir);
 	} catch (err) {
 		// Release the lock if we haven't already (i.e. an error occurred before the rename).
 		releaseCleanupLock();
 		throw err;
 	}
-
-	// Collect and delete orphaned staging dirs from previously interrupted cleans.
-	const orphaned = await cleanupOrphanedStagingDirs(ui5DataDir);
 
 	return {
 		path: FRAMEWORK_DIR_NAME,
