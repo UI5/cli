@@ -28,7 +28,7 @@ class ProjectGraph {
 	 * @public
 	 * @param {object} parameters Parameters
 	 * @param {string} parameters.rootProjectName Root project name
-	 * @param {string} [parameters.ui5DataDir] Explicit UI5 data directory to use for the build cache & locks.
+	 * @param {string} parameters.ui5DataDir Explicit UI5 data directory to use for the build cache & locks.
 	 *   Overrides the <code>UI5_DATA_DIR</code> environment variable, the UI5 configuration file,
 	 *   and the default of <code>~/.ui5</code>.
 	 */
