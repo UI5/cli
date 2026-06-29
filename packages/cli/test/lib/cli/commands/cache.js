@@ -30,9 +30,11 @@ test.beforeEach(async (t) => {
 
 	t.context.resolveUi5DataDirStub = sinon.stub().resolves(TEST_UI5_DATA_DIR);
 	t.context.hasActiveLocksStub = sinon.stub().resolves(false);
+	t.context.acquireLockStub = sinon.stub().resolves(() => {});
 
 	t.context.frameworkCacheGetCacheInfo = sinon.stub();
 	t.context.frameworkCacheCleanCache = sinon.stub();
+	t.context.frameworkCacheCleanAdditional = sinon.stub().resolves([]);
 	t.context.frameworkCacheGetOrphanedInfo = sinon.stub().resolves([]);
 	t.context.buildCacheGetCacheInfo = sinon.stub();
 	t.context.buildCacheCleanCache = sinon.stub();
@@ -45,16 +47,21 @@ test.beforeEach(async (t) => {
 		},
 		"@ui5/project/utils/lock": {
 			hasActiveLocks: t.context.hasActiveLocksStub,
+			acquireLock: t.context.acquireLockStub,
+			getLockDir: sinon.stub().returns(path.join(TEST_UI5_DATA_DIR, "locks")),
+			CLEANUP_LOCK_NAME: "cache-cleanup.lock",
 		},
 		"@ui5/project/ui5Framework/cache": {
 			getCacheInfo: t.context.frameworkCacheGetCacheInfo,
 			cleanCache: t.context.frameworkCacheCleanCache,
+			cleanAdditional: t.context.frameworkCacheCleanAdditional,
 			getOrphanedInfo: t.context.frameworkCacheGetOrphanedInfo,
 		},
 		"@ui5/project/build/cache/CacheManager": {
 			default: class {
 				static getCacheInfo = t.context.buildCacheGetCacheInfo;
 				static cleanCache = t.context.buildCacheCleanCache;
+				static cleanAdditional = sinon.stub().resolves([]);
 			}
 		},
 		"yesno": {
@@ -406,7 +413,7 @@ test.serial("ui5 cache clean: shows orphaned framework data in pre-confirmation 
 
 test.serial("ui5 cache clean: shows orphaned framework data in post-clean summary", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheGetOrphanedInfo,
-		frameworkCacheCleanCache} = t.context;
+		frameworkCacheCleanCache, frameworkCacheCleanAdditional} = t.context;
 
 	t.context.frameworkCacheGetCacheInfo.resolves({path: "framework", libraryCount: 3, versionCount: 1});
 	t.context.buildCacheGetCacheInfo.resolves(null);
@@ -414,9 +421,11 @@ test.serial("ui5 cache clean: shows orphaned framework data in post-clean summar
 		{path: ".framework_to_delete_ab12", libraryCount: 3, versionCount: 1},
 		{path: ".framework_to_delete_cd34", libraryCount: 3, versionCount: 1},
 	]);
-	frameworkCacheCleanCache.resolves({
-		path: "framework", libraryCount: 3, versionCount: 1, orphaned: [],
-	});
+	frameworkCacheCleanCache.resolves({path: "framework", libraryCount: 3, versionCount: 1});
+	frameworkCacheCleanAdditional.resolves([
+		{path: ".framework_to_delete_ab12", libraryCount: 3, versionCount: 1},
+		{path: ".framework_to_delete_cd34", libraryCount: 3, versionCount: 1},
+	]);
 
 	argv["_"] = ["cache", "clean"];
 	argv["yes"] = true;
@@ -431,7 +440,7 @@ test.serial("ui5 cache clean: shows orphaned framework data in post-clean summar
 
 test.serial("ui5 cache clean: shows orphaned-only success summary when no active framework", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheGetOrphanedInfo,
-		frameworkCacheCleanCache} = t.context;
+		frameworkCacheCleanCache, frameworkCacheCleanAdditional} = t.context;
 
 	t.context.frameworkCacheGetCacheInfo.resolves(null);
 	t.context.buildCacheGetCacheInfo.resolves(null);
@@ -439,6 +448,9 @@ test.serial("ui5 cache clean: shows orphaned-only success summary when no active
 		{path: ".framework_to_delete_zz99", libraryCount: 10, versionCount: 3},
 	]);
 	frameworkCacheCleanCache.resolves(null);
+	frameworkCacheCleanAdditional.resolves([
+		{path: ".framework_to_delete_zz99", libraryCount: 10, versionCount: 3},
+	]);
 
 	argv["_"] = ["cache", "clean"];
 	argv["yes"] = true;
