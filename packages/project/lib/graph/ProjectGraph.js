@@ -721,6 +721,11 @@ class ProjectGraph {
 	 * clean is still active after that window.
 	 */
 	async _preventCacheClean() {
+		// If already locked (e.g. enrichProjectGraph already called this), reuse the existing lock.
+		if (this.#lockRelease) {
+			return;
+		}
+
 		const lockDir = getLockDir(this._ui5DataDir);
 		// Acquire our lock so any cache clean that starts now will detect us and abort.
 		// First acquire, then lock, so that the await of hasActiveLocks does not open a window for a race condition.
@@ -785,7 +790,7 @@ class ProjectGraph {
 		outputStyle = OutputStyleEnum.Default,
 		cache = Cache.Default
 	}) {
-		this._preventCacheClean(); // Prevent concurrent cache clean operations while the graph is being built.
+		await this._preventCacheClean();
 		this.seal(); // Do not allow further changes to the graph
 		if (this._builtOrServed) {
 			throw new Error(
@@ -827,7 +832,7 @@ class ProjectGraph {
 		includedTasks = [], excludedTasks = [],
 		cache = Cache.Default
 	}) {
-		this._preventCacheClean(); // Prevent concurrent cache clean operations while the graph is being served
+		await this._preventCacheClean();
 		this.seal(); // Do not allow further changes to the graph
 		if (this._builtOrServed) {
 			throw new Error(
