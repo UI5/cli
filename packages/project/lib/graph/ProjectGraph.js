@@ -708,16 +708,17 @@ class ProjectGraph {
 	/**
 	 * Acquires a process-coordination lock scoped to this graph instance to prevent
 	 * concurrent <code>ui5 cache clean</code> operations from running while framework
-	 * packages are being downloaded or the build/serve lifecycle is active.
+	 * packages are being downloaded, or while those packages are actively referenced
+	 * within the graph during the build/serve lifecycle.
+	 *
+	 * This is necessary because the graph holds references to framework package paths
+	 * throughout its lifetime — not just during downloads. A cache clean after the download
+	 * completes, but before the build/serve finishes, would delete files the graph is using.
 	 *
 	 * If a cache clean is already in progress, polls until it finishes (up to 10 s)
 	 * before acquiring the graph lock. The double-check after acquiring guards the
 	 * narrow window between the poll and the lock acquisition. Throws if a cache
 	 * clean is still active after that window.
-	 *
-	 * Called by projectGraphBuilder immediately after construction so the lock is
-	 * in place before any framework downloads or build/serve work begins.
-	 * The lock is released by {@link destroy}.
 	 */
 	async _preventCacheClean() {
 		const lockDir = getLockDir(this._ui5DataDir);
