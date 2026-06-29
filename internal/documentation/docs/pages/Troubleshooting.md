@@ -38,9 +38,10 @@ This will display the cache location, the amount of data that will be removed, a
 ui5 cache clean --yes
 ```
 
-The command removes two types of cached data:
+The command removes the following cached data:
 - **UI5 Framework packages** — downloaded UI5 library files (`~/.ui5/framework/`)
 - **Build cache (DB)** — build data (`~/.ui5/buildCache/`)
+- **Orphaned framework data** — incomplete framework directories left over from previously interrupted clean operations (`~/.ui5/.framework_to_delete_*/`)
 
 Any missing framework dependencies will be downloaded again during the next UI5 CLI invocation.
 
