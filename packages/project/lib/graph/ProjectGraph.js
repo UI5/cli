@@ -807,11 +807,17 @@ class ProjectGraph {
 			},
 			ui5DataDir: this._ui5DataDir,
 		});
-		return await builder.buildToTarget({
+
+		const result = await builder.buildToTarget({
 			destPath, cleanDest,
 			includedDependencies, excludedDependencies,
 			dependencyIncludes,
 		});
+
+		// Explicitly release the process-coordination lock now that the build has finished
+		this.destroy();
+
+		return result;
 	}
 
 	async serve({

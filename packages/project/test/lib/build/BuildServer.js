@@ -68,6 +68,7 @@ test.beforeEach(async (t) => {
 		traverseDependents: function* (_projectName) {
 			yield {project: rootProject};
 		},
+		destroy: sinon.stub(),
 	};
 	t.context.projectBuilder = {
 		closeCacheManager: sinon.stub(),
