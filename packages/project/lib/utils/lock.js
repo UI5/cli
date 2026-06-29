@@ -16,8 +16,6 @@ export const LOCK_STALE_MS = 60000;
 /**
  * Interval at which long-lived graph locks refresh their mtime.
  * Must be less than LOCK_STALE_MS to keep the lock always within the freshness window.
- * Must not be even of LOCK_STALE_MS to avoid a race condition where a lock is refreshed
- * at the same time another process checks for staleness.
  */
 export const LOCK_REFRESH_INTERVAL_MS = LOCK_STALE_MS * 0.6;
 
