@@ -336,7 +336,7 @@ export default class CacheManager {
 	 * @param {string} dbDir Path to DB
 	 * @returns {Promise<boolean>} True if the cache database exists and is accessible
 	 */
-	static async #isCacheDBAvailable(dbDir) {
+	static async #isCacheDbAvailable(dbDir) {
 		const dbPath = path.join(dbDir, "cache.db");
 		try {
 			await access(dbPath);
@@ -359,7 +359,7 @@ export default class CacheManager {
 	 */
 	static async getCacheInfo(ui5DataDir) {
 		const dbDir = path.join(ui5DataDir, "buildCache", CACHE_VERSION);
-		const isAvailable = await CacheManager.#isCacheDBAvailable(dbDir);
+		const isAvailable = await CacheManager.#isCacheDbAvailable(dbDir);
 		if (!isAvailable) {
 			return null;
 		}
@@ -392,7 +392,7 @@ export default class CacheManager {
 	 */
 	static async cleanCache(ui5DataDir) {
 		const dbDir = path.join(ui5DataDir, "buildCache", CACHE_VERSION);
-		const isAvailable = await CacheManager.#isCacheDBAvailable(dbDir);
+		const isAvailable = await CacheManager.#isCacheDbAvailable(dbDir);
 		if (!isAvailable) {
 			return null;
 		}
