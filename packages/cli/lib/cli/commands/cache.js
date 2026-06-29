@@ -36,12 +36,14 @@ cacheCommand.builder = function(cli) {
 					.epilogue(
 						"The cache is stored in the UI5 data directory (default: ~/.ui5).\n" +
 						"Override the location with the UI5_DATA_DIR environment variable or\n" +
-						"the 'ui5DataDir' configuration option (see 'ui5 config --help').\n\n" +
-						"Two cache types are removed:\n" +
+						"the 'ui5 config set ui5DataDir' configuration option (see 'ui5 config --help').\n\n" +
+						"The following cache types are removed:\n" +
 						"  UI5 Framework packages  Downloaded UI5 library files " +
 							"(~/.ui5/framework/)\n" +
-						"  Build cache (DB)        build data " +
-							"(~/.ui5/buildCache/)"
+						"  Build cache (DB)        Build data " +
+							"(~/.ui5/buildCache/)\n" +
+						"  Orphaned framework data Incomplete directories from previously interrupted cleans\n" +
+							"                        (~/.ui5/.framework_to_delete_*/)"
 					);
 			},
 			middlewares: [baseMiddleware],
