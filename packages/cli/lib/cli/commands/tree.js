@@ -183,6 +183,9 @@ tree.handler = async function(argv) {
 			`Dependency graph generation took ${chalk.bold(elapsedTime)}`));
 		process.stderr.write("\n");
 	}
+
+	// Release the process-coordination lock held by the graph
+	graph.destroy();
 };
 
 async function getElapsedTime(startTime) {
