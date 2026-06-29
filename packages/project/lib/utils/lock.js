@@ -5,6 +5,7 @@ import {promisify} from "node:util";
 import lockfile from "lockfile";
 const check = promisify(lockfile.check);
 const unlock = promisify(lockfile.unlock);
+const lock = promisify(lockfile.lock);
 import {getLogger} from "@ui5/logger";
 const log = getLogger("lock");
 
@@ -171,6 +172,6 @@ export function acquireLockSync(lockPath, {retries} = {}) {
 export async function acquireLock(lockPath, {wait, retries} = {}) {
 	log.verbose(`Locking ${lockPath}`);
 	await mkdir(path.dirname(lockPath), {recursive: true});
-	await promisify(lockfile.lock)(lockPath, {stale: LOCK_STALE_MS, wait, retries});
+	await lock(lockPath, {stale: LOCK_STALE_MS, wait, retries});
 	return resolveReleaseLockFn(lockPath);
 }
