@@ -2031,3 +2031,70 @@ test("Seal/isSealed", async (t) => {
 	const extension = graph.getExtension("extension.b");
 	t.is(extension, undefined, "extension.b should not be added");
 });
+
+test.serial("_preventCacheClean(): calling it multiple times reuses the same lock", async (t) => {
+	const sinon = t.context.sinon;
+
+	const releaseSpy = sinon.spy();
+	const acquireLockSyncStub = sinon.stub().returns(releaseSpy);
+
+	const ProjectGraph = await esmock.p("../../../lib/graph/ProjectGraph.js", {
+		"@ui5/logger": {getLogger: sinon.stub().returns(t.context.log)},
+		"../../../lib/utils/lock.js": {
+			acquireLockSync: acquireLockSyncStub,
+			getLockDir: sinon.stub().returns("/test/locks"),
+			CLEANUP_LOCK_NAME: "cache-cleanup.lock",
+			hasActiveLocks: sinon.stub().resolves(false),
+		},
+	});
+
+	const graph = new ProjectGraph({rootProjectName: "test", ui5DataDir: TEST_UI5_DATA_DIR});
+
+	await graph._preventCacheClean();
+	await graph._preventCacheClean();
+	await graph._preventCacheClean();
+
+	t.is(acquireLockSyncStub.callCount, 1,
+		"acquireLockSync called exactly once — subsequent calls reuse the existing lock");
+	t.is(releaseSpy.callCount, 0, "lock not released between calls");
+
+	esmock.purge(ProjectGraph);
+});
+
+test.serial("_preventCacheClean(): after destroy() releases the lock, a new call acquires a fresh one", async (t) => {
+	const sinon = t.context.sinon;
+
+	const releaseSpy = sinon.spy();
+	const acquireLockSyncStub = sinon.stub().returns(releaseSpy);
+
+	const ProjectGraph = await esmock.p("../../../lib/graph/ProjectGraph.js", {
+		"@ui5/logger": {getLogger: sinon.stub().returns(t.context.log)},
+		"../../../lib/utils/lock.js": {
+			acquireLockSync: acquireLockSyncStub,
+			getLockDir: sinon.stub().returns("/test/locks"),
+			CLEANUP_LOCK_NAME: "cache-cleanup.lock",
+			hasActiveLocks: sinon.stub().resolves(false),
+		},
+	});
+
+	const graph = new ProjectGraph({rootProjectName: "test", ui5DataDir: TEST_UI5_DATA_DIR});
+
+	// First acquisition
+	await graph._preventCacheClean();
+	t.is(acquireLockSyncStub.callCount, 1, "lock acquired on first call");
+
+	// Repeated call — still the same lock, not re-acquired
+	await graph._preventCacheClean();
+	t.is(acquireLockSyncStub.callCount, 1, "no second acquisition while lock is held");
+
+	// Release via destroy()
+	graph.destroy();
+	t.is(releaseSpy.callCount, 1, "lock released by destroy()");
+
+	// After release, _preventCacheClean() must acquire a fresh lock
+	await graph._preventCacheClean();
+	t.is(acquireLockSyncStub.callCount, 2,
+		"new lock acquired after destroy() — lock is not held anymore");
+
+	esmock.purge(ProjectGraph);
+});
