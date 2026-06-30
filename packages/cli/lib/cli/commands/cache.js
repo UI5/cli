@@ -38,7 +38,7 @@ cacheCommand.builder = function(cli) {
 						"Override the location with the UI5_DATA_DIR environment variable or\n" +
 						"the 'ui5 config set ui5DataDir' configuration option (see 'ui5 config --help').\n\n" +
 						"The following cache types are removed:\n" +
-						"  UI5 Framework packages  Downloaded UI5 library files " +
+						"  UI5 framework packages:  Downloaded UI5 library files " +
 							"(~/.ui5/framework/)\n" +
 						"  Build cache (DB)        Build data " +
 							"(~/.ui5/buildCache/)\n" +
