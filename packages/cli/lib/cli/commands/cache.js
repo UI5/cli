@@ -40,7 +40,7 @@ cacheCommand.builder = function(cli) {
 						"The following cache types are removed:\n" +
 						"  UI5 framework packages:  Downloaded UI5 library files " +
 							"(~/.ui5/framework/)\n" +
-						"  Build cache (DB)        Build data " +
+						"  Build cache (DB): Build data " +
 							"(~/.ui5/buildCache/)\n" +
 						"  Orphaned framework data Incomplete directories from previously interrupted cleans\n" +
 							"                        (~/.ui5/.framework_to_delete_*/)"
