@@ -30,7 +30,7 @@ cacheCommand.builder = function(cli) {
 					.example("$0 cache clean",
 						"Remove all cached UI5 data after confirmation")
 					.example("$0 cache clean --yes",
-						"Remove all cached UI5 data without confirmation (e.g. in CI)")
+						"Remove all cached UI5 data without confirmation (e.g. in CI scenarios)")
 					.example("UI5_DATA_DIR=/custom/path $0 cache clean",
 						"Remove cached data from a non-default UI5 data directory")
 					.epilogue(
