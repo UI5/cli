@@ -32,7 +32,7 @@ Use the dedicated cache clean command, which safely removes all cached data:
 ui5 cache clean
 ```
 
-This will display the cache location, the amount of data that will be removed, and ask for confirmation before proceeding. To skip the confirmation prompt (e.g. in CI environments), use the `--yes` flag:
+This displays the cache location, the amount of data that gets removed, and asks for confirmation before proceeding. To skip the confirmation prompt (for example in CI environments), use the `--yes` flag:
 
 ```sh
 ui5 cache clean --yes
