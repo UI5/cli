@@ -1058,7 +1058,8 @@ test.serial("ui5 serve builder: --cache-mode coerce logs deprecation warning", a
 test.serial("banner gate: activates when stdout is a TTY and log level is info", async (t) => {
 	const {argv, graph, server, sslUtil, open} = t.context;
 	const bannerSetProject = sinon.stub();
-	const bannerSetUrls = sinon.stub();
+	const {promise: urlsCalled, resolve: signalUrlsCalled} = Promise.withResolvers();
+	const bannerSetUrls = sinon.stub().callsFake(() => signalUrlsCalled());
 	const bannerInstance = {
 		setProject: bannerSetProject,
 		setUrls: bannerSetUrls,
@@ -1089,7 +1090,7 @@ test.serial("banner gate: activates when stdout is a TTY and log level is info",
 	});
 
 	serve.handler(argv).catch(() => {/* may reject on shutdown — ignore here */});
-	await new Promise((resolve) => setTimeout(resolve, 10));
+	await urlsCalled;
 
 	t.is(consoleStop.callCount, 1, "Console.stop was called before the build starts");
 	t.is(bannerObserve.callCount, 1, "Banner.observe was called");
@@ -1113,7 +1114,8 @@ test.serial("banner gate: activates when stdout is a TTY and log level is info",
 
 test.serial("banner gate: passes network address from os.networkInterfaces to banner urls.network", async (t) => {
 	const {argv, graph, server, sslUtil, open} = t.context;
-	const bannerSetUrls = sinon.stub();
+	const {promise: urlsCalled, resolve: signalUrlsCalled} = Promise.withResolvers();
+	const bannerSetUrls = sinon.stub().callsFake(() => signalUrlsCalled());
 	const bannerInstance = {
 		setProject: sinon.stub(),
 		setUrls: bannerSetUrls,
@@ -1157,7 +1159,7 @@ test.serial("banner gate: passes network address from os.networkInterfaces to ba
 	});
 
 	serve.handler(argv).catch(() => {/* may reject on shutdown — ignore here */});
-	await new Promise((resolve) => setTimeout(resolve, 10));
+	await urlsCalled;
 
 	t.true(bannerObserve.getCall(0).args[0].acceptRemoteConnections,
 		"observe received the remote-connections flag");
@@ -1172,7 +1174,8 @@ test.serial("banner gate: passes network address from os.networkInterfaces to ba
 
 test.serial("banner gate: urls.network is undefined when no external IPv4 interface is available", async (t) => {
 	const {argv, graph, server, sslUtil, open} = t.context;
-	const bannerSetUrls = sinon.stub();
+	const {promise: urlsCalled, resolve: signalUrlsCalled} = Promise.withResolvers();
+	const bannerSetUrls = sinon.stub().callsFake(() => signalUrlsCalled());
 	const bannerInstance = {
 		setProject: sinon.stub(),
 		setUrls: bannerSetUrls,
@@ -1216,7 +1219,7 @@ test.serial("banner gate: urls.network is undefined when no external IPv4 interf
 	});
 
 	serve.handler(argv).catch(() => {/* may reject on shutdown — ignore here */});
-	await new Promise((resolve) => setTimeout(resolve, 10));
+	await urlsCalled;
 
 	t.is(bannerSetUrls.callCount, 1);
 	const urlsInfo = bannerSetUrls.getCall(0).args[0];
