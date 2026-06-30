@@ -11,10 +11,6 @@
         // Fix is available in VitePress 2.x with esbuild v0.25.x, but no stable release yet (only alpha).
         "GHSA-67mh-4wv8-2f99|vitepress>vite>esbuild",
 
-        // esbuild: Missing binary integrity verification in Deno module enables remote code execution via NPM_CONFIG_REGISTRY
-        // Not applicable as we don't use Deno.
-        "GHSA-gv7w-rqvm-qjhr|vitepress>vite>esbuild",
-
         // GHSA-4w7w-66w2-5vf9 is a path traversal in Vite's dev server allowing .map file reads outside
         // the project root when the server is network-exposed (--host).
         // Not a risk here: the dev server is only used locally (never exposed to the network) and all
@@ -34,12 +30,6 @@
 
         // GHSA-v6wh-96g9-6wx3: launch-editor: NTLMv2 hash disclosure via UNC path handling on Windows
         // Not applicable as we don't use launch-editor.
-        "GHSA-v6wh-96g9-6wx3|vitepress>vite",
-
-        // JS-YAML: Quadratic-complexity DoS in merge key handling via repeated aliases
-        // This only affects js-yaml within our test dependencies where every YAML file is under our control
-        // so it is not applicable to our use case.
-        "GHSA-h67p-54hq-rp68|*>@istanbuljs/load-nyc-config>js-yaml",
-        "GHSA-h67p-54hq-rp68|ava>*>js-yaml"
+        "GHSA-v6wh-96g9-6wx3|vitepress>vite"
     ]
 }
