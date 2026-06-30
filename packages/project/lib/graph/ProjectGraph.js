@@ -11,7 +11,8 @@ import {acquireLockSync, CLEANUP_LOCK_NAME, hasActiveLocks, getLockDir} from "..
  * A rooted, directed graph representing a UI5 project, its dependencies and available extensions.
  *
  * When constructed with a <code>ui5DataDir</code>, the graph acquires a process-coordination
- * lock during {@link enrichProjectGraph} to prevent concurrent <code>ui5 cache clean</code>
+ * lock during {@link @ui5/project/graph/helpers/ui5Framework~enrichProjectGraph enrichProjectGraph}
+ * to prevent concurrent <code>ui5 cache clean</code>
  * operations. If a cache clean is already running, the lock acquisition waits for it to finish
  * before proceeding. Call {@link destroy} to release the lock explicitly when the graph is no
  * longer needed. Even without an explicit call, the <code>lockfile</code> package ensures the
