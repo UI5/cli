@@ -132,7 +132,7 @@ export function renderStatusLine(state, layout = {}) {
 	case STATES.READY: {
 		let suffix = "";
 		if (state.lastBuildHrtime) {
-			suffix = ` ${chalk.dim("·")} ${chalk.dim("took " + prettyHrtime(state.lastBuildHrtime))}`;
+			suffix = ` ${chalk.dim("·")} ${chalk.dim("Time elapsed: " + prettyHrtime(state.lastBuildHrtime))}`;
 		}
 		return `${label}${chalk.green(figures.bullet)} ${chalk.green(pad("ready"))}${suffix}`;
 	}
