@@ -16,6 +16,18 @@ const LEVEL_PREFIX = {
 // Spinner tick interval while in `building` state.
 const BUILDING_TICK_MS = 120;
 
+// Decode the tail of `stream.write(chunk[, encoding][, callback])`. `encoding`
+// falls back to "utf8" (Node's default) when not supplied.
+function parseWriteArgs(encodingOrCallback, maybeCallback) {
+	if (typeof encodingOrCallback === "function") {
+		return {encoding: "utf8", callback: encodingOrCallback};
+	}
+	return {
+		encoding: typeof encodingOrCallback === "string" ? encodingOrCallback : "utf8",
+		callback: typeof maybeCallback === "function" ? maybeCallback : undefined,
+	};
+}
+
 /**
  * Live banner for `ui5 serve`. Owns process.stdout while active.
  *
@@ -51,6 +63,19 @@ class Banner {
 	// the previous one, erasing wrap-correctly.
 	#logUpdate;
 
+	// True while a live-region render (or explicit persist/done) is in flight,
+	// so #interceptWrite lets log-update's own bytes through to the real
+	// stream. Any *other* write hits the interception path.
+	#renderingLiveRegion = false;
+	// Per-stream interception bookkeeping. Keyed by "stdout"/"stderr", each
+	// entry holds the saved original write method (or `null` when this stream
+	// is not being intercepted) and any partial (non-newline-terminated) bytes
+	// that arrived without a newline yet.
+	#streams = {
+		stdout: {orig: null, partial: ""},
+		stderr: {orig: null, partial: ""},
+	};
+
 	// Bound listeners so we can `process.off` them on stop().
 	#onLog;
 	#onBuildMetadata;
@@ -72,6 +97,13 @@ class Banner {
 	 * @param {number} [opts.networkAddressCount] how many network URLs setUrls()
 	 *     will later supply — used so the initial placeholder reserves the
 	 *     correct number of lines and the live region doesn't re-flow.
+	 * @param {boolean} [opts.interceptProcessWrites=true] wrap
+	 *     `process.stdout.write` / `process.stderr.write` so raw writes from
+	 *     custom tasks or third-party libraries are re-routed through
+	 *     {@link Banner#logAbove} instead of corrupting the live region.
+	 *     Tests that supply a stub `stdout` opt out of this by default —
+	 *     interception activates only when `opts.stdout` is unset or is the
+	 *     real `process.stdout`.
 	 * @returns {Banner}
 	 */
 	static observe(opts = {}) {
@@ -89,6 +121,11 @@ class Banner {
 		banner.#logUpdate = createLogUpdate(banner.#stdout);
 		banner.#render();
 		banner.#scheduleTick();
+		const wantsIntercept = opts.interceptProcessWrites !== false &&
+			banner.#stdout === process.stdout;
+		if (wantsIntercept) {
+			banner.#installWriteInterceptors();
+		}
 		return banner;
 	}
 
@@ -154,7 +191,7 @@ class Banner {
 		if (this.#stopped) {
 			return;
 		}
-		this.#logUpdate(this.#composeLiveRegion());
+		this.#withRenderingGuard(() => this.#logUpdate(this.#composeLiveRegion()));
 	}
 
 	/**
@@ -162,7 +199,9 @@ class Banner {
 	 *
 	 * Delegates to `log-update`'s `persist()` (which erases the live region,
 	 * writes the line in its place, and accounts for wrapped lines correctly)
-	 * followed by a fresh render of the live region below it.
+	 * followed by a fresh render of the live region below it. Pass a string
+	 * with embedded newlines to persist multiple lines in a single frame —
+	 * cheaper than N separate `logAbove` calls when bursts arrive.
 	 *
 	 * @param {string} line The log line to write above the live region.
 	 */
@@ -174,8 +213,10 @@ class Banner {
 		// `persist` writes `line` where the live region currently sits and
 		// resets log-update's internal frame state. The follow-up render
 		// re-creates the live region right below it.
-		this.#logUpdate.persist(line);
-		this.#render();
+		this.#withRenderingGuard(() => {
+			this.#logUpdate.persist(line);
+			this.#logUpdate(this.#composeLiveRegion());
+		});
 	}
 
 	stop() {
@@ -185,11 +226,29 @@ class Banner {
 		this.#stopped = true;
 		this.#clearTick();
 		this.#detachListeners();
+		// Flush any partial (non-newline-terminated) buffered writes before
+		// we tear down the live region, then restore the process.* originals.
+		// Flushing first while the live region is still on-screen keeps the
+		// trailing fragment above the final frame instead of after it.
+		this.#flushPartialBuffers();
+		this.#uninstallWriteInterceptors();
 		// `done` restores the cursor (which log-update hid on first render)
 		// and resets state. End on a clean newline so the prompt lands
 		// below the final frame.
-		this.#logUpdate?.done();
+		this.#withRenderingGuard(() => this.#logUpdate?.done());
 		this.#stdout.write("\n");
+	}
+
+	// Run `fn` with the re-render flag set so log-update's own writes to
+	// the intercepted process streams pass through untouched. Any nested
+	// stdout/stderr write inside `fn` will bypass the line-buffering path.
+	#withRenderingGuard(fn) {
+		this.#renderingLiveRegion = true;
+		try {
+			return fn();
+		} finally {
+			this.#renderingLiveRegion = false;
+		}
 	}
 
 	// ---- Event subscriptions --------------------------------------------------
@@ -351,6 +410,96 @@ class Banner {
 		if (this.#tickTimer) {
 			clearInterval(this.#tickTimer);
 			this.#tickTimer = null;
+		}
+	}
+
+	// ---- process.stdout / process.stderr interception -------------------------
+	// Custom tasks and third-party libraries sometimes bypass @ui5/logger and
+	// write straight to the process streams. Any such write between banner
+	// frames throws off log-update's line-count accounting (it counts only the
+	// bytes it emitted itself) and the next render corrupts — typically by
+	// duplicating the header. To keep the live region intact we replace
+	// process.stdout.write / process.stderr.write while the banner is active
+	// and route incoming bytes through logAbove() line by line. log-update's
+	// own writes bypass the interception via the #renderingLiveRegion flag.
+
+	#installWriteInterceptors() {
+		for (const which of ["stdout", "stderr"]) {
+			const entry = this.#streams[which];
+			entry.orig = process[which].write;
+			process[which].write = this.#makeInterceptor(process[which], entry.orig, which);
+		}
+	}
+
+	#uninstallWriteInterceptors() {
+		for (const which of ["stdout", "stderr"]) {
+			const entry = this.#streams[which];
+			if (entry.orig) {
+				process[which].write = entry.orig;
+				entry.orig = null;
+			}
+		}
+	}
+
+	#makeInterceptor(stream, original, which) {
+		// The returned function mirrors WriteStream#write's overloads:
+		//   write(chunk[, encoding][, callback]) -> boolean
+		return (chunk, encodingOrCallback, maybeCallback) => {
+			// Re-entrant writes (log-update painting the live region, or
+			// stop-time flushes / `done()`) must pass through untouched —
+			// otherwise the very act of rendering would recurse into
+			// logAbove.
+			if (this.#renderingLiveRegion || this.#stopped) {
+				// Forward the argument list as-is so the real write() sees
+				// the same overload the caller intended.
+				return original.call(stream, chunk, encodingOrCallback, maybeCallback);
+			}
+			const {encoding, callback} = parseWriteArgs(encodingOrCallback, maybeCallback);
+			// Buffer/Uint8Array both expose toString(encoding); avoid the
+			// extra Buffer.from() copy when chunk is already a Buffer.
+			const text = typeof chunk === "string" ?
+				chunk :
+				(Buffer.isBuffer(chunk) ? chunk.toString(encoding) : Buffer.from(chunk).toString(encoding));
+			this.#absorbInterceptedText(text, which);
+			// Node's write() invokes the callback once the chunk has drained.
+			// Our sink is synchronous, but the callback contract still needs
+			// an async tick so callers don't see it fire mid-write.
+			if (callback) {
+				process.nextTick(callback);
+			}
+			// Return `true` to signal no backpressure — the intercepted bytes
+			// have been fully consumed by logAbove().
+			return true;
+		};
+	}
+
+	// Buffer intercepted bytes per stream, emitting completed lines via
+	// logAbove() in a single batched call. Partial (non-newline-terminated)
+	// tail bytes stay buffered until either the next chunk completes the
+	// line or stop() flushes them.
+	#absorbInterceptedText(text, which) {
+		const entry = this.#streams[which];
+		const combined = entry.partial + text;
+		const lastNewline = combined.lastIndexOf("\n");
+		if (lastNewline === -1) {
+			entry.partial = combined;
+			return;
+		}
+		entry.partial = combined.slice(lastNewline + 1);
+		// Persist the whole run of completed lines in one frame rather than
+		// one persist+render per line — a rapid burst of output would
+		// otherwise trigger N re-renders.
+		this.logAbove(combined.slice(0, lastNewline));
+	}
+
+	#flushPartialBuffers() {
+		for (const which of ["stdout", "stderr"]) {
+			const entry = this.#streams[which];
+			if (entry.partial) {
+				const line = entry.partial;
+				entry.partial = "";
+				this.logAbove(line);
+			}
 		}
 	}
 

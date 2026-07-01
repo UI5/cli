@@ -484,3 +484,148 @@ test.serial("Banner survives a stdout without on/off methods", (t) => {
 	const banner = Banner.observe({stdout, brand: {name: "UI5 CLI", version: "1.0.0"}});
 	t.notThrows(() => banner.stop(), "stop() handles stdout without off()");
 });
+
+// ---- process.stdout / process.stderr interception ---------------------------
+// The banner replaces the real process.stdout.write / process.stderr.write
+// while active so writes that bypass @ui5/logger (custom tasks, third-party
+// libs) get routed through logAbove() instead of corrupting the live region.
+// These tests exercise that path against the real process streams — with the
+// real writes stubbed out to keep the test runner's stdout quiet.
+
+function stubProcessStreams(t) {
+	const stdoutWrites = [];
+	const stderrWrites = [];
+	const trueOrigStdout = process.stdout.write;
+	const trueOrigStderr = process.stderr.write;
+	process.stdout.write = (chunk) => {
+		stdoutWrites.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+		return true;
+	};
+	process.stderr.write = (chunk) => {
+		stderrWrites.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+		return true;
+	};
+	// `origStdout`/`origStderr` reference the STUBS — that's what the banner
+	// captured on install, and therefore what should be restored on stop.
+	const origStdout = process.stdout.write;
+	const origStderr = process.stderr.write;
+	t.teardown(() => {
+		process.stdout.write = trueOrigStdout;
+		process.stderr.write = trueOrigStderr;
+	});
+	return {stdoutWrites, stderrWrites, origStdout, origStderr};
+}
+
+test.serial("Banner intercepts direct process.stderr.write and routes lines above the live region", (t) => {
+	const {stdoutWrites, origStderr} = stubProcessStreams(t);
+	const banner = Banner.observe({brand: {name: "UI5 CLI", version: "1.0.0"}});
+	// The intercepted stream must NOT be the raw original — the wrapper the
+	// banner installed sits on top.
+	t.not(process.stderr.write, origStderr, "process.stderr.write is wrapped");
+
+	process.stderr.write("boom\n");
+
+	const output = stripAnsi(stdoutWrites.join(""));
+	t.regex(output, /boom/, "line written directly to stderr surfaces via logAbove");
+	banner.stop();
+	t.is(process.stderr.write, origStderr, "process.stderr.write is restored on stop");
+});
+
+test.serial("Banner joins split-chunk writes into a single logged line", (t) => {
+	const {stdoutWrites} = stubProcessStreams(t);
+	const banner = Banner.observe({brand: {name: "UI5 CLI", version: "1.0.0"}});
+	stdoutWrites.length = 0;
+
+	// A single logical "foobar" line delivered as two chunks — a naive
+	// per-chunk logAbove call would emit two separate lines and desync the
+	// live region. The banner must buffer until the newline arrives.
+	process.stderr.write("foo");
+	process.stderr.write("bar\n");
+
+	const output = stripAnsi(stdoutWrites.join(""));
+	t.regex(output, /foobar/, "split chunks are joined at the newline");
+	banner.stop();
+});
+
+test.serial("Banner.stop flushes a buffered partial line", (t) => {
+	const {stdoutWrites} = stubProcessStreams(t);
+	const banner = Banner.observe({brand: {name: "UI5 CLI", version: "1.0.0"}});
+	stdoutWrites.length = 0;
+
+	// No trailing newline — the fragment stays buffered until stop() flushes
+	// it. Without the flush the message would be lost entirely.
+	process.stderr.write("dangling fragment");
+	banner.stop();
+
+	const output = stripAnsi(stdoutWrites.join(""));
+	t.regex(output, /dangling fragment/, "partial line flushed on stop");
+});
+
+test.serial("Banner intercepts direct process.stdout.write too", (t) => {
+	const {stdoutWrites} = stubProcessStreams(t);
+	const banner = Banner.observe({brand: {name: "UI5 CLI", version: "1.0.0"}});
+	stdoutWrites.length = 0;
+
+	// A custom task that writes to stdout is just as bad for the live region
+	// as one writing to stderr — same TTY, same cursor.
+	process.stdout.write("stdout line\n");
+
+	const output = stripAnsi(stdoutWrites.join(""));
+	t.regex(output, /stdout line/, "line written directly to stdout surfaces via logAbove");
+	banner.stop();
+});
+
+test.serial("Banner interceptor invokes the write() callback asynchronously", async (t) => {
+	stubProcessStreams(t);
+	const banner = Banner.observe({brand: {name: "UI5 CLI", version: "1.0.0"}});
+
+	// stream.write(chunk, callback) contract: callback fires once the write
+	// drains. Our sink is synchronous, but the callback must still be async
+	// so the caller doesn't observe recursion inside its own write() call.
+	const observedDuringCall = await new Promise((resolve) => {
+		let calledSync = false;
+		process.stderr.write("cb line\n", () => {
+			resolve(calledSync);
+		});
+		calledSync = true;
+	});
+	t.true(observedDuringCall, "callback fires after the write() call returns");
+	banner.stop();
+});
+
+test.serial("Banner interceptor handles Buffer chunks with an explicit encoding", (t) => {
+	const {stdoutWrites} = stubProcessStreams(t);
+	const banner = Banner.observe({brand: {name: "UI5 CLI", version: "1.0.0"}});
+	stdoutWrites.length = 0;
+
+	process.stderr.write(Buffer.from("buffered line\n", "utf8"), "utf8");
+
+	const output = stripAnsi(stdoutWrites.join(""));
+	t.regex(output, /buffered line/, "buffer chunk decoded and surfaced");
+	banner.stop();
+});
+
+test.serial("Banner interception can be disabled via opts.interceptProcessWrites=false", (t) => {
+	const {origStderr} = stubProcessStreams(t);
+	const banner = Banner.observe({
+		brand: {name: "UI5 CLI", version: "1.0.0"},
+		interceptProcessWrites: false,
+	});
+	// With interception off, the wrapper the banner would have installed is
+	// absent — process.stderr.write is still the stub set by the test.
+	t.is(process.stderr.write, origStderr,
+		"stderr.write is untouched when interception is disabled");
+	banner.stop();
+});
+
+test.serial("Banner does not intercept when a stub stdout is supplied", (t) => {
+	const {origStderr} = stubProcessStreams(t);
+	const stdout = createStubStdout();
+	const banner = Banner.observe({stdout, brand: {name: "UI5 CLI", version: "1.0.0"}});
+	// Interception is gated on stdout === process.stdout — the vast majority
+	// of unit tests pass a stub stdout and must not have process.stderr
+	// yanked out from under them.
+	t.is(process.stderr.write, origStderr,
+		"stderr.write is untouched when a stub stdout is used");
+	banner.stop();
+});
