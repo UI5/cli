@@ -403,8 +403,10 @@ class BuildServer extends EventEmitter {
 					this.#setState(SERVER_STATES.STALE, {hrtime, staleProjects});
 				}
 			}).catch((err) => {
+				// Reached only for unexpected failures outside the per-build catch inside
+				// #processBuildRequests (which handles task errors itself). Surface via
+				// ServeLogger; keep the server alive.
 				this.#setState(SERVER_STATES.ERROR, {error: err});
-				this.emit("error", err);
 			});
 		}, 10);
 	}
@@ -468,16 +470,33 @@ class BuildServer extends EventEmitter {
 							this.#pendingBuildRequest.add(projectName);
 						}
 					}
+				} else if (signal.aborted || this.#resourceChangeQueue.size > 0) {
+					// Task threw while sources were changing (e.g. mid-`git pull`). The build state
+					// is untrustworthy but the error itself is very likely spurious — a fresh build
+					// against the settled tree will typically succeed. Silently re-queue affected
+					// projects and leave the reader-request queue intact so held requests resolve
+					// on the retry.
+					log.warn(
+						`Build failed during concurrent source change — treating as transient: ${err.message}`);
+					for (const projectName of projectsToBuild) {
+						const projectBuildStatus = this.#projectBuildStatus.get(projectName);
+						if (!projectBuildStatus.isFresh()) {
+							this.#pendingBuildRequest.add(projectName);
+						}
+					}
 				} else {
 					log.error(`Build failed: ${err.message}`);
+					if (err?.stack) {
+						log.verbose(err.stack);
+					}
 					// Build failed - reject promises for projects that weren't built
 					for (const projectName of projectsToBuild) {
 						const projectBuildStatus = this.#projectBuildStatus.get(projectName);
 						projectBuildStatus.rejectReaderRequests(err);
 					}
-					// Capture the error for emission below; do NOT re-throw so the queue keeps processing
-					// and #activeBuild is cleared. Subsequent requests for affected projects will re-enqueue
-					// builds via #getReaderForProject.
+					// Capture the error so the outer loop can surface it via ServeLogger without
+					// re-throwing, keeping the queue alive so future requests re-enqueue builds
+					// via #getReaderForProject.
 					buildError = err;
 				}
 			});
@@ -491,7 +510,10 @@ class BuildServer extends EventEmitter {
 			}
 			if (buildError) {
 				this.#setState(SERVER_STATES.ERROR, {error: buildError});
-				this.emit("error", buildError);
+				// Surfaced via ServeLogger.serveError from #setState. The "error" event
+				// stays reserved for fatal, non-recoverable failures (e.g. watcher crash);
+				// build errors keep the server alive so the user can fix the source and
+				// trigger a rebuild.
 				// Continue processing any remaining pending requests for unaffected projects.
 				continue;
 			}

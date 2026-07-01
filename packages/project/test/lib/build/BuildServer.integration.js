@@ -822,8 +822,8 @@ test.serial("Serve application.a with --cache=Force (2)", async (t) => {
 
 // Regression: a non-abort build error used to leave #activeBuild set, deadlocking the BuildServer
 // so subsequent resource requests would hang forever. The fix in #processBuildRequests clears
-// #activeBuild in a finally block and emits "error" instead of throwing — verify a second request
-// still rejects (with the same root cause) instead of hanging.
+// #activeBuild in a finally block and surfaces the error via ServeLogger instead of throwing —
+// verify a second request still rejects (with the same root cause) instead of hanging.
 test.serial("Build server recovers from non-abort build error (no deadlock)", async (t) => {
 	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
 
@@ -849,9 +849,10 @@ test.serial("Build server recovers from non-abort build error (no deadlock)", as
 		`Second request rejects with the same error instead of deadlocking. Got: ${secondError && secondError.message}`
 	);
 
-	// Each failed build emits exactly one "error" event
+	// Build errors are surfaced via ServeLogger, not via the "error" event — the latter stays
+	// reserved for fatal failures (watcher crash, etc.) that must terminate the server.
 	await setTimeout(50);
-	t.is(errorEvents.length, 2, "Two build errors were emitted, one per failed build attempt");
+	t.is(errorEvents.length, 0, "No fatal 'error' events emitted for recoverable build failures");
 });
 
 // ProjectBuildCache's StageCache must be cleared correctly when a build is aborted.
