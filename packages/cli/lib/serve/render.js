@@ -1,7 +1,8 @@
 import chalk from "chalk";
+import figures from "figures";
 import prettyHrtime from "pretty-hrtime";
 import {STATES} from "./state.js";
-import {REMOTE_CONNECTIONS_WARNING_LINES, WARNING_STYLES} from "./remoteConnectionsWarning.js";
+import {REMOTE_CONNECTIONS_WARNING_LINES} from "./remoteConnectionsWarning.js";
 
 const SPINNER_FRAMES = ["◐", "◓", "◑", "◒"];
 const STATE_LABEL_WIDTH = "building".length;
@@ -30,13 +31,13 @@ const ACCENT_HEX = DARK_MODE ? "#FFA42C" : "#53B8DE";
 const brand = (text) => chalk.bold.hex(BRAND_HEX)(text);
 const accent = (text) => chalk.hex(ACCENT_HEX)(text);
 const accentBold = (text) => chalk.bold.hex(ACCENT_HEX)(text);
-const arrow = accent("❯");
+const arrow = accent(figures.pointer);
 const placeholder = (text) => chalk.dim.italic(text);
 
 // Align continuation lines (additional network URLs / extra placeholders)
-// under the first URL slot. The leading two spaces, arrow, single space, and
-// "Network:  " label are all fixed-width.
-const NETWORK_INDENT = " ".repeat(`  ${"❯"} ${"Network:"}  `.length);
+// under the first URL slot. The arrow, single space, and "Network:  " label
+// are all fixed-width.
+const NETWORK_INDENT = " ".repeat(`${figures.pointer} ${"Network:"} `.length);
 
 // Render the static header — printed once at startup. Returns an array of
 // lines so callers can count rows without parsing ANSI.
@@ -55,24 +56,24 @@ export function renderHeader({
 	const lines = [];
 	lines.push("");
 	const brandVersion = brandInfo?.version ? chalk.dim("v" + brandInfo.version) : "";
-	lines.push(`  ${brand(brandInfo?.name || "UI5 CLI")} ${brandVersion}`);
+	lines.push(`${brand(brandInfo?.name || "UI5 CLI")} ${brandVersion}`);
 	lines.push("");
 
 	const localStr = urls?.local ?
 		accent(urls.local) :
 		placeholder("binding…");
-	lines.push(`  ${arrow} ${accentBold("Local:")}    ${localStr}`);
+	lines.push(`${arrow} ${accentBold("Local:")}   ${localStr}`);
 
 	const networkUrls = urls?.network && urls.network.length ? urls.network : null;
 	if (networkUrls) {
-		lines.push(`  ${arrow} ${accentBold("Network:")}  ${accent(networkUrls[0])}`);
+		lines.push(`${arrow} ${accentBold("Network:")} ${accent(networkUrls[0])}`);
 		for (let i = 1; i < networkUrls.length; i++) {
 			lines.push(`${NETWORK_INDENT}${accent(networkUrls[i])}`);
 		}
 	} else if (!acceptRemoteConnections) {
 		// `--accept-remote-connections` wasn't passed — the network bind won't
 		// happen, so render the final hint now instead of a placeholder.
-		lines.push(`  ${arrow} ${accentBold("Network:")}  ` +
+		lines.push(`${arrow} ${accentBold("Network:")} ` +
 			chalk.dim("use --accept-remote-connections to expose"));
 	} else {
 		// Reserve as many placeholder rows as setUrls() is expected to deliver
@@ -80,7 +81,7 @@ export function renderHeader({
 		// interfaces are known) — keeps the live region from re-flowing when the
 		// real URLs arrive.
 		const placeholderRows = Math.max(1, networkAddressCount);
-		lines.push(`  ${arrow} ${accentBold("Network:")}  ${placeholder("binding…")}`);
+		lines.push(`${arrow} ${accentBold("Network:")}  ${placeholder("binding…")}`);
 		for (let i = 1; i < placeholderRows; i++) {
 			lines.push(`${NETWORK_INDENT}${placeholder("binding…")}`);
 		}
@@ -91,8 +92,8 @@ export function renderHeader({
 	// has actually bound to the network.
 	if (acceptRemoteConnections) {
 		lines.push("");
-		for (const {text, style} of REMOTE_CONNECTIONS_WARNING_LINES) {
-			lines.push("       " + (WARNING_STYLES[style] || WARNING_STYLES.bullet)(text));
+		for (const line of REMOTE_CONNECTIONS_WARNING_LINES) {
+			lines.push(line);
 		}
 	}
 
@@ -101,22 +102,22 @@ export function renderHeader({
 	if (project) {
 		const projectType = project.type ? chalk.dim(`(${project.type})`) : "";
 		const projectVersion = project.version ? chalk.dim("v" + project.version) : "";
-		lines.push(`  ${chalk.dim("Project")}   ${chalk.bold(project.name)}` +
+		lines.push(`${chalk.dim("Project")}   ${chalk.bold(project.name)}` +
 			(projectType ? `  ${projectType}` : "") +
 			(projectVersion ? `  ${projectVersion}` : ""));
 
 		if (framework && framework.name) {
 			const frameworkVersion = framework.version ? ` ${framework.version}` : "";
-			lines.push(`  ${chalk.dim("Framework")} ${chalk.bold(framework.name + frameworkVersion)}`);
+			lines.push(`${chalk.dim("Framework")} ${chalk.bold(framework.name + frameworkVersion)}`);
 		} else {
 			// Render an explicit placeholder so the Framework row exists in
 			// every frame — the live region's row count must not change once
 			// setProject() resolves, otherwise the status line shifts.
-			lines.push(`  ${chalk.dim("Framework")} ${placeholder("(none)")}`);
+			lines.push(`${chalk.dim("Framework")} ${placeholder("(none)")}`);
 		}
 	} else {
-		lines.push(`  ${chalk.dim("Project")}   ${placeholder("resolving…")}`);
-		lines.push(`  ${chalk.dim("Framework")} ${placeholder("resolving…")}`);
+		lines.push(`${chalk.dim("Project")}   ${placeholder("resolving…")}`);
+		lines.push(`${chalk.dim("Framework")} ${placeholder("resolving…")}`);
 	}
 
 	return lines;
@@ -124,19 +125,19 @@ export function renderHeader({
 
 // Render the status line as a single string (no trailing newline).
 export function renderStatusLine(state, layout = {}) {
-	const label = `  ${chalk.dim("Status")}    `;
+	const label = `${chalk.dim("Status")}    `;
 	switch (state.state) {
 	case STATES.INITIAL:
-		return `${label}${chalk.dim("○")} ${chalk.dim(pad("starting"))}`;
+		return `${label}${chalk.dim(figures.circle)} ${chalk.dim(pad("starting"))}`;
 	case STATES.READY: {
 		let suffix = "";
 		if (state.lastBuildHrtime) {
-			suffix = ` ${chalk.dim("·")} ${chalk.dim("built in " + prettyHrtime(state.lastBuildHrtime))}`;
+			suffix = ` ${chalk.dim("·")} ${chalk.dim("took " + prettyHrtime(state.lastBuildHrtime))}`;
 		}
-		return `${label}${chalk.green("●")} ${chalk.green(pad("ready"))}${suffix}`;
+		return `${label}${chalk.green(figures.bullet)} ${chalk.green(pad("ready"))}${suffix}`;
 	}
 	case STATES.STALE:
-		return `${label}${chalk.yellow("○")} ${chalk.yellow(pad("stale"))} ` +
+		return `${label}${chalk.yellow(figures.circle)} ${chalk.yellow(pad("stale"))} ` +
 			`${chalk.dim("· files changed, rebuild on next request")}`;
 	case STATES.BUILDING: {
 		const frame = SPINNER_FRAMES[state.spinFrame % SPINNER_FRAMES.length];
@@ -165,7 +166,7 @@ export function renderStatusLine(state, layout = {}) {
 	}
 	case STATES.ERROR: {
 		const msg = state.errorMessage ? ` · ${state.errorMessage}` : "";
-		return `${label}${chalk.red("✗")} ${chalk.red(pad("error"))}${chalk.dim(msg)}`;
+		return `${label}${chalk.red(figures.cross)} ${chalk.red(pad("error"))}${chalk.dim(msg)}`;
 	}
 	default:
 		return label;

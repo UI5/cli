@@ -2,6 +2,7 @@ import test from "ava";
 import sinon from "sinon";
 import {EventEmitter} from "node:events";
 import stripAnsi from "strip-ansi";
+import figures from "figures";
 
 import Banner from "../../../lib/serve/Banner.js";
 import {STATES} from "../../../lib/serve/state.js";
@@ -47,7 +48,7 @@ test.serial("Banner.observe + setters: prints header + initial ready status", (t
 	t.regex(output, /UI5 CLI v1\.0\.0/);
 	t.regex(output, /Local:\s+http:\/\/localhost:8080/);
 	t.regex(output, /Project\s+my\.app/);
-	t.regex(output, /Status\s+●\s+ready/);
+	t.regex(output, new RegExp(`Status\\s+${figures.bullet}\\s+ready`));
 
 	t.is(banner._getStateForTest().state, STATES.READY);
 	banner.stop();

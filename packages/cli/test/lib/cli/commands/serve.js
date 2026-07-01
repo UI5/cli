@@ -4,6 +4,7 @@ import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
 import chalk from "chalk";
+import figures from "figures";
 import yargs from "yargs";
 
 function getDefaultArgv() {
@@ -218,11 +219,14 @@ test.serial("ui5 serve --accept-remote-connections", async (t) => {
 	}]);
 
 	t.is(t.context.consoleOutput, `
-${chalk.bold.yellow("△ This server is accepting connections from all hosts on your network")}
+${chalk.bold.yellow(`${figures.warning} This server is accepting connections from all hosts on your network`)}
 ${chalk.dim.underline("Please Note:")}
-${chalk.bold.dim("• This server is intended for development purposes only. Do not use it in production.")}
-${chalk.dim("• Vulnerable (custom-)middleware can pose a threat to your system when exposed to the network.")}
-${chalk.dim("• The use of proxy-middleware with preconfigured credentials might enable unauthorized access")}
+${chalk.dim(`${figures.pointerSmall} `) +
+	chalk.dim.bold("This server is intended for development purposes only. Do not use it in production.")}
+${chalk.dim(`${figures.pointerSmall} ` +
+	"Vulnerable (custom-)middleware can pose a threat to your system when exposed to the network.")}
+${chalk.dim(`${figures.pointerSmall} ` +
+	"The use of proxy-middleware with preconfigured credentials might enable unauthorized access")}
 ${chalk.dim("  to a target system for third parties on your network.")}
 
 Server started

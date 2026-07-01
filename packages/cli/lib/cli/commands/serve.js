@@ -2,10 +2,7 @@ import path from "node:path";
 import os from "node:os";
 import baseMiddleware from "../middlewares/base.js";
 import {applyProjectConfigOptions, applyWorkspaceOptions, dedupeArray} from "../options.js";
-import {
-	REMOTE_CONNECTIONS_WARNING_LINES,
-	WARNING_STYLES,
-} from "../../serve/remoteConnectionsWarning.js";
+import {REMOTE_CONNECTIONS_WARNING_LINES} from "../../serve/remoteConnectionsWarning.js";
 import {getLogger} from "@ui5/logger";
 import Logger from "@ui5/logger/Logger";
 import ConsoleWriter from "@ui5/logger/writers/Console";
@@ -293,8 +290,8 @@ serve.handler = async function(argv) {
 	} else {
 		if (argv.acceptRemoteConnections) {
 			process.stderr.write("\n");
-			for (const {text, style} of REMOTE_CONNECTIONS_WARNING_LINES) {
-				process.stderr.write((WARNING_STYLES[style] || WARNING_STYLES.bullet)(text));
+			for (const line of REMOTE_CONNECTIONS_WARNING_LINES) {
+				process.stderr.write(line);
 				process.stderr.write("\n");
 			}
 			process.stderr.write("\n");

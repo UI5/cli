@@ -1,5 +1,6 @@
 import test from "ava";
 import stripAnsi from "strip-ansi";
+import figures from "figures";
 
 import {
 	renderHeader,
@@ -36,9 +37,9 @@ test("renderHeader: omits warning block when acceptRemoteConnections=false", (t)
 test("renderHeader: emits the full warning block when acceptRemoteConnections=true", (t) => {
 	const lines = renderHeader({...baseHeaderOpts, acceptRemoteConnections: true});
 	const plain = lines.map(stripAnsi).join("\n");
-	for (const {text} of REMOTE_CONNECTIONS_WARNING_LINES) {
-		t.true(plain.includes(text),
-			`expected warning line to be present: ${text}`);
+	for (const line of REMOTE_CONNECTIONS_WARNING_LINES) {
+		t.true(plain.includes(stripAnsi(line)),
+			`expected warning line to be present: ${stripAnsi(line)}`);
 	}
 });
 
@@ -96,7 +97,8 @@ test("renderHeader: network placeholder reserves one line per expected address",
 		networkAddressCount: 3,
 	});
 	const skeletonNetworkLines = skeleton.map(stripAnsi)
-		.filter((l) => /^\s*(❯\s+)?Network:|^\s+binding…$/.test(l) || /^\s+binding…$/.test(l));
+		.filter((l) => new RegExp(`^\\s*(${figures.pointer}\\s+)?Network:|^\\s+binding…$`).test(l) ||
+			/^\s+binding…$/.test(l));
 	// One labelled row + two continuation rows under the same indent.
 	t.is(skeletonNetworkLines.length, 3, "placeholder reserves 3 network rows");
 
@@ -173,13 +175,13 @@ test("renderHeader: row count is stable across project resolution (with framewor
 test("renderStatusLine: ready state", (t) => {
 	const state = {...createInitialState(), state: STATES.READY};
 	const plain = stripAnsi(renderStatusLine(state));
-	t.regex(plain, /Status\s+●\s+ready/);
+	t.regex(plain, new RegExp(`Status\\s+${figures.bullet}\\s+ready`));
 });
 
 test("renderStatusLine: stale state", (t) => {
 	const state = {...createInitialState(), state: STATES.STALE};
 	const plain = stripAnsi(renderStatusLine(state));
-	t.regex(plain, /Status\s+○\s+stale\s+·\s+files changed/);
+	t.regex(plain, new RegExp(`Status\\s+${figures.circle}\\s+stale\\s+·\\s+files changed`));
 });
 
 test("renderStatusLine: building state with project + task", (t) => {
@@ -205,7 +207,7 @@ test("renderStatusLine: error state shows message", (t) => {
 		errorMessage: "Build failed",
 	};
 	const plain = stripAnsi(renderStatusLine(state));
-	t.regex(plain, /✗\s+error\s+·\s+Build failed/);
+	t.regex(plain, new RegExp(`${figures.cross}\\s+error\\s+·\\s+Build failed`));
 });
 
 test("renderStatusLine: building spinner cycles through frames", (t) => {
@@ -236,7 +238,7 @@ test("renderStatusLine: unknown state falls back to a bare label", (t) => {
 test("renderStatusLine: error state without message omits the dot separator", (t) => {
 	const state = {...createInitialState(), state: STATES.ERROR, errorMessage: ""};
 	const plain = stripAnsi(renderStatusLine(state));
-	t.regex(plain, /✗\s+error\s*$/, "error state renders without a message tail");
+	t.regex(plain, new RegExp(`${figures.cross}\\s+error\\s*$`), "error state renders without a message tail");
 });
 
 test("renderHeader: lists every network URL when several addresses are supplied", (t) => {
