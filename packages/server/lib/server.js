@@ -4,6 +4,7 @@ import process from "node:process";
 import express from "express";
 import portscanner from "portscanner";
 import MiddlewareManager from "./middleware/MiddlewareManager.js";
+import createErrorHandler from "./middleware/errorHandler.js";
 import attachLiveReloadServer from "./liveReload/server.js";
 import {createReaderCollection} from "@ui5/fs/resourceFactory";
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
@@ -237,6 +238,10 @@ export async function serve(graph, {
 
 	let app = express();
 	await middlewareManager.applyMiddleware(app);
+	// Terminal error handler for the middleware chain. Registered after applyMiddleware
+	// so it sits last and intercepts every next(err) — including those from custom
+	// middleware where we can't wrap a try/catch.
+	app.use(createErrorHandler());
 
 	if (h2) {
 		const nodeVersion = parseInt(process.versions.node.split(".")[0], 10);
