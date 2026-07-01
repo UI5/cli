@@ -1,5 +1,6 @@
 import test from "ava";
 import stripAnsi from "strip-ansi";
+import chalk from "chalk";
 import figures from "figures";
 
 import {
@@ -8,6 +9,11 @@ import {
 } from "../../../lib/serve/render.js";
 import {REMOTE_CONNECTIONS_WARNING_LINES} from "../../../lib/serve/remoteConnectionsWarning.js";
 import {createInitialState, STATES} from "../../../lib/serve/state.js";
+
+// chalk auto-detects "no color" in non-TTY subprocesses (e.g. the AVA worker), which would strip
+// every color code from renderStatusLine and defeat the color-per-state assertions below. Force
+// truecolor for this file. All other tests here run through stripAnsi and tolerate either mode.
+chalk.level = 3;
 
 const baseHeaderOpts = {
 	brand: {name: "UI5 CLI", version: "1.0.0"},
@@ -97,7 +103,7 @@ test("renderHeader: network placeholder reserves one line per expected address",
 		networkAddressCount: 3,
 	});
 	const skeletonNetworkLines = skeleton.map(stripAnsi)
-		.filter((l) => new RegExp(`^\\s*(${figures.pointer}\\s+)?Network:|^\\s+binding…$`).test(l) ||
+		.filter((l) => /^\s*(\S+\s+)?Network:|^\s+binding…$/.test(l) ||
 			/^\s+binding…$/.test(l));
 	// One labelled row + two continuation rows under the same indent.
 	t.is(skeletonNetworkLines.length, 3, "placeholder reserves 3 network rows");
@@ -175,13 +181,13 @@ test("renderHeader: row count is stable across project resolution (with framewor
 test("renderStatusLine: ready state", (t) => {
 	const state = {...createInitialState(), state: STATES.READY};
 	const plain = stripAnsi(renderStatusLine(state));
-	t.regex(plain, new RegExp(`Status\\s+${figures.bullet}\\s+ready`));
+	t.regex(plain, /Status\s+\S+\s+ready/);
 });
 
 test("renderStatusLine: stale state", (t) => {
 	const state = {...createInitialState(), state: STATES.STALE};
 	const plain = stripAnsi(renderStatusLine(state));
-	t.regex(plain, new RegExp(`Status\\s+${figures.circle}\\s+stale\\s+·\\s+files changed`));
+	t.regex(plain, /Status\s+\S+\s+stale\s+·\s+files changed/);
 });
 
 test("renderStatusLine: building state with project + task", (t) => {
@@ -207,7 +213,7 @@ test("renderStatusLine: error state shows message", (t) => {
 		errorMessage: "Build failed",
 	};
 	const plain = stripAnsi(renderStatusLine(state));
-	t.regex(plain, new RegExp(`${figures.cross}\\s+error\\s+·\\s+Build failed`));
+	t.regex(plain, /\S+\s+error\s+·\s+Build failed/);
 });
 
 test("renderStatusLine: building spinner cycles through frames", (t) => {
@@ -238,7 +244,7 @@ test("renderStatusLine: unknown state falls back to a bare label", (t) => {
 test("renderStatusLine: error state without message omits the dot separator", (t) => {
 	const state = {...createInitialState(), state: STATES.ERROR, errorMessage: ""};
 	const plain = stripAnsi(renderStatusLine(state));
-	t.regex(plain, new RegExp(`${figures.cross}\\s+error\\s*$`), "error state renders without a message tail");
+	t.regex(plain, /\S+\s+error\s*$/, "error state renders without a message tail");
 });
 
 test("renderHeader: lists every network URL when several addresses are supplied", (t) => {
@@ -279,3 +285,43 @@ test("renderHeader: framework name without a version still renders", (t) => {
 	const plain = lines.map(stripAnsi).join("\n");
 	t.regex(plain, /Framework\s+OpenUI5/);
 });
+
+// Locks the glyph chosen per state. Complements the shape-only regex tests above: those verify
+// "some glyph is followed by the state word"; these verify "it's specifically THIS glyph". A swap
+// (e.g. bullet ↔ circle) would still look plausible but would break the design contract.
+const GLYPH_BY_STATE = [
+	{state: STATES.INITIAL, glyph: figures.circle, name: "circle"},
+	{state: STATES.READY, glyph: figures.bullet, name: "bullet"},
+	{state: STATES.STALE, glyph: figures.circle, name: "circle"},
+	{state: STATES.ERROR, glyph: figures.cross, name: "cross"},
+];
+for (const {state, glyph, name} of GLYPH_BY_STATE) {
+	test(`renderStatusLine: ${state} uses the ${name} glyph`, (t) => {
+		const plain = stripAnsi(renderStatusLine({...createInitialState(), state}));
+		t.true(plain.includes(glyph),
+			`expected output to contain ${JSON.stringify(glyph)}, got ${JSON.stringify(plain)}`);
+	});
+}
+
+// Locks the color chosen per state. Color is the primary semantic signal to a human reader
+// (green=healthy, yellow=attention, red=error) and stripAnsi throws it away — so the plain-text
+// tests above would happily accept a swap. Build the expected wrapped-word substring with the
+// same chalk instance the renderer uses; matching it in the output proves the state word is
+// wrapped in exactly that color span (not merely that the code appears somewhere on the line).
+const WIDTH = "building".length;
+const COLOR_BY_STATE = [
+	{state: STATES.INITIAL, wrap: (x) => chalk.dim(x), word: "starting", name: "dim"},
+	{state: STATES.READY, wrap: (x) => chalk.green(x), word: "ready", name: "green"},
+	{state: STATES.STALE, wrap: (x) => chalk.yellow(x), word: "stale", name: "yellow"},
+	{state: STATES.BUILDING, wrap: (x) => chalk.yellow(x), word: "building", name: "yellow"},
+	{state: STATES.ERROR, wrap: (x) => chalk.red(x), word: "error", name: "red"},
+];
+for (const {state, wrap, word, name} of COLOR_BY_STATE) {
+	test(`renderStatusLine: ${state} state is rendered in ${name}`, (t) => {
+		const out = renderStatusLine({...createInitialState(), state});
+		const expected = wrap(word.padEnd(WIDTH));
+		t.true(out.includes(expected),
+			`expected the "${word}" label to be wrapped in ${name}; ` +
+			`looked for ${JSON.stringify(expected)} in ${JSON.stringify(out)}`);
+	});
+}
