@@ -253,6 +253,17 @@ class BuildServer extends EventEmitter {
 		if (projectBuildStatus.isFresh()) {
 			return projectBuildStatus.getReader();
 		}
+
+		// Last build failed and nothing has changed since. Rebuilding would just
+		// re-produce the same error (builds are deterministic), so short-circuit
+		// with the captured error. The gate lifts as soon as any source change
+		// in this project or one of its (transitive) dependencies invalidates the
+		// status via #_projectResourceChanged.
+		const lastError = projectBuildStatus.getError();
+		if (lastError) {
+			throw lastError;
+		}
+
 		const {promise, resolve, reject} = Promise.withResolvers();
 		projectBuildStatus.addReaderRequest({resolve, reject});
 
@@ -331,8 +342,11 @@ class BuildServer extends EventEmitter {
 			this.#resourceChangeQueue.set(project.getName(), new Set([filePath]));
 		}
 
-		// If the server is currently idle, surface the new STALE state right away.
-		if (this.#serverState === SERVER_STATES.IDLE) {
+		// A change lifts a sticky ERROR too: something in the input tree moved,
+		// so the previous failure isn't the final word anymore. IDLE and ERROR
+		// are both "quiet" states that should visibly flip to STALE when new
+		// input arrives; BUILDING already implies progress, so don't disturb it.
+		if (this.#serverState === SERVER_STATES.IDLE || this.#serverState === SERVER_STATES.ERROR) {
 			this.#setState(SERVER_STATES.STALE);
 		}
 
@@ -423,6 +437,12 @@ class BuildServer extends EventEmitter {
 	async #processBuildRequests() {
 		// Process queue while there are pending requests
 		while (this.#pendingBuildRequest.size > 0) {
+			// Each iteration is a fresh build attempt — ensure the state machine
+			// reflects that even on re-entries after a transient failure or a
+			// normal error whose queue survived. #setState is a no-op when
+			// already BUILDING, so the initial-entry case (state was set by
+			// #triggerRequestQueue) is unaffected.
+			this.#setState(SERVER_STATES.BUILDING);
 			// Collect all pending projects for this batch
 			const projectsToBuild = Array.from(this.#pendingBuildRequest);
 			let buildRootProject = false;
@@ -597,6 +617,13 @@ const PROJECT_STATES = Object.freeze({
 	INVALIDATED: "invalidated",
 	BUILDING: "building",
 	FRESH: "fresh",
+	// Last build failed with a non-transient error. Held in this state until
+	// something invalidates the project — either a direct source change or a
+	// change in a (transitive) dependency, both of which route through
+	// #_projectResourceChanged → invalidate(). This gate prevents deterministic
+	// rebuild loops on failing builds: repeat requests reject immediately with
+	// the captured error until the input actually changes.
+	ERRORED: "errored",
 });
 
 class ProjectBuildStatus {
@@ -604,6 +631,7 @@ class ProjectBuildStatus {
 	#readerQueue = [];
 	#reader;
 	#abortController = new AbortController();
+	#lastError = null;
 
 	/**
 	 * Flip the project to INVALIDATED, aborting any in-flight build.
@@ -624,6 +652,10 @@ class ProjectBuildStatus {
 			// a stale reader must not survive a file add/remove.
 			this.#reader = null;
 		}
+		// Any invalidation lifts the ERRORED gate — the input changed, so a
+		// fresh build has a chance of succeeding even if the previous one
+		// failed deterministically.
+		this.#lastError = null;
 		if (this.#state === PROJECT_STATES.INVALIDATED) {
 			return;
 		}
@@ -656,6 +688,15 @@ class ProjectBuildStatus {
 		return this.#state === PROJECT_STATES.FRESH;
 	}
 
+	/**
+	 * Returns the captured error when the project is gated in ERRORED state, else
+	 * <code>null</code>. Callers should use this to short-circuit rebuild attempts
+	 * when the input hasn't changed since the failure.
+	 */
+	getError() {
+		return this.#state === PROJECT_STATES.ERRORED ? this.#lastError : null;
+	}
+
 	getReader() {
 		return this.#reader;
 	}
@@ -680,7 +721,11 @@ class ProjectBuildStatus {
 	}
 
 	rejectReaderRequests(error) {
-		this.#state = PROJECT_STATES.INVALIDATED;
+		// Latch the error and gate future rebuilds on invalidate(). Deterministic
+		// builds don't recover without input change, so re-running the same build
+		// would just re-produce the same failure.
+		this.#state = PROJECT_STATES.ERRORED;
+		this.#lastError = error;
 		for (const {reject} of this.#readerQueue) {
 			reject(error);
 		}

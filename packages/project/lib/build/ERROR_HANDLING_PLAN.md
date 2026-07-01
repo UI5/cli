@@ -22,25 +22,27 @@ build failure" problem by:
 The transient detection uses concurrent-change signals only (`signal.aborted ||
 #resourceChangeQueue.size > 0`). Tasks are not modified in this iteration.
 
+Iteration 2 (also applied) adds:
+
+- **Rebuild gating on normal errors.** `ProjectBuildStatus` gains an `ERRORED`
+  state and a captured error; `#getReaderForProject` short-circuits with the
+  captured error rather than re-enqueueing when the project is gated. The gate
+  lifts in `invalidate()`, which `_projectResourceChanged` already calls for
+  the changed project and every transitive dependent — so a change in library A
+  correctly re-opens the gate for library X (which depends on A).
+- **Banner state during error+retry.** `_projectResourceChanged` now transitions
+  `ERROR → STALE` (in addition to `IDLE → STALE`), and `#processBuildRequests`
+  transitions to `BUILDING` at the top of each while-loop iteration. Together
+  these ensure the banner leaves the sticky error state as soon as new input
+  arrives, and shows the building spinner while a retry runs.
+
 ## Known gaps
 
-### 1. Sticky ERROR banner when a normal error is followed by a transient retry
+### 1. ~~Sticky ERROR banner when a normal error is followed by a transient retry~~
 
-`#setState` is a no-op when the target state equals the current state. If the
-sequence is `ERROR → transient re-queue → transient re-queue → success`, the
-transitions are `ERROR → (no state change during transient handling) → IDLE`,
-which is correct. But if it's `ERROR → transient re-queue → normal error again`,
-the banner stays red — desired.
-
-The gap is the opposite direction: if a normal error is later "fixed" by source
-changes that produce a successful build, the banner should turn green. It does,
-because `#processBuildRequests` transitions to `IDLE`/`STALE` on the next
-successful cycle. This is fine.
-
-The real gap: while the banner is `ERROR` and a transient error happens on the
-retry, we don't update the banner at all. A user watching the banner sees "stuck
-in error" while the server is actually retrying underneath. Consider a distinct
-banner substate (or a spinner overlay) for "error, retrying".
+Addressed in iteration 2: `_projectResourceChanged` transitions
+`ERROR → STALE` and each `#processBuildRequests` while-iteration transitions to
+`BUILDING`. The banner now reflects retry progress correctly.
 
 ### 2. Task-side error classification
 
