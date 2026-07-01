@@ -6,6 +6,11 @@ import Logger from "@ui5/logger/Logger";
 import {createInitialState, STATES} from "./state.js";
 import {renderHeader, renderStatusLine} from "./render.js";
 
+// TODO: Consider moving the banner and related modules into @ui5/logger/writers/, similar to writers/Console,
+// which covers all console output for the server.
+// The serve command could then also be simplified by letting the server itself emit @ui5/logger/loggers/Serve
+// events to provide the banner data.
+
 // Mirror the level prefixes used by @ui5/logger's default ConsoleWriter so
 // scrolled-back log lines look identical whether or not the banner is active.
 const LEVEL_PREFIX = {
