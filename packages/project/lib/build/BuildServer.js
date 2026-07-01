@@ -411,6 +411,13 @@ class BuildServer extends EventEmitter {
 				const staleProjects = this.#getStaleProjectNames();
 				log.verbose(`Build cycle done. Stale projects: `+
 					`${staleProjects.length} (${staleProjects.join(", ")})`);
+				if (this.#hasErroredProject()) {
+					// A project failed to build and its rebuild is gated. Leave the
+					// server in ERROR (a no-op if #setState already flipped from
+					// BUILDING → ERROR inside #processBuildRequests). Transitioning
+					// to STALE/IDLE here would overwrite that error state.
+					return;
+				}
 				if (staleProjects.length === 0) {
 					this.#setState(SERVER_STATES.IDLE, {hrtime});
 				} else {
@@ -551,13 +558,27 @@ class BuildServer extends EventEmitter {
 	}
 
 	#getStaleProjectNames() {
+		// "Stale" here means "needs a rebuild if requested" — invalidated projects
+		// that the next request will re-enqueue. Errored projects are NOT stale in
+		// that sense: their rebuild is gated until the input changes, so surfacing
+		// them as stale would understate the situation (the user needs to fix the
+		// error, not just wait for the next request).
 		const stale = [];
 		for (const [name, status] of this.#projectBuildStatus) {
-			if (!status.isFresh()) {
+			if (!status.isFresh() && !status.getError()) {
 				stale.push(name);
 			}
 		}
 		return stale;
+	}
+
+	#hasErroredProject() {
+		for (const status of this.#projectBuildStatus.values()) {
+			if (status.getError()) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

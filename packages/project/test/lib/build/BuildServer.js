@@ -293,4 +293,8 @@ test.serial("serve-status: build failure emits serveError and no orphan building
 	const lastBuildingIdx = seq.lastIndexOf("serve-building");
 	const errorIdx = seq.indexOf("serve-error");
 	t.true(errorIdx > lastBuildingIdx, "serve-error follows serve-building");
+	// The error must remain the terminal state of the cycle — no serve-stale or
+	// serve-ready may follow it, as that would clear the red banner while the
+	// project is still gated on its captured error.
+	t.is(seq[seq.length - 1], "serve-error", "serve-error is the final status of a failed cycle");
 });
