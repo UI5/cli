@@ -4,6 +4,23 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v4.0.6...HEAD).
 
+## [5.0.0-alpha.6](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.5...project-v5.0.0-alpha.6) (2026-07-02)
+
+
+### Features
+
+* Add live status banner to ui5 serve ([#1439](https://github.com/UI5/cli/issues/1439)) ([2a46c8b](https://github.com/UI5/cli/commit/2a46c8b97f3613314cd61507417f97b079943bce))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/fs bumped from ^5.0.0-alpha.5 to ^5.0.0-alpha.6
+    * @ui5/logger bumped from ^5.0.0-alpha.5 to ^5.0.0-alpha.6
+  * peerDependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.5 to ^5.0.0-alpha.6
+
 ## [5.0.0-alpha.5](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.4...project-v5.0.0-alpha.5) (2026-06-24)
 
 

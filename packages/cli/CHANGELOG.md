@@ -4,6 +4,34 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v4.0.26...HEAD).
 
+## [5.0.0-alpha.6](https://github.com/UI5/cli/compare/cli-v5.0.0-alpha.5...cli-v5.0.0-alpha.6) (2026-07-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** ui5 versions, ui5 init, and ui5 config no longer accept --config, --dependency-definition, --workspace, or --workspace-config. ui5 add, ui5 remove, and ui5 use no longer accept --workspace or --workspace-config. Passing any of these to a command that does not support them now fails with 'Unknown argument: <option>'.
+
+### Features
+
+* Add live status banner to ui5 serve ([#1439](https://github.com/UI5/cli/issues/1439)) ([2a46c8b](https://github.com/UI5/cli/commit/2a46c8b97f3613314cd61507417f97b079943bce))
+* **cli:** Scope project/workspace yargs options per command ([06cdf28](https://github.com/UI5/cli/commit/06cdf28158febfea355a18451fcc78bdb4d6a1d6))
+
+
+### Bug Fixes
+
+* **cli:** Forward --config in 'ui5 tree --dependency-definition' ([f0351b1](https://github.com/UI5/cli/commit/f0351b1aa846dff58f308eeb885c5fc27437f98c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.5 to ^5.0.0-alpha.6
+    * @ui5/fs bumped from ^5.0.0-alpha.5 to ^5.0.0-alpha.6
+    * @ui5/logger bumped from ^5.0.0-alpha.5 to ^5.0.0-alpha.6
+    * @ui5/project bumped from ^5.0.0-alpha.5 to ^5.0.0-alpha.6
+    * @ui5/server bumped from ^5.0.0-alpha.5 to ^5.0.0-alpha.6
+
 ## [5.0.0-alpha.5](https://github.com/UI5/cli/compare/cli-v5.0.0-alpha.4...cli-v5.0.0-alpha.5) (2026-06-24)
 
 
