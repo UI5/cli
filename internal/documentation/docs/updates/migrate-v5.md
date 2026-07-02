@@ -21,6 +21,8 @@ Or update your global install via: `npm i --global @ui5/cli@next`
 
 - **@ui5/server: Live Reload is enabled by default for `ui5 serve`**
 
+- **@ui5/cli: `ui5 serve` renders a live status banner in interactive terminals**
+
 - **@ui5/server: Standard middleware `serveThemes` and `testRunner` have been removed**
 
 ## Node.js and npm Version Support
@@ -278,6 +280,16 @@ Live Reload is **enabled by default**. It can be controlled via:
 
 ::: warning Custom Live Reload Middleware
 If your project uses a custom middleware that provides live reload functionality (e.g. [@sap-ux/reload-middleware](https://www.npmjs.com/package/@sap-ux/reload-middleware) or [ui5-middleware-livereload](https://www.npmjs.com/package/ui5-middleware-livereload)), the page may refresh more often than necessary when combined with the built-in feature. When upgrading, either remove the custom middleware or disable the built-in Live Reload via the `--no-live-reload` CLI flag or the `server.settings.liveReload` configuration option.
+:::
+
+## Live Status Banner for `ui5 serve`
+
+When `ui5 serve` is started in an interactive terminal, it now renders a live status banner showing the server URLs, the root project's name/type/version, the configured UI5 framework, and a build status indicator (ready / stale / building) that updates in place. Previously, `ui5 serve` printed a few lines on startup (`Server started`, `URL: <url>`, and the remote-connections warning when applicable) and then only emitted regular log output.
+
+See [Live Status Banner](../pages/Server.md#live-status-banner) for details on what is shown and when the banner is active.
+
+::: tip Parsing `ui5 serve` output
+The banner is automatically disabled in non-TTY contexts (pipes, redirects, CI logs). The plain output — `Server started` followed by `URL: <url>` on `stdout` — is unchanged from previous versions, so scripts that parse the URL from a non-interactive `ui5 serve` continue to work. To force plain output inside an interactive terminal, pass `--verbose` or pipe the output (e.g. `ui5 serve | cat`).
 :::
 
 ## Removal of Standard Server Middleware

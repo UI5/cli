@@ -7,10 +7,10 @@ test.beforeEach(async (t) => {
 	t.context.verboseLogStub = sinon.stub();
 	t.context.setLogLevelStub = sinon.stub();
 	t.context.isLogLevelEnabledStub = sinon.stub().returns(true);
-	t.context.getVersionStub = sinon.stub().returns("1.0.0");
+	t.context.getVersionWithLocationStub = sinon.stub().returns("1.0.0 (from /path/to/ui5.cjs)");
 	t.context.logger = await esmock("../../../../lib/cli/middlewares/logger.js", {
 		"../../../../lib/cli/version.js": {
-			getVersion: t.context.getVersionStub
+			getVersionWithLocation: t.context.getVersionWithLocationStub
 		},
 		"@ui5/logger": {
 			getLogger: () => ({
@@ -23,15 +23,15 @@ test.beforeEach(async (t) => {
 });
 
 test.serial("init logger", async (t) => {
-	const {logger, setLogLevelStub, isLogLevelEnabledStub, verboseLogStub, getVersionStub} = t.context;
+	const {logger, setLogLevelStub, isLogLevelEnabledStub, verboseLogStub, getVersionWithLocationStub} = t.context;
 	await logger.initLogger({});
 	t.is(setLogLevelStub.callCount, 0, "setLevel has not been called");
 	t.is(isLogLevelEnabledStub.callCount, 1, "isLogLevelEnabled has been called once");
 	t.is(isLogLevelEnabledStub.firstCall.firstArg, "verbose",
 		"isLogLevelEnabled has been called with expected argument");
-	t.is(getVersionStub.callCount, 1, "getVersion has been called once");
+	t.is(getVersionWithLocationStub.callCount, 1, "getVersionWithLocation has been called once");
 	t.is(verboseLogStub.callCount, 2, "log.verbose has been called twice");
-	t.is(verboseLogStub.firstCall.firstArg, "using @ui5/cli version 1.0.0",
+	t.is(verboseLogStub.firstCall.firstArg, "using @ui5/cli version 1.0.0 (from /path/to/ui5.cjs)",
 		"log.verbose has been called with expected argument on first call");
 	t.is(verboseLogStub.secondCall.firstArg, `using node version ${process.version}`,
 		"log.verbose has been called with expected argument on second call");

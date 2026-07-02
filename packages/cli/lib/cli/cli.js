@@ -1,6 +1,6 @@
 import yargs from "yargs";
 import {hideBin} from "yargs/helpers";
-import {setVersion} from "./version.js";
+import {setVersion, getVersionWithLocation} from "./version.js";
 import base from "./base.js";
 import {fileURLToPath} from "node:url";
 import {readdir} from "node:fs/promises";
@@ -44,10 +44,8 @@ export default async (pkg) => {
 	// be wrong in case a local CLI installation is used
 	// Also add CLI location
 	const ui5JsPath = fileURLToPath(new URL("../../bin/ui5.cjs", import.meta.url));
-	const pkgVersion = `${pkg.version} (from ${ui5JsPath})`;
-
-	setVersion(pkgVersion);
-	cli.version(pkgVersion);
+	setVersion(pkg.version, ui5JsPath);
+	cli.version(getVersionWithLocation());
 
 	// Explicitly set script name to prevent windows from displaying "ui5.js"
 	cli.scriptName("ui5");

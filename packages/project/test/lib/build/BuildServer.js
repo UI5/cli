@@ -27,6 +27,7 @@ test.beforeEach(async (t) => {
 	};
 	t.context.projectBuilder = {
 		closeCacheManager: sinon.stub(),
+		resourcesChanged: sinon.stub(),
 	};
 
 	// on()/watch() are stubbed to swallow BuildServer#initWatcher's wiring calls; the tests
@@ -133,4 +134,163 @@ test.serial("sourcesChanged: destroy cancels a pending emit", async (t) => {
 
 	clock.tick(SOURCES_CHANGED_DEBOUNCE_MS * 5);
 	t.is(listener.callCount, 0, "Pending sourcesChanged emit was cancelled by destroy()");
+});
+
+test.serial("serve-status: serve-ready emitted when no initial build is requested", async (t) => {
+	const {BuildServer, graph, projectBuilder, sinon} = t.context;
+	const statusHandler = sinon.stub();
+	process.on("ui5.serve-status", statusHandler);
+	t.teardown(() => process.off("ui5.serve-status", statusHandler));
+
+	await BuildServer.create(graph, projectBuilder, false, [], []);
+	const readyCalls = statusHandler.getCalls()
+		.filter((c) => c.args[0]?.status === "serve-ready");
+	t.is(readyCalls.length, 1, "serve-ready emitted once when no initial build is enqueued");
+});
+
+test.serial("serve-status: serve-stale emitted on debounced sources change", (t) => {
+	const {buildServer, rootProject, clock, sinon, SOURCES_CHANGED_DEBOUNCE_MS} = t.context;
+	const statusHandler = sinon.stub();
+	process.on("ui5.serve-status", statusHandler);
+	t.teardown(() => process.off("ui5.serve-status", statusHandler));
+
+	buildServer._projectResourceChanged(rootProject, "/foo.js", false);
+	clock.tick(SOURCES_CHANGED_DEBOUNCE_MS);
+
+	const staleCalls = statusHandler.getCalls()
+		.filter((c) => c.args[0]?.status === "serve-stale");
+	t.is(staleCalls.length, 1, "serve-stale emitted exactly once for one window");
+	t.deepEqual(staleCalls[0].args[0], {
+		level: "info",
+		status: "serve-stale",
+		changedProjects: ["root.project"],
+	}, "serve-stale event has expected payload");
+});
+
+// Helper: drive a full build cycle through the 10ms request-queue debounce.
+// Returns the recorded serve-status events so each test can assert on the
+// exact ordering and counts.
+async function runInitialBuildCycle(t, {buildResult = "ok"} = {}) {
+	const {BuildServer, graph, projectBuilder, sinon, clock} = t.context;
+	const statusEvents = [];
+	const statusHandler = (evt) => statusEvents.push(evt);
+	process.on("ui5.serve-status", statusHandler);
+	t.teardown(() => process.off("ui5.serve-status", statusHandler));
+
+	let buildResolve;
+	let buildReject;
+	projectBuilder.build = sinon.stub().callsFake((_opts, perProjectCb) => {
+		t.context.lastPerProjectCb = perProjectCb;
+		return new Promise((resolve, reject) => {
+			buildResolve = (built) => {
+				// Drive the per-project callback for the root project, mimicking
+				// the real ProjectBuilder which calls back as each project finishes.
+				perProjectCb("root.project", {
+					getReader: () => ({fakeReader: true}),
+				});
+				resolve(built ?? ["root.project"]);
+			};
+			buildReject = (err) => reject(err);
+		});
+	});
+
+	const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+	t.context.buildServer = buildServer;
+
+	// Trigger the 10ms request-queue tick → projectBuilder.build is invoked.
+	await clock.tickAsync(10);
+	t.true(projectBuilder.build.called, "projectBuilder.build invoked after request-queue tick");
+
+	if (buildResult === "ok") {
+		buildResolve();
+	} else if (buildResult === "error") {
+		buildReject(buildResult.error || new Error("Build failed"));
+	}
+	// Drain microtasks so the build promise's .then/.catch handlers run.
+	await clock.tickAsync(0);
+	return {statusEvents, buildResolve, buildReject};
+}
+
+test.serial("serve-status: initial build cycle emits building → buildDone → ready in order", async (t) => {
+	const {statusEvents} = await runInitialBuildCycle(t);
+	const seq = statusEvents.map((e) => e.status);
+	const idxBuilding = seq.indexOf("serve-building");
+	const idxBuildDone = seq.indexOf("serve-build-done");
+	const idxReady = seq.indexOf("serve-ready");
+	t.true(idxBuilding >= 0 && idxBuildDone > idxBuilding && idxReady > idxBuildDone,
+		`Expected building → buildDone → ready, got: ${seq.join(", ")}`);
+	t.false(seq.slice(idxBuilding, idxReady + 1).includes("serve-stale"),
+		"no intermediate stale emission during the cycle");
+});
+
+test.serial(
+	"serve-status: source change mid-build emits exactly one stale at cycle end", async (t) => {
+		const {BuildServer, graph, projectBuilder, rootProject, sinon, clock} = t.context;
+		const statusEvents = [];
+		const statusHandler = (evt) => statusEvents.push(evt);
+		process.on("ui5.serve-status", statusHandler);
+		t.teardown(() => process.off("ui5.serve-status", statusHandler));
+
+		let buildResolve;
+		let perProjectCb;
+		projectBuilder.build = sinon.stub().callsFake((_opts, cb) => {
+			perProjectCb = cb;
+			return new Promise((resolve) => {
+				buildResolve = () => resolve(["root.project"]);
+			});
+		});
+
+		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+		await clock.tickAsync(10);
+		t.true(projectBuilder.build.called, "build started");
+
+		// Mid-build source change: invalidates the root project and aborts the cycle.
+		buildServer._projectResourceChanged(rootProject, "/x.js", false);
+		// The per-project callback is invoked *despite* the invalidation, but
+		// ProjectBuildStatus#setReader is now a no-op while INVALIDATED so the
+		// project stays stale.
+		perProjectCb("root.project", {getReader: () => ({fakeReader: true})});
+		buildResolve();
+		await clock.tickAsync(0);
+
+		const seq = statusEvents.map((e) => e.status);
+		const staleCalls = seq.filter((s) => s === "serve-stale");
+		t.is(staleCalls.length, 1,
+			`Expected exactly one stale emission at cycle end, got sequence: ${seq.join(", ")}`);
+		// And the emission must come AFTER serve-build-done (i.e. it's the
+		// end-of-cycle one, not the IDLE→STALE one).
+		const lastStaleIdx = seq.lastIndexOf("serve-stale");
+		const lastBuildDoneIdx = seq.lastIndexOf("serve-build-done");
+		t.true(lastStaleIdx > lastBuildDoneIdx,
+			`Expected stale after build-done; got: ${seq.join(", ")}`);
+	});
+
+test.serial("serve-status: build failure emits serveError and no orphan building", async (t) => {
+	const {BuildServer, graph, projectBuilder, sinon, clock} = t.context;
+	const statusEvents = [];
+	const statusHandler = (evt) => statusEvents.push(evt);
+	process.on("ui5.serve-status", statusHandler);
+	t.teardown(() => process.off("ui5.serve-status", statusHandler));
+
+	const buildError = new Error("Build blew up");
+	projectBuilder.build = sinon.stub().rejects(buildError);
+
+	const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+	// Swallow the emitted error event so AVA doesn't see an unhandled rejection.
+	buildServer.on("error", () => {});
+
+	await clock.tickAsync(10);
+	// Drain enough microtasks for the catch handler to settle.
+	await clock.tickAsync(0);
+	await clock.tickAsync(0);
+
+	const seq = statusEvents.map((e) => e.status);
+	t.true(seq.includes("serve-building"), "building was emitted at cycle start");
+	t.true(seq.includes("serve-error"), "serve-error was emitted on failure");
+	// On BUILDING → ERROR we deliberately skip buildDone (see #setState).
+	t.false(seq.includes("serve-build-done"), "no orphan buildDone after a failed cycle");
+	// And no extra building emission after the failure.
+	const lastBuildingIdx = seq.lastIndexOf("serve-building");
+	const errorIdx = seq.indexOf("serve-error");
+	t.true(errorIdx > lastBuildingIdx, "serve-error follows serve-building");
 });

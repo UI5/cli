@@ -1,10 +1,35 @@
 import path from "node:path";
 import os from "node:os";
-import chalk from "chalk";
 import baseMiddleware from "../middlewares/base.js";
 import {applyProjectConfigOptions, applyWorkspaceOptions, dedupeArray} from "../options.js";
+import {REMOTE_CONNECTIONS_WARNING_LINES} from "../../serve/remoteConnectionsWarning.js";
 import {getLogger} from "@ui5/logger";
+import Logger from "@ui5/logger/Logger";
+import ConsoleWriter from "@ui5/logger/writers/Console";
+import {getVersion as getCliVersion} from "../version.js";
 const log = getLogger("cli:commands:serve");
+
+// Log levels that fall back to the plain-output path because the live banner
+// cannot represent the level's intent (firehose verbose logging) or because
+// the user has asked for silence entirely.
+const NON_BANNER_LEVELS = new Set(["perf", "verbose", "silly", "silent"]);
+
+// Collects all non-internal IPv4 addresses from the host's network
+// interfaces so the banner can list every reachable URL when the server
+// binds to all interfaces. Returns an empty array if no suitable address
+// is found.
+function findNetworkInterfaceAddresses() {
+	const interfaces = os.networkInterfaces();
+	const addresses = [];
+	for (const name of Object.keys(interfaces)) {
+		for (const iface of interfaces[name] ?? []) {
+			if (iface.family === "IPv4" && !iface.internal) {
+				addresses.push(iface.address);
+			}
+		}
+	}
+	return addresses;
+}
 
 // Serve
 const serve = {
@@ -135,6 +160,28 @@ serve.builder = function(cli) {
 };
 
 serve.handler = async function(argv) {
+	const useBanner =
+		process.stdout.isTTY === true &&
+		!NON_BANNER_LEVELS.has(Logger.getLevel());
+
+	let banner;
+	// Discover network addresses up front so the banner's initial paint can
+	// reserve the correct number of lines for the "Network:" section. Once the
+	// header is painted, swapping placeholder lines for real URLs without
+	// changing the line count keeps the live region from re-flowing.
+	const networkAddresses = (useBanner && argv.acceptRemoteConnections) ?
+		findNetworkInterfaceAddresses() : [];
+	if (useBanner) {
+		const {default: Banner} = await import("../../serve/Banner.js");
+		// Banner takes over all output
+		ConsoleWriter.stop();
+		banner = Banner.observe({
+			brand: {name: "UI5 CLI", version: getCliVersion() || ""},
+			acceptRemoteConnections: !!argv.acceptRemoteConnections,
+			networkAddressCount: networkAddresses.length,
+		});
+	}
+
 	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
 	const {serve: serverServe} = await import("@ui5/server");
 	const {getSslCertificate} = await import("@ui5/server/internal/sslUtil");
@@ -154,6 +201,23 @@ serve.handler = async function(argv) {
 			snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
 			workspaceConfigPath: argv.workspaceConfig,
 			workspaceName: argv.workspace === false ? null : argv.workspace,
+		});
+	}
+
+	if (useBanner) {
+		// Fill in the project + framework section now that the graph has
+		// resolved — the rest of the header still shows placeholders until
+		// the server is bound.
+		const rootProject = graph.getRoot();
+		const frameworkName = rootProject.getFrameworkName?.();
+		const frameworkVersion = rootProject.getFrameworkVersion?.();
+		banner.setProject({
+			name: rootProject.getName(),
+			type: rootProject.getType(),
+			version: rootProject.getVersion(),
+			framework: frameworkName ?
+				{name: frameworkName, version: frameworkVersion} :
+				null,
 		});
 	}
 
@@ -215,27 +279,28 @@ serve.handler = async function(argv) {
 
 	const protocol = h2 ? "https" : "http";
 	let browserUrl = protocol + "://localhost:" + actualPort;
-	if (argv.acceptRemoteConnections) {
-		process.stderr.write("\n");
-		process.stderr.write(chalk.bold("⚠️  This server is accepting connections from all hosts on your network"));
-		process.stderr.write("\n");
-		process.stderr.write(chalk.dim.underline("Please Note:"));
-		process.stderr.write("\n");
-		process.stderr.write(chalk.bold.dim(
-			"* This server is intended for development purposes only. Do not use it in production."));
-		process.stderr.write("\n");
-		process.stderr.write(chalk.dim(
-			"* Vulnerable (custom-)middleware can pose a threat to your system when exposed to the network"));
-		process.stderr.write("\n");
-		process.stderr.write(chalk.dim(
-			"* The use of proxy-middleware with preconfigured credentials might enable unauthorized access " +
-			"to a target system for third parties on your network"));
-		process.stderr.write("\n\n");
+
+	if (useBanner) {
+		banner.setUrls({
+			local: browserUrl,
+			network: networkAddresses.length ?
+				networkAddresses.map((addr) => protocol + "://" + addr + ":" + actualPort) :
+				undefined,
+		});
+	} else {
+		if (argv.acceptRemoteConnections) {
+			process.stderr.write("\n");
+			for (const line of REMOTE_CONNECTIONS_WARNING_LINES) {
+				process.stderr.write(line);
+				process.stderr.write("\n");
+			}
+			process.stderr.write("\n");
+		}
+		process.stdout.write("Server started");
+		process.stdout.write("\n");
+		process.stdout.write("URL: " + browserUrl);
+		process.stdout.write("\n");
 	}
-	process.stdout.write("Server started");
-	process.stdout.write("\n");
-	process.stdout.write("URL: " + browserUrl);
-	process.stdout.write("\n");
 
 	if (argv.open !== undefined) {
 		if (typeof argv.open === "string") {
