@@ -3,9 +3,12 @@
     "$schema": "https://github.com/IBM/audit-ci/raw/main/docs/schema.json",
     "low": true,
     "allowlist": [
-        // JS-YAML: Quadratic-complexity DoS in merge key handling via repeated aliases
-        // This only affects js-yaml within our test dependencies where every YAML file is under our control
-        // so it is not applicable to our use case.
-        "GHSA-h67p-54hq-rp68|depcheck>js-yaml"
+        // @ui5/project uses only pacote.packument(), pacote.manifest(), and pacote.extract()
+        // with verifySignatures/verifyAttestations left at their default false.
+        // Neither the vulnerable sigstore.verify() path nor the DSSE preAuthEncoding code is
+        // reachable through our call sites, so neither advisory is exploitable via @ui5/project.
+        "GHSA-jfc7-64v2-mr8c|@sigstore/sign>@sigstore/core",
+        "GHSA-jfc7-64v2-mr8c|@sigstore/verify>@sigstore/core",
+        "GHSA-jfc7-64v2-mr8c|@ui5/cli>@ui5/project>pacote>sigstore>@sigstore/core"
     ]
 }
