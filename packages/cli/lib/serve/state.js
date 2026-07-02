@@ -1,6 +1,6 @@
-// Pure state holder for the live banner. Mutated directly by Banner setters,
-// each of which calls `Banner.prototype.#render` after updating the fields it
-// owns.
+// Pure state holder for the live banner. Mutated directly by Banner setters
+// and event handlers, each of which calls `Banner.prototype.#render` after
+// updating the fields it owns.
 
 export const STATES = Object.freeze({
 	INITIAL: "initial",
