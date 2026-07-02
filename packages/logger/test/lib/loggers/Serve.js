@@ -145,7 +145,7 @@ test.serial("No event listener: buildDone", (t) => {
 	serveLogger.buildDone([0, 123000000]);
 	t.is(logStub.callCount, 1, "_log got called once");
 	t.is(logStub.getCall(0).args[0], "info", "Logged with expected log-level");
-	t.is(logStub.getCall(0).args[1], "Build finished in 123ms", "Logged expected message");
+	t.is(logStub.getCall(0).args[1], "Build finished in 123 ms", "Logged expected message");
 	t.is(logHandler.callCount, 0, "No log event emitted");
 });
 
@@ -155,7 +155,7 @@ test.serial("No event listener: buildDone formats durations >= 1s in seconds", (
 	serveLogger.buildDone([2, 345000000]);
 	t.is(logStub.callCount, 1, "_log got called once");
 	t.is(logStub.getCall(0).args[0], "info", "Logged with expected log-level");
-	t.is(logStub.getCall(0).args[1], "Build finished in 2.35s", "Logged expected message");
+	t.is(logStub.getCall(0).args[1], "Build finished in 2.34 s", "Logged expected message");
 	t.is(logHandler.callCount, 0, "No log event emitted");
 });
 

@@ -1,3 +1,4 @@
+import prettyHrtime from "pretty-hrtime";
 import Logger from "./Logger.js";
 
 /**
@@ -67,15 +68,7 @@ class Serve extends Logger {
 			hrtime,
 		});
 		if (!hasListeners) {
-			// Plain-text fallback for the no-listener path. The banner formats
-			// via pretty-hrtime; this stays inline to avoid pulling a new
-			// dependency into @ui5/logger.
-			const [seconds, nanoseconds] = hrtime;
-			const totalMs = seconds * 1000 + nanoseconds / 1e6;
-			const formatted = totalMs >= 1000 ?
-				`${(totalMs / 1000).toFixed(2)}s` :
-				`${Math.round(totalMs)}ms`;
-			this._log(level, `Build finished in ${formatted}`);
+			this._log(level, `Build finished in ${prettyHrtime(hrtime)}`);
 		}
 	}
 
