@@ -22,11 +22,7 @@ const log = getLogger("server:MiddlewareManager");
  * @alias @ui5/server/internal/MiddlewareManager
  */
 class MiddlewareManager {
-	constructor({graph, rootProject, sources, resources, buildReader, options = {
-		sendSAPTargetCSP: false,
-		serveCSPReports: false,
-		liveReload: {active: false, token: null}
-	}}) {
+	constructor({graph, rootProject, sources, resources, buildReader, options = {}}) {
 		if (!graph || !rootProject || !resources || !resources.all ||
 			!resources.rootProject || !resources.dependencies) {
 			throw new Error("[MiddlewareManager]: One or more mandatory parameters not provided");
@@ -36,7 +32,17 @@ class MiddlewareManager {
 		this.sources = sources;
 		this.resources = resources;
 		this.buildReader = buildReader;
-		this.options = options;
+		this.options = {
+			sendSAPTargetCSP: false,
+			serveCSPReports: false,
+			simpleIndex: false,
+			...options,
+			liveReload: {
+				active: false,
+				token: null,
+				...options.liveReload,
+			},
+		};
 
 		this.middleware = Object.create(null);
 		this.middlewareExecutionOrder = [];
