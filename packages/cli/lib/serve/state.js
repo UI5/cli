@@ -1,8 +1,6 @@
-// Pure state holder for the live banner.
-//
-// All mutations go through the `update` function so callers can subscribe to
-// state changes and trigger redraws without sprinkling redraw calls across
-// the event handlers.
+// Pure state holder for the live banner. Mutated directly by Banner setters,
+// each of which calls `Banner.prototype.#render` after updating the fields it
+// owns.
 
 export const STATES = Object.freeze({
 	INITIAL: "initial",
