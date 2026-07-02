@@ -48,6 +48,117 @@ test("Correct parameters", (t) => {
 	}, "No error thrown");
 });
 
+test("liveReload option defaults to inactive when no options are passed", (t) => {
+	const middlewareManager = new MiddlewareManager({
+		graph: {},
+		rootProject: "root project",
+		sources: "sources",
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		}
+	});
+	t.deepEqual(middlewareManager.options.liveReload, {active: false, token: null},
+		"liveReload option was defaulted to inactive");
+});
+
+test("All option defaults are applied when no options are passed", (t) => {
+	const middlewareManager = new MiddlewareManager({
+		graph: {},
+		rootProject: "root project",
+		sources: "sources",
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		}
+	});
+	t.deepEqual(middlewareManager.options, {
+		sendSAPTargetCSP: false,
+		serveCSPReports: false,
+		simpleIndex: false,
+		liveReload: {active: false, token: null},
+	}, "All options were defaulted");
+});
+
+test("liveReload option defaults to inactive when options are passed without liveReload", (t) => {
+	const middlewareManager = new MiddlewareManager({
+		graph: {},
+		rootProject: "root project",
+		sources: "sources",
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		},
+		options: {
+			sendSAPTargetCSP: true,
+			serveCSPReports: true
+		}
+	});
+	t.deepEqual(middlewareManager.options.liveReload, {active: false, token: null},
+		"liveReload option was defaulted to inactive");
+	t.true(middlewareManager.options.sendSAPTargetCSP,
+		"Other options remain untouched");
+	t.true(middlewareManager.options.serveCSPReports,
+		"Other options remain untouched");
+});
+
+test("liveReload option is used as passed", (t) => {
+	const middlewareManager = new MiddlewareManager({
+		graph: {},
+		rootProject: "root project",
+		sources: "sources",
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		},
+		options: {
+			liveReload: {active: true, token: "🦄"}
+		}
+	});
+	t.deepEqual(middlewareManager.options.liveReload, {active: true, token: "🦄"},
+		"liveReload option was used as passed");
+});
+
+test("liveReload option defaults are applied when an empty liveReload object is passed", (t) => {
+	const middlewareManager = new MiddlewareManager({
+		graph: {},
+		rootProject: "root project",
+		sources: "sources",
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		},
+		options: {
+			liveReload: {}
+		}
+	});
+	t.deepEqual(middlewareManager.options.liveReload, {active: false, token: null},
+		"liveReload defaults filled in for missing properties");
+});
+
+test("liveReload option: individual properties are defaulted when partially provided", (t) => {
+	const middlewareManager = new MiddlewareManager({
+		graph: {},
+		rootProject: "root project",
+		sources: "sources",
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		},
+		options: {
+			liveReload: {active: true}
+		}
+	});
+	t.deepEqual(middlewareManager.options.liveReload, {active: true, token: null},
+		"Missing token was defaulted to null while active was kept");
+});
+
 test("applyMiddleware", async (t) => {
 	const {sinon} = t.context;
 	const middlewareManager = new MiddlewareManager({
@@ -1230,3 +1341,151 @@ test("addStandardMiddleware: CSP middleware configured correctly (custom)", asyn
 		]
 	}, "CSP middleware module got called with correct second argument");
 });
+
+test("addStandardMiddleware: liveReloadClient middleware configured correctly (default)", async (t) => {
+	const {sinon} = t.context;
+	const middlewareManager = new MiddlewareManager({
+		graph: {},
+		rootProject: "root project",
+		sources: "sources",
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		}
+	});
+	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
+	await middlewareManager.addStandardMiddleware();
+
+	const liveReloadCall = addMiddlewareStub.getCalls().find((call) => call.args[0] === "liveReloadClient");
+	t.truthy(liveReloadCall, "liveReloadClient middleware added");
+
+	const middlewareModuleStub = sinon.stub().returns("ok");
+	const middlewareWrapper = liveReloadCall.args[1].wrapperCallback({middleware: middlewareModuleStub});
+	const res = middlewareWrapper({middlewareUtil: "util"});
+	t.is(res, "ok", "Wrapper callback returned expected value");
+	t.deepEqual(middlewareModuleStub.getCall(0).args[0], {
+		middlewareUtil: "util",
+		active: false,
+		token: null,
+	}, "liveReloadClient middleware got called with defaulted (inactive) options");
+});
+
+test("addStandardMiddleware: liveReloadClient middleware configured correctly (enabled)", async (t) => {
+	const {sinon} = t.context;
+	const middlewareManager = new MiddlewareManager({
+		graph: {},
+		rootProject: "root project",
+		sources: "sources",
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		},
+		options: {
+			liveReload: {active: true, token: "🦄"}
+		}
+	});
+	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
+	await middlewareManager.addStandardMiddleware();
+
+	const liveReloadCall = addMiddlewareStub.getCalls().find((call) => call.args[0] === "liveReloadClient");
+	t.truthy(liveReloadCall, "liveReloadClient middleware added");
+
+	const middlewareModuleStub = sinon.stub().returns("ok");
+	const middlewareWrapper = liveReloadCall.args[1].wrapperCallback({middleware: middlewareModuleStub});
+	const res = middlewareWrapper({middlewareUtil: "util"});
+	t.is(res, "ok", "Wrapper callback returned expected value");
+	t.deepEqual(middlewareModuleStub.getCall(0).args[0], {
+		middlewareUtil: "util",
+		active: true,
+		token: "🦄",
+	}, "liveReloadClient middleware got called with passed options");
+});
+
+test("addStandardMiddleware: liveReloadClient middleware configured correctly (empty liveReload object)",
+	async (t) => {
+		const {sinon} = t.context;
+		const middlewareManager = new MiddlewareManager({
+			graph: {},
+			rootProject: "root project",
+			sources: "sources",
+			resources: {
+				all: "I",
+				rootProject: "like",
+				dependencies: "ponies"
+			},
+			options: {
+				liveReload: {}
+			}
+		});
+		const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
+		await middlewareManager.addStandardMiddleware();
+
+		const liveReloadCall = addMiddlewareStub.getCalls().find((call) => call.args[0] === "liveReloadClient");
+		t.truthy(liveReloadCall, "liveReloadClient middleware added");
+
+		const middlewareModuleStub = sinon.stub().returns("ok");
+		const middlewareWrapper = liveReloadCall.args[1].wrapperCallback({middleware: middlewareModuleStub});
+		middlewareWrapper({middlewareUtil: "util"});
+		t.deepEqual(middlewareModuleStub.getCall(0).args[0], {
+			middlewareUtil: "util",
+			active: false,
+			token: null,
+		}, "liveReloadClient middleware got called with defaulted options");
+	});
+
+test("addStandardMiddleware: serveResources middleware injectLiveReloadClient reflects liveReload option (default)",
+	async (t) => {
+		const {sinon} = t.context;
+		const middlewareManager = new MiddlewareManager({
+			graph: {},
+			rootProject: "root project",
+			sources: "sources",
+			resources: {
+				all: "I",
+				rootProject: "like",
+				dependencies: "ponies"
+			}
+		});
+		const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
+		await middlewareManager.addStandardMiddleware();
+
+		const serveResourcesCall = addMiddlewareStub.getCalls().find((call) => call.args[0] === "serveResources");
+		t.truthy(serveResourcesCall, "serveResources middleware added");
+
+		const middlewareModuleStub = sinon.stub().returns("ok");
+		const middlewareWrapper = serveResourcesCall.args[1].wrapperCallback({middleware: middlewareModuleStub});
+		middlewareWrapper({resources: "resources", middlewareUtil: "util"});
+		t.is(middlewareModuleStub.getCall(0).args[0].injectLiveReloadClient, false,
+			"injectLiveReloadClient defaults to false");
+	});
+
+test("addStandardMiddleware: serveResources middleware injectLiveReloadClient reflects liveReload option (enabled)",
+	async (t) => {
+		const {sinon} = t.context;
+		const middlewareManager = new MiddlewareManager({
+			graph: {},
+			rootProject: "root project",
+			sources: "sources",
+			resources: {
+				all: "I",
+				rootProject: "like",
+				dependencies: "ponies"
+			},
+			options: {
+				liveReload: {active: true, token: "🦄"}
+			}
+		});
+		const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
+		await middlewareManager.addStandardMiddleware();
+
+		const serveResourcesCall = addMiddlewareStub.getCalls().find((call) => call.args[0] === "serveResources");
+		t.truthy(serveResourcesCall, "serveResources middleware added");
+
+		const middlewareModuleStub = sinon.stub().returns("ok");
+		const middlewareWrapper = serveResourcesCall.args[1].wrapperCallback({middleware: middlewareModuleStub});
+		middlewareWrapper({resources: "resources", middlewareUtil: "util"});
+		t.is(middlewareModuleStub.getCall(0).args[0].injectLiveReloadClient, true,
+			"injectLiveReloadClient reflects active liveReload option");
+	});
