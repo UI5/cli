@@ -43,7 +43,7 @@ export function createBuildState() {
 
 // Zero the transient counters for a fresh build. Shared by `build-metadata`
 // and the `serve-building` branch of `serve-status`; see doc item #7.
-export function resetBuildProgress(state) {
+function resetBuildProgress(state) {
 	state.currentProjectIndex = 0;
 	state.currentProjectName = "";
 	state.currentTaskName = "";
@@ -91,8 +91,4 @@ export function enablePlaceholders(state) {
 	if (state.state === STATES.INITIAL) {
 		state.state = STATES.STARTING;
 	}
-}
-
-export function hasContent(state) {
-	return state.state !== STATES.INITIAL;
 }

@@ -72,10 +72,18 @@ export function renderServerRegion(serverState) {
 		// The event's `urls` list carries labels ("Local"/"Network") shaped by
 		// the server. Preserve the current two-line "Local" / "Network" layout
 		// by splitting labels here.
-		const urls = serverState.urls;
-		const local = urls.filter((u) => u.label === "Local");
-		const network = urls.filter((u) => u.label === "Network");
-		const other = urls.filter((u) => u.label !== "Local" && u.label !== "Network");
+		const local = [];
+		const network = [];
+		const other = [];
+		for (const entry of serverState.urls) {
+			if (entry.label === "Local") {
+				local.push(entry);
+			} else if (entry.label === "Network") {
+				network.push(entry);
+			} else {
+				other.push(entry);
+			}
+		}
 
 		if (local.length > 0) {
 			lines.push(`${arrow} ${accentBold("Local:")}   ${accent(local[0].url)}`);
@@ -121,9 +129,7 @@ export function renderBuildRegion(buildState) {
 	if (buildState.state === STATES.INITIAL) {
 		return [];
 	}
-	const lines = [""];
-	lines.push(renderStatusLine(buildState));
-	return lines;
+	return ["", renderStatusLine(buildState)];
 }
 
 function renderStatusLine(state) {

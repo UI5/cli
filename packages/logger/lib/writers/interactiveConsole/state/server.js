@@ -21,7 +21,3 @@ export function enablePlaceholders(state, {acceptRemoteConnections} = {}) {
 		state.acceptRemoteConnections = acceptRemoteConnections;
 	}
 }
-
-export function hasContent(state) {
-	return state.urls !== null || state.showPlaceholders;
-}

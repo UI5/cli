@@ -8,7 +8,3 @@ export function createHeaderState() {
 export function setTool(state, tool) {
 	state.tool = tool ? {name: tool.name, version: tool.version} : null;
 }
-
-export function hasContent(state) {
-	return state.tool !== null;
-}

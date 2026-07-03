@@ -154,23 +154,19 @@ class InteractiveConsole {
 		this.#stderr.write("\n");
 	}
 
-	// Compose the full live region as a single string: one block per region,
-	// separated by their own leading blank line. `log-update` handles wrapping
-	// and erase of the previous frame, so we just hand it the full text.
+	// Compose the full live region as a single string plus its line count.
+	// One block per region, separated by their own leading blank line.
+	// `log-update` handles wrapping and erase of the previous frame, so we
+	// just hand it the full text.
 	#composeLiveRegion() {
-		const lines = [];
-		for (const region of [
-			renderHeaderRegion(this.#headerState),
-			renderProjectRegion(this.#projectState),
-			renderServerRegion(this.#serverState),
-			renderBuildRegion(this.#buildState),
-		]) {
-			for (const line of region) {
-				lines.push(line);
-			}
-		}
+		const lines = [
+			...renderHeaderRegion(this.#headerState),
+			...renderProjectRegion(this.#projectState),
+			...renderServerRegion(this.#serverState),
+			...renderBuildRegion(this.#buildState),
+		];
 		if (lines.length === 0) {
-			return "";
+			return {frame: "", lineCount: 0};
 		}
 		// `log-update` wraps long lines onto additional rows; the last line is
 		// designed to fit on a single row when it's a status line, so clip it
@@ -179,18 +175,15 @@ class InteractiveConsole {
 		if (this.#buildState.state !== STATES.INITIAL) {
 			lines[lines.length - 1] = sliceAnsi(lines[lines.length - 1], 0, this.#columns);
 		}
-		return lines.join("\n");
+		return {frame: lines.join("\n"), lineCount: lines.length};
 	}
 
 	#render() {
 		if (this.#stopped) {
 			return;
 		}
-		if (!this.#logUpdate) {
-			return;
-		}
 		this.#withRenderingGuard(() => {
-			const frame = this.#composeLiveRegion();
+			const {frame, lineCount} = this.#composeLiveRegion();
 			// Work around a `log-update` bug (v7.2.0): when a frame grows past
 			// the previous one, its `buildPatch` clamps the pre-write cursor
 			// move at 0 instead of moving DOWN to the new start row, so the
@@ -202,7 +195,6 @@ class InteractiveConsole {
 			// count changes sidesteps the diff logic entirely for the cases
 			// where it's buggy; steady-state renders (spinner tick, in-place
 			// updates with unchanged row count) still take the fast diff path.
-			const lineCount = frame === "" ? 0 : frame.split("\n").length;
 			if (this.#lastFrameLineCount !== undefined && lineCount !== this.#lastFrameLineCount) {
 				this.#logUpdate.clear();
 			}
@@ -233,8 +225,8 @@ class InteractiveConsole {
 			// tracker to match — otherwise the next `#render()` would
 			// mistakenly compare against the pre-persist count.
 			this.#lastFrameLineCount = undefined;
-			const frame = this.#composeLiveRegion();
-			this.#lastFrameLineCount = frame === "" ? 0 : frame.split("\n").length;
+			const {frame, lineCount} = this.#composeLiveRegion();
+			this.#lastFrameLineCount = lineCount;
 			this.#logUpdate(frame);
 		});
 	}

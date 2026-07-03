@@ -18,7 +18,3 @@ export function setProject(state, evt) {
 export function enablePlaceholders(state) {
 	state.showPlaceholders = true;
 }
-
-export function hasContent(state) {
-	return state.project !== null || state.showPlaceholders;
-}
