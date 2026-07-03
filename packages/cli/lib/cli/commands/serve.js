@@ -1,9 +1,27 @@
 import path from "node:path";
 import os from "node:os";
+import process from "node:process";
 import baseMiddleware from "../middlewares/base.js";
 import {applyProjectConfigOptions, applyWorkspaceOptions, dedupeArray} from "../options.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("cli:commands:serve");
+
+// Non-internal IPv4 address count from the host — used only as a hint on
+// `ui5.tool-mode` so the interactive writer can reserve the right number of
+// "Network:" placeholder rows. The authoritative URL list still comes from
+// `ui5.server-listening` (which @ui5/server emits once the server is bound).
+function countNetworkInterfaceAddresses() {
+	const interfaces = os.networkInterfaces();
+	let n = 0;
+	for (const name of Object.keys(interfaces)) {
+		for (const iface of interfaces[name] ?? []) {
+			if (iface.family === "IPv4" && !iface.internal) {
+				n++;
+			}
+		}
+	}
+	return n;
+}
 
 // Serve
 const serve = {
@@ -134,6 +152,17 @@ serve.builder = function(cli) {
 };
 
 serve.handler = async function(argv) {
+	// Announce the mode up front so the interactive writer can render its full
+	// frame (with placeholders for anything not resolved yet) before graph and
+	// server work begins. `networkAddressCount` is a rendering hint — the
+	// server's `ui5.server-listening` event supplies the authoritative URLs.
+	process.emit("ui5.tool-mode", {
+		mode: "serve",
+		acceptRemoteConnections: !!argv.acceptRemoteConnections,
+		networkAddressCount: argv.acceptRemoteConnections ?
+			countNetworkInterfaceAddresses() : 0,
+	});
+
 	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
 	const {serve: serverServe} = await import("@ui5/server");
 	const {getSslCertificate} = await import("@ui5/server/internal/sslUtil");
@@ -212,10 +241,9 @@ serve.handler = async function(argv) {
 		reject(err);
 	});
 
-	const protocol = h2 ? "https" : "http";
-	let browserUrl = protocol + "://localhost:" + actualPort;
-
 	if (argv.open !== undefined) {
+		const protocol = h2 ? "https" : "http";
+		let browserUrl = protocol + "://localhost:" + actualPort;
 		if (typeof argv.open === "string") {
 			let relPath = argv.open || "/";
 			if (!relPath.startsWith("/")) {

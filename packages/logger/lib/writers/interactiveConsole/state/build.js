@@ -3,6 +3,7 @@
 
 export const STATES = Object.freeze({
 	INITIAL: "initial",
+	STARTING: "starting", // pre-populated placeholder before the first real state arrives
 	READY: "ready",
 	STALE: "stale",
 	BUILDING: "building",
@@ -81,6 +82,15 @@ export function transitionTo(state, newState) {
 export function setError(state, message) {
 	state.errorMessage = message || "";
 	transitionTo(state, STATES.ERROR);
+}
+
+// Advance the region into a "starting" placeholder state so the Status row is
+// visible from the first frame. Called from `ui5.tool-mode`. Real state
+// transitions (READY/BUILDING/…) replace it.
+export function enablePlaceholders(state) {
+	if (state.state === STATES.INITIAL) {
+		state.state = STATES.STARTING;
+	}
 }
 
 export function hasContent(state) {

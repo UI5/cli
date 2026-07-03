@@ -5,10 +5,15 @@ import chalk from "chalk";
 import Logger from "../loggers/Logger.js";
 import {getLevelPrefix} from "./internal/levelPrefix.js";
 import {createHeaderState, setTool} from "./interactiveConsole/state/header.js";
-import {createProjectState, setProject} from "./interactiveConsole/state/project.js";
-import {createServerState, setListening} from "./interactiveConsole/state/server.js";
+import {
+	createProjectState, setProject, enablePlaceholders as enableProjectPlaceholders,
+} from "./interactiveConsole/state/project.js";
+import {
+	createServerState, setListening, enablePlaceholders as enableServerPlaceholders,
+} from "./interactiveConsole/state/server.js";
 import {
 	createBuildState, beginBuild, advanceToProject, setTask, transitionTo, setError, STATES,
+	enablePlaceholders as enableBuildPlaceholders,
 } from "./interactiveConsole/state/build.js";
 import {
 	renderHeaderRegion, renderProjectRegion, renderServerRegion, renderBuildRegion,
@@ -85,6 +90,7 @@ class InteractiveConsole {
 	#onProjectBuildStatus;
 	#onServeStatus;
 	#onToolInfo;
+	#onToolMode;
 	#onProjectResolved;
 	#onServerListening;
 	#onStopConsole;
@@ -224,6 +230,7 @@ class InteractiveConsole {
 		this.#onProjectBuildStatus = (evt) => this.#handleProjectBuildStatus(evt);
 		this.#onServeStatus = (evt) => this.#handleServeStatus(evt);
 		this.#onToolInfo = (evt) => this.#handleToolInfo(evt);
+		this.#onToolMode = (evt) => this.#handleToolMode(evt);
 		this.#onProjectResolved = (evt) => this.#handleProjectResolved(evt);
 		this.#onServerListening = (evt) => this.#handleServerListening(evt);
 		this.#onStopConsole = () => this.disable();
@@ -235,6 +242,7 @@ class InteractiveConsole {
 		process.on("ui5.project-build-status", this.#onProjectBuildStatus);
 		process.on("ui5.serve-status", this.#onServeStatus);
 		process.on("ui5.tool-info", this.#onToolInfo);
+		process.on("ui5.tool-mode", this.#onToolMode);
 		process.on("ui5.project-resolved", this.#onProjectResolved);
 		process.on("ui5.server-listening", this.#onServerListening);
 		process.on("ui5.log.stop-console", this.#onStopConsole);
@@ -250,6 +258,7 @@ class InteractiveConsole {
 		process.off("ui5.project-build-status", this.#onProjectBuildStatus);
 		process.off("ui5.serve-status", this.#onServeStatus);
 		process.off("ui5.tool-info", this.#onToolInfo);
+		process.off("ui5.tool-mode", this.#onToolMode);
 		process.off("ui5.project-resolved", this.#onProjectResolved);
 		process.off("ui5.server-listening", this.#onServerListening);
 		process.off("ui5.log.stop-console", this.#onStopConsole);
@@ -281,6 +290,24 @@ class InteractiveConsole {
 	#handleToolInfo(evt) {
 		setTool(this.#headerState, evt);
 		this.#render();
+	}
+
+	// Optional up-front hint from the CLI: "I'm about to run <mode>". The writer
+	// pre-populates placeholders for the sections that <mode> is expected to
+	// fill in, so the full frame is visible from the first paint and subsequent
+	// events replace placeholders in place rather than growing the layout.
+	// Currently only `mode: "serve"` is understood; unknown modes are ignored,
+	// keeping the writer forgiving as new modes are added.
+	#handleToolMode(evt) {
+		if (evt?.mode === "serve") {
+			enableProjectPlaceholders(this.#projectState);
+			enableServerPlaceholders(this.#serverState, {
+				acceptRemoteConnections: evt.acceptRemoteConnections,
+				networkAddressCount: evt.networkAddressCount,
+			});
+			enableBuildPlaceholders(this.#buildState);
+			this.#render();
+		}
 	}
 
 	#handleProjectResolved(evt) {

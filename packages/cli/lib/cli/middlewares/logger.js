@@ -34,7 +34,8 @@ export async function initLogger(argv) {
 	const useInteractive =
 		commandName === "serve" &&
 		process.stderr.isTTY === true &&
-		!NON_INTERACTIVE_LEVELS.has(getLogLevel());
+		!NON_INTERACTIVE_LEVELS.has(getLogLevel()) &&
+		!process.env.UI5_CLI_NO_INTERACTIVE;
 
 	if (useInteractive) {
 		const {default: InteractiveConsole} = await import("@ui5/logger/writers/InteractiveConsole");

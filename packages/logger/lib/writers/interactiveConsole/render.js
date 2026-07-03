@@ -17,7 +17,12 @@ const NETWORK_INDENT = " ".repeat(`${figures.pointer} ${"Network:"} `.length);
 // Order matters: header → project → server → build → status → log-above (log
 // scrolls outside the live region). Each region emits an array of lines and
 // is skipped entirely when it has no content, giving a stable layout that
-// grows top-to-bottom as data arrives.
+// grows top-to-bottom as data arrives. Placeholders (activated by
+// `ui5.tool-mode`) let a region occupy its final row count from the first
+// frame — the layout stops growing once every region is present.
+//
+// Region blocks include a leading blank line, so joining them produces a
+// blank separator between regions.
 
 export function renderHeaderRegion(headerState) {
 	if (!headerState.tool) {
@@ -31,56 +36,81 @@ export function renderHeaderRegion(headerState) {
 }
 
 export function renderProjectRegion(projectState) {
-	if (!projectState.project) {
+	if (!projectState.project && !projectState.showPlaceholders) {
 		return [];
 	}
-	const project = projectState.project;
-	const framework = projectState.framework;
-	const projectType = project.type ? chalk.dim(`(${project.type})`) : "";
-	const projectVersion = project.version ? chalk.dim("v" + project.version) : "";
 	const lines = [""];
-	lines.push(`${chalk.dim("Project")}   ${chalk.bold(project.name)}` +
-		(projectType ? `  ${projectType}` : "") +
-		(projectVersion ? `  ${projectVersion}` : ""));
-	if (framework && framework.name) {
-		const frameworkVersion = framework.version ? ` ${framework.version}` : "";
-		lines.push(`${chalk.dim("Framework")} ${chalk.bold(framework.name + frameworkVersion)}`);
+	if (projectState.project) {
+		const project = projectState.project;
+		const framework = projectState.framework;
+		const projectType = project.type ? chalk.dim(`(${project.type})`) : "";
+		const projectVersion = project.version ? chalk.dim("v" + project.version) : "";
+		lines.push(`${chalk.dim("Project")}   ${chalk.bold(project.name)}` +
+			(projectType ? `  ${projectType}` : "") +
+			(projectVersion ? `  ${projectVersion}` : ""));
+		if (framework && framework.name) {
+			const frameworkVersion = framework.version ? ` ${framework.version}` : "";
+			lines.push(`${chalk.dim("Framework")} ${chalk.bold(framework.name + frameworkVersion)}`);
+		} else {
+			lines.push(`${chalk.dim("Framework")} ${placeholder("(none)")}`);
+		}
 	} else {
-		lines.push(`${chalk.dim("Framework")} ${placeholder("(none)")}`);
+		// Placeholder mode: reserve the same two rows setProject() will fill in.
+		lines.push(`${chalk.dim("Project")}   ${placeholder("resolving…")}`);
+		lines.push(`${chalk.dim("Framework")} ${placeholder("resolving…")}`);
 	}
 	return lines;
 }
 
 export function renderServerRegion(serverState) {
-	if (!serverState.urls) {
+	if (!serverState.urls && !serverState.showPlaceholders) {
 		return [];
 	}
-	const urls = serverState.urls;
 	const lines = [""];
 
-	// The event's `urls` list carries labels ("Local"/"Network") shaped by the
-	// server. Preserve the current two-line "Local" / "Network" layout by
-	// splitting labels here.
-	const local = urls.filter((u) => u.label === "Local");
-	const network = urls.filter((u) => u.label === "Network");
-	const other = urls.filter((u) => u.label !== "Local" && u.label !== "Network");
+	if (serverState.urls) {
+		// The event's `urls` list carries labels ("Local"/"Network") shaped by
+		// the server. Preserve the current two-line "Local" / "Network" layout
+		// by splitting labels here.
+		const urls = serverState.urls;
+		const local = urls.filter((u) => u.label === "Local");
+		const network = urls.filter((u) => u.label === "Network");
+		const other = urls.filter((u) => u.label !== "Local" && u.label !== "Network");
 
-	if (local.length > 0) {
-		lines.push(`${arrow} ${accentBold("Local:")}   ${accent(local[0].url)}`);
-	}
-	if (network.length > 0) {
-		lines.push(`${arrow} ${accentBold("Network:")} ${accent(network[0].url)}`);
-		for (let i = 1; i < network.length; i++) {
-			lines.push(`${NETWORK_INDENT}${accent(network[i].url)}`);
+		if (local.length > 0) {
+			lines.push(`${arrow} ${accentBold("Local:")}   ${accent(local[0].url)}`);
 		}
-	} else if (!serverState.acceptRemoteConnections && local.length > 0) {
-		lines.push(`${arrow} ${accentBold("Network:")} ` +
-			chalk.dim("use --accept-remote-connections to expose"));
-	}
-	for (const entry of other) {
-		lines.push(`${arrow} ${accentBold(entry.label + ":")} ${accent(entry.url)}`);
+		if (network.length > 0) {
+			lines.push(`${arrow} ${accentBold("Network:")} ${accent(network[0].url)}`);
+			for (let i = 1; i < network.length; i++) {
+				lines.push(`${NETWORK_INDENT}${accent(network[i].url)}`);
+			}
+		} else if (!serverState.acceptRemoteConnections && local.length > 0) {
+			lines.push(`${arrow} ${accentBold("Network:")} ` +
+				chalk.dim("use --accept-remote-connections to expose"));
+		}
+		for (const entry of other) {
+			lines.push(`${arrow} ${accentBold(entry.label + ":")} ${accent(entry.url)}`);
+		}
+	} else {
+		// Placeholder mode: reserve one "Local:" row plus either the
+		// remote-connections hint (when the flag isn't set) or the number of
+		// "Network:" rows the caller announced via `ui5.tool-mode`.
+		lines.push(`${arrow} ${accentBold("Local:")}   ${placeholder("binding…")}`);
+		if (serverState.acceptRemoteConnections) {
+			const rows = Math.max(1, serverState.placeholderNetworkRows);
+			lines.push(`${arrow} ${accentBold("Network:")} ${placeholder("binding…")}`);
+			for (let i = 1; i < rows; i++) {
+				lines.push(`${NETWORK_INDENT}${placeholder("binding…")}`);
+			}
+		} else {
+			lines.push(`${arrow} ${accentBold("Network:")} ` +
+				chalk.dim("use --accept-remote-connections to expose"));
+		}
 	}
 
+	// `acceptRemoteConnections` reflects user intent, so the warning appears
+	// from the first frame even while URLs are still placeholders.
 	if (serverState.acceptRemoteConnections) {
 		lines.push("");
 		for (const line of REMOTE_CONNECTIONS_WARNING_LINES) {
@@ -102,6 +132,8 @@ export function renderBuildRegion(buildState) {
 function renderStatusLine(state) {
 	const label = `${chalk.dim("Status")}    `;
 	switch (state.state) {
+	case STATES.STARTING:
+		return `${label}${chalk.dim(figures.circle)} ${chalk.dim(pad("starting"))}`;
 	case STATES.READY: {
 		let suffix = "";
 		if (state.lastBuildHrtime) {

@@ -270,3 +270,133 @@ test.serial("frame includes visible content for each populated region", (t) => {
 
 	writer.disable();
 });
+
+test.serial("tool-mode 'serve' enables placeholders for project, server, and status regions", (t) => {
+	const {writer, stderr} = createWriter();
+
+	process.emit("ui5.tool-info", {name: "UI5 CLI", version: "1.2.3"});
+	process.emit("ui5.tool-mode", {mode: "serve", acceptRemoteConnections: false});
+
+	const output = stripAnsi(stderr.writes.join(""));
+	t.regex(output, /UI5 CLI v1\.2\.3/, "header rendered");
+	t.regex(output, /Project\s+resolving…/, "project placeholder rendered");
+	t.regex(output, /Framework\s+resolving…/, "framework placeholder rendered");
+	t.regex(output, /Local:\s+binding…/, "server local placeholder rendered");
+	t.regex(output, /Network:\s+use --accept-remote-connections to expose/,
+		"network hint rendered when the flag isn't set");
+	t.regex(output, /Status\s+\S+\s+starting/, "status starting placeholder rendered");
+
+	const state = writer._getStateForTest();
+	t.true(state.project.showPlaceholders);
+	t.true(state.server.showPlaceholders);
+	t.is(state.build.state, STATES.STARTING);
+
+	writer.disable();
+});
+
+test.serial("tool-mode 'serve' with acceptRemoteConnections reserves network placeholder rows", (t) => {
+	const {writer, stderr} = createWriter();
+
+	process.emit("ui5.tool-info", {name: "UI5 CLI", version: "1.2.3"});
+	process.emit("ui5.tool-mode", {
+		mode: "serve",
+		acceptRemoteConnections: true,
+		networkAddressCount: 2,
+	});
+
+	const output = stripAnsi(stderr.writes.join(""));
+	// Two "binding…" URL placeholders on Network — one for each announced address
+	const bindingCount = (output.match(/binding…/g) || []).length;
+	t.is(bindingCount, 3, "one Local placeholder + two Network placeholders");
+	t.regex(output, /accepting connections from all hosts/,
+		"remote-connections warning rendered up front");
+
+	writer.disable();
+});
+
+test.serial("tool-mode 'serve' placeholders are replaced by real data", (t) => {
+	const {writer, stderr} = createWriter();
+
+	process.emit("ui5.tool-info", {name: "UI5 CLI", version: "1.2.3"});
+	process.emit("ui5.tool-mode", {mode: "serve", acceptRemoteConnections: false});
+
+	const midOutput = stripAnsi(stderr.writes.join(""));
+	t.regex(midOutput, /resolving…/, "placeholders visible before real data");
+	t.regex(midOutput, /binding…/);
+	t.regex(midOutput, /starting/);
+
+	process.emit("ui5.project-resolved", {
+		name: "my.app", type: "application", version: "1.0.0",
+		framework: {name: "SAPUI5", version: "1.150.0"},
+	});
+	process.emit("ui5.server-listening", {
+		urls: [{label: "Local", url: "http://localhost:8080"}],
+		acceptRemoteConnections: false,
+	});
+	process.emit("ui5.serve-status", {status: "serve-ready"});
+
+	// State reflects real data now — the placeholder rendering path is gone.
+	const state = writer._getStateForTest();
+	t.deepEqual(state.project.project, {name: "my.app", type: "application", version: "1.0.0"});
+	t.truthy(state.server.urls);
+	t.is(state.build.state, STATES.READY);
+
+	writer.disable();
+});
+
+test.serial("tool-mode with an unknown mode is ignored", (t) => {
+	const {writer} = createWriter();
+
+	process.emit("ui5.tool-mode", {mode: "future-mode"});
+
+	const state = writer._getStateForTest();
+	t.false(state.project.showPlaceholders);
+	t.false(state.server.showPlaceholders);
+	t.is(state.build.state, STATES.INITIAL);
+
+	writer.disable();
+});
+
+test.serial("region blocks are separated by a blank line in the composed frame", async (t) => {
+	const [
+		{renderHeaderRegion, renderProjectRegion, renderServerRegion, renderBuildRegion},
+		{createHeaderState, setTool},
+		{createProjectState, setProject},
+		{createServerState, setListening},
+		{createBuildState, transitionTo, STATES: BUILD_STATES},
+	] = await Promise.all([
+		import("../../../lib/writers/interactiveConsole/render.js"),
+		import("../../../lib/writers/interactiveConsole/state/header.js"),
+		import("../../../lib/writers/interactiveConsole/state/project.js"),
+		import("../../../lib/writers/interactiveConsole/state/server.js"),
+		import("../../../lib/writers/interactiveConsole/state/build.js"),
+	]);
+
+	const header = createHeaderState();
+	setTool(header, {name: "UI5 CLI", version: "1.2.3"});
+	const project = createProjectState();
+	setProject(project, {
+		name: "my.app", type: "application", version: "1.0.0", framework: null,
+	});
+	const server = createServerState();
+	setListening(server, {
+		urls: [{label: "Local", url: "http://localhost:8080"}],
+		acceptRemoteConnections: false,
+	});
+	const build = createBuildState();
+	transitionTo(build, BUILD_STATES.READY);
+
+	const frame = stripAnsi([
+		...renderHeaderRegion(header),
+		...renderProjectRegion(project),
+		...renderServerRegion(server),
+		...renderBuildRegion(build),
+	].join("\n"));
+
+	// Blank line between header (UI5 CLI …) and project block
+	t.regex(frame, /UI5 CLI v1\.2\.3\n\nProject/);
+	// Blank line between project/framework block and server block
+	t.regex(frame, /Framework\s+\(none\)\n\n.*Local:/);
+	// Blank line between server block and status
+	t.regex(frame, /Network:.*\n\nStatus/);
+});

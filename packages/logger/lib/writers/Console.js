@@ -452,10 +452,15 @@ class Console {
 				`Server is accepting remote connections from all hosts on your network. ` +
 				`This is intended for development purposes only.`);
 		}
+		// Match the historical stdout output of `ui5 serve` verbatim so scripts
+		// and users parsing the non-interactive log lines are not disrupted:
+		// only the local URL is surfaced here, without a level prefix. Network
+		// URLs listed under `--accept-remote-connections` are intentionally
+		// omitted — the interactive writer is responsible for showing them.
 		if (Array.isArray(urls)) {
-			for (const entry of urls) {
-				const label = entry?.label ? `${entry.label}: ` : "";
-				this.#writeMessage("info", `Server listening on ${label}${entry?.url ?? ""}`);
+			const localEntry = urls.find((entry) => entry?.label === "Local") ?? urls[0];
+			if (localEntry?.url) {
+				process.stderr.write(`Server started\nURL: ${localEntry.url}\n`);
 			}
 		}
 	}
