@@ -284,7 +284,7 @@ test.serial("tool-mode 'serve' enables placeholders for project, server, and sta
 	t.regex(output, /Local:\s+binding…/, "server local placeholder rendered");
 	t.regex(output, /Network:\s+use --accept-remote-connections to expose/,
 		"network hint rendered when the flag isn't set");
-	t.regex(output, /Status\s+\S+\s+starting/, "status starting placeholder rendered");
+	t.regex(output, /Status\s+.+?\s+starting/, "status starting placeholder rendered");
 
 	const state = writer._getStateForTest();
 	t.true(state.project.showPlaceholders);

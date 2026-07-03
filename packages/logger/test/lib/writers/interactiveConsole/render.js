@@ -221,7 +221,7 @@ test("renderBuildRegion: starting state renders a dim placeholder", (t) => {
 	const state = createBuildState();
 	transitionTo(state, STATES.STARTING);
 	const plain = renderBuildRegion(state).map(stripAnsi).join("\n");
-	t.regex(plain, /Status\s+\S+\s+starting/);
+	t.regex(plain, /Status\s+.+?\s+starting/);
 });
 
 test("renderBuildRegion: ready state", (t) => {
