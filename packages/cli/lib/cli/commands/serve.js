@@ -6,23 +6,6 @@ import {applyProjectConfigOptions, applyWorkspaceOptions, dedupeArray} from "../
 import {getLogger} from "@ui5/logger";
 const log = getLogger("cli:commands:serve");
 
-// Non-internal IPv4 address count from the host — used only as a hint on
-// `ui5.tool-mode` so the interactive writer can reserve the right number of
-// "Network:" placeholder rows. The authoritative URL list still comes from
-// `ui5.server-listening` (which @ui5/server emits once the server is bound).
-function countNetworkInterfaceAddresses() {
-	const interfaces = os.networkInterfaces();
-	let n = 0;
-	for (const name of Object.keys(interfaces)) {
-		for (const iface of interfaces[name] ?? []) {
-			if (iface.family === "IPv4" && !iface.internal) {
-				n++;
-			}
-		}
-	}
-	return n;
-}
-
 // Serve
 const serve = {
 	command: "serve",
@@ -154,18 +137,14 @@ serve.builder = function(cli) {
 serve.handler = async function(argv) {
 	// Announce the mode up front so the interactive writer can render its full
 	// frame (with placeholders for anything not resolved yet) before graph and
-	// server work begins. `networkAddressCount` is a rendering hint — the
-	// server's `ui5.server-listening` event supplies the authoritative URLs.
+	// server work begins. The server's `ui5.server-listening` event later
+	// supplies the authoritative URLs.
 	process.emit("ui5.tool-mode", {
 		mode: "serve",
 		acceptRemoteConnections: !!argv.acceptRemoteConnections,
-		networkAddressCount: argv.acceptRemoteConnections ?
-			countNetworkInterfaceAddresses() : 0,
 	});
 
 	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
-	const {serve: serverServe} = await import("@ui5/server");
-	const {getSslCertificate} = await import("@ui5/server/internal/sslUtil");
 
 	let graph;
 	if (argv.dependencyDefinition) {
@@ -231,12 +210,14 @@ serve.handler = async function(argv) {
 	};
 
 	if (serverConfig.h2) {
+		const {getSslCertificate} = await import("@ui5/server/internal/sslUtil");
 		const {key, cert} = await getSslCertificate(serverConfig.key, serverConfig.cert);
 		serverConfig.key = key;
 		serverConfig.cert = cert;
 	}
 
 	const {promise: pOnError, reject} = Promise.withResolvers();
+	const {serve: serverServe} = await import("@ui5/server");
 	const {h2, port: actualPort} = await serverServe(graph, serverConfig, function(err) {
 		reject(err);
 	});

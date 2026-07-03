@@ -294,20 +294,19 @@ test.serial("tool-mode 'serve' enables placeholders for project, server, and sta
 	writer.disable();
 });
 
-test.serial("tool-mode 'serve' with acceptRemoteConnections reserves network placeholder rows", (t) => {
+test.serial("tool-mode 'serve' with acceptRemoteConnections shows a Network placeholder", (t) => {
 	const {writer, stderr} = createWriter();
 
 	process.emit("ui5.tool-info", {name: "UI5 CLI", version: "1.2.3"});
 	process.emit("ui5.tool-mode", {
 		mode: "serve",
 		acceptRemoteConnections: true,
-		networkAddressCount: 2,
 	});
 
 	const output = stripAnsi(stderr.writes.join(""));
-	// Two "binding…" URL placeholders on Network — one for each announced address
+	// One Local placeholder + one Network placeholder
 	const bindingCount = (output.match(/binding…/g) || []).length;
-	t.is(bindingCount, 3, "one Local placeholder + two Network placeholders");
+	t.is(bindingCount, 2, "one Local placeholder + one Network placeholder");
 	t.regex(output, /accepting connections from all hosts/,
 		"remote-connections warning rendered up front");
 

@@ -94,15 +94,12 @@ export function renderServerRegion(serverState) {
 		}
 	} else {
 		// Placeholder mode: reserve one "Local:" row plus either the
-		// remote-connections hint (when the flag isn't set) or the number of
-		// "Network:" rows the caller announced via `ui5.tool-mode`.
+		// remote-connections hint (when the flag isn't set) or a single
+		// "Network:" placeholder. The frame may grow by additional rows once
+		// the real URL list arrives; that's acceptable for this uncommon case.
 		lines.push(`${arrow} ${accentBold("Local:")}   ${placeholder("binding…")}`);
 		if (serverState.acceptRemoteConnections) {
-			const rows = Math.max(1, serverState.placeholderNetworkRows);
 			lines.push(`${arrow} ${accentBold("Network:")} ${placeholder("binding…")}`);
-			for (let i = 1; i < rows; i++) {
-				lines.push(`${NETWORK_INDENT}${placeholder("binding…")}`);
-			}
 		} else {
 			lines.push(`${arrow} ${accentBold("Network:")} ` +
 				chalk.dim("use --accept-remote-connections to expose"));

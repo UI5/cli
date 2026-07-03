@@ -333,7 +333,6 @@ class InteractiveConsole {
 			enableProjectPlaceholders(this.#projectState);
 			enableServerPlaceholders(this.#serverState, {
 				acceptRemoteConnections: evt.acceptRemoteConnections,
-				networkAddressCount: evt.networkAddressCount,
 			});
 			enableBuildPlaceholders(this.#buildState);
 			this.#render();
