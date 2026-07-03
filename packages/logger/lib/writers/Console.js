@@ -4,6 +4,7 @@ import figures from "figures";
 import {MultiBar} from "cli-progress";
 import Logger from "../loggers/Logger.js";
 import {getLevelPrefix} from "./internal/levelPrefix.js";
+import {REMOTE_CONNECTIONS_WARNING_LINES} from "./interactiveConsole/remoteConnectionsWarning.js";
 
 /**
  * Standard handler for events emitted by @ui5/logger modules. Writes messages to
@@ -445,12 +446,16 @@ class Console {
 
 	#handleServerListeningEvent({urls, acceptRemoteConnections}) {
 		if (acceptRemoteConnections) {
-			// The interactive writer renders the remote-connections warning as a
-			// dedicated block. The plain writer emits it as a warning line so it
-			// still surfaces in non-TTY logs and pipes.
-			this.#writeMessage("warn",
-				`Server is accepting remote connections from all hosts on your network. ` +
-				`This is intended for development purposes only.`);
+			// Preserve the pre-banner output shape: the warning block goes to
+			// stderr as fully chalk-formatted lines, with surrounding blank
+			// lines, and without a `warn` level prefix. The interactive writer
+			// renders the same lines inside its server region.
+			process.stderr.write("\n");
+			for (const line of REMOTE_CONNECTIONS_WARNING_LINES) {
+				process.stderr.write(line);
+				process.stderr.write("\n");
+			}
+			process.stderr.write("\n");
 		}
 		// Match the historical stdout output of `ui5 serve` verbatim so scripts
 		// and users parsing the non-interactive log lines are not disrupted:
@@ -460,7 +465,7 @@ class Console {
 		if (Array.isArray(urls)) {
 			const localEntry = urls.find((entry) => entry?.label === "Local") ?? urls[0];
 			if (localEntry?.url) {
-				process.stderr.write(`Server started\nURL: ${localEntry.url}\n`);
+				process.stdout.write(`Server started\nURL: ${localEntry.url}\n`);
 			}
 		}
 	}
