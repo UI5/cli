@@ -15,7 +15,7 @@ export function setListening(state, evt) {
 	state.acceptRemoteConnections = !!evt.acceptRemoteConnections;
 }
 
-export function enablePlaceholders(state, {acceptRemoteConnections} = {}) {
+export function enableServerPlaceholders(state, {acceptRemoteConnections} = {}) {
 	state.showPlaceholders = true;
 	if (typeof acceptRemoteConnections === "boolean") {
 		state.acceptRemoteConnections = acceptRemoteConnections;

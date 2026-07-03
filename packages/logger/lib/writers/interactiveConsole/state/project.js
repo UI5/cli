@@ -15,6 +15,6 @@ export function setProject(state, evt) {
 	state.framework = evt.framework ? {name: evt.framework.name, version: evt.framework.version} : null;
 }
 
-export function enablePlaceholders(state) {
+export function enableProjectPlaceholders(state) {
 	state.showPlaceholders = true;
 }

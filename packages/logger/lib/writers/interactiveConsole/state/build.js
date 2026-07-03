@@ -87,7 +87,7 @@ export function setError(state, message) {
 // Advance the region into a "starting" placeholder state so the Status row is
 // visible from the first frame. Called from `ui5.tool-mode`. Real state
 // transitions (READY/BUILDING/…) replace it.
-export function enablePlaceholders(state) {
+export function enableBuildPlaceholders(state) {
 	if (state.state === STATES.INITIAL) {
 		state.state = STATES.STARTING;
 	}

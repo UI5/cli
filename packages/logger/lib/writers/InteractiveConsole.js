@@ -5,15 +5,11 @@ import chalk from "chalk";
 import Logger from "../loggers/Logger.js";
 import {getLevelPrefix} from "./internal/levelPrefix.js";
 import {createHeaderState, setTool} from "./interactiveConsole/state/header.js";
-import {
-	createProjectState, setProject, enablePlaceholders as enableProjectPlaceholders,
-} from "./interactiveConsole/state/project.js";
-import {
-	createServerState, setListening, enablePlaceholders as enableServerPlaceholders,
-} from "./interactiveConsole/state/server.js";
+import {createProjectState, setProject, enableProjectPlaceholders} from "./interactiveConsole/state/project.js";
+import {createServerState, setListening, enableServerPlaceholders} from "./interactiveConsole/state/server.js";
 import {
 	createBuildState, beginBuild, advanceToProject, setTask, transitionTo, setError, STATES,
-	enablePlaceholders as enableBuildPlaceholders,
+	enableBuildPlaceholders,
 } from "./interactiveConsole/state/build.js";
 import {
 	renderHeaderRegion, renderProjectRegion, renderServerRegion, renderBuildRegion,
