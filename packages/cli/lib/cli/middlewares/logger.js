@@ -40,17 +40,15 @@ export async function initLogger(argv) {
 	if (useInteractive) {
 		const {default: InteractiveConsole} = await import("@ui5/logger/writers/InteractiveConsole");
 		InteractiveConsole.init();
+		// Populate the interactive writer's header region before any command
+		// work starts, so the tool identity is visible from the first frame.
+		process.emit("ui5.tool-info", {
+			name: "UI5 CLI",
+			version: getVersion() || "",
+		});
 	} else {
 		ConsoleWriter.init();
 	}
-
-	// Announce the CLI as soon as a writer is attached, so its header region
-	// (or scrollback line) shows the tool identity before any command work
-	// starts.
-	process.emit("ui5.tool-info", {
-		name: "UI5 CLI",
-		version: getVersion() || "",
-	});
 
 	if (isLogLevelEnabled("verbose")) {
 		const log = getLogger("cli:middlewares:base");
