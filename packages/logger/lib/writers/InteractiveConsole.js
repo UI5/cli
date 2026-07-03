@@ -175,6 +175,9 @@ class InteractiveConsole {
 	}
 
 	#render() {
+		/* istanbul ignore if — defensive: #render is only called from event
+		   handlers (detached on disable) and the tick timer (cleared on
+		   disable), so this branch is unreachable in practice. */
 		if (this.#stopped) {
 			return;
 		}
@@ -412,6 +415,9 @@ class InteractiveConsole {
 	}
 
 	#scheduleTick() {
+		/* istanbul ignore if — defensive: #scheduleTick is only reached from
+		   event handlers (detached on disable), so #stopped is always false
+		   here in practice. */
 		if (this.#stopped) {
 			return;
 		}

@@ -1119,3 +1119,117 @@ test.serial("Build metadata events (same project)", (t) => {
 		`info Project 1 of 1: ${figures.tick} Finished building project-type project project.a\n`,
 		"Logged expected message");
 });
+
+test.serial("Project resolved event renders a one-line summary", (t) => {
+	const {stderrWriteStub} = t.context;
+	process.emit("ui5.project-resolved", {
+		name: "my.app",
+		type: "application",
+		version: "1.0.0",
+	});
+	t.is(stderrWriteStub.callCount, 1);
+	t.is(stripAnsi(stderrWriteStub.getCall(0).args[0]),
+		`info Root project: application project my.app (1.0.0)\n`);
+});
+
+test.serial("Project resolved event omits the type label when the type is missing", (t) => {
+	const {stderrWriteStub} = t.context;
+	process.emit("ui5.project-resolved", {name: "my.app", version: "1.0.0"});
+	t.is(stderrWriteStub.callCount, 1);
+	t.is(stripAnsi(stderrWriteStub.getCall(0).args[0]),
+		`info Root project: my.app (1.0.0)\n`);
+});
+
+test.serial("Project resolved event omits the version suffix when the version is missing", (t) => {
+	const {stderrWriteStub} = t.context;
+	process.emit("ui5.project-resolved", {name: "my.app", type: "library"});
+	t.is(stderrWriteStub.callCount, 1);
+	t.is(stripAnsi(stderrWriteStub.getCall(0).args[0]),
+		`info Root project: library project my.app\n`);
+});
+
+test.serial("Server listening event: writes 'Server started' + URL to stdout", (t) => {
+	const stdoutWriteStub = sinon.stub(process.stdout, "write");
+	const {stderrWriteStub} = t.context;
+
+	process.emit("ui5.server-listening", {
+		urls: [
+			{label: "Local", url: "http://localhost:8080"},
+			{label: "Network", url: "http://10.0.0.1:8080"},
+		],
+		acceptRemoteConnections: false,
+	});
+
+	// Only the local URL leaks into the CLI's parseable output — network
+	// addresses are the interactive writer's job.
+	t.is(stdoutWriteStub.callCount, 1);
+	t.is(stdoutWriteStub.getCall(0).args[0], `Server started\nURL: http://localhost:8080\n`);
+	// No stderr writes when acceptRemoteConnections=false.
+	t.is(stderrWriteStub.callCount, 0);
+});
+
+test.serial("Server listening event: prints the accept-remote-connections warning on stderr", (t) => {
+	const stdoutWriteStub = sinon.stub(process.stdout, "write");
+	const {stderrWriteStub} = t.context;
+
+	process.emit("ui5.server-listening", {
+		urls: [{label: "Local", url: "http://localhost:8080"}],
+		acceptRemoteConnections: true,
+	});
+
+	t.is(stdoutWriteStub.callCount, 1, "Local URL is still announced on stdout");
+	t.is(stdoutWriteStub.getCall(0).args[0], `Server started\nURL: http://localhost:8080\n`);
+
+	// Warning surrounds itself with blank lines and prints line by line — enough
+	// writes to see all of them. Match the assembled body against the well-known
+	// header so a swap of the warning source is caught.
+	t.true(stderrWriteStub.callCount >= 3, "warning is emitted on stderr");
+	const stderrBody = stripAnsi(
+		stderrWriteStub.getCalls().map((c) => c.args[0]).join(""));
+	t.regex(stderrBody, /accepting connections from all hosts/);
+});
+
+test.serial("Server listening event: falls back to the first URL entry when 'Local' is absent", (t) => {
+	const stdoutWriteStub = sinon.stub(process.stdout, "write");
+
+	process.emit("ui5.server-listening", {
+		urls: [{label: "Network", url: "http://10.0.0.1:8080"}],
+		acceptRemoteConnections: false,
+	});
+
+	t.is(stdoutWriteStub.callCount, 1);
+	t.is(stdoutWriteStub.getCall(0).args[0], `Server started\nURL: http://10.0.0.1:8080\n`);
+});
+
+test.serial("Server listening event: no output when the URL list is empty", (t) => {
+	const stdoutWriteStub = sinon.stub(process.stdout, "write");
+
+	process.emit("ui5.server-listening", {urls: [], acceptRemoteConnections: false});
+	t.is(stdoutWriteStub.callCount, 0, "no 'Server started' line when there is no URL to announce");
+});
+
+test.serial("Server listening event: no output when urls is not an array", (t) => {
+	const stdoutWriteStub = sinon.stub(process.stdout, "write");
+
+	// Guards the `Array.isArray(urls)` check — a broken caller shouldn't crash
+	// the writer or emit half a message.
+	process.emit("ui5.server-listening", {urls: undefined, acceptRemoteConnections: false});
+	t.is(stdoutWriteStub.callCount, 0);
+});
+
+test.serial("Server listening event: no output when the first URL entry has no url property", (t) => {
+	const stdoutWriteStub = sinon.stub(process.stdout, "write");
+
+	// Only the second entry has a URL, but the first (a `Local` without a URL)
+	// wins the label match and the fallback isn't invoked. This matches the
+	// production contract — a broken payload doesn't get partially recovered.
+	process.emit("ui5.server-listening", {
+		urls: [
+			{label: "Local"},
+			{label: "Network", url: "http://10.0.0.1:8080"},
+		],
+		acceptRemoteConnections: false,
+	});
+	t.is(stdoutWriteStub.callCount, 0,
+		"no output when the selected entry has no url");
+});
