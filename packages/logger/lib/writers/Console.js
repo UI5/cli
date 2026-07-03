@@ -446,10 +446,9 @@ class Console {
 
 	#handleServerListeningEvent({urls, acceptRemoteConnections}) {
 		if (acceptRemoteConnections) {
-			// Preserve the pre-banner output shape: the warning block goes to
-			// stderr as fully chalk-formatted lines, with surrounding blank
-			// lines, and without a `warn` level prefix. The interactive writer
-			// renders the same lines inside its server region.
+			// Emit the warning as chalk-formatted lines on stderr, surrounded
+			// by blank lines and without a `warn` level prefix. The interactive
+			// writer renders the same lines inside its server region.
 			process.stderr.write("\n");
 			for (const line of REMOTE_CONNECTIONS_WARNING_LINES) {
 				process.stderr.write(line);
@@ -457,11 +456,11 @@ class Console {
 			}
 			process.stderr.write("\n");
 		}
-		// Match the historical stdout output of `ui5 serve` verbatim so scripts
-		// and users parsing the non-interactive log lines are not disrupted:
-		// only the local URL is surfaced here, without a level prefix. Network
-		// URLs listed under `--accept-remote-connections` are intentionally
-		// omitted — the interactive writer is responsible for showing them.
+		// Emit `Server started` and the local URL on stdout without a level
+		// prefix — this exact shape is a contract for scripts and users
+		// parsing the non-interactive log lines. Network URLs listed under
+		// `--accept-remote-connections` are intentionally omitted; the
+		// interactive writer is responsible for showing them.
 		if (Array.isArray(urls)) {
 			const localEntry = urls.find((entry) => entry?.label === "Local") ?? urls[0];
 			if (localEntry?.url) {
