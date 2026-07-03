@@ -19,6 +19,36 @@ async function drainUntil(clock, statusEvents, predicate, {maxTicks = 100} = {})
 		`events: ${statusEvents.map((e) => e.status).join(", ")}`);
 }
 
+// Graph with a single library dependency behind the root project. Used by the
+// BUILDING → VALIDATING → … tests to leave one INITIAL project after the build
+// cycle, which is the trigger for the post-build validation pass.
+function makeGraphWithLib() {
+	const rootProject = {getName: () => "root.project"};
+	const libProject = {getName: () => "library.x"};
+	const graph = {
+		getRoot: () => rootProject,
+		getProjects: () => [rootProject, libProject],
+		getTransitiveDependencies: () => ["library.x"],
+		getProject: (name) => name === "root.project" ? rootProject : libProject,
+		traverseDependents: function* () {
+			yield {project: rootProject};
+			yield {project: libProject};
+		},
+	};
+	return {rootProject, libProject, graph};
+}
+
+// Attach a `ui5.serve-status` listener to the current process, register a
+// teardown to detach it, and return the accumulating event array. Every
+// serve-status test needs exactly this shape.
+function makeStatusRecorder(t) {
+	const statusEvents = [];
+	const statusHandler = (evt) => statusEvents.push(evt);
+	process.on("ui5.serve-status", statusHandler);
+	t.teardown(() => process.off("ui5.serve-status", statusHandler));
+	return statusEvents;
+}
+
 test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
 	t.context.clock = sinon.useFakeTimers();
@@ -187,10 +217,7 @@ test.serial("serve-status: serve-stale emitted on debounced sources change", (t)
 // exact ordering and counts.
 async function runInitialBuildCycle(t, {buildResult = "ok"} = {}) {
 	const {BuildServer, graph, projectBuilder, sinon, clock} = t.context;
-	const statusEvents = [];
-	const statusHandler = (evt) => statusEvents.push(evt);
-	process.on("ui5.serve-status", statusHandler);
-	t.teardown(() => process.off("ui5.serve-status", statusHandler));
+	const statusEvents = makeStatusRecorder(t);
 
 	let buildResolve;
 	let buildReject;
@@ -241,10 +268,7 @@ test.serial("serve-status: initial build cycle emits building → buildDone → 
 test.serial(
 	"serve-status: source change mid-build emits exactly one stale at cycle end", async (t) => {
 		const {BuildServer, graph, projectBuilder, rootProject, sinon, clock} = t.context;
-		const statusEvents = [];
-		const statusHandler = (evt) => statusEvents.push(evt);
-		process.on("ui5.serve-status", statusHandler);
-		t.teardown(() => process.off("ui5.serve-status", statusHandler));
+		const statusEvents = makeStatusRecorder(t);
 
 		let buildResolve;
 		let perProjectCb;
@@ -282,10 +306,7 @@ test.serial(
 
 test.serial("serve-status: build failure emits serveError and no orphan building", async (t) => {
 	const {BuildServer, graph, projectBuilder, sinon, clock} = t.context;
-	const statusEvents = [];
-	const statusHandler = (evt) => statusEvents.push(evt);
-	process.on("ui5.serve-status", statusHandler);
-	t.teardown(() => process.off("ui5.serve-status", statusHandler));
+	const statusEvents = makeStatusRecorder(t);
 
 	const buildError = new Error("Build blew up");
 	projectBuilder.build = sinon.stub().rejects(buildError);
@@ -319,18 +340,7 @@ test.serial(
 
 		// Augment the graph with a single library dependency so the build cycle leaves
 		// one INITIAL project behind, which is exactly the trigger for VALIDATING.
-		const rootProject = {getName: () => "root.project"};
-		const libProject = {getName: () => "library.x"};
-		const graph = {
-			getRoot: () => rootProject,
-			getProjects: () => [rootProject, libProject],
-			getTransitiveDependencies: () => ["library.x"],
-			getProject: (name) => name === "root.project" ? rootProject : libProject,
-			traverseDependents: function* (_projectName) {
-				yield {project: rootProject};
-				yield {project: libProject};
-			},
-		};
+		const {graph} = makeGraphWithLib();
 
 		// validateCaches: report library.x's cache as fresh — usesCache=true triggers the
 		// promote-to-FRESH path that closes out the validation pass with no stale projects.
@@ -349,10 +359,7 @@ test.serial(
 			}),
 		};
 
-		const statusEvents = [];
-		const statusHandler = (evt) => statusEvents.push(evt);
-		process.on("ui5.serve-status", statusHandler);
-		t.teardown(() => process.off("ui5.serve-status", statusHandler));
+		const statusEvents = makeStatusRecorder(t);
 
 		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
 		t.teardown(() => buildServer.destroy());
@@ -386,18 +393,7 @@ test.serial(
 	"serve-status: VALIDATING → STALE when validation finds a stale cache", async (t) => {
 		const {BuildServer, sinon, clock} = t.context;
 
-		const rootProject = {getName: () => "root.project"};
-		const libProject = {getName: () => "library.x"};
-		const graph = {
-			getRoot: () => rootProject,
-			getProjects: () => [rootProject, libProject],
-			getTransitiveDependencies: () => ["library.x"],
-			getProject: (name) => name === "root.project" ? rootProject : libProject,
-			traverseDependents: function* () {
-				yield {project: rootProject};
-				yield {project: libProject};
-			},
-		};
+		const {graph} = makeGraphWithLib();
 
 		// usesCache=false → project must stay INITIAL → final state is STALE.
 		const projectBuilder = {
@@ -415,10 +411,7 @@ test.serial(
 			}),
 		};
 
-		const statusEvents = [];
-		const statusHandler = (evt) => statusEvents.push(evt);
-		process.on("ui5.serve-status", statusHandler);
-		t.teardown(() => process.off("ui5.serve-status", statusHandler));
+		const statusEvents = makeStatusRecorder(t);
 
 		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
 		t.teardown(() => buildServer.destroy());
@@ -465,11 +458,7 @@ test.serial(
 				return Promise.resolve(["root.project"]);
 			}),
 		};
-
-		const statusEvents = [];
-		const statusHandler = (evt) => statusEvents.push(evt);
-		process.on("ui5.serve-status", statusHandler);
-		t.teardown(() => process.off("ui5.serve-status", statusHandler));
+		const statusEvents = makeStatusRecorder(t);
 
 		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
 		t.teardown(() => buildServer.destroy());
@@ -563,11 +552,7 @@ test.serial(
 			"../../../lib/build/BuildReader.js": CapturingBuildReader,
 			"../../../lib/build/helpers/WatchHandler.js": FakeWatchHandler,
 		})).default;
-
-		const statusEvents = [];
-		const statusHandler = (evt) => statusEvents.push(evt);
-		process.on("ui5.serve-status", statusHandler);
-		t.teardown(() => process.off("ui5.serve-status", statusHandler));
+		const statusEvents = makeStatusRecorder(t);
 
 		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
 		t.teardown(() => buildServer.destroy());
@@ -671,11 +656,7 @@ test.serial(
 			"../../../lib/build/BuildReader.js": CapturingBuildReader,
 			"../../../lib/build/helpers/WatchHandler.js": FakeWatchHandler,
 		})).default;
-
-		const statusEvents = [];
-		const statusHandler = (evt) => statusEvents.push(evt);
-		process.on("ui5.serve-status", statusHandler);
-		t.teardown(() => process.off("ui5.serve-status", statusHandler));
+		const statusEvents = makeStatusRecorder(t);
 
 		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
 		t.teardown(() => buildServer.destroy());
@@ -737,11 +718,7 @@ test.serial(
 				return Promise.resolve(["root.project"]);
 			}),
 		};
-
-		const statusEvents = [];
-		const statusHandler = (evt) => statusEvents.push(evt);
-		process.on("ui5.serve-status", statusHandler);
-		t.teardown(() => process.off("ui5.serve-status", statusHandler));
+		const statusEvents = makeStatusRecorder(t);
 
 		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
 		t.teardown(() => buildServer.destroy());
