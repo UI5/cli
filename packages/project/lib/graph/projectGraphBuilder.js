@@ -1,4 +1,5 @@
 import path from "node:path";
+import process from "node:process";
 import Module from "./Module.js";
 import ProjectGraph from "./ProjectGraph.js";
 import ShimCollection from "./ShimCollection.js";
@@ -137,6 +138,19 @@ async function projectGraphBuilder(nodeProvider, workspace) {
 		rootProjectName: rootProjectName
 	});
 	projectGraph.addProject(rootProject);
+
+	// Announce the resolved root project on the event bus, before dependency
+	// traversal. Consumed by @ui5/logger writers to populate their header /
+	// scrollback lines. Framework name/version may be null for projects without
+	// a UI5 framework dependency.
+	const frameworkName = rootProject.getFrameworkName?.();
+	const frameworkVersion = rootProject.getFrameworkVersion?.();
+	process.emit("ui5.project-resolved", {
+		name: rootProject.getName(),
+		type: rootProject.getType(),
+		version: rootProject.getVersion(),
+		framework: frameworkName ? {name: frameworkName, version: frameworkVersion} : null,
+	});
 
 	function handleExtensions(extensions) {
 		return _handleExtensions(projectGraph, shimCollection, extensions);

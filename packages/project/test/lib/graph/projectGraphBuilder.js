@@ -965,3 +965,24 @@ test("Multiple dependencies to different module containing the same extension", 
 			"This might be caused by multiple modules containing extensions with the same name"
 	});
 });
+
+test.serial("Emits ui5.project-resolved with the root project's shape", async (t) => {
+	const events = [];
+	const listener = (evt) => events.push(evt);
+	process.on("ui5.project-resolved", listener);
+	t.teardown(() => process.off("ui5.project-resolved", listener));
+
+	t.context.getRootNode.resolves(createNode({
+		id: "id1",
+		name: "root.project"
+	}));
+
+	await projectGraphBuilder(t.context.provider);
+
+	t.is(events.length, 1, "ui5.project-resolved emitted exactly once");
+	t.is(events[0].name, "root.project");
+	t.is(events[0].type, "library");
+	t.is(events[0].version, "1.0.0");
+	// The test's library.e fixture is not a framework project, so framework is null.
+	t.is(events[0].framework, null);
+});

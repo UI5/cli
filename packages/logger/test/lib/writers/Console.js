@@ -42,7 +42,7 @@ test.serial("Log event with invalid log level 'silent'", (t) => {
 			moduleName: "my:module"
 		});
 	}, {
-		message: `writers/Console: Invalid message log level "silent"`
+		message: `writers/internal/levelPrefix: Invalid message log level "silent"`
 	});
 
 	t.is(stderrWriteStub.callCount, 0, "Logged no message");
@@ -128,6 +128,8 @@ test.serial("Stop", (t) => {
 test.serial("Stop disables all instances", (t) => {
 	const {stderrWriteStub} = t.context;
 
+	// init() emits ui5.log.stop-console before enabling, so every new
+	// instance detaches previously-active ones. The last init() call wins.
 	ConsoleWriter.init();
 	ConsoleWriter.init();
 
@@ -137,7 +139,7 @@ test.serial("Stop disables all instances", (t) => {
 		moduleName: "my:module"
 	});
 
-	t.is(stderrWriteStub.callCount, 3, "Logged three message");
+	t.is(stderrWriteStub.callCount, 1, "Only the most recently initialised writer logged");
 	stderrWriteStub.resetHistory();
 
 	ConsoleWriter.stop();

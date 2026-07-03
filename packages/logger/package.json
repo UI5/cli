@@ -51,7 +51,9 @@
 		"chalk": "^5.6.2",
 		"cli-progress": "^3.12.0",
 		"figures": "^6.1.0",
-		"pretty-hrtime": "^1.0.3"
+		"log-update": "^7.2.0",
+		"pretty-hrtime": "^1.0.3",
+		"slice-ansi": "^5.0.0"
 	},
 	"devDependencies": {
 		"@istanbuljs/esm-loader-hook": "^0.3.0",

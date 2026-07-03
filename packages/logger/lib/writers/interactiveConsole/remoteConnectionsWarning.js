@@ -2,9 +2,9 @@ import chalk from "chalk";
 import figures from "figures";
 
 // Shared content for the "accepting remote connections" warning, rendered
-// both by the live banner (see render.js) and by the plain stderr fallback
-// in the serve command. Each entry is a fully chalk-formatted string;
-// consumers just print them line by line.
+// both by the interactive writer's server region and by Console.js's non-TTY
+// fallback. Each entry is a fully chalk-formatted string; consumers just
+// print them line by line.
 export const REMOTE_CONNECTIONS_WARNING_LINES = Object.freeze([
 	chalk.bold.yellow(
 		`${figures.warning} This server is accepting connections from all hosts on your network`),

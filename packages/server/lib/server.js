@@ -1,4 +1,6 @@
 import {getRandomValues} from "node:crypto";
+import os from "node:os";
+import process from "node:process";
 import express from "express";
 import portscanner from "portscanner";
 import MiddlewareManager from "./middleware/MiddlewareManager.js";
@@ -255,6 +257,22 @@ export async function serve(graph, {
 		liveReloadHandle = attachLiveReloadServer({httpServer: server, buildServer, token: webSocketToken});
 	}
 
+	// Announce the bound URLs on the event bus. The server owns the network-
+	// interface lookup because it knows the actual bound port (which may
+	// differ from the requested one when changePortIfInUse is set). Consumers
+	// (@ui5/logger writers) shape their own display from the label/url pairs.
+	const protocol = h2 ? "https" : "http";
+	const urls = [{label: "Local", url: `${protocol}://localhost:${port}`}];
+	if (acceptRemoteConnections) {
+		for (const addr of _findNetworkInterfaceAddresses()) {
+			urls.push({label: "Network", url: `${protocol}://${addr}:${port}`});
+		}
+	}
+	process.emit("ui5.server-listening", {
+		urls,
+		acceptRemoteConnections: !!acceptRemoteConnections,
+	});
+
 	return {
 		h2,
 		port,
@@ -267,4 +285,20 @@ export async function serve(graph, {
 			});
 		}
 	};
+}
+
+// Collects all non-internal IPv4 addresses from the host's network interfaces
+// so `ui5.server-listening` can list every reachable URL when the server binds
+// to all interfaces. Returns an empty array if no suitable address is found.
+function _findNetworkInterfaceAddresses() {
+	const interfaces = os.networkInterfaces();
+	const addresses = [];
+	for (const name of Object.keys(interfaces)) {
+		for (const iface of interfaces[name] ?? []) {
+			if (iface.family === "IPv4" && !iface.internal) {
+				addresses.push(iface.address);
+			}
+		}
+	}
+	return addresses;
 }

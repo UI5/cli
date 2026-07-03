@@ -19,6 +19,7 @@ test("check number of exports", (t) => {
 [
 	{exportedSpecifier: "Logger", mappedModule: "../../lib/loggers/Logger.js"},
 	"writers/Console",
+	"writers/InteractiveConsole",
 
 	// Internal modules (only to be used by @ui5/* packages)
 	{exportedSpecifier: "internal/loggers/Logger", mappedModule: "../../lib/loggers/Logger.js"},
