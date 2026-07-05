@@ -113,12 +113,12 @@ test("build", async (t) => {
 
 	const requiresBuildStub = sinon.stub().returns(true);
 	const possiblyRequiresBuildStub = sinon.stub().returns(true);
-	const prepareProjectBuildAndValidateCacheStub = sinon.stub().resolves(false);
+	const validateCacheStub = sinon.stub().resolves(false);
 	const buildProjectStub = sinon.stub().resolves();
 	const writeBuildCacheStub = sinon.stub().resolves();
 	const projectBuildContextMock = {
 		possiblyRequiresBuild: possiblyRequiresBuildStub,
-		prepareProjectBuildAndValidateCache: prepareProjectBuildAndValidateCacheStub,
+		validateCache: validateCacheStub,
 		buildProject: buildProjectStub,
 		writeBuildCache: writeBuildCacheStub,
 		requiresBuild: requiresBuildStub,
@@ -226,11 +226,11 @@ test("build: Failure", async (t) => {
 	sinon.stub(builder, "_createProjectFilter").returns(filterProjectStub);
 
 	const possiblyRequiresBuildStub = sinon.stub().returns(true);
-	const prepareProjectBuildAndValidateCacheStub = sinon.stub().resolves(false);
+	const validateCacheStub = sinon.stub().resolves(false);
 	const buildProjectStub = sinon.stub().rejects(new Error("Some Error"));
 	const projectBuildContextMock = {
 		possiblyRequiresBuild: possiblyRequiresBuildStub,
-		prepareProjectBuildAndValidateCache: prepareProjectBuildAndValidateCacheStub,
+		validateCache: validateCacheStub,
 		buildProject: buildProjectStub,
 		getProject: sinon.stub().returns(getMockProject("library"))
 	};
@@ -293,7 +293,7 @@ test.serial("build: Multiple projects", async (t) => {
 
 	const projectBuildContextMockA = {
 		possiblyRequiresBuild: sinon.stub().returns(true),
-		prepareProjectBuildAndValidateCache: sinon.stub().resolves(false),
+		validateCache: sinon.stub().resolves(false),
 		buildProject: buildProjectAStub,
 		writeBuildCache: writeBuildCacheStub,
 		getProject: sinon.stub().returns(getMockProject("library", "a")),
@@ -301,7 +301,7 @@ test.serial("build: Multiple projects", async (t) => {
 	};
 	const projectBuildContextMockB = {
 		possiblyRequiresBuild: sinon.stub().returns(false),
-		prepareProjectBuildAndValidateCache: sinon.stub().resolves(false),
+		validateCache: sinon.stub().resolves(false),
 		buildProject: buildProjectBStub,
 		writeBuildCache: writeBuildCacheStub,
 		getProject: sinon.stub().returns(getMockProject("library", "b")),
@@ -309,7 +309,7 @@ test.serial("build: Multiple projects", async (t) => {
 	};
 	const projectBuildContextMockC = {
 		possiblyRequiresBuild: sinon.stub().returns(true),
-		prepareProjectBuildAndValidateCache: sinon.stub().resolves(false),
+		validateCache: sinon.stub().resolves(false),
 		buildProject: buildProjectCStub,
 		writeBuildCache: writeBuildCacheStub,
 		getProject: sinon.stub().returns(getMockProject("library", "c")),

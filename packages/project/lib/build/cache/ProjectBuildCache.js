@@ -150,45 +150,34 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Sets the dependency reader for accessing dependency resources
-	 *
-	 * The dependency reader is used by tasks to access resources from project
-	 * dependencies. Must be set before tasks that require dependencies are executed.
-	 *
-	 * @public
-	 * @param {@ui5/fs/AbstractReader} dependencyReader Reader for dependency resources
-	 * @returns {Promise<string[]|boolean>}
-	 *  Array of changed resource paths since last build, true if cache is fresh, false
-	 *  if cache is empty
-	 */
-	async prepareProjectBuildAndValidateCache(dependencyReader) {
-		// Discard any in-memory StageCache entries that a prior aborted build left in
-		// the queue. Successful builds flush the queue in writeCache, so this is a
-		// no-op in the common case.
-		this.#stageCache.discardPending();
-
-		this.#currentProjectReader = this.#project.getReader();
-
-		this.#currentDependencyReader = dependencyReader;
-
-		return this.validateCache(dependencyReader);
-	}
-
-	/**
-	 * Validates the current build cache state without performing build-prep side effects.
+	 * Validates the current build cache state.
 	 *
 	 * Flushes any pending source/dependency changes, refreshes dependency indices on first use,
 	 * and attempts to locate a cached result stage. Safe to call independently of a build attempt
 	 * (e.g. to check whether the cache is stale).
 	 *
+	 * When `prepareForBuild` is true, additionally performs the side effects required before a
+	 * project build: discards any in-memory StageCache entries left over from a prior aborted
+	 * build (successful builds flush the queue in writeCache, so this is a no-op in the common
+	 * case) and captures the current project and dependency readers for later use by
+	 * recordTaskResult.
+	 *
 	 * @public
 	 * @param {@ui5/fs/AbstractReader} dependencyReader Reader for dependency resources, used to
 	 *   refresh dependency indices when required
+	 * @param {object} [options]
+	 * @param {boolean} [options.prepareForBuild=false] Run the pre-build side effects before
+	 *   validating (see method description)
 	 * @returns {Promise<string[]|boolean>}
 	 *  Array of changed resource paths since last build, true if cache is fresh, false
 	 *  if cache is empty
 	 */
-	async validateCache(dependencyReader) {
+	async validateCache(dependencyReader, {prepareForBuild = false} = {}) {
+		if (prepareForBuild) {
+			this.#stageCache.discardPending();
+			this.#currentProjectReader = this.#project.getReader();
+			this.#currentDependencyReader = dependencyReader;
+		}
 		// When cache=Off, don't validate or use result cache
 		if (this.#cacheMode === Cache.Off) {
 			log.verbose(`Cache is in "Off" mode for project ${this.#project.getName()}. ` +
@@ -1275,11 +1264,10 @@ export default class ProjectBuildCache {
 			this.#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
 			this.#sourceIndex = null;
 			this.#taskCache.clear();
-			// Result cache state must also be reset: prepareProjectBuildAndValidateCache may have
-			// already transitioned it to NO_CACHE or FRESH_AND_IN_USE in the aborted build. The
-			// retry's prepareProjectBuildAndValidateCache asserts PENDING_VALIDATION after the
-			// dependency-index restore step, so a leftover non-PENDING_VALIDATION value would
-			// trip that assertion.
+			// Result cache state must also be reset: the aborted build's validateCache may
+			// have already transitioned it to NO_CACHE or FRESH_AND_IN_USE. The retry's
+			// validateCache asserts PENDING_VALIDATION after the dependency-index restore
+			// step, so a leftover non-PENDING_VALIDATION value would trip that assertion.
 			this.#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
 
 			throw new SourceChangedDuringBuildError(this.#project.getName());

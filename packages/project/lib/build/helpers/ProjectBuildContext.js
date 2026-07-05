@@ -244,7 +244,7 @@ class ProjectBuildContext {
 	 * Early check whether a project build is possibly required.
 	 *
 	 * In some cases, the cache state cannot be determined until all dependencies have been processed and
-	 * the cache has been updated with that information. This happens during prepareProjectBuildAndValidateCache().
+	 * the cache has been updated with that information. This happens during validateCache().
 	 *
 	 * This method allows for an early check whether a project build can be skipped.
 	 *
@@ -260,46 +260,21 @@ class ProjectBuildContext {
 	}
 
 	/**
-	 * Prepares the project build by updating and validating the build cache
+	 * Validates the current build cache.
 	 *
-	 * Creates a dependency reader and validates the cache state against current resources.
-	 * Must be called before buildProject().
+	 * Fetches a fresh dependency reader, asks the build cache whether it is stale, and
+	 * propagates any detected resource changes to dependents. When `prepareForBuild` is
+	 * true, additionally runs the pre-build side effects on the underlying cache
+	 * (discarding pending stage-cache entries from a prior aborted build and capturing
+	 * the current project/dependency readers).
 	 *
+	 * @param {object} [options]
+	 * @param {boolean} [options.prepareForBuild=false] Run pre-build side effects on the
+	 *   underlying cache. Must be true when this call precedes {@link #buildProject}.
 	 * @returns {Promise<true|false>}
 	 *   True if a valid cache was found and is being used. False otherwise (indicating a build is required).
 	 */
-	async prepareProjectBuildAndValidateCache() {
-		return this.#runCacheValidation(
-			"prepareProjectBuildAndValidateCache",
-			(cache, depReader) => cache.prepareProjectBuildAndValidateCache(depReader));
-	}
-
-	/**
-	 * Validates the current build cache without performing build-prep side effects.
-	 *
-	 * Creates a dependency reader and asks the build cache whether it is stale,
-	 * propagating any detected resource changes to dependents.
-	 *
-	 * @returns {Promise<true|false>}
-	 *   True if a valid cache was found and is being used. False otherwise.
-	 */
-	async validateCache() {
-		return this.#runCacheValidation(
-			"validateCache",
-			(cache, depReader) => cache.validateCache(depReader));
-	}
-
-	/**
-	 * Shared implementation for the two cache-validation entry points: fetches a fresh
-	 * dependency reader, invokes the supplied cache call, and propagates any changed
-	 * resource paths to dependents.
-	 *
-	 * @param {string} label Method name used for perf logging
-	 * @param {Function} call Callback receiving (cache, depReader); returns boolean or string[]
-	 * @returns {Promise<boolean>}
-	 *   True if a valid cache was found and is being used. False otherwise.
-	 */
-	async #runCacheValidation(label, call) {
+	async validateCache({prepareForBuild = false} = {}) {
 		const perfEnabled = this._log.isLevelEnabled("perf");
 		const readerStart = perfEnabled ? performance.now() : 0;
 		const depReader = await this.getTaskRunner().getDependenciesReader(
@@ -311,10 +286,10 @@ class ProjectBuildContext {
 				`getDependenciesReader completed in ${(performance.now() - readerStart).toFixed(2)} ms`);
 		}
 		const cacheStart = perfEnabled ? performance.now() : 0;
-		const boolOrChangedPaths = await call(this.getBuildCache(), depReader);
+		const boolOrChangedPaths = await this.getBuildCache().validateCache(depReader, {prepareForBuild});
 		if (perfEnabled) {
 			this._log.perf(
-				`ProjectBuildCache.${label} completed in ` +
+				`ProjectBuildCache.validateCache completed in ` +
 				`${(performance.now() - cacheStart).toFixed(2)} ms`);
 		}
 		if (Array.isArray(boolOrChangedPaths)) {
@@ -329,7 +304,7 @@ class ProjectBuildContext {
 	 * Builds the project by running all required tasks
 	 *
 	 * Executes all configured build tasks for the project using the task runner.
-	 * Must be called after prepareProjectBuildAndValidateCache().
+	 * Must be called after validateCache({prepareForBuild: true}).
 	 *
 	 * @param {AbortSignal} [signal] Abort signal
 	 */
