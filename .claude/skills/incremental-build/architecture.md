@@ -147,7 +147,7 @@ At build completion, `#revalidateSourceIndex()` re-reads all source files and co
   -> Create fresh ResourceIndex from all source resources
   -> #combinedIndexState = INITIAL
 
-prepareProjectBuildAndValidateCache()
+validateCache({prepareForBuild: true})
   -> State is INITIAL -> return false (no cache to validate)
 
 For each task:
@@ -178,7 +178,7 @@ projectSourcesChanged(changedPaths) / dependencyResourcesChanged(changedPaths)
   -> Records changed paths
   -> Sets #combinedIndexState = REQUIRES_UPDATE
 
-prepareProjectBuildAndValidateCache()
+validateCache({prepareForBuild: true})
   -> State is REQUIRES_UPDATE
   -> #flushPendingChanges():
       #updateSourceIndex(changedPaths) -> reads resources from source reader

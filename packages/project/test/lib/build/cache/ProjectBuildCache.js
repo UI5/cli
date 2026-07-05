@@ -295,7 +295,7 @@ test("allTasksCompleted returns changed resource paths", async (t) => {
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 	await cache.initSourceIndex();
 
-	// Simulate some changes - change tracking happens during prepareProjectBuildAndValidateCache
+	// Simulate some changes - change tracking happens during validateCache
 	cache.projectSourcesChanged(["/test.js"]);
 
 	const changedPaths = await cache.allTasksCompleted();
@@ -802,14 +802,14 @@ test("projectSourcesChanged after SourceChangedDuringBuildError does not corrupt
 	byGlobCallCount = 0; // Reset so initSourceIndex gets fresh resources
 	await cache.initSourceIndex();
 
-	// And prepareProjectBuildAndValidateCache should not crash
+	// And validateCache({prepareForBuild: true}) should not crash
 	const mockDependencyReader = {
 		byGlob: sinon.stub().resolves([]),
 		byPath: sinon.stub().resolves(null)
 	};
 	await t.notThrowsAsync(
-		() => cache.prepareProjectBuildAndValidateCache(mockDependencyReader),
-		"prepareProjectBuildAndValidateCache does not throw after race condition"
+		() => cache.validateCache(mockDependencyReader, {prepareForBuild: true}),
+		"validateCache does not throw after race condition"
 	);
 });
 
@@ -819,14 +819,14 @@ test("Retry after SourceChangedDuringBuildError when prior build set NO_CACHE: "
 	// for project ...: no_cache".
 	//
 	// Sequence:
-	//   1. Initial build: prepareProjectBuildAndValidateCache validates the result cache,
+	//   1. Initial build: validateCache({prepareForBuild: true}) validates the result cache,
 	//      finds no match, transitions resultCacheState to NO_CACHE.
 	//   2. allTasksCompleted detects a source change during build (file changed after the
 	//      build started but before the watcher's abort signal propagated). It throws
 	//      SourceChangedDuringBuildError and resets indexState — but historically did not
 	//      reset resultCacheState, leaving it stuck on NO_CACHE.
-	//   3. BuildServer re-enqueues the project. The retry's prepareProjectBuildAndValidateCache
-	//      enters the RESTORING_DEPENDENCY_INDICES branch, which asserts resultCacheState ===
+	//   3. BuildServer re-enqueues the project. The retry's validateCache enters the
+	//      RESTORING_DEPENDENCY_INDICES branch, which asserts resultCacheState ===
 	//      PENDING_VALIDATION. With the leftover NO_CACHE the assertion threw.
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
@@ -870,7 +870,7 @@ test("Retry after SourceChangedDuringBuildError when prior build set NO_CACHE: "
 	};
 
 	// Step 1: initial build path — drives resultCacheState to NO_CACHE.
-	await cache.prepareProjectBuildAndValidateCache(mockDependencyReader);
+	await cache.validateCache(mockDependencyReader, {prepareForBuild: true});
 
 	// Step 2: source changed during build — flip the source reader to the modified resource.
 	revalidate = true;
@@ -881,12 +881,12 @@ test("Retry after SourceChangedDuringBuildError when prior build set NO_CACHE: "
 	revalidate = false; // pretend the file is stable on the retry
 	await cache.initSourceIndex();
 	await t.notThrowsAsync(
-		() => cache.prepareProjectBuildAndValidateCache(mockDependencyReader),
-		"prepareProjectBuildAndValidateCache succeeds on retry"
+		() => cache.validateCache(mockDependencyReader, {prepareForBuild: true}),
+		"validateCache succeeds on retry"
 	);
 });
 
-test("prepareProjectBuildAndValidateCache: returns false for empty cache", async (t) => {
+test("validateCache: prepareForBuild=true returns false for empty cache", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
@@ -897,7 +897,7 @@ test("prepareProjectBuildAndValidateCache: returns false for empty cache", async
 		byPath: sinon.stub().resolves(null)
 	};
 
-	const result = await cache.prepareProjectBuildAndValidateCache(mockDependencyReader);
+	const result = await cache.validateCache(mockDependencyReader, {prepareForBuild: true});
 
 	t.is(result, false, "Returns false for empty cache");
 });
@@ -1546,10 +1546,10 @@ test("restoreFrozenSources: cache miss skips gracefully", async (t) => {
 		byGlob: sinon.stub().resolves([]),
 		byPath: sinon.stub().resolves(null)
 	};
-	const result = await cache.prepareProjectBuildAndValidateCache(mockDepReader);
+	const result = await cache.validateCache(mockDepReader, {prepareForBuild: true});
 
 	// Should succeed without error — cache miss for source stage is non-fatal
-	t.truthy(result, "prepareProjectBuildAndValidateCache succeeds despite source cache miss");
+	t.truthy(result, "validateCache succeeds despite source cache miss");
 
 	// setFrozenSourceReader should NOT have been called
 	t.false(project.getProjectResources().setFrozenSourceReader.called,
@@ -1633,7 +1633,7 @@ test("restoreFrozenSources: cache hit creates CAS reader", async (t) => {
 		byGlob: sinon.stub().resolves([]),
 		byPath: sinon.stub().resolves(null)
 	};
-	const result = await cache.prepareProjectBuildAndValidateCache(mockDepReader);
+	const result = await cache.validateCache(mockDepReader, {prepareForBuild: true});
 
 	t.truthy(result, "Cache restored successfully");
 
@@ -1735,20 +1735,20 @@ async function createCacheInRestoringState({
 	return {cache, project, cacheManager, refreshSpy, mockDependencyReader};
 }
 
-test("prepareProjectBuildAndValidateCache: skips _refreshDependencyIndices when no dependency " +
+test("validateCache prepareForBuild=true: skips _refreshDependencyIndices when no dependency " +
 	"changes propagated (warm cache)", async (t) => {
 	const {cache, refreshSpy, mockDependencyReader} = await createCacheInRestoringState();
 
 	// Do NOT call dependencyResourcesChanged — simulates warm cache with no upstream changes.
 	// In RESTORING_DEPENDENCY_INDICES state, cached dependency indices (from BuildTaskCache.fromCache)
 	// are already correct, so _refreshDependencyIndices can be skipped.
-	await cache.prepareProjectBuildAndValidateCache(mockDependencyReader);
+	await cache.validateCache(mockDependencyReader, {prepareForBuild: true});
 
 	t.false(refreshSpy.called,
 		"_refreshDependencyIndices should NOT be called when no dependency changes were propagated");
 });
 
-test("prepareProjectBuildAndValidateCache: dependency changes move state from " +
+test("validateCache prepareForBuild=true: dependency changes move state from " +
 	"RESTORING_DEPENDENCY_INDICES to REQUIRES_UPDATE", async (t) => {
 	const {cache, refreshSpy, mockDependencyReader} = await createCacheInRestoringState();
 
@@ -1758,7 +1758,7 @@ test("prepareProjectBuildAndValidateCache: dependency changes move state from " 
 	// the full _refreshDependencyIndices path.
 	cache.dependencyResourcesChanged(["/dep/lib/SomeModule.js"]);
 
-	await cache.prepareProjectBuildAndValidateCache(mockDependencyReader);
+	await cache.validateCache(mockDependencyReader, {prepareForBuild: true});
 
 	// _refreshDependencyIndices is NOT called because dependencyResourcesChanged() already moved
 	// the state to REQUIRES_UPDATE, bypassing the RESTORING_DEPENDENCY_INDICES branch entirely.
@@ -1767,28 +1767,28 @@ test("prepareProjectBuildAndValidateCache: dependency changes move state from " 
 		"_refreshDependencyIndices should NOT be called — changes handled via #flushPendingChanges");
 });
 
-test("prepareProjectBuildAndValidateCache: transitions from RESTORING_DEPENDENCY_INDICES " +
+test("validateCache prepareForBuild=true: transitions from RESTORING_DEPENDENCY_INDICES " +
 	"to FRESH state", async (t) => {
 	const {cache, refreshSpy, mockDependencyReader} = await createCacheInRestoringState();
 
 	// First call transitions from RESTORING_DEPENDENCY_INDICES to FRESH
-	await cache.prepareProjectBuildAndValidateCache(mockDependencyReader);
+	await cache.validateCache(mockDependencyReader, {prepareForBuild: true});
 	t.false(refreshSpy.called, "_refreshDependencyIndices not called on first pass (no changes)");
 
 	// Second call without new changes — state is already FRESH, no refresh needed
 	refreshSpy.resetHistory();
-	await cache.prepareProjectBuildAndValidateCache(mockDependencyReader);
+	await cache.validateCache(mockDependencyReader, {prepareForBuild: true});
 
 	t.false(refreshSpy.called,
 		"_refreshDependencyIndices should NOT be called on second invocation (state is FRESH)");
 });
 
-test("prepareProjectBuildAndValidateCache: subsequent dependency changes go through " +
+test("validateCache prepareForBuild=true: subsequent dependency changes go through " +
 	"REQUIRES_UPDATE path, not RESTORING_DEPENDENCY_INDICES", async (t) => {
 	const {cache, refreshSpy, mockDependencyReader} = await createCacheInRestoringState();
 
 	// First call with no changes — transitions from RESTORING_DEPENDENCY_INDICES to FRESH
-	await cache.prepareProjectBuildAndValidateCache(mockDependencyReader);
+	await cache.validateCache(mockDependencyReader, {prepareForBuild: true});
 	t.false(refreshSpy.called, "_refreshDependencyIndices not called on first pass (no changes)");
 
 	// Now simulate a dependency change (e.g. from BuildServer watch mode)
@@ -1796,7 +1796,7 @@ test("prepareProjectBuildAndValidateCache: subsequent dependency changes go thro
 
 	// Second call — should go through REQUIRES_UPDATE / #flushPendingChanges, not _refreshDependencyIndices
 	refreshSpy.resetHistory();
-	await cache.prepareProjectBuildAndValidateCache(mockDependencyReader);
+	await cache.validateCache(mockDependencyReader, {prepareForBuild: true});
 
 	t.false(refreshSpy.called,
 		"_refreshDependencyIndices should NOT be called for REQUIRES_UPDATE state " +
@@ -1845,21 +1845,6 @@ test("validateCache: warm cache without changes is fresh", async (t) => {
 	t.false(refreshSpy.called, "_refreshDependencyIndices is skipped without dependency changes");
 	// With no persisted result metadata available, validateCache returns false (NO_CACHE).
 	t.is(result, false, "validateCache returns false when no result metadata is cached");
-});
-
-test("validateCache: prepareProjectBuildAndValidateCache delegates to validateCache", async (t) => {
-	const {cache, mockDependencyReader} = await createCacheInRestoringState();
-
-	// Spy on validateCache to confirm prepareProjectBuildAndValidateCache delegates
-	const validateSpy = sinon.spy(cache, "validateCache");
-
-	const prepResult = await cache.prepareProjectBuildAndValidateCache(mockDependencyReader);
-
-	t.true(validateSpy.calledOnce, "validateCache is invoked exactly once by prepareProjectBuildAndValidateCache");
-	t.is(validateSpy.firstCall.args[0], mockDependencyReader,
-		"dependencyReader is forwarded to validateCache");
-	t.is(prepResult, await validateSpy.firstCall.returnValue,
-		"prepareProjectBuildAndValidateCache returns whatever validateCache returned");
 });
 
 test("validateCache: Cache.Force throws when source changes are detected", async (t) => {

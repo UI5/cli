@@ -425,10 +425,10 @@ class ProjectBuilder {
 						this.#log.skipProjectBuild(projectName, projectType);
 					} else {
 						const prepStart = performance.now();
-						const usesCache = await projectBuildContext.prepareProjectBuildAndValidateCache();
+						const usesCache = await projectBuildContext.validateCache({prepareForBuild: true});
 						if (this.#log.isLevelEnabled("perf")) {
 							this.#log.perf(
-								`prepareProjectBuildAndValidateCache for ${projectName} ` +
+								`validateCache for ${projectName} ` +
 								`completed in ${(performance.now() - prepStart).toFixed(2)} ms ` +
 								`(usesCache=${usesCache})`);
 						}

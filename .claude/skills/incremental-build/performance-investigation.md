@@ -134,10 +134,10 @@ perf Validated result cache for project sap.ui.core in 13 ms
 After validation:
 
 ```
-perf prepareProjectBuildAndValidateCache for sap.ui.core completed in 34 ms (usesCache=true)
+perf validateCache for sap.ui.core completed in 34 ms (usesCache=true)
 info ✔ Skipping build of library project sap.ui.core
    OR
-perf prepareProjectBuildAndValidateCache for sap.m completed in 0.48 ms (usesCache=false)
+perf validateCache for sap.m completed in 0.48 ms (usesCache=false)
 info ❯ Building library project sap.m...
 ```
 
@@ -238,9 +238,9 @@ All `log.perf()` statements by source file:
 | `BuildContext.js` | `Parallel source index initialization completed` | Total time for parallel `initSourceIndex` across all projects |
 | `BuildContext.js` | `getRequiredProjectContexts completed` | Discovery + index init for all required projects |
 | `ProjectBuildContext.js` | `getDependenciesReader completed` | Creating the dependency reader for a project |
-| `ProjectBuildContext.js` | `ProjectBuildCache.prepareProjectBuildAndValidateCache completed` | Full cache validation for one project |
+| `ProjectBuildContext.js` | `ProjectBuildCache.validateCache completed` | Full cache validation for one project |
 | `ProjectBuilder.js` | `getRequiredProjectContexts completed` | Top-level timing (includes context creation) |
-| `ProjectBuilder.js` | `prepareProjectBuildAndValidateCache for {project} completed` | Per-project validation with `usesCache` flag |
+| `ProjectBuilder.js` | `validateCache for {project} completed` | Per-project validation with `usesCache` flag |
 | `TaskRunner.js` | `Task {name} finished in {N} ms` | Individual task execution time |
 | `ProjectBuildCache.js` | `#initSourceIndex fromCacheWithDelta` | Delta detection: resource count, changed count |
 | `ProjectBuildCache.js` | `Initialized source index for project` | Total source index init (glob + cache read + delta) |

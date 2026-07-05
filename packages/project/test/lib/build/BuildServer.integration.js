@@ -952,7 +952,7 @@ test.serial(
 	}
 );
 
-// Regression: a build that hits the NO_CACHE state in prepareProjectBuildAndValidateCache
+// Regression: a build that hits the NO_CACHE state in validateCache({prepareForBuild: true})
 // (because the source signature does not match anything in the persistent cache) and then
 // throws SourceChangedDuringBuildError from allTasksCompleted used to fail on retry with
 // "Unexpected result cache state after restoring dependency indices for project XYZ: no_cache".
@@ -964,7 +964,7 @@ test.serial(
 //      reader request drives a second build.
 //   3. The second build's #initSourceIndex finds an existing index cache and transitions to
 //      RESTORING_DEPENDENCY_INDICES (rather than INITIAL, which short-circuits prepare).
-//   4. prepareProjectBuildAndValidateCache sees a source-signature mismatch against the
+//   4. validateCache({prepareForBuild: true}) sees a source-signature mismatch against the
 //      persisted result cache and sets #resultCacheState = NO_CACHE.
 //   5. A *further* on-disk source change lands during the second build, but the watcher path
 //      is stubbed so the abort signal is never set. allTasksCompleted's revalidateSourceIndex
