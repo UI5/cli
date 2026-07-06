@@ -11,6 +11,11 @@ export const STATES = Object.freeze({
 	ERROR: "error",
 });
 
+// States that animate a spinner. Consulted by both the tick scheduler in the
+// interactive console writer and the status-line renderer, so a state either
+// spins in both places or in neither.
+export const SPINNING_STATES = new Set([STATES.BUILDING, STATES.VALIDATING]);
+
 export function createBuildState() {
 	return {
 		state: STATES.INITIAL,
