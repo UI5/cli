@@ -340,6 +340,46 @@ class ProjectBuilder {
 	}
 
 	/**
+	 * Resolves the project build contexts for the requested projects (plus their transitive
+	 * build-time dependencies) and returns them in dependency-first (DFS) order. Shared setup
+	 * for {@link #build} and {@link #validate}; the DFS ordering ensures that dependencies are
+	 * processed before their dependents, so propagated resource changes reach dependents in
+	 * time.
+	 *
+	 * @param {string[]} requestedProjects Names of the projects the caller wants to process
+	 * @returns {Promise<{
+	 *   projectBuildContexts: Map<string, @ui5/project/build/helpers/ProjectBuildContext>,
+	 *   queue: @ui5/project/build/helpers/ProjectBuildContext[],
+	 *   processedProjectNames: string[]
+	 * }>}
+	 *   The full context map, plus a DFS-ordered array of the contexts that will be walked
+	 *   and the matching project names in the same order.
+	 */
+	async #buildProjectQueue(requestedProjects) {
+		const reqStart = performance.now();
+		const projectBuildContexts = await this._buildContext.getRequiredProjectContexts(requestedProjects);
+		if (this.#log.isLevelEnabled("perf")) {
+			this.#log.perf(
+				`getRequiredProjectContexts completed in ${(performance.now() - reqStart).toFixed(2)} ms`);
+		}
+
+		const queue = [];
+		const processedProjectNames = [];
+		for (const {project} of this._graph.traverseDependenciesDepthFirst(true)) {
+			const projectName = project.getName();
+			const projectBuildContext = projectBuildContexts.get(projectName);
+			if (projectBuildContext) {
+				// Build context exists
+				//	=> This project needs to be built or, in case it has already
+				//		been built, it's build result needs to be written out (if requested)
+				queue.push(projectBuildContext);
+				processedProjectNames.push(projectName);
+			}
+		}
+		return {projectBuildContexts, queue, processedProjectNames};
+	}
+
+	/**
 	 * Internal build implementation that orchestrates the actual build process
 	 *
 	 * @param {string[]} requestedProjects Array of project names to build
@@ -358,27 +398,7 @@ class ProjectBuilder {
 		try {
 			cleanupSigHooks = this._registerCleanupSigHooks();
 			this.#log.info(`Preparing build for projects: ${requestedProjects.join(", ")}`);
-			const reqStart = performance.now();
-			const projectBuildContexts = await this._buildContext.getRequiredProjectContexts(requestedProjects);
-			if (this.#log.isLevelEnabled("perf")) {
-				this.#log.perf(
-					`getRequiredProjectContexts completed in ${(performance.now() - reqStart).toFixed(2)} ms`);
-			}
-
-			// Create build queue based on graph depth-first search to ensure correct build order
-			const queue = [];
-			const processedProjectNames = [];
-			for (const {project} of this._graph.traverseDependenciesDepthFirst(true)) {
-				const projectName = project.getName();
-				const projectBuildContext = projectBuildContexts.get(projectName);
-				if (projectBuildContext) {
-					// Build context exists
-					//	=> This project needs to be built or, in case it has already
-					//		been built, it's build result needs to be written out (if requested)
-					queue.push(projectBuildContext);
-					processedProjectNames.push(projectName);
-				}
-			}
+			const {queue, processedProjectNames} = await this.#buildProjectQueue(requestedProjects);
 
 			this.#log.setProjects(queue.map((projectBuildContext) => {
 				return projectBuildContext.getProject().getName();
@@ -394,8 +414,7 @@ class ProjectBuilder {
 
 			const startTime = process.hrtime();
 			try {
-				while (queue.length) {
-					const projectBuildContext = queue.shift();
+				for (const projectBuildContext of queue) {
 					const project = projectBuildContext.getProject();
 					const projectName = project.getName();
 					const projectType = project.getType();
@@ -492,9 +511,9 @@ class ProjectBuilder {
 			// build flow through `projectSourcesChanged` → `#flushPendingChanges` →
 			// `#updateSourceIndex` at the next build's start, leaving the source index
 			// consistent by the time `#revalidateSourceIndex` runs at build end.
-			const projectBuildContexts =
-				await this._buildContext.getRequiredProjectContexts(requestedProjects);
-			if (projectBuildContexts.size === 0) {
+			const {projectBuildContexts, queue, processedProjectNames} =
+				await this.#buildProjectQueue(requestedProjects);
+			if (queue.length === 0) {
 				this.#log.verbose(`No projects to validate`);
 				return [];
 			}
@@ -505,24 +524,9 @@ class ProjectBuilder {
 			// checking membership per project is O(N) on an array — hoist to a Set.
 			const requestedSet = new Set(requestedProjects);
 
-			// Build queue based on graph depth-first search to ensure that dependencies
-			// are validated before their dependents, so propagated resource changes reach
-			// dependents before those dependents validate themselves.
-			const queue = [];
-			const processedProjectNames = [];
-			for (const {project} of this._graph.traverseDependenciesDepthFirst(true)) {
-				const projectName = project.getName();
-				const projectBuildContext = projectBuildContexts.get(projectName);
-				if (projectBuildContext) {
-					queue.push(projectBuildContext);
-					processedProjectNames.push(projectName);
-				}
-			}
-
 			try {
-				while (queue.length) {
+				for (const projectBuildContext of queue) {
 					signal?.throwIfAborted();
-					const projectBuildContext = queue.shift();
 					const project = projectBuildContext.getProject();
 					const projectName = project.getName();
 					const isRequested = requestedSet.has(projectName);
