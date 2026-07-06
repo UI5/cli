@@ -187,12 +187,14 @@ Build tasks can now optionally support "differential builds" by implementing the
 
 * **supportsDifferentialBuilds()**: Returns `true` if the task supports differential builds, i.e. if it can process only a subset of changed resources instead of all resources. If this method is not implemented, it is assumed that the task does not support differential builds.
 	* If a task supports differential builds, it will be provided with a list of changed resource paths since its last execution.
-* **async determineBuildSignature({log, options})**
+* **async determineBuildSignature({log, options, taskUtil})**
 	* `log`: A logger instance scoped to the task
 	* `options`: Same as for the main task function. `{projectName, projectNamespace, configuration, taskName}`
-	* Returns: `undefined` or an arbitrary string representing the build signature for the task. This can be used to incorporate task-specific configuration files (e.g. tsconfig.json for a TypeScript compilation task) into the build signature of the project, causing the cache to be invalidated if those files change. The string should not be a hash value (the build signature hash is calculated later). If `undefined` is returned, or if the method is not implemented, it is assumed that the task's cache remains valid until relevant input resources change.
+	* `taskUtil`: A read-only variant of the `Task Util` API, allowing the task to inspect project state (e.g. read project configuration) before the task has run. Available to tasks with Specification Version 5.0 or higher.
+	* Returns: `undefined` or an arbitrary string representing the build signature for the task. This can be used to incorporate task-specific configuration files (e.g. `tsconfig.json` for a TypeScript compilation task) into the build signature of the project, causing the cache to be invalidated if those files change. The string should not be a hash value (the build signature hash is calculated later). If `undefined` is returned, or if the method is not implemented, the task's build signature falls back to a hash of its configuration.
+	* Custom tasks providing this callback must declare Specification Version 5.0 or higher.
 	* This method is called once at the beginning of every build. The return value is used to calculate a unique signature for the task based on its configuration. This signature is then incorporated into the overall build signature of the project (see [Cache Creation](#cache-creation) below).
-	* Might return a list of file paths that shall be watched for changes (when running in watch mode). On change, the build signature is recalculated and the cache invalidated if it has changed.
+	* **To be discussed:** Whether the callback may also return a list of file paths to be watched for changes in watch mode. On change, the build signature would be recalculated and the cache invalidated if it has changed. Currently, configuration changes require a restart (see [Watch Mode: Cache Invalidation](#cache-invalidation-1)).
 * **async determineExpectedOutput({workspace, dependencies, cacheUtil, log, options})**: Stale output detection is essential for cache correctness — without it, resources from a previous build that are no longer produced will persist in the cache. The exact shape of this API is still under discussion; alternatives such as inferring expected output from previous executions are also being considered.
 	* `workspace`: Reader to access resources of the project's `workspace` (read only)
 	* `dependencies`: Reader to access resources of the project's dependencies
@@ -298,7 +300,7 @@ However, there are major differences in how those two types of project states ar
 
 #### Build Signature
 
-The build signature is used to distinguish different builds of the same project. It is calculated from an internal version constant (bumped whenever the cache format changes), the **build configuration**, and the project's identity and configuration.
+The build signature is used to distinguish different builds of the same project. It is calculated from an internal version constant (bumped whenever the cache format changes), the **build configuration**, the project's identity and configuration, the effective versions of `@ui5/builder` and `@ui5/fs` (so that a package upgrade whose task output shape changed does not silently reuse an incompatible cache), and the aggregated `determineBuildSignature` contributions of all tasks in the build.
 
 This signature is used to determine whether an existing cache can be used in a given build execution. For example, a "jsdoc" build leads to a different build signature than a regular project build, so two independent cache entries will be created in the database.
 
@@ -545,7 +547,7 @@ After a *project* has finished building, a list of all modified resources is com
 
 Parallel builds of the same project are not supported. SQLite's WAL mode provides the necessary concurrency control at the database level: multiple readers can operate concurrently, and a single writer is serialized automatically by SQLite. No external lock files are needed for raw database I/O.
 
-Within a single process, the cache manager that owns the SQLite connection is a singleton per cache directory and shared across all consumers (e.g. a multi-project build, the development server). The underlying database is closed only when the last consumer releases it, so that one consumer cannot prematurely close handles that another still depends on.
+Within a single UI5 CLI process, the cache manager that owns the SQLite connection is a singleton per cache directory and shared across all consumers (e.g. multiple builds triggered by the server all use the same cache manager). The underlying database is closed only when the last consumer releases it, so that one consumer cannot prematurely close handles that another still depends on.
 
 #### Cross-Process Build Coordination
 
@@ -620,6 +622,21 @@ Since executing a full build requires more time than the on-the-fly processing o
 While a build is running, the server pauses responding to incoming requests for resources of projects that are currently being rebuilt. This ensures that the server does not serve outdated or partially built resources. Requests for resources of other projects that are not affected by the current build continue to be served normally.
 
 The server emits events (`buildFinished`, `sourcesChanged`, `error`) that can be consumed by middleware or future live-reload implementations.
+
+#### Background Cache Validation
+
+For a project that has not yet been built in the current session, the server initially only knows the build signature — not whether a cache exists on disk, and if so, whether it is still valid against the current source state. Deferring this check until the first request against the project's readers would make the *first* request pay for cold-cache I/O, and would leave the server unable to distinguish "cache present and valid, no rebuild needed" from "cache stale, rebuild imminent" until a request happens to hit that project.
+
+To decouple this from the request path, the `BuildServer` runs an explicit **background cache validation** pass between build cycles: after each build cycle drains, any project whose cache status is still unknown (or was invalidated during the last cycle) is walked in dependency-first order. Each project's `Project Build Cache` is asked to validate its cache against the current source state; if valid, the project is marked as up-to-date, if stale, it is queued for rebuild.
+
+The server state machine therefore distinguishes four operational states:
+
+* `IDLE` — no pending changes, no pending build, all reachable caches confirmed fresh.
+* `BUILDING` — a build cycle is in flight.
+* `VALIDATING` — a background validation pass is in flight; no build is currently scheduled.
+* `STALE` — pending changes or a known-stale cache, queued for the next cycle.
+
+A source change during a validation pass surfaces immediately as `STALE`, and any reader request against a not-yet-validated project joins the current pass instead of triggering an ad-hoc rebuild. When `--cache=Force` is set, a stale cache surfaced by the pass is treated as an error, since Force forbids any rebuild.
 
 #### Live Reload
 
