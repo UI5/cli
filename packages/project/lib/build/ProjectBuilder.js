@@ -5,6 +5,7 @@ import composeProjectList from "./helpers/composeProjectList.js";
 import BuildContext from "./helpers/BuildContext.js";
 import prettyHrtime from "pretty-hrtime";
 import OutputStyleEnum from "./helpers/ProjectBuilderOutputStyle.js";
+import {isAbortError} from "./helpers/abort.js";
 
 /**
  * @public
@@ -187,6 +188,42 @@ class ProjectBuilder {
 		const requestedProjects = this._determineRequestedProjects(
 			includeRootProject, includedDependencies, excludedDependencies);
 		return await this.#build(requestedProjects, projectBuiltCallback, signal);
+	}
+
+	/**
+	 * Validate the build cache for a set of projects without actually building any of them.
+	 *
+	 * Intended to be used by long-running consumers (such as the
+	 * [BuildServer]{@link @ui5/project/build/BuildServer}) to proactively determine whether
+	 * a cached build result can be reused for a project. Walks the dependency graph in the
+	 * same order as {@link #build}, so dependencies are validated before their dependents
+	 * and resource changes propagate correctly.
+	 *
+	 * For each requested project, the given callback is invoked with the validation result
+	 * once that project has been validated. The result indicates whether a cached build
+	 * result is available and can be used (<code>true</code>) or whether a build would be
+	 * required (<code>false</code>).
+	 *
+	 * Like {@link #build}, this method is mutually exclusive with itself and with other
+	 * build operations on the same builder instance. Source change propagation via
+	 * {@link #resourcesChanged} is blocked while validation is running.
+	 *
+	 * @public
+	 * @param {object} parameters Parameters
+	 * @param {string[]} parameters.projects Names of projects to validate
+	 * @param {AbortSignal} [parameters.signal] Signal to abort the validation
+	 * @param {Function} [parameters.willValidate]
+	 *   Hook invoked synchronously just before each project's <code>validateCache</code>
+	 *   call. Receives <code>(projectName)</code>. Return value is ignored. Use this to
+	 *   claim the project state in the caller (e.g. transition to a "validating"
+	 *   lifecycle state).
+	 * @param {Function} [projectValidatedCallback]
+	 *   Callback invoked after each requested project has been validated.
+	 *   Receives <code>(projectName, project, projectBuildContext, usesCache)</code>.
+	 * @returns {Promise<string[]>} Promise resolving with the names of all processed projects
+	 */
+	async validateCaches({projects, signal, willValidate}, projectValidatedCallback) {
+		return await this.#validate(projects, willValidate, projectValidatedCallback, signal);
 	}
 
 	/**
@@ -403,11 +440,7 @@ class ProjectBuilder {
 				// is not a build failure. The BuildServer turns it into a re-queue.
 				// Log at verbose so we don't shout an error at the user for what
 				// is a normal mid-build source change in `ui5 serve`.
-				const aborted = signal?.aborted === true ||
-					err?.name === "AbortBuildError" ||
-					err?.name === "SourceChangedDuringBuildError" ||
-					err?.name === "AbortError";
-				if (aborted) {
+				if (isAbortError(err, signal)) {
 					this.#log.verbose(`Build aborted: ${err?.message ?? err}`);
 				} else {
 					this.#log.error(`Build failed`);
@@ -421,6 +454,112 @@ class ProjectBuilder {
 				this._deregisterCleanupSigHooks(cleanupSigHooks);
 			}
 			await this._executeCleanupTasks();
+			this.#buildIsRunning = false;
+		}
+	}
+
+	/**
+	 * Internal validation implementation that mirrors {@link #build} but only validates caches.
+	 *
+	 * Loads the project build contexts, walks them in dependency-first order, and asks each
+	 * context to validate its build cache. The given callback is invoked after each requested
+	 * project has been validated with a flag indicating whether the cached build result is
+	 * usable.
+	 *
+	 * @param {string[]} requestedProjects Array of project names to validate
+	 * @param {Function} [willValidate] Hook invoked just before each project's validateCache call
+	 * @param {Function} [projectValidatedCallback]
+	 *   Callback invoked after each requested project has been validated
+	 * @param {AbortSignal} [signal] Signal to abort the validation
+	 * @returns {Promise<string[]>} Promise resolving with array of processed project names
+	 * @throws {Error} If a build is already running
+	 */
+	async #validate(requestedProjects, willValidate, projectValidatedCallback, signal) {
+		if (this.#buildIsRunning) {
+			throw new Error("A build is already running");
+		}
+		this.#buildIsRunning = true;
+		try {
+			// Initialize (or reuse) the build contexts for the requested projects and their
+			// transitive build-time dependencies, mirroring what #build does. Validation is
+			// commonly invoked before any project has been built in this process — e.g. when
+			// `ui5 serve` runs a post-(initial-)build cache-validation pass over dependencies
+			// the initial build skipped — so it must be able to initialize cold contexts and
+			// source indices itself rather than only validating ones a prior build warmed up.
+			//
+			// This is race-free with `#revalidateSourceIndex`: the BuildServer's file watcher
+			// is up before any builds run, so file changes between this FS scan and a later
+			// build flow through `projectSourcesChanged` → `#flushPendingChanges` →
+			// `#updateSourceIndex` at the next build's start, leaving the source index
+			// consistent by the time `#revalidateSourceIndex` runs at build end.
+			const projectBuildContexts =
+				await this._buildContext.getRequiredProjectContexts(requestedProjects);
+			if (projectBuildContexts.size === 0) {
+				this.#log.verbose(`No projects to validate`);
+				return [];
+			}
+			this.#log.verbose(`Validating caches for projects: ${Array.from(projectBuildContexts.keys()).join(", ")}`);
+
+			// requestedProjects gates the willValidate + projectValidatedCallback hooks.
+			// The queue walks the full transitive closure (cold contexts included), so
+			// checking membership per project is O(N) on an array — hoist to a Set.
+			const requestedSet = new Set(requestedProjects);
+
+			// Build queue based on graph depth-first search to ensure that dependencies
+			// are validated before their dependents, so propagated resource changes reach
+			// dependents before those dependents validate themselves.
+			const queue = [];
+			const processedProjectNames = [];
+			for (const {project} of this._graph.traverseDependenciesDepthFirst(true)) {
+				const projectName = project.getName();
+				const projectBuildContext = projectBuildContexts.get(projectName);
+				if (projectBuildContext) {
+					queue.push(projectBuildContext);
+					processedProjectNames.push(projectName);
+				}
+			}
+
+			try {
+				while (queue.length) {
+					signal?.throwIfAborted();
+					const projectBuildContext = queue.shift();
+					const project = projectBuildContext.getProject();
+					const projectName = project.getName();
+					const isRequested = requestedSet.has(projectName);
+
+					if (willValidate && isRequested) {
+						willValidate(projectName);
+					}
+
+					let usesCache;
+					if (!projectBuildContext.possiblyRequiresBuild()) {
+						// Build manifest present (or cache already known fresh) -> no validation needed
+						usesCache = true;
+					} else {
+						const valStart = performance.now();
+						usesCache = await projectBuildContext.validateCache();
+						if (this.#log.isLevelEnabled("perf")) {
+							this.#log.perf(
+								`validateCache for ${projectName} ` +
+								`completed in ${(performance.now() - valStart).toFixed(2)} ms ` +
+								`(usesCache=${usesCache})`);
+						}
+					}
+
+					if (projectValidatedCallback && isRequested) {
+						await projectValidatedCallback(projectName, project, projectBuildContext, usesCache);
+					}
+				}
+			} catch (err) {
+				if (isAbortError(err, signal)) {
+					this.#log.verbose(`Cache validation aborted: ${err?.message ?? err}`);
+				} else {
+					this.#log.error(`Cache validation failed: ${err?.message ?? err}`);
+				}
+				throw err;
+			}
+			return processedProjectNames;
+		} finally {
 			this.#buildIsRunning = false;
 		}
 	}

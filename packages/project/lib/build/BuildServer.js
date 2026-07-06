@@ -2,7 +2,7 @@ import EventEmitter from "node:events";
 import {createReaderCollectionPrioritized} from "@ui5/fs/resourceFactory";
 import BuildReader from "./BuildReader.js";
 import WatchHandler from "./helpers/WatchHandler.js";
-import {SourceChangedDuringBuildError} from "./cache/ProjectBuildCache.js";
+import {isAbortError} from "./helpers/abort.js";
 import {getLogger} from "@ui5/logger";
 import ServeLogger from "@ui5/logger/internal/loggers/Serve";
 const log = getLogger("build:BuildServer");
@@ -13,9 +13,10 @@ const SOURCES_CHANGED_DEBOUNCE_MS = 100;
 
 // The server's lifecycle state. Mutated exclusively through #setState.
 const SERVER_STATES = Object.freeze({
-	IDLE: "idle", // No pending requests, no recent changes.
+	IDLE: "idle", // No pending requests, no recent changes, no unvalidated caches.
 	STALE: "stale", // Pending changes / pending requests, queue not yet flushed.
 	BUILDING: "building", // A build is in flight.
+	VALIDATING: "validating", // A background cache-validation pass is in flight.
 	ERROR: "error", // Last build cycle failed.
 });
 
@@ -66,6 +67,11 @@ class BuildServer extends EventEmitter {
 	// Server lifecycle state. Starts as `null` so the first #setState call
 	// always emits the initial state.
 	#serverState = null;
+	// Background cache validation state. `#activeValidation` is the promise of the
+	// currently running validation pass (or null when idle); `#validationAbort`
+	// is its controller, used to preempt validation when a real build is requested.
+	#activeValidation = null;
+	#validationAbort = null;
 
 	/**
 	 * Creates a new BuildServer instance
@@ -180,6 +186,8 @@ class BuildServer extends EventEmitter {
 		clearTimeout(this.#sourcesChangedTimeout);
 		await this.#watchHandler.destroy();
 		try {
+			// Cancel any running background validation pass and wait for it to settle.
+			await this.#stopActiveValidation("Server destroyed");
 			if (this.#activeBuild) {
 				// Await active build to finish
 				await this.#activeBuild;
@@ -255,6 +263,20 @@ class BuildServer extends EventEmitter {
 		}
 		const {promise, resolve, reject} = Promise.withResolvers();
 		projectBuildStatus.addReaderRequest({resolve, reject});
+
+		// Skip the build-request enqueue while a background validation pass owns the
+		// project. If validation finds the cache fresh, it resolves the queued reader
+		// via setReader; if it finds the cache stale, #runBackgroundValidation enqueues
+		// a build for it (since pending reader requests can't wait for the next ad-hoc
+		// reader request). Enqueuing here unconditionally would fire #triggerRequestQueue's
+		// 10 ms timer, abort the validation pass mid-flight, and cause a needless
+		// VALIDATING → BUILDING → VALIDATING flicker even when validation would have
+		// served the request itself.
+		if (projectBuildStatus.isValidating()) {
+			log.verbose(`Reader for project '${projectName}' is validating. ` +
+				`Waiting on validation pass.`);
+			return promise;
+		}
 
 		log.verbose(`Reader for project '${projectName}' is not fresh. Enqueuing build request.`);
 		this.#enqueueBuild(projectName);
@@ -332,7 +354,12 @@ class BuildServer extends EventEmitter {
 		}
 
 		// If the server is currently idle, surface the new STALE state right away.
-		if (this.#serverState === SERVER_STATES.IDLE) {
+		// During VALIDATING, the same shortcut applies: the change is already registered
+		// here, so reporting VALIDATING any longer would mislead consumers. The validation
+		// pass's finally clause guards on `#serverState === VALIDATING` and bails when the
+		// state has moved on, so there's no double-transition risk.
+		if (this.#serverState === SERVER_STATES.IDLE ||
+			this.#serverState === SERVER_STATES.VALIDATING) {
 			this.#setState(SERVER_STATES.STALE);
 		}
 
@@ -389,17 +416,39 @@ class BuildServer extends EventEmitter {
 		if (this.#processBuildRequestsTimeout) {
 			clearTimeout(this.#processBuildRequestsTimeout);
 		}
-		this.#processBuildRequestsTimeout = setTimeout(() => {
+		this.#processBuildRequestsTimeout = setTimeout(async () => {
+			// Abort any in-flight background validation pass so the build can claim
+			// the builder's "buildIsRunning" lock. Validation will be re-scheduled
+			// after the build cycle drains.
+			await this.#stopActiveValidation("Build request received");
+			if (this.#destroyed) {
+				return;
+			}
 			const cycleStart = process.hrtime();
 			this.#setState(SERVER_STATES.BUILDING);
 			this.#processBuildRequests().then(() => {
 				const hrtime = process.hrtime(cycleStart);
+				// #processBuildRequests captures individual build failures on the
+				// server state and continues the queue, so it resolves normally
+				// even when the build errored. Leave the state as-is (ERROR) and
+				// skip the post-build validation pass — the pass would surface
+				// yet more Force-mode / cache errors on top of the build error
+				// that already fired.
+				if (this.#serverState === SERVER_STATES.ERROR) {
+					return;
+				}
 				const staleProjects = this.#getStaleProjectNames();
 				log.verbose(`Build cycle done. Stale projects: `+
 					`${staleProjects.length} (${staleProjects.join(", ")})`);
 				if (staleProjects.length === 0) {
 					this.#setState(SERVER_STATES.IDLE, {hrtime});
-				} else {
+					return;
+				}
+				// Some projects are still non-FRESH. Try to validate any that are merely
+				// INITIAL (cache validity unknown but possibly fresh) in the background.
+				// If a pass actually starts, the transition to VALIDATING happens inside
+				// #scheduleBackgroundValidation; otherwise we fall back to STALE.
+				if (!this.#scheduleBackgroundValidation({hrtime})) {
 					this.#setState(SERVER_STATES.STALE, {hrtime, staleProjects});
 				}
 			}).catch((err) => {
@@ -456,7 +505,7 @@ class BuildServer extends EventEmitter {
 				const projectBuildStatus = this.#projectBuildStatus.get(projectName);
 				projectBuildStatus.setReader(project.getReader({style: "runtime"}));
 			}).catch((err) => {
-				if (err instanceof AbortBuildError || err instanceof SourceChangedDuringBuildError) {
+				if (isAbortError(err)) {
 					log.info("Build aborted");
 					log.verbose(`Projects affected by abort: ${projectsToBuild.join(", ")}`);
 					// Build was aborted - do not log as error
@@ -519,6 +568,160 @@ class BuildServer extends EventEmitter {
 	}
 
 	/**
+	 * Aborts the in-flight background validation pass (if any) and awaits its settlement.
+	 * Swallows the resulting abort rejection — callers use this to make room for a build
+	 * or to drain on destroy, neither of which surfaces validation errors.
+	 *
+	 * @param {string} reason Reason forwarded to AbortBuildError for verbose logging.
+	 */
+	async #stopActiveValidation(reason) {
+		if (!this.#activeValidation) {
+			return;
+		}
+		this.#validationAbort?.abort(new AbortBuildError(reason));
+		try {
+			await this.#activeValidation;
+		} catch (err) {
+			// Expected — validation rejects with an AbortBuildError on cancellation.
+			log.verbose(`Background validation settled (${reason}): ${err?.message ?? err}`);
+		}
+	}
+
+	/**
+	 * Kick off a background cache-validation pass for projects that have never been built or
+	 * validated yet. Runs as a fire-and-forget promise; the result is tracked on
+	 * <code>#activeValidation</code> so {@link #triggerRequestQueue} and {@link #destroy} can
+	 * abort it.
+	 *
+	 * Drives the server lifecycle through VALIDATING → IDLE/STALE on completion. Caller
+	 * supplies the post-build hrtime so the BUILDING → VALIDATING transition can emit a
+	 * <code>buildDone</code> event with the correct duration.
+	 *
+	 * Idempotent while a validation pass is already in flight. Skipped while a build is
+	 * active — the post-build cycle-end hook will schedule the next pass.
+	 *
+	 * @param {object} [opts]
+	 * @param {Array<number>} [opts.hrtime] Build hrtime to forward to the VALIDATING state
+	 *   transition. Only relevant when called from a post-build cycle-end hook.
+	 * @returns {boolean} True if a validation pass was actually scheduled, false otherwise.
+	 *   When false, callers may want to transition the server to STALE explicitly.
+	 */
+	#scheduleBackgroundValidation({hrtime} = {}) {
+		if (this.#destroyed || this.#activeValidation || this.#activeBuild) {
+			return false;
+		}
+		const projectsToValidate = [];
+		const projectAbortSignals = [];
+		for (const [name, status] of this.#projectBuildStatus) {
+			if (status.isInitial()) {
+				projectsToValidate.push(name);
+				// Capture the per-project abort signal now, before any invalidate() rotates it.
+				// A source change for any of these projects fires invalidate(), which aborts the
+				// signal and cancels the in-flight validation pass via the composite signal below.
+				projectAbortSignals.push(status.getAbortSignal());
+			}
+		}
+		if (projectsToValidate.length === 0) {
+			return false;
+		}
+		log.verbose(`Scheduling background cache validation for projects: ${projectsToValidate.join(", ")}`);
+		this.#setState(SERVER_STATES.VALIDATING, {hrtime, validatingProjects: projectsToValidate});
+		this.#validationAbort = new AbortController();
+		const signal = AbortSignal.any([this.#validationAbort.signal, ...projectAbortSignals]);
+		this.#activeValidation = this.#runBackgroundValidation(projectsToValidate, signal)
+			.catch((err) => {
+				if (isAbortError(err)) {
+					log.verbose(`Background cache validation aborted: ${err?.message ?? err}`);
+					return;
+				}
+				// Non-abort failure: mirror the build error path so consumers (the banner,
+				// integration tests, the yargs fail-handler) can react. The ERROR transition
+				// here doubles as the signal to the finally clause to skip its post-pass
+				// IDLE/STALE transition.
+				this.#setState(SERVER_STATES.ERROR, {error: err});
+				this.emit("error", err);
+			})
+			.finally(() => {
+				this.#activeValidation = null;
+				this.#validationAbort = null;
+				// If a build is queued or running, leave state to #triggerRequestQueue's
+				// BUILDING transition. Otherwise (and unless validation failed — in which
+				// case the catch above has already settled state on ERROR) reflect the
+				// outcome of the validation pass: fully fresh → IDLE, anything else → STALE.
+				if (this.#destroyed || this.#activeBuild ||
+					this.#pendingBuildRequest.size > 0 ||
+					this.#serverState === SERVER_STATES.BUILDING ||
+					this.#serverState === SERVER_STATES.ERROR) {
+					return;
+				}
+				const staleProjects = this.#getStaleProjectNames();
+				if (staleProjects.length === 0) {
+					this.#setState(SERVER_STATES.IDLE);
+				} else {
+					this.#setState(SERVER_STATES.STALE, {staleProjects});
+				}
+			});
+		return true;
+	}
+
+	async #runBackgroundValidation(projectNames, signal) {
+		try {
+			await this.#projectBuilder.validateCaches({
+				projects: projectNames,
+				signal,
+				willValidate: (projectName) => {
+					// Claim the project for validation. If the project is no longer INITIAL
+					// (invalidated mid-pass, or a build started concurrently), the transition is
+					// a no-op and validateCache below will run without claiming the project;
+					// the subsequent setReader call sees a non-VALIDATING state and drops.
+					const projectBuildStatus = this.#projectBuildStatus.get(projectName);
+					projectBuildStatus?.markValidating();
+				},
+			}, (projectName, project, projectBuildContext, usesCache) => {
+				if (signal.aborted) {
+					return;
+				}
+				const projectBuildStatus = this.#projectBuildStatus.get(projectName);
+				if (!projectBuildStatus) {
+					return;
+				}
+				if (!usesCache) {
+					// Cache is stale; leave the project in INITIAL so a future reader request
+					// triggers a real build. We don't pre-emptively rebuild dependencies.
+					projectBuildStatus.releaseValidating();
+					return;
+				}
+				log.verbose(`Background validation: marking project '${projectName}' as fresh`);
+				// setReader is a no-op if state isn't VALIDATING (e.g. invalidated mid-validation
+				// or claimed by a build) — the cycle-end logic will re-schedule or rebuild.
+				projectBuildStatus.setReader(project.getReader({style: "runtime"}));
+			});
+		} finally {
+			// Whether the pass completed normally, was aborted, or threw, ensure no project
+			// is left stuck in VALIDATING — otherwise the next scheduleBackgroundValidation
+			// pass (which picks up only INITIAL projects) would skip them and a reader request
+			// would still incur the lazy validation cost.
+			//
+			// Reader requests issued during VALIDATING skip #enqueueBuild (see
+			// #getReaderForProject) so the validation pass can run to completion without being
+			// aborted by its own queue tick. Pick up the slack here: any project the pass
+			// didn't promote to FRESH but which has callers waiting on a reader must now be
+			// built. #enqueueBuild is idempotent, so re-enqueueing one already scheduled by
+			// the watcher or a concurrent caller is harmless.
+			for (const projectName of projectNames) {
+				const status = this.#projectBuildStatus.get(projectName);
+				if (!status) {
+					continue;
+				}
+				status.releaseValidating();
+				if (!status.isFresh() && status.hasPendingReaderRequests()) {
+					this.#enqueueBuild(projectName);
+				}
+			}
+		}
+	}
+
+	/**
 	 * Single source of truth for the server lifecycle state. Mutates
 	 * <code>#serverState</code> and emits the matching ServeLogger event for the
 	 * transition. A no-op when <code>next</code> equals the current state, so a
@@ -528,21 +731,25 @@ class BuildServer extends EventEmitter {
 	 * <ul>
 	 *   <li>BUILDING → IDLE: buildDone(hrtime) then ready()</li>
 	 *   <li>BUILDING → STALE: buildDone(hrtime) then stale(names)</li>
+	 *   <li>BUILDING → VALIDATING: buildDone(hrtime) then validating(names)</li>
 	 *   <li>BUILDING → ERROR: serveError(err) only — buildDone is skipped so
 	 *       consumers don't see a successful cycle close before the error</li>
+	 *   <li>VALIDATING → IDLE/STALE: ready()/stale() — no buildDone (no build happened)</li>
 	 *   <li>any → ERROR: serveError(err)</li>
-	 *   <li>* → IDLE/STALE/BUILDING: ready()/stale()/building() as appropriate</li>
+	 *   <li>* → IDLE/STALE/BUILDING/VALIDATING: ready()/stale()/building()/validating() as appropriate</li>
 	 * </ul>
 	 *
 	 * @param {string} next One of the SERVER_STATES values.
 	 * @param {object} [opts]
 	 * @param {Array<number>} [opts.hrtime] Build duration as a [seconds, nanoseconds]
 	 *     tuple produced by <code>process.hrtime(start)</code>; required when leaving
-	 *     BUILDING for IDLE/STALE.
+	 *     BUILDING for IDLE/STALE/VALIDATING.
 	 * @param {string[]} [opts.staleProjects] Stale project names; required when transitioning to STALE.
+	 * @param {string[]} [opts.validatingProjects] Names of projects undergoing background cache
+	 *     validation; required when transitioning to VALIDATING.
 	 * @param {Error} [opts.error] Error instance; required when transitioning to ERROR.
 	 */
-	#setState(next, {hrtime, staleProjects, error} = {}) {
+	#setState(next, {hrtime, staleProjects, validatingProjects, error} = {}) {
 		if (this.#serverState === next) {
 			return;
 		}
@@ -563,6 +770,9 @@ class BuildServer extends EventEmitter {
 		case SERVER_STATES.BUILDING:
 			this.#serveLogger.building();
 			break;
+		case SERVER_STATES.VALIDATING:
+			this.#serveLogger.validating(validatingProjects ?? []);
+			break;
 		case SERVER_STATES.ERROR:
 			this.#serveLogger.serveError(error);
 			break;
@@ -573,6 +783,7 @@ class BuildServer extends EventEmitter {
 const PROJECT_STATES = Object.freeze({
 	INITIAL: "initial",
 	INVALIDATED: "invalidated",
+	VALIDATING: "validating",
 	BUILDING: "building",
 	FRESH: "fresh",
 });
@@ -617,9 +828,51 @@ class ProjectBuildStatus {
 	 * project mid-build, the state flips back to INVALIDATED via
 	 * <code>invalidate()</code>, which causes <code>setReader()</code> to drop
 	 * the late-arriving result.
+	 *
+	 * Unlike <code>markValidating</code>, this transition is unconditional —
+	 * <code>#processBuildRequests</code> always intends to claim the project
+	 * regardless of its prior state. The asymmetry is deliberate; the call sites
+	 * pull from <code>#pendingBuildRequest</code>, which a FRESH project never
+	 * enters (see <code>#getReaderForProject</code>).
 	 */
 	markBuilding() {
 		this.#state = PROJECT_STATES.BUILDING;
+	}
+
+	/**
+	 * Marks the project as being validated by a background cache-validation pass.
+	 * Only takes effect for projects in INITIAL state — projects that have been
+	 * invalidated, are already being built, or are FRESH must not be claimed by
+	 * a validation pass.
+	 *
+	 * Used in place of {@link #markBuilding} for the validation flow so the state
+	 * accurately reflects that no build work is taking place. <code>setReader()</code>
+	 * accepts both VALIDATING and BUILDING as legitimate prior states, so the
+	 * validation callback can promote a project to FRESH the same way a real build
+	 * does. If a source change invalidates the project mid-validation,
+	 * <code>invalidate()</code> flips VALIDATING → INVALIDATED and aborts the
+	 * per-project signal so the validation pass cancels.
+	 *
+	 * @returns {boolean} True if the transition happened, false otherwise.
+	 */
+	markValidating() {
+		if (this.#state !== PROJECT_STATES.INITIAL) {
+			return false;
+		}
+		this.#state = PROJECT_STATES.VALIDATING;
+		return true;
+	}
+
+	/**
+	 * Reverts a VALIDATING project back to INITIAL — used when validation found the
+	 * cache to be stale and the project should remain lazy. No-op for any other state
+	 * (e.g. when invalidate() already moved the project to INVALIDATED mid-validation,
+	 * or a build claimed it in the meantime).
+	 */
+	releaseValidating() {
+		if (this.#state === PROJECT_STATES.VALIDATING) {
+			this.#state = PROJECT_STATES.INITIAL;
+		}
 	}
 
 	abortBuild(reason) {
@@ -634,14 +887,22 @@ class ProjectBuildStatus {
 		return this.#state === PROJECT_STATES.FRESH;
 	}
 
+	isInitial() {
+		return this.#state === PROJECT_STATES.INITIAL;
+	}
+
+	isValidating() {
+		return this.#state === PROJECT_STATES.VALIDATING;
+	}
+
 	getReader() {
 		return this.#reader;
 	}
 
 	setReader(reader) {
-		if (this.#state !== PROJECT_STATES.BUILDING) {
-			// Project was re-invalidated mid-build; drop the stale reader and let
-			// the cycle-end logic re-queue a fresh build.
+		if (this.#state !== PROJECT_STATES.BUILDING && this.#state !== PROJECT_STATES.VALIDATING) {
+			// Project was re-invalidated mid-build (or mid-validation); drop the stale reader
+			// and let the cycle-end logic re-queue a fresh build.
 			return;
 		}
 		this.#reader = reader;
@@ -655,6 +916,10 @@ class ProjectBuildStatus {
 
 	addReaderRequest(promiseResolvers) {
 		this.#readerQueue.push(promiseResolvers);
+	}
+
+	hasPendingReaderRequests() {
+		return this.#readerQueue.length > 0;
 	}
 
 	rejectReaderRequests(error) {

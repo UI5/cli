@@ -535,6 +535,40 @@ test.serial("serve-status: serve-stale without a payload falls back to an empty 
 	writer.disable();
 });
 
+test.serial("serve-status: serve-validating records projects and transitions to VALIDATING", (t) => {
+	const {writer, stderr} = createWriter();
+	process.emit("ui5.serve-status", {
+		status: "serve-validating",
+		validatingProjects: ["library.a", "library.b"],
+	});
+	const state = writer._getStateForTest().build;
+	t.is(state.state, STATES.VALIDATING);
+	t.deepEqual(state.validatingProjects, ["library.a", "library.b"]);
+	const tail = stripAnsi(stderr.writes.slice(-5).join(""));
+	t.regex(tail, /validating/);
+	writer.disable();
+});
+
+test.serial("serve-status: serve-validating without a payload falls back to an empty list", (t) => {
+	const {writer} = createWriter();
+	process.emit("ui5.serve-status", {status: "serve-validating"});
+	t.deepEqual(writer._getStateForTest().build.validatingProjects, []);
+	writer.disable();
+});
+
+test.serial("serve-status: transitions away from VALIDATING clear validatingProjects", (t) => {
+	const {writer} = createWriter();
+	process.emit("ui5.serve-status", {
+		status: "serve-validating",
+		validatingProjects: ["library.a"],
+	});
+	t.deepEqual(writer._getStateForTest().build.validatingProjects, ["library.a"]);
+	process.emit("ui5.serve-status", {status: "serve-ready"});
+	t.deepEqual(writer._getStateForTest().build.validatingProjects, [],
+		"validatingProjects cleared on transition away from VALIDATING");
+	writer.disable();
+});
+
 test.serial("serve-status: serve-error coerces a non-Error payload to a string", (t) => {
 	const {writer} = createWriter();
 	process.emit("ui5.serve-status", {status: "serve-error", error: "plain string failure"});
@@ -633,6 +667,25 @@ test.serial("spinner tick advances spinFrame while BUILDING", (t) => {
 	t.true(stderr.writes.length > 0, "tick triggered a re-render");
 	writer.disable();
 });
+
+test.serial("spinner tick advances spinFrame while VALIDATING", (t) => {
+	const clock = sinon.useFakeTimers();
+	t.teardown(() => clock.restore());
+
+	const {writer, stderr} = createWriter();
+	process.emit("ui5.serve-status", {
+		status: "serve-validating",
+		validatingProjects: ["library.a"],
+	});
+	const frameBefore = writer._getStateForTest().build.spinFrame;
+	stderr.writes.length = 0;
+	clock.tick(150);
+	const frameAfter = writer._getStateForTest().build.spinFrame;
+	t.true(frameAfter > frameBefore, "spinFrame advanced on tick");
+	t.true(stderr.writes.length > 0, "tick triggered a re-render");
+	writer.disable();
+});
+
 
 // ---- process.stdout / process.stderr interception ---------------------------
 // InteractiveConsole replaces process.stdout.write / process.stderr.write while

@@ -775,3 +775,156 @@ test("_getElapsedTime", (t) => {
 	const res = builder._getElapsedTime(process.hrtime());
 	t.truthy(res, "Returned a value");
 });
+
+test("validateCaches: initializes contexts via getRequiredProjectContexts and invokes callback per project",
+	async (t) => {
+		const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
+		const builder = new ProjectBuilder({graph, taskRepository});
+
+		// Background validation must be able to initialize contexts for never-built projects
+		// itself, otherwise the post-(initial-)build pass over dependencies skipped by the
+		// initial build would find no contexts and silently no-op.
+		const validateCacheB = sinon.stub().resolves(true);
+		const validateCacheC = sinon.stub().resolves(false);
+		const ctxB = {
+			possiblyRequiresBuild: sinon.stub().returns(true),
+			validateCache: validateCacheB,
+			getProject: sinon.stub().returns(getMockProject("library", "b")),
+		};
+		const ctxC = {
+			possiblyRequiresBuild: sinon.stub().returns(true),
+			validateCache: validateCacheC,
+			getProject: sinon.stub().returns(getMockProject("library", "c")),
+		};
+		const getRequiredProjectContextsStub = sinon.stub(builder._buildContext, "getRequiredProjectContexts")
+			.resolves(new Map([
+				["project.b", ctxB],
+				["project.c", ctxC],
+			]));
+
+		const callback = sinon.stub();
+		const processed = await builder.validateCaches({
+			projects: ["project.b", "project.c"],
+		}, callback);
+
+		t.is(getRequiredProjectContextsStub.callCount, 1,
+			"getRequiredProjectContexts invoked once to initialize cold contexts");
+		t.deepEqual(getRequiredProjectContextsStub.getCall(0).args[0], ["project.b", "project.c"],
+			"getRequiredProjectContexts called with the requested project names");
+		t.deepEqual(processed, ["project.b", "project.c"],
+			"Returns the names of projects that were actually validated");
+		t.is(validateCacheB.callCount, 1, "validateCache called for project.b");
+		t.is(validateCacheC.callCount, 1, "validateCache called for project.c");
+		t.is(callback.callCount, 2, "Callback invoked once per requested project");
+		t.is(callback.getCall(0).args[0], "project.b",
+			"Callback invoked with project.b first (dependency-first order)");
+		t.is(callback.getCall(0).args[3], true, "project.b reports usesCache=true");
+		t.is(callback.getCall(1).args[0], "project.c");
+		t.is(callback.getCall(1).args[3], false, "project.c reports usesCache=false");
+	});
+
+test("validateCaches: aborts on signal", async (t) => {
+	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
+	const builder = new ProjectBuilder({graph, taskRepository});
+
+	const controller = new AbortController();
+	const validateCacheB = sinon.stub().callsFake(() => {
+		// Abort right after the first validation runs so the loop throws before reaching C
+		controller.abort(Object.assign(new Error("aborted"), {name: "AbortError"}));
+		return true;
+	});
+	const validateCacheC = sinon.stub().resolves(true);
+	const ctxB = {
+		possiblyRequiresBuild: sinon.stub().returns(true),
+		validateCache: validateCacheB,
+		getProject: sinon.stub().returns(getMockProject("library", "b")),
+	};
+	const ctxC = {
+		possiblyRequiresBuild: sinon.stub().returns(true),
+		validateCache: validateCacheC,
+		getProject: sinon.stub().returns(getMockProject("library", "c")),
+	};
+	sinon.stub(builder._buildContext, "getRequiredProjectContexts").resolves(new Map([
+		["project.b", ctxB],
+		["project.c", ctxC],
+	]));
+
+	await t.throwsAsync(builder.validateCaches({
+		projects: ["project.b", "project.c"],
+		signal: controller.signal,
+	}, sinon.stub()));
+
+	t.is(validateCacheB.callCount, 1, "project.b was validated before abort");
+	t.is(validateCacheC.callCount, 0, "project.c was not validated after abort");
+});
+
+test("validateCaches: rejects re-entry while a build is running", async (t) => {
+	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
+	const builder = new ProjectBuilder({graph, taskRepository});
+
+	// Simulate an in-flight build by manually flipping the private flag via a build call.
+	// Easiest: kick off two validateCaches in parallel and assert the second rejects.
+	let resolveFirst;
+	const firstValidatePromise = new Promise((resolve) => {
+		resolveFirst = resolve;
+	});
+	const validateCache = sinon.stub().returns(firstValidatePromise);
+	const ctx = {
+		possiblyRequiresBuild: sinon.stub().returns(true),
+		validateCache,
+		getProject: sinon.stub().returns(getMockProject("library", "b")),
+	};
+	sinon.stub(builder._buildContext, "getRequiredProjectContexts").resolves(new Map([
+		["project.b", ctx],
+	]));
+
+	const first = builder.validateCaches({projects: ["project.b"]});
+	const err = await t.throwsAsync(builder.validateCaches({projects: ["project.b"]}));
+	t.is(err.message, "A build is already running",
+		"Second concurrent call rejects with the same error as concurrent builds");
+
+	resolveFirst(true);
+	await first;
+});
+
+test("validateCaches: willValidate fires before each project's validateCache call", async (t) => {
+	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
+	const builder = new ProjectBuilder({graph, taskRepository});
+
+	const events = [];
+	const ctxB = {
+		possiblyRequiresBuild: sinon.stub().returns(true),
+		validateCache: sinon.stub().callsFake(() => {
+			events.push("validate:b");
+			return true;
+		}),
+		getProject: sinon.stub().returns(getMockProject("library", "b")),
+	};
+	const ctxC = {
+		possiblyRequiresBuild: sinon.stub().returns(true),
+		validateCache: sinon.stub().callsFake(() => {
+			events.push("validate:c");
+			return true;
+		}),
+		getProject: sinon.stub().returns(getMockProject("library", "c")),
+	};
+	sinon.stub(builder._buildContext, "getRequiredProjectContexts").resolves(new Map([
+		["project.b", ctxB],
+		["project.c", ctxC],
+	]));
+
+	await builder.validateCaches({
+		projects: ["project.b", "project.c"],
+		willValidate: (name) => {
+			events.push(`will:${name}`);
+		},
+	}, () => {
+		events.push("validated");
+	});
+
+	t.deepEqual(events, [
+		"will:project.b", "validate:b", "validated",
+		"will:project.c", "validate:c", "validated",
+	], "willValidate fires before validateCache, callback after");
+});
+

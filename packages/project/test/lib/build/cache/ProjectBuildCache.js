@@ -1,6 +1,7 @@
 import test from "ava";
 import sinon from "sinon";
 import ProjectBuildCache from "../../../../lib/build/cache/ProjectBuildCache.js";
+import Cache from "../../../../lib/build/cache/Cache.js";
 
 // Helper to create mock Project instances
 function createMockProject(name = "test.project", id = "test-project-id") {
@@ -1663,6 +1664,7 @@ test("restoreFrozenSources: cache hit creates CAS reader", async (t) => {
 async function createCacheInRestoringState({
 	resources = [createMockResource("/test.js", "hash1", 1000, 100, 1)],
 	tasks = [["task1", false]],
+	cacheMode,
 } = {}) {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
@@ -1719,7 +1721,7 @@ async function createCacheInRestoringState({
 
 	cacheManager.readIndexCache.returns(indexCache);
 
-	const cache = await ProjectBuildCache.create(project, buildSignature, cacheManager);
+	const cache = await ProjectBuildCache.create(project, buildSignature, cacheManager, cacheMode);
 	await cache.initSourceIndex();
 
 	// Spy on _refreshDependencyIndices so we can verify whether it's called
@@ -1799,4 +1801,90 @@ test("prepareProjectBuildAndValidateCache: subsequent dependency changes go thro
 	t.false(refreshSpy.called,
 		"_refreshDependencyIndices should NOT be called for REQUIRES_UPDATE state " +
 		"(#flushPendingChanges handles it instead)");
+});
+
+// ===== validateCache TESTS =====
+
+test("validateCache: returns false for empty cache (INITIAL state)", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+
+	const mockDependencyReader = {
+		byGlob: sinon.stub().resolves([]),
+		byPath: sinon.stub().resolves(null)
+	};
+
+	const result = await cache.validateCache(mockDependencyReader);
+
+	t.is(result, false, "Returns false for empty cache");
+});
+
+test("validateCache: Cache.Off short-circuits and returns false", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const cache = await ProjectBuildCache.create(project, "sig", cacheManager, Cache.Off);
+
+	const mockDependencyReader = {
+		byGlob: sinon.stub().resolves([]),
+		byPath: sinon.stub().resolves(null)
+	};
+
+	const result = await cache.validateCache(mockDependencyReader);
+
+	t.is(result, false, "Returns false in Cache.Off mode");
+	t.false(cache.isFresh(), "Cache is not fresh in Cache.Off mode");
+});
+
+test("validateCache: warm cache without changes is fresh", async (t) => {
+	const {cache, refreshSpy, mockDependencyReader} = await createCacheInRestoringState();
+
+	const result = await cache.validateCache(mockDependencyReader);
+
+	t.false(refreshSpy.called, "_refreshDependencyIndices is skipped without dependency changes");
+	// With no persisted result metadata available, validateCache returns false (NO_CACHE).
+	t.is(result, false, "validateCache returns false when no result metadata is cached");
+});
+
+test("validateCache: prepareProjectBuildAndValidateCache delegates to validateCache", async (t) => {
+	const {cache, mockDependencyReader} = await createCacheInRestoringState();
+
+	// Spy on validateCache to confirm prepareProjectBuildAndValidateCache delegates
+	const validateSpy = sinon.spy(cache, "validateCache");
+
+	const prepResult = await cache.prepareProjectBuildAndValidateCache(mockDependencyReader);
+
+	t.true(validateSpy.calledOnce, "validateCache is invoked exactly once by prepareProjectBuildAndValidateCache");
+	t.is(validateSpy.firstCall.args[0], mockDependencyReader,
+		"dependencyReader is forwarded to validateCache");
+	t.is(prepResult, await validateSpy.firstCall.returnValue,
+		"prepareProjectBuildAndValidateCache returns whatever validateCache returned");
+});
+
+test("validateCache: Cache.Force throws when source changes are detected", async (t) => {
+	// Build a warm cache pinned to Force whose initSourceIndex succeeds (no source changes
+	// at init time), then introduce a change before invoking validateCache so the
+	// REQUIRES_UPDATE branch in validateCache triggers the Force-mode throw.
+	const {cache: forceCache, project, mockDependencyReader} = await createCacheInRestoringState({
+		cacheMode: Cache.Force,
+	});
+
+	// Simulate an in-build source change: swap the resource with one whose integrity differs
+	// from the indexed value, so #updateSourceIndex detects an "updated" path.
+	const newResource = createMockResource("/test.js", "hash2", 2000, 200, 1);
+	project.getSourceReader.callsFake(() => ({
+		byGlob: sinon.stub().resolves([newResource]),
+		byPath: sinon.stub().callsFake((path) => {
+			return Promise.resolve(path === "/test.js" ? newResource : null);
+		})
+	}));
+	forceCache.projectSourcesChanged(["/test.js"]);
+
+	const err = await t.throwsAsync(
+		() => forceCache.validateCache(mockDependencyReader),
+		undefined,
+		"validateCache throws when Force mode detects source changes"
+	);
+	t.regex(err.message, /Force.*mode.*stale/i, "Error message mentions Force mode and stale cache");
 });

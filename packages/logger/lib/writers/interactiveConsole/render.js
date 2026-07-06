@@ -150,6 +150,19 @@ function renderStatusLine(state) {
 	case STATES.STALE:
 		return `${label}${chalk.yellow(figures.circle)} ${chalk.yellow(pad("stale"))} ` +
 			`${chalk.dim("· files changed, rebuild on next request")}`;
+	case STATES.VALIDATING: {
+		const frame = SPINNER_FRAMES[state.spinFrame % SPINNER_FRAMES.length];
+		const parts = [
+			`${chalk.cyan(frame)} ${chalk.cyan(pad("validating cache"))}`,
+			chalk.dim("·"),
+			chalk.dim("checking dependency caches"),
+		];
+		const count = state.validatingProjects.length;
+		if (count > 0) {
+			parts.push(chalk.dim("·"), chalk.dim(`${count} project${count === 1 ? "" : "s"}`));
+		}
+		return `${label}${parts.join(" ")}`;
+	}
 	case STATES.BUILDING: {
 		const frame = SPINNER_FRAMES[state.spinFrame % SPINNER_FRAMES.length];
 		const parts = [

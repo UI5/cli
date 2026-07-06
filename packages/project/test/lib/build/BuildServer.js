@@ -5,6 +5,20 @@ import esmock from "esmock";
 // Note: These tests are focused on the debounce behavior of the `sourcesChanged` event.
 // The general BuildServer functionality is tested by the integration test at ./BuildServer.integration.js
 
+// Drain microtasks (zero-ticks) until `predicate` is true for some entry in
+// `statusEvents`. Use in place of an arbitrary number of `await clock.tickAsync(0)`
+// calls when waiting for an async chain to settle — the number of microtask hops
+// is an implementation detail that shifts every time a new `await` is added to
+// `#runBackgroundValidation` or its finally clause.
+async function drainUntil(clock, statusEvents, predicate, {maxTicks = 100} = {}) {
+	for (let i = 0; i < maxTicks; i++) {
+		if (statusEvents.some(predicate)) return;
+		await clock.tickAsync(0);
+	}
+	throw new Error(`drainUntil: predicate not satisfied after ${maxTicks} ticks; ` +
+		`events: ${statusEvents.map((e) => e.status).join(", ")}`);
+}
+
 test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
 	t.context.clock = sinon.useFakeTimers();
@@ -28,6 +42,7 @@ test.beforeEach(async (t) => {
 	t.context.projectBuilder = {
 		closeCacheManager: sinon.stub(),
 		resourcesChanged: sinon.stub(),
+		validateCaches: sinon.stub().resolves([]),
 	};
 
 	// on()/watch() are stubbed to swallow BuildServer#initWatcher's wiring calls; the tests
@@ -294,3 +309,462 @@ test.serial("serve-status: build failure emits serveError and no orphan building
 	const errorIdx = seq.indexOf("serve-error");
 	t.true(errorIdx > lastBuildingIdx, "serve-error follows serve-building");
 });
+
+// When a build cycle drains with INITIAL-state dependencies left over, the server
+// must transition BUILDING → VALIDATING (not STALE), then VALIDATING → IDLE
+// once the background validation pass confirms every cache is fresh.
+test.serial(
+	"serve-status: BUILDING → VALIDATING → IDLE when dependencies validate clean", async (t) => {
+		const {BuildServer, sinon, clock} = t.context;
+
+		// Augment the graph with a single library dependency so the build cycle leaves
+		// one INITIAL project behind, which is exactly the trigger for VALIDATING.
+		const rootProject = {getName: () => "root.project"};
+		const libProject = {getName: () => "library.x"};
+		const graph = {
+			getRoot: () => rootProject,
+			getProjects: () => [rootProject, libProject],
+			getTransitiveDependencies: () => ["library.x"],
+			getProject: (name) => name === "root.project" ? rootProject : libProject,
+			traverseDependents: function* (_projectName) {
+				yield {project: rootProject};
+				yield {project: libProject};
+			},
+		};
+
+		// validateCaches: report library.x's cache as fresh — usesCache=true triggers the
+		// promote-to-FRESH path that closes out the validation pass with no stale projects.
+		const projectBuilder = {
+			closeCacheManager: sinon.stub(),
+			resourcesChanged: sinon.stub(),
+			validateCaches: sinon.stub().callsFake(async ({willValidate}, callback) => {
+				willValidate?.("library.x");
+				await callback("library.x", {
+					getReader: () => ({fakeReader: true}),
+				}, {}, true);
+			}),
+			build: sinon.stub().callsFake((_opts, perProjectCb) => {
+				perProjectCb("root.project", {getReader: () => ({fakeReader: true})});
+				return Promise.resolve(["root.project"]);
+			}),
+		};
+
+		const statusEvents = [];
+		const statusHandler = (evt) => statusEvents.push(evt);
+		process.on("ui5.serve-status", statusHandler);
+		t.teardown(() => process.off("ui5.serve-status", statusHandler));
+
+		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+		t.teardown(() => buildServer.destroy());
+
+		// Drain the 10ms request-queue tick → build → validation pass.
+		await clock.tickAsync(10);
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-ready");
+
+		const seq = statusEvents.map((e) => e.status);
+		const idxBuilding = seq.indexOf("serve-building");
+		const idxBuildDone = seq.indexOf("serve-build-done");
+		const idxValidating = seq.indexOf("serve-validating");
+		const idxReady = seq.indexOf("serve-ready");
+
+		t.true(idxBuilding >= 0 && idxBuildDone > idxBuilding &&
+			idxValidating > idxBuildDone && idxReady > idxValidating,
+		`Expected building → buildDone → validating → ready, got: ${seq.join(", ")}`);
+
+		const validatingEvt = statusEvents[idxValidating];
+		t.deepEqual(validatingEvt.validatingProjects, ["library.x"],
+			"validating event carries the project being validated");
+
+		// No STALE in between — VALIDATING is the post-build state when caches can still be fresh.
+		t.false(seq.slice(idxBuildDone, idxReady).includes("serve-stale"),
+			`No stale emission between buildDone and ready; got: ${seq.join(", ")}`);
+	});
+
+// When background validation finds a stale cache (usesCache=false), the project stays
+// INITIAL and the validation pass must end on STALE, not IDLE.
+test.serial(
+	"serve-status: VALIDATING → STALE when validation finds a stale cache", async (t) => {
+		const {BuildServer, sinon, clock} = t.context;
+
+		const rootProject = {getName: () => "root.project"};
+		const libProject = {getName: () => "library.x"};
+		const graph = {
+			getRoot: () => rootProject,
+			getProjects: () => [rootProject, libProject],
+			getTransitiveDependencies: () => ["library.x"],
+			getProject: (name) => name === "root.project" ? rootProject : libProject,
+			traverseDependents: function* () {
+				yield {project: rootProject};
+				yield {project: libProject};
+			},
+		};
+
+		// usesCache=false → project must stay INITIAL → final state is STALE.
+		const projectBuilder = {
+			closeCacheManager: sinon.stub(),
+			resourcesChanged: sinon.stub(),
+			validateCaches: sinon.stub().callsFake(async ({willValidate}, callback) => {
+				willValidate?.("library.x");
+				await callback("library.x", {
+					getReader: () => ({fakeReader: true}),
+				}, {}, false);
+			}),
+			build: sinon.stub().callsFake((_opts, perProjectCb) => {
+				perProjectCb("root.project", {getReader: () => ({fakeReader: true})});
+				return Promise.resolve(["root.project"]);
+			}),
+		};
+
+		const statusEvents = [];
+		const statusHandler = (evt) => statusEvents.push(evt);
+		process.on("ui5.serve-status", statusHandler);
+		t.teardown(() => process.off("ui5.serve-status", statusHandler));
+
+		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+		t.teardown(() => buildServer.destroy());
+
+		await clock.tickAsync(10);
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-stale");
+
+		const seq = statusEvents.map((e) => e.status);
+		t.true(seq.includes("serve-validating"), `validating emitted; got: ${seq.join(", ")}`);
+		t.true(seq.indexOf("serve-stale") > seq.indexOf("serve-validating"),
+			`stale follows validating; got: ${seq.join(", ")}`);
+		t.false(seq.includes("serve-ready"),
+			`No ready when validation found stale cache; got: ${seq.join(", ")}`);
+	});
+
+// When validateCaches itself rejects with a non-abort error, the failure must be
+// observable: BuildServer emits "error", transitions to SERVER_STATES.ERROR (→
+// serve-error on the status feed), and skips the post-validation IDLE/STALE
+// transition so the server doesn't silently look "ready" after a failed pass.
+test.serial(
+	"serve-status: validation failure emits serve-error and skips IDLE/STALE", async (t) => {
+		const {BuildServer, sinon, clock} = t.context;
+
+		const rootProject = {getName: () => "root.project"};
+		const libProject = {getName: () => "library.x"};
+		const graph = {
+			getRoot: () => rootProject,
+			getProjects: () => [rootProject, libProject],
+			getTransitiveDependencies: () => ["library.x"],
+			getProject: (name) => name === "root.project" ? rootProject : libProject,
+			traverseDependents: function* () {
+				yield {project: rootProject};
+				yield {project: libProject};
+			},
+		};
+
+		const validationError = new Error("validateCaches blew up");
+		const projectBuilder = {
+			closeCacheManager: sinon.stub(),
+			resourcesChanged: sinon.stub(),
+			validateCaches: sinon.stub().rejects(validationError),
+			build: sinon.stub().callsFake((_opts, perProjectCb) => {
+				perProjectCb("root.project", {getReader: () => ({fakeReader: true})});
+				return Promise.resolve(["root.project"]);
+			}),
+		};
+
+		const statusEvents = [];
+		const statusHandler = (evt) => statusEvents.push(evt);
+		process.on("ui5.serve-status", statusHandler);
+		t.teardown(() => process.off("ui5.serve-status", statusHandler));
+
+		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+		t.teardown(() => buildServer.destroy());
+
+		const errorEvents = [];
+		buildServer.on("error", (err) => errorEvents.push(err));
+
+		await clock.tickAsync(10);
+		// Drain microtasks until the validation promise chain
+		// (catch → setState → finally → terminal catch) has settled.
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-error");
+
+		t.is(errorEvents.length, 1, "BuildServer emitted exactly one error event");
+		t.is(errorEvents[0], validationError, "Emitted error is the original rejection");
+
+		const seq = statusEvents.map((e) => e.status);
+		t.true(seq.includes("serve-validating"),
+			`validating emitted before the failure; got: ${seq.join(", ")}`);
+		t.true(seq.indexOf("serve-error") > seq.indexOf("serve-validating"),
+			`serve-error follows serve-validating; got: ${seq.join(", ")}`);
+		// Crucial: a failed validation must NOT settle on ready or stale.
+		const lastError = seq.lastIndexOf("serve-error");
+		t.is(seq.indexOf("serve-ready", lastError + 1), -1,
+			`No ready after a failed validation; got: ${seq.join(", ")}`);
+		t.is(seq.indexOf("serve-stale", lastError + 1), -1,
+			`No stale after a failed validation; got: ${seq.join(", ")}`);
+	});
+
+// A reader request issued while a project is in VALIDATING must NOT enqueue a build
+// of its own — that would fire #triggerRequestQueue's 10 ms timer, abort the running
+// validation pass, and flicker VALIDATING → BUILDING → VALIDATING for no reason.
+// Instead, the request should wait on the validation pass, which resolves it via
+// setReader when the cache turns out fresh.
+test.serial(
+	"serve-status: reader request during VALIDATING does not enqueue a redundant build", async (t) => {
+		const {sinon, clock} = t.context;
+
+		const rootProject = {getName: () => "root.project"};
+		const libProject = {getName: () => "library.x"};
+		const graph = {
+			getRoot: () => rootProject,
+			getProjects: () => [rootProject, libProject],
+			getTransitiveDependencies: () => ["library.x"],
+			getProject: (name) => name === "root.project" ? rootProject : libProject,
+			traverseDependents: function* () {
+				yield {project: rootProject};
+				yield {project: libProject};
+			},
+		};
+
+		// Hold the validation pass open so the reader request can land mid-VALIDATING.
+		let releaseValidation;
+		const validationGate = new Promise((resolve) => {
+			releaseValidation = resolve;
+		});
+
+		const projectBuilder = {
+			closeCacheManager: sinon.stub(),
+			resourcesChanged: sinon.stub(),
+			validateCaches: sinon.stub().callsFake(async ({willValidate}, callback) => {
+				await willValidate?.("library.x");
+				await validationGate;
+				await callback("library.x", {
+					getReader: () => ({fakeReader: true}),
+				}, {}, true);
+			}),
+			build: sinon.stub().callsFake((_opts, perProjectCb) => {
+				perProjectCb("root.project", {getReader: () => ({fakeReader: true})});
+				return Promise.resolve(["root.project"]);
+			}),
+		};
+
+		// Capture the buildServerInterface so the test can call getReaderForProject
+		// directly. The mocked BuildReader receives it on construction.
+		let capturedInterface;
+		class CapturingBuildReader {
+			constructor(_name, _projects, buildServerInterface) {
+				capturedInterface = buildServerInterface;
+			}
+		}
+
+		class FakeWatchHandler {
+			constructor() {
+				this.destroy = sinon.stub().resolves();
+				this.on = sinon.stub();
+				this.watch = sinon.stub().resolves();
+			}
+		}
+
+		const BuildServer = (await esmock("../../../lib/build/BuildServer.js", {
+			"../../../lib/build/BuildReader.js": CapturingBuildReader,
+			"../../../lib/build/helpers/WatchHandler.js": FakeWatchHandler,
+		})).default;
+
+		const statusEvents = [];
+		const statusHandler = (evt) => statusEvents.push(evt);
+		process.on("ui5.serve-status", statusHandler);
+		t.teardown(() => process.off("ui5.serve-status", statusHandler));
+
+		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+		t.teardown(() => buildServer.destroy());
+
+		await clock.tickAsync(10);
+		// Wait for VALIDATING to land.
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-validating");
+		const buildCallsBeforeRequest = projectBuilder.build.callCount;
+
+		// Issue a reader request for the validating project via the buildServerInterface.
+		const readerPromise = capturedInterface.getReaderForProject("library.x");
+
+		// Let any spurious queue tick attempt to land before we release validation.
+		await clock.tickAsync(20);
+
+		// No second build cycle should have been kicked off while validating.
+		t.is(projectBuilder.build.callCount, buildCallsBeforeRequest,
+			"No additional build started while reader request was waiting on validation");
+
+		// Now release validation; it should resolve the reader and land on READY.
+		releaseValidation();
+		const reader = await readerPromise;
+		t.deepEqual(reader, {fakeReader: true}, "Reader request resolved via validation's setReader");
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-ready");
+
+		const seq = statusEvents.map((e) => e.status);
+		const idxValidating = seq.indexOf("serve-validating");
+		const idxReady = seq.lastIndexOf("serve-ready");
+		// Crucial: no BUILDING between VALIDATING and the terminal READY.
+		t.is(seq.slice(idxValidating, idxReady).indexOf("serve-building"), -1,
+			`No serve-building between serve-validating and final serve-ready; got: ${seq.join(", ")}`);
+	});
+
+// When validation finds a project's cache stale and a reader request was queued
+// for that project during VALIDATING, the validation pass must enqueue a build
+// for it before settling — otherwise the queued reader request is orphaned.
+test.serial(
+	"serve-status: reader request during VALIDATING is built when validation finds cache stale",
+	async (t) => {
+		const {sinon, clock} = t.context;
+
+		const rootProject = {getName: () => "root.project"};
+		const libProject = {getName: () => "library.x"};
+		const graph = {
+			getRoot: () => rootProject,
+			getProjects: () => [rootProject, libProject],
+			getTransitiveDependencies: () => ["library.x"],
+			getProject: (name) => name === "root.project" ? rootProject : libProject,
+			traverseDependents: function* () {
+				yield {project: rootProject};
+				yield {project: libProject};
+			},
+		};
+
+		let releaseValidation;
+		const validationGate = new Promise((resolve) => {
+			releaseValidation = resolve;
+		});
+
+		let buildCallCount = 0;
+		const projectBuilder = {
+			closeCacheManager: sinon.stub(),
+			resourcesChanged: sinon.stub(),
+			validateCaches: sinon.stub().callsFake(async ({willValidate}, callback) => {
+				await willValidate?.("library.x");
+				await validationGate;
+				// usesCache=false: cache is stale, project stays INITIAL.
+				await callback("library.x", {
+					getReader: () => ({fakeReader: true}),
+				}, {}, false);
+			}),
+			build: sinon.stub().callsFake((opts, perProjectCb) => {
+				buildCallCount++;
+				if (opts.includeRootProject) {
+					perProjectCb("root.project", {getReader: () => ({fakeReader: true})});
+				}
+				for (const depName of opts.includedDependencies || []) {
+					perProjectCb(depName, {getReader: () => ({builtReader: depName})});
+				}
+				return Promise.resolve(
+					(opts.includeRootProject ? ["root.project"] : []).concat(opts.includedDependencies || []));
+			}),
+		};
+
+		let capturedInterface;
+		class CapturingBuildReader {
+			constructor(_name, _projects, buildServerInterface) {
+				capturedInterface = buildServerInterface;
+			}
+		}
+
+		class FakeWatchHandler {
+			constructor() {
+				this.destroy = sinon.stub().resolves();
+				this.on = sinon.stub();
+				this.watch = sinon.stub().resolves();
+			}
+		}
+
+		const BuildServer = (await esmock("../../../lib/build/BuildServer.js", {
+			"../../../lib/build/BuildReader.js": CapturingBuildReader,
+			"../../../lib/build/helpers/WatchHandler.js": FakeWatchHandler,
+		})).default;
+
+		const statusEvents = [];
+		const statusHandler = (evt) => statusEvents.push(evt);
+		process.on("ui5.serve-status", statusHandler);
+		t.teardown(() => process.off("ui5.serve-status", statusHandler));
+
+		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+		t.teardown(() => buildServer.destroy());
+
+		await clock.tickAsync(10);
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-validating");
+		const buildCallsBeforeRequest = buildCallCount;
+
+		// Queue a reader request for the validating project.
+		const readerPromise = capturedInterface.getReaderForProject("library.x");
+
+		// Release validation: cache is stale, so the validation pass settles without
+		// resolving the reader. The finally clause must enqueue a build.
+		releaseValidation();
+		// Drain microtasks + the queue's 10 ms debounce so the follow-up build can run.
+		await clock.tickAsync(30);
+
+		const readerResult = await readerPromise;
+		t.deepEqual(readerResult, {builtReader: "library.x"},
+			"Reader request resolved via follow-up build");
+		t.true(buildCallCount > buildCallsBeforeRequest,
+			"A follow-up build was triggered to satisfy the pending reader request");
+	});
+
+// When a source change lands during a validation pass, the server must transition
+// VALIDATING → STALE right away rather than waiting for the pass to finish.
+test.serial(
+	"serve-status: source change during VALIDATING transitions to STALE eagerly", async (t) => {
+		const {BuildServer, sinon, clock} = t.context;
+
+		const rootProject = {getName: () => "root.project"};
+		const libProject = {getName: () => "library.x"};
+		const graph = {
+			getRoot: () => rootProject,
+			getProjects: () => [rootProject, libProject],
+			getTransitiveDependencies: () => ["library.x"],
+			getProject: (name) => name === "root.project" ? rootProject : libProject,
+			traverseDependents: function* () {
+				yield {project: rootProject};
+				yield {project: libProject};
+			},
+		};
+
+		let releaseValidation;
+		const validationGate = new Promise((resolve) => {
+			releaseValidation = resolve;
+		});
+
+		const projectBuilder = {
+			closeCacheManager: sinon.stub(),
+			resourcesChanged: sinon.stub(),
+			validateCaches: sinon.stub().callsFake(async ({willValidate}, callback) => {
+				await willValidate?.("library.x");
+				await validationGate;
+				await callback("library.x", {getReader: () => ({fakeReader: true})}, {}, true);
+			}),
+			build: sinon.stub().callsFake((_opts, perProjectCb) => {
+				perProjectCb("root.project", {getReader: () => ({fakeReader: true})});
+				return Promise.resolve(["root.project"]);
+			}),
+		};
+
+		const statusEvents = [];
+		const statusHandler = (evt) => statusEvents.push(evt);
+		process.on("ui5.serve-status", statusHandler);
+		t.teardown(() => process.off("ui5.serve-status", statusHandler));
+
+		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+		t.teardown(() => buildServer.destroy());
+
+		await clock.tickAsync(10);
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-validating");
+		const validatingIdx = statusEvents.findIndex((e) => e.status === "serve-validating");
+
+		// Source change on a project currently in the validation set. This invalidates
+		// the project (firing its per-project abort signal which the validation pass is
+		// composing with) AND triggers the new VALIDATING → STALE branch in
+		// _projectResourceChanged.
+		buildServer._projectResourceChanged(libProject, "/x.js", false);
+
+		// STALE must land synchronously — before the validation pass is even released.
+		const seqMid = statusEvents.map((e) => e.status);
+		const staleIdx = seqMid.indexOf("serve-stale", validatingIdx);
+		t.true(staleIdx > validatingIdx,
+			`Expected serve-stale promptly after the change; got: ${seqMid.join(", ")}`);
+
+		// Release validation so the test can tear down cleanly.
+		releaseValidation();
+		await clock.tickAsync(20);
+	});
+
+
