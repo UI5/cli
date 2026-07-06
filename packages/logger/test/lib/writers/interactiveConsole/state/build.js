@@ -18,6 +18,7 @@ test("createBuildState: starts in INITIAL with empty counters", (t) => {
 	t.is(state.totalProjects, 0);
 	t.deepEqual(state.projectOrder, []);
 	t.deepEqual(state.changedProjects, []);
+	t.deepEqual(state.validatingProjects, []);
 	t.is(state.spinFrame, 0);
 	t.is(state.errorMessage, "");
 	t.is(state.lastBuildHrtime, null);

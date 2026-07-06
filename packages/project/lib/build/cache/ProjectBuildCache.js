@@ -171,6 +171,24 @@ export default class ProjectBuildCache {
 
 		this.#currentDependencyReader = dependencyReader;
 
+		return this.validateCache(dependencyReader);
+	}
+
+	/**
+	 * Validates the current build cache state without performing build-prep side effects.
+	 *
+	 * Flushes any pending source/dependency changes, refreshes dependency indices on first use,
+	 * and attempts to locate a cached result stage. Safe to call independently of a build attempt
+	 * (e.g. to check whether the cache is stale).
+	 *
+	 * @public
+	 * @param {@ui5/fs/AbstractReader} dependencyReader Reader for dependency resources, used to
+	 *   refresh dependency indices when required
+	 * @returns {Promise<string[]|boolean>}
+	 *  Array of changed resource paths since last build, true if cache is fresh, false
+	 *  if cache is empty
+	 */
+	async validateCache(dependencyReader) {
 		// When cache=Off, don't validate or use result cache
 		if (this.#cacheMode === Cache.Off) {
 			log.verbose(`Cache is in "Off" mode for project ${this.#project.getName()}. ` +
@@ -210,7 +228,7 @@ export default class ProjectBuildCache {
 
 		if (this.#combinedIndexState === INDEX_STATES.REQUIRES_UPDATE) {
 			const flushStart = performance.now();
-			const changesDetected = await this.#flushPendingChanges();
+			const changesDetected = await this.#flushPendingChanges(dependencyReader);
 			if (changesDetected) {
 				this.#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
 				// Force mode: Fail immediately if changes were detected
@@ -252,9 +270,10 @@ export default class ProjectBuildCache {
 	/**
 	 * Processes changed resources since last build, updating indices and invalidating tasks as needed
 	 *
+	 * @param {@ui5/fs/AbstractReader} dependencyReader Reader for dependency resources
 	 * @returns {Promise<boolean>}
 	 */
-	async #flushPendingChanges() {
+	async #flushPendingChanges(dependencyReader) {
 		if (this.#changedProjectSourcePaths.length === 0 &&
 			this.#changedDependencyResourcePaths.length === 0) {
 			return;
@@ -279,7 +298,7 @@ export default class ProjectBuildCache {
 				.filter((taskCache) => taskCache.hasDependencyRequests());
 			await Promise.all(tasksWithDepRequests.map(async (taskCache) => {
 				const changed = await taskCache
-					.updateDependencyIndices(this.#currentDependencyReader, this.#changedDependencyResourcePaths);
+					.updateDependencyIndices(dependencyReader, this.#changedDependencyResourcePaths);
 				if (changed) {
 					depIndicesChanged = true;
 				}

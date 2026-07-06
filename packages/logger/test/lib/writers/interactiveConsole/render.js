@@ -253,6 +253,30 @@ test("renderBuildRegion: stale state includes 'files changed' hint", (t) => {
 	t.regex(plain, /Status\s+.+?\s+stale\s+·\s+files changed/);
 });
 
+test("renderBuildRegion: validating state includes 'checking dependency caches' hint", (t) => {
+	const state = createBuildState();
+	transitionTo(state, STATES.VALIDATING);
+	const plain = renderBuildRegion(state).map(stripAnsi).join("\n");
+	t.regex(plain, /Status\s+.+?\s+validating cache\s+·\s+checking dependency caches/);
+	t.notRegex(plain, /project/, "no counter fragment when validatingProjects is empty");
+});
+
+test("renderBuildRegion: validating state appends singular project count", (t) => {
+	const state = createBuildState();
+	state.validatingProjects = ["library.a"];
+	transitionTo(state, STATES.VALIDATING);
+	const plain = renderBuildRegion(state).map(stripAnsi).join("\n");
+	t.regex(plain, /·\s+1 project(?!s)/);
+});
+
+test("renderBuildRegion: validating state appends plural project count", (t) => {
+	const state = createBuildState();
+	state.validatingProjects = ["library.a", "library.b"];
+	transitionTo(state, STATES.VALIDATING);
+	const plain = renderBuildRegion(state).map(stripAnsi).join("\n");
+	t.regex(plain, /·\s+2 projects/);
+});
+
 test("renderBuildRegion: building state renders project counter + project + task", (t) => {
 	const state = createBuildState();
 	beginBuild(state, ["proj-a", "my.app", "proj-c"]);
@@ -375,6 +399,7 @@ const COLOR_BY_STATE = [
 	{state: STATES.READY, wrap: (x) => chalk.green(x), word: "ready", name: "green"},
 	{state: STATES.STALE, wrap: (x) => chalk.yellow(x), word: "stale", name: "yellow"},
 	{state: STATES.BUILDING, wrap: (x) => chalk.yellow(x), word: "building", name: "yellow"},
+	{state: STATES.VALIDATING, wrap: (x) => chalk.cyan(x), word: "validating cache", name: "cyan"},
 	{state: STATES.ERROR, wrap: (x) => chalk.red(x), word: "error", name: "red"},
 ];
 for (const {state: s, wrap, word, name} of COLOR_BY_STATE) {

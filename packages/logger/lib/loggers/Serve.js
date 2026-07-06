@@ -45,6 +45,22 @@ class Serve extends Logger {
 		}
 	}
 
+	validating(validatingProjects) {
+		if (!validatingProjects || !Array.isArray(validatingProjects)) {
+			throw new Error(
+				"loggers/Serve#validating: Missing or incorrect validatingProjects parameter");
+		}
+		const level = "info";
+		const hasListeners = this._emit(Serve.SERVE_STATUS_EVENT_NAME, {
+			level,
+			status: "serve-validating",
+			validatingProjects,
+		});
+		if (!hasListeners) {
+			this._log(level, `Validating caches for: ${validatingProjects.join(", ")}`);
+		}
+	}
+
 	building() {
 		const level = "info";
 		const hasListeners = this._emit(Serve.SERVE_STATUS_EVENT_NAME, {

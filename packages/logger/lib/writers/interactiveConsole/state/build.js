@@ -7,6 +7,7 @@ export const STATES = Object.freeze({
 	READY: "ready",
 	STALE: "stale",
 	BUILDING: "building",
+	VALIDATING: "validating",
 	ERROR: "error",
 });
 
@@ -22,6 +23,9 @@ export function createBuildState() {
 		// Names of projects collected via `serve-stale` payloads — used to label
 		// the stale state if/when the renderer wants to.
 		changedProjects: [],
+		// Names of projects collected via `serve-validating` payloads — used to
+		// label the validating state if/when the renderer wants to.
+		validatingProjects: [],
 		// Frame counter for the spinner (incremented by the tick loop).
 		spinFrame: 0,
 		// Most recent error captured by `serve-error`.

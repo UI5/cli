@@ -15,7 +15,7 @@ import {
 	renderHeaderRegion, renderProjectRegion, renderServerRegion, renderBuildRegion,
 } from "./interactiveConsole/render.js";
 
-// Spinner tick interval while in `building` state.
+// Spinner tick interval while in `building` or `validating` state.
 const BUILDING_TICK_MS = 120;
 
 // Decode the tail of `stream.write(chunk[, encoding][, callback])`. `encoding`
@@ -341,6 +341,11 @@ class InteractiveConsole {
 	}
 
 	#handleServeStatus(evt) {
+		// validatingProjects is a VALIDATING-only payload; clear it on any other
+		// transition so a stale list doesn't linger in the banner state.
+		if (evt.status !== "serve-validating") {
+			this.#buildState.validatingProjects = [];
+		}
 		switch (evt.status) {
 		case "serve-ready":
 			this.#transitionTo(STATES.READY);
@@ -352,6 +357,11 @@ class InteractiveConsole {
 		case "serve-building":
 			beginBuild(this.#buildState, this.#buildState.projectOrder);
 			this.#transitionTo(STATES.BUILDING);
+			break;
+		case "serve-validating":
+			this.#buildState.validatingProjects = evt.validatingProjects || [];
+			this.#buildState.spinFrame = 0;
+			this.#transitionTo(STATES.VALIDATING);
 			break;
 		case "serve-build-done":
 			this.#buildState.lastBuildHrtime = Array.isArray(evt.hrtime) ? evt.hrtime : null;
@@ -393,7 +403,8 @@ class InteractiveConsole {
 		if (this.#stopped) {
 			return;
 		}
-		if (this.#buildState.state !== STATES.BUILDING) {
+		if (this.#buildState.state !== STATES.BUILDING &&
+			this.#buildState.state !== STATES.VALIDATING) {
 			return;
 		}
 		this.#tickTimer = setInterval(() => {

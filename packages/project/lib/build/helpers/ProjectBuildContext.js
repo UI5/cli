@@ -269,20 +269,52 @@ class ProjectBuildContext {
 	 *   True if a valid cache was found and is being used. False otherwise (indicating a build is required).
 	 */
 	async prepareProjectBuildAndValidateCache() {
-		const readerStart = performance.now();
+		return this.#runCacheValidation(
+			"prepareProjectBuildAndValidateCache",
+			(cache, depReader) => cache.prepareProjectBuildAndValidateCache(depReader));
+	}
+
+	/**
+	 * Validates the current build cache without performing build-prep side effects.
+	 *
+	 * Creates a dependency reader and asks the build cache whether it is stale,
+	 * propagating any detected resource changes to dependents.
+	 *
+	 * @returns {Promise<true|false>}
+	 *   True if a valid cache was found and is being used. False otherwise.
+	 */
+	async validateCache() {
+		return this.#runCacheValidation(
+			"validateCache",
+			(cache, depReader) => cache.validateCache(depReader));
+	}
+
+	/**
+	 * Shared implementation for the two cache-validation entry points: fetches a fresh
+	 * dependency reader, invokes the supplied cache call, and propagates any changed
+	 * resource paths to dependents.
+	 *
+	 * @param {string} label Method name used for perf logging
+	 * @param {Function} call Callback receiving (cache, depReader); returns boolean or string[]
+	 * @returns {Promise<boolean>}
+	 *   True if a valid cache was found and is being used. False otherwise.
+	 */
+	async #runCacheValidation(label, call) {
+		const perfEnabled = this._log.isLevelEnabled("perf");
+		const readerStart = perfEnabled ? performance.now() : 0;
 		const depReader = await this.getTaskRunner().getDependenciesReader(
 			await this.getTaskRunner().getRequiredDependencies(),
 			true, // Force creation of new reader since project readers might have changed during their (re-)build
 		);
-		if (this._log.isLevelEnabled("perf")) {
+		if (perfEnabled) {
 			this._log.perf(
 				`getDependenciesReader completed in ${(performance.now() - readerStart).toFixed(2)} ms`);
 		}
-		const cacheStart = performance.now();
-		const boolOrChangedPaths = await this.getBuildCache().prepareProjectBuildAndValidateCache(depReader);
-		if (this._log.isLevelEnabled("perf")) {
+		const cacheStart = perfEnabled ? performance.now() : 0;
+		const boolOrChangedPaths = await call(this.getBuildCache(), depReader);
+		if (perfEnabled) {
 			this._log.perf(
-				`ProjectBuildCache.prepareProjectBuildAndValidateCache completed in ` +
+				`ProjectBuildCache.${label} completed in ` +
 				`${(performance.now() - cacheStart).toFixed(2)} ms`);
 		}
 		if (Array.isArray(boolOrChangedPaths)) {
