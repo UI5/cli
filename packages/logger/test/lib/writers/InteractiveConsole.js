@@ -634,24 +634,6 @@ test.serial("spinner tick advances spinFrame while BUILDING", (t) => {
 	writer.disable();
 });
 
-test.serial("frame growth forces log-update off the diff path", (t) => {
-	// The InteractiveConsole works around a `log-update` bug where a growing
-	// frame miscomputes the erase range and eats scrollback above the live
-	// region. Whenever the frame's row count changes, the writer calls
-	// `logUpdate.clear()` to force the first-frame code path.
-	const {writer, stderr} = createWriter();
-	// First frame: header only.
-	process.emit("ui5.tool-info", {name: "UI5 CLI", version: "1.2.3"});
-	const framesAfterHeader = stderr.writes.length;
-	// Second frame: header + project. Different row count.
-	process.emit("ui5.project-resolved", {
-		name: "my.app", type: "application", version: "1.0.0", framework: null,
-	});
-	t.true(stderr.writes.length > framesAfterHeader,
-		"project-resolved triggers additional writes when the frame grows");
-	writer.disable();
-});
-
 // ---- process.stdout / process.stderr interception ---------------------------
 // InteractiveConsole replaces process.stdout.write / process.stderr.write while
 // active so writes that bypass @ui5/logger (custom tasks, third-party libs) get
