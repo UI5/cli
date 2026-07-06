@@ -3,6 +3,8 @@ import {chalkStderr as chalk} from "chalk";
 import figures from "figures";
 import {MultiBar} from "cli-progress";
 import Logger from "../loggers/Logger.js";
+import {getLevelPrefix} from "./internal/levelPrefix.js";
+import {REMOTE_CONNECTIONS_WARNING_LINES} from "./interactiveConsole/remoteConnectionsWarning.js";
 
 /**
  * Standard handler for events emitted by @ui5/logger modules. Writes messages to
@@ -29,6 +31,8 @@ class Console {
 		this._handleProjectBuildStatusEvent = this.#handleProjectBuildStatusEvent.bind(this);
 		this._handleBuildMetadataEvent = this.#handleBuildMetadataEvent.bind(this);
 		this._handleProjectBuildMetadataEvent = this.#handleProjectBuildMetadataEvent.bind(this);
+		this._handleProjectResolvedEvent = this.#handleProjectResolvedEvent.bind(this);
+		this._handleServerListeningEvent = this.#handleServerListeningEvent.bind(this);
 		this._handleStop = this.disable.bind(this);
 		this.#initFiters();
 	}
@@ -109,6 +113,8 @@ class Console {
 		process.on("ui5.project-build-metadata", this._handleProjectBuildMetadataEvent);
 		process.on("ui5.build-status", this._handleBuildStatusEvent);
 		process.on("ui5.project-build-status", this._handleProjectBuildStatusEvent);
+		process.on("ui5.project-resolved", this._handleProjectResolvedEvent);
+		process.on("ui5.server-listening", this._handleServerListeningEvent);
 		process.on("ui5.log.stop-console", this._handleStop);
 	}
 
@@ -123,6 +129,8 @@ class Console {
 		process.off("ui5.project-build-metadata", this._handleProjectBuildMetadataEvent);
 		process.off("ui5.build-status", this._handleBuildStatusEvent);
 		process.off("ui5.project-build-status", this._handleProjectBuildStatusEvent);
+		process.off("ui5.project-resolved", this._handleProjectResolvedEvent);
+		process.off("ui5.server-listening", this._handleServerListeningEvent);
 		process.off("ui5.log.stop-console", this._handleStop);
 		if (this.#progressBarContainer) {
 			this.#progressBar.stop();
@@ -191,7 +199,7 @@ class Console {
 		if (!Logger.isLevelEnabled(level)) {
 			return;
 		}
-		const levelPrefix = this.#getLevelPrefix(level);
+		const levelPrefix = getLevelPrefix(level);
 		const msg = `${levelPrefix} ${message}\n`;
 
 		if (this.#progressBarContainer) {
@@ -427,32 +435,49 @@ class Console {
 		this.#writeMessage(level, `${chalk.blue(`${(projectName)}`)} ${taskIndex}${message}`);
 	}
 
-	#getLevelPrefix(level) {
-		switch (level) {
-		case "silly":
-			return chalk.inverse(level);
-		case "verbose":
-			return chalk.cyan("verb");
-		case "perf":
-			return chalk.bgYellow.red(level);
-		case "info":
-			return chalk.green(level);
-		case "warn":
-			return chalk.yellow(level);
-		case "error":
-			return chalk.bgRed.white(level);
-		default:
-			// Log level silent does not produce messages
-			throw new Error(`writers/Console: Invalid message log level "${level}"`);
+	#handleProjectResolvedEvent({name, type, version}) {
+		// One-line summary of the root project, mirroring the header region of
+		// the interactive writer. Kept as an info line so `ui5 build` and
+		// non-TTY `ui5 serve` still record the project identity in scrollback.
+		const versionSuffix = version ? ` (${version})` : "";
+		const typeLabel = type ? `${type} project ` : "";
+		this.#writeMessage("info", `Root project: ${typeLabel}${chalk.bold(name)}${chalk.dim(versionSuffix)}`);
+	}
+
+	#handleServerListeningEvent({urls, acceptRemoteConnections}) {
+		if (acceptRemoteConnections) {
+			// Emit the warning as chalk-formatted lines on stderr, surrounded
+			// by blank lines and without a `warn` level prefix. The interactive
+			// writer renders the same lines inside its server region.
+			process.stderr.write("\n");
+			for (const line of REMOTE_CONNECTIONS_WARNING_LINES) {
+				process.stderr.write(line);
+				process.stderr.write("\n");
+			}
+			process.stderr.write("\n");
+		}
+		// Emit `Server started` and the local URL on stdout without a level
+		// prefix — this exact shape is a contract for scripts and users
+		// parsing the non-interactive log lines. Network URLs listed under
+		// `--accept-remote-connections` are intentionally omitted; the
+		// interactive writer is responsible for showing them.
+		if (Array.isArray(urls)) {
+			const localEntry = urls.find((entry) => entry?.label === "Local") ?? urls[0];
+			if (localEntry?.url) {
+				process.stdout.write(`Server started\nURL: ${localEntry.url}\n`);
+			}
 		}
 	}
 
 	/**
-	 * Creates a new instance and subscribes it to all events
+	 * Creates a new instance and subscribes it to all events. Any currently-
+	 * active console-writing writer is displaced by the `ui5.log.stop-console`
+	 * event emitted here.
 	 *
 	 * @public
 	 */
 	static init() {
+		process.emit("ui5.log.stop-console");
 		const cH = new Console();
 		cH.enable();
 		return cH;
