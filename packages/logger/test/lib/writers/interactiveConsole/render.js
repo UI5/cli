@@ -71,7 +71,10 @@ test("renderProjectRegion: renders placeholders when enabled", (t) => {
 	enableProjectPlaceholders(state);
 	const plain = renderProjectRegion(state).map(stripAnsi).join("\n");
 	t.regex(plain, /Project\s+resolving…/);
-	t.regex(plain, /Framework\s+resolving…/);
+	// The Framework row is deferred until project-resolved reveals a real
+	// framework name — otherwise a stale "resolving…" would flash and vanish
+	// for the (very common) case of an app without a declared framework.
+	t.notRegex(plain, /Framework/, "no Framework row is reserved in placeholder mode");
 });
 
 test("renderProjectRegion: renders project, type, and version", (t) => {
@@ -99,10 +102,12 @@ test("renderProjectRegion: renders framework without a version when only the nam
 	t.regex(plain, /Framework\s+OpenUI5$/m);
 });
 
-test("renderProjectRegion: shows a dim '(none)' framework row when project has no framework", (t) => {
-	// The Framework row is always rendered so the live region's height stays
-	// constant once the project resolves — otherwise the status line would
-	// shift down when a framework appears between frames.
+test("renderProjectRegion: omits the framework row when project has no framework", (t) => {
+	// For a UI5 app without a declared framework (a common shape when
+	// something like fiori-tools-proxy supplies it at runtime) the writer
+	// omits the row entirely rather than rendering a misleading "(none)"
+	// label. The frame grows by exactly one row later if a framework
+	// resolves; log-update's clear() workaround handles that transition.
 	const state = createProjectState();
 	setProject(state, {
 		name: "my.app",
@@ -110,8 +115,11 @@ test("renderProjectRegion: shows a dim '(none)' framework row when project has n
 		version: "1.0.0",
 		framework: null,
 	});
-	const plain = renderProjectRegion(state).map(stripAnsi).join("\n");
-	t.regex(plain, /Framework\s+\(none\)/);
+	const rendered = renderProjectRegion(state);
+	t.is(rendered.length, 2, "two lines: separator + Project");
+	const plain = rendered.map(stripAnsi).join("\n");
+	t.notRegex(plain, /Framework/, "no Framework label is rendered");
+	t.notRegex(plain, /\(none\)/, "no '(none)' placeholder is rendered");
 });
 
 test("renderProjectRegion: project rendered without type/version still includes the name", (t) => {

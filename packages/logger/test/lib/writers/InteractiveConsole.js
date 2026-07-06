@@ -280,7 +280,7 @@ test.serial("tool-mode 'serve' enables placeholders for project, server, and sta
 	const output = stripAnsi(stderr.writes.join(""));
 	t.regex(output, /UI5 CLI v1\.2\.3/, "header rendered");
 	t.regex(output, /Project\s+resolving…/, "project placeholder rendered");
-	t.regex(output, /Framework\s+resolving…/, "framework placeholder rendered");
+	t.notRegex(output, /Framework/, "framework row is not reserved in placeholder mode");
 	t.regex(output, /Local:\s+binding…/, "server local placeholder rendered");
 	t.regex(output, /Network:\s+use --accept-remote-connections to expose/,
 		"network hint rendered when the flag isn't set");
@@ -394,8 +394,12 @@ test.serial("region blocks are separated by a blank line in the composed frame",
 
 	// Blank line between header (UI5 CLI …) and project block
 	t.regex(frame, /UI5 CLI v1\.2\.3\n\nProject/);
-	// Blank line between project/framework block and server block
-	t.regex(frame, /Framework\s+\(none\)\n\n.*Local:/);
+	// No framework configured: the Framework row is omitted entirely. The
+	// Project block is just the Project line, followed by the blank
+	// separator before the server block.
+	t.regex(frame, /Project\s+my\.app.*\n\n.*Local:/);
+	t.notRegex(frame, /Framework/, "no Framework label when framework is null");
+	t.notRegex(frame, /\(none\)/, "no '(none)' placeholder when framework is null");
 	// Blank line between server block and status
 	t.regex(frame, /Network:.*\n\nStatus/);
 });

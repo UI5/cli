@@ -48,16 +48,19 @@ export function renderProjectRegion(projectState) {
 		lines.push(`${chalk.dim("Project")}   ${chalk.bold(project.name)}` +
 			(projectType ? `  ${projectType}` : "") +
 			(projectVersion ? `  ${projectVersion}` : ""));
-		if (framework && framework.name) {
+		// Only emit a Framework row when the project actually declares one.
+		// For UI5 apps that get their framework from a runtime middleware
+		// (e.g. fiori-tools-proxy) the ui5.yaml has no framework config,
+		// making "(none)" misleading; omitting the row also avoids a stale
+		// "Framework resolving…" placeholder flashing before it disappears.
+		if (framework?.name) {
 			const frameworkVersion = framework.version ? ` ${framework.version}` : "";
 			lines.push(`${chalk.dim("Framework")} ${chalk.bold(framework.name + frameworkVersion)}`);
-		} else {
-			lines.push(`${chalk.dim("Framework")} ${placeholder("(none)")}`);
 		}
 	} else {
-		// Placeholder mode: reserve the same two rows setProject() will fill in.
+		// Placeholder mode: reserve only the Project row. The Framework row is
+		// deferred until project-resolved reveals a real framework name.
 		lines.push(`${chalk.dim("Project")}   ${placeholder("resolving…")}`);
-		lines.push(`${chalk.dim("Framework")} ${placeholder("resolving…")}`);
 	}
 	return lines;
 }
