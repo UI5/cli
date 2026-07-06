@@ -422,6 +422,13 @@ class BuildServer extends EventEmitter {
 			if (this.#destroyed) {
 				return;
 			}
+			// A concurrent timer may have claimed the build slot during the await
+			// above — validation's finally can fire onBuildRequired, which schedules
+			// a second timer. Bail so we don't call projectBuilder.build twice; the
+			// active build's #reconcileServerState hook drains #pendingBuildRequest.
+			if (this.#activeBuild) {
+				return;
+			}
 			const cycleStart = process.hrtime();
 			this.#setState(SERVER_STATES.BUILDING);
 			this.#processBuildRequests().then(() => {
