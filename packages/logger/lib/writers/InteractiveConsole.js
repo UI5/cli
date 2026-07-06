@@ -9,7 +9,7 @@ import {createProjectState, setProject, enableProjectPlaceholders} from "./inter
 import {createServerState, setListening, enableServerPlaceholders} from "./interactiveConsole/state/server.js";
 import {
 	createBuildState, beginBuild, advanceToProject, setTask, transitionTo, setError, STATES,
-	enableBuildPlaceholders,
+	SPINNING_STATES, enableBuildPlaceholders,
 } from "./interactiveConsole/state/build.js";
 import {
 	renderHeaderRegion, renderProjectRegion, renderServerRegion, renderBuildRegion,
@@ -403,8 +403,7 @@ class InteractiveConsole {
 		if (this.#stopped) {
 			return;
 		}
-		if (this.#buildState.state !== STATES.BUILDING &&
-			this.#buildState.state !== STATES.VALIDATING) {
+		if (!SPINNING_STATES.has(this.#buildState.state)) {
 			return;
 		}
 		this.#tickTimer = setInterval(() => {

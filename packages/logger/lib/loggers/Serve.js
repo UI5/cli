@@ -19,30 +19,31 @@ import Logger from "./Logger.js";
 class Serve extends Logger {
 	static SERVE_STATUS_EVENT_NAME = "ui5.serve-status";
 
-	ready() {
-		const level = "info";
+	// Emit a `ui5.serve-status` event; if no listener is attached, fall back to
+	// a plain log line at the same level. All public status methods route
+	// through here so the event payload shape (`{level, status, ...}`) and the
+	// no-listener fallback stay in sync across states.
+	#emitStatus(status, payload, fallbackMessage, {level = "info"} = {}) {
 		const hasListeners = this._emit(Serve.SERVE_STATUS_EVENT_NAME, {
 			level,
-			status: "serve-ready",
+			status,
+			...payload,
 		});
 		if (!hasListeners) {
-			this._log(level, `Server ready`);
+			this._log(level, fallbackMessage);
 		}
+	}
+
+	ready() {
+		this.#emitStatus("serve-ready", {}, `Server ready`);
 	}
 
 	stale(changedProjects) {
 		if (!changedProjects || !Array.isArray(changedProjects)) {
 			throw new Error("loggers/Serve#stale: Missing or incorrect changedProjects parameter");
 		}
-		const level = "info";
-		const hasListeners = this._emit(Serve.SERVE_STATUS_EVENT_NAME, {
-			level,
-			status: "serve-stale",
-			changedProjects,
-		});
-		if (!hasListeners) {
-			this._log(level, `Sources changed in: ${changedProjects.join(", ")}`);
-		}
+		this.#emitStatus("serve-stale", {changedProjects},
+			`Sources changed in: ${changedProjects.join(", ")}`);
 	}
 
 	validating(validatingProjects) {
@@ -50,26 +51,12 @@ class Serve extends Logger {
 			throw new Error(
 				"loggers/Serve#validating: Missing or incorrect validatingProjects parameter");
 		}
-		const level = "info";
-		const hasListeners = this._emit(Serve.SERVE_STATUS_EVENT_NAME, {
-			level,
-			status: "serve-validating",
-			validatingProjects,
-		});
-		if (!hasListeners) {
-			this._log(level, `Validating caches for: ${validatingProjects.join(", ")}`);
-		}
+		this.#emitStatus("serve-validating", {validatingProjects},
+			`Validating caches for: ${validatingProjects.join(", ")}`);
 	}
 
 	building() {
-		const level = "info";
-		const hasListeners = this._emit(Serve.SERVE_STATUS_EVENT_NAME, {
-			level,
-			status: "serve-building",
-		});
-		if (!hasListeners) {
-			this._log(level, `Building...`);
-		}
+		this.#emitStatus("serve-building", {}, `Building...`);
 	}
 
 	buildDone(hrtime) {
@@ -77,15 +64,8 @@ class Serve extends Logger {
 				typeof hrtime[0] !== "number" || typeof hrtime[1] !== "number") {
 			throw new Error("loggers/Serve#buildDone: Missing or incorrect hrtime parameter");
 		}
-		const level = "info";
-		const hasListeners = this._emit(Serve.SERVE_STATUS_EVENT_NAME, {
-			level,
-			status: "serve-build-done",
-			hrtime,
-		});
-		if (!hasListeners) {
-			this._log(level, `Build finished in ${prettyHrtime(hrtime)}`);
-		}
+		this.#emitStatus("serve-build-done", {hrtime},
+			`Build finished in ${prettyHrtime(hrtime)}`);
 	}
 
 	// Named serveError rather than error to avoid shadowing Logger.prototype.error
@@ -93,15 +73,8 @@ class Serve extends Logger {
 		if (!error) {
 			throw new Error("loggers/Serve#serveError: Missing error parameter");
 		}
-		const level = "error";
-		const hasListeners = this._emit(Serve.SERVE_STATUS_EVENT_NAME, {
-			level,
-			status: "serve-error",
-			error,
-		});
-		if (!hasListeners) {
-			this._log(level, `Server error: ${error.message || error}`);
-		}
+		this.#emitStatus("serve-error", {error},
+			`Server error: ${error.message || error}`, {level: "error"});
 	}
 }
 
