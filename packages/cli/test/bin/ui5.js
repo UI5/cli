@@ -374,6 +374,5 @@ test.serial("integration: Executing main when required as main module (catch ini
 
 	t.deepEqual(processStderrWriteStub.getCall(0).args, ["Fatal Error: Unable to initialize UI5 CLI"]);
 	t.is(processStderrWriteStub.getCall(2).args.length, 1);
-	t.true(processStderrWriteStub.getCall(2).args[0] instanceof Error);
-	t.is(processStderrWriteStub.getCall(2).args[0].message, "TEST: Unable to invoke CLI");
+	t.is(processStderrWriteStub.getCall(2).args[0], "Error: TEST: Unable to invoke CLI");
 });
