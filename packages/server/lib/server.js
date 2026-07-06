@@ -138,6 +138,10 @@ async function _addSsl({app, key, cert}) {
  * @param {string} [options.ui5DataDir] Explicit UI5 data directory to use for the build cache.
  * 										Overrides the <code>UI5_DATA_DIR</code> environment variable,
  * 										the UI5 configuration file, and the default of <code>~/.ui5</code>.
+ * @param {string[]} [options.includedTasks] A list of tasks to be added to the default execution set.
+ * 										Takes precedence over <code>excludedTasks</code>.
+ * @param {string[]} [options.excludedTasks] A list of tasks to be excluded from the default task
+ * 										execution set.
  * @param {Function} error Error callback. Will be called when an error occurs outside of request handling.
  * @returns {Promise<object>} Promise resolving once the server is listening.
  * 							It resolves with an object containing the <code>port</code>,
@@ -148,7 +152,7 @@ export async function serve(graph, {
 	port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
 	acceptRemoteConnections = false, sendSAPTargetCSP = false,
 	simpleIndex = false, liveReload = false, serveCSPReports = false, cache = Cache.Default,
-	ui5DataDir,
+	ui5DataDir, includedTasks, excludedTasks,
 }, error) {
 	const rootProject = graph.getRoot();
 
@@ -186,7 +190,8 @@ export async function serve(graph, {
 	}
 	const buildServer = await graph.serve({
 		initialBuildIncludedDependencies,
-		excludedTasks: ["minify", "generateLibraryPreload", "generateComponentPreload", "generateBundle"],
+		includedTasks,
+		excludedTasks,
 		cache,
 		ui5DataDir,
 	});
