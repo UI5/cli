@@ -63,10 +63,6 @@ class InteractiveConsole {
 	// `#render()` call hands it the full multi-line frame and it diffs against
 	// the previous one, erasing wrap-correctly.
 	#logUpdate;
-	// Line count of the most recently composed frame — used to detect
-	// growing/shrinking frames and force `log-update` off its diff path in
-	// that case. See `#render()`.
-	#lastFrameLineCount;
 
 	// True while a live-region render (or explicit persist/done) is in flight,
 	// so #interceptWrite lets log-update's own bytes through to the real
@@ -150,10 +146,9 @@ class InteractiveConsole {
 		this.#stderr.write("\n");
 	}
 
-	// Compose the full live region as a single string plus its line count.
-	// One block per region, separated by their own leading blank line.
-	// `log-update` handles wrapping and erase of the previous frame, so we
-	// just hand it the full text.
+	// Compose the full live region as a single string. One block per region,
+	// separated by their own leading blank line. `log-update` handles wrapping
+	// and erase of the previous frame, so we just hand it the full text.
 	#composeLiveRegion() {
 		const lines = [
 			...renderHeaderRegion(this.#headerState),
@@ -162,7 +157,7 @@ class InteractiveConsole {
 			...renderBuildRegion(this.#buildState),
 		];
 		if (lines.length === 0) {
-			return {frame: "", lineCount: 0};
+			return "";
 		}
 		// `log-update` wraps long lines onto additional rows; the last line is
 		// designed to fit on a single row when it's a status line, so clip it
@@ -171,7 +166,7 @@ class InteractiveConsole {
 		if (this.#buildState.state !== STATES.INITIAL) {
 			lines[lines.length - 1] = sliceAnsi(lines[lines.length - 1], 0, this.#columns);
 		}
-		return {frame: lines.join("\n"), lineCount: lines.length};
+		return lines.join("\n");
 	}
 
 	#render() {
@@ -182,23 +177,7 @@ class InteractiveConsole {
 			return;
 		}
 		this.#withRenderingGuard(() => {
-			const {frame, lineCount} = this.#composeLiveRegion();
-			// Work around a `log-update` bug (v7.2.0): when a frame grows past
-			// the previous one, its `buildPatch` clamps the pre-write cursor
-			// move at 0 instead of moving DOWN to the new start row, so the
-			// cursor ends up above where the library thinks it is. The next
-			// `persist()`/`clear()` then calls `eraseLines()` with a count
-			// based on the new frame — erasing rows that overlap the scrollback
-			// above the live region (e.g. the shell prompt line). Forcing the
-			// first-frame code path by calling `clear()` whenever the row
-			// count changes sidesteps the diff logic entirely for the cases
-			// where it's buggy; steady-state renders (spinner tick, in-place
-			// updates with unchanged row count) still take the fast diff path.
-			if (this.#lastFrameLineCount !== undefined && lineCount !== this.#lastFrameLineCount) {
-				this.#logUpdate.clear();
-			}
-			this.#lastFrameLineCount = lineCount;
-			this.#logUpdate(frame);
+			this.#logUpdate(this.#composeLiveRegion());
 		});
 	}
 
@@ -219,14 +198,7 @@ class InteractiveConsole {
 		}
 		this.#withRenderingGuard(() => {
 			this.#logUpdate.persist(line);
-			// `persist()` resets log-update's internal state, so the follow-up
-			// render is a fresh first-frame write. Reset our own line-count
-			// tracker to match — otherwise the next `#render()` would
-			// mistakenly compare against the pre-persist count.
-			this.#lastFrameLineCount = undefined;
-			const {frame, lineCount} = this.#composeLiveRegion();
-			this.#lastFrameLineCount = lineCount;
-			this.#logUpdate(frame);
+			this.#logUpdate(this.#composeLiveRegion());
 		});
 	}
 

@@ -106,8 +106,7 @@ test("renderProjectRegion: omits the framework row when project has no framework
 	// For a UI5 app without a declared framework (a common shape when
 	// something like fiori-tools-proxy supplies it at runtime) the writer
 	// omits the row entirely rather than rendering a misleading "(none)"
-	// label. The frame grows by exactly one row later if a framework
-	// resolves; log-update's clear() workaround handles that transition.
+	// label.
 	const state = createProjectState();
 	setProject(state, {
 		name: "my.app",
