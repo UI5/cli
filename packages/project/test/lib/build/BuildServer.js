@@ -744,4 +744,209 @@ test.serial(
 		await clock.tickAsync(20);
 	});
 
+// Regression test for a race where the request-queue timer schedules a second
+// timer (T2) during T1's `await #stopActiveValidation`. Without a re-check of
+// `#activeBuild` after that await, T2 would call `#processBuildRequests` while
+// T1's build is still in flight, invoke `projectBuilder.build` concurrently, and
+// surface a spurious "A build is already running" error to the user.
+//
+// Sequence exercised below:
+//   1. Initial build of root completes; library.x and library.y enter
+//      background VALIDATING.
+//   2. Reader request lands on library.x — queued on its readerQueue via the
+//      isValidating() branch, so no build is enqueued.
+//   3. Source change on root invalidates root only (traverseDependents yields
+//      just root); library.x/y stay in VALIDATING.
+//   4. Reader request for root enqueues a build → schedules T1.
+//   5. T1 fires: `#stopActiveValidation` aborts the pass. The pass's finally
+//      releases library.x/y, which fires `onBuildRequired` for library.x
+//      (queued reader) — that re-enters `#triggerRequestQueue` and schedules T2
+//      while `#activeBuild` is still null.
+//   6. T1 resumes, claims `#activeBuild`, calls `projectBuilder.build`.
+//   7. A reader request for library.y arrives during T1's build →
+//      `#pendingBuildRequest = {library.y}`.
+//   8. T2 fires 10 ms later. Without the guard, it calls
+//      `projectBuilder.build` a second time while T1's is still pending.
+test.serial(
+	"triggerRequestQueue: does not fire a second build while T1's build is in flight",
+	async (t) => {
+		const {sinon, clock} = t.context;
+
+		const rootProject = {getName: () => "root.project"};
+		const libX = {getName: () => "library.x"};
+		const libY = {getName: () => "library.y"};
+		const projectsByName = {
+			"root.project": rootProject,
+			"library.x": libX,
+			"library.y": libY,
+		};
+		// traverseDependents yields only the source project itself so a source
+		// change on root does not cascade into library.x or library.y.
+		const graph = {
+			getRoot: () => rootProject,
+			getProjects: () => [rootProject, libX, libY],
+			getTransitiveDependencies: () => ["library.x", "library.y"],
+			getProject: (name) => projectsByName[name],
+			traverseDependents: function* (projectName) {
+				yield {project: projectsByName[projectName]};
+			},
+		};
+
+		// Track concurrent invocations of projectBuilder.build. The second
+		// concurrent call rejects with the same error the real ProjectBuilder
+		// would throw synchronously from its "buildIsRunning" guard.
+		let inFlightBuilds = 0;
+		let maxConcurrentBuilds = 0;
+		const buildInvocations = [];
+
+		// Validation pass hangs until aborted; the abort signal's rejection is what
+		// #stopActiveValidation awaits.
+		const validationGate = (signal) => new Promise((_, reject) => {
+			if (signal.aborted) {
+				reject(signal.reason);
+				return;
+			}
+			signal.addEventListener("abort", () => reject(signal.reason), {once: true});
+		});
+
+		const projectBuilder = {
+			closeCacheManager: sinon.stub(),
+			resourcesChanged: sinon.stub(),
+			validateCaches: sinon.stub().callsFake(async ({willValidate, signal}) => {
+				willValidate?.("library.x");
+				willValidate?.("library.y");
+				// Wait until the pass is aborted by #stopActiveValidation. The
+				// re-thrown abort reason is caught by #runBackgroundValidation.
+				await validationGate(signal);
+			}),
+			build: sinon.stub().callsFake((opts, perProjectCb) => {
+				if (inFlightBuilds > 0) {
+					return Promise.reject(new Error("A build is already running"));
+				}
+				inFlightBuilds++;
+				maxConcurrentBuilds = Math.max(maxConcurrentBuilds, inFlightBuilds);
+				const {promise, resolve} = Promise.withResolvers();
+				buildInvocations.push({opts, perProjectCb, resolve});
+				return promise.finally(() => {
+					inFlightBuilds--;
+				});
+			}),
+		};
+
+		let capturedInterface;
+		class CapturingBuildReader {
+			constructor(_name, _projects, buildServerInterface) {
+				capturedInterface = buildServerInterface;
+			}
+		}
+
+		class FakeWatchHandler {
+			constructor() {
+				this.destroy = sinon.stub().resolves();
+				this.on = sinon.stub();
+				this.watch = sinon.stub().resolves();
+			}
+		}
+
+		const BuildServer = (await esmock("../../../lib/build/BuildServer.js", {
+			"../../../lib/build/BuildReader.js": CapturingBuildReader,
+			"../../../lib/build/helpers/WatchHandler.js": FakeWatchHandler,
+		})).default;
+		const statusEvents = makeStatusRecorder(t);
+
+		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+		t.teardown(() => buildServer.destroy());
+		// Swallow the emitted error so AVA doesn't see an unhandled rejection
+		// if the race actually fires (which it will, without the fix).
+		const errorEvents = [];
+		buildServer.on("error", (err) => errorEvents.push(err));
+
+		// Drive the initial build of root.
+		await clock.tickAsync(10);
+		// Resolve the initial root build.
+		t.is(buildInvocations.length, 1, "initial root build was invoked");
+		buildInvocations[0].perProjectCb("root.project", {
+			getReader: () => ({builtReader: "root.project"}),
+		});
+		buildInvocations[0].resolve(["root.project"]);
+
+		// Wait for the post-build VALIDATING transition.
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-validating");
+
+		// (2) Reader request on VALIDATING library.x — queued, no enqueueBuild.
+		const libXReaderPromise = capturedInterface.getReaderForProject("library.x");
+		// Keep the promise unhandled from AVA's perspective by attaching a noop
+		// catch. If the fix is in place this resolves cleanly at teardown; if
+		// not, it may reject when a follow-up build fails.
+		libXReaderPromise.catch(() => {});
+
+		// (3) Source change on root: only invalidates root (traverseDependents
+		// yields root alone), leaving library.x/y in VALIDATING.
+		buildServer._projectResourceChanged(rootProject, "/foo.js", false);
+
+		// (4) Reader request for root → root is INVALIDATED, so this enqueues a
+		// build and schedules T1.
+		const rootReaderPromise = capturedInterface.getReaderForProject("root.project");
+		rootReaderPromise.catch(() => {});
+
+		// (5) Fire T1. tickAsync(10) drains through the timer body's await, which
+		// aborts validation; validation's finally releases library.x's queued
+		// reader via onBuildRequired → enqueueBuild(library.x) → schedules T2.
+		// T1 then continues, claims #activeBuild, and calls projectBuilder.build
+		// (the second recorded invocation).
+		await clock.tickAsync(10);
+
+		t.is(buildInvocations.length, 2, "T1 kicked off a second projectBuilder.build call");
+		const t1Build = buildInvocations[1];
+		t.true(t1Build.opts.includeRootProject, "T1 builds root");
+		t.deepEqual(t1Build.opts.includedDependencies, ["library.x"],
+			"T1 also picks up library.x from the onBuildRequired re-entry");
+
+		// (7) Reader request for library.y while T1's build is pending. This
+		// populates #pendingBuildRequest but triggerRequestQueue early-returns
+		// because #activeBuild != null.
+		const libYReaderPromise = capturedInterface.getReaderForProject("library.y");
+		libYReaderPromise.catch(() => {});
+
+		// (8) Fire T2. Without the fix, T2's timer body would call
+		// projectBuilder.build concurrently and the mock would reject with
+		// "A build is already running" (mirroring the real ProjectBuilder).
+		await clock.tickAsync(10);
+
+		// Primary assertion: at no point were two builds in flight.
+		t.is(maxConcurrentBuilds, 1,
+			"projectBuilder.build must never be called while a build is already in flight");
+
+		// Observable surface: no spurious serve-error / error event.
+		const seq = statusEvents.map((e) => e.status);
+		t.false(seq.includes("serve-error"),
+			`No serve-error should be emitted; got: ${seq.join(", ")}`);
+		t.is(errorEvents.length, 0, "No BuildServer 'error' event should be emitted");
+
+		// Let T1's build finish. The follow-up library.y build then runs in the
+		// same processBuildRequests cycle. Resolve each in order and drain.
+		t1Build.perProjectCb("root.project", {getReader: () => ({builtReader: "root.project"})});
+		t1Build.perProjectCb("library.x", {getReader: () => ({builtReader: "library.x"})});
+		t1Build.resolve(["root.project", "library.x"]);
+
+		// Drain until the library.y build lands.
+		for (let i = 0; i < 100 && buildInvocations.length < 3; i++) {
+			await clock.tickAsync(1);
+		}
+		t.is(buildInvocations.length, 3, "library.y is built in the same request-queue cycle");
+		const libYBuild = buildInvocations[2];
+		libYBuild.perProjectCb("library.y", {getReader: () => ({builtReader: "library.y"})});
+		libYBuild.resolve(["library.y"]);
+
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-ready");
+
+		// All three reader requests must have resolved.
+		t.deepEqual(await libXReaderPromise, {builtReader: "library.x"},
+			"library.x reader resolved by its follow-up build");
+		t.deepEqual(await rootReaderPromise, {builtReader: "root.project"},
+			"root reader resolved by T1's build");
+		t.deepEqual(await libYReaderPromise, {builtReader: "library.y"},
+			"library.y reader resolved by the trailing build");
+	});
+
 
