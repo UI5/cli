@@ -415,6 +415,7 @@ class ProjectBuilder {
 			const startTime = process.hrtime();
 			try {
 				for (const projectBuildContext of queue) {
+					signal?.throwIfAborted();
 					const project = projectBuildContext.getProject();
 					const projectName = project.getName();
 					const projectType = project.getType();
@@ -432,6 +433,7 @@ class ProjectBuilder {
 								`completed in ${(performance.now() - prepStart).toFixed(2)} ms ` +
 								`(usesCache=${usesCache})`);
 						}
+						signal?.throwIfAborted();
 						if (usesCache) {
 							this.#log.skipProjectBuild(projectName, projectType);
 							alreadyBuilt.push(projectName);
@@ -549,6 +551,8 @@ class ProjectBuilder {
 								`(usesCache=${usesCache})`);
 						}
 					}
+
+					signal?.throwIfAborted();
 
 					if (projectValidatedCallback && isRequested) {
 						await projectValidatedCallback(projectName, project, projectBuildContext, usesCache);
