@@ -709,9 +709,6 @@ class BuildServer extends EventEmitter {
 					projectBuildStatus?.markValidating();
 				},
 			}, (projectName, project, projectBuildContext, usesCache) => {
-				if (signal.aborted) {
-					return;
-				}
 				const projectBuildStatus = this.#projectBuildStatus.get(projectName);
 				if (!projectBuildStatus) {
 					return;
