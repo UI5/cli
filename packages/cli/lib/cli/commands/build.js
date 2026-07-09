@@ -1,5 +1,5 @@
 import baseMiddleware from "../middlewares/base.js";
-import {applyProjectConfigOptions, applyWorkspaceOptions, dedupeArray} from "../options.js";
+import {applyProjectConfigOptions, applyWorkspaceOptions, applyBuildOptions, dedupeArray} from "../options.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("cli:commands:build");
 
@@ -13,6 +13,7 @@ const build = {
 build.builder = function(cli) {
 	applyProjectConfigOptions(cli);
 	applyWorkspaceOptions(cli);
+	applyBuildOptions(cli);
 	return cli
 		.command("jsdoc", "Build JSDoc resources", {
 			handler: handleBuild,
@@ -112,17 +113,6 @@ build.builder = function(cli) {
 				"allowing reuse of the build result in other builds",
 			default: false,
 			type: "boolean"
-		})
-		.option("include-task", {
-			describe: "A list of tasks to be added to the default execution set. " +
-				"This option takes precedence over any excludes.",
-			type: "string",
-			array: true
-		})
-		.option("exclude-task", {
-			describe: "A list of tasks to be excluded from the default task execution set",
-			type: "string",
-			array: true
 		})
 		.option("framework-version", {
 			describe: "Overrides the framework version defined by the project. " +

@@ -17,13 +17,16 @@ Or update your global install via: `npm i --global @ui5/cli@next`
 
 - **@ui5/cli: Option `--cache-mode` has been renamed to `--snapshot-cache`**
 
-- **@ui5/cli: Project/Workspace options are now scoped per command**
+- **@ui5/cli: Project/Workspace options are now scoped per command, incorrect usage now produces an error**
 
-- **@ui5/server: Live Reload is enabled by default for `ui5 serve`**
-
-- **@ui5/cli: `ui5 serve` renders a live status banner in interactive terminals**
+- **@ui5/server: By default, the server now runs all configured build tasks and serves the build result instead of transforming resources dynamically**
 
 - **@ui5/server: Standard middleware `serveThemes` and `testRunner` have been removed**
+
+- **@ui5/cli: `ui5 serve` enables Live Reload by default**
+
+- **@ui5/cli: `ui5 serve` renders a status banner in interactive terminals**
+
 
 ## Node.js and npm Version Support
 
@@ -70,7 +73,9 @@ If you plan to execute a build only once (for example during a CI run), consider
 
 ### For `ui5 serve`
 
-The UI5 Server now performs a build of the project. When started with `ui5 serve`, a similar build to `ui5 build` is executed containing standard and custom tasks (see [exceptions](../pages/Server.md#standard-tasks)).
+The UI5 Server now performs a build of the project. When started with `ui5 serve`, the same set of standard and custom tasks as `ui5 build` is executed. See [Server Standard Tasks](../pages/Server.md#standard-tasks) for more details.
+
+Individual tasks can be included or excluded via the `--include-task` and `--exclude-task` CLI options, identical to the `ui5 build` command. For example, `ui5 serve --exclude-task minify` would skip the minification build task.
 
 During a server session, source changes are automatically monitored. When a request is made, the server detects this, tries to use caches, and only rebuilds when none are available. For more information, see [Watch Mode Behavior](../pages/Server.md#watch-mode-behavior).
 

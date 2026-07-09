@@ -76,3 +76,26 @@ export function applyWorkspaceOptions(cli) {
 		})
 		.coerce(["workspace-config", "workspace"], dedupeArray);
 }
+
+/**
+ * Adds the shared build-related options ("--include-task" and "--exclude-task")
+ * to the given yargs instance. Both the "ui5 build" and "ui5 serve" commands
+ * trigger a build internally and honour the same task filters.
+ *
+ * @param {object} cli The yargs instance
+ * @returns {object} The yargs instance
+ */
+export function applyBuildOptions(cli) {
+	return cli
+		.option("include-task", {
+			describe: "A list of tasks to be added to the default execution set. " +
+				"This option takes precedence over any excludes.",
+			type: "string",
+			array: true
+		})
+		.option("exclude-task", {
+			describe: "A list of tasks to be excluded from the default task execution set",
+			type: "string",
+			array: true
+		});
+}

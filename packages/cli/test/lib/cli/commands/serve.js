@@ -123,6 +123,8 @@ test.serial("ui5 serve: default", async (t) => {
 			serveCSPReports: false,
 			simpleIndex: false,
 			liveReload: true,
+			includedTasks: undefined,
+			excludedTasks: undefined,
 		}
 	]);
 	t.is(typeof server.serve.getCall(0).args[2], "function");
@@ -165,6 +167,8 @@ test.serial("ui5 serve --h2", async (t) => {
 			serveCSPReports: false,
 			simpleIndex: false,
 			liveReload: true,
+			includedTasks: undefined,
+			excludedTasks: undefined,
 		}
 	]);
 
@@ -198,6 +202,8 @@ test.serial("ui5 serve --accept-remote-connections", async (t) => {
 			serveCSPReports: false,
 			simpleIndex: false,
 			liveReload: true,
+			includedTasks: undefined,
+			excludedTasks: undefined,
 		}
 	]);
 });
@@ -450,6 +456,21 @@ test.serial("ui5 serve --live-reload overrides ui5.yaml liveReload setting", asy
 
 	t.is(server.serve.callCount, 1);
 	t.is(server.serve.getCall(0).args[1].liveReload, true);
+});
+
+test.serial("ui5 serve --include-task / --exclude-task", async (t) => {
+	const {argv, serve, server} = t.context;
+
+	argv["include-task"] = ["minify"];
+	argv["exclude-task"] = ["buildThemes", "generateResourcesJson"];
+
+	serve.handler(argv);
+	await t.context.handlerReady;
+
+	t.is(server.serve.callCount, 1);
+	t.deepEqual(server.serve.getCall(0).args[1].includedTasks, ["minify"]);
+	t.deepEqual(server.serve.getCall(0).args[1].excludedTasks,
+		["buildThemes", "generateResourcesJson"]);
 });
 
 test.serial("ui5 serve with ui5.yaml port setting", async (t) => {

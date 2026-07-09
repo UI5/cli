@@ -2,7 +2,7 @@ import path from "node:path";
 import os from "node:os";
 import process from "node:process";
 import baseMiddleware from "../middlewares/base.js";
-import {applyProjectConfigOptions, applyWorkspaceOptions, dedupeArray} from "../options.js";
+import {applyProjectConfigOptions, applyWorkspaceOptions, applyBuildOptions, dedupeArray} from "../options.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("cli:commands:serve");
 
@@ -16,6 +16,7 @@ const serve = {
 serve.builder = function(cli) {
 	applyProjectConfigOptions(cli);
 	applyWorkspaceOptions(cli);
+	applyBuildOptions(cli);
 	return cli
 		.option("port", {
 			describe: "Port to bind on (default for HTTP: 8080, HTTP/2: 8443)",
@@ -207,6 +208,8 @@ serve.handler = async function(argv) {
 		sendSAPTargetCSP: !!argv.sapCspPolicies,
 		serveCSPReports: !!argv.serveCspReports,
 		cache: argv.cache,
+		includedTasks: argv["include-task"],
+		excludedTasks: argv["exclude-task"],
 	};
 
 	if (serverConfig.h2) {
