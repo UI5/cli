@@ -7,6 +7,11 @@ import {isolatedUi5DataDir} from "../../utils/buildCacheIsolation.js";
 let request;
 let server;
 
+// Node.js itself tries to parse sourceMappingURLs in all JavaScript files. This is unwanted and might even lead to
+// obscure errors when dynamically generating Data-URI soruceMappingURL values.
+// Therefore use this constant to never write the actual string.
+const SOURCE_MAPPING_URL = "//" + "# sourceMappingURL";
+
 // Start server before running tests
 test.before(async (t) => {
 	const graph = await graphFromPackageDependencies({
@@ -66,7 +71,8 @@ test("Get resource from application.a with replaced version placeholder (/versio
 	}
 	t.is(res.statusCode, 200, "Correct HTTP status code");
 	t.regex(res.headers["content-type"], /application\/javascript/, "Correct content type");
-	t.is(res.text, "console.log(`1.0.0`);\n", "Correct response");
+	// The 'minify' task rewrites the served file and appends a sourceMappingURL
+	t.is(res.text, "console.log(`1.0.0`);\n" + SOURCE_MAPPING_URL + "=versionTest.js.map", "Correct response");
 });
 
 test("Get resource from application.a (/i18n/i18n.properties) with correct content-type", async (t) => {
@@ -716,7 +722,10 @@ test("Get index of resources", async (t) => {
 			t.is(res.statusCode, 200, "Correct HTTP status code");
 			t.is(res.headers["content-type"], "text/html; charset=utf-8", "Correct content type");
 			t.is(/<title>(.*)<\/title>/i.exec(res.text)[1], "Index of /", "Found correct title");
-			t.is(res.text.match(/<li/g).length, 9, "Found correct amount of <li> elements");
+			// 1 header row + 3 directories (i18n, resources, test-resources) + 11 files:
+			// index.html, manifest.json, versionTest.html and 8 files produced by the build tasks
+			// (Component-preload.js{,.map}, test.js{,.map}, test-dbg.js, versionTest.js{,.map}, versionTest-dbg.js)
+			t.is(res.text.match(/<li/g).length, 15, "Found correct amount of <li> elements");
 		}),
 		request.get("/resources").then((res) => {
 			t.is(res.statusCode, 200, "Correct HTTP status code");

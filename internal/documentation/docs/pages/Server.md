@@ -144,11 +144,7 @@ Answers all non-read requests (POST, PUT, DELETE, etc.) that have not been answe
 In case a directory has been requested, this middleware renders an HTML with a list of the directory's content.
 
 ## Standard Tasks
-As with the UI5 Builder, a set of standard tasks is being executed during a server build. However, the following tasks are being **excluded by default**:
-- `minify`
-- `generateLibraryPreload`
-- `generateComponentPreload`
-- `generateBundle`
+As with the UI5 Builder, a set of standard tasks is being executed during a server build. Individual tasks can be included or excluded using the respective CLI options `--include-task` and `--exclude-task`.
 
 ::: info
 See [Builder Standard Tasks](./Builder.md#standard-tasks) for more explanation about each task.
