@@ -30,12 +30,7 @@ export function listen(app, port, changePortIfInUse, acceptRemoteConnections) {
 		} // If remote connections are allowed, do not set host so the server listens on all supported interfaces
 
 		const portScanHost = options.host || "127.0.0.1";
-		let portMax;
-		if (changePortIfInUse) {
-			portMax = port + 30;
-		} else {
-			portMax = port;
-		}
+		const portMax = changePortIfInUse ? port + 30 : port;
 
 		portscanner.findAPortNotInUse(port, portMax, portScanHost, function(error, foundPort) {
 			if (error) {
@@ -44,24 +39,15 @@ export function listen(app, port, changePortIfInUse, acceptRemoteConnections) {
 			}
 
 			if (!foundPort) {
-				if (changePortIfInUse) {
-					const error = new Error(
-						`EADDRINUSE: Could not find available ports between ${port} and ${portMax}.`);
-					error.code = "EADDRINUSE";
-					error.errno = "EADDRINUSE";
-					error.address = portScanHost;
-					error.port = portMax;
-					reject(error);
-					return;
-				} else {
-					const error = new Error(`EADDRINUSE: Port ${port} is already in use.`);
-					error.code = "EADDRINUSE";
-					error.errno = "EADDRINUSE";
-					error.address = portScanHost;
-					error.port = portMax;
-					reject(error);
-					return;
-				}
+				const err = new Error(changePortIfInUse ?
+					`EADDRINUSE: Could not find available ports between ${port} and ${portMax}.` :
+					`EADDRINUSE: Port ${port} is already in use.`);
+				err.code = "EADDRINUSE";
+				err.errno = "EADDRINUSE";
+				err.address = portScanHost;
+				err.port = portMax;
+				reject(err);
+				return;
 			}
 
 			options.port = foundPort;
@@ -94,10 +80,10 @@ export async function addSsl({app, key, cert}) {
 }
 
 /**
- * Announces the bound URLs on the event bus. The server owns the network-interface
- * lookup because it knows the actual bound port (which may differ from the requested
- * one when changePortIfInUse is set). Consumers (@ui5/logger writers) shape their own
- * display from the label/url pairs.
+ * Announces the bound URLs on the event bus. The server owns the network-interface lookup
+ * because it knows the actual bound port (which may differ from the requested one when
+ * changePortIfInUse is set). Consumers (@ui5/logger writers) shape their own display from the
+ * label/url pairs.
  *
  * @param {object} parameters
  * @param {number} parameters.port The actual bound port
@@ -119,9 +105,8 @@ export function announceListening({port, h2, acceptRemoteConnections}) {
 	});
 }
 
-// Collects all non-internal IPv4 addresses from the host's network interfaces
-// so `ui5.server-listening` can list every reachable URL when the server binds
-// to all interfaces. Returns an empty array if no suitable address is found.
+// Collects all non-internal IPv4 addresses so `ui5.server-listening` can list every reachable
+// URL when the server binds to all interfaces. Empty array if none is found.
 function findNetworkInterfaceAddresses() {
 	const interfaces = os.networkInterfaces();
 	const addresses = [];
