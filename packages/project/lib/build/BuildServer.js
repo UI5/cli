@@ -263,6 +263,17 @@ class BuildServer extends EventEmitter {
 		if (projectBuildStatus.isFresh()) {
 			return projectBuildStatus.getReader();
 		}
+
+		// Last build failed and nothing has changed since. Rebuilding would just
+		// re-produce the same error (builds are deterministic), so short-circuit
+		// with the captured error. The gate lifts as soon as any source change
+		// in this project or one of its (transitive) dependencies invalidates the
+		// status via #_projectResourceChanged.
+		const lastError = projectBuildStatus.getError();
+		if (lastError) {
+			throw lastError;
+		}
+
 		const {promise, resolve, reject} = Promise.withResolvers();
 		// Always queue the request on the status. It owns the "who resolves this"
 		// contract: a running validation pass drains its own queue via setReader
@@ -343,6 +354,24 @@ class BuildServer extends EventEmitter {
 			});
 		}
 
+		// Lift ERRORED gates on the changed project's transitive dependencies too.
+		// #getReaderForProject short-circuits ERRORED projects with the captured error,
+		// so a request for e.g. library.a would keep returning HTTP 500 until library.a
+		// itself sees a file change — even after every dependent has rebuilt cleanly.
+		// The change here isn't proof that the dependency's inputs shifted, but it IS
+		// user activity: retry with a real build instead of replaying the old error.
+		// Kept narrow (transitive deps only, not the whole graph): a change on an
+		// unrelated sibling project shouldn't clear a genuinely-failing dep either.
+		// The broader lift lives in #clearErroredGatesAfterSuccessfulBuild, invoked
+		// when a build cycle completes successfully.
+		for (const depName of this.#graph.getTransitiveDependencies(project.getName())) {
+			const depStatus = this.#projectBuildStatus.get(depName);
+			if (depStatus?.clearError()) {
+				log.verbose(`Lifted ERRORED gate on dependency '${depName}' ` +
+					`after source change in dependent project '${project.getName()}'`);
+			}
+		}
+
 		// Enqueue resource change for processing before next build
 		const queuedChanges = this.#resourceChangeQueue.get(project.getName());
 		if (queuedChanges) {
@@ -351,13 +380,17 @@ class BuildServer extends EventEmitter {
 			this.#resourceChangeQueue.set(project.getName(), new Set([filePath]));
 		}
 
-		// If the server is currently idle, surface the new STALE state right away.
-		// During VALIDATING, the same shortcut applies: the change is already registered
-		// here, so reporting VALIDATING any longer would mislead consumers. The validation
-		// pass's finally clause guards on `#serverState === VALIDATING` and bails when the
-		// state has moved on, so there's no double-transition risk.
+		// Surface the new STALE state right away from any "quiet" state.
+		// IDLE and ERROR are both quiet — ERROR is sticky, but a change lifts it because
+		// the input tree has moved and the previous failure isn't the final word anymore.
+		// VALIDATING is quiet in the same sense: the change is already registered here, so
+		// reporting VALIDATING any longer would mislead consumers. The validation pass's
+		// finally clause guards on `#serverState === VALIDATING` and bails when the state
+		// has moved on, so there's no double-transition risk.
+		// BUILDING already implies progress, so don't disturb it.
 		if (this.#serverState === SERVER_STATES.IDLE ||
-			this.#serverState === SERVER_STATES.VALIDATING) {
+			this.#serverState === SERVER_STATES.VALIDATING ||
+			this.#serverState === SERVER_STATES.ERROR) {
 			this.#setState(SERVER_STATES.STALE);
 		}
 
@@ -460,6 +493,12 @@ class BuildServer extends EventEmitter {
 	async #processBuildRequests() {
 		// Process queue while there are pending requests
 		while (this.#pendingBuildRequest.size > 0) {
+			// Each iteration is a fresh build attempt — ensure the state machine
+			// reflects that even on re-entries after a transient failure or a
+			// normal error whose queue survived. #setState is a no-op when
+			// already BUILDING, so the initial-entry case (state was set by
+			// #triggerRequestQueue) is unaffected.
+			this.#setState(SERVER_STATES.BUILDING);
 			// Collect all pending projects for this batch
 			const projectsToBuild = Array.from(this.#pendingBuildRequest);
 			let buildRootProject = false;
@@ -564,13 +603,44 @@ class BuildServer extends EventEmitter {
 				this.#triggerRequestQueue();
 				return;
 			}
+			// A successful build cycle proves the environment can build. Lift ERRORED
+			// gates on any *other* project (Fix 2 in _projectResourceChanged handles
+			// the graph-local case; this broadens it to unrelated projects that a
+			// dependent-change never reaches). The next reader request for such a
+			// project will re-enqueue a real build instead of replaying its captured
+			// error indefinitely.
+			this.#clearErroredGatesAfterSuccessfulBuild(projectsToBuild);
+		}
+	}
+
+	/**
+	 * Sweep all project statuses and lift any lingering ERRORED gates that a
+	 * successful build cycle has effectively refuted. The freshly-built projects
+	 * themselves are FRESH at this point (or, if invalidated mid-cycle, back to
+	 * INVALIDATED via setReader's short-circuit) — they can't be ERRORED, so the
+	 * sweep is a no-op for them.
+	 *
+	 * @param {string[]} justBuiltProjects Names of projects the completed cycle
+	 *   built. Logged for the verbose trace; not otherwise consulted.
+	 */
+	#clearErroredGatesAfterSuccessfulBuild(justBuiltProjects) {
+		for (const [name, status] of this.#projectBuildStatus) {
+			if (status.clearError()) {
+				log.verbose(`Lifted ERRORED gate on '${name}' after successful build of ` +
+					`${justBuiltProjects.join(", ")}`);
+			}
 		}
 	}
 
 	#getStaleProjectNames() {
+		// "Stale" here means "needs a rebuild if requested" — invalidated projects
+		// that the next request will re-enqueue. Errored projects are NOT stale in
+		// that sense: their rebuild is gated until the input changes, so surfacing
+		// them as stale would understate the situation (the user needs to fix the
+		// error, not just wait for the next request).
 		const stale = [];
 		for (const [name, status] of this.#projectBuildStatus) {
-			if (!status.isFresh()) {
+			if (!status.isFresh() && !status.getError()) {
 				stale.push(name);
 			}
 		}
@@ -830,6 +900,13 @@ const PROJECT_STATES = Object.freeze({
 	VALIDATING: "validating",
 	BUILDING: "building",
 	FRESH: "fresh",
+	// Last build failed with a non-transient error. Held in this state until
+	// something invalidates the project — either a direct source change or a
+	// change in a (transitive) dependency, both of which route through
+	// #_projectResourceChanged → invalidate(). This gate prevents deterministic
+	// rebuild loops on failing builds: repeat requests reject immediately with
+	// the captured error until the input actually changes.
+	ERRORED: "errored",
 });
 
 class ProjectBuildStatus {
@@ -838,6 +915,7 @@ class ProjectBuildStatus {
 	#reader;
 	#abortController = new AbortController();
 	#onBuildRequired;
+	#lastError = null;
 
 	/**
 	 * @param {Function} [onBuildRequired] Invoked when the status leaves the VALIDATING
@@ -869,6 +947,10 @@ class ProjectBuildStatus {
 			// a stale reader must not survive a file add/remove.
 			this.#reader = null;
 		}
+		// Any invalidation lifts the ERRORED gate — the input changed, so a
+		// fresh build has a chance of succeeding even if the previous one
+		// failed deterministically.
+		this.#lastError = null;
 		if (this.#state === PROJECT_STATES.INVALIDATED) {
 			return;
 		}
@@ -959,6 +1041,39 @@ class ProjectBuildStatus {
 		return this.#state === PROJECT_STATES.VALIDATING;
 	}
 
+	/**
+	 * Returns the captured error when the project is gated in ERRORED state, else
+	 * <code>null</code>. Callers should use this to short-circuit rebuild attempts
+	 * when the input hasn't changed since the failure.
+	 */
+	getError() {
+		return this.#state === PROJECT_STATES.ERRORED ? this.#lastError : null;
+	}
+
+	/**
+	 * Lifts the ERRORED gate without asserting that this project's input tree
+	 * changed — used by the {@link BuildServer} when a source change or a
+	 * successful build elsewhere in the graph signals that the earlier failure
+	 * may have been environmental rather than deterministic. The project drops
+	 * back to INVALIDATED so the next reader request re-enqueues a real build.
+	 *
+	 * No-op unless the project is currently ERRORED. Does not abort any in-flight
+	 * build (there can't be one; ERRORED is a terminal cycle-end state) and does
+	 * not touch the cached reader (which is always <code>null</code> in ERRORED,
+	 * since a failed build never called <code>setReader</code>).
+	 *
+	 * @returns {boolean} True if the gate was lifted, false if the project was
+	 *   not in ERRORED to begin with.
+	 */
+	clearError() {
+		if (this.#state !== PROJECT_STATES.ERRORED) {
+			return false;
+		}
+		this.#lastError = null;
+		this.#state = PROJECT_STATES.INVALIDATED;
+		return true;
+	}
+
 	getReader() {
 		return this.#reader;
 	}
@@ -983,7 +1098,11 @@ class ProjectBuildStatus {
 	}
 
 	rejectReaderRequests(error) {
-		this.#state = PROJECT_STATES.INVALIDATED;
+		// Latch the error and gate future rebuilds on invalidate(). Deterministic
+		// builds don't recover without input change, so re-running the same build
+		// would just re-produce the same failure.
+		this.#state = PROJECT_STATES.ERRORED;
+		this.#lastError = error;
 		for (const {reject} of this.#readerQueue) {
 			reject(error);
 		}

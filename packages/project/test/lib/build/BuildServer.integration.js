@@ -855,6 +855,40 @@ test.serial("Build server recovers from non-abort build error (no deadlock)", as
 	t.is(errorEvents.length, 0, "No fatal 'error' events emitted for recoverable build failures");
 });
 
+// A normal build error must gate further rebuilds of the same project: deterministic
+// builds recover only when their input changes, so re-running the same build would just
+// re-produce the same failure. The gate lifts on any source change that invalidates the
+// errored project (directly or via a dependency), routed through _projectResourceChanged.
+test.serial("Errored project is not rebuilt until input changes", async (t) => {
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
+	await fixtureTester.serveProject({config: {cache: Cache.Force}, expectBuildErrors: true});
+
+	// First request triggers a build that fails because cache=Force has no cache.
+	const firstError = await t.throwsAsync(() => fixtureTester.requestResource({resource: "/test.js"}));
+
+	// Second and third requests must reject with the *same error instance* — the gate
+	// short-circuits with the captured error rather than re-running the build (which
+	// would produce a new Error instance carrying the same message).
+	const secondError = await t.throwsAsync(() => fixtureTester.requestResource({resource: "/test.js"}));
+	const thirdError = await t.throwsAsync(() => fixtureTester.requestResource({resource: "/test.js"}));
+	t.is(secondError, firstError, "Gate returns the captured error instance instead of rebuilding");
+	t.is(thirdError, firstError, "Gate keeps returning the same error until input changes");
+
+	// Simulate a source change that invalidates the errored project. This should lift the
+	// gate; the next request attempts a rebuild (still fails since cache=Force has no cache,
+	// but with a *new* error instance — proving the gate released and the build ran).
+	fixtureTester.buildServer._projectResourceChanged(
+		fixtureTester.graph.getProject("application.a"),
+		"/resources/application/a/test.js",
+		false
+	);
+	await setTimeout(50);
+	const afterChangeError = await t.throwsAsync(() => fixtureTester.requestResource({resource: "/test.js"}));
+	t.not(afterChangeError, firstError, "Source change lifted the gate; a fresh build ran");
+	t.true(afterChangeError.message.includes(`Cache is in "Force" mode`),
+		"Fresh build produced an equivalent error");
+});
+
 // ProjectBuildCache's StageCache must be cleared correctly when a build is aborted.
 // A task that completed during an aborted attempt has already called recordTaskResult,
 // which adds its stage to the in-memory StageCache. On retry,
