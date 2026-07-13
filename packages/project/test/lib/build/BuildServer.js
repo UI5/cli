@@ -630,6 +630,51 @@ test.serial("serve-status: build failure emits serveError and no orphan building
 	t.is(seq[seq.length - 1], "serve-error", "serve-error is the final status of a failed cycle");
 });
 
+test.serial("getServeError: null before any failure", async (t) => {
+	const {buildServer} = t.context;
+	t.is(buildServer.getServeError(), null, "No error captured while the server is quiet");
+});
+
+test.serial("getServeError: returns the build error while in ERROR", async (t) => {
+	const {BuildServer, graph, projectBuilder, sinon, clock} = t.context;
+
+	const buildError = new Error("Build blew up");
+	projectBuilder.build = sinon.stub().rejects(buildError);
+
+	const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+	buildServer.on("error", () => {});
+	t.teardown(() => buildServer.destroy());
+
+	// Drain the initial build cycle through its catch handler.
+	await clock.tickAsync(10);
+	await clock.tickAsync(0);
+	await clock.tickAsync(0);
+
+	t.is(buildServer.getServeError(), buildError,
+		"The captured build error is exposed while the server is in ERROR");
+});
+
+test.serial("getServeError: clears once a source change lifts ERROR", async (t) => {
+	const {BuildServer, graph, rootProject, projectBuilder, sinon, clock} = t.context;
+
+	const buildError = new Error("Build blew up");
+	projectBuilder.build = sinon.stub().rejects(buildError);
+
+	const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+	buildServer.on("error", () => {});
+	t.teardown(() => buildServer.destroy());
+
+	await clock.tickAsync(10);
+	await clock.tickAsync(0);
+	await clock.tickAsync(0);
+	t.is(buildServer.getServeError(), buildError, "Errored after the failed initial build");
+
+	// A source change lifts the sticky ERROR (ERROR → STALE), which clears the captured error.
+	buildServer._projectResourceChanged(rootProject, "/a.js", false);
+	t.is(buildServer.getServeError(), null,
+		"getServeError() clears when the state leaves ERROR");
+});
+
 // When a build cycle drains with INITIAL-state dependencies left over, the server
 // must transition BUILDING → VALIDATING (not STALE), then VALIDATING → IDLE
 // once the background validation pass confirms every cache is fresh.

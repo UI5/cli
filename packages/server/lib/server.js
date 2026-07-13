@@ -221,6 +221,11 @@ export async function serve(graph, {
 		Buffer.from(getRandomValues(new Uint8Array(9))).toString("base64url") :
 		null;
 
+	const liveReloadOptions = {
+		active: liveReload,
+		token: webSocketToken
+	};
+
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject,
@@ -230,10 +235,10 @@ export async function serve(graph, {
 			sendSAPTargetCSP,
 			serveCSPReports,
 			simpleIndex,
-			liveReload: {
-				active: liveReload,
-				token: webSocketToken
-			}
+			liveReload: liveReloadOptions,
+			// Consulted by the serveBuildError gate to divert HTML navigations while the
+			// build server is globally in ERROR.
+			getServeError: () => buildServer.getServeError()
 		}
 	});
 
@@ -241,8 +246,9 @@ export async function serve(graph, {
 	await middlewareManager.applyMiddleware(app);
 	// Terminal error handler for the middleware chain. Registered after applyMiddleware
 	// so it sits last and intercepts every next(err) — including those from custom
-	// middleware where we can't wrap a try/catch.
-	app.use(createErrorHandler());
+	// middleware where we can't wrap a try/catch. Threads the live-reload config in
+	// so the HTML error page can embed the live-reload client script.
+	app.use(createErrorHandler({liveReload: liveReloadOptions}));
 
 	if (h2) {
 		const nodeVersion = parseInt(process.versions.node.split(".")[0], 10);

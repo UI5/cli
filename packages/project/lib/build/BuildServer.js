@@ -126,6 +126,11 @@ class BuildServer extends EventEmitter {
 	// Server lifecycle state. Starts as `null` so the first #setState call
 	// always emits the initial state.
 	#serverState = null;
+	// The error captured on the last transition to ERROR, or null in any other state.
+	// Exposed via getServeError() so the dev server can surface it on HTML navigations
+	// regardless of which resource was requested. Cleared on every non-ERROR transition
+	// (see #setState).
+	#serveError = null;
 	// Background cache validation state. `#activeValidation` is the promise of the
 	// currently running validation pass (or null when idle); `#validationAbort`
 	// is its controller, used to preempt validation when a real build is requested.
@@ -398,6 +403,23 @@ class BuildServer extends EventEmitter {
 	 */
 	getReader() {
 		return this.#allReader;
+	}
+
+	/**
+	 * Gets the error captured while the server is in its global ERROR state
+	 *
+	 * Returns the error of the last failed build cycle while the server remains in ERROR,
+	 * or <code>null</code> in any other state. The dev server consults this to surface the
+	 * build-error page on HTML navigations regardless of which resource was requested.
+	 *
+	 * Note: transient failures and source-change-aborted builds report SETTLING rather than
+	 * ERROR, so this returns <code>null</code> during that window.
+	 *
+	 * @public
+	 * @returns {Error|null} The captured build error, or <code>null</code> when not in ERROR
+	 */
+	getServeError() {
+		return this.#serveError;
 	}
 
 	/**
@@ -1118,6 +1140,10 @@ class BuildServer extends EventEmitter {
 		}
 		const previous = this.#serverState;
 		this.#serverState = next;
+
+		// Track the server-level error alongside the state: capture it on entry to ERROR,
+		// clear it on every other transition. getServeError() reads this field.
+		this.#serveError = next === SERVER_STATES.ERROR ? error : null;
 
 		if (previous === SERVER_STATES.BUILDING &&
 				next !== SERVER_STATES.ERROR && next !== SERVER_STATES.SETTLING) {
