@@ -218,6 +218,13 @@ serve.handler = async function(argv) {
 		cache: argv.cache,
 		includedTasks: argv["include-task"],
 		excludedTasks: argv["exclude-task"],
+		// Threaded to the definition watcher so it watches the same files buildGraph resolves from.
+		// Workspace resolution is active unless static-graph mode is used or --workspace is disabled;
+		// pass null then so the watcher applies its default ui5-workspace.yaml, undefined to skip.
+		rootConfigPath: argv.config,
+		workspaceConfigPath: (argv.dependencyDefinition || argv.workspace === false) ?
+			undefined : (argv.workspaceConfig ?? null),
+		dependencyDefinitionPath: argv.dependencyDefinition,
 	};
 
 	if (serverConfig.h2) {
