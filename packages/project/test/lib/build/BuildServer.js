@@ -1290,3 +1290,176 @@ test.serial(
 			invocations.some((inv, i) => i > 0 && inv.opts.includedDependencies?.includes("library.a")),
 			"at least one post-failure invocation built library.a");
 	});
+// Builds a BuildServer whose WatchHandler and BuildReader are both mocked so tests can
+// (a) drive the buildServerInterface (getReaderForProject) and (b) fire the watcher error
+// callback and inspect re-subscription. `watchHandlers` accumulates every WatchHandler the
+// server constructs — index 0 is the initial handler, later entries are recovery handlers.
+// `opts.failWatchFrom` makes watch() reject for the handler at that index and beyond
+// (used to exercise the re-subscription-failure fallback).
+async function makeRecoverableBuildServer(t, graph, projectBuilder, {initialDeps = ["library.a"],
+	failWatchFrom = Infinity} = {}) {
+	const {sinon} = t.context;
+	let capturedInterface;
+	class CapturingBuildReader {
+		constructor(_name, _projects, buildServerInterface) {
+			capturedInterface = buildServerInterface;
+		}
+	}
+	const watchHandlers = [];
+	class FakeWatchHandler {
+		constructor() {
+			const index = watchHandlers.length;
+			this.listeners = Object.create(null);
+			this.destroy = sinon.stub().resolves();
+			this.watch = index >= failWatchFrom ?
+				sinon.stub().rejects(new Error("watch() rejected")) :
+				sinon.stub().resolves();
+			this.on = sinon.stub().callsFake((event, cb) => {
+				(this.listeners[event] ??= []).push(cb);
+			});
+			this.emitError = (err) => {
+				for (const cb of this.listeners.error ?? []) {
+					cb(err);
+				}
+			};
+			watchHandlers.push(this);
+		}
+	}
+	const BuildServer = (await esmock("../../../lib/build/BuildServer.js", {
+		"../../../lib/build/BuildReader.js": CapturingBuildReader,
+		"../../../lib/build/helpers/WatchHandler.js": FakeWatchHandler,
+	})).default;
+	const buildServer = await BuildServer.create(graph, projectBuilder, true, initialDeps, []);
+	t.teardown(() => buildServer.destroy());
+	const errorEvents = [];
+	buildServer.on("error", (err) => errorEvents.push(err));
+	return {buildServer, getInterface: () => capturedInterface, watchHandlers, errorEvents};
+}
+
+function makeRescanBuilder(sinon) {
+	const invocations = [];
+	const builder = {
+		closeCacheManager: sinon.stub(),
+		resourcesChanged: sinon.stub(),
+		forceFullRescan: sinon.stub(),
+		validateCaches: sinon.stub().resolves([]),
+		build: sinon.stub().callsFake((opts, perProjectCb) => {
+			invocations.push({opts});
+			if (opts.includeRootProject) {
+				perProjectCb("root.project", {getReader: () => ({builtReader: "root.project"})});
+			}
+			for (const depName of opts.includedDependencies || []) {
+				perProjectCb(depName, {getReader: () => ({builtReader: depName})});
+			}
+			return Promise.resolve(
+				(opts.includeRootProject ? ["root.project"] : []).concat(opts.includedDependencies || []));
+		}),
+	};
+	return {builder, invocations};
+}
+
+const droppedEventsError = () =>
+	new Error("Events were dropped by the FSEvents client. File system must be re-scanned.");
+
+test.serial(
+	"watcher-recovery: dropped-events error recreates watcher and forces a full re-scan", async (t) => {
+		const {sinon, clock, SOURCES_CHANGED_DEBOUNCE_MS} = t.context;
+		const {graph} = makeErrorGraphWithLibDep();
+		const {builder: projectBuilder} = makeRescanBuilder(sinon);
+		const statusEvents = makeStatusRecorder(t);
+
+		const {buildServer, watchHandlers, errorEvents} =
+			await makeRecoverableBuildServer(t, graph, projectBuilder);
+
+		// Let the initial build cycle settle.
+		await clock.tickAsync(20);
+		t.is(watchHandlers.length, 1, "one watcher initially");
+
+		const sourcesChanged = sinon.stub();
+		buildServer.on("sourcesChanged", sourcesChanged);
+
+		// Fire the dropped-events error on the initial watcher.
+		watchHandlers[0].emitError(droppedEventsError());
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-stale");
+
+		t.true(watchHandlers[0].destroy.calledOnce, "old watcher destroyed");
+		t.is(watchHandlers.length, 2, "a fresh watcher was created");
+		t.true(watchHandlers[1].watch.calledOnce, "fresh watcher re-subscribed");
+		t.true(projectBuilder.forceFullRescan.calledOnce, "full re-scan forced on the builder");
+		t.is(errorEvents.length, 0, "no fatal error event on successful recovery");
+
+		await clock.tickAsync(SOURCES_CHANGED_DEBOUNCE_MS);
+		t.true(sourcesChanged.calledOnce, "sourcesChanged emitted so clients reload");
+
+		const seq = statusEvents.map((e) => e.status);
+		t.is(seq[seq.length - 1], "serve-stale", "server settles on STALE after recovery");
+	});
+
+test.serial(
+	"watcher-recovery: a reader request parked before the error resolves after recovery", async (t) => {
+		const {sinon, clock} = t.context;
+		const {graph} = makeErrorGraphWithLibDep();
+		const {builder: projectBuilder, invocations} = makeRescanBuilder(sinon);
+		makeStatusRecorder(t);
+
+		const {getInterface, watchHandlers} =
+			await makeRecoverableBuildServer(t, graph, projectBuilder, {initialDeps: []});
+
+		await clock.tickAsync(20);
+		const buildsBefore = invocations.length;
+
+		// Park a reader request, then fire the watcher error before it is served.
+		const readerPromise = getInterface().getReaderForProject("library.a");
+		watchHandlers[0].emitError(droppedEventsError());
+
+		// Recovery drains the queue on completion; the parked request must resolve.
+		await clock.tickAsync(30);
+		const reader = await readerPromise;
+		t.deepEqual(reader, {builtReader: "library.a"}, "parked reader request resolved after recovery");
+		t.true(invocations.length > buildsBefore, "a build ran to serve the parked request post-recovery");
+	});
+
+test.serial(
+	"watcher-recovery: repeated errors within the window escalate to a fatal error", async (t) => {
+		const {sinon, clock} = t.context;
+		const {graph} = makeErrorGraphWithLibDep();
+		const {builder: projectBuilder} = makeRescanBuilder(sinon);
+		const statusEvents = makeStatusRecorder(t);
+
+		const {watchHandlers, errorEvents} =
+			await makeRecoverableBuildServer(t, graph, projectBuilder);
+		await clock.tickAsync(20);
+
+		// Drive more recoveries than the loop-protection budget allows within the window.
+		// Each successful recovery creates a new handler; fire the error on the latest one.
+		let escalated = false;
+		for (let i = 0; i < 10 && !escalated; i++) {
+			watchHandlers[watchHandlers.length - 1].emitError(droppedEventsError());
+			await clock.tickAsync(30);
+			escalated = errorEvents.length > 0;
+		}
+
+		t.true(escalated, "loop protection eventually escalated to a fatal error event");
+		const seq = statusEvents.map((e) => e.status);
+		t.is(seq[seq.length - 1], "serve-error", "server ends in ERROR after giving up");
+	});
+
+test.serial(
+	"watcher-recovery: failure to re-subscribe falls back to fatal error", async (t) => {
+		const {sinon, clock} = t.context;
+		const {graph} = makeErrorGraphWithLibDep();
+		const {builder: projectBuilder} = makeRescanBuilder(sinon);
+		const statusEvents = makeStatusRecorder(t);
+
+		// Fail watch() from the first recovery handler (index 1) onward; the initial
+		// handler (index 0) subscribes normally so the server starts up.
+		const {watchHandlers, errorEvents} =
+			await makeRecoverableBuildServer(t, graph, projectBuilder, {failWatchFrom: 1});
+		await clock.tickAsync(20);
+
+		watchHandlers[0].emitError(droppedEventsError());
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-error");
+
+		t.is(errorEvents.length, 1, "a fatal error event was emitted");
+		t.is(errorEvents[0].message, "watch() rejected", "the re-subscription failure is surfaced");
+	});
