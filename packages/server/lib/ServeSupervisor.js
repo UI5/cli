@@ -2,6 +2,7 @@ import http from "node:http";
 import process from "node:process";
 import {EventEmitter} from "node:events";
 import {getLogger} from "@ui5/logger";
+import DefinitionWatcher from "@ui5/project/build/helpers/DefinitionWatcher";
 import buildServeApp from "./serveApp.js";
 import attachLiveReloadServer from "./liveReload/server.js";
 import {listen, addSsl, announceListening} from "./serveHttp.js";
@@ -39,6 +40,11 @@ class ServeSupervisor extends EventEmitter {
 	#sourcesChangedRelay = new EventEmitter();
 	#relayUnsubscribe = null;
 	#liveReloadHandle = null;
+
+	// Watches the project-definition files and drives reinitialize() on a change. Owned by the
+	// supervisor (not the BuildServer) so it outlives each swapped-out stack, and re-targeted to
+	// the new graph after every swap.
+	#definitionWatcher = null;
 
 	#destroyed = false;
 	#reinitInProgress = false;
@@ -117,7 +123,26 @@ class ServeSupervisor extends EventEmitter {
 		}
 		this.#relayFrom(this.#stack.buildServer);
 
+		// Arm the definition watcher over the initial graph, after the port is bound and the first
+		// stack is live. Only meaningful with a graphFactory (no factory → reinitialize is a no-op).
+		await this.#startDefinitionWatcher(graph);
+
 		announceListening({port, h2, acceptRemoteConnections});
+	}
+
+	// Creates a definition watcher over the given graph and wires it to reinitialize(). A no-op
+	// without a graphFactory, since reinitialize() cannot re-resolve the graph without one.
+	async #startDefinitionWatcher(graph) {
+		if (!this.#graphFactory) {
+			return;
+		}
+		const {rootConfigPath, workspaceConfigPath, dependencyDefinitionPath, cwd} = this.#config;
+		const watcher = await DefinitionWatcher.create({
+			graph, rootConfigPath, workspaceConfigPath, dependencyDefinitionPath, cwd,
+		});
+		watcher.on("definitionChanged", () => this.reinitialize());
+		watcher.on("error", (err) => log.warn(`Definition watcher error: ${err?.message ?? err}`));
+		this.#definitionWatcher = watcher;
 	}
 
 	// Forwards the current BuildServer's sourcesChanged onto the stable relay. Detaches any
@@ -172,8 +197,9 @@ class ServeSupervisor extends EventEmitter {
 	async #swap() {
 		const oldStack = this.#stack;
 		let newStack;
+		let newGraph;
 		try {
-			const newGraph = await this.#graphFactory();
+			newGraph = await this.#graphFactory();
 			newStack = await buildServeApp(newGraph, this.#config, this.#error);
 		} catch (err) {
 			// Keep the last-good stack serving. A subsequent valid edit will swap cleanly.
@@ -192,6 +218,19 @@ class ServeSupervisor extends EventEmitter {
 		this.#stack = newStack;
 		this.#relayFrom(newStack.buildServer);
 		this.#sourcesChangedRelay.emit("sourcesChanged");
+		// Re-target the definition watcher to the new graph: the project set or their roots may
+		// have changed. A create failure here must not crash the swap — keep serving and log,
+		// mirroring the build-failure path above; the old watcher then keeps driving re-inits.
+		const oldWatcher = this.#definitionWatcher;
+		this.#definitionWatcher = null;
+		try {
+			await this.#startDefinitionWatcher(newGraph);
+			await oldWatcher?.destroy();
+		} catch (err) {
+			log.warn(`Failed to re-target definition watcher: ${err?.message ?? err}`);
+			// Keep the old watcher driving re-inits if the new one failed to arm.
+			this.#definitionWatcher ??= oldWatcher;
+		}
 		// Tear down the old stack. Its BuildServer releases the source watcher and the cache
 		// handle; the new BuildServer already reopened the same (refcounted) cache.
 		await oldStack.buildServer.destroy();
@@ -211,9 +250,18 @@ class ServeSupervisor extends EventEmitter {
 	 */
 	async destroy(callback) {
 		this.#destroyed = true;
+		// Stop the definition watcher early so a late event cannot start a re-init mid-teardown.
+		// The reinitialize() #destroyed guard already no-ops such an event; this is belt-and-braces.
+		const definitionWatcher = this.#definitionWatcher;
+		this.#definitionWatcher = null;
 		this.#liveReloadHandle?.close();
 		this.#detachRelay();
 		this.#httpServer?.close(callback);
+		try {
+			await definitionWatcher?.destroy();
+		} catch (err) {
+			log.verbose(`Error while destroying definition watcher: ${err?.message ?? err}`);
+		}
 		try {
 			await this.#stack?.buildServer.destroy();
 		} catch (err) {
