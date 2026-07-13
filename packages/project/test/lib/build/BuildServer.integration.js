@@ -85,7 +85,17 @@ function createParcelWatcherMock() {
 		subscriptions.length = 0;
 	}
 
-	return {api, fire, reset};
+	// Deliver an error to every active subscription callback, mirroring how @parcel/watcher
+	// surfaces a dropped-events condition ("File system must be re-scanned.").
+	async function fireError(err) {
+		// Snapshot: recovery destroys/recreates subscriptions while we iterate.
+		for (const sub of subscriptions.slice()) {
+			sub.callback(err);
+		}
+		await new Promise((resolve) => setImmediate(resolve));
+	}
+
+	return {api, fire, fireError, reset};
 }
 
 test.beforeEach((t) => {
@@ -202,6 +212,46 @@ test.serial("Serve application.a, request application resource", async (t) => {
 	// Check whether the changed file is in the destPath
 	const servedFileContent = await res.getString();
 	t.true(servedFileContent.includes(`test("line added");`), "Resource contains changed file content");
+});
+
+// The incremental cache learns "what changed" only from watcher events. When @parcel/watcher
+// reports that events were dropped, a source change may go unreported — a naive rebuild would
+// then serve a stale cache hit. The recovery path forces a full re-scan so the un-notified
+// change is still picked up.
+test.serial("Serve application.a, dropped watcher events force a full re-scan", async (t) => {
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
+
+	await fixtureTester.serveProject();
+
+	// #1 build and cache the resource.
+	const before = await fixtureTester.requestResource({resource: "/test.js"});
+	t.false((await before.getString()).includes(`test("dropped-event change");`),
+		"baseline content does not yet contain the change");
+
+	// #2 confirm the cache is warm — a repeated request rebuilds nothing.
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {projects: {}},
+	});
+
+	// Modify a source file WITHOUT firing a watcher change event: this models the OS dropping
+	// the FS event. Without recovery, the cache would keep serving the stale build result.
+	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
+	await fs.appendFile(changedFilePath, `\ntest("dropped-event change");\n`);
+
+	// The watcher reports the drop instead of the change. Recovery runs asynchronously and
+	// emits `sourcesChanged` on completion; await that so the forced re-scan + invalidation
+	// have settled before the next request.
+	const recovered = new Promise((resolve) => fixtureTester.buildServer.once("sourcesChanged", resolve));
+	await fixtureTester.fireWatcherError(
+		new Error("Events were dropped by the FSEvents client. File system must be re-scanned."));
+	await recovered;
+
+	// #3 the next request must reflect the un-notified change, proving the forced re-scan
+	// re-indexed the source tree and invalidated the stale cache.
+	const after = await fixtureTester.requestResource({resource: "/test.js"});
+	t.true((await after.getString()).includes(`test("dropped-event change");`),
+		"resource reflects the change the watcher never reported, after the forced re-scan");
 });
 
 test.serial("Serve application.a, create and delete a source file", async (t) => {
@@ -1157,6 +1207,13 @@ class FixtureTester {
 	// a deterministic in-process call so tests can drive change notifications precisely.
 	async fireWatcherEvent(type, filePath) {
 		await watcherMock.fire(type, filePath);
+	}
+
+	// Fires a dropped-events error through the in-process @parcel/watcher mock. Models the
+	// real-world "Events were dropped by the FSEvents client. File system must be
+	// re-scanned." fault: the incremental change signal is now known to be incomplete.
+	async fireWatcherError(err) {
+		await watcherMock.fireError(err);
 	}
 
 	_assertBuild(assertions) {

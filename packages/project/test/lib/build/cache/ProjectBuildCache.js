@@ -303,7 +303,49 @@ test("allTasksCompleted returns changed resource paths", async (t) => {
 	t.true(Array.isArray(changedPaths), "Returns array of changed paths");
 });
 
-// ===== TASK EXECUTION AND RECORDING TESTS =====
+test("discardIncrementalState re-arms a full source re-scan", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+
+	// A byGlob stub whose result set only grows after the initial build completes: the extra
+	// /added.js appears solely because discardIncrementalState re-globs — no watcher event ever
+	// reported it. Keeping the set stable during the first build avoids tripping the
+	// build-end source-drift detector (#revalidateSourceIndex).
+	const initialResource = createMockResource("/test.js", "hash1", 1000, 100, 1);
+	const addedResource = createMockResource("/added.js", "hash2", 2000, 50, 2);
+	let currentResources = [initialResource];
+	const byGlob = sinon.stub().callsFake(async () => currentResources.slice());
+	const byPath = sinon.stub().callsFake(async (path) =>
+		currentResources.find((r) => r.getPath() === path) ?? null);
+	project.getSourceReader.callsFake(() => ({byGlob, byPath}));
+
+	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+	await cache.allTasksCompleted();
+	t.true(cache.isFresh(), "cache is fresh after the initial build");
+	const globCallsAfterFirstBuild = byGlob.callCount;
+
+	// A source file appears that the watcher never reported, then force a full re-scan.
+	currentResources = [initialResource, addedResource];
+	cache.discardIncrementalState();
+	t.false(cache.isFresh(), "cache is no longer fresh after reset");
+
+	// initSourceIndex is gated on RESTORING_PROJECT_INDICES; the reset re-armed it, so the
+	// source tree is re-globbed even though no projectSourcesChanged was ever recorded.
+	await cache.initSourceIndex();
+	t.true(byGlob.callCount > globCallsAfterFirstBuild,
+		"discardIncrementalState re-armed initSourceIndex to re-glob the source tree");
+});
+
+test("discardIncrementalState is a no-op in Cache.Off mode", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const cache = await ProjectBuildCache.create(project, "sig", cacheManager, Cache.Off);
+	await cache.initSourceIndex();
+
+	// Must not throw and must leave the (absent) index untouched.
+	t.notThrows(() => cache.discardIncrementalState());
+});
 
 test("prepareTaskExecutionAndValidateCache: task needs execution when no cache exists", async (t) => {
 	const project = createMockProject();
