@@ -9,58 +9,55 @@ const log = getLogger("build:BuildServer");
 
 // Settle window for the `sourcesChanged` event, in milliseconds.
 //
-// The event drives live-reload notifications, so a lone edit must reach connected clients as
-// fast as possible: the build it triggers can complete in well under 100 ms on small projects,
-// and a trailing debounce would then dominate the edit-to-reload latency. The emit is therefore
-// leading-edge — the first change of a quiet period fires immediately — followed by this
-// suppression window that coalesces the rest of a burst into a single trailing emit.
+// The event drives live-reload, so a lone edit must reach clients fast: its build can finish
+// well under 100 ms on small projects, where a trailing debounce would dominate edit-to-reload
+// latency. The emit is therefore leading-edge (the first change of a quiet period fires
+// immediately), followed by this window that coalesces the rest of a burst into one trailing emit.
 //
 // The value is tied to @parcel/watcher's MAX_WAIT_TIME (500 ms): the watcher caps its own
-// coalescing at that interval, so an operation emitting changes continuously (e.g. `git checkout`)
-// is delivered as batches up to 500 ms apart rather than one quiet-terminated batch. A window
-// below that cap would see quiet between batches and emit once per batch; keeping it above the cap
-// lets each batch reset the window so the whole operation collapses to one leading + one trailing
-// emit. Do not lower below 500 ms without revisiting that relationship.
+// coalescing there, so a continuous operation (e.g. `git checkout`) arrives as batches up to
+// 500 ms apart rather than one quiet-terminated batch. A window below the cap would see quiet
+// between batches and emit per batch; above it, each batch resets the window so the whole
+// operation collapses to one leading + one trailing emit. Do not lower below 500 ms without
+// revisiting that relationship.
 const SOURCES_CHANGED_SETTLE_MS = 550;
 
 // Debounce for the request queue. A reader request enqueues a build and triggers the queue after
-// this short delay so a batch of near-simultaneous requests builds together. Serving an explicit
-// request must not wait, so this is kept small — it is not used for the speculative first build
-// driven by a source change (see FIRST_BUILD_SETTLE_MS).
+// this short delay so near-simultaneous requests build together. Serving a request must not wait,
+// so it is kept small, and it is not used for the speculative first build driven by a source
+// change (see FIRST_BUILD_SETTLE_MS).
 const BUILD_REQUEST_DEBOUNCE_MS = 10;
 
 // Settle window for the first speculative build driven by a source change from a quiet state.
-// A multi-file operation — an editor's save-all, a `git checkout` — delivers its first watcher
-// event while the tree is still half-written; building immediately on the snappy
-// BUILD_REQUEST_DEBOUNCE_MS would fire into that half-written tree and fail on a transient error.
-// Holding the first build for this short window absorbs an editor's own save fan-out with
-// negligible single-edit cost: 100 ms sits far below @parcel/watcher's 500 ms coalescing cap and
-// roughly at its 50 ms floor, so a lone edit still reaches the build promptly. This does not cover
-// a multi-second `git checkout` on its own — full coverage of that case comes from routing the
-// failure-with-pending-changes path through the deferred restart (the transient branch in
-// #processBuildRequests). Reader-request-driven builds keep the snappy BUILD_REQUEST_DEBOUNCE_MS.
+// A multi-file operation (an editor's save-all, a `git checkout`) delivers its first watcher event
+// while the tree is still half-written; building immediately on BUILD_REQUEST_DEBOUNCE_MS would
+// fire into that half-written tree and fail transiently. Holding the first build for this short
+// window absorbs an editor's save fan-out at negligible single-edit cost: 100 ms sits far below
+// @parcel/watcher's 500 ms coalescing cap and roughly at its 50 ms floor, so a lone edit still
+// reaches the build promptly. It does not cover a multi-second `git checkout` on its own; that
+// comes from routing the failure-with-pending-changes path through the deferred restart (the
+// transient branch in #processBuildRequests). Reader-request-driven builds keep the short debounce.
 const FIRST_BUILD_SETTLE_MS = 100;
 
 // Settle window for restarting a build that a source change aborted. When a change lands mid-build
-// the running build is aborted immediately, but the restart is held until changes have been quiet
-// for this long (each further change resets it). During a burst of changes — a `git checkout`, a
-// save-all, a bundler writing many files — @parcel/watcher delivers batches up to its MAX_WAIT_TIME
-// (500 ms) apart; restarting on the snappy BUILD_REQUEST_DEBOUNCE_MS would spawn a build per batch,
-// each aborted by the next. Holding the restart above the watcher's cap collapses the burst into a
-// single build against the settled tree. Reader-request-driven builds keep the snappy debounce, so
-// this delay only applies to the speculative post-abort restart, not to serving a request.
+// the running build is aborted at once, but the restart is held until changes have been quiet for
+// this long (each further change resets it). During a burst (a `git checkout`, a save-all, a bundler
+// writing many files) @parcel/watcher delivers batches up to its MAX_WAIT_TIME (500 ms) apart;
+// restarting on BUILD_REQUEST_DEBOUNCE_MS would spawn a build per batch, each aborted by the next.
+// Holding the restart above the watcher's cap collapses the burst into a single build against the
+// settled tree. Reader-request-driven builds keep the short debounce, so this delay only applies to
+// the speculative post-abort restart, not to serving a request.
 const ABORTED_BUILD_RESTART_SETTLE_MS = 550;
 
-// Loop protection for watcher recovery. A persistently failing watcher (e.g. a watched
-// path that keeps erroring on re-subscribe, or an FS that keeps dropping events) would
-// otherwise cycle error → recover → error indefinitely. If more than
-// WATCHER_RECOVERY_MAX_ATTEMPTS recoveries complete within WATCHER_RECOVERY_WINDOW_MS, the
-// watcher is treated as unrecoverable and the server escalates to the terminal ERROR state.
+// Loop protection for watcher recovery, so a persistently failing watcher (e.g. a watched path
+// that keeps erroring on re-subscribe, or an FS that keeps dropping events) does not cycle
+// error -> recover -> error forever. More than WATCHER_RECOVERY_MAX_ATTEMPTS recoveries within
+// WATCHER_RECOVERY_WINDOW_MS is treated as unrecoverable and escalates to the terminal ERROR state.
 const WATCHER_RECOVERY_MAX_ATTEMPTS = 5;
 const WATCHER_RECOVERY_WINDOW_MS = 60000;
 
 // The server's lifecycle state. Mutated exclusively through #setState.
-// Ordering intent: IDLE → STALE → SETTLING → BUILDING.
+// Ordering intent: IDLE -> STALE -> SETTLING -> BUILDING.
 const SERVER_STATES = Object.freeze({
 	IDLE: "idle", // No pending requests, no recent changes, no unvalidated caches.
 	STALE: "stale", // Pending changes / pending requests, queue not yet flushed.
@@ -267,12 +264,11 @@ class BuildServer extends EventEmitter {
 	 * full source re-scan of every project.
 	 *
 	 * The incremental build cache derives "what changed" solely from discrete watcher events
-	 * (see {@link #_projectResourceChanged} → {@link ProjectBuilder#resourcesChanged}). When
-	 * the watcher errors — most notably when the OS reports that FS events were dropped and
-	 * the file system must be re-scanned — that signal is unreliable: some source changes
-	 * were never reported, so cached build results may be stale. Rather than wedging the
-	 * server in ERROR (the prior behavior, from which the only exit was a further watcher
-	 * event that may never arrive), recreate the watcher and re-scan.
+	 * (see {@link #_projectResourceChanged} -> {@link ProjectBuilder#resourcesChanged}). When the
+	 * watcher errors, most notably when the OS reports dropped FS events and the file system must
+	 * be re-scanned, that signal is unreliable: some source changes went unreported, so cached
+	 * build results may be stale. Rather than wedging the server in ERROR (the prior behavior, whose
+	 * only exit was a further watcher event that may never arrive), recreate the watcher and re-scan.
 	 *
 	 * A successful recovery does not emit the fatal <code>error</code> event; it is reserved
 	 * for the terminal fallback when recovery itself fails or loops.
@@ -310,8 +306,8 @@ class BuildServer extends EventEmitter {
 		try {
 			// Quiesce in-flight work so ProjectBuilder.forceFullRescan() can claim the builder.
 			// #buildIsRunning only clears in the builder's finally after cache writes, so the
-			// active build must be awaited to completion — not merely aborted — before the
-			// re-scan. The build promise swallows abort errors, so this resolves cleanly.
+			// active build must be awaited to completion, not merely aborted, before the re-scan.
+			// The build promise swallows abort errors, so this resolves cleanly.
 			await this.#stopActiveValidation("Watcher recovery");
 			if (this.#activeBuild) {
 				try {
@@ -352,7 +348,7 @@ class BuildServer extends EventEmitter {
 
 			// Every project is now non-fresh. Surface STALE and prompt connected clients to
 			// reload, which drives the lazy rebuild against the re-scanned index.
-			this.#setState(SERVER_STATES.STALE, {staleProjects: this.#getStaleProjectNames()});
+			this.#setState(SERVER_STATES.STALE);
 			this.emit("sourcesChanged");
 		} catch (recoveryErr) {
 			// Recreation itself failed (e.g. watch() rejected). The watcher is genuinely broken;
@@ -562,15 +558,13 @@ class BuildServer extends EventEmitter {
 		}
 
 		// Lift ERRORED gates on the changed project's transitive dependencies too.
-		// #getReaderForProject short-circuits ERRORED projects with the captured error,
-		// so a request for e.g. library.a would keep returning HTTP 500 until library.a
-		// itself sees a file change — even after every dependent has rebuilt cleanly.
-		// The change here isn't proof that the dependency's inputs shifted, but it IS
-		// user activity: retry with a real build instead of replaying the old error.
-		// Kept narrow (transitive deps only, not the whole graph): a change on an
-		// unrelated sibling project shouldn't clear a genuinely-failing dep either.
-		// The broader lift lives in #clearErroredGatesAfterSuccessfulBuild, invoked
-		// when a build cycle completes successfully.
+		// #getReaderForProject short-circuits an ERRORED project with the captured error, so a
+		// request for e.g. library.a keeps returning HTTP 500 until library.a itself sees a file
+		// change, even after every dependent has rebuilt cleanly. The change here isn't proof that
+		// the dependency's inputs shifted, but it is user activity: retry with a real build instead
+		// of replaying the old error. Kept narrow (transitive deps only, not the whole graph): a
+		// change on an unrelated sibling shouldn't clear a genuinely-failing dep. The broader lift
+		// lives in #clearErroredGatesAfterSuccessfulBuild, run when a build cycle succeeds.
 		for (const depName of this.#graph.getTransitiveDependencies(project.getName())) {
 			const depStatus = this.#projectBuildStatus.get(depName);
 			if (depStatus?.clearError()) {
@@ -588,13 +582,12 @@ class BuildServer extends EventEmitter {
 		}
 
 		// Surface the new STALE state right away from any "quiet" state.
-		// IDLE and ERROR are both quiet — ERROR is sticky, but a change lifts it because
-		// the input tree has moved and the previous failure isn't the final word anymore.
-		// VALIDATING is quiet in the same sense: the change is already registered here, so
-		// reporting VALIDATING any longer would mislead consumers. The validation pass's
-		// finally clause guards on `#serverState === VALIDATING` and bails when the state
-		// has moved on, so there's no double-transition risk.
-		// BUILDING already implies progress, so don't disturb it.
+		// IDLE and ERROR are both quiet; ERROR is sticky, but a change lifts it because the input
+		// tree has moved and the previous failure isn't the final word anymore. VALIDATING is quiet
+		// in the same sense: the change is already registered here, so reporting VALIDATING any
+		// longer would mislead consumers. The validation pass's finally clause guards on
+		// `#serverState === VALIDATING` and bails when the state has moved on, so there's no
+		// double-transition risk. BUILDING already implies progress, so don't disturb it.
 		if (this.#serverState === SERVER_STATES.IDLE ||
 			this.#serverState === SERVER_STATES.VALIDATING ||
 			this.#serverState === SERVER_STATES.ERROR) {
@@ -611,10 +604,10 @@ class BuildServer extends EventEmitter {
 			// A reader-request-driven build is queued but has not started, and a source change just
 			// landed. Re-time it to the first-build settle window and report SETTLING: an editor's
 			// multi-file save fan-out then collapses into one build against the settled tree instead
-			// of firing into a half-written one. Laziness is preserved — with nothing queued, a
-			// change still waits for a reader request rather than provoking a speculative build. A
-			// subsequent reader request supersedes the settle by re-arming at the snappy debounce.
-			this.#setState(SERVER_STATES.SETTLING, {pendingProjects: this.#getStaleProjectNames()});
+			// of firing into a half-written one. Laziness is preserved: with nothing queued, a change
+			// still waits for a reader request rather than provoking a speculative build. A later
+			// reader request supersedes the settle by re-arming at the short debounce.
+			this.#setState(SERVER_STATES.SETTLING);
 			this.#triggerRequestQueue(FIRST_BUILD_SETTLE_MS);
 		}
 
@@ -654,7 +647,7 @@ class BuildServer extends EventEmitter {
 	 * Enqueues a project for building and triggers the request queue at the short debounce.
 	 *
 	 * Serving a request must not wait, so this always (re-)arms the queue at
-	 * <code>BUILD_REQUEST_DEBOUNCE_MS</code> — even when the project is already queued. A reader
+	 * <code>BUILD_REQUEST_DEBOUNCE_MS</code> - even when the project is already queued. A reader
 	 * request thereby supersedes a deferred settle window (the post-abort/transient restart at
 	 * <code>ABORTED_BUILD_RESTART_SETTLE_MS</code>, or the first-build window at
 	 * <code>FIRST_BUILD_SETTLE_MS</code>): the parked build is pulled forward to the short debounce
@@ -697,7 +690,7 @@ class BuildServer extends EventEmitter {
 				return;
 			}
 			// A concurrent timer may have claimed the build slot during the await
-			// above — validation's finally can fire onBuildRequired, which schedules
+			// above - validation's finally can fire onBuildRequired, which schedules
 			// a second timer. Bail so we don't call projectBuilder.build twice; the
 			// active build's #reconcileServerState hook drains #pendingBuildRequest.
 			if (this.#activeBuild) {
@@ -734,7 +727,7 @@ class BuildServer extends EventEmitter {
 	async #processBuildRequests() {
 		// Process queue while there are pending requests
 		while (this.#pendingBuildRequest.size > 0) {
-			// Each iteration is a fresh build attempt — ensure the state machine
+			// Each iteration is a fresh build attempt - ensure the state machine
 			// reflects that even on re-entries after a transient failure or a
 			// normal error whose queue survived. #setState is a no-op when
 			// already BUILDING, so the initial-entry case (state was set by
@@ -790,7 +783,7 @@ class BuildServer extends EventEmitter {
 					}
 				} else if (signal.aborted || this.#resourceChangeQueue.size > 0) {
 					// Task threw while sources were changing (e.g. mid-`git checkout`). The build
-					// state is untrustworthy but the error itself is very likely spurious — a fresh
+					// state is untrustworthy, but the error itself is very likely spurious: a fresh
 					// build against the settled tree will typically succeed. Re-queue affected
 					// projects and leave the reader-request queue intact so held requests resolve on
 					// the retry, then route through the same defer-and-report path as an abort (see
@@ -843,8 +836,7 @@ class BuildServer extends EventEmitter {
 				log.verbose(`Build ${signal.aborted ? "aborted" : "failed transiently"} ` +
 					`for projects: ${projectsToBuild.join(", ")}`);
 				// A source change aborted this build, or the build failed while sources were still
-				// A source change aborted this build, or the build failed while sources were still
-				// changing. Re-trigger processing so the re-queued projects rebuild — but hold the
+				// changing. Re-trigger processing so the re-queued projects rebuild, but hold the
 				// restart until changes settle rather than restarting on the short request debounce.
 				// A burst (git checkout, save-all) arrives as watcher batches up to MAX_WAIT_TIME
 				// apart; restarting between batches would spawn a build per batch, each aborted by
@@ -856,7 +848,7 @@ class BuildServer extends EventEmitter {
 				// to quiesce before rebuilding, so leaving the banner on `building` (abort) or
 				// flipping it to `error` (transient failure) would misdescribe what's happening.
 				this.#pendingDeferredRestart = true;
-				this.#setState(SERVER_STATES.SETTLING, {pendingProjects: this.#getStaleProjectNames()});
+				this.#setState(SERVER_STATES.SETTLING);
 				this.#triggerRequestQueue(ABORTED_BUILD_RESTART_SETTLE_MS);
 				return;
 			}
@@ -873,7 +865,7 @@ class BuildServer extends EventEmitter {
 	 * Sweep all project statuses and lift any lingering ERRORED gates that a
 	 * successful build cycle has effectively refuted. The freshly-built projects
 	 * themselves are FRESH at this point (or, if invalidated mid-cycle, back to
-	 * INVALIDATED via setReader's short-circuit) — they can't be ERRORED, so the
+	 * INVALIDATED via setReader's short-circuit) - they can't be ERRORED, so the
 	 * sweep is a no-op for them.
 	 *
 	 * @param {string[]} justBuiltProjects Names of projects the completed cycle
@@ -889,11 +881,10 @@ class BuildServer extends EventEmitter {
 	}
 
 	#getStaleProjectNames() {
-		// "Stale" here means "needs a rebuild if requested" — invalidated projects
-		// that the next request will re-enqueue. Errored projects are NOT stale in
-		// that sense: their rebuild is gated until the input changes, so surfacing
-		// them as stale would understate the situation (the user needs to fix the
-		// error, not just wait for the next request).
+		// "Stale" here means "needs a rebuild if requested": invalidated projects the next
+		// request will re-enqueue. Errored projects are NOT stale in that sense; their rebuild is
+		// gated until the input changes, so surfacing them as stale would understate it (the user
+		// needs to fix the error, not just wait for the next request).
 		const stale = [];
 		for (const [name, status] of this.#projectBuildStatus) {
 			if (!status.isFresh() && !status.getError()) {
@@ -905,7 +896,7 @@ class BuildServer extends EventEmitter {
 
 	/**
 	 * Aborts the in-flight background validation pass (if any) and awaits its settlement.
-	 * Swallows the resulting abort rejection — callers use this to make room for a build
+	 * Swallows the resulting abort rejection - callers use this to make room for a build
 	 * or to drain on destroy, neither of which surfaces validation errors.
 	 *
 	 * @param {string} reason Reason forwarded to AbortBuildError for verbose logging.
@@ -918,7 +909,7 @@ class BuildServer extends EventEmitter {
 		try {
 			await this.#activeValidation;
 		} catch (err) {
-			// Expected — validation rejects with an AbortBuildError on cancellation.
+			// Expected - validation rejects with an AbortBuildError on cancellation.
 			log.verbose(`Background validation settled (${reason}): ${err?.message ?? err}`);
 		}
 	}
@@ -927,29 +918,29 @@ class BuildServer extends EventEmitter {
 	 * Single point of truth for the terminal state at the end of a producer cycle
 	 * (build cycle, background validation pass). Each producer that used to open-code
 	 * an IDLE-vs-STALE-vs-VALIDATING guard now calls this after its own work settles;
-	 * the reconciler picks the target state from the current fields — <code>#activeBuild</code>,
-	 * <code>#pendingBuildRequest</code>, <code>#serverState</code>, the stale set — rather
-	 * than trusting each producer to check them.
+	 * the reconciler picks the target state from the current fields (<code>#activeBuild</code>,
+	 * <code>#pendingBuildRequest</code>, <code>#serverState</code>, the stale set) rather than
+	 * trusting each producer to check them.
 	 *
 	 * Bails when another actor already owns the next transition:
 	 *
-	 * - <code>#destroyed</code> — server shutting down; state is irrelevant.
-	 * - <code>#serverState === ERROR</code> — a producer already settled us on ERROR;
+	 * - <code>#destroyed</code>: server shutting down; state is irrelevant.
+	 * - <code>#serverState === ERROR</code>: a producer already settled us on ERROR;
 	 *   don't paint over it with a successful cycle close.
-	 * - <code>#serverState === SETTLING</code> — a deferred restart is armed; the timer owns
-	 *   the SETTLING → BUILDING transition. Every SETTLING entry leaves
+	 * - <code>#serverState === SETTLING</code>: a deferred restart is armed; the timer owns
+	 *   the SETTLING -> BUILDING transition. Every SETTLING entry leaves
 	 *   <code>#pendingBuildRequest</code> non-empty (so the check below already bails), but the
 	 *   explicit guard keeps a stray reconcile from flipping SETTLING to IDLE/STALE should that
 	 *   invariant ever break.
-	 * - <code>#activeBuild || #pendingBuildRequest.size > 0</code> — a build cycle owns
+	 * - <code>#activeBuild || #pendingBuildRequest.size > 0</code>: a build cycle owns
 	 *   the next transition. Notably fires when this call comes from the post-validation
 	 *   finally and <code>releaseValidating</code>'s <code>onBuildRequired</code> callback
 	 *   just enqueued a build for a project with pending readers.
 	 *
-	 * Otherwise: fully-fresh → IDLE. Any stale projects → try
+	 * Otherwise: fully-fresh -> IDLE. Any stale projects -> try
 	 * {@link #scheduleBackgroundValidation} when <code>mayValidate</code> is true and
 	 * fall back to STALE. When called from the post-validation finally
-	 * (<code>mayValidate=false</code>), goes straight to STALE — the pass just settled
+	 * (<code>mayValidate=false</code>), goes straight to STALE, since the pass just settled
 	 * on those projects, so re-scheduling would be pointless and would recurse this
 	 * finally into a new pass.
 	 *
@@ -957,7 +948,7 @@ class BuildServer extends EventEmitter {
 	 * @param {Array<number>} [opts.hrtime] Build duration to forward to
 	 *   {@link #setState}. Only the post-build path supplies this.
 	 * @param {boolean} [opts.mayValidate=false] Whether the reconciler is allowed to
-	 *   schedule a background validation pass. Post-build → true, post-validation → false.
+	 *   schedule a background validation pass. Post-build -> true, post-validation -> false.
 	 */
 	#reconcileServerState({hrtime, mayValidate = false} = {}) {
 		if (this.#destroyed || this.#serverState === SERVER_STATES.ERROR ||
@@ -991,12 +982,12 @@ class BuildServer extends EventEmitter {
 	 * <code>#activeValidation</code> so {@link #triggerRequestQueue} and {@link #destroy} can
 	 * abort it.
 	 *
-	 * Drives the server lifecycle through VALIDATING → IDLE/STALE on completion. Caller
-	 * supplies the post-build hrtime so the BUILDING → VALIDATING transition can emit a
+	 * Drives the server lifecycle through VALIDATING -> IDLE/STALE on completion. Caller
+	 * supplies the post-build hrtime so the BUILDING -> VALIDATING transition can emit a
 	 * <code>buildDone</code> event with the correct duration.
 	 *
 	 * Idempotent while a validation pass is already in flight. Skipped while a build is
-	 * active — the post-build cycle-end hook will schedule the next pass.
+	 * active; the post-build cycle-end hook will schedule the next pass.
 	 *
 	 * @param {object} [opts]
 	 * @param {Array<number>} [opts.hrtime] Build hrtime to forward to the VALIDATING state
@@ -1078,12 +1069,12 @@ class BuildServer extends EventEmitter {
 				}
 				log.verbose(`Background validation: marking project '${projectName}' as fresh`);
 				// setReader is a no-op if state isn't VALIDATING (e.g. invalidated mid-validation
-				// or claimed by a build) — the cycle-end logic will re-schedule or rebuild.
+				// or claimed by a build) - the cycle-end logic will re-schedule or rebuild.
 				projectBuildStatus.setReader(project.getReader({style: "runtime"}));
 			});
 		} finally {
 			// Whether the pass completed normally, was aborted, or threw, ensure no project
-			// is left stuck in VALIDATING — otherwise the next scheduleBackgroundValidation
+			// is left stuck in VALIDATING - otherwise the next scheduleBackgroundValidation
 			// pass (which picks up only INITIAL projects) would skip them and a reader request
 			// would still incur the lazy validation cost.
 			//
@@ -1104,22 +1095,22 @@ class BuildServer extends EventEmitter {
 	 * Single source of truth for the server lifecycle state. Mutates
 	 * <code>#serverState</code> and emits the matching ServeLogger event for the
 	 * transition. A no-op when <code>next</code> equals the current state, so a
-	 * burst of source changes collapses into one IDLE→STALE emission.
+	 * burst of source changes collapses into one IDLE->STALE emission.
 	 *
 	 * Transition policy:
 	 * <ul>
-	 *   <li>BUILDING → IDLE: buildDone(hrtime) then ready()</li>
-	 *   <li>BUILDING → STALE: buildDone(hrtime) then stale(names)</li>
-	 *   <li>BUILDING → VALIDATING: buildDone(hrtime) then validating(names)</li>
-	 *   <li>BUILDING → SETTLING: settling(names) only — no buildDone, since no successful
-	 *       cycle closed (mirrors the BUILDING → ERROR carve-out)</li>
-	 *   <li>BUILDING → ERROR: serveError(err) only — buildDone is skipped so
+	 *   <li>BUILDING -> IDLE: buildDone(hrtime) then ready()</li>
+	 *   <li>BUILDING -> STALE: buildDone(hrtime) then stale(names)</li>
+	 *   <li>BUILDING -> VALIDATING: buildDone(hrtime) then validating(names)</li>
+	 *   <li>BUILDING -> SETTLING: settling(names) only - no buildDone, since no successful
+	 *       cycle closed (mirrors the BUILDING -> ERROR carve-out)</li>
+	 *   <li>BUILDING -> ERROR: serveError(err) only - buildDone is skipped so
 	 *       consumers don't see a successful cycle close before the error</li>
-	 *   <li>VALIDATING → IDLE/STALE: ready()/stale() — no buildDone (no build happened)</li>
-	 *   <li>* → SETTLING: settling(names)</li>
-	 *   <li>SETTLING → BUILDING: building()</li>
-	 *   <li>any → ERROR: serveError(err)</li>
-	 *   <li>* → IDLE/STALE/BUILDING/VALIDATING: ready()/stale()/building()/validating() as appropriate</li>
+	 *   <li>VALIDATING -> IDLE/STALE: ready()/stale() - no buildDone (no build happened)</li>
+	 *   <li>* -> SETTLING: settling(names)</li>
+	 *   <li>SETTLING -> BUILDING: building()</li>
+	 *   <li>any -> ERROR: serveError(err)</li>
+	 *   <li>* -> IDLE/STALE/BUILDING/VALIDATING: ready()/stale()/building()/validating() as appropriate</li>
 	 * </ul>
 	 *
 	 * @param {string} next One of the SERVER_STATES values.
@@ -1179,12 +1170,11 @@ const PROJECT_STATES = Object.freeze({
 	VALIDATING: "validating",
 	BUILDING: "building",
 	FRESH: "fresh",
-	// Last build failed with a non-transient error. Held in this state until
-	// something invalidates the project — either a direct source change or a
-	// change in a (transitive) dependency, both of which route through
-	// #_projectResourceChanged → invalidate(). This gate prevents deterministic
-	// rebuild loops on failing builds: repeat requests reject immediately with
-	// the captured error until the input actually changes.
+	// Last build failed with a non-transient error. Held in this state until something
+	// invalidates the project (a direct source change or a change in a (transitive) dependency,
+	// both routing through #_projectResourceChanged -> invalidate()). This gate prevents
+	// deterministic rebuild loops on failing builds: repeat requests reject immediately with the
+	// captured error until the input actually changes.
 	ERRORED: "errored",
 });
 
@@ -1200,7 +1190,7 @@ class ProjectBuildStatus {
 	 * @param {Function} [onBuildRequired] Invoked when the status leaves the VALIDATING
 	 *   phase without becoming FRESH while at least one reader request is queued.
 	 *   The owning {@link BuildServer} wires this to <code>#enqueueBuild</code> so the
-	 *   status alone decides when a follow-up build is required — reader-request
+	 *   status alone decides when a follow-up build is required - reader-request
 	 *   handling stays a single-owner protocol instead of a three-site coordination.
 	 */
 	constructor(onBuildRequired) {
@@ -1226,9 +1216,8 @@ class ProjectBuildStatus {
 			// a stale reader must not survive a file add/remove.
 			this.#reader = null;
 		}
-		// Any invalidation lifts the ERRORED gate — the input changed, so a
-		// fresh build has a chance of succeeding even if the previous one
-		// failed deterministically.
+		// Any invalidation lifts the ERRORED gate: the input changed, so a fresh build has a
+		// chance of succeeding even if the previous one failed deterministically.
 		this.#lastError = null;
 		if (this.#state === PROJECT_STATES.INVALIDATED) {
 			return;
@@ -1246,7 +1235,7 @@ class ProjectBuildStatus {
 	 * <code>invalidate()</code>, which causes <code>setReader()</code> to drop
 	 * the late-arriving result.
 	 *
-	 * Unlike <code>markValidating</code>, this transition is unconditional —
+	 * Unlike <code>markValidating</code>, this transition is unconditional -
 	 * <code>#processBuildRequests</code> always intends to claim the project
 	 * regardless of its prior state. The asymmetry is deliberate; the call sites
 	 * pull from <code>#pendingBuildRequest</code>, which a FRESH project never
@@ -1258,7 +1247,7 @@ class ProjectBuildStatus {
 
 	/**
 	 * Marks the project as being validated by a background cache-validation pass.
-	 * Only takes effect for projects in INITIAL state — projects that have been
+	 * Only takes effect for projects in INITIAL state - projects that have been
 	 * invalidated, are already being built, or are FRESH must not be claimed by
 	 * a validation pass.
 	 *
@@ -1267,7 +1256,7 @@ class ProjectBuildStatus {
 	 * accepts both VALIDATING and BUILDING as legitimate prior states, so the
 	 * validation callback can promote a project to FRESH the same way a real build
 	 * does. If a source change invalidates the project mid-validation,
-	 * <code>invalidate()</code> flips VALIDATING → INVALIDATED and aborts the
+	 * <code>invalidate()</code> flips VALIDATING -> INVALIDATED and aborts the
 	 * per-project signal so the validation pass cancels.
 	 *
 	 * @returns {boolean} True if the transition happened, false otherwise.
@@ -1281,7 +1270,7 @@ class ProjectBuildStatus {
 	}
 
 	/**
-	 * Reverts a VALIDATING project back to INITIAL — used when validation found the
+	 * Reverts a VALIDATING project back to INITIAL - used when validation found the
 	 * cache to be stale and the project should remain lazy. No-op for the state
 	 * transition on any other state (e.g. when invalidate() already moved the
 	 * project to INVALIDATED mid-validation, or a build claimed it in the meantime).
@@ -1330,19 +1319,17 @@ class ProjectBuildStatus {
 	}
 
 	/**
-	 * Lifts the ERRORED gate without asserting that this project's input tree
-	 * changed — used by the {@link BuildServer} when a source change or a
-	 * successful build elsewhere in the graph signals that the earlier failure
-	 * may have been environmental rather than deterministic. The project drops
-	 * back to INVALIDATED so the next reader request re-enqueues a real build.
+	 * Lifts the ERRORED gate without asserting that this project's input tree changed. Used by
+	 * the {@link BuildServer} when a source change or a successful build elsewhere in the graph
+	 * signals that the earlier failure may have been environmental rather than deterministic. The
+	 * project drops back to INVALIDATED so the next reader request re-enqueues a real build.
 	 *
-	 * No-op unless the project is currently ERRORED. Does not abort any in-flight
-	 * build (there can't be one; ERRORED is a terminal cycle-end state) and does
-	 * not touch the cached reader (which is always <code>null</code> in ERRORED,
-	 * since a failed build never called <code>setReader</code>).
+	 * No-op unless the project is currently ERRORED. Does not abort any in-flight build (there
+	 * can't be one; ERRORED is a terminal cycle-end state) and does not touch the cached reader
+	 * (always <code>null</code> in ERRORED, since a failed build never called
+	 * <code>setReader</code>).
 	 *
-	 * @returns {boolean} True if the gate was lifted, false if the project was
-	 *   not in ERRORED to begin with.
+	 * @returns {boolean} True if the gate was lifted, false if the project was not ERRORED.
 	 */
 	clearError() {
 		if (this.#state !== PROJECT_STATES.ERRORED) {
