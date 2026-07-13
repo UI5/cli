@@ -364,7 +364,6 @@ class InteractiveConsole {
 			break;
 		case "serve-validating":
 			this.#buildState.validatingProjects = evt.validatingProjects || [];
-			this.#buildState.spinFrame = 0;
 			this.#transitionTo(STATES.VALIDATING);
 			break;
 		case "serve-build-done":
