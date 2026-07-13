@@ -857,6 +857,9 @@ export default class ProjectBuildCache {
 		const stageWriter = stage.getWriter();
 		const writtenResources = await stageWriter.byGlob("/**/*");
 		const writtenResourcePaths = writtenResources.map((res) => res.getOriginalPath());
+		// Set form for the delta-merge membership check below; the array is retained
+		// for the ordered downstream uses (recordStageCache, verbose counts).
+		const writtenResourcePathSet = new Set(writtenResourcePaths);
 		let {projectTagOperations, buildTagOperations} =
 			this.#project.getProjectResources().getResourceTagOperations();
 
@@ -906,7 +909,7 @@ export default class ProjectBuildCache {
 			let droppedCount = 0;
 			for (const res of previousWrittenResources) {
 				const path = res.getOriginalPath();
-				if (writtenResourcePaths.includes(path)) {
+				if (writtenResourcePathSet.has(path)) {
 					continue; // Delta re-emitted this path; skip
 				}
 				if (changedProjectResourcePaths.has(path)) {
