@@ -1,3 +1,4 @@
+import {getRandomValues} from "node:crypto";
 import {getLogger} from "@ui5/logger";
 import Cache from "@ui5/project/build/cache/Cache";
 import ServeSupervisor from "./ServeSupervisor.js";
@@ -69,7 +70,12 @@ export async function serve(graph, {
 }, error, {graphFactory} = {}) {
 	// The live-reload token is generated once and shared with every serving stack the supervisor
 	// builds, so connected clients keep authenticating across a re-initialization.
-	const webSocketToken = liveReload ? ServeSupervisor.generateWebSocketToken() : null;
+	// Random 72 bits (9 * 8 bits), base64url-encoded to a 12-character string. OWASP recommends
+	// at least 64 bits of entropy for session IDs:
+	// https://owasp.org/www-community/vulnerabilities/Insufficient_Session-ID_Length
+	const webSocketToken = liveReload ?
+		Buffer.from(getRandomValues(new Uint8Array(9))).toString("base64url") :
+		null;
 
 	const config = {
 		port, changePortIfInUse, h2, key, cert,

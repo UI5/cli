@@ -1,6 +1,5 @@
 import http from "node:http";
 import process from "node:process";
-import {getRandomValues} from "node:crypto";
 import {EventEmitter} from "node:events";
 import {getLogger} from "@ui5/logger";
 import buildServeApp from "./serveApp.js";
@@ -31,7 +30,6 @@ class ServeSupervisor extends EventEmitter {
 
 	#httpServer = null;
 	#port = null;
-	#h2 = false;
 
 	// The Express app every request is currently routed to. Reassigned on swap.
 	#currentApp = null;
@@ -79,7 +77,6 @@ class ServeSupervisor extends EventEmitter {
 			port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
 			acceptRemoteConnections = false, liveReload = false,
 		} = this.#config;
-		this.#h2 = h2;
 
 		if (h2) {
 			const nodeVersion = parseInt(process.versions.node.split(".")[0], 10);
@@ -209,14 +206,6 @@ class ServeSupervisor extends EventEmitter {
 		return this.#port;
 	}
 
-	get h2() {
-		return this.#h2;
-	}
-
-	getServeError() {
-		return this.#stack?.buildServer.getServeError() ?? null;
-	}
-
 	/**
 	 * Stops the server: closes live-reload, the HTTP socket, and the current BuildServer.
 	 * Mirrors the tolerant teardown of the single-shot wrapper — the socket is closed even
@@ -235,36 +224,6 @@ class ServeSupervisor extends EventEmitter {
 		} catch (err) {
 			log.verbose(`Error while destroying BuildServer: ${err?.message ?? err}`);
 		}
-	}
-
-	/**
-	 * Generates a per-process live-reload token: random 72 bits (9 * 8 bits), base64url-encoded
-	 * to a 12-character string. OWASP recommends at least 64 bits of entropy for session IDs:
-	 * https://owasp.org/www-community/vulnerabilities/Insufficient_Session-ID_Length
-	 *
-	 * @returns {string} The token
-	 */
-	static generateWebSocketToken() {
-		return Buffer.from(getRandomValues(new Uint8Array(9))).toString("base64url");
-	}
-
-	// Test-only introspection into private state. Defined as a static method because private
-	// fields are only reachable from within the class body. Wired to __internals__ below.
-	static #peek(supervisor) {
-		return {
-			stack: supervisor.#stack,
-			currentApp: supervisor.#currentApp,
-			httpServer: supervisor.#httpServer,
-			sourcesChangedRelay: supervisor.#sourcesChangedRelay,
-			reinitInProgress: supervisor.#reinitInProgress,
-		};
-	}
-
-	static get __internals__() {
-		if (process.env.NODE_ENV !== "test") {
-			return undefined;
-		}
-		return {peek: ServeSupervisor.#peek};
 	}
 }
 

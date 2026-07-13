@@ -18,7 +18,6 @@ function createSupervisorMock({port = 3000, createRejects = null} = {}) {
 		sinon.stub().resolves(supervisor);
 	const ServeSupervisor = {
 		create,
-		generateWebSocketToken: sinon.stub().returns("test-token"),
 	};
 	return {supervisor, ServeSupervisor};
 }
@@ -45,7 +44,8 @@ test("serve() delegates to ServeSupervisor.create and returns port/h2/close/rein
 	const [passedGraph, config, , options] = ServeSupervisor.create.firstCall.args;
 	t.is(passedGraph, graph);
 	t.is(options.graphFactory, graphFactory, "graphFactory is threaded through to the supervisor");
-	t.is(config.webSocketToken, "test-token", "a token is generated when liveReload is active");
+	t.is(typeof config.webSocketToken, "string", "a token is generated when liveReload is active");
+	t.is(config.webSocketToken.length, 12, "the token is 72 bits base64url-encoded to 12 characters");
 	t.is(result.port, 3000);
 	t.is(result.h2, false);
 	t.is(typeof result.close, "function");
@@ -61,7 +61,6 @@ test("serve() does not generate a live-reload token when liveReload is off", asy
 
 	await serve({}, {port: 3000, liveReload: false}, undefined, {});
 
-	t.true(ServeSupervisor.generateWebSocketToken.notCalled);
 	const config = ServeSupervisor.create.firstCall.args[1];
 	t.is(config.webSocketToken, null);
 });
