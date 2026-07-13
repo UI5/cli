@@ -329,6 +329,10 @@ test.serial("serve-status: build failure emits serveError and no orphan building
 	const lastBuildingIdx = seq.lastIndexOf("serve-building");
 	const errorIdx = seq.indexOf("serve-error");
 	t.true(errorIdx > lastBuildingIdx, "serve-error follows serve-building");
+	// The error must remain the terminal state of the cycle — no serve-stale or
+	// serve-ready may follow it, as that would clear the red banner while the
+	// project is still gated on its captured error.
+	t.is(seq[seq.length - 1], "serve-error", "serve-error is the final status of a failed cycle");
 });
 
 // When a build cycle drains with INITIAL-state dependencies left over, the server
@@ -950,3 +954,339 @@ test.serial(
 	});
 
 
+// Regression suite for the "sticky HTTP 500" observed during manual testing.
+//
+// Reproduces two escapes from the ERRORED-project gate that survive a build
+// failure:
+//
+//   1. A build fails on a dependency (library.a). The user then edits a file
+//      in an *unrelated* part of the tree — say the root project. That change
+//      routes through _projectResourceChanged(root, …), which walks
+//      traverseDependents(root, true) and only invalidates root and its
+//      dependents. library.a is a *dependency* of root, not a dependent, so
+//      its ProjectBuildStatus stays in ERRORED. The server-level banner still
+//      transitions ERROR → STALE → BUILDING → READY off the root project's
+//      recovery path (root's build succeeds because it doesn't touch the
+//      failed library resource path), giving the impression of full recovery.
+//      Any HTTP request that resolves through library.a keeps rejecting with
+//      the captured file-not-found error → the terminal Express error handler
+//      turns each into an HTTP 500 with the same stack.
+//
+//   2. A build fails during a rapid file-change window (e.g. `git checkout`).
+//      By the time the catch block runs, `signal.aborted` is false and
+//      `#resourceChangeQueue` has already been flushed, so the failure lands
+//      on the "normal" branch and latches ERRORED. The trailing watcher events
+//      arrive *after* the queue was flushed but are absorbed by the *rebuild*
+//      the transient branch would have run — none of them cascade into
+//      invalidate(library.a), and the gate stays closed.
+//
+// Both variants are captured below.
+
+function makeErrorGraphWithLibDep() {
+	const rootProject = {getName: () => "root.project"};
+	const libProject = {getName: () => "library.a"};
+	const projectsByName = {"root.project": rootProject, "library.a": libProject};
+	const graph = {
+		getRoot: () => rootProject,
+		getProjects: () => [rootProject, libProject],
+		getTransitiveDependencies: () => ["library.a"],
+		getProject: (name) => projectsByName[name],
+		// traverseDependents(x) yields x + everything that transitively depends on x.
+		// library.a has NO dependents other than the root project; the root project
+		// itself has no dependents. So a change in root.project only invalidates
+		// root; a change in library.a invalidates library.a and root.
+		traverseDependents: function* (projectName, includeStart) {
+			if (projectName === "library.a") {
+				if (includeStart) yield {project: libProject};
+				yield {project: rootProject};
+			} else {
+				if (includeStart) yield {project: rootProject};
+			}
+		},
+	};
+	return {rootProject, libProject, graph};
+}
+
+// Builds a BuildServer whose BuildReader was mocked to capture the
+// buildServerInterface (getReaderForProject/getReaderForProjects), so tests can
+// simulate the byPath → getReaderForProject call chain a real HTTP request
+// would follow without depending on express.
+async function makeBuildServerWithCapturedInterface(t, graph, projectBuilder, initialDeps = ["library.a"]) {
+	const {sinon} = t.context;
+	let capturedInterface;
+	class CapturingBuildReader {
+		constructor(_name, _projects, buildServerInterface) {
+			capturedInterface = buildServerInterface;
+		}
+	}
+	class FakeWatchHandler {
+		constructor() {
+			this.destroy = sinon.stub().resolves();
+			this.on = sinon.stub();
+			this.watch = sinon.stub().resolves();
+		}
+	}
+	const BuildServer = (await esmock("../../../lib/build/BuildServer.js", {
+		"../../../lib/build/BuildReader.js": CapturingBuildReader,
+		"../../../lib/build/helpers/WatchHandler.js": FakeWatchHandler,
+	})).default;
+	const buildServer = await BuildServer.create(graph, projectBuilder, true, initialDeps, []);
+	t.teardown(() => buildServer.destroy());
+	// Swallow emitted "error" events so AVA doesn't see unhandled rejections.
+	// The failure paths under test do not emit "error" (that's reserved for
+	// fatal failures) but installing the noop listener is defensive.
+	buildServer.on("error", () => {});
+	return {buildServer, getInterface: () => capturedInterface};
+}
+
+// Builder factory that fails the first invocation and succeeds subsequent ones.
+// Mirrors the "task threw ENOENT once, then the tree settled" shape produced by
+// a branch switch.
+function makeFailOnceThenSucceedBuilder(sinon, buildError) {
+	const invocations = [];
+	let calls = 0;
+	const builder = {
+		closeCacheManager: sinon.stub(),
+		resourcesChanged: sinon.stub(),
+		validateCaches: sinon.stub().resolves([]),
+		build: sinon.stub().callsFake((opts, perProjectCb) => {
+			const invocation = {opts, perProjectCb, index: calls};
+			invocations.push(invocation);
+			const isFirst = calls === 0;
+			calls++;
+			if (isFirst) {
+				return Promise.reject(buildError);
+			}
+			if (opts.includeRootProject) {
+				perProjectCb("root.project", {getReader: () => ({builtReader: "root.project"})});
+			}
+			for (const depName of opts.includedDependencies || []) {
+				perProjectCb(depName, {getReader: () => ({builtReader: depName})});
+			}
+			return Promise.resolve(
+				(opts.includeRootProject ? ["root.project"] : []).concat(opts.includedDependencies || []));
+		}),
+	};
+	return {builder, invocations};
+}
+
+test.serial(
+	"error-recovery: change in a dependent project lifts the ERRORED gate on its dependency",
+	async (t) => {
+		// Fix 2 in _projectResourceChanged: a source change in root.project must
+		// also clear the ERRORED gate on library.a (a transitive dependency), even
+		// though traverseDependents(root) never reaches library.a. Without this,
+		// any HTTP request that resolves through library.a would keep returning
+		// the captured build error indefinitely — the "sticky HTTP 500" reported
+		// after manual testing.
+		const {sinon, clock} = t.context;
+
+		const {graph, rootProject} = makeErrorGraphWithLibDep();
+		const buildError = new Error("ENOENT: no such file or directory, open '/tmp/vanished.js'");
+		const statusEvents = makeStatusRecorder(t);
+		const {builder: projectBuilder, invocations} = makeFailOnceThenSucceedBuilder(sinon, buildError);
+
+		const {buildServer, getInterface} = await makeBuildServerWithCapturedInterface(t, graph, projectBuilder);
+
+		// (1) Drive the initial build cycle to failure — the whole batch (root +
+		// library.a) rejects, both are latched into ERRORED.
+		await clock.tickAsync(10);
+		t.is(invocations.length, 1, "initial build was invoked");
+		t.true(invocations[0].opts.includeRootProject && invocations[0].opts.includedDependencies.includes("library.a"),
+			"initial build covered root + library.a");
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-error");
+		t.is(statusEvents[statusEvents.length - 1].status, "serve-error", "cycle ends in serve-error");
+
+		// (2) User edits a file in root.project. Fix 2 walks
+		// getTransitiveDependencies(root.project) and clears library.a's ERRORED
+		// gate, since the user's activity signals retry intent.
+		buildServer._projectResourceChanged(rootProject, "/index.html", false);
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-stale");
+
+		// (3) A request for library.a's reader must now enqueue a real build
+		// rather than replay the captured error.
+		const iface = getInterface();
+		const libReq = iface.getReaderForProject("library.a");
+		// Drive the 10ms request-queue tick + drain the build promise. The
+		// follow-up build succeeds (fail-once mock).
+		await clock.tickAsync(10);
+		const reader = await libReq;
+		t.deepEqual(reader, {builtReader: "library.a"},
+			"library.a rebuild resolved cleanly after the gate was lifted");
+
+		// And confirm the mechanism: a rebuild of library.a was actually
+		// attempted after the initial failure.
+		t.true(
+			invocations.some((inv, i) => i > 0 && inv.opts.includedDependencies?.includes("library.a")),
+			"at least one post-failure invocation built library.a");
+	});
+
+test.serial(
+	"error-recovery: successful build cycle lifts ERRORED gates on unrelated projects", async (t) => {
+		// Fix 1 in #processBuildRequests: after any successful build cycle, sweep
+		// #projectBuildStatus and lift ERRORED gates on projects the cycle didn't
+		// touch. This covers the case where the failed project has no graph
+		// relationship to the changed one (multi-root workspaces, sibling libs
+		// that only share the root as a common dependent).
+		const {sinon, clock} = t.context;
+
+		// Two independent libraries sharing only the root. Fix 2's
+		// getTransitiveDependencies(root) covers both, so to isolate Fix 1 we use
+		// a graph where a change in libA does NOT reach libB via any traversal —
+		// libA/libB are siblings, both dependencies of root, with no dependents
+		// of their own.
+		const rootProject = {getName: () => "root.project"};
+		const libA = {getName: () => "library.a"};
+		const libB = {getName: () => "library.b"};
+		const projectsByName = {
+			"root.project": rootProject, "library.a": libA, "library.b": libB,
+		};
+		const graph = {
+			getRoot: () => rootProject,
+			getProjects: () => [rootProject, libA, libB],
+			getTransitiveDependencies: (name) => {
+				if (name === "root.project") return ["library.a", "library.b"];
+				return [];
+			},
+			getProject: (name) => projectsByName[name],
+			traverseDependents: function* (projectName, includeStart) {
+				if (projectName === "library.a") {
+					if (includeStart) yield {project: libA};
+					yield {project: rootProject};
+				} else if (projectName === "library.b") {
+					if (includeStart) yield {project: libB};
+					yield {project: rootProject};
+				} else {
+					if (includeStart) yield {project: rootProject};
+				}
+			},
+		};
+
+		const buildError = new Error("ENOENT: no such file or directory, open '/tmp/vanished.js'");
+		const statusEvents = makeStatusRecorder(t);
+
+		// First cycle fails; every subsequent cycle succeeds.
+		let calls = 0;
+		const invocations = [];
+		const projectBuilder = {
+			closeCacheManager: sinon.stub(),
+			resourcesChanged: sinon.stub(),
+			validateCaches: sinon.stub().resolves([]),
+			build: sinon.stub().callsFake((opts, perProjectCb) => {
+				const invocation = {opts, perProjectCb, index: calls};
+				invocations.push(invocation);
+				const isFirst = calls === 0;
+				calls++;
+				if (isFirst) {
+					return Promise.reject(buildError);
+				}
+				if (opts.includeRootProject) {
+					perProjectCb("root.project", {getReader: () => ({builtReader: "root.project"})});
+				}
+				for (const depName of opts.includedDependencies || []) {
+					perProjectCb(depName, {getReader: () => ({builtReader: depName})});
+				}
+				return Promise.resolve(
+					(opts.includeRootProject ? ["root.project"] : []).concat(opts.includedDependencies || []));
+			}),
+		};
+
+		const {buildServer, getInterface} = await makeBuildServerWithCapturedInterface(
+			t, graph, projectBuilder, ["library.a", "library.b"]);
+
+		// (1) Initial build fails — root, library.a, library.b all ERRORED.
+		await clock.tickAsync(10);
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-error");
+
+		// (2) Source change ONLY on library.a. This invalidates library.a (via
+		// traverseDependents) and lifts library.a's error gate via invalidate().
+		// Fix 2 also clears getTransitiveDependencies(library.a) = [] — no effect
+		// on library.b. Only Fix 1 (the post-cycle sweep) can lift library.b's
+		// gate. root's gate lifts too (root is a dependent of library.a).
+		buildServer._projectResourceChanged(libA, "/src/library.a/foo.js", false);
+
+		// (3) Rebuild library.a — this succeeds and, on cycle completion, sweeps
+		// #projectBuildStatus, clearing library.b's ERRORED gate.
+		const iface = getInterface();
+		const libAReq = iface.getReaderForProject("library.a");
+		await clock.tickAsync(10);
+		await libAReq;
+
+		// (4) A request for library.b must NOT replay the captured error. The
+		// post-cycle sweep dropped library.b's gate to INVALIDATED, so this
+		// request enqueues a real rebuild.
+		const libBReq = iface.getReaderForProject("library.b");
+		await clock.tickAsync(10);
+		const libBReader = await libBReq;
+		t.deepEqual(libBReader, {builtReader: "library.b"},
+			"library.b rebuilt after its ERRORED gate was lifted by the successful cycle");
+	});
+
+test.serial(
+	"error-recovery: no source change and no other build → ERRORED gate stays closed", async (t) => {
+		// Complement to the two "gate lifts" tests: without ANY signal — no source
+		// change, no successful build — the ERRORED gate is still deterministic
+		// (a re-request would just re-produce the same failure). This confirms
+		// the gate is only lifted by an explicit signal, not by wall-clock time.
+		const {sinon, clock} = t.context;
+
+		const {graph} = makeErrorGraphWithLibDep();
+		const buildError = new Error("ENOENT: no such file or directory, open '/tmp/vanished.js'");
+		const {builder: projectBuilder, invocations} = makeFailOnceThenSucceedBuilder(sinon, buildError);
+		const statusEvents = makeStatusRecorder(t);
+
+		const {getInterface} = await makeBuildServerWithCapturedInterface(t, graph, projectBuilder);
+
+		await clock.tickAsync(10);
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-error");
+		t.is(invocations.length, 1, "only the initial build ran");
+
+		const iface = getInterface();
+		// Five sequential reader requests, no source change in between. Each
+		// must reject with the exact captured error, and no rebuild is attempted.
+		const errs = [];
+		for (let i = 0; i < 5; i++) {
+			const p = iface.getReaderForProject("library.a");
+			await clock.tickAsync(1);
+			errs.push(await p.catch((e) => e));
+		}
+		t.is(invocations.length, 1, "no rebuild was triggered by any of the 5 requests");
+		for (const err of errs) {
+			t.is(err, buildError, "each request rejects with the captured build error");
+		}
+	});
+
+test.serial(
+	"error-recovery: file change on the ERRORED project itself lifts the gate", async (t) => {
+		// Sanity-check the counterpart to the sticky path — a change *on*
+		// library.a does invalidate its ProjectBuildStatus (invalidate() clears
+		// #lastError), so the follow-up reader request enqueues a real rebuild.
+		// This documents the current recovery contract and pins down that the
+		// escape reproduced above is specifically about invalidations that
+		// don't reach the ERRORED project.
+		const {sinon, clock} = t.context;
+
+		const {graph, libProject} = makeErrorGraphWithLibDep();
+		const buildError = new Error("ENOENT: no such file or directory, open '/tmp/vanished.js'");
+		const {builder: projectBuilder, invocations} = makeFailOnceThenSucceedBuilder(sinon, buildError);
+		const statusEvents = makeStatusRecorder(t);
+
+		const {buildServer, getInterface} = await makeBuildServerWithCapturedInterface(t, graph, projectBuilder);
+
+		await clock.tickAsync(10);
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-error");
+
+		// Change on library.a itself → invalidate(library.a) + invalidate(root).
+		buildServer._projectResourceChanged(libProject, "/src/library.a/foo.js", false);
+
+		const iface = getInterface();
+		const p = iface.getReaderForProject("library.a");
+		await clock.tickAsync(10);
+		const reader = await p;
+		t.deepEqual(reader, {builtReader: "library.a"},
+			"reader request for library.a resolved via the follow-up build after its own change");
+		t.true(invocations.length >= 2, "a rebuild of library.a was triggered");
+		t.true(
+			invocations.some((inv, i) => i > 0 && inv.opts.includedDependencies?.includes("library.a")),
+			"at least one post-failure invocation built library.a");
+	});
