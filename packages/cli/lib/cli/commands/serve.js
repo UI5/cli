@@ -147,9 +147,14 @@ serve.handler = async function(argv) {
 
 	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
 
-	// Single graph-construction site, reused for the initial graph and for every re-initialization
-	// the server performs on a project-definition change. Captures argv so the server can re-resolve
-	// with identical parameters without threading them across the package boundary.
+	// Workspace resolution is active unless static-graph mode is used or --workspace is disabled.
+	// Single source for both the graph resolve (below) and the watcher config, so the two cannot
+	// drift on whether workspace resolution runs.
+	const workspaceActive = !argv.dependencyDefinition && argv.workspace !== false;
+
+	// One graph-construction site, reused for the initial graph and every re-init the server
+	// performs on a project-definition change. Captures argv so the server can re-resolve with
+	// identical parameters.
 	const buildGraph = async () => {
 		if (argv.dependencyDefinition) {
 			return graphFromStaticFile({
@@ -164,12 +169,12 @@ serve.handler = async function(argv) {
 				versionOverride: argv.frameworkVersion,
 				snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
 				workspaceConfigPath: argv.workspaceConfig,
-				workspaceName: argv.workspace === false ? null : argv.workspace,
+				workspaceName: workspaceActive ? argv.workspace : null,
 			});
 		}
 	};
 
-	// Build the initial graph up front — its root server settings resolve the port and
+	// Build the initial graph up front: its root server settings resolve the port and
 	// live-reload defaults below, before the server binds.
 	const graph = await buildGraph();
 
@@ -218,6 +223,11 @@ serve.handler = async function(argv) {
 		cache: argv.cache,
 		includedTasks: argv["include-task"],
 		excludedTasks: argv["exclude-task"],
+		// Threaded to the definition watcher so it watches the same files buildGraph resolves from.
+		// null selects the watcher's default ui5-workspace.yaml, undefined disables workspace watching.
+		rootConfigPath: argv.config,
+		workspaceConfigPath: workspaceActive ? (argv.workspaceConfig ?? null) : undefined,
+		dependencyDefinitionPath: argv.dependencyDefinition,
 	};
 
 	if (serverConfig.h2) {
@@ -229,9 +239,8 @@ serve.handler = async function(argv) {
 
 	const {promise: pOnError, reject} = Promise.withResolvers();
 	const {serve: serverServe} = await import("@ui5/server");
-	// Pass buildGraph as the graphFactory so the server can re-create the serving stack on a
-	// project-definition change. The returned reinitialize handle is unused for now; a future
-	// definition watcher will call it.
+	// Pass buildGraph as the graphFactory so the server can re-resolve the graph and re-create
+	// the serving stack when its definition watcher observes a project-definition change.
 	const {h2, port: actualPort} = await serverServe(graph, serverConfig, function(err) {
 		reject(err);
 	}, {graphFactory: buildGraph});

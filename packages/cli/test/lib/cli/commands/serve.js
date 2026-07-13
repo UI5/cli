@@ -125,6 +125,9 @@ test.serial("ui5 serve: default", async (t) => {
 			liveReload: true,
 			includedTasks: undefined,
 			excludedTasks: undefined,
+			rootConfigPath: undefined,
+			workspaceConfigPath: null,
+			dependencyDefinitionPath: undefined,
 		}
 	]);
 	t.is(typeof server.serve.getCall(0).args[2], "function");
@@ -178,6 +181,9 @@ test.serial("ui5 serve --h2", async (t) => {
 			liveReload: true,
 			includedTasks: undefined,
 			excludedTasks: undefined,
+			rootConfigPath: undefined,
+			workspaceConfigPath: null,
+			dependencyDefinitionPath: undefined,
 		}
 	]);
 
@@ -213,6 +219,9 @@ test.serial("ui5 serve --accept-remote-connections", async (t) => {
 			liveReload: true,
 			includedTasks: undefined,
 			excludedTasks: undefined,
+			rootConfigPath: undefined,
+			workspaceConfigPath: null,
+			dependencyDefinitionPath: undefined,
 		}
 	]);
 });
