@@ -351,7 +351,7 @@ class BuildServer extends EventEmitter {
 
 			// Every project is now non-fresh. Surface STALE and prompt connected clients to
 			// reload, which drives the lazy rebuild against the re-scanned index.
-			this.#setState(SERVER_STATES.STALE, {staleProjects: this.#getStaleProjectNames()});
+			this.#setState(SERVER_STATES.STALE);
 			this.emit("sourcesChanged");
 		} catch (recoveryErr) {
 			// Recreation itself failed (e.g. watch() rejected). The watcher is genuinely broken;
@@ -614,7 +614,7 @@ class BuildServer extends EventEmitter {
 			// of firing into a half-written one. Laziness is preserved — with nothing queued, a
 			// change still waits for a reader request rather than provoking a speculative build. A
 			// subsequent reader request supersedes the settle by re-arming at the snappy debounce.
-			this.#setState(SERVER_STATES.SETTLING, {pendingProjects: this.#getStaleProjectNames()});
+			this.#setState(SERVER_STATES.SETTLING);
 			this.#triggerRequestQueue(FIRST_BUILD_SETTLE_MS);
 		}
 
@@ -855,7 +855,7 @@ class BuildServer extends EventEmitter {
 				// to quiesce before rebuilding, so leaving the banner on `building` (abort) or
 				// flipping it to `error` (transient failure) would misdescribe what's happening.
 				this.#pendingAbortRestart = true;
-				this.#setState(SERVER_STATES.SETTLING, {pendingProjects: this.#getStaleProjectNames()});
+				this.#setState(SERVER_STATES.SETTLING);
 				this.#triggerRequestQueue(ABORTED_BUILD_RESTART_SETTLE_MS);
 				return;
 			}
