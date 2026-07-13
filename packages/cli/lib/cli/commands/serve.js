@@ -147,23 +147,31 @@ serve.handler = async function(argv) {
 
 	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
 
-	let graph;
-	if (argv.dependencyDefinition) {
-		graph = await graphFromStaticFile({
-			filePath: argv.dependencyDefinition,
-			rootConfigPath: argv.config,
-			versionOverride: argv.frameworkVersion,
-			snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
-		});
-	} else {
-		graph = await graphFromPackageDependencies({
-			rootConfigPath: argv.config,
-			versionOverride: argv.frameworkVersion,
-			snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
-			workspaceConfigPath: argv.workspaceConfig,
-			workspaceName: argv.workspace === false ? null : argv.workspace,
-		});
-	}
+	// Single graph-construction site, reused for the initial graph and for every re-initialization
+	// the server performs on a project-definition change. Captures argv so the server can re-resolve
+	// with identical parameters without threading them across the package boundary.
+	const buildGraph = async () => {
+		if (argv.dependencyDefinition) {
+			return graphFromStaticFile({
+				filePath: argv.dependencyDefinition,
+				rootConfigPath: argv.config,
+				versionOverride: argv.frameworkVersion,
+				snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
+			});
+		} else {
+			return graphFromPackageDependencies({
+				rootConfigPath: argv.config,
+				versionOverride: argv.frameworkVersion,
+				snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
+				workspaceConfigPath: argv.workspaceConfig,
+				workspaceName: argv.workspace === false ? null : argv.workspace,
+			});
+		}
+	};
+
+	// Build the initial graph up front — its root server settings resolve the port and
+	// live-reload defaults below, before the server binds.
+	const graph = await buildGraph();
 
 	let port = argv.port;
 	let changePortIfInUse = false;
@@ -221,9 +229,12 @@ serve.handler = async function(argv) {
 
 	const {promise: pOnError, reject} = Promise.withResolvers();
 	const {serve: serverServe} = await import("@ui5/server");
+	// Pass buildGraph as the graphFactory so the server can re-create the serving stack on a
+	// project-definition change. The returned reinitialize handle is unused for now; a future
+	// definition watcher will call it.
 	const {h2, port: actualPort} = await serverServe(graph, serverConfig, function(err) {
 		reject(err);
-	});
+	}, {graphFactory: buildGraph});
 
 	if (argv.open !== undefined) {
 		const protocol = h2 ? "https" : "http";
