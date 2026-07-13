@@ -6,6 +6,7 @@ export const STATES = Object.freeze({
 	STARTING: "starting", // pre-populated placeholder before the first real state arrives
 	READY: "ready",
 	STALE: "stale",
+	SETTLING: "settling", // changes seen, rebuild deferred until they quiesce
 	BUILDING: "building",
 	VALIDATING: "validating",
 	ERROR: "error",
@@ -14,7 +15,7 @@ export const STATES = Object.freeze({
 // States that animate a spinner. Consulted by both the tick scheduler in the
 // interactive console writer and the status-line renderer, so a state either
 // spins in both places or in neither.
-export const SPINNING_STATES = new Set([STATES.BUILDING, STATES.VALIDATING]);
+export const SPINNING_STATES = new Set([STATES.SETTLING, STATES.BUILDING, STATES.VALIDATING]);
 
 export function createBuildState() {
 	return {
@@ -31,6 +32,9 @@ export function createBuildState() {
 		// Names of projects collected via `serve-validating` payloads — used to
 		// label the validating state if/when the renderer wants to.
 		validatingProjects: [],
+		// Names of projects collected via `serve-settling` payloads — used to
+		// label the settling state if/when the renderer wants to.
+		pendingProjects: [],
 		// Frame counter for the spinner (incremented by the tick loop).
 		spinFrame: 0,
 		// Most recent error captured by `serve-error`.

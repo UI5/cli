@@ -3,7 +3,7 @@ import Logger from "./Logger.js";
 
 /**
  * Logger for emitting status events on the lifecycle of a UI5 development server
- * (idle / stale / building / build-done / error).
+ * (idle / stale / settling / building / build-done / error).
  * <br><br>
  * Emits <code>ui5.log</code> and <code>ui5.serve-status</code> events on the
  * [<code>process</code>]{@link https://nodejs.org/api/process.html} object, which can be handled
@@ -44,6 +44,14 @@ class Serve extends Logger {
 		}
 		this.#emitStatus("serve-stale", {changedProjects},
 			`Sources changed in: ${changedProjects.join(", ")}`);
+	}
+
+	settling(pendingProjects) {
+		if (!pendingProjects || !Array.isArray(pendingProjects)) {
+			throw new Error("loggers/Serve#settling: Missing or incorrect pendingProjects parameter");
+		}
+		this.#emitStatus("serve-settling", {pendingProjects},
+			`Waiting for changes to settle in: ${pendingProjects.join(", ")}`);
 	}
 
 	validating(validatingProjects) {

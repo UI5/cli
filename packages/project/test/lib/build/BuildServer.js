@@ -271,7 +271,7 @@ test.serial("serve-status: initial build cycle emits building → buildDone → 
 });
 
 test.serial(
-	"serve-status: source change mid-build emits exactly one stale at cycle end", async (t) => {
+	"serve-status: source change mid-build emits settling at cycle end (not stale)", async (t) => {
 		const {BuildServer, graph, projectBuilder, rootProject, sinon, clock} = t.context;
 		const statusEvents = makeStatusRecorder(t);
 
@@ -285,6 +285,7 @@ test.serial(
 		});
 
 		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+		t.teardown(() => buildServer.destroy());
 		await clock.tickAsync(10);
 		t.true(projectBuilder.build.called, "build started");
 
@@ -298,15 +299,18 @@ test.serial(
 		await clock.tickAsync(0);
 
 		const seq = statusEvents.map((e) => e.status);
-		const staleCalls = seq.filter((s) => s === "serve-stale");
-		t.is(staleCalls.length, 1,
-			`Expected exactly one stale emission at cycle end, got sequence: ${seq.join(", ")}`);
-		// And the emission must come AFTER serve-build-done (i.e. it's the
-		// end-of-cycle one, not the IDLE→STALE one).
-		const lastStaleIdx = seq.lastIndexOf("serve-stale");
-		const lastBuildDoneIdx = seq.lastIndexOf("serve-build-done");
-		t.true(lastStaleIdx > lastBuildDoneIdx,
-			`Expected stale after build-done; got: ${seq.join(", ")}`);
+		// The aborted cycle defers its restart, so the end-of-cycle state is SETTLING
+		// (rebuild pending, held until changes quiesce) rather than STALE. No buildDone
+		// is emitted on BUILDING → SETTLING — no successful cycle closed.
+		const settlingCalls = seq.filter((s) => s === "serve-settling");
+		t.is(settlingCalls.length, 1,
+			`Expected exactly one settling emission at cycle end, got sequence: ${seq.join(", ")}`);
+		t.false(seq.includes("serve-stale"),
+			`No stale emission on the aborted cycle; got: ${seq.join(", ")}`);
+		t.false(seq.includes("serve-build-done"),
+			`No buildDone on BUILDING → SETTLING; got: ${seq.join(", ")}`);
+		t.is(seq[seq.length - 1], "serve-settling",
+			`SETTLING is the terminal state of the deferred cycle; got: ${seq.join(", ")}`);
 	});
 
 test.serial(
@@ -315,7 +319,7 @@ test.serial(
 		const {BuildServer, graph, projectBuilder, rootProject, sinon, clock} = t.context;
 		const {ABORTED_BUILD_RESTART_SETTLE_MS, BUILD_REQUEST_DEBOUNCE_MS} =
 			BuildServer.__internals__;
-		makeStatusRecorder(t);
+		const statusEvents = makeStatusRecorder(t);
 
 		// Each build() invocation parks a resolver. Settling checks the abort signal and, when
 		// aborted, rejects with an AbortError — mirroring the real ProjectBuilder so BuildServer
@@ -344,6 +348,9 @@ test.serial(
 		resolvers[0]();
 		await clock.tickAsync(0);
 		t.is(projectBuilder.build.callCount, 1, "no restart yet — the settle window is open");
+		// The deferred restart reports SETTLING, not a stale/building banner.
+		t.is(statusEvents[statusEvents.length - 1].status, "serve-settling",
+			"state is settling while the restart is deferred");
 
 		// Well within the settle window: still no restart.
 		await clock.tickAsync(ABORTED_BUILD_RESTART_SETTLE_MS - 50);
@@ -357,10 +364,83 @@ test.serial(
 		// Past the reset window: exactly one restart for the whole burst.
 		await clock.tickAsync(50);
 		t.is(projectBuilder.build.callCount, 2, "burst collapsed to a single restarted build");
+		t.is(statusEvents[statusEvents.length - 1].status, "serve-building",
+			"SETTLING → BUILDING once the window closes and the restart fires");
 
 		// Settle the restarted build so no promise is left dangling.
 		resolvers[1]?.();
 		await clock.tickAsync(0);
+	});
+
+test.serial(
+	"serve-status: transient failure during a change burst reports settling, not error", async (t) => {
+		const {BuildServer, graph, projectBuilder, rootProject, sinon, clock} = t.context;
+		const {ABORTED_BUILD_RESTART_SETTLE_MS, BUILD_REQUEST_DEBOUNCE_MS} =
+			BuildServer.__internals__;
+		const statusEvents = makeStatusRecorder(t);
+
+		// The first build throws a plain error *while a source change is still queued* — the
+		// "half-written tree during git checkout" shape. The retry (second invocation) succeeds.
+		const resolvers = [];
+		projectBuilder.build = sinon.stub().callsFake((_opts, cb) => new Promise((resolve, reject) => {
+			resolvers.push({resolve, reject, cb});
+		}));
+
+		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+		t.context.buildServer = buildServer;
+		await clock.tickAsync(BUILD_REQUEST_DEBOUNCE_MS);
+		t.is(projectBuilder.build.callCount, 1, "initial build started");
+
+		// A source change lands (queued, not yet flushed), then the build throws. Because
+		// #resourceChangeQueue is non-empty, the failure is treated as transient: re-queue and
+		// defer the retry, reporting SETTLING rather than ERROR.
+		buildServer._projectResourceChanged(rootProject, "/a.js", false);
+		resolvers[0].reject(new Error("ENOENT: half-written tree"));
+		await clock.tickAsync(0);
+
+		const midSeq = statusEvents.map((e) => e.status);
+		t.false(midSeq.includes("serve-error"),
+			`Transient failure must not surface serve-error; got: ${midSeq.join(", ")}`);
+		t.is(statusEvents[statusEvents.length - 1].status, "serve-settling",
+			`Transient failure reports settling; got: ${midSeq.join(", ")}`);
+		t.is(projectBuilder.build.callCount, 1, "retry held until the settle window elapses");
+
+		// Once quiet, a single rebuild fires and succeeds.
+		await clock.tickAsync(ABORTED_BUILD_RESTART_SETTLE_MS);
+		t.is(projectBuilder.build.callCount, 2, "single deferred rebuild after the tree settled");
+		resolvers[1].cb("root.project", {getReader: () => ({fakeReader: true})});
+		resolvers[1].resolve(["root.project"]);
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-ready");
+
+		const seq = statusEvents.map((e) => e.status);
+		t.false(seq.includes("serve-error"),
+			`No serve-error anywhere in the transient-failure cycle; got: ${seq.join(", ")}`);
+	});
+
+test.serial(
+	"serve-status: genuine build failure (no pending changes) still errors", async (t) => {
+		const {BuildServer, graph, projectBuilder, sinon, clock} = t.context;
+		const {BUILD_REQUEST_DEBOUNCE_MS} = BuildServer.__internals__;
+		const statusEvents = makeStatusRecorder(t);
+
+		// Build fails with no queued source change and no aborted signal — the genuine-error
+		// branch. Regression guard for the Step 4 `signal.aborted || #resourceChangeQueue.size > 0`
+		// predicate: this must land on ERROR, not SETTLING.
+		const buildError = new Error("Build blew up");
+		projectBuilder.build = sinon.stub().rejects(buildError);
+
+		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+		t.context.buildServer = buildServer;
+		buildServer.on("error", () => {});
+
+		await clock.tickAsync(BUILD_REQUEST_DEBOUNCE_MS);
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-error");
+
+		const seq = statusEvents.map((e) => e.status);
+		t.true(seq.includes("serve-error"), `Genuine failure surfaces serve-error; got: ${seq.join(", ")}`);
+		t.false(seq.includes("serve-settling"),
+			`Genuine failure must not report settling; got: ${seq.join(", ")}`);
+		t.is(seq[seq.length - 1], "serve-error", "serve-error is the terminal state of a genuine failure");
 	});
 
 test.serial("serve-status: build failure emits serveError and no orphan building", async (t) => {

@@ -47,9 +47,12 @@ const WATCHER_RECOVERY_MAX_ATTEMPTS = 5;
 const WATCHER_RECOVERY_WINDOW_MS = 60000;
 
 // The server's lifecycle state. Mutated exclusively through #setState.
+// Ordering intent: IDLE → STALE → SETTLING → BUILDING.
 const SERVER_STATES = Object.freeze({
 	IDLE: "idle", // No pending requests, no recent changes, no unvalidated caches.
 	STALE: "stale", // Pending changes / pending requests, queue not yet flushed.
+	SETTLING: "settling", // Rebuild pending, deferred until changes quiesce. No build is active
+	// (#activeBuild === null); the deferred timer moves it to BUILDING.
 	BUILDING: "building", // A build is in flight.
 	VALIDATING: "validating", // A background cache-validation pass is in flight.
 	ERROR: "error", // Last build cycle failed.
@@ -563,9 +566,10 @@ class BuildServer extends EventEmitter {
 			this.#setState(SERVER_STATES.STALE);
 		}
 
-		// Reschedule a pending post-abort restart so its settle window measures quiet from this
-		// change, not from the abort. Only fires while a restart is waiting (no active build);
-		// #triggerRequestQueue clears the armed timer and re-arms it at the settle delay.
+		// Reschedule a pending post-abort/transient restart so its settle window measures quiet
+		// from this change, not from the abort. Only fires while a restart is waiting (no active
+		// build); the state is already SETTLING and stays there. #triggerRequestQueue clears the
+		// armed timer and re-arms it at the settle delay.
 		if (this.#pendingDeferredRestart) {
 			this.#triggerRequestQueue(ABORTED_BUILD_RESTART_SETTLE_MS);
 		}
@@ -718,6 +722,7 @@ class BuildServer extends EventEmitter {
 
 			// Set active build to prevent concurrent builds
 			let buildError = null;
+			let transientFailure = false;
 			const buildPromise = this.#activeBuild = this.#projectBuilder.build({
 				includeRootProject: buildRootProject,
 				includedDependencies: dependenciesToBuild,
@@ -740,13 +745,16 @@ class BuildServer extends EventEmitter {
 						}
 					}
 				} else if (signal.aborted || this.#resourceChangeQueue.size > 0) {
-					// Task threw while sources were changing (e.g. mid-`git pull`). The build state
-					// is untrustworthy but the error itself is very likely spurious — a fresh build
-					// against the settled tree will typically succeed. Silently re-queue affected
-					// projects and leave the reader-request queue intact so held requests resolve
-					// on the retry.
+					// Task threw while sources were changing (e.g. mid-`git checkout`). The build
+					// state is untrustworthy but the error itself is very likely spurious — a fresh
+					// build against the settled tree will typically succeed. Re-queue affected
+					// projects and leave the reader-request queue intact so held requests resolve on
+					// the retry, then route through the same defer-and-report path as an abort (see
+					// below): the doomed build must not park the server on `building`/`error`; it
+					// reports SETTLING and retries once the tree is quiet.
 					log.warn(
 						`Build failed during concurrent source change — treating as transient: ${err.message}`);
+					transientFailure = true;
 					for (const projectName of projectsToBuild) {
 						const projectBuildStatus = this.#projectBuildStatus.get(projectName);
 						if (!projectBuildStatus.isFresh()) {
@@ -787,17 +795,24 @@ class BuildServer extends EventEmitter {
 				continue;
 			}
 			this.emit("buildFinished", builtProjects);
-			if (signal.aborted) {
-				log.verbose(`Build aborted for projects: ${projectsToBuild.join(", ")}`);
-				// A source change aborted this build. Re-trigger processing so the re-queued
-				// projects rebuild — but hold the restart until changes settle rather than
-				// restarting on the snappy request debounce. A burst (git checkout, save-all)
-				// arrives as watcher batches up to MAX_WAIT_TIME apart; restarting between
-				// batches would spawn a build per batch, each aborted by the next. The settle
-				// delay collapses the burst into a single rebuild against the settled tree.
-				// Each further source change reschedules this restart (see #_projectResourceChanged),
-				// so the window measures quiet from the last change, not from the abort.
+			if (signal.aborted || transientFailure) {
+				log.verbose(`Build ${signal.aborted ? "aborted" : "failed transiently"} ` +
+					`for projects: ${projectsToBuild.join(", ")}`);
+				// A source change aborted this build, or the build failed while sources were still
+				// A source change aborted this build, or the build failed while sources were still
+				// changing. Re-trigger processing so the re-queued projects rebuild — but hold the
+				// restart until changes settle rather than restarting on the short request debounce.
+				// A burst (git checkout, save-all) arrives as watcher batches up to MAX_WAIT_TIME
+				// apart; restarting between batches would spawn a build per batch, each aborted by
+				// the next. The settle delay collapses the burst into a single rebuild against the
+				// settled tree. Each further source change reschedules this restart (see
+				// #_projectResourceChanged), so the window measures quiet from the last change.
+				//
+				// Report SETTLING for the duration of the window: the server is waiting for changes
+				// to quiesce before rebuilding, so leaving the banner on `building` (abort) or
+				// flipping it to `error` (transient failure) would misdescribe what's happening.
 				this.#pendingDeferredRestart = true;
+				this.#setState(SERVER_STATES.SETTLING, {pendingProjects: this.#getStaleProjectNames()});
 				this.#triggerRequestQueue(ABORTED_BUILD_RESTART_SETTLE_MS);
 				return;
 			}
@@ -877,6 +892,11 @@ class BuildServer extends EventEmitter {
 	 * - <code>#destroyed</code> — server shutting down; state is irrelevant.
 	 * - <code>#serverState === ERROR</code> — a producer already settled us on ERROR;
 	 *   don't paint over it with a successful cycle close.
+	 * - <code>#serverState === SETTLING</code> — a deferred restart is armed; the timer owns
+	 *   the SETTLING → BUILDING transition. Every SETTLING entry leaves
+	 *   <code>#pendingBuildRequest</code> non-empty (so the check below already bails), but the
+	 *   explicit guard keeps a stray reconcile from flipping SETTLING to IDLE/STALE should that
+	 *   invariant ever break.
 	 * - <code>#activeBuild || #pendingBuildRequest.size > 0</code> — a build cycle owns
 	 *   the next transition. Notably fires when this call comes from the post-validation
 	 *   finally and <code>releaseValidating</code>'s <code>onBuildRequired</code> callback
@@ -896,7 +916,8 @@ class BuildServer extends EventEmitter {
 	 *   schedule a background validation pass. Post-build → true, post-validation → false.
 	 */
 	#reconcileServerState({hrtime, mayValidate = false} = {}) {
-		if (this.#destroyed || this.#serverState === SERVER_STATES.ERROR) {
+		if (this.#destroyed || this.#serverState === SERVER_STATES.ERROR ||
+				this.#serverState === SERVER_STATES.SETTLING) {
 			return;
 		}
 		if (this.#activeBuild || this.#pendingBuildRequest.size > 0) {
@@ -1046,9 +1067,13 @@ class BuildServer extends EventEmitter {
 	 *   <li>BUILDING → IDLE: buildDone(hrtime) then ready()</li>
 	 *   <li>BUILDING → STALE: buildDone(hrtime) then stale(names)</li>
 	 *   <li>BUILDING → VALIDATING: buildDone(hrtime) then validating(names)</li>
+	 *   <li>BUILDING → SETTLING: settling(names) only — no buildDone, since no successful
+	 *       cycle closed (mirrors the BUILDING → ERROR carve-out)</li>
 	 *   <li>BUILDING → ERROR: serveError(err) only — buildDone is skipped so
 	 *       consumers don't see a successful cycle close before the error</li>
 	 *   <li>VALIDATING → IDLE/STALE: ready()/stale() — no buildDone (no build happened)</li>
+	 *   <li>* → SETTLING: settling(names)</li>
+	 *   <li>SETTLING → BUILDING: building()</li>
 	 *   <li>any → ERROR: serveError(err)</li>
 	 *   <li>* → IDLE/STALE/BUILDING/VALIDATING: ready()/stale()/building()/validating() as appropriate</li>
 	 * </ul>
@@ -1059,18 +1084,21 @@ class BuildServer extends EventEmitter {
 	 *     tuple produced by <code>process.hrtime(start)</code>; required when leaving
 	 *     BUILDING for IDLE/STALE/VALIDATING.
 	 * @param {string[]} [opts.staleProjects] Stale project names; required when transitioning to STALE.
+	 * @param {string[]} [opts.pendingProjects] Names of projects awaiting the deferred rebuild;
+	 *     used when transitioning to SETTLING. Defaults to the stale project set.
 	 * @param {string[]} [opts.validatingProjects] Names of projects undergoing background cache
 	 *     validation; required when transitioning to VALIDATING.
 	 * @param {Error} [opts.error] Error instance; required when transitioning to ERROR.
 	 */
-	#setState(next, {hrtime, staleProjects, validatingProjects, error} = {}) {
+	#setState(next, {hrtime, staleProjects, pendingProjects, validatingProjects, error} = {}) {
 		if (this.#serverState === next) {
 			return;
 		}
 		const previous = this.#serverState;
 		this.#serverState = next;
 
-		if (previous === SERVER_STATES.BUILDING && next !== SERVER_STATES.ERROR) {
+		if (previous === SERVER_STATES.BUILDING &&
+				next !== SERVER_STATES.ERROR && next !== SERVER_STATES.SETTLING) {
 			this.#serveLogger.buildDone(hrtime ?? [0, 0]);
 		}
 
@@ -1080,6 +1108,9 @@ class BuildServer extends EventEmitter {
 			break;
 		case SERVER_STATES.STALE:
 			this.#serveLogger.stale(staleProjects ?? this.#getStaleProjectNames());
+			break;
+		case SERVER_STATES.SETTLING:
+			this.#serveLogger.settling(pendingProjects ?? this.#getStaleProjectNames());
 			break;
 		case SERVER_STATES.BUILDING:
 			this.#serveLogger.building();
