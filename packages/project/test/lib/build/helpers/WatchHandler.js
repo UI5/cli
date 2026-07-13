@@ -146,6 +146,35 @@ test.serial("watch: emits error from watcher callback error", async (t) => {
 	await handler.destroy();
 });
 
+// @parcel/watcher surfaces dropped OS-level FS events as a callback error whose message
+// asks the consumer to re-scan the file system. WatchHandler forwards it verbatim; the
+// re-scan/recovery decision lives in the BuildServer error handler.
+test.serial("watch: forwards dropped-events error from watcher callback", async (t) => {
+	const subscription = createMockSubscription();
+	const callbackReady = captureCallback(subscription);
+
+	const handler = new WatchHandler();
+	const project = {
+		getSourcePaths: () => ["/src"],
+		getName: () => "test-project"
+	};
+
+	await handler.watch([project]);
+	const callback = await callbackReady;
+
+	const droppedError = new Error(
+		"Events were dropped by the FSEvents client. File system must be re-scanned.");
+	const errorPromise = new Promise((resolve) => {
+		handler.on("error", (err) => {
+			t.is(err, droppedError, "forwards the original error instance");
+			resolve();
+		});
+	});
+	callback(droppedError);
+	await errorPromise;
+	await handler.destroy();
+});
+
 test.serial("watch: emits error when handler throws", async (t) => {
 	const subscription = createMockSubscription();
 	const callbackReady = captureCallback(subscription);

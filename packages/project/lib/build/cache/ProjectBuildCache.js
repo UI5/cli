@@ -1239,6 +1239,41 @@ export default class ProjectBuildCache {
 	}
 
 	/**
+	 * Discards the in-memory source index and task caches so that the next build
+	 * re-initializes the source index from scratch via a full <code>byGlob("/**\/*")</code>
+	 * re-scan (see {@link #initSourceIndex}), diffing the live source tree against the
+	 * persisted index. Used to recover from situations where the incremental change signal
+	 * became unreliable — the file watcher dropping OS-level FS events, or a source file
+	 * changing during a build.
+	 *
+	 * The change accumulators are cleared as well: their contents are superseded by the
+	 * full re-scan. Content-addressed state that stays correct across the reset —
+	 * <code>#stageCache</code> (a stale entry only matches when its content matches) and
+	 * <code>#cachedFrozenSourceMetadata</code> (re-read from the persisted cache during
+	 * <code>#initSourceIndex</code>) — is intentionally kept.
+	 *
+	 * No-op in {@link @ui5/project/build/cache/Cache}.Off mode, where no index or result
+	 * cache exists to reset.
+	 *
+	 * @public
+	 */
+	resetForFullRescan() {
+		if (this.#cacheMode === Cache.Off) {
+			return;
+		}
+		this.#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
+		this.#sourceIndex = null;
+		this.#taskCache.clear();
+		// Result cache state must also be reset: a prior validateCache may have transitioned
+		// it to NO_CACHE or FRESH_AND_IN_USE. The next build's validateCache asserts
+		// PENDING_VALIDATION after the dependency-index restore step, so a leftover
+		// non-PENDING_VALIDATION value would trip that assertion.
+		this.#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
+		this.#changedProjectSourcePaths = [];
+		this.#changedDependencyResourcePaths = [];
+	}
+
+	/**
 	 * Signals that all tasks have completed and switches to the result stage
 	 *
 	 * This finalizes the build process by switching the project to use the
@@ -1275,14 +1310,7 @@ export default class ProjectBuildCache {
 			// Reset index state so that the next build attempt will re-initialize the source index
 			// from scratch. Without this, a retry in the BuildServer would reuse the stale index
 			// and perpetually detect the same change.
-			this.#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
-			this.#sourceIndex = null;
-			this.#taskCache.clear();
-			// Result cache state must also be reset: the aborted build's validateCache may
-			// have already transitioned it to NO_CACHE or FRESH_AND_IN_USE. The retry's
-			// validateCache asserts PENDING_VALIDATION after the dependency-index restore
-			// step, so a leftover non-PENDING_VALIDATION value would trip that assertion.
-			this.#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
+			this.resetForFullRescan();
 
 			throw new SourceChangedDuringBuildError(this.#project.getName());
 		}

@@ -143,6 +143,27 @@ class ProjectBuilder {
 	}
 
 	/**
+	 * Discards all in-memory build caches so that the next build of each project re-scans its
+	 * source tree from scratch and diffs it against the persisted index.
+	 *
+	 * Intended for long-running consumers (such as the
+	 * [BuildServer]{@link @ui5/project/build/BuildServer}) to recover when the incremental
+	 * change signal became unreliable — most notably when the OS file watcher reports that
+	 * events were dropped and the file system must be re-scanned. After this call the next
+	 * build treats every source file as a change candidate, so cached results that a missed
+	 * event would otherwise have kept stale are re-validated.
+	 *
+	 * @public
+	 * @throws {Error} If a build is currently running
+	 */
+	forceFullRescan() {
+		if (this.#buildIsRunning) {
+			throw new Error(`Unable to safely force a full re-scan. Build is currently running.`);
+		}
+		this._buildContext.forceFullRescan();
+	}
+
+	/**
 	 * Releases the build cache database connection and any underlying storage resources.
 	 *
 	 * Must be called by consumers of {@link #build} once they are done with this builder

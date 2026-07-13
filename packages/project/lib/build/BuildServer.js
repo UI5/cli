@@ -11,6 +11,14 @@ const log = getLogger("build:BuildServer");
 // results in a single notification.
 const SOURCES_CHANGED_DEBOUNCE_MS = 100;
 
+// Loop protection for watcher recovery. A persistently failing watcher (e.g. a watched
+// path that keeps erroring on re-subscribe, or an FS that keeps dropping events) would
+// otherwise cycle error → recover → error indefinitely. If more than
+// WATCHER_RECOVERY_MAX_ATTEMPTS recoveries complete within WATCHER_RECOVERY_WINDOW_MS, the
+// watcher is treated as unrecoverable and the server escalates to the terminal ERROR state.
+const WATCHER_RECOVERY_MAX_ATTEMPTS = 5;
+const WATCHER_RECOVERY_WINDOW_MS = 60000;
+
 // The server's lifecycle state. Mutated exclusively through #setState.
 const SERVER_STATES = Object.freeze({
 	IDLE: "idle", // No pending requests, no recent changes, no unvalidated caches.
@@ -72,6 +80,12 @@ class BuildServer extends EventEmitter {
 	// is its controller, used to preempt validation when a real build is requested.
 	#activeValidation = null;
 	#validationAbort = null;
+	// Watcher recovery state. `#recoveringWatcher` guards against re-entrant recovery while a
+	// recovery pass is in flight (a dropped-events fault emits one error per subscribed path
+	// in a synchronous burst). `#watcherRecoveryTimestamps` retains the completion times of
+	// recent recoveries for the loop-protection window.
+	#recoveringWatcher = false;
+	#watcherRecoveryTimestamps = [];
 
 	/**
 	 * Creates a new BuildServer instance
@@ -171,16 +185,134 @@ class BuildServer extends EventEmitter {
 	async #initWatcher() {
 		const watchHandler = new WatchHandler();
 		this.#watchHandler = watchHandler;
+		this.#wireWatchHandler(watchHandler);
+		await watchHandler.watch(this.#graph.getProjects());
+	}
+
+	/**
+	 * Wires the change and error listeners onto a WatchHandler instance. Shared by the
+	 * initial setup and the recovery path so both attach identical handlers.
+	 *
+	 * @param {WatchHandler} watchHandler Handler to wire listeners onto
+	 */
+	#wireWatchHandler(watchHandler) {
 		watchHandler.on("error", (err) => {
-			this.#setState(SERVER_STATES.ERROR, {error: err});
-			this.emit("error", err);
+			this.#recoverWatcher(err);
 		});
 		watchHandler.on("change", (eventType, resourcePath, project) => {
 			log.verbose(`Source change detected: ${eventType} ${resourcePath} in project '${project.getName()}'`);
 			this._projectResourceChanged(project, resourcePath, ["create", "delete"].includes(eventType));
 		});
-		await watchHandler.watch(this.#graph.getProjects());
 	}
+
+	/**
+	 * Recovers from a WatchHandler error by recreating the watch subscriptions and forcing a
+	 * full source re-scan of every project.
+	 *
+	 * The incremental build cache derives "what changed" solely from discrete watcher events
+	 * (see {@link #_projectResourceChanged} → {@link ProjectBuilder#resourcesChanged}). When
+	 * the watcher errors — most notably when the OS reports that FS events were dropped and
+	 * the file system must be re-scanned — that signal is unreliable: some source changes
+	 * were never reported, so cached build results may be stale. Rather than wedging the
+	 * server in ERROR (the prior behavior, from which the only exit was a further watcher
+	 * event that may never arrive), recreate the watcher and re-scan.
+	 *
+	 * A successful recovery does not emit the fatal <code>error</code> event; it is reserved
+	 * for the terminal fallback when recovery itself fails or loops.
+	 *
+	 * @param {Error} err The error emitted by the WatchHandler
+	 */
+	async #recoverWatcher(err) {
+		// Collapse the error storm (parcel emits one error per subscribed path synchronously)
+		// into a single recovery, and stay out of the way of a server that is shutting down.
+		// Set synchronously before the first await so re-entrant emissions bail here.
+		if (this.#destroyed || this.#recoveringWatcher) {
+			return;
+		}
+		this.#recoveringWatcher = true;
+		log.warn(`File watcher error, attempting to recover: ${err?.message ?? err}`);
+		if (err?.stack) {
+			log.verbose(err.stack);
+		}
+
+		// Loop protection: a persistently failing watcher would otherwise cycle forever, since
+		// dropped-events faults arrive via the subscription callback (not a watch() rejection)
+		// and so never trip the reject-based fallback below.
+		const now = Date.now();
+		this.#watcherRecoveryTimestamps = this.#watcherRecoveryTimestamps
+			.filter((ts) => now - ts < WATCHER_RECOVERY_WINDOW_MS);
+		if (this.#watcherRecoveryTimestamps.length >= WATCHER_RECOVERY_MAX_ATTEMPTS) {
+			this.#recoveringWatcher = false;
+			log.error(`File watcher failed to recover after ${WATCHER_RECOVERY_MAX_ATTEMPTS} attempts ` +
+				`within ${WATCHER_RECOVERY_WINDOW_MS} ms. Giving up.`);
+			this.#setState(SERVER_STATES.ERROR, {error: err});
+			this.emit("error", err);
+			return;
+		}
+
+		try {
+			// Quiesce in-flight work so ProjectBuilder.forceFullRescan() can claim the builder.
+			// #buildIsRunning only clears in the builder's finally after cache writes, so the
+			// active build must be awaited to completion — not merely aborted — before the
+			// re-scan. The build promise swallows abort errors, so this resolves cleanly.
+			await this.#stopActiveValidation("Watcher recovery");
+			if (this.#activeBuild) {
+				try {
+					await this.#activeBuild;
+				} catch (buildErr) {
+					log.verbose(`Active build settled during watcher recovery: ${buildErr?.message ?? buildErr}`);
+				}
+			}
+			if (this.#destroyed) {
+				return;
+			}
+
+			// Recreate the watcher. The old handler's listeners stay attached on purpose: a
+			// teardown "error" (from a failed unsubscribe) then re-enters #recoverWatcher, which
+			// bails on the #recoveringWatcher guard set above. Removing the listeners instead
+			// would let destroy()'s emit("error") throw, since Node's EventEmitter throws when
+			// "error" is emitted with no listener.
+			const oldHandler = this.#watchHandler;
+			await oldHandler.destroy();
+
+			const watchHandler = new WatchHandler();
+			this.#watchHandler = watchHandler;
+			this.#wireWatchHandler(watchHandler);
+			// Subscribe before the re-scan: a change during the teardown window is then caught
+			// either by the re-glob below or by the freshly-armed watcher.
+			await watchHandler.watch(this.#graph.getProjects());
+
+			// Force the full re-scan. forceFullRescan re-arms each project's source index so the
+			// next build re-globs and diffs against the persisted index, and invalidate() drops
+			// cached readers (fileAddedOrRemoved) so the rebuild re-reads the tree.
+			this.#projectBuilder.forceFullRescan();
+			for (const status of this.#projectBuildStatus.values()) {
+				status.invalidate({reason: "File watcher recovery", fileAddedOrRemoved: true});
+			}
+
+			this.#watcherRecoveryTimestamps.push(Date.now());
+			log.info(`File watcher recovered. Re-scanning all project sources.`);
+
+			// Every project is now non-fresh. Surface STALE and prompt connected clients to
+			// reload, which drives the lazy rebuild against the re-scanned index.
+			this.#setState(SERVER_STATES.STALE, {staleProjects: this.#getStaleProjectNames()});
+			this.emit("sourcesChanged");
+		} catch (recoveryErr) {
+			// Recreation itself failed (e.g. watch() rejected). The watcher is genuinely broken;
+			// fall back to the terminal ERROR behavior.
+			log.error(`File watcher recovery failed: ${recoveryErr?.message ?? recoveryErr}`);
+			this.#setState(SERVER_STATES.ERROR, {error: recoveryErr});
+			this.emit("error", recoveryErr);
+			return;
+		} finally {
+			this.#recoveringWatcher = false;
+		}
+		// Drain reader requests parked before the error (and any suppressed during recovery):
+		// invalidate() alone does not enqueue their builds, so without this they would hang
+		// until a brand-new request arrives.
+		this.#triggerRequestQueue();
+	}
+
 
 	async destroy() {
 		this.#destroyed = true;
@@ -440,7 +572,10 @@ class BuildServer extends EventEmitter {
 	}
 
 	#triggerRequestQueue() {
-		if (this.#destroyed || this.#activeBuild) {
+		if (this.#destroyed || this.#activeBuild || this.#recoveringWatcher) {
+			// While recovering the watcher, suppress builds so ProjectBuilder.forceFullRescan()
+			// can claim the builder without racing a build the abort/re-queue path may start.
+			// #recoverWatcher re-triggers the queue once recovery completes.
 			return;
 		}
 		// If no build is active, trigger queue processing debounced
@@ -452,7 +587,9 @@ class BuildServer extends EventEmitter {
 			// the builder's "buildIsRunning" lock. Validation will be re-scheduled
 			// after the build cycle drains.
 			await this.#stopActiveValidation("Build request received");
-			if (this.#destroyed) {
+			if (this.#destroyed || this.#recoveringWatcher) {
+				// A watcher recovery claimed the builder during the await above (or is about
+				// to). #recoverWatcher re-triggers the queue once it completes.
 				return;
 			}
 			// A concurrent timer may have claimed the build slot during the await
@@ -743,7 +880,10 @@ class BuildServer extends EventEmitter {
 	 *   When false, callers may want to transition the server to STALE explicitly.
 	 */
 	#scheduleBackgroundValidation({hrtime} = {}) {
-		if (this.#destroyed || this.#activeValidation || this.#activeBuild) {
+		if (this.#destroyed || this.#activeValidation || this.#activeBuild || this.#recoveringWatcher) {
+			// While recovering the watcher, a validation pass would claim the builder's
+			// buildIsRunning lock and make forceFullRescan() throw. Recovery re-triggers the
+			// queue on completion, which drives the next validation/build.
 			return false;
 		}
 		const projectsToValidate = [];

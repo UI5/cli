@@ -186,6 +186,21 @@ class BuildContext {
 		}));
 	}
 
+	/**
+	 * Forces a full source re-scan for every project that has an initialized build context.
+	 *
+	 * Discards each context's in-memory build cache so the next build re-globs the source
+	 * tree and diffs it against the persisted index, picking up changes that were never
+	 * reported through {@link #propagateResourceChanges} (e.g. file watcher events dropped
+	 * by the OS). Never-built projects have no context yet and re-scan naturally on first
+	 * build, so iterating existing contexts only is sufficient.
+	 */
+	forceFullRescan() {
+		for (const ctx of this._projectBuildContexts.values()) {
+			ctx.resetForFullRescan();
+		}
+	}
+
 	closeCacheManager() {
 		if (this.#cacheManager) {
 			this.#cacheManager.close();

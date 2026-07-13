@@ -342,6 +342,15 @@ class ProjectBuildContext {
 		return this._buildCache.dependencyResourcesChanged(changedPaths);
 	}
 
+	/**
+	 * Discards this project's in-memory build cache so that the next build re-scans the
+	 * source tree from scratch. Delegates to
+	 * {@link @ui5/project/build/cache/ProjectBuildCache#resetForFullRescan}.
+	 */
+	resetForFullRescan() {
+		return this._buildCache.resetForFullRescan();
+	}
+
 	propagateResourceChanges(changedPaths) {
 		if (!changedPaths.length) {
 			return;
