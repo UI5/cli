@@ -443,6 +443,162 @@ test.serial(
 		t.is(seq[seq.length - 1], "serve-error", "serve-error is the terminal state of a genuine failure");
 	});
 
+test.serial(
+	"serve-status: a pending build re-times to the first-build window on a source change", async (t) => {
+		const {BuildServer, graph, projectBuilder, rootProject, sinon, clock} = t.context;
+		const {FIRST_BUILD_SETTLE_MS, BUILD_REQUEST_DEBOUNCE_MS} = BuildServer.__internals__;
+		const statusEvents = makeStatusRecorder(t);
+
+		const resolvers = [];
+		projectBuilder.build = sinon.stub().callsFake((_opts, cb) => new Promise((resolve) => {
+			resolvers.push({resolve, cb});
+		}));
+
+		// No initial build: the server starts IDLE. Capture the interface so we can enqueue a
+		// reader-request-driven build (which is what makes a build "pending" without an active one).
+		let capturedInterface;
+		class CapturingBuildReader {
+			constructor(_name, _projects, buildServerInterface) {
+				capturedInterface = buildServerInterface;
+			}
+		}
+		class FakeWatchHandler {
+			constructor() {
+				this.destroy = sinon.stub().resolves();
+				this.on = sinon.stub();
+				this.watch = sinon.stub().resolves();
+			}
+		}
+		const CapturingBuildServer = (await esmock("../../../lib/build/BuildServer.js", {
+			"../../../lib/build/BuildReader.js": CapturingBuildReader,
+			"../../../lib/build/helpers/WatchHandler.js": FakeWatchHandler,
+		})).default;
+		const buildServer = await CapturingBuildServer.create(graph, projectBuilder, false, [], []);
+		t.teardown(() => buildServer.destroy());
+
+		// A reader request enqueues a build on the snappy debounce (10 ms) but doesn't fire yet.
+		const readerPromise = capturedInterface.getReaderForProject("root.project");
+		readerPromise.catch(() => {});
+
+		// Before the debounce elapses, a source change lands. The pending (not-yet-started) build
+		// is re-timed to the 100 ms first-build window and the banner reports SETTLING.
+		buildServer._projectResourceChanged(rootProject, "/a.js", false);
+		t.is(statusEvents[statusEvents.length - 1].status, "serve-settling",
+			"source change on a pending build reports settling");
+
+		// The old 10 ms debounce must NOT fire the build — the window was pushed out to 100 ms.
+		await clock.tickAsync(BUILD_REQUEST_DEBOUNCE_MS);
+		t.is(projectBuilder.build.callCount, 0, "build held past the snappy debounce by the 100 ms window");
+
+		await clock.tickAsync(FIRST_BUILD_SETTLE_MS - BUILD_REQUEST_DEBOUNCE_MS);
+		t.is(projectBuilder.build.callCount, 1, "build fires once the 100 ms first-build window elapses");
+
+		resolvers[0].cb("root.project", {getReader: () => ({fakeReader: true})});
+		resolvers[0].resolve(["root.project"]);
+		await readerPromise;
+	});
+
+test.serial(
+	"serve-status: a reader request supersedes the first-build settle window", async (t) => {
+		const {BuildServer, graph, projectBuilder, rootProject, sinon, clock} = t.context;
+		const {FIRST_BUILD_SETTLE_MS, BUILD_REQUEST_DEBOUNCE_MS} = BuildServer.__internals__;
+		makeStatusRecorder(t);
+
+		const resolvers = [];
+		projectBuilder.build = sinon.stub().callsFake((_opts, cb) => new Promise((resolve) => {
+			resolvers.push({resolve, cb});
+		}));
+
+		let capturedInterface;
+		class CapturingBuildReader {
+			constructor(_name, _projects, buildServerInterface) {
+				capturedInterface = buildServerInterface;
+			}
+		}
+		class FakeWatchHandler {
+			constructor() {
+				this.destroy = sinon.stub().resolves();
+				this.on = sinon.stub();
+				this.watch = sinon.stub().resolves();
+			}
+		}
+		const CapturingBuildServer = (await esmock("../../../lib/build/BuildServer.js", {
+			"../../../lib/build/BuildReader.js": CapturingBuildReader,
+			"../../../lib/build/helpers/WatchHandler.js": FakeWatchHandler,
+		})).default;
+		const buildServer = await CapturingBuildServer.create(graph, projectBuilder, false, [], []);
+		t.teardown(() => buildServer.destroy());
+
+		// Enqueue a build, then re-time it to the 100 ms window via a source change.
+		const firstReq = capturedInterface.getReaderForProject("root.project");
+		firstReq.catch(() => {});
+		buildServer._projectResourceChanged(rootProject, "/a.js", false);
+
+		// A fresh reader request must pull the build forward to the snappy debounce, superseding
+		// the 100 ms window.
+		const secondReq = capturedInterface.getReaderForProject("root.project");
+		secondReq.catch(() => {});
+		await clock.tickAsync(BUILD_REQUEST_DEBOUNCE_MS);
+		t.is(projectBuilder.build.callCount, 1,
+			"reader request superseded the 100 ms window; build ran at the snappy debounce");
+
+		// (Sanity) the 100 ms window would not have fired the build this early on its own.
+		t.true(BUILD_REQUEST_DEBOUNCE_MS < FIRST_BUILD_SETTLE_MS);
+
+		resolvers[0].cb("root.project", {getReader: () => ({fakeReader: true})});
+		resolvers[0].resolve(["root.project"]);
+		await Promise.all([firstReq, secondReq]);
+	});
+
+test.serial(
+	"serve-status: the first-build window resets on each further source change", async (t) => {
+		const {BuildServer, graph, projectBuilder, rootProject, sinon, clock} = t.context;
+		const {FIRST_BUILD_SETTLE_MS} = BuildServer.__internals__;
+		makeStatusRecorder(t);
+
+		const resolvers = [];
+		projectBuilder.build = sinon.stub().callsFake((_opts, cb) => new Promise((resolve) => {
+			resolvers.push({resolve, cb});
+		}));
+
+		let capturedInterface;
+		class CapturingBuildReader {
+			constructor(_name, _projects, buildServerInterface) {
+				capturedInterface = buildServerInterface;
+			}
+		}
+		class FakeWatchHandler {
+			constructor() {
+				this.destroy = sinon.stub().resolves();
+				this.on = sinon.stub();
+				this.watch = sinon.stub().resolves();
+			}
+		}
+		const CapturingBuildServer = (await esmock("../../../lib/build/BuildServer.js", {
+			"../../../lib/build/BuildReader.js": CapturingBuildReader,
+			"../../../lib/build/helpers/WatchHandler.js": FakeWatchHandler,
+		})).default;
+		const buildServer = await CapturingBuildServer.create(graph, projectBuilder, false, [], []);
+		t.teardown(() => buildServer.destroy());
+
+		const readerPromise = capturedInterface.getReaderForProject("root.project");
+		readerPromise.catch(() => {});
+		buildServer._projectResourceChanged(rootProject, "/a.js", false);
+
+		// Just short of the window, a further change resets it.
+		await clock.tickAsync(FIRST_BUILD_SETTLE_MS - 10);
+		buildServer._projectResourceChanged(rootProject, "/b.js", false);
+		await clock.tickAsync(FIRST_BUILD_SETTLE_MS - 10);
+		t.is(projectBuilder.build.callCount, 0, "second change reset the window; still no build");
+
+		await clock.tickAsync(10);
+		t.is(projectBuilder.build.callCount, 1, "build fires once after the final quiet period");
+
+		resolvers[0].cb("root.project", {getReader: () => ({fakeReader: true})});
+		resolvers[0].resolve(["root.project"]);
+		await readerPromise;
+	});
+
 test.serial("serve-status: build failure emits serveError and no orphan building", async (t) => {
 	const {BuildServer, graph, projectBuilder, sinon, clock} = t.context;
 	const statusEvents = makeStatusRecorder(t);

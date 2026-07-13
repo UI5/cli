@@ -24,9 +24,22 @@ const log = getLogger("build:BuildServer");
 const SOURCES_CHANGED_SETTLE_MS = 550;
 
 // Debounce for the request queue. A reader request enqueues a build and triggers the queue after
-// this short delay so a batch of near-simultaneous requests builds together. Kept small so the
-// first build after a quiet period starts promptly.
+// this short delay so a batch of near-simultaneous requests builds together. Serving an explicit
+// request must not wait, so this is kept small — it is not used for the speculative first build
+// driven by a source change (see FIRST_BUILD_SETTLE_MS).
 const BUILD_REQUEST_DEBOUNCE_MS = 10;
+
+// Settle window for the first speculative build driven by a source change from a quiet state.
+// A multi-file operation — an editor's save-all, a `git checkout` — delivers its first watcher
+// event while the tree is still half-written; building immediately on the snappy
+// BUILD_REQUEST_DEBOUNCE_MS would fire into that half-written tree and fail on a transient error.
+// Holding the first build for this short window absorbs an editor's own save fan-out with
+// negligible single-edit cost: 100 ms sits far below @parcel/watcher's 500 ms coalescing cap and
+// roughly at its 50 ms floor, so a lone edit still reaches the build promptly. This does not cover
+// a multi-second `git checkout` on its own — full coverage of that case comes from routing the
+// failure-with-pending-changes path through the deferred restart (the transient branch in
+// #processBuildRequests). Reader-request-driven builds keep the snappy BUILD_REQUEST_DEBOUNCE_MS.
+const FIRST_BUILD_SETTLE_MS = 100;
 
 // Settle window for restarting a build that a source change aborted. When a change lands mid-build
 // the running build is aborted immediately, but the restart is held until changes have been quiet
@@ -572,6 +585,15 @@ class BuildServer extends EventEmitter {
 		// armed timer and re-arms it at the settle delay.
 		if (this.#pendingAbortRestart) {
 			this.#triggerRequestQueue(ABORTED_BUILD_RESTART_SETTLE_MS);
+		} else if (!this.#activeBuild && this.#pendingBuildRequest.size > 0) {
+			// A reader-request-driven build is queued but has not started, and a source change just
+			// landed. Re-time it to the first-build settle window and report SETTLING: an editor's
+			// multi-file save fan-out then collapses into one build against the settled tree instead
+			// of firing into a half-written one. Laziness is preserved — with nothing queued, a
+			// change still waits for a reader request rather than provoking a speculative build. A
+			// subsequent reader request supersedes the settle by re-arming at the snappy debounce.
+			this.#setState(SERVER_STATES.SETTLING, {pendingProjects: this.#getStaleProjectNames()});
+			this.#triggerRequestQueue(FIRST_BUILD_SETTLE_MS);
 		}
 
 		// Leading-edge emit with a trailing settle window. The first change of a quiet period
@@ -607,24 +629,24 @@ class BuildServer extends EventEmitter {
 	}
 
 	/**
-	 * Enqueues a project for building and returns a promise that resolves with its reader
+	 * Enqueues a project for building and triggers the request queue at the snappy debounce.
 	 *
-	 * If the project is already queued, returns the existing promise. Otherwise, creates
-	 * a new promise, adds the project to the pending build queue, and triggers queue processing.
+	 * Serving a request must not wait, so this always (re-)arms the queue at
+	 * <code>BUILD_REQUEST_DEBOUNCE_MS</code> — even when the project is already queued. A reader
+	 * request thereby supersedes a deferred settle window (the post-abort/transient restart at
+	 * <code>ABORTED_BUILD_RESTART_SETTLE_MS</code>, or the first-build window at
+	 * <code>FIRST_BUILD_SETTLE_MS</code>): the parked build is pulled forward to the snappy debounce
+	 * rather than left waiting out the longer window.
 	 *
 	 * @param {string} projectName Name of the project to enqueue
 	 */
 	#enqueueBuild(projectName) {
-		if (this.#pendingBuildRequest.has(projectName)) {
-			// Already queued
-			return;
+		if (!this.#pendingBuildRequest.has(projectName)) {
+			log.verbose(`Enqueuing project '${projectName}' for build`);
+			this.#pendingBuildRequest.add(projectName);
 		}
-
-		log.verbose(`Enqueuing project '${projectName}' for build`);
-
-		// Add to pending build requests
-		this.#pendingBuildRequest.add(projectName);
-
+		// Always re-arm at the default debounce: an explicit reader request supersedes any longer
+		// settle window an earlier source change may have armed.
 		this.#triggerRequestQueue();
 	}
 
@@ -1377,6 +1399,7 @@ if (process.env.NODE_ENV === "test") {
 	BuildServer.__internals__ = {
 		SOURCES_CHANGED_SETTLE_MS,
 		BUILD_REQUEST_DEBOUNCE_MS,
+		FIRST_BUILD_SETTLE_MS,
 		ABORTED_BUILD_RESTART_SETTLE_MS
 	};
 }
