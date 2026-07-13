@@ -309,6 +309,60 @@ test.serial(
 			`Expected stale after build-done; got: ${seq.join(", ")}`);
 	});
 
+test.serial(
+	"abort-restart: a source-change-aborted build waits out the settle window before restarting",
+	async (t) => {
+		const {BuildServer, graph, projectBuilder, rootProject, sinon, clock} = t.context;
+		const {ABORTED_BUILD_RESTART_SETTLE_MS, BUILD_REQUEST_DEBOUNCE_MS} =
+			BuildServer.__internals__;
+		makeStatusRecorder(t);
+
+		// Each build() invocation parks a resolver. Settling checks the abort signal and, when
+		// aborted, rejects with an AbortError — mirroring the real ProjectBuilder so BuildServer
+		// takes its abort re-queue path (which is what schedules the deferred restart).
+		const resolvers = [];
+		projectBuilder.build = sinon.stub().callsFake((opts, cb) => new Promise((resolve, reject) => {
+			resolvers.push(() => {
+				if (opts.signal?.aborted) {
+					const err = new Error("Build aborted");
+					err.name = "AbortError";
+					reject(err);
+					return;
+				}
+				cb("root.project", {getReader: () => ({fakeReader: true})});
+				resolve(["root.project"]);
+			});
+		}));
+
+		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+		t.context.buildServer = buildServer;
+		await clock.tickAsync(BUILD_REQUEST_DEBOUNCE_MS);
+		t.is(projectBuilder.build.callCount, 1, "initial build started");
+
+		// Mid-build source change aborts the running build, then let it settle.
+		buildServer._projectResourceChanged(rootProject, "/a.js", false);
+		resolvers[0]();
+		await clock.tickAsync(0);
+		t.is(projectBuilder.build.callCount, 1, "no restart yet — the settle window is open");
+
+		// Well within the settle window: still no restart.
+		await clock.tickAsync(ABORTED_BUILD_RESTART_SETTLE_MS - 50);
+		t.is(projectBuilder.build.callCount, 1, "restart still held mid-window");
+
+		// A further change resets the window — the restart must not fire at the original deadline.
+		buildServer._projectResourceChanged(rootProject, "/b.js", false);
+		await clock.tickAsync(ABORTED_BUILD_RESTART_SETTLE_MS - 50);
+		t.is(projectBuilder.build.callCount, 1, "second change reset the window; still no restart");
+
+		// Past the reset window: exactly one restart for the whole burst.
+		await clock.tickAsync(50);
+		t.is(projectBuilder.build.callCount, 2, "burst collapsed to a single restarted build");
+
+		// Settle the restarted build so no promise is left dangling.
+		resolvers[1]?.();
+		await clock.tickAsync(0);
+	});
+
 test.serial("serve-status: build failure emits serveError and no orphan building", async (t) => {
 	const {BuildServer, graph, projectBuilder, sinon, clock} = t.context;
 	const statusEvents = makeStatusRecorder(t);
