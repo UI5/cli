@@ -23,6 +23,21 @@ const log = getLogger("build:BuildServer");
 // emit. Do not lower below 500 ms without revisiting that relationship.
 const SOURCES_CHANGED_SETTLE_MS = 550;
 
+// Debounce for the request queue. A reader request enqueues a build and triggers the queue after
+// this short delay so a batch of near-simultaneous requests builds together. Kept small so the
+// first build after a quiet period starts promptly.
+const BUILD_REQUEST_DEBOUNCE_MS = 10;
+
+// Settle window for restarting a build that a source change aborted. When a change lands mid-build
+// the running build is aborted immediately, but the restart is held until changes have been quiet
+// for this long (each further change resets it). During a burst of changes — a `git checkout`, a
+// save-all, a bundler writing many files — @parcel/watcher delivers batches up to its MAX_WAIT_TIME
+// (500 ms) apart; restarting on the snappy BUILD_REQUEST_DEBOUNCE_MS would spawn a build per batch,
+// each aborted by the next. Holding the restart above the watcher's cap collapses the burst into a
+// single build against the settled tree. Reader-request-driven builds keep the snappy debounce, so
+// this delay only applies to the speculative post-abort restart, not to serving a request.
+const ABORTED_BUILD_RESTART_SETTLE_MS = 550;
+
 // Loop protection for watcher recovery. A persistently failing watcher (e.g. a watched
 // path that keeps erroring on re-subscribe, or an FS that keeps dropping events) would
 // otherwise cycle error → recover → error indefinitely. If more than
@@ -78,6 +93,10 @@ class BuildServer extends EventEmitter {
 	#pendingBuildRequest = new Set();
 	#activeBuild = null;
 	#processBuildRequestsTimeout;
+	// True while a source-change-aborted build is waiting out its settle window before
+	// restarting. A further source change during the window reschedules the restart (resetting
+	// the timer) instead of leaving the fired-once restart to race the still-arriving burst.
+	#pendingAbortRestart = false;
 	#sourcesChangedTimeout;
 	// True while a trailing `sourcesChanged` emit is owed: set when a change lands inside the
 	// settle window (the leading emit already fired), cleared when the trailing emit fires or the
@@ -333,6 +352,7 @@ class BuildServer extends EventEmitter {
 	async destroy() {
 		this.#destroyed = true;
 		clearTimeout(this.#processBuildRequestsTimeout);
+		this.#pendingAbortRestart = false;
 		clearTimeout(this.#sourcesChangedTimeout);
 		this.#sourcesChangedPending = false;
 		await this.#watchHandler.destroy();
@@ -543,6 +563,13 @@ class BuildServer extends EventEmitter {
 			this.#setState(SERVER_STATES.STALE);
 		}
 
+		// Reschedule a pending post-abort restart so its settle window measures quiet from this
+		// change, not from the abort. Only fires while a restart is waiting (no active build);
+		// #triggerRequestQueue clears the armed timer and re-arms it at the settle delay.
+		if (this.#pendingAbortRestart) {
+			this.#triggerRequestQueue(ABORTED_BUILD_RESTART_SETTLE_MS);
+		}
+
 		// Leading-edge emit with a trailing settle window. The first change of a quiet period
 		// notifies immediately (a lone edit reaches clients at the watcher's own latency floor);
 		// further changes within the window only push the trailing emit out, so a burst collapses
@@ -597,7 +624,7 @@ class BuildServer extends EventEmitter {
 		this.#triggerRequestQueue();
 	}
 
-	#triggerRequestQueue() {
+	#triggerRequestQueue(delay = BUILD_REQUEST_DEBOUNCE_MS) {
 		if (this.#destroyed || this.#activeBuild || this.#recoveringWatcher) {
 			// While recovering the watcher, suppress builds so ProjectBuilder.forceFullRescan()
 			// can claim the builder without racing a build the abort/re-queue path may start.
@@ -609,6 +636,9 @@ class BuildServer extends EventEmitter {
 			clearTimeout(this.#processBuildRequestsTimeout);
 		}
 		this.#processBuildRequestsTimeout = setTimeout(async () => {
+			// The restart (if this was the post-abort one) is now running; further source
+			// changes should schedule a fresh restart rather than reset this fired timer.
+			this.#pendingAbortRestart = false;
 			// Abort any in-flight background validation pass so the build can claim
 			// the builder's "buildIsRunning" lock. Validation will be re-scheduled
 			// after the build cycle drains.
@@ -641,7 +671,7 @@ class BuildServer extends EventEmitter {
 				// ServeLogger; keep the server alive.
 				this.#setState(SERVER_STATES.ERROR, {error: err});
 			});
-		}, 10);
+		}, delay);
 	}
 
 	/**
@@ -759,11 +789,16 @@ class BuildServer extends EventEmitter {
 			this.emit("buildFinished", builtProjects);
 			if (signal.aborted) {
 				log.verbose(`Build aborted for projects: ${projectsToBuild.join(", ")}`);
-				// Do not continue processing the queue if the build was aborted, but re-trigger processing debounced
-				// to ensure that any source changes are properly queued before the next build.
-				// This is also essential to re-trigger the build in case all resources changes have already been
-				// processed while the build was still aborting. Otherwise the build would not be re-triggered.
-				this.#triggerRequestQueue();
+				// A source change aborted this build. Re-trigger processing so the re-queued
+				// projects rebuild — but hold the restart until changes settle rather than
+				// restarting on the snappy request debounce. A burst (git checkout, save-all)
+				// arrives as watcher batches up to MAX_WAIT_TIME apart; restarting between
+				// batches would spawn a build per batch, each aborted by the next. The settle
+				// delay collapses the burst into a single rebuild against the settled tree.
+				// Each further source change reschedules this restart (see #_projectResourceChanged),
+				// so the window measures quiet from the last change, not from the abort.
+				this.#pendingAbortRestart = true;
+				this.#triggerRequestQueue(ABORTED_BUILD_RESTART_SETTLE_MS);
 				return;
 			}
 			// A successful build cycle proves the environment can build. Lift ERRORED
@@ -1310,6 +1345,8 @@ export default BuildServer;
 /* istanbul ignore else */
 if (process.env.NODE_ENV === "test") {
 	BuildServer.__internals__ = {
-		SOURCES_CHANGED_SETTLE_MS
+		SOURCES_CHANGED_SETTLE_MS,
+		BUILD_REQUEST_DEBOUNCE_MS,
+		ABORTED_BUILD_RESTART_SETTLE_MS
 	};
 }
