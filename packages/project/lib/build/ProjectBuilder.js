@@ -434,9 +434,14 @@ class ProjectBuilder {
 			}
 
 			const startTime = process.hrtime();
+			// Tracks the project currently being processed so a genuine (non-abort) failure
+			// can discard its in-memory build state (see the catch below). Cleared once the
+			// loop completes without throwing.
+			let failingProjectContext = null;
 			try {
 				for (const projectBuildContext of queue) {
 					signal?.throwIfAborted();
+					failingProjectContext = projectBuildContext;
 					const project = projectBuildContext.getProject();
 					const projectName = project.getName();
 					const projectType = project.getType();
@@ -475,6 +480,7 @@ class ProjectBuilder {
 
 					projectBuildContext.buildFinished();
 				}
+				failingProjectContext = null;
 				this.#log.info(`Build succeeded in ${this._getElapsedTime(startTime)}`);
 			} catch (err) {
 				// A cooperative abort (e.g. caller aborted the signal, or the
@@ -486,6 +492,14 @@ class ProjectBuilder {
 					this.#log.verbose(`Build aborted: ${err?.message ?? err}`);
 				} else {
 					this.#log.error(`Build failed`);
+					// A task threw mid-build, so allTasksCompleted never ran: the project's
+					// stage pipeline still holds the failing task's partial output and its
+					// result signature is the previous successful build's. Discard that
+					// in-memory state so a later rebuild (after the user fixes the source)
+					// re-imports clean stages from the persistent cache instead of serving
+					// the partial output. SourceChangedDuringBuildError already self-resets
+					// and is filtered out above by isAbortError.
+					failingProjectContext?.resetForFullRescan();
 				}
 				throw err;
 			}

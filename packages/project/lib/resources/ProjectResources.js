@@ -277,6 +277,28 @@ class ProjectResources {
 	}
 
 	/**
+	 * Discards all stage state and returns the instance to its constructor-equivalent
+	 * baseline: a single <code>initial</code> stage, no frozen source reader, and empty
+	 * tag collections.
+	 *
+	 * Used to recover from a build that threw mid-execution. Such a build leaves the
+	 * current stage pointed at the failing task's writer (holding partial output) and
+	 * the tag collections populated, none of which a later build clears on its own.
+	 * After this call the next {@link #getStage} reports the <code>initial</code> stage,
+	 * so the build cache re-initializes stages and re-imports cached results.
+	 *
+	 * @public
+	 */
+	reset() {
+		this.#initStageMetadata();
+		// #initStageMetadata resets the project tag collection and stage pipeline but not
+		// the build-level or monitored collections, which a failed build may have populated.
+		this.#buildResourceTagCollection = null;
+		this.#monitoredProjectResourceTagCollection = null;
+		this.#monitoredBuildResourceTagCollection = null;
+	}
+
+	/**
 	 * Get the current stage.
 	 *
 	 * @public

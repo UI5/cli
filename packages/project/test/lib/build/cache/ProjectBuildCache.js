@@ -42,6 +42,10 @@ function createMockProject(name = "test.project", id = "test-project-id") {
 		buildFinished: sinon.stub(),
 		setFrozenSourceReader: sinon.stub(),
 		importTagOperations: sinon.stub(),
+		reset: sinon.stub().callsFake(() => {
+			currentStage = {getId: () => "initial"};
+			stages.clear();
+		}),
 	};
 
 	return {
@@ -335,6 +339,39 @@ test("resetForFullRescan re-arms a full source re-scan", async (t) => {
 	await cache.initSourceIndex();
 	t.true(byGlob.callCount > globCallsAfterFirstBuild,
 		"resetForFullRescan re-armed initSourceIndex to re-glob the source tree");
+});
+
+test("resetForFullRescan clears the retained result signature and resets ProjectResources", async (t) => {
+	// A build that threw mid-execution leaves #currentResultSignature at the previous
+	// successful build's value and the stage pipeline holding partial output. If reset
+	// kept that signature, the next validateCache would take the "result stage signature
+	// unchanged" early return in #findResultCache, mark the project usesCache, and serve
+	// the failed build's partial stages. Assert reset drops the project out of FRESH and
+	// resets the stage pipeline so cached stages are re-imported on the next build.
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+
+	const src = createMockResource("/test.js", "hash-src", 1000, 100, 1);
+	project.getSourceReader.callsFake(() => ({
+		byGlob: sinon.stub().resolves([src]),
+		byPath: sinon.stub().resolves(src),
+	}));
+
+	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+	// A completed build sets #currentResultSignature via allTasksCompleted.
+	await cache.allTasksCompleted();
+	t.true(cache.isFresh(), "cache is fresh after the initial build");
+
+	const resetStub = project.getProjectResources().reset;
+	const resetCallsBefore = resetStub.callCount;
+
+	cache.resetForFullRescan();
+
+	t.true(resetStub.callCount > resetCallsBefore,
+		"resetForFullRescan resets the project's stage pipeline so cached stages re-import");
+	t.false(cache.isFresh(),
+		"cache is no longer fresh, so the retained result signature can't serve stale stages");
 });
 
 test("resetForFullRescan is a no-op in Cache.Off mode", async (t) => {
