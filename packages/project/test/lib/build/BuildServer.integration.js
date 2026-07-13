@@ -939,6 +939,48 @@ test.serial("Errored project is not rebuilt until input changes", async (t) => {
 		"Fresh build produced an equivalent error");
 });
 
+// A build task that throws (here: buildThemes on a LESS syntax error) leaves the project's
+// reused in-memory state holding the failing task's partial output and the previous
+// successful build's result signature. Without a failure-path reset, fixing the source and
+// re-requesting keeps serving the broken stages: the recovered source signature matches the
+// retained result signature, so #findResultCache short-circuits and never re-imports the
+// (uncorrupted) cached stages. This is the theme-build "fails to recover" scenario.
+test.serial("Failed theme build recovers after the source is fixed", async (t) => {
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "theme.library.e");
+	await fixtureTester.serveProject({expectBuildErrors: true});
+
+	const cssResource = "/resources/theme/library/e/themes/my_theme/library.css";
+	const lessFilePath =
+		`${fixtureTester.fixturePath}/src/theme/library/e/themes/my_theme/library.source.less`;
+	const originalLess = await fs.readFile(lessFilePath, {encoding: "utf8"});
+
+	// #1 initial request builds the theme successfully.
+	const initialCss = await fixtureTester.requestResource({resource: cssResource});
+	t.true((await initialCss.getString()).includes("background-color"),
+		"Initial build produced valid CSS");
+
+	// Inject a LESS syntax error and notify the watcher.
+	await fs.writeFile(lessFilePath, `${originalLess}\n@@@ this is not valid less @@@\n`);
+	await fixtureTester.fireWatcherEvent("update", lessFilePath);
+
+	// #2 request now fails: buildThemes throws on the malformed input.
+	const buildError = await t.throwsAsync(() => fixtureTester.requestResource({resource: cssResource}));
+	t.truthy(buildError, "Build fails while the LESS file has a syntax error");
+
+	// Fix the source and notify the watcher.
+	await fs.writeFile(lessFilePath, originalLess);
+	await fixtureTester.fireWatcherEvent("update", lessFilePath);
+
+	// #3 request after the fix must recover and serve valid CSS — the failed build's partial
+	// state was discarded and clean stages were re-imported.
+	const recoveredCss = await fixtureTester.requestResource({resource: cssResource});
+	const recoveredContent = await recoveredCss.getString();
+	t.true(recoveredContent.includes("background-color"),
+		"Build recovers and serves valid CSS after the source is fixed");
+	t.false(recoveredContent.includes("test{"),
+		"Recovered CSS does not contain artifacts of the broken build");
+});
+
 // ProjectBuildCache's StageCache must be cleared correctly when a build is aborted.
 // A task that completed during an aborted attempt has already called recordTaskResult,
 // which adds its stage to the in-memory StageCache. On retry,

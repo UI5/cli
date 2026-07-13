@@ -232,6 +232,7 @@ test("build: Failure", async (t) => {
 		possiblyRequiresBuild: possiblyRequiresBuildStub,
 		validateCache: validateCacheStub,
 		buildProject: buildProjectStub,
+		discardIncrementalState: sinon.stub(),
 		getProject: sinon.stub().returns(getMockProject("library"))
 	};
 	sinon.stub(builder._buildContext, "getRequiredProjectContexts")
@@ -252,10 +253,55 @@ test("build: Failure", async (t) => {
 
 	t.is(writeResultsStub.callCount, 0, "_writeResults did not get called");
 
+	t.is(projectBuildContextMock.discardIncrementalState.callCount, 1,
+		"discardIncrementalState called once on the failing project to discard its partial in-memory state");
+
 	t.is(deregisterCleanupSigHooksStub.callCount, 1, "_deregisterCleanupSigHooks got called once");
 	t.is(deregisterCleanupSigHooksStub.getCall(0).args[0], "cleanup sig hooks",
 		"_deregisterCleanupSigHooks got called with correct arguments");
 	t.is(executeCleanupTasksStub.callCount, 1, "_executeCleanupTasksStub got called once");
+});
+
+test("build: Abort does not reset the project", async (t) => {
+	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
+
+	const builder = new ProjectBuilder({graph, taskRepository});
+
+	const filterProjectStub = sinon.stub().returns(true);
+	sinon.stub(builder, "_createProjectFilter").returns(filterProjectStub);
+
+	// An aborted build is transient — the BuildServer re-queues it and the in-memory
+	// state is still trustworthy — so the failing-project reset must NOT fire.
+	const abortError = new Error("The operation was aborted");
+	abortError.name = "AbortError";
+
+	const possiblyRequiresBuildStub = sinon.stub().returns(true);
+	const validateCacheStub = sinon.stub().resolves(false);
+	const buildProjectStub = sinon.stub().rejects(abortError);
+	const projectBuildContextMock = {
+		possiblyRequiresBuild: possiblyRequiresBuildStub,
+		validateCache: validateCacheStub,
+		buildProject: buildProjectStub,
+		discardIncrementalState: sinon.stub(),
+		getProject: sinon.stub().returns(getMockProject("library"))
+	};
+	sinon.stub(builder._buildContext, "getRequiredProjectContexts")
+		.resolves(new Map().set("project.a", projectBuildContextMock));
+
+	sinon.stub(builder, "_registerCleanupSigHooks").returns("cleanup sig hooks");
+	sinon.stub(builder, "_writeResults").resolves();
+	sinon.stub(builder, "_deregisterCleanupSigHooks");
+	sinon.stub(builder, "_executeCleanupTasks").resolves();
+
+	const err = await t.throwsAsync(builder.buildToTarget({
+		destPath: "dest/path",
+		includedDependencies: ["dep a"],
+		excludedDependencies: ["dep b"]
+	}));
+
+	t.is(err.name, "AbortError", "Threw the abort error");
+	t.is(projectBuildContextMock.discardIncrementalState.callCount, 0,
+		"discardIncrementalState not called on abort — the in-memory state is still trustworthy");
 });
 
 test.serial("build: Multiple projects", async (t) => {

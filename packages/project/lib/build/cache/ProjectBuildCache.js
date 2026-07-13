@@ -1225,15 +1225,23 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Discards the in-memory source index and task caches so that the next build
-	 * re-initializes the source index from scratch via a full <code>byGlob("/**\/*")</code>
-	 * re-scan (see {@link #initSourceIndex}), diffing the live source tree against the
-	 * persisted index. Used to recover from situations where the incremental change signal
-	 * became unreliable — the file watcher dropping OS-level FS events, or a source file
-	 * changing during a build.
+	 * Discards the in-memory source index and task caches so the next build re-initializes
+	 * the source index from scratch via a full <code>byGlob("/**\/*")</code> re-scan (see
+	 * {@link #initSourceIndex}), diffing the live source tree against the persisted index.
+	 * Recovers from an unreliable incremental change signal (the file watcher dropping
+	 * OS-level FS events, or a source file changing during a build) and from a build that
+	 * threw mid-execution.
 	 *
-	 * The change accumulators are cleared as well: their contents are superseded by the
-	 * full re-scan. Content-addressed state that stays correct across the reset —
+	 * Also clears the change accumulators (superseded by the re-scan), the derived per-build
+	 * signatures (<code>#currentResultSignature</code>, <code>#cachedResultSignature</code>,
+	 * <code>#currentStageSignatures</code>) and the written-path accumulator, and resets the
+	 * project's stage pipeline via {@link @ui5/project/resources/ProjectResources#reset}. A
+	 * build that threw leaves these pointing at partial output and a stale result signature;
+	 * without clearing them, the next {@link #findResultCache} matches the retained
+	 * <code>#currentResultSignature</code> and serves the partial output instead of
+	 * re-importing the cached stages.
+	 *
+	 * Keeps content-addressed state that stays correct across the reset:
 	 * <code>#stageCache</code> (a stale entry only matches when its content matches) and
 	 * <code>#cachedFrozenSourceMetadata</code> (re-read from the persisted cache during
 	 * <code>#initSourceIndex</code>).
@@ -1257,6 +1265,17 @@ export default class ProjectBuildCache {
 		this.#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
 		this.#changedProjectSourcePaths = [];
 		this.#changedDependencyResourcePaths = [];
+		// Derived per-build state a discarded (failed) build must not leave behind.
+		// #currentResultSignature drives the #findResultCache early return; #currentStageSignatures
+		// drives the isInitialImport/setStage guards in #importStages; #writtenResultResourcePaths
+		// is normally emptied by allTasksCompleted, which a thrown build never reaches.
+		this.#currentResultSignature = undefined;
+		this.#cachedResultSignature = undefined;
+		this.#currentStageSignatures = new Map();
+		this.#writtenResultResourcePaths = [];
+		// Reset the stage pipeline so #importStages re-initializes stages and re-imports
+		// cached results instead of reusing the failed build's partial writers.
+		this.#project.getProjectResources().reset();
 	}
 
 	/**

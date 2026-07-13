@@ -146,12 +146,11 @@ class ProjectBuilder {
 	 * Discards all in-memory build caches so that the next build of each project re-scans its
 	 * source tree from scratch and diffs it against the persisted index.
 	 *
-	 * Intended for long-running consumers (such as the
-	 * [BuildServer]{@link @ui5/project/build/BuildServer}) to recover when the incremental
-	 * change signal became unreliable — most notably when the OS file watcher reports that
-	 * events were dropped and the file system must be re-scanned. After this call the next
-	 * build treats every source file as a change candidate, so cached results that a missed
-	 * event would otherwise have kept stale are re-validated.
+	 * For long-running consumers (such as the [BuildServer]{@link @ui5/project/build/BuildServer})
+	 * to recover when the incremental change signal became unreliable, most notably when the OS
+	 * file watcher reports dropped events and the file system must be re-scanned. After this call
+	 * the next build treats every source file as a change candidate, re-validating cached results
+	 * that a missed event would otherwise have kept stale.
 	 *
 	 * @public
 	 * @throws {Error} If a build is currently running
@@ -434,9 +433,14 @@ class ProjectBuilder {
 			}
 
 			const startTime = process.hrtime();
+			// Tracks the project currently being processed so a genuine (non-abort) failure
+			// can discard its in-memory build state (see the catch below). Cleared once the
+			// loop completes without throwing.
+			let failingProjectContext = null;
 			try {
 				for (const projectBuildContext of queue) {
 					signal?.throwIfAborted();
+					failingProjectContext = projectBuildContext;
 					const project = projectBuildContext.getProject();
 					const projectName = project.getName();
 					const projectType = project.getType();
@@ -475,6 +479,7 @@ class ProjectBuilder {
 
 					projectBuildContext.buildFinished();
 				}
+				failingProjectContext = null;
 				this.#log.info(`Build succeeded in ${this._getElapsedTime(startTime)}`);
 			} catch (err) {
 				// A cooperative abort (e.g. caller aborted the signal, or the
@@ -486,6 +491,14 @@ class ProjectBuilder {
 					this.#log.verbose(`Build aborted: ${err?.message ?? err}`);
 				} else {
 					this.#log.error(`Build failed`);
+					// A task threw mid-build, so allTasksCompleted never ran: the project's stage
+					// pipeline still holds the failing task's partial output, and its result
+					// signature is the previous successful build's. Discard that in-memory state so
+					// a later rebuild (after the source is fixed) re-imports clean stages from the
+					// persistent cache instead of serving the partial output.
+					// SourceChangedDuringBuildError already self-resets and is filtered out above by
+					// isAbortError.
+					failingProjectContext?.discardIncrementalState();
 				}
 				throw err;
 			}
