@@ -659,6 +659,203 @@ test("ResourceRequestManager: Serialization round-trip with multiple request set
 	t.false(manager2.hasNewOrModifiedCacheEntries(), "Restored manager has no new entries");
 });
 
+// ===== UNRESOLVED-READS TESTS =====
+//
+// A task's MonitoredReader records every byPath/byGlob call, including calls that
+// return null or []. When a later addRequests recording contains an added delta
+// whose requests all resolve to zero resources against the current reader
+// (typical after a branch switch that deletes probed files), the manager still
+// needs to record the request set — its shape influences task output, so it
+// cannot be silently collapsed onto the parent's cache key.
+//
+// The tests below assert:
+// - #addRequestSet does not throw for empty-resolving deltas.
+// - The exposed signature is distinct from the parent's and from any other
+//   empty-resolving delta.
+// - Once a probed resource appears and updateIndices upserts it, the composite
+//   signature collapses to the pure tree hash, matching the signature a
+//   same-shape recording would have produced with the resource present.
+// - The composite survives toCacheObject / fromCache round-trip.
+
+test("ResourceRequestManager: #addRequestSet with empty-resolving path delta produces distinct signature",
+	async (t) => {
+		const resourcesBefore = new Map([
+			["/a.js", createMockResource("/a.js", "hash-a")],
+		]);
+		const reader = createMockReader(resourcesBefore);
+
+		const manager = new ResourceRequestManager("test.project", "myTask", false);
+		// Parent recording: {/a.js}
+		const parent = await manager.addRequests({paths: ["/a.js"], patterns: []}, reader);
+
+		// Probing recording: {/a.js, /c.js}. /c.js does not exist, but MonitoredReader
+		// still recorded the byPath call.
+		const probe = await manager.addRequests({
+			paths: ["/a.js", "/c.js"],
+			patterns: [],
+		}, reader);
+
+		t.truthy(probe.signature, "Empty-resolving delta yields a signature (no throw)");
+		t.not(probe.signature, parent.signature,
+			"Delta signature is distinct from parent's — the probe influences task output");
+
+		const signatures = manager.getIndexSignatures();
+		t.is(signatures.length, 2, "Both request sets are recorded");
+		t.is(signatures[0], parent.signature);
+		t.is(signatures[1], probe.signature);
+	});
+
+test("ResourceRequestManager: #addRequestSet with empty-resolving pattern delta produces distinct signature",
+	async (t) => {
+		const resourcesBefore = new Map([
+			["/src/a.js", createMockResource("/src/a.js", "hash-a")],
+		]);
+		const reader = createMockReader(resourcesBefore);
+
+		const manager = new ResourceRequestManager("test.project", "myTask", false);
+		const parent = await manager.addRequests({paths: ["/src/a.js"], patterns: []}, reader);
+
+		// Recorded byGlob("/test/**/*.js") that matches nothing today.
+		const probe = await manager.addRequests({
+			paths: ["/src/a.js"],
+			patterns: [["/test/**/*.js"]],
+		}, reader);
+
+		t.truthy(probe.signature, "Empty-resolving pattern delta yields a signature");
+		t.not(probe.signature, parent.signature, "Pattern probe changes cache identity");
+	});
+
+test("ResourceRequestManager: two independent empty-resolving deltas produce different signatures",
+	async (t) => {
+		const reader = createMockReader(new Map([
+			["/a.js", createMockResource("/a.js", "hash-a")],
+		]));
+
+		const manager = new ResourceRequestManager("test.project", "myTask", false);
+		await manager.addRequests({paths: ["/a.js"], patterns: []}, reader);
+
+		const probeC = await manager.addRequests({
+			paths: ["/a.js", "/c.js"],
+			patterns: [],
+		}, reader);
+		const probeD = await manager.addRequests({
+			paths: ["/a.js", "/d.js"],
+			patterns: [],
+		}, reader);
+
+		t.not(probeC.signature, probeD.signature,
+			"Different unresolved probes must map to different cache keys");
+	});
+
+test("ResourceRequestManager: signature collapses to tree hash once probed resource resolves",
+	async (t) => {
+		// A: full run against a state where /c.js exists — produces the natural
+		// derived-tree signature we want the recovering run to converge on.
+		const readerWithC = createMockReader(new Map([
+			["/a.js", createMockResource("/a.js", "hash-a")],
+			["/c.js", createMockResource("/c.js", "hash-c")],
+		]));
+		const managerA = new ResourceRequestManager("test.project", "myTask", false);
+		await managerA.addRequests({paths: ["/a.js"], patterns: []}, readerWithC);
+		const referenceRun = await managerA.addRequests({
+			paths: ["/a.js", "/c.js"],
+			patterns: [],
+		}, readerWithC);
+
+		// B: same recording against a reader where /c.js is missing, then
+		// updateIndices reintroduces it.
+		const readerWithoutC = createMockReader(new Map([
+			["/a.js", createMockResource("/a.js", "hash-a")],
+		]));
+		const managerB = new ResourceRequestManager("test.project", "myTask", false);
+		await managerB.addRequests({paths: ["/a.js"], patterns: []}, readerWithoutC);
+		const probingRun = await managerB.addRequests({
+			paths: ["/a.js", "/c.js"],
+			patterns: [],
+		}, readerWithoutC);
+
+		t.not(probingRun.signature, referenceRun.signature,
+			"Probing recording differs while /c.js is missing");
+
+		// /c.js now appears. updateIndices upserts it into the probing node.
+		const readerNowWithC = createMockReader(new Map([
+			["/a.js", createMockResource("/a.js", "hash-a")],
+			["/c.js", createMockResource("/c.js", "hash-c")],
+		]));
+		await managerB.updateIndices(readerNowWithC, ["/c.js"]);
+
+		const signaturesB = managerB.getIndexSignatures();
+		t.is(signaturesB[1], referenceRun.signature,
+			"Once the probe resolves, the composite signature collapses to the natural tree hash");
+	});
+
+test("ResourceRequestManager: unresolved-keys marker survives toCacheObject / fromCache",
+	async (t) => {
+		const reader = createMockReader(new Map([
+			["/a.js", createMockResource("/a.js", "hash-a")],
+		]));
+
+		const manager1 = new ResourceRequestManager("test.project", "myTask", false);
+		await manager1.addRequests({paths: ["/a.js"], patterns: []}, reader);
+		const probe = await manager1.addRequests({
+			paths: ["/a.js", "/c.js"],
+			patterns: [],
+		}, reader);
+		const signaturesBefore = manager1.getIndexSignatures();
+
+		const cacheObj = manager1.toCacheObject();
+		const manager2 = ResourceRequestManager.fromCache("test.project", "myTask", false, cacheObj);
+
+		const signaturesAfter = manager2.getIndexSignatures();
+		t.deepEqual(signaturesAfter, signaturesBefore,
+			"Signatures survive the cache round-trip bit-for-bit");
+		t.is(signaturesAfter[1], probe.signature,
+			"Probing signature is preserved");
+	});
+
+test("ResourceRequestManager: fully empty root recording gets a distinguished signature",
+	async (t) => {
+		// Two independent tasks that both recorded reads to files that don't exist
+		// must not collide on the same "dir::empty" tree constant.
+		const emptyReader = createMockReader(new Map());
+
+		const managerA = new ResourceRequestManager("test.project", "taskA", false);
+		const runA = await managerA.addRequests({paths: ["/only-in-A.js"], patterns: []}, emptyReader);
+
+		const managerB = new ResourceRequestManager("test.project", "taskB", false);
+		const runB = await managerB.addRequests({paths: ["/only-in-B.js"], patterns: []}, emptyReader);
+
+		t.not(runA.signature, runB.signature,
+			"Distinct root recordings with all-unresolved reads produce distinct signatures");
+	});
+
+test("ResourceRequestManager: BuildTaskCache-shape flow with unresolved probe (integration-ish)",
+	async (t) => {
+		// Mirrors what BuildTaskCache.recordRequests does with two consecutive
+		// addRequests recordings that share a parent but differ by one probed path.
+		const readerBefore = createMockReader(new Map([
+			["/a.js", createMockResource("/a.js", "hash-a")],
+			["/b.js", createMockResource("/b.js", "hash-b")],
+		]));
+
+		const manager = new ResourceRequestManager("test.project", "myTask", true);
+
+		// First recording produces a valid parent.
+		const first = await manager.addRequests({paths: ["/a.js", "/b.js"], patterns: []}, readerBefore);
+
+		// Second recording adds an unresolvable byPath — the shape that used to throw.
+		const second = await manager.addRequests({
+			paths: ["/a.js", "/b.js", "/optional.json"],
+			patterns: [],
+		}, readerBefore);
+
+		t.truthy(second.signature, "Second recording completes without throwing");
+		t.not(second.signature, first.signature, "Cache key reflects the extra probe");
+
+		// hasNewOrModifiedCacheEntries stays true for a fresh manager.
+		t.true(manager.hasNewOrModifiedCacheEntries());
+	});
+
 test("ResourceRequestManager: Serialization round-trip with multiple request sets and following update", async (t) => {
 	const resources = new Map([
 		["/a.js", createMockResource("/a.js", "hash-a")],

@@ -493,3 +493,35 @@ test("Handles non-existent resource paths", async (t) => {
 	t.is(typeof projectSig, "string", "Still returns signature");
 	t.is(typeof depSig, "string", "Still returns dependency signature");
 });
+
+test("recordRequests with unresolved probe in delta position returns a distinct signature", async (t) => {
+	// Shape observed in OpenUI5 after a branch switch: the first recording anchors
+	// a resolvable parent request set, then a subsequent recording adds a byPath
+	// probe for a file that no longer exists. Used to throw
+	// "Unexpected empty added resources ...".
+	const cache = new BuildTaskCache("test.project", "testTask", false);
+
+	const projectReader = createMockReader([
+		createMockResource("/a.js"),
+	]);
+	const dependencyReader = createMockReader([]);
+
+	const firstRequests = {
+		paths: new Set(["/a.js"]),
+		patterns: new Set(),
+	};
+	const [firstProjSig] = await cache.recordRequests(
+		firstRequests, undefined, projectReader, dependencyReader);
+
+	const probingRequests = {
+		paths: new Set(["/a.js", "/optional.json"]),
+		patterns: new Set(),
+	};
+	const [probingProjSig] = await cache.recordRequests(
+		probingRequests, undefined, projectReader, dependencyReader);
+
+	t.is(typeof probingProjSig, "string",
+		"Probing recording completes without throwing");
+	t.not(probingProjSig, firstProjSig,
+		"Probing recording gets a cache key distinct from the parent's — the probed absence matters for output");
+});
