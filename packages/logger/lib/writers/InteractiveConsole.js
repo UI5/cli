@@ -354,6 +354,10 @@ class InteractiveConsole {
 			this.#buildState.changedProjects = evt.changedProjects || [];
 			this.#transitionTo(STATES.STALE);
 			break;
+		case "serve-settling":
+			this.#buildState.pendingProjects = evt.pendingProjects || [];
+			this.#transitionTo(STATES.SETTLING);
+			break;
 		case "serve-building":
 			beginBuild(this.#buildState, this.#buildState.projectOrder);
 			this.#transitionTo(STATES.BUILDING);

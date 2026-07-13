@@ -56,6 +56,26 @@ test.serial("stale: Missing parameter", (t) => {
 	}, "Threw with expected error message");
 });
 
+test.serial("settling emits serve-settling", (t) => {
+	const {serveLogger, statusHandler} = t.context;
+	serveLogger.settling(["project.a", "project.b"]);
+	t.is(statusHandler.callCount, 1, "One serve-status event emitted");
+	t.deepEqual(statusHandler.getCall(0).args[0], {
+		level: "info",
+		status: "serve-settling",
+		pendingProjects: ["project.a", "project.b"],
+	}, "Status event has expected payload");
+});
+
+test.serial("settling: Missing parameter", (t) => {
+	const {serveLogger} = t.context;
+	t.throws(() => {
+		serveLogger.settling();
+	}, {
+		message: "loggers/Serve#settling: Missing or incorrect pendingProjects parameter",
+	}, "Threw with expected error message");
+});
+
 test.serial("validating emits serve-validating", (t) => {
 	const {serveLogger, statusHandler} = t.context;
 	serveLogger.validating(["library.a", "library.b"]);
@@ -157,6 +177,18 @@ test.serial("No event listener: validating", (t) => {
 	t.is(logStub.getCall(0).args[0], "info", "Logged with expected log-level");
 	t.is(logStub.getCall(0).args[1],
 		"Validating caches for: library.a, library.b",
+		"Logged expected message");
+	t.is(logHandler.callCount, 0, "No log event emitted");
+});
+
+test.serial("No event listener: settling", (t) => {
+	const {serveLogger, statusHandler, logHandler, logStub} = t.context;
+	process.off(ServeLogger.SERVE_STATUS_EVENT_NAME, statusHandler);
+	serveLogger.settling(["project.a", "project.b"]);
+	t.is(logStub.callCount, 1, "_log got called once");
+	t.is(logStub.getCall(0).args[0], "info", "Logged with expected log-level");
+	t.is(logStub.getCall(0).args[1],
+		"Waiting for changes to settle in: project.a, project.b",
 		"Logged expected message");
 	t.is(logHandler.callCount, 0, "No log event emitted");
 });

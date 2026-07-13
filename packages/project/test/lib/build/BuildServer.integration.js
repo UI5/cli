@@ -164,6 +164,46 @@ test.serial("Serve application.a, initial file changes", async (t) => {
 	t.true(servedFileContent.includes(`test("third change");`), "Resource contains third changed file content");
 });
 
+// Complements the unit-level transient-failure coverage with a real-timer end-to-end pass: a
+// burst of rapid watcher events arrives while a reader request is parked. The extra first-build
+// (100 ms) and post-abort/transient (550 ms) settle windows must not hang the request, and the
+// transient aborts within the burst must never surface a `serve-error` on the status feed — the
+// server reports `serve-settling` while holding, then resolves on the single settled-tree rebuild.
+test.serial("Serve application.a, rapid change burst reports settling and never errors", async (t) => {
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
+
+	const statusEvents = [];
+	const statusHandler = (evt) => statusEvents.push(evt.status);
+	process.on("ui5.serve-status", statusHandler);
+	t.teardown(() => process.off("ui5.serve-status", statusHandler));
+
+	await fixtureTester.serveProject();
+
+	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
+
+	// Park a request, then fire several rapid changes around it — the shape of an editor save-all
+	// or a `git checkout` landing while a build is in flight.
+	await fs.appendFile(changedFilePath, `\ntest("burst 1");\n`);
+	await fixtureTester.fireWatcherEvent("update", changedFilePath);
+
+	const resourceRequestPromise = fixtureTester.requestResource({resource: "/test.js"});
+
+	await fs.appendFile(changedFilePath, `\ntest("burst 2");\n`);
+	await fixtureTester.fireWatcherEvent("update", changedFilePath);
+	await fs.appendFile(changedFilePath, `\ntest("burst 3");\n`);
+	await fixtureTester.fireWatcherEvent("update", changedFilePath);
+
+	await resourceRequestPromise;
+
+	const resource = await fixtureTester.requestResource({resource: "/test.js"});
+	const servedFileContent = await resource.getString();
+	t.true(servedFileContent.includes(`test("burst 1");`), "Resource reflects the first burst change");
+	t.true(servedFileContent.includes(`test("burst 3");`), "Resource reflects the final burst change");
+
+	t.false(statusEvents.includes("serve-error"),
+		`No serve-error surfaced during the transient burst; got: ${statusEvents.join(", ")}`);
+});
+
 test.serial("Serve application.a, request application resource", async (t) => {
 	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
 
