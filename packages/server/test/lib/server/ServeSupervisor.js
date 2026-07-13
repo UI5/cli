@@ -13,7 +13,7 @@ function createBuildServer() {
 
 // Builds a mock set for esmock. Each buildServeApp invocation returns the next queued stack, so a
 // test can hand out distinct {app, buildServer} pairs across the initial build and re-inits.
-function createMocks({stacks, buildServeAppImpl} = {}) {
+function createMocks({stacks, buildServeAppImpl, definitionWatcherCreate} = {}) {
 	const httpServer = new EventEmitter();
 	httpServer.close = sinon.stub().callsFake((cb) => cb && cb());
 
@@ -24,6 +24,22 @@ function createMocks({stacks, buildServeAppImpl} = {}) {
 
 	const liveReloadHandle = {close: sinon.stub()};
 	const attachLiveReloadServer = sinon.stub().returns(liveReloadHandle);
+
+	// Fake DefinitionWatcher: each create() hands out a fresh EventEmitter with a destroy() stub,
+	// recorded so a test can assert re-targeting/teardown. A custom impl overrides create().
+	const definitionWatchers = [];
+	const DefinitionWatcher = {
+		create: sinon.stub().callsFake(async (opts) => {
+			if (definitionWatcherCreate) {
+				return definitionWatcherCreate(opts);
+			}
+			const watcher = new EventEmitter();
+			watcher.createOptions = opts;
+			watcher.destroy = sinon.stub().resolves();
+			definitionWatchers.push(watcher);
+			return watcher;
+		}),
+	};
 
 	const stackQueue = stacks ? [...stacks] : null;
 	const buildServeApp = sinon.stub().callsFake(async (graph, config, error) => {
@@ -44,6 +60,7 @@ function createMocks({stacks, buildServeAppImpl} = {}) {
 
 	const mocks = {
 		"node:http": httpMock,
+		"@ui5/project/build/helpers/DefinitionWatcher": {default: DefinitionWatcher},
 		"../../../lib/serveApp.js": {default: buildServeApp},
 		"../../../lib/serveHttp.js": {listen, addSsl, announceListening},
 		"../../../lib/liveReload/server.js": {default: attachLiveReloadServer},
@@ -52,6 +69,7 @@ function createMocks({stacks, buildServeAppImpl} = {}) {
 	return {
 		mocks, httpServer, listen, addSsl, announceListening,
 		attachLiveReloadServer, liveReloadHandle, buildServeApp, createdHandlers,
+		DefinitionWatcher, definitionWatchers,
 	};
 }
 
@@ -270,4 +288,117 @@ test("reinitialize() warns and no-ops when no graphFactory was provided", async 
 	const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {});
 	await supervisor.reinitialize();
 	t.true(buildServeApp.calledOnce, "no re-init build happens without a graphFactory");
+});
+
+test("definition watcher is created on create() only when a graphFactory is present", async (t) => {
+	const stack = createStack();
+	const {mocks, DefinitionWatcher} = createMocks({stacks: [stack]});
+	const {default: ServeSupervisor} = await importSupervisor(mocks);
+
+	await ServeSupervisor.create({}, baseConfig, undefined, {});
+	t.true(DefinitionWatcher.create.notCalled, "no watcher without a graphFactory");
+});
+
+test("definition watcher is created with the threaded config params", async (t) => {
+	const stack = createStack();
+	const graphFactory = sinon.stub().resolves({});
+	const graph = {getRoot: () => ({})};
+	const config = {
+		...baseConfig,
+		rootConfigPath: "/app/custom.yaml",
+		workspaceConfigPath: null,
+		dependencyDefinitionPath: "/app/deps.yaml",
+		cwd: "/app",
+	};
+	const {mocks, DefinitionWatcher} = createMocks({stacks: [stack]});
+	const {default: ServeSupervisor} = await importSupervisor(mocks);
+
+	await ServeSupervisor.create(graph, config, undefined, {graphFactory});
+
+	t.true(DefinitionWatcher.create.calledOnce);
+	const opts = DefinitionWatcher.create.firstCall.args[0];
+	t.is(opts.graph, graph, "watcher gets the initial graph");
+	t.is(opts.rootConfigPath, "/app/custom.yaml");
+	t.is(opts.workspaceConfigPath, null);
+	t.is(opts.dependencyDefinitionPath, "/app/deps.yaml");
+	t.is(opts.cwd, "/app");
+});
+
+test("a definitionChanged event triggers reinitialize()", async (t) => {
+	const app2 = sinon.stub();
+	const stack1 = createStack();
+	const stack2 = createStack(app2);
+	const graphFactory = sinon.stub().resolves({});
+	const {mocks, definitionWatchers, createdHandlers} = createMocks({stacks: [stack1, stack2]});
+	const {default: ServeSupervisor} = await importSupervisor(mocks);
+
+	await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+
+	// The watcher created on init drives the re-init.
+	definitionWatchers[0].emit("definitionChanged", {eventType: "update", filePath: "/app/ui5.yaml"});
+	// reinitialize() is async; let the swap settle.
+	await new Promise((resolve) => setImmediate(resolve));
+
+	createdHandlers[0]("req", "res");
+	t.true(app2.calledOnceWithExactly("req", "res"), "definition change swapped in the new app");
+});
+
+test("watcher is re-targeted to the new graph after a swap (old destroyed, new created)", async (t) => {
+	const stack1 = createStack();
+	const stack2 = createStack();
+	const newGraph = {name: "newGraph", getRoot: () => ({})};
+	const graphFactory = sinon.stub().resolves(newGraph);
+	const {mocks, DefinitionWatcher, definitionWatchers} = createMocks({stacks: [stack1, stack2]});
+	const {default: ServeSupervisor} = await importSupervisor(mocks);
+
+	const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+	t.is(DefinitionWatcher.create.callCount, 1, "watcher created on init");
+	const firstWatcher = definitionWatchers[0];
+
+	await supervisor.reinitialize();
+
+	t.is(DefinitionWatcher.create.callCount, 2, "a fresh watcher created after the swap");
+	t.is(DefinitionWatcher.create.secondCall.args[0].graph, newGraph, "new watcher targets the new graph");
+	t.true(firstWatcher.destroy.calledOnce, "old watcher destroyed");
+});
+
+test("a watcher-create failure during swap keeps the server serving", async (t) => {
+	const app1 = sinon.stub();
+	const stack1 = createStack(app1);
+	const stack2 = createStack();
+	const graphFactory = sinon.stub().resolves({getRoot: () => ({})});
+	let createCalls = 0;
+	const {mocks, createdHandlers} = createMocks({
+		stacks: [stack1, stack2],
+		definitionWatcherCreate: async () => {
+			createCalls++;
+			if (createCalls === 1) {
+				const watcher = new EventEmitter();
+				watcher.destroy = sinon.stub().resolves();
+				return watcher;
+			}
+			throw new Error("watcher failed to arm");
+		},
+	});
+	const {default: ServeSupervisor} = await importSupervisor(mocks);
+
+	const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+
+	await t.notThrowsAsync(supervisor.reinitialize(), "a watcher-create failure does not reject the swap");
+
+	// The swap itself still committed — the new stack is serving.
+	createdHandlers[0]("req", "res");
+	t.true(stack2.app.calledOnceWithExactly("req", "res"), "the new app serves despite the watcher failure");
+});
+
+test("destroy() tears the definition watcher down", async (t) => {
+	const stack = createStack();
+	const graphFactory = sinon.stub().resolves({});
+	const {mocks, definitionWatchers} = createMocks({stacks: [stack]});
+	const {default: ServeSupervisor} = await importSupervisor(mocks);
+
+	const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+
+	await new Promise((resolve) => supervisor.destroy(resolve));
+	t.true(definitionWatchers[0].destroy.calledOnce, "watcher destroyed on teardown");
 });

@@ -51,6 +51,13 @@ const log = getLogger("server");
  * 										Takes precedence over <code>excludedTasks</code>.
  * @param {string[]} [options.excludedTasks] A list of tasks to be excluded from the default task
  * 										execution set.
+ * @param {string} [options.rootConfigPath] Custom config path for the root project (from --config),
+ * 										threaded to the definition watcher so it watches the right file.
+ * @param {string} [options.workspaceConfigPath] Workspace config path (default ui5-workspace.yaml);
+ * 										threaded to the definition watcher. Omit in static-graph mode.
+ * @param {string} [options.dependencyDefinitionPath] Static dependency-definition file
+ * 										(from --dependency-definition); watched when present.
+ * @param {string} [options.cwd] Base directory for resolving the watcher's relative paths.
  * @param {Function} error Error callback. Will be called when an error occurs outside of request handling.
  * @param {object} [options2] Additional options
  * @param {Function} [options2.graphFactory] Async factory that re-resolves the project graph with the
@@ -67,6 +74,7 @@ export async function serve(graph, {
 	acceptRemoteConnections = false, sendSAPTargetCSP = false,
 	simpleIndex = false, liveReload = false, serveCSPReports = false, cache = Cache.Default,
 	ui5DataDir, includedTasks, excludedTasks,
+	rootConfigPath, workspaceConfigPath, dependencyDefinitionPath, cwd,
 }, error, {graphFactory} = {}) {
 	// The live-reload token is generated once and shared with every serving stack the supervisor
 	// builds, so connected clients keep authenticating across a re-initialization.
@@ -82,6 +90,7 @@ export async function serve(graph, {
 		acceptRemoteConnections, sendSAPTargetCSP,
 		simpleIndex, liveReload, serveCSPReports, cache,
 		ui5DataDir, includedTasks, excludedTasks, webSocketToken,
+		rootConfigPath, workspaceConfigPath, dependencyDefinitionPath, cwd,
 	};
 
 	let supervisor;
