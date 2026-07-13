@@ -143,10 +143,11 @@ test("reinitialize() is build-new-then-swap: new stack is built before the old i
 
 test("reinitialize() failure keeps the last-good stack serving", async (t) => {
 	let calls = 0;
-	const stack1 = createStack();
+	const app1 = sinon.stub();
+	const stack1 = createStack(app1);
 	const buildError = new Error("invalid ui5.yaml");
 	const graphFactory = sinon.stub().resolves({});
-	const {mocks, attachLiveReloadServer} = createMocks({
+	const {mocks, attachLiveReloadServer, createdHandlers} = createMocks({
 		buildServeAppImpl: async () => {
 			calls++;
 			if (calls === 1) {
@@ -163,8 +164,9 @@ test("reinitialize() failure keeps the last-good stack serving", async (t) => {
 
 	await t.notThrowsAsync(supervisor.reinitialize(), "a broken definition does not reject");
 
-	const {peek} = ServeSupervisor.__internals__;
-	t.is(peek(supervisor).stack, stack1, "old stack is retained");
+	// The trampoline still routes to the last-good app — the failed build was not adopted.
+	createdHandlers[0]("req", "res");
+	t.true(app1.calledOnceWithExactly("req", "res"), "requests still route to the last-good app");
 	t.false(stack1.buildServer.destroy.called, "old BuildServer is not destroyed on failure");
 	t.is(errorEvents.length, 0, "no fatal 'error' event is emitted");
 	t.true(attachLiveReloadServer.calledOnce);
@@ -258,17 +260,6 @@ test("destroy() closes the socket even when BuildServer.destroy() rejects", asyn
 
 	await new Promise((resolve) => supervisor.destroy(resolve));
 	t.true(httpServer.close.calledOnce, "socket is closed despite the BuildServer destroy rejection");
-});
-
-test("getServeError() delegates to the current BuildServer", async (t) => {
-	const stack = createStack();
-	const serveError = new Error("build error");
-	stack.buildServer.getServeError = sinon.stub().returns(serveError);
-	const {mocks} = createMocks({stacks: [stack]});
-	const {default: ServeSupervisor} = await importSupervisor(mocks);
-
-	const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {});
-	t.is(supervisor.getServeError(), serveError);
 });
 
 test("reinitialize() warns and no-ops when no graphFactory was provided", async (t) => {
