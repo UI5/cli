@@ -1,22 +1,11 @@
 import {readFileSync} from "node:fs";
+import escapeHtml from "escape-html";
 import {INJECT_SCRIPT_TAG} from "../liveReload/constants.js";
 import isDocumentNavigation from "./helper/isDocumentNavigation.js";
 
 // Load the error-page template once at module load. Same pattern as
 // serveIndex/serveIndex.cjs uses for directory.html.
 const ERROR_PAGE_TEMPLATE = readFileSync(new URL("./errorPage.html", import.meta.url), "utf8");
-
-const HTML_ESCAPES = {
-	"&": "&amp;",
-	"<": "&lt;",
-	">": "&gt;",
-	"\"": "&quot;",
-	"'": "&#39;",
-};
-
-function escapeHtml(str) {
-	return String(str).replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch]);
-}
 
 function renderErrorPage({title, message, stack, liveReloadActive}) {
 	const hint = liveReloadActive ?
