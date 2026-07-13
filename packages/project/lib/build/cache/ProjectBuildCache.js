@@ -896,21 +896,35 @@ export default class ProjectBuildCache {
 				reader = cacheInfo.previousStageCache.stage.getWriter() ??
 					cacheInfo.previousStageCache.stage.getCachedWriter();
 			}
+			// Paths the delta task was told changed but did not re-emit. Their source
+			// is gone (or intentionally excluded); replaying the previous stage's
+			// copy would resurrect content that no longer belongs in the output.
+			const changedProjectResourcePaths = new Set(cacheInfo.changedProjectResourcePaths ?? []);
 			const mergeStart = performance.now();
 			const previousWrittenResources = await reader.byGlob("/**/*");
 			let mergedCount = 0;
+			let droppedCount = 0;
 			for (const res of previousWrittenResources) {
-				if (!writtenResourcePaths.includes(res.getOriginalPath())) {
-					await stageWriter.write(res);
-					mergedCount++;
+				const path = res.getOriginalPath();
+				if (writtenResourcePaths.includes(path)) {
+					continue; // Delta re-emitted this path; skip
 				}
+				if (changedProjectResourcePaths.has(path)) {
+					// Delta was told this path changed but did not write it back.
+					// Drop the stale copy from the merge.
+					droppedCount++;
+					continue;
+				}
+				await stageWriter.write(res);
+				mergedCount++;
 			}
 			if (log.isLevelEnabled("perf")) {
 				log.perf(
 					`recordTaskResult delta merge for task ${taskName} ` +
 					`in project ${this.#project.getName()} completed in ` +
 					`${(performance.now() - mergeStart).toFixed(2)} ms ` +
-					`(${previousWrittenResources.length} previous, ${mergedCount} merged)`);
+					`(${previousWrittenResources.length} previous, ${mergedCount} merged, ` +
+					`${droppedCount} dropped)`);
 			}
 		} else {
 			// Calculate signature for executed task
