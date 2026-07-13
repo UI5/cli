@@ -253,6 +253,13 @@ test("renderBuildRegion: stale state includes 'files changed' hint", (t) => {
 	t.regex(plain, /Status\s+.+?\s+stale\s+·\s+files changed/);
 });
 
+test("renderBuildRegion: settling state includes 'waiting for changes to settle' hint", (t) => {
+	const state = createBuildState();
+	transitionTo(state, STATES.SETTLING);
+	const plain = renderBuildRegion(state).map(stripAnsi).join("\n");
+	t.regex(plain, /Status\s+.+?\s+settling\s+·\s+waiting for changes to settle/);
+});
+
 test("renderBuildRegion: validating state includes 'checking dependency caches' hint", (t) => {
 	const state = createBuildState();
 	transitionTo(state, STATES.VALIDATING);

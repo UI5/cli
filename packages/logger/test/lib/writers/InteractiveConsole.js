@@ -535,6 +535,24 @@ test.serial("serve-status: serve-stale without a payload falls back to an empty 
 	writer.disable();
 });
 
+test.serial("serve-status: serve-settling records pendingProjects and transitions to SETTLING", (t) => {
+	const {writer, stderr} = createWriter();
+	process.emit("ui5.serve-status", {status: "serve-settling", pendingProjects: ["my.app"]});
+	const state = writer._getStateForTest().build;
+	t.is(state.state, STATES.SETTLING);
+	t.deepEqual(state.pendingProjects, ["my.app"]);
+	const tail = stripAnsi(stderr.writes.slice(-5).join(""));
+	t.regex(tail, /settling/);
+	writer.disable();
+});
+
+test.serial("serve-status: serve-settling without a payload falls back to an empty list", (t) => {
+	const {writer} = createWriter();
+	process.emit("ui5.serve-status", {status: "serve-settling"});
+	t.deepEqual(writer._getStateForTest().build.pendingProjects, []);
+	writer.disable();
+});
+
 test.serial("serve-status: serve-validating records projects and transitions to VALIDATING", (t) => {
 	const {writer, stderr} = createWriter();
 	process.emit("ui5.serve-status", {

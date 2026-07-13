@@ -150,6 +150,11 @@ function renderStatusLine(state) {
 	case STATES.STALE:
 		return `${label}${chalk.yellow(figures.circle)} ${chalk.yellow(pad("stale"))} ` +
 			`${chalk.dim("· files changed, rebuild on next request")}`;
+	case STATES.SETTLING: {
+		const frame = SPINNER_FRAMES[state.spinFrame % SPINNER_FRAMES.length];
+		return `${label}${chalk.yellow(frame)} ${chalk.yellow(pad("settling"))} ` +
+			`${chalk.dim("· waiting for changes to settle")}`;
+	}
 	case STATES.VALIDATING: {
 		const frame = SPINNER_FRAMES[state.spinFrame % SPINNER_FRAMES.length];
 		const parts = [
