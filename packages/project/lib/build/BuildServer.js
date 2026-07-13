@@ -7,9 +7,21 @@ import {getLogger} from "@ui5/logger";
 import ServeLogger from "@ui5/logger/internal/loggers/Serve";
 const log = getLogger("build:BuildServer");
 
-// Debounce window for the `sourcesChanged` event so a burst of file changes
-// results in a single notification.
-const SOURCES_CHANGED_DEBOUNCE_MS = 100;
+// Settle window for the `sourcesChanged` event, in milliseconds.
+//
+// The event drives live-reload notifications, so a lone edit must reach connected clients as
+// fast as possible: the build it triggers can complete in well under 100 ms on small projects,
+// and a trailing debounce would then dominate the edit-to-reload latency. The emit is therefore
+// leading-edge — the first change of a quiet period fires immediately — followed by this
+// suppression window that coalesces the rest of a burst into a single trailing emit.
+//
+// The value is tied to @parcel/watcher's MAX_WAIT_TIME (500 ms): the watcher caps its own
+// coalescing at that interval, so an operation emitting changes continuously (e.g. `git checkout`)
+// is delivered as batches up to 500 ms apart rather than one quiet-terminated batch. A window
+// below that cap would see quiet between batches and emit once per batch; keeping it above the cap
+// lets each batch reset the window so the whole operation collapses to one leading + one trailing
+// emit. Do not lower below 500 ms without revisiting that relationship.
+const SOURCES_CHANGED_SETTLE_MS = 550;
 
 // Loop protection for watcher recovery. A persistently failing watcher (e.g. a watched
 // path that keeps erroring on re-subscribe, or an FS that keeps dropping events) would
@@ -67,6 +79,10 @@ class BuildServer extends EventEmitter {
 	#activeBuild = null;
 	#processBuildRequestsTimeout;
 	#sourcesChangedTimeout;
+	// True while a trailing `sourcesChanged` emit is owed: set when a change lands inside the
+	// settle window (the leading emit already fired), cleared when the trailing emit fires or the
+	// server is destroyed.
+	#sourcesChangedPending = false;
 	#destroyed = false;
 	#allReader;
 	#rootReader;
@@ -318,6 +334,7 @@ class BuildServer extends EventEmitter {
 		this.#destroyed = true;
 		clearTimeout(this.#processBuildRequestsTimeout);
 		clearTimeout(this.#sourcesChangedTimeout);
+		this.#sourcesChangedPending = false;
 		await this.#watchHandler.destroy();
 		try {
 			// Cancel any running background validation pass and wait for it to settle.
@@ -526,14 +543,23 @@ class BuildServer extends EventEmitter {
 			this.#setState(SERVER_STATES.STALE);
 		}
 
-		// Debounced emit so a burst of file changes results in a single reload notification
+		// Leading-edge emit with a trailing settle window. The first change of a quiet period
+		// notifies immediately (a lone edit reaches clients at the watcher's own latency floor);
+		// further changes within the window only push the trailing emit out, so a burst collapses
+		// into one leading + one trailing notification.
 		if (this.#sourcesChangedTimeout) {
 			clearTimeout(this.#sourcesChangedTimeout);
+			this.#sourcesChangedPending = true;
+		} else {
+			this.emit("sourcesChanged");
 		}
 		this.#sourcesChangedTimeout = setTimeout(() => {
 			this.#sourcesChangedTimeout = null;
-			this.emit("sourcesChanged");
-		}, SOURCES_CHANGED_DEBOUNCE_MS);
+			if (this.#sourcesChangedPending) {
+				this.#sourcesChangedPending = false;
+				this.emit("sourcesChanged");
+			}
+		}, SOURCES_CHANGED_SETTLE_MS);
 	}
 
 	#flushResourceChanges() {
@@ -1284,6 +1310,6 @@ export default BuildServer;
 /* istanbul ignore else */
 if (process.env.NODE_ENV === "test") {
 	BuildServer.__internals__ = {
-		SOURCES_CHANGED_DEBOUNCE_MS
+		SOURCES_CHANGED_SETTLE_MS
 	};
 }
