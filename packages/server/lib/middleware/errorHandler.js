@@ -1,22 +1,10 @@
 import {readFileSync} from "node:fs";
+import escapeHtml from "escape-html";
 import {INJECT_SCRIPT_TAG} from "../liveReload/constants.js";
 import isDocumentNavigation from "./helper/isDocumentNavigation.js";
 
-// Load the error-page template once at module load. Same pattern as
-// serveIndex/serveIndex.cjs uses for directory.html.
+// Load the error-page template once at module load, as serveIndex.cjs does for directory.html.
 const ERROR_PAGE_TEMPLATE = readFileSync(new URL("./errorPage.html", import.meta.url), "utf8");
-
-const HTML_ESCAPES = {
-	"&": "&amp;",
-	"<": "&lt;",
-	">": "&gt;",
-	"\"": "&quot;",
-	"'": "&#39;",
-};
-
-function escapeHtml(str) {
-	return String(str).replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch]);
-}
 
 function renderErrorPage({title, message, stack, liveReloadActive}) {
 	const hint = liveReloadActive ?
@@ -33,19 +21,17 @@ function renderErrorPage({title, message, stack, liveReloadActive}) {
 /**
  * Express error-handling middleware for the UI5 dev server.
  *
- * Handles every <code>next(err)</code> call in the middleware chain by responding with
- * HTTP 500. For requests that accept <code>text/html</code> (navigations from a browser),
- * responds with a dedicated HTML error page that embeds the live-reload client script
- * when live reload is active — so the browser reloads automatically once the developer
- * fixes the source. For every other request (fetch, XHR, asset loads), responds with
- * plain text containing the error message and stack.
+ * Handles every <code>next(err)</code> in the middleware chain with HTTP 500. Browser
+ * document navigations get a dedicated HTML error page that embeds the live-reload client
+ * script when live reload is active, so the browser reloads once the source is fixed. Every
+ * other request (fetch, XHR, asset loads) gets plain text with the error message and stack.
  *
- * Registering a 4-argument middleware makes Express treat it as an error handler; it
- * must be added AFTER all normal middlewares so it acts as the terminal catch-all.
+ * Registering a 4-argument middleware makes Express treat it as an error handler; it must be
+ * added AFTER all normal middlewares so it acts as the terminal catch-all.
  *
- * Console logging semantics live outside this handler — a follow-up will differentiate
- * "expected" build errors (surfaced via the live banner already) from unexpected ones
- * that still warrant an error-level console log.
+ * Console logging semantics live outside this handler; a follow-up will separate "expected"
+ * build errors (already surfaced via the live banner) from unexpected ones that warrant an
+ * error-level console log.
  *
  * @param {object} [parameters] Parameters
  * @param {object} [parameters.liveReload] Live reload configuration; mirrors the shape
@@ -57,8 +43,8 @@ function renderErrorPage({title, message, stack, liveReloadActive}) {
 export default function createErrorHandler({liveReload} = {}) {
 	const liveReloadActive = !!(liveReload && liveReload.active);
 	return function errorHandler(err, req, res, next) {
-		// If the response is already partly sent, we can't rewrite it — hand off to
-		// Express's default handler which will close the connection.
+		// Response already partly sent: can't rewrite it. Hand off to Express's default
+		// handler, which closes the connection.
 		if (res.headersSent) {
 			return next(err);
 		}
@@ -66,10 +52,9 @@ export default function createErrorHandler({liveReload} = {}) {
 		const stack = err?.stack || "";
 		const plainBody = stack || message;
 
-		// Content-negotiate: only browser document navigations get the styled HTML
-		// error page. Subresource loads (scripts, stylesheets, XHR, fetch, images)
-		// keep the plain-text response so a browser doesn't try to execute an HTML
-		// error page as JavaScript.
+		// Only browser document navigations get the styled HTML error page. Subresource
+		// loads (scripts, stylesheets, XHR, fetch, images) keep the plain-text response so
+		// the browser doesn't execute an HTML error page as JavaScript.
 		if (isDocumentNavigation(req)) {
 			res.status(500);
 			res.type("text/html; charset=utf-8");
