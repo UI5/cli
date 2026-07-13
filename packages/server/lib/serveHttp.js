@@ -30,12 +30,7 @@ export function listen(app, port, changePortIfInUse, acceptRemoteConnections) {
 		} // If remote connections are allowed, do not set host so the server listens on all supported interfaces
 
 		const portScanHost = options.host || "127.0.0.1";
-		let portMax;
-		if (changePortIfInUse) {
-			portMax = port + 30;
-		} else {
-			portMax = port;
-		}
+		const portMax = changePortIfInUse ? port + 30 : port;
 
 		portscanner.findAPortNotInUse(port, portMax, portScanHost, function(error, foundPort) {
 			if (error) {
@@ -44,24 +39,15 @@ export function listen(app, port, changePortIfInUse, acceptRemoteConnections) {
 			}
 
 			if (!foundPort) {
-				if (changePortIfInUse) {
-					const error = new Error(
-						`EADDRINUSE: Could not find available ports between ${port} and ${portMax}.`);
-					error.code = "EADDRINUSE";
-					error.errno = "EADDRINUSE";
-					error.address = portScanHost;
-					error.port = portMax;
-					reject(error);
-					return;
-				} else {
-					const error = new Error(`EADDRINUSE: Port ${port} is already in use.`);
-					error.code = "EADDRINUSE";
-					error.errno = "EADDRINUSE";
-					error.address = portScanHost;
-					error.port = portMax;
-					reject(error);
-					return;
-				}
+				const err = new Error(changePortIfInUse ?
+					`EADDRINUSE: Could not find available ports between ${port} and ${portMax}.` :
+					`EADDRINUSE: Port ${port} is already in use.`);
+				err.code = "EADDRINUSE";
+				err.errno = "EADDRINUSE";
+				err.address = portScanHost;
+				err.port = portMax;
+				reject(err);
+				return;
 			}
 
 			options.port = foundPort;
