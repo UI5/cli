@@ -91,7 +91,7 @@ test.beforeEach(async (t) => {
 		"../../../lib/build/helpers/WatchHandler.js": FakeWatchHandler,
 	})).default;
 	t.context.BuildServer = BuildServer;
-	t.context.SOURCES_CHANGED_DEBOUNCE_MS = BuildServer.__internals__.SOURCES_CHANGED_DEBOUNCE_MS;
+	t.context.SOURCES_CHANGED_SETTLE_MS = BuildServer.__internals__.SOURCES_CHANGED_SETTLE_MS;
 	// Use the static factory so #watchHandler is initialized — needed for destroy() in some tests.
 	t.context.buildServer = await BuildServer.create(
 		t.context.graph, t.context.projectBuilder, false, [], []);
@@ -101,84 +101,89 @@ test.afterEach.always((t) => {
 	t.context.sinon.restore();
 });
 
-test.serial("sourcesChanged: emitted once after debounce window for a single change", (t) => {
-	const {buildServer, rootProject, clock, SOURCES_CHANGED_DEBOUNCE_MS} = t.context;
+test.serial("sourcesChanged: emitted immediately for a single change (leading edge)", (t) => {
+	const {buildServer, rootProject, clock, SOURCES_CHANGED_SETTLE_MS} = t.context;
 	const listener = t.context.sinon.stub();
 	buildServer.on("sourcesChanged", listener);
 
 	buildServer._projectResourceChanged(rootProject, "/foo.js", false);
 
-	t.is(listener.callCount, 0, "Not emitted synchronously");
+	t.is(listener.callCount, 1, "Leading edge: emitted immediately on the first change");
 
-	clock.tick(SOURCES_CHANGED_DEBOUNCE_MS - 1);
-	t.is(listener.callCount, 0, "Not emitted before window elapses");
-
-	clock.tick(1);
-	t.is(listener.callCount, 1, "Emitted exactly once after window elapses");
+	// A lone change owes no trailing emit — the settle window elapses silently.
+	clock.tick(SOURCES_CHANGED_SETTLE_MS);
+	t.is(listener.callCount, 1, "No trailing emit for a single change");
 });
 
-test.serial("sourcesChanged: burst of changes within window collapses to one emit", (t) => {
-	const {buildServer, rootProject, clock, SOURCES_CHANGED_DEBOUNCE_MS} = t.context;
+test.serial("sourcesChanged: burst collapses to one leading + one trailing emit", (t) => {
+	const {buildServer, rootProject, clock, SOURCES_CHANGED_SETTLE_MS} = t.context;
 	const listener = t.context.sinon.stub();
 	buildServer.on("sourcesChanged", listener);
 
-	// 5 rapid changes, each well within the debounce window.
+	// 5 rapid changes, each well within the settle window.
 	for (let i = 0; i < 5; i++) {
 		buildServer._projectResourceChanged(rootProject, `/foo${i}.js`, false);
 		clock.tick(10);
 	}
 
-	t.is(listener.callCount, 0, "No emit while bursts are within window");
+	t.is(listener.callCount, 1, "Leading edge fired once; the rest of the burst is suppressed");
 
-	// Advance past the remaining debounce window from the last change.
-	clock.tick(SOURCES_CHANGED_DEBOUNCE_MS);
-	t.is(listener.callCount, 1, "Burst collapsed to a single emit");
+	// Advance past the settle window from the last change → single trailing emit.
+	clock.tick(SOURCES_CHANGED_SETTLE_MS);
+	t.is(listener.callCount, 2, "Burst collapsed to one leading + one trailing emit");
 });
 
-test.serial("sourcesChanged: each change resets the debounce timer", (t) => {
-	const {buildServer, rootProject, clock, SOURCES_CHANGED_DEBOUNCE_MS} = t.context;
+test.serial("sourcesChanged: each change resets the trailing settle timer", (t) => {
+	const {buildServer, rootProject, clock, SOURCES_CHANGED_SETTLE_MS} = t.context;
 	const listener = t.context.sinon.stub();
 	buildServer.on("sourcesChanged", listener);
 
 	buildServer._projectResourceChanged(rootProject, "/a.js", false);
-	clock.tick(SOURCES_CHANGED_DEBOUNCE_MS - 10);
-	// Second change just before the original timer would fire — must reset, not fire-then-reset.
+	t.is(listener.callCount, 1, "Leading edge emitted on the first change");
+
+	clock.tick(SOURCES_CHANGED_SETTLE_MS - 10);
+	// Second change just before the trailing timer would fire — must reset it.
 	buildServer._projectResourceChanged(rootProject, "/b.js", false);
-	clock.tick(SOURCES_CHANGED_DEBOUNCE_MS - 10);
-	t.is(listener.callCount, 0,
-		"Second change reset the timer; no emit yet despite > debounce window of total elapsed time");
+	clock.tick(SOURCES_CHANGED_SETTLE_MS - 10);
+	t.is(listener.callCount, 1,
+		"Second change reset the trailing timer; no trailing emit yet despite > settle window elapsed");
 
 	clock.tick(10);
-	t.is(listener.callCount, 1, "Emitted once the reset window elapses");
+	t.is(listener.callCount, 2, "Trailing emit fires once the reset window elapses");
 });
 
-test.serial("sourcesChanged: separate change windows produce separate emits", (t) => {
-	const {buildServer, rootProject, clock, SOURCES_CHANGED_DEBOUNCE_MS} = t.context;
+test.serial("sourcesChanged: a change after the window settles fires a fresh leading edge", (t) => {
+	const {buildServer, rootProject, clock, SOURCES_CHANGED_SETTLE_MS} = t.context;
 	const listener = t.context.sinon.stub();
 	buildServer.on("sourcesChanged", listener);
 
 	buildServer._projectResourceChanged(rootProject, "/a.js", false);
-	clock.tick(SOURCES_CHANGED_DEBOUNCE_MS);
-	t.is(listener.callCount, 1, "First window emitted");
+	t.is(listener.callCount, 1, "First leading edge");
+	// Let the window elapse with no further change — no trailing emit is owed.
+	clock.tick(SOURCES_CHANGED_SETTLE_MS);
+	t.is(listener.callCount, 1, "No trailing emit for the lone first change");
 
-	// A change after the first emit starts a new debounce window.
+	// A change after the window closed starts a fresh leading edge.
 	buildServer._projectResourceChanged(rootProject, "/b.js", false);
-	clock.tick(SOURCES_CHANGED_DEBOUNCE_MS);
-	t.is(listener.callCount, 2, "Second window produced a second emit");
+	t.is(listener.callCount, 2, "Second window fires its own leading edge immediately");
+	clock.tick(SOURCES_CHANGED_SETTLE_MS);
+	t.is(listener.callCount, 2, "Still lone — no trailing emit");
 });
 
-test.serial("sourcesChanged: destroy cancels a pending emit", async (t) => {
-	const {buildServer, rootProject, clock, SOURCES_CHANGED_DEBOUNCE_MS} = t.context;
+test.serial("sourcesChanged: destroy cancels a pending trailing emit", async (t) => {
+	const {buildServer, rootProject, clock, SOURCES_CHANGED_SETTLE_MS} = t.context;
 	const listener = t.context.sinon.stub();
 	buildServer.on("sourcesChanged", listener);
 
+	// Two changes: leading edge fires, and a second within the window owes a trailing emit.
 	buildServer._projectResourceChanged(rootProject, "/a.js", false);
-	t.is(listener.callCount, 0, "Pre-destroy: pending emit not yet fired");
+	buildServer._projectResourceChanged(rootProject, "/b.js", false);
+	t.is(listener.callCount, 1, "Pre-destroy: only the leading edge has fired");
 
 	await buildServer.destroy();
 
-	clock.tick(SOURCES_CHANGED_DEBOUNCE_MS * 5);
-	t.is(listener.callCount, 0, "Pending sourcesChanged emit was cancelled by destroy()");
+	clock.tick(SOURCES_CHANGED_SETTLE_MS * 5);
+	t.is(listener.callCount, 1, "Pending trailing sourcesChanged emit was cancelled by destroy()");
 });
 
 test.serial("serve-status: serve-ready emitted when no initial build is requested", async (t) => {
@@ -193,14 +198,14 @@ test.serial("serve-status: serve-ready emitted when no initial build is requeste
 	t.is(readyCalls.length, 1, "serve-ready emitted once when no initial build is enqueued");
 });
 
-test.serial("serve-status: serve-stale emitted on debounced sources change", (t) => {
-	const {buildServer, rootProject, clock, sinon, SOURCES_CHANGED_DEBOUNCE_MS} = t.context;
+test.serial("serve-status: serve-stale emitted on sources change", (t) => {
+	const {buildServer, rootProject, clock, sinon, SOURCES_CHANGED_SETTLE_MS} = t.context;
 	const statusHandler = sinon.stub();
 	process.on("ui5.serve-status", statusHandler);
 	t.teardown(() => process.off("ui5.serve-status", statusHandler));
 
 	buildServer._projectResourceChanged(rootProject, "/foo.js", false);
-	clock.tick(SOURCES_CHANGED_DEBOUNCE_MS);
+	clock.tick(SOURCES_CHANGED_SETTLE_MS);
 
 	const staleCalls = statusHandler.getCalls()
 		.filter((c) => c.args[0]?.status === "serve-stale");
@@ -1363,7 +1368,7 @@ const droppedEventsError = () =>
 
 test.serial(
 	"watcher-recovery: dropped-events error recreates watcher and forces a full re-scan", async (t) => {
-		const {sinon, clock, SOURCES_CHANGED_DEBOUNCE_MS} = t.context;
+		const {sinon, clock, SOURCES_CHANGED_SETTLE_MS} = t.context;
 		const {graph} = makeErrorGraphWithLibDep();
 		const {builder: projectBuilder} = makeRescanBuilder(sinon);
 		const statusEvents = makeStatusRecorder(t);
@@ -1388,7 +1393,7 @@ test.serial(
 		t.true(projectBuilder.forceFullRescan.calledOnce, "full re-scan forced on the builder");
 		t.is(errorEvents.length, 0, "no fatal error event on successful recovery");
 
-		await clock.tickAsync(SOURCES_CHANGED_DEBOUNCE_MS);
+		await clock.tickAsync(SOURCES_CHANGED_SETTLE_MS);
 		t.true(sourcesChanged.calledOnce, "sourcesChanged emitted so clients reload");
 
 		const seq = statusEvents.map((e) => e.status);
