@@ -255,6 +255,16 @@ class MiddlewareManager {
 		await this.addMiddleware("discovery", {
 			mountPath: "/discovery"
 		});
+		// Diverts document navigations to the terminal error handler while the build server
+		// is globally in ERROR. Placed before serveResources so it can preempt an otherwise-
+		// successful 200; after liveReloadClient so the client script is still served during
+		// ERROR and the error page can auto-reload once the source is fixed.
+		await this.addMiddleware("serveBuildError", {
+			wrapperCallback: ({middleware}) =>
+				() => middleware({
+					getServeError: this.options.getServeError
+				})
+		});
 		await this.addMiddleware("serveResources", {
 			wrapperCallback: ({middleware}) => {
 				return ({resources, middlewareUtil}) => middleware({

@@ -3,6 +3,7 @@ const middlewareInfos = {
 	cors: {path: "cors"},
 	csp: {path: "./csp.js"},
 	liveReloadClient: {path: "./liveReloadClient.js"},
+	serveBuildError: {path: "./serveBuildError.js"},
 	serveResources: {path: "./serveResources.js"},
 	serveIndex: {path: "./serveIndex.js"},
 	discovery: {path: "./discovery.js"},
