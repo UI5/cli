@@ -32,13 +32,13 @@ Use this table to locate source files. ALWAYS read the relevant source file befo
 
 | Component | Location | Role |
 |-----------|----------|------|
-| `BuildServer` | `lib/build/BuildServer.js` | Development server, file watching, build orchestration |
+| `BuildServer` | `lib/build/BuildServer.js` | Development server, file watching, build orchestration. Also defines `ProjectBuildStatus` (per-project state machine, reader-request queue, error latching) and the outer `SERVER_STATES` reconciler |
 | `BuildReader` | `lib/build/BuildReader.js` | Reader exposed by BuildServer; routes resource requests to per-project readers via namespace map |
 | `ProjectBuilder` | `lib/build/ProjectBuilder.js` | Builds projects in dependency order |
 | `BuildContext` | `lib/build/helpers/BuildContext.js` | Global build config, project context cache |
 | `getBuildSignature` | `lib/build/helpers/getBuildSignature.js` | Build signature computation: `BUILD_SIG_VERSION` + build config + project config |
 | `ProjectBuildContext` | `lib/build/helpers/ProjectBuildContext.js` | Per-project bridge between builder, tasks, and cache |
-| `WatchHandler` | `lib/build/helpers/WatchHandler.js` | chokidar-based source path watcher; emits change events to BuildServer |
+| `WatchHandler` | `lib/build/helpers/WatchHandler.js` | `@parcel/watcher`-based source path watcher; emits change events to BuildServer. The watcher coalesces its own events with a 50 ms min / 500 ms max wait, so a continuous operation is delivered as batches up to 500 ms apart |
 | `TaskRunner` | `lib/build/TaskRunner.js` | Task composition, execution loop, abort handling |
 | `Cache` enum | `lib/build/cache/Cache.js` | Cache mode constants: `Default`, `Force`, `ReadOnly`, `Off` (CLI `--cache` option) |
 | `ProjectBuildCache` | `lib/build/cache/ProjectBuildCache.js` | Cache orchestration per project: index management, stage lookup, result recording |
@@ -61,40 +61,130 @@ Use this table to locate source files. ALWAYS read the relevant source file befo
 
 ## Key Flows
 
+### Startup
+
+`BuildServer.create()` awaits `WatchHandler` readiness before enqueueing initial builds. This closes a race — most visible on Windows' `ReadDirectoryChangesW` backend — where source changes made immediately after `graph.serve()` resolves would otherwise be missed.
+
 ### Build Request Flow
 
 ```
 reader.byPath("/test.js")
-  -> BuildServer checks ProjectBuildStatus
-  -> If not fresh: #enqueueBuild(projectName)
-  -> Debounced (10ms): #processBuildRequests()
-  -> Batch all pending projects
+  -> BuildServer #getReaderForProject(projectName)
+      -> If ProjectBuildStatus.isFresh(): return cached reader
+      -> If getError() returns a captured error: throw it (ERRORED gate,
+         see "Error gating" below)
+      -> Queue {resolve, reject} on the status via addReaderRequest()
+      -> If isValidating(): wait on the running validation pass
+      -> Otherwise #enqueueBuild(projectName)
+  -> Debounced (`BUILD_REQUEST_DEBOUNCE_MS` = 10ms): #processBuildRequests()
+      -> Any in-flight background validation is aborted first
+         (#stopActiveValidation)
+  -> Batch all pending projects; markBuilding() on each
   -> projectBuilder.build({projects, signal})
-  -> On success: setReader(project.getReader({style: "runtime"}))
-  -> Resolve queued reader promises
+  -> On success: setReader(project.getReader({style: "runtime"})) — this
+     also drains the queued reader requests
+  -> On non-abort failure: rejectReaderRequests(err) latches ERRORED
+  -> On abort or concurrent source change: re-queue affected projects,
+     leave reader queue intact so they resolve on the retry
 ```
 
 ### File Watch and Abort
 
 When a source file changes:
-1. `WatchHandler` emits change event with project name and resource path
-2. `_projectResourceChanged()` queues the change and calls `ProjectBuildStatus.invalidate()` on the affected project and all its dependents
-3. `invalidate()` triggers the project's `AbortController`, which aborts the running build via `AbortSignal`
-4. The build loop catches `AbortBuildError` and re-enqueues projects that aren't fresh
-5. Queued resource changes are flushed via `#flushResourceChanges()` before the next build starts
+1. `WatchHandler` emits change event with project name, resource path, and event type
+2. `_projectResourceChanged()` walks `traverseDependents()` and calls `ProjectBuildStatus.invalidate({reason, fileAddedOrRemoved})` on the affected project and every dependent. Change is queued in `#resourceChangeQueue`
+3. `invalidate()` clears any latched error (lifting the ERRORED gate), aborts the running build via `AbortSignal`, and rotates the `AbortController`
+4. `fileAddedOrRemoved=true` (create/delete events) additionally evicts the cached reader on the status. Pure modifies keep the reader so callers already holding its promise still resolve
+5. The build loop catches `AbortBuildError`, distinguishes abort from concurrent-change failure, and re-enqueues projects that aren't fresh. Both the source-change-aborted build and a build that *failed* while sources were still changing (the transient branch, `signal.aborted || #resourceChangeQueue.size > 0`) defer their restart until changes settle (`ABORTED_BUILD_RESTART_SETTLE_MS` = 550 ms, reset by each further change) rather than firing on the snappy request debounce — a burst delivered as multiple watcher batches then collapses into one rebuild against the settled tree instead of a build-abort cycle per batch. Both report `SETTLING` for the window's duration: the doomed build no longer parks the banner on `building` (abort) or flips it to `error` (transient failure); it reports "waiting for changes to settle" and retries once the tree is quiet. A reader request supersedes the deferred restart by enqueueing on the normal `BUILD_REQUEST_DEBOUNCE_MS` (10 ms), so serving a request is not delayed. A genuine, non-transient failure still latches ERRORED.
+6. The first speculative build after a source change from a quiet state is held for a short first-build window (`FIRST_BUILD_SETTLE_MS` = 100 ms, also reported as `SETTLING`) rather than the snappy debounce — this absorbs an editor's own multi-file save fan-out (100 ms sits far below the watcher's 500 ms coalescing cap, roughly at its 50 ms floor) so a save-all doesn't fire a build into a half-written tree. It applies only to a build that is already pending (a reader request queued but not yet started); laziness is preserved — with nothing queued, a change still waits for a reader request. On its own it does not cover a multi-second `git checkout`; full coverage of that comes from the transient-failure deferral above.
+7. Queued resource changes are flushed via `#flushResourceChanges()` before the next build starts (must happen before `projectBuilder.build`)
+
+The server also emits a `sourcesChanged` event to drive live-reload notifications. Emission is **leading-edge**: the first change of a quiet period notifies immediately (a lone edit reaches clients at the watcher's own ~50 ms latency floor with no debounce added), and a trailing settle window (`SOURCES_CHANGED_SETTLE_MS` = 550 ms, above the watcher's 500 ms cap) coalesces the remainder of a burst into one further emit. Because emission is leading-edge, the window size does not affect single-edit latency — it only controls burst coalescing.
 
 ### State Machine (per project)
 
+`ProjectBuildStatus` (defined at the bottom of `BuildServer.js`) has six states:
+
 ```
-INITIAL -> (first build requested, invalidate()) -> INVALIDATED -> (build completes, setReader()) -> FRESH
-                                                                                                       |
-                                                                                            (file change detected)
-                                                                                                       v
-                                                                                                  INVALIDATED
-                                                                                                  (abort + re-enqueue)
+                     +------------------------------------------+
+                     |                                          |
+                     v                                          |
+  INITIAL --(reader request)--> INVALIDATED --(markBuilding)--> BUILDING
+     |                              ^                              |
+     |                              |                              | setReader()
+     |  (background validation)     |                              v
+     |     markValidating()         |                            FRESH
+     v                              |                              |
+  VALIDATING ---(cache stale,       |                              |
+     |          releaseValidating)  |     (file change +           |
+     |          -----> INITIAL      |      invalidate())           |
+     |                              +------------------------------+
+     |  (cache fresh, setReader)                                   |
+     +--> FRESH                                                    |
+                                                                   |
+                                        (build fails, non-transient)
+                                                                   v
+                                                                ERRORED
+                                                                   |
+                                                            (any invalidation
+                                                             clears #lastError)
+                                                                   v
+                                                              INVALIDATED
 ```
 
-Note: There is no separate `BUILDING` state; `INVALIDATED` covers both "needs build" and "building in progress". The abort controller on `ProjectBuildStatus` cancels the running build on re-invalidation.
+- **INITIAL** — never built; eligible for background cache validation.
+- **INVALIDATED** — needs a build. Set by `invalidate()` (source change, dependency change) and by the first reader request from INITIAL.
+- **VALIDATING** — a background pass is checking cache validity for this project. Reader requests skip `#enqueueBuild` and wait on the pass. Only reachable from INITIAL via `markValidating()`.
+- **BUILDING** — a real build cycle owns the project. Reached unconditionally from any prior state via `markBuilding()` (the caller has already claimed it from `#pendingBuildRequest`).
+- **FRESH** — reader available. Set by `setReader()`, which only accepts BUILDING or VALIDATING as prior states — a late-arriving reader for a project re-invalidated mid-build is dropped.
+- **ERRORED** — last build failed with a non-transient error. Held until an invalidation lifts the gate. See below.
+
+### Error gating
+
+Deterministic builds don't recover without an input change, so `rejectReaderRequests(err)` latches the project into ERRORED and captures the error on `#lastError`. Subsequent reader requests short-circuit via `getError()` and throw the captured error immediately — no rebuild loop against a broken tree. Any `invalidate()` (direct source change or a change in a transitive dependency) clears `#lastError` before flipping the state, so the next request enqueues a fresh build.
+
+Abort errors and errors during concurrent source changes are treated as transient: the reader queue is left intact and the affected projects are re-queued. The user sees a warn-level log, not a rejection.
+
+### Server lifecycle state
+
+BuildServer also maintains an outer state machine over all projects, mutated exclusively through `#setState` and emitted to the `ServeLogger`:
+
+```
+IDLE --(source change / reader request)--> STALE --(#triggerRequestQueue)--> BUILDING
+  ^                                            ^                                |
+  |                                            |                                v
+  |                        SETTLING <----------+------(abort / transient        |
+  |                           |    (rebuild deferred    failure mid-cycle)------+
+  |                           |     until quiet)                                |
+  |                           +--(settle window elapses)--------------------> BUILDING
+  |                                                                            |
+  +---------- VALIDATING <--(post-build, INITIAL projects remain)-------------+
+  |               |                                                            |
+  |               +--(cache hit for all)-----------------------------------> IDLE
+  |               |
+  |               +--(cache miss, still non-FRESH) -----------------------> STALE
+  |
+  any --(unrecoverable failure)--> ERROR --(any invalidation)--> STALE
+```
+
+- `#reconcileServerState({mayValidate})` is the single point of truth for terminal transitions at the end of a build cycle or validation pass. It picks IDLE / STALE / VALIDATING based on `#getStaleProjectNames()`, `#activeBuild`, `#pendingBuildRequest`, and the `mayValidate` flag. It bails on `SETTLING` (as it does on `ERROR`) so the deferred-restart timer owns the SETTLING → BUILDING transition.
+- **SETTLING** means "changes seen, a rebuild is pending, holding until changes go quiet." It sits between STALE and BUILDING and is entered from three deferral sites, all reporting `serve-settling`: the post-abort restart, the failure-with-pending-changes (transient) path, and a source change re-timing an already-pending build to the first-build window. No build is active while in SETTLING (`#activeBuild === null`); the armed timer moves it to BUILDING when the settle window elapses. BUILDING → SETTLING skips the `buildDone` emission — no successful cycle closed (mirrors BUILDING → ERROR).
+- A genuine, non-transient build failure (no pending changes, signal not aborted) still goes to ERROR — the distinction is the `signal.aborted || #resourceChangeQueue.size > 0` predicate.
+- Errored projects are NOT counted as "stale" — their rebuild is gated on input change, so surfacing them under STALE would understate the situation.
+- BUILDING → ERROR skips the `buildDone` emission so consumers don't see a successful cycle close before the error.
+
+### Background cache validation
+
+After a build cycle ends with some projects still in INITIAL (e.g. dependencies never requested yet), `#scheduleBackgroundValidation` picks them up and calls `projectBuilder.validateCaches()` in a fire-and-forget pass:
+
+1. `willValidate(projectName)` claims the project via `markValidating()` — a no-op if the state moved on.
+2. Per project, `validateCaches` invokes the callback with `usesCache`:
+   - `usesCache=true` → `setReader()` promotes the project to FRESH without executing any tasks.
+   - `usesCache=false` → `releaseValidating()` reverts VALIDATING → INITIAL. If reader requests are queued, `onBuildRequired` fires `#enqueueBuild` so the waiting callers eventually resolve.
+3. A source change during the pass aborts the composite signal (validation abort + per-project abort) and cancels validation for the affected projects.
+4. The `finally` clause guarantees no project is left stuck in VALIDATING regardless of how the pass ended.
+
+A build request preempts an in-flight pass: `#triggerRequestQueue` awaits `#stopActiveValidation` before claiming the builder's `buildIsRunning` lock. The pass's `finally` re-invokes `#reconcileServerState({mayValidate: false})` — `mayValidate=false` prevents stack recursion into another validation pass over the projects the previous one just released.
 
 ## Caching Architecture
 
@@ -362,7 +452,7 @@ Stage metadata stored on disk includes:
 ## Key Architectural Patterns
 
 1. **Lazy building**: Projects built on-demand when readers are requested
-2. **Request batching**: Multiple pending build requests processed in single batch (10ms debounce)
+2. **Request batching**: Multiple pending build requests processed in single batch (`BUILD_REQUEST_DEBOUNCE_MS` = 10ms debounce). A source-change-driven first build is held on a short settle window (`FIRST_BUILD_SETTLE_MS` = 100ms) to absorb editor save fan-out, and a source-change-aborted or transiently-failed build restarts on a longer window (`ABORTED_BUILD_RESTART_SETTLE_MS` = 550ms) so a burst collapses into one rebuild. Both windows report the `SETTLING` state; a reader request supersedes them at the snappy 10ms debounce.
 3. **Abort/retry**: File changes abort running builds; projects re-queued automatically
 4. **Structural sharing**: Derived hash trees share unchanged subtrees, reducing memory
 5. **Content-addressed storage**: Resources deduplicated via integrity hashes in custom CAS (synchronous path resolution, gzip-compressed)
