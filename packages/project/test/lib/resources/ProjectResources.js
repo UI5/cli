@@ -112,6 +112,30 @@ test("initStages clears frozen source reader", (t) => {
 	t.not(reader1, reader2, "Reader was recreated after initStages");
 });
 
+test("reset: returns to the initial stage after a stage switch", (t) => {
+	const {pr} = createProjectResources();
+
+	// Simulate a build that switched to a task stage (as a failed build would leave it)
+	pr.initStages(["task/taskA", "task/taskB"]);
+	pr.useStage("task/taskA");
+	t.is(pr.getStage().getId(), "task/taskA", "On a task stage before reset");
+
+	pr.reset();
+
+	t.is(pr.getStage().getId(), "initial", "Back on the initial stage after reset");
+});
+
+test("reset: clears the frozen source reader", (t) => {
+	const frozenReader = {name: "frozen-cas-reader"};
+	const {pr} = createProjectResources({frozenSourceReader: frozenReader});
+
+	const reader1 = pr.getReader();
+	pr.reset();
+	const reader2 = pr.getReader();
+
+	t.not(reader1, reader2, "Reader was recreated after reset (frozen reader dropped)");
+});
+
 test("Frozen source reader takes priority over filesystem source reader", async (t) => {
 	const resourcePath = "/resources/test/some.js";
 	const filesystemContent = "filesystem content";
