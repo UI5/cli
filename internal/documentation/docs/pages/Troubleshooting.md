@@ -43,7 +43,7 @@ The command removes the following cached data:
 - **Build cache (DB)** — build data (`~/.ui5/buildCache/`)
 - **Orphaned framework data** — incomplete framework directories left over from previously interrupted cleanup operations (`~/.ui5/.framework_to_delete_*/`)
 
-Any missing framework dependencies are downloaded during the next UI5 CLI invocation.
+Any required framework dependencies will be re-downloaded during the next UI5 CLI invocation.
 
 ::: info
 If you have configured a custom data directory via `UI5_DATA_DIR` or `ui5 config set ui5DataDir`, the `ui5 cache clean` command will clean up that location instead of the default `~/.ui5/`. See [Changing UI5 CLI's Data Directory](#changing-ui5-cli-s-data-directory).
