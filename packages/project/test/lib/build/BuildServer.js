@@ -22,7 +22,7 @@ async function drainUntil(clock, statusEvents, predicate, {maxTicks = 100} = {})
 // Graph with a single library dependency behind the root project. Used by the
 // BUILDING → VALIDATING → … tests to leave one INITIAL project after the build
 // cycle, which is the trigger for the post-build validation pass.
-function makeGraphWithLib() {
+function makeGraphWithLib(sinon) {
 	const rootProject = {getName: () => "root.project"};
 	const libProject = {getName: () => "library.x"};
 	const graph = {
@@ -34,6 +34,7 @@ function makeGraphWithLib() {
 			yield {project: rootProject};
 			yield {project: libProject};
 		},
+		destroy: sinon ? sinon.stub() : () => {},
 	};
 	return {rootProject, libProject, graph};
 }
@@ -341,7 +342,7 @@ test.serial(
 
 		// Augment the graph with a single library dependency so the build cycle leaves
 		// one INITIAL project behind, which is exactly the trigger for VALIDATING.
-		const {graph} = makeGraphWithLib();
+		const {graph} = makeGraphWithLib(sinon);
 
 		// validateCaches: report library.x's cache as fresh — usesCache=true triggers the
 		// promote-to-FRESH path that closes out the validation pass with no stale projects.
@@ -394,7 +395,7 @@ test.serial(
 	"serve-status: VALIDATING → STALE when validation finds a stale cache", async (t) => {
 		const {BuildServer, sinon, clock} = t.context;
 
-		const {graph} = makeGraphWithLib();
+		const {graph} = makeGraphWithLib(sinon);
 
 		// usesCache=false → project must stay INITIAL → final state is STALE.
 		const projectBuilder = {
@@ -447,6 +448,7 @@ test.serial(
 				yield {project: rootProject};
 				yield {project: libProject};
 			},
+			destroy: sinon.stub(),
 		};
 
 		const validationError = new Error("validateCaches blew up");
@@ -508,6 +510,7 @@ test.serial(
 				yield {project: rootProject};
 				yield {project: libProject};
 			},
+			destroy: sinon.stub(),
 		};
 
 		// Hold the validation pass open so the reader request can land mid-VALIDATING.
@@ -606,6 +609,7 @@ test.serial(
 				yield {project: rootProject};
 				yield {project: libProject};
 			},
+			destroy: sinon.stub(),
 		};
 
 		let releaseValidation;
@@ -699,6 +703,7 @@ test.serial(
 				yield {project: rootProject};
 				yield {project: libProject};
 			},
+			destroy: sinon.stub(),
 		};
 
 		let releaseValidation;
@@ -791,6 +796,7 @@ test.serial(
 			traverseDependents: function* (projectName) {
 				yield {project: projectsByName[projectName]};
 			},
+			destroy: sinon.stub(),
 		};
 
 		// Track concurrent invocations of projectBuilder.build. The second
