@@ -9,24 +9,25 @@ import Cache from "@ui5/project/build/cache/Cache";
 const log = getLogger("server");
 
 /**
- * Builds the Express application and its BuildServer for a project graph, without binding
- * to a port. Everything the dev server needs to answer requests is assembled here; the
- * {@link module:@ui5/server.serve} wrapper and the {@link ServeSupervisor} own the listener
- * so a graph swap can re-create the app behind a stable HTTP server.
+ * Builds the middleware-bearing router and its BuildServer for a project graph, without
+ * binding to a port and without a terminal error handler. This is the router-agnostic core
+ * shared between the {@link module:@ui5/server.serve} wrapper (via {@link buildServeApp}) and
+ * the {@link module:@ui5/server.serveMiddleware} embedding API: everything needed to answer
+ * requests is mounted onto an {@link https://expressjs.com/en/4x/api.html#router Express Router},
+ * which both an Express application and a Connect app accept via <code>use()</code>.
  *
  * @private
- * @module @ui5/server/serveApp
  * @param {@ui5/project/graph/ProjectGraph} graph Project graph
- * @param {object} config Server configuration — the resolved options passed to
- *   {@link module:@ui5/server.serve} (<code>sendSAPTargetCSP</code>, <code>simpleIndex</code>,
- *   <code>liveReload</code>, <code>serveCSPReports</code>, <code>cache</code>, <code>ui5DataDir</code>,
+ * @param {object} config Server configuration — the resolved options
+ *   (<code>sendSAPTargetCSP</code>, <code>simpleIndex</code>, <code>liveReload</code>,
+ *   <code>serveCSPReports</code>, <code>cache</code>, <code>ui5DataDir</code>,
  *   <code>includedTasks</code>, <code>excludedTasks</code>), plus a stable
  *   <code>webSocketToken</code> shared across swaps
  * @param {Function} [error] Error callback invoked when the BuildServer emits an error outside
  *   of request handling
- * @returns {Promise<object>} Resolves with <code>{app, buildServer, liveReloadOptions}</code>
+ * @returns {Promise<object>} Resolves with <code>{router, buildServer, liveReloadOptions}</code>
  */
-export default async function buildServeApp(graph, config, error) {
+export async function buildServeRouter(graph, config, error) {
 	const {
 		sendSAPTargetCSP = false, simpleIndex = false, liveReload = false, serveCSPReports = false,
 		cache = Cache.Default, ui5DataDir, includedTasks, excludedTasks, webSocketToken = null,
@@ -111,12 +112,37 @@ export default async function buildServeApp(graph, config, error) {
 		}
 	});
 
+	// eslint-disable-next-line new-cap -- express.Router is a factory, not a constructor
+	const router = express.Router();
+	await middlewareManager.applyMiddleware(router);
+	return {router, buildServer, liveReloadOptions};
+}
+
+/**
+ * Builds the Express application and its BuildServer for a project graph, without binding
+ * to a port. Wraps {@link buildServeRouter} with an {@link express} application and the
+ * terminal error handler, so the {@link module:@ui5/server.serve} wrapper and the
+ * {@link ServeSupervisor} can own the listener and re-create the app behind a stable HTTP
+ * server on a graph swap. The error handler and the live-reload WebSocket server are
+ * CLI-owned concerns and stay out of the router core used by the embedding API.
+ *
+ * @private
+ * @module @ui5/server/serveApp
+ * @param {@ui5/project/graph/ProjectGraph} graph Project graph
+ * @param {object} config Server configuration — see {@link buildServeRouter}
+ * @param {Function} [error] Error callback invoked when the BuildServer emits an error outside
+ *   of request handling
+ * @returns {Promise<object>} Resolves with <code>{app, buildServer, liveReloadOptions}</code>
+ */
+export default async function buildServeApp(graph, config, error) {
+	const {router, buildServer, liveReloadOptions} = await buildServeRouter(graph, config, error);
+
 	const app = express();
-	await middlewareManager.applyMiddleware(app);
-	// Terminal error handler for the middleware chain. Registered after applyMiddleware
-	// so it sits last and intercepts every next(err) — including those from custom
-	// middleware where we can't wrap a try/catch. Threads the live-reload config in
-	// so the HTML error page can embed the live-reload client script.
+	app.use(router);
+	// Terminal error handler for the middleware chain. Registered after the router so it sits
+	// last and intercepts every next(err) — including those from custom middleware where we
+	// can't wrap a try/catch. Threads the live-reload config in so the HTML error page can
+	// embed the live-reload client script.
 	app.use(createErrorHandler({liveReload: liveReloadOptions}));
 
 	return {app, buildServer, liveReloadOptions};
