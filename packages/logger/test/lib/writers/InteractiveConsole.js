@@ -79,7 +79,7 @@ test.serial("project-framework-resolved populates the framework region", (t) => 
 	writer.disable();
 });
 
-test.serial("duplicate project-resolved throws", (t) => {
+test.serial("repeated project-resolved updates the project region in place", (t) => {
 	const {writer} = createWriter();
 
 	process.emit("ui5.project-resolved", {
@@ -87,18 +87,25 @@ test.serial("duplicate project-resolved throws", (t) => {
 		type: "application",
 		version: "1.0.0",
 	});
-
-	// The writer's model is single-root-project. A second event means the
-	// caller violated the invariant.
-	t.throws(() => {
-		process.emit("ui5.project-resolved", {
-			name: "other.app",
-			type: "application",
-			version: "2.0.0",
-		});
-	}, {
-		message: /duplicate ui5\.project-resolved/,
+	process.emit("ui5.project-framework-resolved", {
+		framework: {name: "SAPUI5", version: "1.150.0"},
 	});
+
+	// A re-init (ServeSupervisor.reinitialize) re-resolves the graph and re-emits
+	// for the same root; the framework version and type may have changed across the
+	// switch. The writer updates the region in place rather than throwing.
+	process.emit("ui5.project-resolved", {
+		name: "my.app",
+		type: "library",
+		version: "2.0.0",
+	});
+	process.emit("ui5.project-framework-resolved", {
+		framework: {name: "OpenUI5", version: "1.151.0"},
+	});
+
+	const state = writer._getStateForTest();
+	t.deepEqual(state.project.project, {name: "my.app", type: "library", version: "2.0.0"});
+	t.deepEqual(state.project.framework, {name: "OpenUI5", version: "1.151.0"});
 
 	writer.disable();
 });

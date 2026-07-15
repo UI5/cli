@@ -97,8 +97,6 @@ class InteractiveConsole {
 		stderr: {orig: null, partial: ""},
 	};
 
-	#seenProjectResolved = false;
-
 	// Bound listeners so we can `process.off` them on stop().
 	#onLog;
 	#onBuildMetadata;
@@ -369,15 +367,11 @@ class InteractiveConsole {
 	}
 
 	#handleProjectResolved(evt) {
-		if (this.#seenProjectResolved) {
-			// The writer's model is single-root-project. A second
-			// `ui5.project-resolved` event means the emitter violated that
-			// invariant, making subsequent event attribution ambiguous, so fail
-			// fast instead of trying to deduplicate.
-			throw new Error(
-				`writers/InteractiveConsole: Received duplicate ui5.project-resolved event`);
-		}
-		this.#seenProjectResolved = true;
+		// The writer's model is single-root-project, but the root can be resolved more
+		// than once in a process: `ServeSupervisor.reinitialize()` re-resolves the graph
+		// on a project-definition change (a `git checkout`, a hand-edit of ui5.yaml), and
+		// re-emits this event for the same root. A repeat updates the project region in
+		// place; framework data is updated through `ui5.project-framework-resolved`.
 		setProject(this.#projectState, evt);
 		this.#render();
 	}
