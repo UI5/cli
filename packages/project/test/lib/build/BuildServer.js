@@ -1706,6 +1706,12 @@ function makeRescanBuilder(sinon) {
 const droppedEventsError = () =>
 	new Error("Events were dropped by the FSEvents client. File system must be re-scanned.");
 
+// Recovery outcome hinges on whether the fresh WatchHandler's watch() resolves or rejects. A
+// branch switch that removed a watched source dir is absorbed inside WatchHandler itself — the
+// vanished path is skipped, so watch() resolves and recovery settles on STALE (the "recreates
+// watcher and forces a full re-scan" test below). A watch() that genuinely rejects (a present-path
+// subscribe fault, faked here via failWatchFrom) still escalates to fatal ERROR ("failure to
+// re-subscribe" below), and the loop-protection budget still trips on a persistent fault.
 test.serial(
 	"watcher-recovery: dropped-events error recreates watcher and forces a full re-scan", async (t) => {
 		const {sinon, clock, SOURCES_CHANGED_SETTLE_MS} = t.context;

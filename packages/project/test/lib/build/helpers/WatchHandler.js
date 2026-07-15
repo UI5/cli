@@ -4,14 +4,19 @@ import esmock from "esmock";
 
 let WatchHandler;
 let subscribeStub;
+let accessStub;
 
 test.before(async () => {
 	subscribeStub = sinon.stub();
+	accessStub = sinon.stub();
 	WatchHandler = await esmock("../../../../lib/build/helpers/WatchHandler.js", {
 		"@parcel/watcher": {
 			default: {
 				subscribe: subscribeStub
 			}
+		},
+		"node:fs/promises": {
+			access: accessStub
 		}
 	});
 });
@@ -19,6 +24,7 @@ test.before(async () => {
 test.afterEach.always(() => {
 	sinon.restore();
 	subscribeStub.reset();
+	accessStub.reset();
 });
 
 function createMockSubscription() {
@@ -175,7 +181,10 @@ test.serial("watch: forwards dropped-events error from watcher callback", async 
 	await handler.destroy();
 });
 
-test.serial("watch: emits error when handler throws", async (t) => {
+// A source dir moved/removed under the running watcher (e.g. git checkout) makes getVirtualPath
+// throw the unmappable-path error. The event is dropped — neither a `change` nor a fatal `error` is
+// emitted — so a branch switch does not escalate the server to terminal ERROR.
+test.serial("watch: drops event whose path no longer maps to a virtual path", async (t) => {
 	const subscription = createMockSubscription();
 	const callbackReady = captureCallback(subscription);
 
@@ -183,7 +192,8 @@ test.serial("watch: emits error when handler throws", async (t) => {
 	const project = {
 		getSourcePaths: () => ["/src"],
 		getVirtualPath: () => {
-			throw new Error("virtual path error");
+			throw new Error(
+				"Unable to convert source path /src/file.js to virtual path for project test-project");
 		},
 		getName: () => "test-project"
 	};
@@ -191,14 +201,15 @@ test.serial("watch: emits error when handler throws", async (t) => {
 	await handler.watch([project]);
 	const callback = await callbackReady;
 
-	const errorPromise = new Promise((resolve) => {
-		handler.on("error", (err) => {
-			t.is(err.message, "virtual path error");
-			resolve();
-		});
-	});
+	const changeSpy = sinon.spy();
+	const errorSpy = sinon.spy();
+	handler.on("change", changeSpy);
+	handler.on("error", errorSpy);
+
 	callback(null, [{type: "update", path: "/src/file.js"}]);
-	await errorPromise;
+
+	t.is(changeSpy.callCount, 0, "unmappable event is dropped, not forwarded as a change");
+	t.is(errorSpy.callCount, 0, "unmappable event does not escalate to a fatal error");
 	await handler.destroy();
 });
 
@@ -224,6 +235,54 @@ test.serial("watch: subscribes to each source path", async (t) => {
 	await handler.destroy();
 	t.true(subA.unsubscribe.calledOnce);
 	t.true(subB.unsubscribe.calledOnce);
+});
+
+// A branch switch can remove a watched source dir before recovery re-subscribes. parcel then
+// rejects with a bare "No such file or directory" (no code/errno), so the decision is made on
+// current disk state: a missing path is skipped rather than escalated to a fatal error.
+test.serial("watch: skips subscribe on a missing source path", async (t) => {
+	const goodSub = createMockSubscription();
+	subscribeStub.withArgs("/src").resolves(goodSub);
+	subscribeStub.withArgs("/gone").rejects(new Error("No such file or directory"));
+	// /gone no longer exists on disk; /src does.
+	accessStub.withArgs("/gone").rejects(new Error("ENOENT"));
+	accessStub.withArgs("/src").resolves();
+
+	const handler = new WatchHandler();
+	const project = {
+		getSourcePaths: () => ["/src", "/gone"],
+		getVirtualPath: (filePath) => filePath,
+		getName: () => "test-project"
+	};
+
+	const errorSpy = sinon.spy();
+	handler.on("error", errorSpy);
+
+	await t.notThrowsAsync(handler.watch([project]), "watch resolves despite the missing path");
+	t.is(errorSpy.callCount, 0, "no error emitted for a skipped missing path");
+
+	await handler.destroy();
+	t.true(goodSub.unsubscribe.calledOnce, "the surviving path was subscribed and torn down");
+});
+
+// A subscribe failure on a path that still exists is a genuine watcher fault, not a vanished
+// source dir. It must propagate so BuildServer's loop-protected recovery/escalation applies.
+test.serial("watch: rejects when subscribe fails on an existing path", async (t) => {
+	subscribeStub.withArgs("/src").rejects(new Error("EMFILE: too many open files"));
+	accessStub.withArgs("/src").resolves(); // path present → genuine fault
+
+	const handler = new WatchHandler();
+	const project = {
+		getSourcePaths: () => ["/src"],
+		getVirtualPath: (filePath) => filePath,
+		getName: () => "test-project"
+	};
+
+	await t.throwsAsync(handler.watch([project]), {
+		message: "EMFILE: too many open files"
+	}, "subscribe failure on an existing path propagates");
+
+	await handler.destroy();
 });
 
 test.serial("destroy: unsubscribes subscriptions in parallel", async (t) => {
