@@ -20,6 +20,8 @@ test("@ui5/server", async (t) => {
 	const actual = await import("@ui5/server");
 	const expected = await import("../../lib/server.js");
 	t.is(actual, expected, "Correct module exported");
+	t.is(typeof actual.serve, "function", "serve is exported");
+	t.is(typeof actual.serveMiddleware, "function", "serveMiddleware is exported");
 });
 
 // Internal modules (only to be used by @ui5/* / SAP owned packages)

@@ -111,3 +111,8 @@ export async function serve(graph, {
 		},
 	};
 }
+
+// Public API for integrating UI5's middleware into an existing HTTP server. Re-exported here
+// so it is reachable via the package's main entry alongside serve(); the @public JSDoc lives
+// on the function itself in serveMiddleware.js.
+export {default as serveMiddleware} from "./serveMiddleware.js";
