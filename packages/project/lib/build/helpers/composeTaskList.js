@@ -25,7 +25,7 @@ export default function composeTaskList(allTasks, {selfContained, jsdoc, include
 	selectedTasks.generateCachebusterInfo = false;
 	selectedTasks.generateApiIndex = false;
 	selectedTasks.generateThemeDesignerResources = false;
-	selectedTasks.generateVersionInfo = false;
+	// selectedTasks.generateVersionInfo = false; //TODO: remove properly
 
 	// Disable generateResourcesJson due to performance.
 	// When executed it analyzes each module's AST and therefore
@@ -45,7 +45,6 @@ export default function composeTaskList(allTasks, {selfContained, jsdoc, include
 		selectedTasks.generateJsdoc = true;
 		selectedTasks.executeJsdocSdkTransformation = true;
 		selectedTasks.generateApiIndex = true;
-		selectedTasks.generateVersionInfo = true;
 
 		// Include theme build as required for SDK
 		selectedTasks.buildThemes = true;
