@@ -22,7 +22,7 @@ import {
 } from "../../../../lib/writers/interactiveConsole/state/build.js";
 import {createHeaderState, setTool} from
 	"../../../../lib/writers/interactiveConsole/state/header.js";
-import {createProjectState, setProject, setFramework, enableProjectPlaceholders} from
+import {createProjectState, setProject, setFramework, enableProjectPlaceholders, setVersionResolving} from
 	"../../../../lib/writers/interactiveConsole/state/project.js";
 import {createServerState, setListening, enableServerPlaceholders} from
 	"../../../../lib/writers/interactiveConsole/state/server.js";
@@ -126,6 +126,32 @@ test("renderProjectRegion: project rendered without type/version still includes 
 	const plain = renderProjectRegion(state).map(stripAnsi).join("\n");
 	t.regex(plain, /Project\s+bare\.project/);
 	t.notRegex(plain, /bare\.project\s+\(/, "no type marker is rendered when type is absent");
+});
+
+test("renderProjectRegion: version slot shows a placeholder while resolving, name and type stay", (t) => {
+	const state = createProjectState();
+	setProject(state, {
+		name: "my.app",
+		type: "application",
+		version: "1.0.0",
+	});
+	setFramework(state, {name: "SAPUI5", version: "1.150.0"});
+	setVersionResolving(state);
+	const plain = renderProjectRegion(state).map(stripAnsi).join("\n");
+	t.regex(plain, /Project\s+my\.app\s+\(application\)\s+resolving…/, "name and type stay, version is a placeholder");
+	t.notRegex(plain, /v1\.0\.0/, "the stale project version is not shown while resolving");
+	// The framework version goes stale alongside it — placeholdered, name kept.
+	t.regex(plain, /Framework\s+SAPUI5\s+resolving…/, "framework name stays, its version is a placeholder");
+	t.notRegex(plain, /1\.150\.0/, "the stale framework version is not shown while resolving");
+});
+
+test("renderProjectRegion: resolving over a frameworkless project placeholders only the project version", (t) => {
+	const state = createProjectState();
+	setProject(state, {name: "my.app", type: "application", version: "1.0.0"});
+	setVersionResolving(state);
+	const plain = renderProjectRegion(state).map(stripAnsi).join("\n");
+	t.regex(plain, /Project\s+my\.app\s+\(application\)\s+resolving…/);
+	t.notRegex(plain, /Framework/, "no Framework row is invented while resolving");
 });
 
 // ---- renderServerRegion -------------------------------------------------------

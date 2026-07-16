@@ -45,8 +45,14 @@ export function renderProjectRegion(projectState) {
 	if (projectState.project) {
 		const project = projectState.project;
 		const framework = projectState.framework;
+		const resolving = projectState.versionResolving;
 		const projectType = project.type ? chalk.dim(`(${project.type})`) : "";
-		const projectVersion = project.version ? chalk.dim("v" + project.version) : "";
+		// While a re-resolve is pending, the version is about to change — show a
+		// placeholder in its slot rather than the stale value. The name and type
+		// keep showing so the region does not collapse.
+		const projectVersion = resolving ?
+			placeholder("resolving…") :
+			(project.version ? chalk.dim("v" + project.version) : "");
 		lines.push(`${chalk.dim("Project")}   ${chalk.bold(project.name)}` +
 			(projectType ? `  ${projectType}` : "") +
 			(projectVersion ? `  ${projectVersion}` : ""));
@@ -56,8 +62,14 @@ export function renderProjectRegion(projectState) {
 		// making "(none)" misleading; omitting the row also avoids a stale
 		// "Framework resolving…" placeholder flashing before it disappears.
 		if (framework?.name) {
-			const frameworkVersion = framework.version ? ` ${framework.version}` : "";
-			lines.push(`${chalk.dim("Framework")} ${chalk.bold(framework.name + frameworkVersion)}`);
+			if (resolving) {
+				// The framework version goes stale alongside the project version
+				// on a branch switch — placeholder it too, keeping the name.
+				lines.push(`${chalk.dim("Framework")} ${chalk.bold(framework.name)} ${placeholder("resolving…")}`);
+			} else {
+				const frameworkVersion = framework.version ? ` ${framework.version}` : "";
+				lines.push(`${chalk.dim("Framework")} ${chalk.bold(framework.name + frameworkVersion)}`);
+			}
 		}
 	} else {
 		// Placeholder mode: reserve only the Project row. The Framework row is

@@ -110,6 +110,59 @@ test.serial("repeated project-resolved updates the project region in place", (t)
 	writer.disable();
 });
 
+test.serial("project-resolving shows a version placeholder, project-resolved clears it", (t) => {
+	const {writer, stderr} = createWriter();
+
+	process.emit("ui5.project-resolved", {
+		name: "my.app",
+		type: "application",
+		version: "1.0.0",
+	});
+	process.emit("ui5.project-framework-resolved", {
+		framework: {name: "SAPUI5", version: "1.150.0"},
+	});
+
+	// A definition change is coming (a branch switch): the version is stale and
+	// about to change, so the version slots render a placeholder in place.
+	process.emit("ui5.project-resolving");
+	t.true(writer._getStateForTest().project.versionResolving);
+	let output = stripAnsi(stderr.writes.join(""));
+	t.regex(output, /Project\s+my\.app\s+\(application\)\s+resolving…/, "version slot shows the placeholder");
+
+	// The completed resolve arrives and replaces the placeholder with the new version.
+	process.emit("ui5.project-resolved", {
+		name: "my.app",
+		type: "application",
+		version: "2.0.0",
+	});
+	process.emit("ui5.project-framework-resolved", {
+		framework: {name: "SAPUI5", version: "1.151.0"},
+	});
+	t.false(writer._getStateForTest().project.versionResolving, "a completed resolve clears the placeholder");
+	output = stripAnsi(stderr.writes.join(""));
+	t.regex(output, /v2\.0\.0/, "the new version is shown after resolve");
+
+	writer.disable();
+});
+
+test.serial("project-resolve-failed clears the placeholder back to the last-known version", (t) => {
+	const {writer} = createWriter();
+
+	process.emit("ui5.project-resolved", {
+		name: "my.app", type: "application", version: "1.0.0",
+	});
+	process.emit("ui5.project-resolving");
+	t.true(writer._getStateForTest().project.versionResolving);
+
+	// A re-resolve was abandoned without a project-resolved (e.g. a failed graph
+	// resolution): the placeholder is released, falling back to the last version.
+	process.emit("ui5.project-resolve-failed");
+	t.false(writer._getStateForTest().project.versionResolving);
+	t.is(writer._getStateForTest().project.project.version, "1.0.0", "last-known version is retained");
+
+	writer.disable();
+});
+
 test.serial("server-listening populates the server region", (t) => {
 	const {writer} = createWriter();
 

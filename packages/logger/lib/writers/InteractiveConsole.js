@@ -9,6 +9,8 @@ import {
 	setProject,
 	setFramework,
 	enableProjectPlaceholders,
+	setVersionResolving,
+	clearVersionResolving,
 } from "./interactiveConsole/state/project.js";
 import {createServerState, setListening, enableServerPlaceholders} from "./interactiveConsole/state/server.js";
 import {
@@ -107,6 +109,8 @@ class InteractiveConsole {
 	#onToolMode;
 	#onProjectResolved;
 	#onProjectFrameworkResolved;
+	#onProjectResolving;
+	#onProjectResolveFailed;
 	#onServerListening;
 	#onStopConsole;
 	#onResize;
@@ -297,6 +301,8 @@ class InteractiveConsole {
 		this.#onToolMode = (evt) => this.#handleToolMode(evt);
 		this.#onProjectResolved = (evt) => this.#handleProjectResolved(evt);
 		this.#onProjectFrameworkResolved = (evt) => this.#handleProjectFrameworkResolved(evt);
+		this.#onProjectResolving = () => this.#handleProjectResolving();
+		this.#onProjectResolveFailed = () => this.#handleProjectResolveFailed();
 		this.#onServerListening = (evt) => this.#handleServerListening(evt);
 		this.#onStopConsole = () => this.disable();
 		this.#onResize = () => this.#handleResize();
@@ -310,6 +316,8 @@ class InteractiveConsole {
 		process.on("ui5.tool-mode", this.#onToolMode);
 		process.on("ui5.project-resolved", this.#onProjectResolved);
 		process.on("ui5.project-framework-resolved", this.#onProjectFrameworkResolved);
+		process.on("ui5.project-resolving", this.#onProjectResolving);
+		process.on("ui5.project-resolve-failed", this.#onProjectResolveFailed);
 		process.on("ui5.server-listening", this.#onServerListening);
 		process.on("ui5.log.stop-console", this.#onStopConsole);
 		if (typeof this.#stderr.on === "function") {
@@ -327,6 +335,8 @@ class InteractiveConsole {
 		process.off("ui5.tool-mode", this.#onToolMode);
 		process.off("ui5.project-resolved", this.#onProjectResolved);
 		process.off("ui5.project-framework-resolved", this.#onProjectFrameworkResolved);
+		process.off("ui5.project-resolving", this.#onProjectResolving);
+		process.off("ui5.project-resolve-failed", this.#onProjectResolveFailed);
 		process.off("ui5.server-listening", this.#onServerListening);
 		process.off("ui5.log.stop-console", this.#onStopConsole);
 		if (typeof this.#stderr.off === "function") {
@@ -378,6 +388,21 @@ class InteractiveConsole {
 
 	#handleProjectFrameworkResolved({framework}) {
 		setFramework(this.#projectState, framework);
+		this.#render();
+	}
+
+	// A definition change is coming: blank the version slot(s) to a "resolving…" placeholder. A
+	// completed resolve arrives as `ui5.project-resolved` and repopulates them via
+	// #handleProjectResolved; an abandoned/failed resolve arrives as `ui5.project-resolve-failed`.
+	#handleProjectResolving() {
+		setVersionResolving(this.#projectState);
+		this.#render();
+	}
+
+	// A re-resolve was abandoned or failed without a completing `ui5.project-resolved`: release the
+	// placeholder back to the last-known version rather than leaving it on "resolving…".
+	#handleProjectResolveFailed() {
+		clearVersionResolving(this.#projectState);
 		this.#render();
 	}
 

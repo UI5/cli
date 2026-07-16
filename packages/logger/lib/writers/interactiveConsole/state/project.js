@@ -9,11 +9,19 @@ export function createProjectState() {
 		// of real data. Enabled by `ui5.tool-mode` before the graph is built so
 		// the layout is stable from the very first frame.
 		showPlaceholders: false,
+		// When true, the version slot(s) render a dim "resolving…" placeholder while the
+		// project name and type keep showing. Enabled by `ui5.project-resolving` once a
+		// definition change is known to be coming (a `git checkout`, a ui5.yaml edit) and the
+		// resolved version is about to change. `setProject` clears it; a failed re-resolve
+		// releases it via `clearVersionResolving`.
+		versionResolving: false,
 	};
 }
 
 export function setProject(state, evt) {
 	state.project = {name: evt.name, type: evt.type, version: evt.version};
+	// A resolve completed: drop the placeholder in favour of the new version.
+	state.versionResolving = false;
 }
 
 export function setFramework(state, framework) {
@@ -25,4 +33,15 @@ export function setFramework(state, framework) {
 
 export function enableProjectPlaceholders(state) {
 	state.showPlaceholders = true;
+}
+
+// Blanks the version slot(s) to a "resolving…" placeholder: a re-resolve is coming.
+export function setVersionResolving(state) {
+	state.versionResolving = true;
+}
+
+// Releases the placeholder back to the last-known version: a re-resolve was abandoned or failed
+// without a completing `ui5.project-resolved`.
+export function clearVersionResolving(state) {
+	state.versionResolving = false;
 }
