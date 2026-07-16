@@ -82,7 +82,7 @@ test.beforeEach(async (t) => {
 			getLogger: sinon.stub().withArgs("graph:ProjectGraph").returns(t.context.log)
 		},
 		"../../../lib/utils/lock.js": {
-			acquireLockSync: sinon.stub().returns(() => {}),
+			acquireLock: sinon.stub().resolves(() => {}),
 			getLockDir: sinon.stub().returns("/test/locks"),
 			CLEANUP_LOCK_NAME: "cache-cleanup.lock",
 			hasActiveLocks: sinon.stub().resolves(false),
@@ -2036,12 +2036,12 @@ test.serial("_preventCacheClean(): calling it multiple times reuses the same loc
 	const sinon = t.context.sinon;
 
 	const releaseSpy = sinon.spy();
-	const acquireLockSyncStub = sinon.stub().returns(releaseSpy);
+	const acquireLockStub = sinon.stub().resolves(releaseSpy);
 
 	const ProjectGraph = await esmock.p("../../../lib/graph/ProjectGraph.js", {
 		"@ui5/logger": {getLogger: sinon.stub().returns(t.context.log)},
 		"../../../lib/utils/lock.js": {
-			acquireLockSync: acquireLockSyncStub,
+			acquireLock: acquireLockStub,
 			getLockDir: sinon.stub().returns("/test/locks"),
 			CLEANUP_LOCK_NAME: "cache-cleanup.lock",
 			hasActiveLocks: sinon.stub().resolves(false),
@@ -2054,8 +2054,8 @@ test.serial("_preventCacheClean(): calling it multiple times reuses the same loc
 	await graph._preventCacheClean();
 	await graph._preventCacheClean();
 
-	t.is(acquireLockSyncStub.callCount, 1,
-		"acquireLockSync called exactly once — subsequent calls reuse the existing lock");
+	t.is(acquireLockStub.callCount, 1,
+		"acquireLock called exactly once — subsequent calls reuse the existing lock");
 	t.is(releaseSpy.callCount, 0, "lock not released between calls");
 
 	esmock.purge(ProjectGraph);
@@ -2065,12 +2065,12 @@ test.serial("_preventCacheClean(): after destroy() releases the lock, a new call
 	const sinon = t.context.sinon;
 
 	const releaseSpy = sinon.spy();
-	const acquireLockSyncStub = sinon.stub().returns(releaseSpy);
+	const acquireLockStub = sinon.stub().resolves(releaseSpy);
 
 	const ProjectGraph = await esmock.p("../../../lib/graph/ProjectGraph.js", {
 		"@ui5/logger": {getLogger: sinon.stub().returns(t.context.log)},
 		"../../../lib/utils/lock.js": {
-			acquireLockSync: acquireLockSyncStub,
+			acquireLock: acquireLockStub,
 			getLockDir: sinon.stub().returns("/test/locks"),
 			CLEANUP_LOCK_NAME: "cache-cleanup.lock",
 			hasActiveLocks: sinon.stub().resolves(false),
@@ -2081,11 +2081,11 @@ test.serial("_preventCacheClean(): after destroy() releases the lock, a new call
 
 	// First acquisition
 	await graph._preventCacheClean();
-	t.is(acquireLockSyncStub.callCount, 1, "lock acquired on first call");
+	t.is(acquireLockStub.callCount, 1, "lock acquired on first call");
 
 	// Repeated call — still the same lock, not re-acquired
 	await graph._preventCacheClean();
-	t.is(acquireLockSyncStub.callCount, 1, "no second acquisition while lock is held");
+	t.is(acquireLockStub.callCount, 1, "no second acquisition while lock is held");
 
 	// Release via destroy()
 	graph.destroy();
@@ -2093,7 +2093,7 @@ test.serial("_preventCacheClean(): after destroy() releases the lock, a new call
 
 	// After release, _preventCacheClean() must acquire a fresh lock
 	await graph._preventCacheClean();
-	t.is(acquireLockSyncStub.callCount, 2,
+	t.is(acquireLockStub.callCount, 2,
 		"new lock acquired after destroy() — lock is not held anymore");
 
 	esmock.purge(ProjectGraph);

@@ -4,7 +4,7 @@ import OutputStyleEnum from "../build/helpers/ProjectBuilderOutputStyle.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:ProjectGraph");
 import Cache from "../../../project/lib/build/cache/Cache.js";
-import {acquireLockSync, CLEANUP_LOCK_NAME, hasActiveLocks, getLockDir} from "../utils/lock.js";
+import {CLEANUP_LOCK_NAME, hasActiveLocks, getLockDir, acquireLock} from "../utils/lock.js";
 
 
 /**
@@ -732,7 +732,7 @@ class ProjectGraph {
 		// Only then check whether a cache clean is already in progress — this order closes the race window.
 		const lockId = Buffer.from(getRandomValues(new Uint8Array(4))).toString("hex");
 		const lockPath = path.join(lockDir, `graph-${process.pid}-${lockId}.lock`);
-		this.#lockRelease = acquireLockSync(lockPath);
+		this.#lockRelease = await acquireLock(lockPath);
 
 		// Poll until any in-progress cache clean releases its lock, or we time out.
 		const POLL_INTERVAL_MS = 200;
