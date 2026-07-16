@@ -252,6 +252,61 @@ test.serial("settle: a burst within the window emits definitionChanged exactly o
 	await watcher.destroy();
 });
 
+test.serial("leading edge: definitionChanging fires once on the first event of a burst, before definitionChanged",
+	async (t) => {
+		captureCallbacks();
+		const graph = createGraph({name: "root", rootPath: "/app"});
+		const watcher = await DefinitionWatcher.create({graph});
+		const callback = subscribeStub.firstCall.args[1];
+
+		const changing = [];
+		const changed = [];
+		watcher.on("definitionChanging", (e) => changing.push(e));
+		watcher.on("definitionChanged", (e) => changed.push(e));
+
+		const clock = sinon.useFakeTimers();
+		// First watched event of a burst: definitionChanging fires immediately, definitionChanged does not.
+		callback(null, [{type: "update", path: "/app/ui5.yaml"}]);
+		t.is(changing.length, 1, "definitionChanging fires on the leading edge");
+		t.deepEqual(changing[0], {eventType: "update", filePath: "/app/ui5.yaml"});
+		t.is(changed.length, 0, "definitionChanged has not fired yet");
+
+		// Further events within the window do not re-fire definitionChanging.
+		clock.tick(200);
+		callback(null, [{type: "update", path: "/app/package.json"}]);
+		t.is(changing.length, 1, "definitionChanging fires once per burst, not per event");
+
+		// Once quiet, definitionChanged fires once.
+		clock.tick(600);
+		t.is(changed.length, 1, "definitionChanged fires after the settle window");
+
+		// A separate, later burst re-arms the leading edge.
+		callback(null, [{type: "update", path: "/app/ui5.yaml"}]);
+		t.is(changing.length, 2, "a new burst fires definitionChanging again");
+		clock.tick(600);
+		clock.restore();
+
+		await watcher.destroy();
+	});
+
+test.serial("leading edge: a filtered (non-definition) event does not fire definitionChanging", async (t) => {
+	captureCallbacks();
+	const graph = createGraph({name: "root", rootPath: "/app"});
+	const watcher = await DefinitionWatcher.create({graph});
+	const callback = subscribeStub.firstCall.args[1];
+
+	const changing = [];
+	watcher.on("definitionChanging", (e) => changing.push(e));
+
+	const clock = sinon.useFakeTimers();
+	callback(null, [{type: "update", path: "/app/src/main.js"}]);
+	clock.tick(600);
+	clock.restore();
+
+	t.is(changing.length, 0, "a non-definition file does not fire the leading edge");
+	await watcher.destroy();
+});
+
 test.serial("recovery: a watcher error tears down and re-subscribes", async (t) => {
 	const sub1 = createMockSubscription();
 	const sub2 = createMockSubscription();

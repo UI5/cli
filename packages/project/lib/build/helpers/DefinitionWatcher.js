@@ -9,32 +9,32 @@ const WORKSPACE_CONFIG_DEFAULT = "ui5-workspace.yaml";
 
 // Settle window for the `definitionChanged` event, in milliseconds.
 //
-// A `git checkout` or a branch switch writes ui5.yaml + package.json + sources within one
+// A `git checkout` or branch switch writes ui5.yaml + package.json + sources within one
 // operation; @parcel/watcher delivers that as batches up to its MAX_WAIT_TIME (500 ms) apart.
-// A trailing timer, reset on each further event, collapses the whole burst into a single emit.
-// Unlike the live-reload `sourcesChanged` emit, a re-init has no need for a leading edge — it is
-// wasteful to re-create the serving stack on the first byte of a checkout — so this window is
-// trailing-only. The value mirrors BuildServer's SOURCES_CHANGED_SETTLE_MS and must stay above
-// the 500 ms watcher cap so each batch resets the window rather than terminating it.
+// A trailing timer, reset on each further event, collapses the burst into a single emit. A
+// re-init needs no leading edge (re-creating the serving stack on the first byte of a checkout
+// is wasteful), so this window is trailing-only. Mirrors BuildServer's SOURCES_CHANGED_SETTLE_MS
+// and must stay above the 500 ms cap so each batch resets the window rather than terminating it.
 const DEFINITION_CHANGED_SETTLE_MS = 550;
 
-// Loop protection for watcher recovery. A persistently failing watcher would otherwise cycle
-// error → recover → error indefinitely. If more than WATCHER_RECOVERY_MAX_ATTEMPTS recoveries
-// complete within WATCHER_RECOVERY_WINDOW_MS, the watcher is treated as unrecoverable and a
-// terminal "error" is emitted. This budget is the DefinitionWatcher's own — independent of the
-// source WatchHandler's recovery inside BuildServer.
+// Loop protection for watcher recovery, so a persistently failing watcher does not cycle
+// error → recover → error forever. More than WATCHER_RECOVERY_MAX_ATTEMPTS recoveries within
+// WATCHER_RECOVERY_WINDOW_MS is treated as unrecoverable and emits a terminal "error". This
+// budget is the DefinitionWatcher's own, independent of the source WatchHandler's in BuildServer.
 const WATCHER_RECOVERY_MAX_ATTEMPTS = 5;
 const WATCHER_RECOVERY_WINDOW_MS = 60000;
 
 /**
- * Watches the project-definition files (ui5.yaml, package.json, the workspace config, and — in
- * static-graph mode — the dependency-definition file) and emits a settled, coalesced
- * <code>definitionChanged</code> when one changes.
+ * Watches the project-definition files (ui5.yaml, package.json, the workspace config, and, in
+ * static-graph mode, the dependency-definition file) and emits a settled, coalesced
+ * <code>definitionChanged</code> when one changes. A <code>definitionChanging</code> fires on the
+ * leading edge of a burst (the first watched event, before the settle window) so an owner can react
+ * to a pending change ahead of the coalesced <code>definitionChanged</code>.
  *
  * Separate from the source {@link WatchHandler}: source events drive incremental rebuilds inside
- * the BuildServer, definition events drive a full re-init of the serving stack above it. The
- * watch model is include-based — @parcel/watcher subscribes to each distinct directory and the
- * change callback drops every event whose path is not in the resolved definition-file set. The
+ * the BuildServer, definition events drive a full re-init of the serving stack above it. The watch
+ * model is include-based: @parcel/watcher subscribes to each distinct directory and the change
+ * callback drops every event whose path is not in the resolved definition-file set. The
  * <code>node_modules</code>/<code>.git</code> ignore globs only reduce OS-level watch load;
  * correctness comes from the include set.
  *
@@ -46,8 +46,8 @@ class DefinitionWatcher extends EventEmitter {
 	// Absolute paths of the definition files to react to. The subscription callback filters
 	// against this set; everything else is dropped.
 	#watchedFiles = new Set();
-	// dir -> Set<absolute file path>: the distinct directories to subscribe, each mapped to the
-	// definition files under it. Retained so recovery can re-subscribe the same set.
+	// dir -> Set<absolute file path>: the distinct directories to subscribe, each mapped to its
+	// definition files. Retained so recovery can re-subscribe the same set.
 	#watchDirs = new Map();
 
 	#settleTimer = null;
@@ -110,13 +110,13 @@ class DefinitionWatcher extends EventEmitter {
 			}
 		});
 
-		// The workspace config lives at cwd. It may not exist yet — a create event on it is still
-		// meaningful (it can introduce workspace resolution on the next re-init).
+		// The workspace config lives at cwd. It may not exist yet; a create event on it still
+		// matters (it can introduce workspace resolution on the next re-init).
 		if (workspaceConfigPath !== undefined) {
 			add(resolve(workspaceConfigPath || WORKSPACE_CONFIG_DEFAULT));
 		}
 
-		// Static-graph mode: the dependency-definition file itself is a topology definition,
+		// Static-graph mode: the dependency-definition file is itself a topology definition;
 		// editing it changes the graph exactly like package.json does.
 		if (dependencyDefinitionPath) {
 			add(resolve(dependencyDefinitionPath));
@@ -156,6 +156,11 @@ class DefinitionWatcher extends EventEmitter {
 		this.#lastEvent = {eventType, filePath};
 		if (this.#settleTimer) {
 			clearTimeout(this.#settleTimer);
+		} else {
+			// Leading edge of a burst: a re-init (and a version change) is now known to be coming,
+			// though the trailing `definitionChanged` is still a settle window away. Owners use
+			// this to signal the pending change ahead of the re-resolve.
+			this.emit("definitionChanging", this.#lastEvent);
 		}
 		this.#settleTimer = setTimeout(() => {
 			this.#settleTimer = null;
@@ -211,7 +216,7 @@ class DefinitionWatcher extends EventEmitter {
 	}
 
 	/**
-	 * Unsubscribes all watchers. Idempotent — a second call is a no-op. Unsubscribe failures are
+	 * Unsubscribes all watchers. Idempotent; a second call is a no-op. Unsubscribe failures are
 	 * aggregated into an <code>AggregateError</code> emitted as <code>error</code>.
 	 *
 	 * @returns {Promise<void>} Resolves once every subscription has been drained
