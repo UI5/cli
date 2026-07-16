@@ -1295,6 +1295,7 @@ test("Custom task attached to a disabled task", async (t) => {
 			"generateFlexChangesBundle",
 			"generateComponentPreload",
 			"myTask",
+			"generateVersionInfo",
 		],
 		"Correct tasks execution");
 });
