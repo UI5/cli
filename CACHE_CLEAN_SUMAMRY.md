@@ -8,71 +8,15 @@ What started as a simple `rm -rf ~/.ui5/framework` replacement grew into a cross
 
 ## 1. General locking and locks concept
 
-### 1.1 Sync vs async lock
+The complete locking design is documented in [doc-process-coordination-locks.md](./doc-process-coordination-locks.md). That document covers: why file-based locks are needed (separate OS processes), why the `lockfile` package was chosen, the two lock types (graph lock and cleanup lock), their lifecycles, staleness and mtime refresh mechanics, sync vs async acquisition trade-offs, release safety rules, and open questions around `ProjectGraph` ownership and v4 backward compatibility.
 
-**Current state:** The codebase uses mostly the async variant from [`packages/project/lib/utils/lock.js`](../packages/project/lib/utils/lock.js):
+**What we struggled with and learned:**
 
-**Why sync was needed in the first place:** There are places where async
-acquire is simply not possible: constructors, synchronous methods, etc. 
-The strong side of having a synchronous lock mechanism is that it also
-locks the main thread, so there is no possibility for any race conditions.
+Locking turned out to be the hardest part of this feature. We kept discovering new unprotected windows — first only downloads, then installs, then the whole graph lifetime. The core lesson was a shift in framing: **"where to lock" is really "who holds the resource, and for how long"** — not "which function writes or deletes it." Once we identified `ProjectGraph` as the right lock owner (it holds live references for its entire lifetime), the rest followed.
 
-**The hard problem with `lockSync`:** The `lockfile` library itself makes the limitation explicit — if you pass `opts.wait` or `opts.retryWait` to `lockSync`, it throws:
+The other recurring challenge was getting release right. Every early-exit path and every async callback inside a protected section is a potential deadlock. We introduced a regression during the PR by dropping a single `await` keyword — `return callback()` instead of `return await callback()` — which released the lock before the async work finished. This kind of bug is silent and hard to spot in review.
 
-```
-'opts.wait not supported sync for obvious reasons'
-```
-
-This means a sync lock **cannot wait** for a contended lock to become free. It either acquires immediately or throws. The only mitigation is `opts.retries` (fixed-count retries, each blocking the event loop). This works only when:
-- The lock path is unique per process (no realistic contention), or
-- A brief blocking retry loop is acceptable.
-
-`ProjectGraph` uses a unique path per-process-per-instance (`graph-{pid}-{randomHex}.lock`), so contention is impossible and `retries` is not needed. But this constraint is fragile — it relies on the path being unique rather than on a genuine no-contention guarantee.
-
-**Async `lock()` advantages that sync lacks:**
-- `opts.wait` — polls for up to N ms before giving up, without blocking the event loop.
-- `opts.retryWait` — configurable delay between retries.
-- Non-blocking: other async tasks can continue while waiting.
-
-**Lesson:** Sync locks are error-prone by design — they block the event loop and cannot wait for contention to resolve. They should only be used in narrow cases where the lock path is guaranteed unique (no contention possible) and the call site is genuinely sync-only with no path to async.
-
-### 1.2 Where to lock
-
-**What we did:** The lock scope moved several times during the PR:
-- First only around per-package **downloads**.
-- Then discovered a second window: the **install** phase (copying files into the cache) was unprotected.
-- Then extended to cover the **whole `ProjectGraph` lifecycle** (construction → build/serve → destroy), because the graph holds live references to framework paths *after* download completes.
-
-The final answer: the graph is the coordination unit. `_preventCacheClean()` is called from `enrichProjectGraph` (framework resolution) and again from `build()`/`serve()` — guarded by an idempotency check so only one lock exists per instance.
-
-**Lesson:** "Where to lock" is really "what is the unit of work that holds the resource?" We kept finding new windows because we were thinking in terms of individual operations (download, install) rather than the lifetime of the consumer (the graph). The right question is *"who is using the files, and for how long?"* — not *"which function deletes/writes them?"*
-
-**Open question:** Granularity of the lock! Wouldn't it be easier to simply lock the command in `@ui5/cli` i.e. `cache clean`? But what about if some process uses the `@ui5/project`'s API standalone in parallel? This way we lock the command, but not the API itself. The answer can be found when we agree on the Lesson above.
-
-### 1.3 How to lock
-
-**What we did:** Chose the `lockfile` npm package (file-based advisory locks in `~/.ui5/locks/`) over an in-process mutex, because coordination must span **separate OS processes** (`ui5 build`, `ui5 serve`, `ui5 cache clean`, and external `@ui5/*` API consumers), not just async tasks in one process.
-
-Key mechanics we had to get right:
-- **Staleness** (`LOCK_STALE_MS = 60000`): a crashed process must not deadlock everyone forever. `hasActiveLocks` treats older-than-stale locks as dead and garbage-collects them.
-- **mtime refresh** (`LOCK_REFRESH_INTERVAL_MS = LOCK_STALE_MS * 0.6`): a long-running server would otherwise look "stale" after 60s and get its lock stolen. An interval refreshes the mtime; `interval.unref()` so it doesn't keep the process alive.
-- **Acquire-then-check ordering** (TOCTOU): the cache clean must acquire its cleanup lock *first*, then check `hasActiveLocks`, so a concurrently starting installer is guaranteed to see one of the two locks.
-
-**Lesson:** File-based cross-process locking has a surprising number of correctness traps (staleness vs. refresh vs. the check/acquire order). A from-scratch concept should treat these as first-class requirements.
-
-### 1.4 How to release to prevent deadlocks
-
-Lock release must be guaranteed regardless of how control exits a protected section. Multiple safety layers are needed because a stranded lock is worse than no lock:
-
-- **Make release idempotent** — the release function should be safe to call multiple times (e.g. from both an explicit early-exit path and a `finally` block). Without idempotency, double-release either throws or corrupts state.
-- **Always use `try/finally`** — any exception, early return, or branch that bypasses an explicit `release()` call is a latent deadlock. The `finally` block is the only reliable guarantee.
-- **Await async work inside the lock** — if the protected section is async, the `finally` must not run until the work resolves. `return callback()` inside a `try/finally` releases the lock immediately when the Promise is returned, before it settles. The correct form is `return await callback()`.
-- **Explicit release + automatic backstop** — graceful shutdown calls `release()` explicitly. Abnormal termination (signals, crashes) is covered by the `lockfile` library's signal-exit handler, which removes all known locks on process exit. Neither alone is sufficient.
-
-**Lesson:** Deadlock prevention is layered: idempotent release + `try/finally` + `await` discipline + signal-exit backstop. Each layer covers a failure mode the others miss. The `await` mistake in particular is subtle — a single dropped keyword looks harmless but silently allows concurrent access to the protected resource.
-
-**Lifecycle / cleanup ownership of `ProjectGraph`.** JS has no destructor; the graph relies on an explicit `destroy()` plus `lockfile`'s signal-exit backstop. `BuildServer` and CLI commands (`tree.js`, `build.js`) must remember to call `destroy()`. This "who calls destroy, and when" question is a real design gap that spans the whole `ProjectGraph` public API — arguably bigger than the locking topic itself.
-
+The open questions that still need team decisions are in [Unresolved Questions](./doc-process-coordination-locks.md#unresolved-questions-and-bikeshedding) of the RFC.
 ---
 
 ## 2. Performance & UX
