@@ -250,6 +250,49 @@ test("overlapping reinitialize() calls collapse into one trailing pass", async (
 	t.is(buildCalls, 3, "the trailing pass runs exactly once, sequentially");
 });
 
+test("a queued reinitialize() does not re-resolve early; the trailing pass owns the only extra resolve",
+	async (t) => {
+		const stack1 = createStack();
+		// Hold the first re-init inside buildServeApp to open an overlap window, mirroring a slow
+		// framework build on a large project.
+		const firstBuildGate = Promise.withResolvers();
+		let buildCalls = 0;
+		const {mocks} = createMocks({
+			buildServeAppImpl: async () => {
+				buildCalls++;
+				if (buildCalls === 1) {
+					return stack1; // initial build
+				}
+				if (buildCalls === 2) {
+					await firstBuildGate.promise; // first re-init: park inside the build
+				}
+				return createStack();
+			}
+		});
+		const graphFactory = sinon.stub().resolves({});
+		const {default: ServeSupervisor} = await importSupervisor(mocks);
+
+		const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+		t.is(graphFactory.callCount, 0, "no resolve on the initial build");
+
+		const p1 = supervisor.reinitialize(); // starts #swap(): resolves, then parks in buildServeApp
+		// Let the first swap reach its (blocked) build so #reinitInProgress is set.
+		await new Promise((resolve) => setImmediate(resolve));
+		t.is(graphFactory.callCount, 1, "first swap resolved the graph");
+
+		// A second definitionChanged lands while the first swap's build is still in flight. The
+		// queued branch only sets the trailing-pass flag — it must NOT resolve the graph early.
+		const p2 = supervisor.reinitialize();
+		await p2;
+		t.is(graphFactory.callCount, 1, "the queued re-init does not re-resolve while the swap builds");
+
+		// Release the first build; the trailing pass then re-resolves once for the swap it performs.
+		firstBuildGate.resolve();
+		await p1;
+		t.is(graphFactory.callCount, 2, "only the trailing pass adds a resolve");
+		t.is(buildCalls, 3, "one initial build + first swap + trailing-pass swap");
+	});
+
 test("destroy() closes live-reload, the socket, and the BuildServer; reinitialize() is then a no-op", async (t) => {
 	const stack = createStack();
 	const graphFactory = sinon.stub().resolves({});
@@ -341,6 +384,46 @@ test("a definitionChanged event triggers reinitialize()", async (t) => {
 
 	createdHandlers[0]("req", "res");
 	t.true(app2.calledOnceWithExactly("req", "res"), "definition change swapped in the new app");
+});
+
+test.serial("a definitionChanging event signals ui5.project-resolving (version-slot reset)", async (t) => {
+	const stack1 = createStack();
+	const graphFactory = sinon.stub().resolves({});
+	const {mocks, definitionWatchers} = createMocks({stacks: [stack1]});
+	const {default: ServeSupervisor} = await importSupervisor(mocks);
+
+	await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+
+	const emit = sinon.spy(process, "emit");
+	// The watcher's leading-edge event: a re-resolve is coming, blank the version slot.
+	definitionWatchers[0].emit("definitionChanging", {eventType: "update", filePath: "/app/ui5.yaml"});
+
+	const resolving = emit.getCalls().find((c) => c.args[0] === "ui5.project-resolving");
+	t.truthy(resolving, "ui5.project-resolving was emitted to reset the version slot");
+});
+
+test.serial("a failed swap releases the version placeholder via ui5.project-resolve-failed", async (t) => {
+	const stack1 = createStack();
+	let calls = 0;
+	const graphFactory = sinon.stub().resolves({});
+	const {mocks} = createMocks({
+		buildServeAppImpl: async () => {
+			calls++;
+			if (calls === 1) {
+				return stack1; // initial build
+			}
+			throw new Error("invalid ui5.yaml"); // the re-init build fails
+		}
+	});
+	const {default: ServeSupervisor} = await importSupervisor(mocks);
+
+	const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+
+	const emit = sinon.spy(process, "emit");
+	await supervisor.reinitialize();
+
+	const released = emit.getCalls().find((c) => c.args[0] === "ui5.project-resolve-failed");
+	t.truthy(released, "a failed swap emits ui5.project-resolve-failed so the placeholder does not wedge");
 });
 
 test("watcher is re-targeted to the new graph after a swap (old destroyed, new created)", async (t) => {

@@ -141,6 +141,12 @@ class ServeSupervisor extends EventEmitter {
 			graph, rootConfigPath, workspaceConfigPath, dependencyDefinitionPath, cwd,
 		});
 		watcher.on("definitionChanged", () => this.reinitialize());
+		// Leading edge of a definition-file burst: a re-resolve (and a likely version change) is
+		// coming. Blank the interactive console's version slot so the Project region shows a
+		// "resolving…" placeholder until the swap's own resolve repopulates it via
+		// `ui5.project-resolved` (or a failed swap releases it; see #swap). Attached here so it
+		// survives watcher re-targeting after each swap, mirroring the definitionChanged wiring.
+		watcher.on("definitionChanging", () => process.emit("ui5.project-resolving"));
 		watcher.on("error", (err) => log.warn(`Definition watcher error: ${err?.message ?? err}`));
 		this.#definitionWatcher = watcher;
 	}
@@ -180,6 +186,8 @@ class ServeSupervisor extends EventEmitter {
 		}
 		if (this.#reinitInProgress) {
 			// Collapse overlapping requests into one trailing pass against the settled definition.
+			// The version slot stays on the "resolving…" placeholder (armed by definitionChanging)
+			// until the trailing pass resolves and repaints it via `ui5.project-resolved`.
 			this.#reinitQueued = true;
 			return;
 		}
@@ -207,10 +215,15 @@ class ServeSupervisor extends EventEmitter {
 			if (err?.stack) {
 				log.verbose(err.stack);
 			}
+			// A failed resolve never emits `ui5.project-resolved`, so the version slot would keep
+			// the "resolving…" placeholder indefinitely. Release it back to the last-known version
+			// the old (still-serving) stack resolved. Harmless if the failure was in buildServeApp,
+			// where the resolve already repainted the slot.
+			process.emit("ui5.project-resolve-failed");
 			return;
 		}
 		if (this.#destroyed) {
-			// Destroyed while building — discard the new stack instead of adopting it.
+			// Destroyed while building: discard the new stack instead of adopting it.
 			await newStack.buildServer.destroy();
 			return;
 		}
@@ -219,8 +232,8 @@ class ServeSupervisor extends EventEmitter {
 		this.#relayFrom(newStack.buildServer);
 		this.#sourcesChangedRelay.emit("sourcesChanged");
 		// Re-target the definition watcher to the new graph: the project set or their roots may
-		// have changed. A create failure here must not crash the swap — keep serving and log,
-		// mirroring the build-failure path above; the old watcher then keeps driving re-inits.
+		// have changed. A create failure here must not crash the swap; keep serving and log,
+		// mirroring the build-failure path above, so the old watcher keeps driving re-inits.
 		const oldWatcher = this.#definitionWatcher;
 		this.#definitionWatcher = null;
 		try {
@@ -242,8 +255,8 @@ class ServeSupervisor extends EventEmitter {
 
 	/**
 	 * Stops the server: closes live-reload, the HTTP socket, and the current BuildServer.
-	 * Mirrors the tolerant teardown of the single-shot wrapper — the socket is closed even
-	 * if the BuildServer's destroy rejects.
+	 * Mirrors the tolerant teardown of the single-shot wrapper: the socket is closed even if
+	 * the BuildServer's destroy rejects.
 	 *
 	 * @param {Function} [callback] Invoked once the HTTP server has closed
 	 * @returns {Promise<void>} Resolves once teardown completes
@@ -251,7 +264,7 @@ class ServeSupervisor extends EventEmitter {
 	async destroy(callback) {
 		this.#destroyed = true;
 		// Stop the definition watcher early so a late event cannot start a re-init mid-teardown.
-		// The reinitialize() #destroyed guard already no-ops such an event; this is belt-and-braces.
+		// The reinitialize() #destroyed guard already no-ops such an event; this is defensive.
 		const definitionWatcher = this.#definitionWatcher;
 		this.#definitionWatcher = null;
 		this.#liveReloadHandle?.close();
