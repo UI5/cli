@@ -1,6 +1,5 @@
 import path from "node:path";
-import os from "node:os";
-import Configuration from "../../config/Configuration.js";
+import {resolveUi5DataDir} from "../../utils/dataDir.js";
 import {getLogger} from "@ui5/logger";
 import BuildCacheStorage from "./BuildCacheStorage.js";
 
@@ -73,17 +72,9 @@ export default class CacheManager {
 	 */
 	static async create(cwd, {ui5DataDir} = {}) {
 		if (!ui5DataDir) {
-			// ENV var should take precedence over the dataDir from the configuration.
-			ui5DataDir = process.env.UI5_DATA_DIR;
-			if (!ui5DataDir) {
-				const config = await Configuration.fromFile();
-				ui5DataDir = config.getUi5DataDir();
-			}
-		}
-		if (ui5DataDir) {
-			ui5DataDir = path.resolve(cwd, ui5DataDir);
+			ui5DataDir = await resolveUi5DataDir({projectRootPath: cwd});
 		} else {
-			ui5DataDir = path.join(os.homedir(), ".ui5");
+			ui5DataDir = path.resolve(cwd, ui5DataDir);
 		}
 		const cacheDir = path.join(ui5DataDir, "buildCache");
 		log.verbose(`Using build cache directory: ${cacheDir}`);

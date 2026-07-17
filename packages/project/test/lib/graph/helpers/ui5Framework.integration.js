@@ -135,7 +135,10 @@ test.beforeEach(async (t) => {
 		"../../../../lib/graph/Module.js": t.context.Module,
 		"../../../../lib/ui5Framework/Openui5Resolver.js": t.context.Openui5Resolver,
 		"../../../../lib/ui5Framework/Sapui5Resolver.js": t.context.Sapui5Resolver,
-		"../../../../lib/config/Configuration.js": t.context.Configuration
+		"../../../../lib/config/Configuration.js": t.context.Configuration,
+		"../../../../lib/utils/dataDir.js": {
+			resolveUi5DataDir: sinon.stub().resolves(path.join(fakeBaseDir, "homedir", ".ui5"))
+		}
 	});
 
 	t.context.projectGraphBuilder = await esmock.p("../../../../lib/graph/projectGraphBuilder.js", {
