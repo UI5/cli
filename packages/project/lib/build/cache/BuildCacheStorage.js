@@ -512,6 +512,46 @@ export default class BuildCacheStorage {
 	}
 
 	/**
+	 * Clears all records from all tables and runs VACUUM.
+	 * Returns the number of bytes freed.
+	 *
+	 * @returns {number} Number of bytes freed
+	 */
+	clearAllRecords() {
+		const bytesBefore = this.getDatabaseSize();
+
+		this.#db.exec("BEGIN");
+		this.#db.exec("DELETE FROM content");
+		this.#db.exec("DELETE FROM index_cache");
+		this.#db.exec("DELETE FROM stage_metadata");
+		this.#db.exec("DELETE FROM task_metadata");
+		this.#db.exec("DELETE FROM result_metadata");
+		this.#db.exec("COMMIT");
+		this.#db.exec("VACUUM");
+
+		const bytesAfter = this.getDatabaseSize();
+
+		return bytesBefore - bytesAfter;
+	}
+
+	/**
+	 * Checks if the database has any records in any table.
+	 *
+	 * @returns {boolean} True if there are any records
+	 */
+	hasRecords() {
+		const tables = ["content", "index_cache", "stage_metadata", "task_metadata", "result_metadata"];
+		for (const table of tables) {
+			const {is_populated: isPopulated} =
+				this.#db.prepare(`SELECT EXISTS(SELECT 1 FROM ${table} LIMIT 1) as is_populated`).get();
+			if (isPopulated) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Closes the database connection
 	 */
 	close() {
@@ -524,5 +564,16 @@ export default class BuildCacheStorage {
 		}
 		this.#db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
 		this.#db.close();
+	}
+
+	/**
+	 * Get the total size of the database file
+	 *
+	 * @returns {number} Database size in bytes
+	 */
+	getDatabaseSize() {
+		const pageCount = this.#db.prepare("PRAGMA page_count").get().page_count;
+		const pageSize = this.#db.prepare("PRAGMA page_size").get().page_size;
+		return pageCount * pageSize;
 	}
 }
