@@ -25,7 +25,6 @@ export default function composeTaskList(allTasks, {selfContained, jsdoc, include
 	selectedTasks.generateCachebusterInfo = false;
 	selectedTasks.generateApiIndex = false;
 	selectedTasks.generateThemeDesignerResources = false;
-	// selectedTasks.generateVersionInfo = false; //TODO: remove properly
 
 	// Disable generateResourcesJson due to performance.
 	// When executed it analyzes each module's AST and therefore
