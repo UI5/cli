@@ -23,7 +23,7 @@ jobs:
         fetch-depth: 0
 
     - name: Use Node.js LTS 22
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@v7
       with:
         node-version: 22
 
