@@ -56,9 +56,9 @@ export default function createErrorHandler({liveReload} = {}) {
 		// loads (scripts, stylesheets, XHR, fetch, images) keep the plain-text response so
 		// the browser doesn't execute an HTML error page as JavaScript.
 		if (isDocumentNavigation(req)) {
-			res.status(500);
-			res.type("text/html; charset=utf-8");
-			res.send(renderErrorPage({
+			res.statusCode = 500;
+			res.setHeader("Content-Type", "text/html; charset=utf-8");
+			res.end(renderErrorPage({
 				title: "UI5 Server failed to build one or more projects",
 				message,
 				stack,
@@ -67,8 +67,8 @@ export default function createErrorHandler({liveReload} = {}) {
 			return;
 		}
 
-		res.status(500);
-		res.type("text/plain; charset=utf-8");
-		res.send(plainBody);
+		res.statusCode = 500;
+		res.setHeader("Content-Type", "text/plain; charset=utf-8");
+		res.end(plainBody);
 	};
 }

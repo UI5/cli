@@ -14,17 +14,19 @@ function mockRes() {
 		get headersSent() {
 			return state.headersSent;
 		},
-		status(code) {
+		get statusCode() {
+			return state.statusCode;
+		},
+		set statusCode(code) {
 			state.statusCode = code;
-			return this;
 		},
-		type(t) {
-			state.contentType = t;
-			return this;
+		setHeader(name, value) {
+			if (name.toLowerCase() === "content-type") {
+				state.contentType = value;
+			}
 		},
-		send(body) {
+		end(body) {
 			state.body = body;
-			return this;
 		},
 	};
 }
