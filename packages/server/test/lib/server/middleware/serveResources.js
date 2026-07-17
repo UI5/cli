@@ -25,7 +25,6 @@ function createMockResponse({headers = {}} = {}) {
 		setHeader: sinon.stub().callsFake((name, value) => {
 			headers[name] = value;
 		}),
-		send: sinon.stub(),
 		end: sinon.stub(),
 		statusCode: 200,
 	};
@@ -52,8 +51,10 @@ test.serial("Serves resource with correct Content-Type and ETag", async (t) => {
 	t.regex(res.setHeader.getCall(0).args[1], /javascript/);
 	t.is(res.setHeader.getCall(1).args[0], "ETag");
 	t.is(res.setHeader.getCall(1).args[1], etag("sha256-xyz"));
-	t.is(res.send.callCount, 1);
-	t.is(res.send.getCall(0).args[0], buffer);
+	t.is(res.end.callCount, 1);
+	t.is(res.end.getCall(0).args[0], buffer);
+	const contentLengthCall = res.setHeader.getCalls().find((c) => c.args[0] === "Content-Length");
+	t.is(contentLengthCall.args[1], buffer.length);
 });
 
 test.serial("Injects liveReload tag into HTML right after <head>", async (t) => {
@@ -78,8 +79,11 @@ test.serial("Injects liveReload tag into HTML right after <head>", async (t) => 
 	const etagCall = res.setHeader.getCalls().find((c) => c.args[0] === "ETag");
 	t.truthy(etagCall);
 	t.is(etagCall.args[1], etag(integrity + ":" + INJECT_SCRIPT_TAG));
-	t.is(res.send.callCount, 1);
-	t.is(res.send.getCall(0).args[0], html.replace("<head>", "<head>\n" + INJECT_SCRIPT_TAG));
+	t.is(res.end.callCount, 1);
+	const expectedBody = html.replace("<head>", "<head>\n" + INJECT_SCRIPT_TAG);
+	t.is(res.end.getCall(0).args[0], expectedBody);
+	const contentLengthCall = res.setHeader.getCalls().find((c) => c.args[0] === "Content-Length");
+	t.is(contentLengthCall.args[1], Buffer.byteLength(expectedBody));
 });
 
 test.serial("Injects liveReload tag after <head> with attributes", async (t) => {
@@ -100,8 +104,8 @@ test.serial("Injects liveReload tag after <head> with attributes", async (t) => 
 
 	await middleware(req, res, next);
 
-	t.is(res.send.callCount, 1);
-	t.is(res.send.getCall(0).args[0], html.replace(`<head lang="en">`, `<head lang="en">\n` + INJECT_SCRIPT_TAG));
+	t.is(res.end.callCount, 1);
+	t.is(res.end.getCall(0).args[0], html.replace(`<head lang="en">`, `<head lang="en">\n` + INJECT_SCRIPT_TAG));
 });
 
 test.serial("Injects liveReload tag after <html> when <head> is missing", async (t) => {
@@ -122,8 +126,8 @@ test.serial("Injects liveReload tag after <html> when <head> is missing", async 
 
 	await middleware(req, res, next);
 
-	t.is(res.send.callCount, 1);
-	t.is(res.send.getCall(0).args[0], html.replace("<html>", "<html>\n" + INJECT_SCRIPT_TAG));
+	t.is(res.end.callCount, 1);
+	t.is(res.end.getCall(0).args[0], html.replace("<html>", "<html>\n" + INJECT_SCRIPT_TAG));
 });
 
 test.serial("Prepends liveReload tag to HTML without <head> or <html>", async (t) => {
@@ -144,8 +148,8 @@ test.serial("Prepends liveReload tag to HTML without <head> or <html>", async (t
 
 	await middleware(req, res, next);
 
-	t.is(res.send.callCount, 1);
-	t.is(res.send.getCall(0).args[0], INJECT_SCRIPT_TAG + html);
+	t.is(res.end.callCount, 1);
+	t.is(res.end.getCall(0).args[0], INJECT_SCRIPT_TAG + html);
 });
 
 test.serial("Calls next() when resource is not found", async (t) => {
@@ -163,7 +167,7 @@ test.serial("Calls next() when resource is not found", async (t) => {
 
 	t.is(next.callCount, 1);
 	t.is(next.getCall(0).args.length, 0);
-	t.is(res.send.callCount, 0);
+	t.is(res.end.callCount, 0);
 });
 
 test.serial("Returns 304 Not Modified when client cache is fresh", async (t) => {
@@ -185,7 +189,7 @@ test.serial("Returns 304 Not Modified when client cache is fresh", async (t) => 
 
 	t.is(res.statusCode, 304);
 	t.is(res.end.callCount, 1);
-	t.is(res.send.callCount, 0);
+	t.is(res.end.getCall(0).args.length, 0);
 	t.is(next.callCount, 0);
 });
 
@@ -223,7 +227,7 @@ test.serial("Does not override existing Content-Type header", async (t) => {
 
 	const contentTypeSetCalls = res.setHeader.getCalls().filter((c) => c.args[0] === "Content-Type");
 	t.is(contentTypeSetCalls.length, 0);
-	t.is(res.send.callCount, 1);
+	t.is(res.end.callCount, 1);
 });
 
 test.serial("Uses resource integrity for ETag generation", async (t) => {
@@ -267,7 +271,7 @@ test.serial("HTML: 304 when ETag matches injected ETag", async (t) => {
 
 	t.is(res.statusCode, 304);
 	t.is(res.end.callCount, 1);
-	t.is(res.send.callCount, 0);
+	t.is(res.end.getCall(0).args.length, 0);
 });
 
 test.serial("HTML: 200 when INJECT_SCRIPT_TAG changes invalidates client ETag", async (t) => {
@@ -298,9 +302,8 @@ test.serial("HTML: 200 when INJECT_SCRIPT_TAG changes invalidates client ETag", 
 	await middleware(req, res, next);
 
 	t.not(res.statusCode, 304);
-	t.is(res.end.callCount, 0);
-	t.is(res.send.callCount, 1);
-	t.true(res.send.getCall(0).args[0].includes(newInjectTag));
+	t.is(res.end.callCount, 1);
+	t.true(res.end.getCall(0).args[0].includes(newInjectTag));
 	const etagCall = res.setHeader.getCalls().find((c) => c.args[0] === "ETag");
 	t.is(etagCall.args[1], expectedServerEtag);
 });

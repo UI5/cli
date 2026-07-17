@@ -55,9 +55,13 @@ function createMiddleware({resources, middlewareUtil, injectLiveReloadClient = f
 				// script runs. If a later script throws or hangs synchronously, a tag placed
 				// further down would never execute and the page would stay stuck — exactly
 				// when live reload is needed most.
-				res.send(injectHead(html, INJECT_SCRIPT_TAG));
+				const body = injectHead(html, INJECT_SCRIPT_TAG);
+				res.setHeader("Content-Length", Buffer.byteLength(body));
+				res.end(body);
 			} else {
-				res.send(await resource.getBuffer());
+				const body = await resource.getBuffer();
+				res.setHeader("Content-Length", body.length);
+				res.end(body);
 			}
 		} catch (err) {
 			next(err);
