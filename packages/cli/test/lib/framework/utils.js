@@ -168,7 +168,7 @@ test.serial("createFrameworkResolverInstance: Without explicit ui5DataDir (uses 
 		{
 			cwd: "my-project-path",
 			version: "<framework-version>",
-			ui5DataDir: undefined   // stub resolves undefined — tests stub contract, not real behavior
+			ui5DataDir: undefined // stub resolves undefined — tests stub contract, not real behavior
 		}
 	]);
 });
@@ -232,7 +232,7 @@ test.serial("frameworkResolverResolveVersion", async (t) => {
 		"latest",
 		{
 			cwd: "my-project-path",
-			ui5DataDir: undefined   // stub resolves undefined — tests stub contract, not real behavior
+			ui5DataDir: undefined // stub resolves undefined — tests stub contract, not real behavior
 		}
 	]);
 });
