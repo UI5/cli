@@ -30,5 +30,5 @@ export async function resolveUi5DataDir({projectRootPath} = {}) {
 	if (ui5DataDir) {
 		return path.resolve(projectRootPath ?? process.cwd(), ui5DataDir);
 	}
-	return path.join(os.homedir(), ".ui5");
+	return path.resolve(os.homedir(), ".ui5");
 }

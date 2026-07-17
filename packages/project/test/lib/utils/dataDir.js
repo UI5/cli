@@ -33,7 +33,18 @@ test.afterEach.always((t) => {
 test.serial("resolveUi5DataDir: returns ~/.ui5 when nothing is configured", async (t) => {
 	const {resolveUi5DataDir} = t.context;
 	const result = await resolveUi5DataDir();
-	t.is(result, path.join(os.homedir(), ".ui5"));
+	t.is(result, path.resolve(os.homedir(), ".ui5"));
+	t.true(path.isAbsolute(result), "default path must always be absolute");
+});
+
+test.serial("resolveUi5DataDir: default is absolute even when HOME is relative", async (t) => {
+	const {resolveUi5DataDir: resolveWithRelativeHome} = await esmock("../../../lib/utils/dataDir.js", {
+		"../../../lib/config/Configuration.js": t.context.ConfigurationStub,
+		"node:os": {...os, homedir: () => "./relative-home"}
+	});
+	const result = await resolveWithRelativeHome();
+	t.true(path.isAbsolute(result), "result must be absolute even when os.homedir() is relative");
+	esmock.purge(resolveWithRelativeHome);
 });
 
 test.serial("resolveUi5DataDir: returns value from UI5_DATA_DIR env var (absolute)", async (t) => {

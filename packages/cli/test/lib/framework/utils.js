@@ -138,7 +138,7 @@ test.serial("getFrameworkResolver: Invalid framework.name", async (t) => {
 	});
 });
 
-test.serial("createFrameworkResolverInstance: Without ui5DataDir", async (t) => {
+test.serial("createFrameworkResolverInstance: Without explicit ui5DataDir (uses resolved default)", async (t) => {
 	const {createFrameworkResolverInstance} = t.context.utils;
 	const {sinon, resolveUi5DataDirStub} = t.context;
 
@@ -168,7 +168,7 @@ test.serial("createFrameworkResolverInstance: Without ui5DataDir", async (t) => 
 		{
 			cwd: "my-project-path",
 			version: "<framework-version>",
-			ui5DataDir: undefined
+			ui5DataDir: undefined   // stub resolves undefined — tests stub contract, not real behavior
 		}
 	]);
 });
@@ -216,7 +216,7 @@ test.serial("frameworkResolverResolveVersion", async (t) => {
 	sinon.stub(t.context._utils, "getFrameworkResolver").resolves({
 		resolveVersion: resolveVersionStub
 	});
-	resolveUi5DataDirStub.resolves(undefined);
+	resolveUi5DataDirStub.resolves(undefined); // stub contract test — real resolver always returns a path
 
 	const result = await frameworkResolverResolveVersion({
 		frameworkName: "SAPUI5",
@@ -232,7 +232,7 @@ test.serial("frameworkResolverResolveVersion", async (t) => {
 		"latest",
 		{
 			cwd: "my-project-path",
-			ui5DataDir: undefined
+			ui5DataDir: undefined   // stub resolves undefined — tests stub contract, not real behavior
 		}
 	]);
 });
