@@ -42,10 +42,3 @@ Express-injected sugar. `csp.js` does this: it registers
 `packages/server/lib/middleware/liveReloadClient.js` is the reference: it serves
 its response using only `req.method`, `middlewareUtil.getPathname(req)`,
 `res.setHeader`, `res.statusCode`, and `res.end`.
-
-### Known debt — do not treat as precedent
-
-One existing middleware violates this rule and should be migrated (not copied):
-
-- `serveResources.js` uses `res.send(...)` — replace with `res.end(...)`,
-  setting `Content-Length` where needed.
