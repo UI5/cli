@@ -1,4 +1,6 @@
 import test from "ava";
+import path from "node:path";
+import os from "node:os";
 import sinonGlobal from "sinon";
 import esmock from "esmock";
 
@@ -20,7 +22,7 @@ test.beforeEach(async (t) => {
 	t.context.Openui5Resolver = sinon.stub();
 	t.context.Sapui5MavenSnapshotResolver = sinon.stub();
 
-	t.context.resolveUi5DataDirStub = sinon.stub().resolves(undefined);
+	t.context.resolveUi5DataDirStub = sinon.stub().resolves(path.join(os.homedir(), ".ui5"));
 
 	t.context.utils = await esmock.p("../../../lib/framework/utils.js", {
 		"@ui5/project/graph": {
@@ -144,7 +146,7 @@ test.serial("createFrameworkResolverInstance: Without explicit ui5DataDir (uses 
 
 	const ResolverStub = sinon.stub().returns({});
 	sinon.stub(t.context._utils, "getFrameworkResolver").resolves(ResolverStub);
-	resolveUi5DataDirStub.resolves(undefined);
+	resolveUi5DataDirStub.resolves(path.join(os.homedir(), ".ui5"));
 
 	const result = await createFrameworkResolverInstance({
 		frameworkName: "<framework-name>",
@@ -168,7 +170,7 @@ test.serial("createFrameworkResolverInstance: Without explicit ui5DataDir (uses 
 		{
 			cwd: "my-project-path",
 			version: "<framework-version>",
-			ui5DataDir: undefined // stub resolves undefined — tests stub contract, not real behavior
+			ui5DataDir: path.join(os.homedir(), ".ui5")
 		}
 	]);
 });
@@ -216,7 +218,7 @@ test.serial("frameworkResolverResolveVersion", async (t) => {
 	sinon.stub(t.context._utils, "getFrameworkResolver").resolves({
 		resolveVersion: resolveVersionStub
 	});
-	resolveUi5DataDirStub.resolves(undefined); // stub contract test — real resolver always returns a path
+	resolveUi5DataDirStub.resolves(path.join(os.homedir(), ".ui5"));
 
 	const result = await frameworkResolverResolveVersion({
 		frameworkName: "SAPUI5",
@@ -232,7 +234,7 @@ test.serial("frameworkResolverResolveVersion", async (t) => {
 		"latest",
 		{
 			cwd: "my-project-path",
-			ui5DataDir: undefined // stub resolves undefined — tests stub contract, not real behavior
+			ui5DataDir: path.join(os.homedir(), ".ui5")
 		}
 	]);
 });
