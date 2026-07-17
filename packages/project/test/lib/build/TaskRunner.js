@@ -1424,11 +1424,17 @@ test("getRequiredDependencies: Custom Task", async (t) => {
 });
 
 test("getRequiredDependencies: Default application", async (t) => {
+	// This test includes a mock project of type "application".
+	// By default, builds of this project type always contain the "generateVersionInfo" task,
+	// which requires dependencies to be built.
+
 	const project = getMockProject("application");
 	project.getBundles = () => [];
 	const taskRunner = createTaskRunner(t, project);
-	t.deepEqual(await taskRunner.getRequiredDependencies(), new Set([]),
-		"Default application project does not require dependencies");
+	t.deepEqual(await taskRunner.getRequiredDependencies(), new Set([
+		"dep.a",
+		"dep.b",
+	]), "Default application project DOES require dependencies");
 });
 
 test("getRequiredDependencies: Default component", async (t) => {
