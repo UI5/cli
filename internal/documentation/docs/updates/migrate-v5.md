@@ -328,6 +328,11 @@ The SAP Theme Designer can create custom themes based on CSS variables instead o
 
 With UI5 CLI v5, the `--experimental-css-variables` option has therefore been removed for the `ui5 build` command. For custom theme creation with CSS variables, please check out the **SAP Theme Designer**.
 
+## `sap-ui-version.json`
+
+When running `ui5 build` for projects of type `application`, the standard task [`generateVersionInfo`](../api/module-@ui5_builder_tasks_generateVersionInfo) (producing a `sap-ui-version.json` file under `resources/`) is now **executed by default**. This applies to every build type (default, jsdoc, and self-contained). For projects of other types (e.g. `library`), the behavior remains the same and [`generateVersionInfo`](../api/module-@ui5_builder_tasks_generateVersionInfo) is not executed.
+
+To see which standard tasks are executed by default, check out the [Standard Tasks](../pages/Builder#standard-tasks) table in the UI5 Builder page.
 
 ## Learn More
 
