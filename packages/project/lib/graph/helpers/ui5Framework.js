@@ -348,8 +348,7 @@ export default {
 		}
 
 		// Resolve the UI5 data directory using the shared utility.
-		// Only env var and configuration are considered — if neither is set the
-		// Resolver uses its own default (~/.ui5) via its fallback.
+		// Returns ~/.ui5 by default when no env var or configuration is set.
 		const ui5DataDir = await resolveUi5DataDir({projectRootPath: cwd});
 
 		if (options.versionOverride) {

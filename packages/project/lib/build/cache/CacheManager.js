@@ -59,9 +59,9 @@ export default class CacheManager {
 	 * Returns a singleton CacheManager for the determined cache directory.
 	 * The cache directory is resolved in this order:
 	 * 1. Explicit <code>ui5DataDir</code> option (resolved relative to cwd)
-	 * 2. UI5_DATA_DIR environment variable (resolved relative to cwd)
-	 * 3. ui5DataDir from UI5 configuration file
-	 * 4. Default: ~/.ui5/
+	 * 2. UI5_DATA_DIR environment variable or ui5DataDir from configuration file
+	 *    (resolved relative to cwd via {@link resolveUi5DataDir})
+	 * 3. Default: ~/.ui5/
 	 *
 	 * @public
 	 * @param {string} cwd Current working directory for resolving relative paths
