@@ -43,7 +43,14 @@ test.serial("resolveUi5DataDir: returns value from UI5_DATA_DIR env var (absolut
 	t.is(t.context.ConfigurationStub.fromFile.callCount, 0, "Configuration not read when env var is set");
 });
 
-test.serial("resolveUi5DataDir: resolves relative UI5_DATA_DIR env var against cwd", async (t) => {
+test.serial("resolveUi5DataDir: resolves relative UI5_DATA_DIR env var against projectRootPath", async (t) => {
+	const {resolveUi5DataDir} = t.context;
+	process.env.UI5_DATA_DIR = "relative/data";
+	const result = await resolveUi5DataDir({projectRootPath: "/my/project"});
+	t.is(result, path.join("/my/project", "relative/data"));
+});
+
+test.serial("resolveUi5DataDir: resolves relative UI5_DATA_DIR env var against process.cwd() when no projectRootPath", async (t) => {
 	const {resolveUi5DataDir} = t.context;
 	process.env.UI5_DATA_DIR = "relative/data";
 	const result = await resolveUi5DataDir();
@@ -57,7 +64,14 @@ test.serial("resolveUi5DataDir: returns value from Configuration (absolute)", as
 	t.is(result, path.resolve("/config/data/dir"));
 });
 
-test.serial("resolveUi5DataDir: resolves relative Configuration value against cwd", async (t) => {
+test.serial("resolveUi5DataDir: resolves relative Configuration value against projectRootPath", async (t) => {
+	const {resolveUi5DataDir} = t.context;
+	t.context.configGetUi5DataDirStub.returns("my-data");
+	const result = await resolveUi5DataDir({projectRootPath: "/my/project"});
+	t.is(result, path.join("/my/project", "my-data"));
+});
+
+test.serial("resolveUi5DataDir: resolves relative Configuration value against process.cwd() when no projectRootPath", async (t) => {
 	const {resolveUi5DataDir} = t.context;
 	t.context.configGetUi5DataDirStub.returns("my-data");
 	const result = await resolveUi5DataDir();
@@ -72,7 +86,7 @@ test.serial("resolveUi5DataDir: env var takes precedence over Configuration", as
 	t.is(result, path.resolve("/env/data"));
 });
 
-test.serial("resolveUi5DataDir: uses process.cwd() when cwd is not provided", async (t) => {
+test.serial("resolveUi5DataDir: uses process.cwd() when projectRootPath is not provided", async (t) => {
 	const {resolveUi5DataDir} = t.context;
 	t.context.configGetUi5DataDirStub.returns("relative/data");
 	const result = await resolveUi5DataDir();
