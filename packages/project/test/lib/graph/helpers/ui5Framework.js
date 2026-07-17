@@ -54,7 +54,7 @@ test.beforeEach(async (t) => {
 	t.context.Sapui5MavenSnapshotResolverResolveVersionStub = sinon.stub();
 	t.context.Sapui5MavenSnapshotResolverStub.resolveVersion = t.context.Sapui5MavenSnapshotResolverResolveVersionStub;
 
-	t.context.getUi5DataDirStub = sinon.stub().returns("/fake-ui5-data-dir");
+	t.context.getUi5DataDirStub = sinon.stub().returns(path.resolve("fake-ui5-data-dir"));
 
 	t.context.ConfigurationStub = {
 		fromFile: sinon.stub().resolves({
@@ -132,7 +132,7 @@ test.serial("enrichProjectGraph", async (t) => {
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: dependencyTree.configuration.framework.version,
-		ui5DataDir: "/fake-ui5-data-dir",
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 
@@ -337,7 +337,7 @@ test.serial("enrichProjectGraph: With versionOverride", async (t) => {
 	t.is(Sapui5ResolverResolveVersionStub.callCount, 1);
 	t.deepEqual(Sapui5ResolverResolveVersionStub.getCall(0).args, ["1.99", {
 		cwd: dependencyTree.path,
-		ui5DataDir: "/fake-ui5-data-dir",
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 	}]);
 
 	t.is(Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
@@ -345,7 +345,7 @@ test.serial("enrichProjectGraph: With versionOverride", async (t) => {
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: "1.99.9",
-		ui5DataDir: "/fake-ui5-data-dir",
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
@@ -399,7 +399,7 @@ test.serial("enrichProjectGraph: With versionOverride containing snapshot versio
 	t.is(Sapui5MavenSnapshotResolverResolveVersionStub.callCount, 1);
 	t.deepEqual(Sapui5MavenSnapshotResolverResolveVersionStub.getCall(0).args, ["1.99-SNAPSHOT", {
 		cwd: dependencyTree.path,
-		ui5DataDir: "/fake-ui5-data-dir",
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 	}]);
 
 	t.is(Sapui5MavenSnapshotResolverStub.callCount, 1,
@@ -408,7 +408,7 @@ test.serial("enrichProjectGraph: With versionOverride containing snapshot versio
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: "1.99.9-SNAPSHOT",
-		ui5DataDir: "/fake-ui5-data-dir",
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
@@ -462,7 +462,7 @@ test.serial("enrichProjectGraph: With versionOverride containing latest-snapshot
 	t.is(Sapui5MavenSnapshotResolverResolveVersionStub.callCount, 1);
 	t.deepEqual(Sapui5MavenSnapshotResolverResolveVersionStub.getCall(0).args, ["latest-snapshot", {
 		cwd: dependencyTree.path,
-		ui5DataDir: "/fake-ui5-data-dir",
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 	}]);
 
 	t.is(Sapui5MavenSnapshotResolverStub.callCount, 1,
@@ -471,7 +471,7 @@ test.serial("enrichProjectGraph: With versionOverride containing latest-snapshot
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: "1.99.9-SNAPSHOT",
-		ui5DataDir: "/fake-ui5-data-dir",
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
@@ -631,7 +631,7 @@ test.serial("enrichProjectGraph should resolve framework project with version an
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: "1.2.3",
-		ui5DataDir: "/fake-ui5-data-dir",
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
@@ -727,7 +727,7 @@ test.serial("enrichProjectGraph should resolve framework project " +
 	t.is(Sapui5ResolverResolveVersionStub.callCount, 1);
 	t.deepEqual(Sapui5ResolverResolveVersionStub.getCall(0).args, ["3.4.5", {
 		cwd: dependencyTree.path,
-		ui5DataDir: "/fake-ui5-data-dir",
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 	}]);
 
 	t.is(Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
@@ -736,7 +736,7 @@ test.serial("enrichProjectGraph should resolve framework project " +
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: "1.99.9",
-		ui5DataDir: "/fake-ui5-data-dir",
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
@@ -1001,7 +1001,7 @@ test.serial("enrichProjectGraph should use framework library metadata from works
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: "1.111.1",
-		ui5DataDir: "/fake-ui5-data-dir",
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 		providedLibraryMetadata: workspaceFrameworkLibraryMetadata
 	}], "Sapui5Resolver#constructor should be called with expected args");
 	t.is(Sapui5ResolverStub.getCall(0).args[0].providedLibraryMetadata, workspaceFrameworkLibraryMetadata);
@@ -1059,7 +1059,7 @@ test.serial("enrichProjectGraph should allow omitting framework version in case 
 	t.deepEqual(Sapui5ResolverStub.getCall(0).args, [{
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
-		ui5DataDir: "/fake-ui5-data-dir",
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 		version: undefined,
 		providedLibraryMetadata: workspaceFrameworkLibraryMetadata
 	}], "Sapui5Resolver#constructor should be called with expected args");
