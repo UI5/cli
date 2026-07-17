@@ -8,7 +8,6 @@ import attachLiveReloadServer from "./liveReload/server.js";
 import {createReaderCollection} from "@ui5/fs/resourceFactory";
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
 import {getLogger} from "@ui5/logger";
-import Cache from "@ui5/project/build/cache/Cache";
 
 const log = getLogger("server");
 /**
@@ -151,7 +150,7 @@ async function _addSsl({app, key, cert}) {
 export async function serve(graph, {
 	port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
 	acceptRemoteConnections = false, sendSAPTargetCSP = false,
-	simpleIndex = false, liveReload = false, serveCSPReports = false, cache = Cache.Default,
+	simpleIndex = false, liveReload = false, serveCSPReports = false, cache = "Default",
 	ui5DataDir, includedTasks, excludedTasks,
 }, error) {
 	const rootProject = graph.getRoot();
