@@ -320,6 +320,12 @@ Update your `ui5.yaml` configuration to reference an existing middleware instead
 | `serveThemes`      | CSS files pre-built by `buildThemes` task and served via `serveResources` | `serveResources` |
 | `testRunner`       | TestRunner resources served via `serveResources` from the UI5 framework | `serveResources` |
 
+## `sap-ui-version.json`
+
+When running `ui5 build` for projects of type `application`, the standard task [`generateVersionInfo`](../api/module-@ui5_builder_tasks_generateVersionInfo) (producing a `sap-ui-version.json` file under `resources/`) is now **executed by default**. This applies to every build type (default, jsdoc, and self-contained). For projects of other types (e.g. `library`), the behavior remains the same and [`generateVersionInfo`](../api/module-@ui5_builder_tasks_generateVersionInfo) is not executed.
+
+To see which standard tasks are executed by default, check out the [Standard Tasks](../pages/Builder#standard-tasks) table in the UI5 Builder page.
+
 ## Learn More
 
 - [Project: Type `component`](../pages/Project#component)
