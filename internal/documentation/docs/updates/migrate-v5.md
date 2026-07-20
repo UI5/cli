@@ -322,9 +322,9 @@ Update your `ui5.yaml` configuration to reference an existing middleware instead
 
 ## `sap-ui-version.json`
 
-When running `ui5 build` for projects of type `application`, the standard task [`generateVersionInfo`](../api/module-@ui5_builder_tasks_generateVersionInfo) (producing a `sap-ui-version.json` file under `resources/`) is now **executed by default**. This applies to every build type (default, jsdoc, and self-contained). For projects of other types (e.g. `library`), the behavior remains the same and [`generateVersionInfo`](../api/module-@ui5_builder_tasks_generateVersionInfo) is not executed.
+When running `ui5 build`, the standard task [`generateVersionInfo`](../api/module-@ui5_builder_tasks_generateVersionInfo) (producing a `sap-ui-version.json` file under `resources/`) is now **executed by default**. This applies to every build type (default, jsdoc, and self-contained) for projects of type `application`. For projects of other types (e.g. `library`), the behavior remains the same and [`generateVersionInfo`](../api/module-@ui5_builder_tasks_generateVersionInfo) is not executed.
 
-To see which standard tasks are executed by default, check out the [Standard Tasks](../pages/Builder#standard-tasks) table in the UI5 Builder page.
+To see which standard tasks are executed for each project type, check out the [Standard Tasks](../pages/Builder#standard-tasks) table in the UI5 Builder page.
 
 ## Learn More
 
