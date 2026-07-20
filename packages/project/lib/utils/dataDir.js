@@ -3,6 +3,13 @@ import os from "node:os";
 import Configuration from "../config/Configuration.js";
 
 /**
+ * Utilities for resolving the UI5 data directory.
+ *
+ * @public
+ * @module @ui5/project/utils/dataDir
+ */
+
+/**
  * Resolves the UI5 data directory using the standard precedence chain:
  * <ol>
  *   <li>UI5_DATA_DIR environment variable</li>
@@ -12,6 +19,7 @@ import Configuration from "../config/Configuration.js";
  *
  * This function always returns an absolute path — never <code>undefined</code>.
  *
+ * @public
  * @param {object} [options]
  * @param {string} [options.projectRootPath] The root directory of the project being processed.
  *   Used to resolve a relative <code>ui5DataDir</code> value from the environment variable or
