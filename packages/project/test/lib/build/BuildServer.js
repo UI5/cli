@@ -85,9 +85,19 @@ test.beforeEach(async (t) => {
 		}
 	}
 
+	// BuildReader is constructed in the BuildServer constructor. Most tests don't exercise it,
+	// but the reader-request path (#getReaderForProject → #enqueueBuild) is only reachable through
+	// the buildServerInterface handed to it. Capture that interface so tests can drive reader
+	// requests directly, mirroring what BuildReader.byPath does for a resource lookup.
+	t.context.capturedInterfaces = [];
+	class BuildReader {
+		constructor(_name, _projects, buildServerInterface) {
+			t.context.capturedInterfaces.push(buildServerInterface);
+		}
+	}
+
 	const BuildServer = (await esmock("../../../lib/build/BuildServer.js", {
-		// BuildReader is constructed in the BuildServer constructor but not exercised here.
-		"../../../lib/build/BuildReader.js": class BuildReader {},
+		"../../../lib/build/BuildReader.js": BuildReader,
 		"../../../lib/build/helpers/WatchHandler.js": FakeWatchHandler,
 	})).default;
 	t.context.BuildServer = BuildServer;
@@ -363,6 +373,69 @@ test.serial(
 		t.is(projectBuilder.build.callCount, 2, "burst collapsed to a single restarted build");
 		t.is(statusEvents[statusEvents.length - 1].status, "serve-building",
 			"SETTLING → BUILDING once the window closes and the restart fires");
+
+		// Settle the restarted build so no promise is left dangling.
+		resolvers[1]?.();
+		await clock.tickAsync(0);
+	});
+
+test.serial(
+	"abort-restart: a reader request mid-window must not pull the deferred restart forward",
+	async (t) => {
+		const {BuildServer, graph, projectBuilder, rootProject, sinon, clock, capturedInterfaces} =
+			t.context;
+		const {ABORTED_BUILD_RESTART_SETTLE_MS, BUILD_REQUEST_DEBOUNCE_MS} =
+			BuildServer.__internals__;
+		const statusEvents = makeStatusRecorder(t);
+
+		const resolvers = [];
+		projectBuilder.build = sinon.stub().callsFake((opts, cb) => new Promise((resolve, reject) => {
+			resolvers.push(() => {
+				if (opts.signal?.aborted) {
+					const err = new Error("Build aborted");
+					err.name = "AbortError";
+					reject(err);
+					return;
+				}
+				cb("root.project", {getReader: () => ({fakeReader: true})});
+				resolve(["root.project"]);
+			});
+		}));
+
+		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+		t.context.buildServer = buildServer;
+		// The interface handed to this server's BuildReaders carries #getReaderForProject — the same
+		// entry point BuildReader.byPath uses to request a project's built resources. The three
+		// readers all receive the same interface object, so any of the three just-pushed entries
+		// works; take the last one to avoid the entries recorded for the beforeEach server.
+		const {getReaderForProject} = capturedInterfaces[capturedInterfaces.length - 1];
+		await clock.tickAsync(BUILD_REQUEST_DEBOUNCE_MS);
+		t.is(projectBuilder.build.callCount, 1, "initial build started");
+
+		// A source change aborts the running build; the restart is deferred to the settle window.
+		buildServer._projectResourceChanged(rootProject, "/a.js", false);
+		resolvers[0]();
+		await clock.tickAsync(0);
+		t.is(projectBuilder.build.callCount, 1, "no restart yet — the settle window is open");
+		t.is(statusEvents[statusEvents.length - 1].status, "serve-settling",
+			"state is settling while the restart is deferred");
+
+		// A browser/live-reload request for the (now invalidated) project lands mid-window. It must
+		// wait for the settled rebuild, not provoke a build into the still-arriving burst. The
+		// request is parked; a rejection here would be an unhandled rejection, so swallow it.
+		getReaderForProject("root.project").catch(() => {});
+
+		// The burst is still in flight: the settle window has NOT elapsed. Advance past the short
+		// request debounce (well below the settle window) — no build must start.
+		await clock.tickAsync(BUILD_REQUEST_DEBOUNCE_MS);
+		t.is(projectBuilder.build.callCount, 1,
+			"a reader request must not fire a build before the deferred-restart window elapses");
+		t.is(statusEvents[statusEvents.length - 1].status, "serve-settling",
+			"still settling — the reader request did not flip the server out of the settle window");
+
+		// Only once the window fully elapses does the single deferred rebuild fire.
+		await clock.tickAsync(ABORTED_BUILD_RESTART_SETTLE_MS);
+		t.is(projectBuilder.build.callCount, 2, "single deferred rebuild after the window elapsed");
 
 		// Settle the restarted build so no promise is left dangling.
 		resolvers[1]?.();

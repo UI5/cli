@@ -654,14 +654,22 @@ class BuildServer extends EventEmitter {
 	}
 
 	/**
-	 * Enqueues a project for building and triggers the request queue at the short debounce.
+	 * Enqueues a project for building and triggers the request queue.
 	 *
-	 * Serving a request must not wait, so this always (re-)arms the queue at
+	 * Serving a request must not wait, so this normally (re-)arms the queue at
 	 * <code>BUILD_REQUEST_DEBOUNCE_MS</code> - even when the project is already queued. A reader
-	 * request thereby supersedes a deferred settle window (the post-abort/transient restart at
-	 * <code>ABORTED_BUILD_RESTART_SETTLE_MS</code>, or the first-build window at
-	 * <code>FIRST_BUILD_SETTLE_MS</code>): the parked build is pulled forward to the short debounce
-	 * rather than left waiting out the longer window.
+	 * request thereby supersedes the first-build settle window (<code>FIRST_BUILD_SETTLE_MS</code>):
+	 * the parked build is pulled forward to the short debounce rather than left waiting.
+	 *
+	 * The exception is a source-change-aborted or transiently-failed build waiting out its restart
+	 * window (<code>#pendingDeferredRestart</code>). That window exists to collapse a burst delivered
+	 * as multiple watcher batches (a <code>git checkout</code>, a save-all) into one rebuild against
+	 * the settled tree. A reader request that arrives mid-burst (as a browser's live-reload does)
+	 * must neither pull the restart forward (firing a build into a still-arriving burst) nor reset
+	 * the window (a stream of live-reload requests would defer the rebuild indefinitely). So while a
+	 * restart is deferred, leave its armed timer untouched: the request is still queued on the status
+	 * and resolves when the deferred rebuild (which processes the whole pending set) runs. The
+	 * window is reset only by further source changes (see {@link #_projectResourceChanged}).
 	 *
 	 * @param {string} projectName Name of the project to enqueue
 	 */
@@ -670,9 +678,14 @@ class BuildServer extends EventEmitter {
 			log.verbose(`Enqueuing project '${projectName}' for build`);
 			this.#pendingBuildRequest.add(projectName);
 		}
-		// Always re-arm at the default debounce: an explicit reader request supersedes any longer
-		// settle window an earlier source change may have armed.
-		this.#triggerRequestQueue();
+		if (this.#pendingDeferredRestart) {
+			// A deferred post-abort/transient restart owns the armed timer. Don't disturb it: the
+			// project is queued above and the restart will build it against the settled tree.
+			log.verbose(`Reader request for project '${projectName}' queued behind deferred restart`);
+			return;
+		}
+		// Re-arm at the default debounce: a reader request supersedes the short first-build window.
+		this.#triggerRequestQueue(BUILD_REQUEST_DEBOUNCE_MS);
 	}
 
 	#triggerRequestQueue(delay = BUILD_REQUEST_DEBOUNCE_MS) {
