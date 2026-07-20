@@ -1,7 +1,7 @@
 import path from "node:path";
-import {resolveUi5DataDir} from "../../utils/dataDir.js";
 import {getLogger} from "@ui5/logger";
 import BuildCacheStorage from "./BuildCacheStorage.js";
+import os from "node:os";
 
 const log = getLogger("build:cache:CacheManager");
 
@@ -64,18 +64,15 @@ export default class CacheManager {
 	 * 3. Default: ~/.ui5/
 	 *
 	 * @public
-	 * @param {string} cwd Current working directory for resolving relative paths
 	 * @param {object} [options]
 	 * @param {string} [options.ui5DataDir] Explicit UI5 data directory. When provided,
 	 *   environment variable, configuration file, and home-directory fallbacks are skipped.
 	 * @returns {Promise<CacheManager>} Singleton CacheManager instance for the cache directory
 	 */
-	static async create(cwd, {ui5DataDir} = {}) {
-		if (!ui5DataDir) {
-			ui5DataDir = await resolveUi5DataDir({projectRootPath: cwd});
-		} else {
-			ui5DataDir = path.resolve(cwd, ui5DataDir);
-		}
+	static async create({ui5DataDir} = {}) {
+		ui5DataDir = path.resolve(
+			ui5DataDir || path.join(os.homedir(), ".ui5")
+		);
 		const cacheDir = path.join(ui5DataDir, "buildCache");
 		log.verbose(`Using build cache directory: ${cacheDir}`);
 

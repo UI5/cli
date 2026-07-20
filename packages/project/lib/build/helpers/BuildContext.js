@@ -5,6 +5,7 @@ import {getBaseSignature} from "./getBuildSignature.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("build:helpers:BuildContext");
 import Cache from "../cache/Cache.js";
+import {resolveUi5DataDir} from "../../utils/dataDir.js";
 
 /**
  * Context of a build process
@@ -170,8 +171,9 @@ class BuildContext {
 		if (this.#cacheManager) {
 			return this.#cacheManager;
 		}
-		this.#cacheManager = await CacheManager.create(this._graph.getRoot().getRootPath(), {
-			ui5DataDir: this._ui5DataDir,
+		this.#cacheManager = await CacheManager.create({
+			ui5DataDir: this._ui5DataDir ??
+				await resolveUi5DataDir({projectRootPath: this.getRootProject().getRootPath()}),
 		});
 		return this.#cacheManager;
 	}
