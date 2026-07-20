@@ -1,6 +1,7 @@
 import path from "node:path";
 import os from "node:os";
 import Configuration from "../../config/Configuration.js";
+import {access} from "node:fs/promises";
 import {getLogger} from "@ui5/logger";
 import BuildCacheStorage from "./BuildCacheStorage.js";
 
@@ -336,5 +337,90 @@ export default class CacheManager {
 			this.#storage.close();
 			cacheManagerInstances.delete(this.#cacheDir);
 		}
+	}
+
+	/**
+	 * Checks if the cache database exists and is accessible for the given directory.
+	 *
+	 * @param {string} dbDir Path to DB
+	 * @returns {Promise<boolean>} True if the cache database exists and is accessible
+	 */
+	static async #isCacheDbAvailable(dbDir) {
+		const dbPath = path.join(dbDir, "cache.db");
+		try {
+			await access(dbPath);
+		} catch {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Get build cache info for the current version.
+	 *
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<{path: string, size: number}|null>} Build cache info or null
+	 */
+	static async getCacheInfo(ui5DataDir) {
+		const dbDir = path.join(ui5DataDir, "buildCache", CACHE_VERSION);
+		const isAvailable = await CacheManager.#isCacheDbAvailable(dbDir);
+		if (!isAvailable) {
+			return null;
+		}
+
+		const storage = new BuildCacheStorage(dbDir);
+		try {
+			if (storage.hasRecords()) {
+				const size = storage.getDatabaseSize();
+				return {
+					path: `buildCache/${CACHE_VERSION}`,
+					size,
+				};
+			}
+		} finally {
+			storage.close();
+		}
+		return null;
+	}
+
+	/**
+	 * Clean build cache by clearing all records from SQLite database for the current version.
+	 *
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<{path: string, size: number}|null>} Removal result or null
+	 */
+	static async cleanCache(ui5DataDir) {
+		const dbDir = path.join(ui5DataDir, "buildCache", CACHE_VERSION);
+		const isAvailable = await CacheManager.#isCacheDbAvailable(dbDir);
+		if (!isAvailable) {
+			return null;
+		}
+
+		const storage = new BuildCacheStorage(dbDir);
+		try {
+			if (storage.hasRecords()) {
+				const freedSize = storage.clearAllRecords();
+				return {
+					path: `buildCache/${CACHE_VERSION}`,
+					size: freedSize,
+				};
+			}
+		} finally {
+			storage.close();
+		}
+		return null;
+	}
+
+	/**
+	 * Clean additional build cache resources that are safe to remove independently.
+	 *
+	 * @static
+	 * @param {string} _ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<Array>} Always resolves with an empty array
+	 */
+	static async cleanAdditional(_ui5DataDir) {
+		return [];
 	}
 }

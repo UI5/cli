@@ -39,7 +39,7 @@ cacheCommand.builder = function(cli) {
 						"The following cache types are removed:\n" +
 						"  UI5 framework packages:  Downloaded UI5 library files " +
 							"(~/.ui5/framework/)\n" +
-						"  Build cache (DB): Build data " +
+						"  Build cache (Db): Build data " +
 							"(~/.ui5/buildCache/)\n" +
 						"  Orphaned framework data: Incomplete directories from previously interrupted cleanups\n" +
 							"                        (~/.ui5/.framework_to_delete_*/)"
@@ -50,7 +50,7 @@ cacheCommand.builder = function(cli) {
 };
 
 const LABEL_FRAMEWORK = "UI5 Framework packages";
-const LABEL_BUILD = "Build cache (DB)";
+const LABEL_BUILD = "Build cache (Db)";
 // Pad labels to equal width for two-column alignment
 const LABEL_WIDTH = Math.max(LABEL_FRAMEWORK.length, LABEL_BUILD.length);
 
