@@ -900,13 +900,16 @@ export default class ProjectBuildCache {
 			// is gone or excluded, so replaying the previous stage's copy would
 			// resurrect content that no longer belongs in the output.
 			const changedProjectResourcePaths = new Set(cacheInfo.changedProjectResourcePaths ?? []);
+			// Set form for the membership check below; the array is retained for the
+			// ordered downstream uses (recordStageCache, verbose counts).
+			const writtenResourcePathSet = new Set(writtenResourcePaths);
 			const mergeStart = performance.now();
 			const previousWrittenResources = await reader.byGlob("/**/*");
 			let mergedCount = 0;
 			let droppedCount = 0;
 			for (const res of previousWrittenResources) {
 				const path = res.getOriginalPath();
-				if (writtenResourcePaths.includes(path)) {
+				if (writtenResourcePathSet.has(path)) {
 					continue; // Delta re-emitted this path; skip
 				}
 				if (changedProjectResourcePaths.has(path)) {
