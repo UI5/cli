@@ -4,6 +4,7 @@ import BuildReader from "./BuildReader.js";
 import WatchHandler from "./helpers/WatchHandler.js";
 import {isAbortError} from "./helpers/abort.js";
 import {WATCHER_BURST_SETTLE_MS} from "./helpers/watchSettle.js";
+import RecoveryBudget, {WATCHER_RECOVERY_MAX_ATTEMPTS, WATCHER_RECOVERY_WINDOW_MS} from "./helpers/RecoveryBudget.js";
 import {getLogger} from "@ui5/logger";
 import ServeLogger from "@ui5/logger/internal/loggers/Serve";
 const log = getLogger("build:BuildServer");
@@ -42,13 +43,6 @@ const FIRST_BUILD_SETTLE_MS = 100;
 // driven builds keep the short debounce, so this delay only applies to the speculative post-abort
 // restart, not to serving a request.
 const ABORTED_BUILD_RESTART_SETTLE_MS = WATCHER_BURST_SETTLE_MS;
-
-// Loop protection for watcher recovery, so a persistently failing watcher (e.g. a watched path
-// that keeps erroring on re-subscribe, or an FS that keeps dropping events) does not cycle
-// error -> recover -> error forever. More than WATCHER_RECOVERY_MAX_ATTEMPTS recoveries within
-// WATCHER_RECOVERY_WINDOW_MS is treated as unrecoverable and escalates to the terminal ERROR state.
-const WATCHER_RECOVERY_MAX_ATTEMPTS = 5;
-const WATCHER_RECOVERY_WINDOW_MS = 60000;
 
 // The server's ACTIVITY state: what the server is doing right now. Mutated exclusively through
 // #setState. Orthogonal to project staleness (which projects are up-to-date), which is reported
@@ -135,10 +129,10 @@ class BuildServer extends EventEmitter {
 	#validationAbort = null;
 	// Watcher recovery state. `#recoveringWatcher` guards against re-entrant recovery while a
 	// recovery pass is in flight (a dropped-events fault emits one error per subscribed path
-	// in a synchronous burst). `#watcherRecoveryTimestamps` holds the completion times of
-	// recent recoveries for the loop-protection window.
+	// in a synchronous burst). `#watcherRecoveryBudget` caps recoveries within a sliding window
+	// (its own budget, independent of the DefinitionWatcher's).
 	#recoveringWatcher = false;
-	#watcherRecoveryTimestamps = [];
+	#watcherRecoveryBudget = new RecoveryBudget();
 
 	/**
 	 * Creates a new BuildServer instance
@@ -290,10 +284,7 @@ class BuildServer extends EventEmitter {
 		// Loop protection: a persistently failing watcher would otherwise cycle forever, since
 		// dropped-events faults arrive via the subscription callback (not a watch() rejection)
 		// and so never trip the reject-based fallback below.
-		const now = Date.now();
-		this.#watcherRecoveryTimestamps = this.#watcherRecoveryTimestamps
-			.filter((ts) => now - ts < WATCHER_RECOVERY_WINDOW_MS);
-		if (this.#watcherRecoveryTimestamps.length >= WATCHER_RECOVERY_MAX_ATTEMPTS) {
+		if (!this.#watcherRecoveryBudget.withinBudget()) {
 			this.#recoveringWatcher = false;
 			log.error(`File watcher failed to recover after ${WATCHER_RECOVERY_MAX_ATTEMPTS} attempts ` +
 				`within ${WATCHER_RECOVERY_WINDOW_MS} ms. Giving up.`);
@@ -342,7 +333,7 @@ class BuildServer extends EventEmitter {
 				status.invalidate({reason: "File watcher recovery", fileAddedOrRemoved: true});
 			}
 
-			this.#watcherRecoveryTimestamps.push(Date.now());
+			this.#watcherRecoveryBudget.recordRecovery();
 			log.info(`File watcher recovered. Re-scanning all project sources.`);
 
 			// Every project is now non-fresh. The build was quiesced above, so the server is at rest:

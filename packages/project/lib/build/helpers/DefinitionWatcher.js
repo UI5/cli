@@ -4,6 +4,7 @@ import parcelWatcher from "@parcel/watcher";
 import {getLogger} from "@ui5/logger";
 import {drainSubscriptions} from "./watchSubscriptions.js";
 import {WATCHER_BURST_SETTLE_MS} from "./watchSettle.js";
+import RecoveryBudget, {WATCHER_RECOVERY_MAX_ATTEMPTS, WATCHER_RECOVERY_WINDOW_MS} from "./RecoveryBudget.js";
 const log = getLogger("build:helpers:DefinitionWatcher");
 
 // Default filename of the workspace configuration, resolved against cwd.
@@ -18,13 +19,6 @@ const WORKSPACE_CONFIG_DEFAULT = "ui5-workspace.yaml";
 // WATCHER_BURST_SETTLE_MS so each batch resets the window rather than terminating it (see that
 // constant).
 const DEFINITION_CHANGED_SETTLE_MS = WATCHER_BURST_SETTLE_MS;
-
-// Loop protection for watcher recovery, so a persistently failing watcher does not cycle
-// error → recover → error forever. More than WATCHER_RECOVERY_MAX_ATTEMPTS recoveries within
-// WATCHER_RECOVERY_WINDOW_MS is treated as unrecoverable and emits a terminal "error". This
-// budget is the DefinitionWatcher's own, independent of the source WatchHandler's in BuildServer.
-const WATCHER_RECOVERY_MAX_ATTEMPTS = 5;
-const WATCHER_RECOVERY_WINDOW_MS = 60000;
 
 /**
  * Watches the project-definition files (ui5.yaml, package.json, the workspace config, and, in
@@ -56,7 +50,7 @@ class DefinitionWatcher extends EventEmitter {
 	#lastEvent = null;
 
 	#recovering = false;
-	#recoveryTimestamps = [];
+	#recoveryBudget = new RecoveryBudget();
 	#destroyed = false;
 
 	/**
@@ -186,10 +180,7 @@ class DefinitionWatcher extends EventEmitter {
 			log.verbose(err.stack);
 		}
 
-		const now = Date.now();
-		this.#recoveryTimestamps = this.#recoveryTimestamps
-			.filter((ts) => now - ts < WATCHER_RECOVERY_WINDOW_MS);
-		if (this.#recoveryTimestamps.length >= WATCHER_RECOVERY_MAX_ATTEMPTS) {
+		if (!this.#recoveryBudget.withinBudget()) {
 			this.#recovering = false;
 			log.error(`Definition watcher failed to recover after ${WATCHER_RECOVERY_MAX_ATTEMPTS} attempts ` +
 				`within ${WATCHER_RECOVERY_WINDOW_MS} ms. Giving up.`);
@@ -209,7 +200,7 @@ class DefinitionWatcher extends EventEmitter {
 				return;
 			}
 			await this.#subscribeAll();
-			this.#recoveryTimestamps.push(Date.now());
+			this.#recoveryBudget.recordRecovery();
 			log.info(`Definition watcher recovered.`);
 		} catch (recoveryErr) {
 			log.error(`Definition watcher recovery failed: ${recoveryErr?.message ?? recoveryErr}`);
