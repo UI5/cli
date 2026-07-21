@@ -1952,3 +1952,222 @@ test("validateCache: Cache.Force throws when source changes are detected", async
 	);
 	t.regex(err.message, /Force.*mode.*stale/i, "Error message mentions Force mode and stale cache");
 });
+
+// ===== FAIL-THEN-SUCCEED (BuildServer error-recovery) REPRO TESTS =====
+//
+// State that persists across build attempts on one ProjectBuildCache instance,
+// the shape a long-running `ui5 serve` hits when a task throws mid-build (e.g. a
+// LESS syntax error) and a later source edit fixes it. Reported symptom: "server
+// serves corrupted resources from the failed build after fix". `StageCache#discardPending`
+// (called from `validateCache({prepareForBuild:true})`) already scrubs the pending
+// stage cache entries the failed attempt added. The remaining risk is state that
+// outlives that scrub: `#writtenResultResourcePaths`, `#currentStageSignatures` and
+// the delta-merge input.
+//
+// Each test drives a successful build, a second attempt where task B "throws"
+// (modeled by omitting its `recordTaskResult` call), and a retry. Assertions
+// inspect the arguments passed to the taskCache / projectResources mocks on the retry.
+
+// Points the project's getStage mock at a stage with the given id whose writer
+// returns `written` from byGlob. Pass `write` to capture merge writes.
+function stubStage(project, stageId, {written = [], write} = {}) {
+	const writer = {byGlob: sinon.stub().resolves(written)};
+	if (write) {
+		writer.write = write;
+	}
+	project.getProjectResources().getStage.returns({
+		getId: () => stageId,
+		getWriter: sinon.stub().returns(writer),
+	});
+}
+
+// Records a task result with empty project/dependency request sets.
+function recordEmptyResult(cache, taskName, cacheInfo = null, isDelta = false) {
+	return cache.recordTaskResult(
+		taskName, {paths: new Set(), patterns: new Set()},
+		{paths: new Set(), patterns: new Set()}, cacheInfo, isDelta);
+}
+
+test("Fail-then-succeed: #writtenResultResourcePaths accumulates across failed attempts (documented behavior)",
+	async (t) => {
+		// After taskA records in a failed build and taskB throws, /a.js is left in
+		// #writtenResultResourcePaths. On retry, prepareTaskExecutionAndValidateCache
+		// calls taskCache.updateProjectIndices(reader, #writtenResultResourcePaths).
+		//
+		// Benign in practice: updateProjectIndices re-fetches each path through the
+		// retry's fresh reader and re-hashes. Unchanged content yields the same
+		// signature and no invalidation; changed content invalidates correctly. The
+		// impact is redundant I/O on the retry, not wrong output. This test pins the
+		// behavior so a later refactor that removes the leak can update it.
+		const project = createMockProject();
+		const cacheManager = createMockCacheManager();
+
+		const initialA = createMockResource("/a.js", "hash-a", 1000, 100, 1);
+		const initialB = createMockResource("/b.js", "hash-b", 1000, 100, 2);
+		project.getSourceReader.callsFake(() => ({
+			byGlob: sinon.stub().resolves([initialA, initialB]),
+			byPath: sinon.stub().callsFake((p) => {
+				return Promise.resolve(p === "/a.js" ? initialA : p === "/b.js" ? initialB : null);
+			})
+		}));
+
+		const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+		await cache.initSourceIndex();
+
+		const mockDependencyReader = {
+			byGlob: sinon.stub().resolves([]),
+			byPath: sinon.stub().resolves(null),
+		};
+
+		// Failed build attempt: taskA runs successfully and writes /a.js.
+		cache.setTasks(["taskA", "taskB"]);
+		await cache.prepareTaskExecutionAndValidateCache("taskA");
+
+		const writtenA = createMockResource("/a.js", "hash-a-built", 2000, 200, 1);
+		stubStage(project, "task/taskA", {written: [writtenA]});
+		await recordEmptyResult(cache, "taskA");
+
+		// taskB "throws": no recordTaskResult call. The failed build leaves
+		// #writtenResultResourcePaths containing ["/a.js"] since allTasksCompleted
+		// (which would clear it) never runs.
+
+		// Retry: BuildServer calls validateCache({prepareForBuild:true}) again.
+		await cache.validateCache(mockDependencyReader, {prepareForBuild: true});
+
+		// The retry claims taskA again. Currently /a.js is passed as a "changed"
+		// path to updateProjectIndices even though it did not change on disk.
+		cache.setTasks(["taskA", "taskB"]);
+		const updateProjectIndicesStub = sinon.stub(
+			cache.getTaskCache("taskA"), "updateProjectIndices").resolves();
+
+		stubStage(project, "task/taskA");
+		await cache.prepareTaskExecutionAndValidateCache("taskA");
+
+		t.true(updateProjectIndicesStub.called,
+			"updateProjectIndices is called on retry with the leaked paths");
+		const changedPaths = updateProjectIndicesStub.firstCall.args[1];
+		t.true(changedPaths.includes("/a.js"),
+			`Documented behavior: retry passes /a.js to updateProjectIndices even ` +
+			`though it did not change between attempts (changed paths: ${JSON.stringify(changedPaths)}). ` +
+			`Re-hashing through the retry's fresh reader means this does not produce ` +
+			`incorrect output, only redundant work.`);
+	});
+
+test("Fail-then-succeed: #currentStageSignatures from failed attempt does not linger",
+	async (t) => {
+		// After a failed build, #currentStageSignatures contains the entry the
+		// completed task wrote. On retry, if the source signature happens to match
+		// what the failed build indexed at that stage, #findResultCache /
+		// #getResultStageSignature could combine the stale entry with the fresh one
+		// and either short-circuit unnecessarily or produce a spurious cache hit.
+		// Assert #getResultStageSignature (via allTasksCompleted -> cache write)
+		// reflects only what the *successful* retry recorded.
+		const project = createMockProject();
+		const cacheManager = createMockCacheManager();
+
+		const src = createMockResource("/test.js", "hash-src", 1000, 100, 1);
+		project.getSourceReader.callsFake(() => ({
+			byGlob: sinon.stub().resolves([src]),
+			byPath: sinon.stub().resolves(src)
+		}));
+
+		const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+		await cache.initSourceIndex();
+
+		const mockDependencyReader = {
+			byGlob: sinon.stub().resolves([]),
+			byPath: sinon.stub().resolves(null),
+		};
+		await cache.validateCache(mockDependencyReader, {prepareForBuild: true});
+
+		// Failed attempt: taskA records with a distinctive signature.
+		cache.setTasks(["taskA", "taskB"]);
+		await cache.prepareTaskExecutionAndValidateCache("taskA");
+		stubStage(project, "task/taskA");
+		await recordEmptyResult(cache, "taskA");
+
+		// taskB "throws": build fails.
+
+		// Retry.
+		await cache.validateCache(mockDependencyReader, {prepareForBuild: true});
+		cache.setTasks(["taskA", "taskB"]);
+
+		await cache.prepareTaskExecutionAndValidateCache("taskA");
+		stubStage(project, "task/taskA");
+		await recordEmptyResult(cache, "taskA");
+
+		await cache.prepareTaskExecutionAndValidateCache("taskB");
+		stubStage(project, "task/taskB");
+		await recordEmptyResult(cache, "taskB");
+
+		await cache.allTasksCompleted();
+		await cache.writeCache();
+
+		// Inspect the result metadata that was written. It must reference exactly
+		// the two stages the successful retry recorded, no more and no less.
+		const resultMetadataCalls = cacheManager.writeResultMetadata.getCalls();
+		t.is(resultMetadataCalls.length, 1, "One result metadata write");
+		const {stageSignatures} = resultMetadataCalls[0].args[3];
+		const stageNames = Object.keys(stageSignatures);
+		t.deepEqual(stageNames.sort(), ["task/taskA", "task/taskB"],
+			"Result metadata references exactly the two retry stages, no lingering entries");
+	});
+
+test("Fail-then-succeed: delta merge does not resurrect resources from a stage a failed attempt wrote",
+	async (t) => {
+		// In build 1, taskA records a stage that contains /a.js and /b.js.
+		// Build 1 completes; result cache is persisted.
+		// Build 2 (failed): source /b.js is deleted; taskA runs, taskB throws.
+		// Build 3 (retry): source /b.js is still gone. taskA runs in delta mode
+		// with cacheInfo.previousStageCache pointing at build 1's stage entry.
+		// The delta merge at recordTaskResult (line 900-907) reads previousStageCache
+		// and writes every resource not overlaid by the current delta. If it merges
+		// the stale /b.js, /b.js becomes visible in the retry's output even though
+		// the source file no longer exists.
+		const project = createMockProject();
+		const cacheManager = createMockCacheManager();
+		const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+		await cache.initSourceIndex();
+
+		cache.setTasks(["deltaTask"]);
+		await cache.prepareTaskExecutionAndValidateCache("deltaTask");
+
+		// The retry's delta task writes only the changed /a.js.
+		const retryA = createMockResource("/a.js", "hash-a-new", 3000, 300, 1);
+		const writeStub = sinon.stub().resolves();
+		stubStage(project, "task/deltaTask", {written: [retryA], write: writeStub});
+
+		// previousStageCache reflects the state before the failed build: /a.js AND /b.js.
+		// The retry drops /b.js (source deleted). If the delta merge blindly
+		// replays every previous-stage resource, /b.js survives in the retry output.
+		const prevA = createMockResource("/a.js", "hash-a-old", 1000, 100, 1);
+		const prevB = createMockResource("/b.js", "hash-b-old", 1000, 100, 2);
+		const cacheInfo = {
+			previousStageCache: {
+				signature: "prev-proj-prev-dep",
+				stage: {
+					byGlob: sinon.stub().resolves([prevA, prevB]),
+				},
+				writtenResourcePaths: ["/a.js", "/b.js"],
+				projectTagOperations: undefined,
+				buildTagOperations: undefined,
+			},
+			newSignature: "new-proj-new-dep",
+			// changedProjectResourcePaths tells the delta task which paths changed.
+			// /b.js was deleted, so it changed, but the delta task didn't write
+			// its replacement (it can't; the file is gone).
+			changedProjectResourcePaths: ["/a.js", "/b.js"],
+			changedDependencyResourcePaths: [],
+		};
+
+		await recordEmptyResult(cache, "deltaTask", cacheInfo, true);
+
+		// Without the fix, the merge writes every previous resource whose path is not
+		// in the delta's writtenResourcePaths. /b.js is not overlaid, so it gets
+		// written: the deleted file is resurrected, the bug shape reported by the user.
+		const writtenPaths = writeStub.getCalls().map((c) => c.args[0].getOriginalPath());
+		t.false(writtenPaths.includes("/b.js"),
+			`LEAK: /b.js was merged into the retry stage from the previous stage cache ` +
+			`even though its source is gone. Written paths: ${JSON.stringify(writtenPaths)}`);
+	});
+
