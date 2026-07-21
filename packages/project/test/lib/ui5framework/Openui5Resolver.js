@@ -44,7 +44,8 @@ test.serial("Openui5Resolver: getLibraryMetadata", async (t) => {
 
 	const resolver = new Openui5Resolver({
 		cwd: "/test-project/",
-		version: "1.75.0"
+		version: "1.75.0",
+		ui5DataDir: "/ui5DataDir"
 	});
 
 	t.context.fetchPackageManifestStub
@@ -104,7 +105,8 @@ test.serial("Openui5Resolver: handleLibrary", async (t) => {
 
 	const resolver = new Openui5Resolver({
 		cwd: "/test-project/",
-		version: "1.75.0"
+		version: "1.75.0",
+		ui5DataDir: "/ui5DataDir"
 	});
 
 	const getLibraryMetadataStub = sinon.stub(resolver, "getLibraryMetadata");

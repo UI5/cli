@@ -21,8 +21,8 @@ class Sapui5Resolver extends AbstractResolver {
 	 * @param {*} options options
 	 * @param {string} options.version SAPUI5 version to use
 	 * @param {string} [options.cwd=process.cwd()] Working directory to resolve configurations like .npmrc
-	 * @param {string} [options.ui5DataDir="~/.ui5"] UI5 home directory location. This will be used to store packages,
-	 * metadata and configuration used by the resolvers. Relative to `process.cwd()`
+	 * @param {string} options.ui5DataDir Resolved UI5 home directory location. This is used to
+	 * store metadata and packages used by the resolvers.
 	 * @param {string} [options.cacheDir] Where to store temp/cached packages.
 	 * @param {string} [options.packagesDir] Where to install packages
 	 * @param {string} [options.stagingDir] The staging directory for packages
@@ -75,7 +75,8 @@ class Sapui5Resolver extends AbstractResolver {
 			const {default: Openui5Resolver} = await import("./Openui5Resolver.js");
 			const openui5Resolver = new Openui5Resolver({
 				cwd: this._cwd,
-				version: metadata.version
+				version: metadata.version,
+				ui5DataDir: this._ui5DataDir
 			});
 			const openui5Metadata = await openui5Resolver.getLibraryMetadata(libraryName);
 			return {

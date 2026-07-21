@@ -63,7 +63,8 @@ test.serial(
 
 		const resolver = new Sapui5MavenSnapshotResolver({
 			cwd: "/test-project/",
-			version: "1.75.0"
+			version: "1.75.0",
+			ui5DataDir: "/ui5DataDir"
 		});
 
 		const expectedMetadata = {
@@ -114,7 +115,8 @@ test.serial("Sapui5MavenSnapshotResolver: getLibraryMetadata throws", async (t) 
 
 	const resolver = new Sapui5MavenSnapshotResolver({
 		cwd: "/test-project/",
-		version: "1.75.0"
+		version: "1.75.0",
+		ui5DataDir: "/ui5DataDir"
 	});
 
 	const loadDistMetadataStub = sinon.stub(resolver, "loadDistMetadata");
@@ -132,7 +134,8 @@ test.serial("Sapui5MavenSnapshotResolver: handleLibrary", async (t) => {
 
 	const resolver = new Sapui5MavenSnapshotResolver({
 		cwd: "/test-project/",
-		version: "1.116.0-SNAPSHOT"
+		version: "1.116.0-SNAPSHOT",
+		ui5DataDir: "/ui5DataDir"
 	});
 
 	const loadDistMetadataStub = sinon.stub(resolver, "loadDistMetadata");
@@ -186,7 +189,8 @@ test.serial("Sapui5MavenSnapshotResolver: handleLibrary - legacy version", async
 
 	const resolver = new Sapui5MavenSnapshotResolver({
 		cwd: "/test-project/",
-		version: "1.75.0-SNAPSHOT"
+		version: "1.75.0-SNAPSHOT",
+		ui5DataDir: "/ui5DataDir"
 	});
 
 	const loadDistMetadataStub = sinon.stub(resolver, "loadDistMetadata");
@@ -240,6 +244,7 @@ test.serial("Sapui5MavenSnapshotResolver: handleLibrary - sources requested", as
 	const resolver = new Sapui5MavenSnapshotResolver({
 		cwd: "/test-project/",
 		version: "1.116.0-SNAPSHOT",
+		ui5DataDir: "/ui5DataDir",
 		sources: true
 	});
 
@@ -294,6 +299,7 @@ test.serial("Sapui5MavenSnapshotResolver: handleLibrary - sources requested with
 	const resolver = new Sapui5MavenSnapshotResolver({
 		cwd: "/test-project/",
 		version: "1.75.0-SNAPSHOT",
+		ui5DataDir: "/ui5DataDir",
 		sources: true
 	});
 
@@ -347,7 +353,8 @@ test.serial("Sapui5MavenSnapshotResolver: handleLibrary throws", async (t) => {
 
 	const resolver = new Sapui5MavenSnapshotResolver({
 		cwd: "/test-project/",
-		version: "1.75.0"
+		version: "1.75.0",
+		ui5DataDir: "/ui5DataDir"
 	});
 
 	sinon.stub(resolver, "getLibraryMetadata").resolves({});

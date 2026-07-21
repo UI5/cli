@@ -1,18 +1,19 @@
 import test from "ava";
 import sinon from "sinon";
 import path from "node:path";
-import os from "node:os";
 import esmock from "esmock";
 
 test.beforeEach(async (t) => {
-	t.context.osHomeDirStub = sinon.stub().callsFake(() => os.homedir());
-	t.context.AbstractResolver = await esmock.p("../../../lib/ui5Framework/AbstractResolver.js", {
-		"node:os": {
-			homedir: t.context.osHomeDirStub
-		}
-	});
+	t.context.AbstractResolver = await esmock.p("../../../lib/ui5Framework/AbstractResolver.js", {});
 
 	class MyResolver extends t.context.AbstractResolver {
+		constructor(options = {}) {
+			super({
+				ui5DataDir: "/ui5DataDir",
+				...options
+			});
+		}
+
 		static async fetchAllVersions() {}
 	}
 
@@ -118,24 +119,19 @@ test("AbstractResolver: Set relative 'ui5DataDir'", (t) => {
 	t.is(resolver._ui5DataDir, path.resolve("./my-ui5DataDir"), "Should be resolved 'ui5DataDir'");
 });
 
-test("AbstractResolver: 'ui5DataDir' overriden os.homedir()", (t) => {
-	const {MyResolver, osHomeDirStub} = t.context;
+test("AbstractResolver: constructor without 'ui5DataDir' should throw", (t) => {
+	const {AbstractResolver} = t.context;
 
-	osHomeDirStub.returns("./");
+	class MyResolverWithoutDefaults extends AbstractResolver {
+		static async fetchAllVersions() {}
+	}
 
-	const resolver = new MyResolver({
-		version: "1.75.0"
-	});
-	t.is(resolver._ui5DataDir, path.resolve("./.ui5"), "Should be resolved 'ui5DataDir'");
-});
-
-test("AbstractResolver: Defaults 'ui5DataDir' to ~/.ui5", (t) => {
-	const {MyResolver} = t.context;
-	const resolver = new MyResolver({
-		version: "1.75.0",
-		cwd: "/test-project/"
-	});
-	t.is(resolver._ui5DataDir, path.join(os.homedir(), ".ui5"), "Should default to ~/.ui5");
+	t.throws(() => {
+		new MyResolverWithoutDefaults({
+			version: "1.75.0",
+			cwd: "/test-project/"
+		});
+	}, {message: "MyResolverWithoutDefaults: Missing parameter \"ui5DataDir\""});
 });
 
 test("AbstractResolver: getLibraryMetadata should throw an Error when not implemented", async (t) => {

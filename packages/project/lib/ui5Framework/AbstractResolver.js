@@ -1,5 +1,4 @@
 import path from "node:path";
-import os from "node:os";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("ui5Framework:AbstractResolver");
 import semver from "semver";
@@ -26,8 +25,8 @@ class AbstractResolver {
 	 * @param {boolean} [options.sources=false] Whether to install framework libraries as sources or
 	 * 					pre-built (with build manifest)
 	 * @param {string} [options.cwd=process.cwd()] Current working directory
-	 * @param {string} [options.ui5DataDir="~/.ui5"] UI5 home directory location. This will be used to store packages,
-	 * metadata and configuration used by the resolvers. Relative to `process.cwd()`
+	 * @param {string} options.ui5DataDir Resolved UI5 home directory location. This is used to store
+	 * metadata and packages used by the resolvers and must be resolved by the caller.
 	 * @param {object.<string, @ui5/project/ui5Framework/AbstractResolver~LibraryMetadataEntry>} [options.providedLibraryMetadata]
 	 * Resolver skips installing listed libraries and uses the dependency information to resolve their dependencies.
 	 * <code>version</code> can be omitted in case all libraries can be resolved via the <code>providedLibraryMetadata</code>.
@@ -38,12 +37,12 @@ class AbstractResolver {
 		if (new.target === AbstractResolver) {
 			throw new TypeError("Class 'AbstractResolver' is abstract");
 		}
+		if (!ui5DataDir) {
+			const resolverName = new.target?.name || "AbstractResolver";
+			throw new Error(`${resolverName}: Missing parameter "ui5DataDir"`);
+		}
 
-		// In some CI environments, the homedir might be set explicitly to a relative
-		// path (e.g. "./"), but tooling requires an absolute path
-		this._ui5DataDir = path.resolve(
-			ui5DataDir || path.join(os.homedir(), ".ui5")
-		);
+		this._ui5DataDir = path.resolve(ui5DataDir);
 		this._cwd = cwd ? path.resolve(cwd) : process.cwd();
 		this._version = version;
 
@@ -174,9 +173,12 @@ class AbstractResolver {
 	 * Installs the provided libraries and their dependencies
 	 *
 	 * ```js
-	 * const resolver = new Sapui5Resolver({version: "1.76.0"});
+	 * const resolver = new Sapui5Resolver({
+	 * 	version: "1.76.0",
+	 * 	ui5DataDir: "/path/to/.ui5"
+	 * });
 	 * // Or for OpenUI5:
-	 * // const resolver = new Openui5Resolver({version: "1.76.0"});
+	 * // const resolver = new Openui5Resolver({version: "1.76.0", ui5DataDir: "/path/to/.ui5"});
 	 *
 	 * resolver.install(["sap.ui.core", "sap.m"]).then(({libraryMetadata}) => {
 	 * 	// Installation done

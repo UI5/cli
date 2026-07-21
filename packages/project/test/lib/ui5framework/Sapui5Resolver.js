@@ -37,7 +37,8 @@ test.serial(
 
 		const resolver = new Sapui5Resolver({
 			cwd: "/test-project/",
-			version: "1.75.0"
+			version: "1.75.0",
+			ui5DataDir: "/ui5DataDir"
 		});
 
 		t.context.getTargetDirForPackageStub.callsFake(({pkgName, version}) => {
@@ -88,7 +89,8 @@ test.serial("Sapui5Resolver: handleLibrary", async (t) => {
 
 	const resolver = new Sapui5Resolver({
 		cwd: "/test-project/",
-		version: "1.75.0"
+		version: "1.75.0",
+		ui5DataDir: "/ui5DataDir"
 	});
 
 	const loadDistMetadataStub = sinon.stub(resolver, "loadDistMetadata");
@@ -207,7 +209,8 @@ test.serial(
 
 		const resolver = new Sapui5Resolver({
 			cwd: "/test-project/",
-			version: "1.77.7"
+			version: "1.77.7",
+			ui5DataDir: "/ui5DataDir"
 		});
 
 		const openui5LibraryMetadata = {

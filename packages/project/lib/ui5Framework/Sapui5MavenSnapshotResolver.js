@@ -32,8 +32,8 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 	 * @param {boolean} [options.sources=false] Whether to install framework libraries as sources or
 	 * pre-built (with build manifest)
 	 * @param {string} [options.cwd=process.cwd()] Current working directory
-	 * @param {string} [options.ui5DataDir="~/.ui5"] UI5 home directory location. This will be used to store packages,
-	 * metadata and configuration used by the resolvers. Relative to `process.cwd()`
+	 * @param {string} options.ui5DataDir Resolved UI5 home directory location. This is used to
+	 * store metadata and packages used by the resolvers.
 	 * @param {module:@ui5/project/ui5Framework/maven/SnapshotCache} [options.snapshotCache=Default]
 	 * Snapshot cache mode to use
 	 */
