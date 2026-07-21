@@ -2,6 +2,7 @@ import EventEmitter from "node:events";
 import path from "node:path";
 import parcelWatcher from "@parcel/watcher";
 import {getLogger} from "@ui5/logger";
+import {drainSubscriptions} from "./watchSubscriptions.js";
 const log = getLogger("build:helpers:DefinitionWatcher");
 
 // Default filename of the workspace configuration, resolved against cwd.
@@ -198,9 +199,11 @@ class DefinitionWatcher extends EventEmitter {
 		try {
 			// Tear down the current subscriptions and re-subscribe the same watch set. The include
 			// set (#watchedFiles / #watchDirs) is unchanged; only the OS-level handles are renewed.
+			// Teardown failures are ignored here: the handles are being discarded regardless, and a
+			// re-subscribe failure below is what determines whether recovery succeeded.
 			const subscriptions = this.#subscriptions;
 			this.#subscriptions = [];
-			await Promise.allSettled(subscriptions.map((s) => s.unsubscribe()));
+			await drainSubscriptions(subscriptions);
 			if (this.#destroyed) {
 				return;
 			}
@@ -231,8 +234,7 @@ class DefinitionWatcher extends EventEmitter {
 		// failure cannot leave stale handles behind to be unsubscribed twice.
 		const subscriptions = this.#subscriptions;
 		this.#subscriptions = [];
-		const results = await Promise.allSettled(subscriptions.map((s) => s.unsubscribe()));
-		const failures = results.filter((r) => r.status === "rejected").map((r) => r.reason);
+		const failures = await drainSubscriptions(subscriptions);
 		if (failures.length) {
 			const err = new AggregateError(failures, "Failed to unsubscribe one or more definition watchers");
 			this.emit("error", err);

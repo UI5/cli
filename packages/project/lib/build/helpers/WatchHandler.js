@@ -2,6 +2,7 @@ import EventEmitter from "node:events";
 import {access} from "node:fs/promises";
 import parcelWatcher from "@parcel/watcher";
 import {getLogger} from "@ui5/logger";
+import {drainSubscriptions} from "./watchSubscriptions.js";
 const log = getLogger("build:helpers:WatchHandler");
 
 // Resolves true if the path is accessible, false otherwise. Used to distinguish a subscribe failure
@@ -77,10 +78,7 @@ class WatchHandler extends EventEmitter {
 		// failure cannot leave stale handles behind to be unsubscribed twice.
 		const subscriptions = this.#subscriptions;
 		this.#subscriptions = [];
-		// Run in parallel and collect failures so a single misbehaving subscription
-		// cannot leak the others.
-		const results = await Promise.allSettled(subscriptions.map((s) => s.unsubscribe()));
-		const failures = results.filter((r) => r.status === "rejected").map((r) => r.reason);
+		const failures = await drainSubscriptions(subscriptions);
 		if (failures.length) {
 			const err = new AggregateError(failures, "Failed to unsubscribe one or more file watchers");
 			this.emit("error", err);
