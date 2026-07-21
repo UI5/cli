@@ -1,8 +1,9 @@
 import chalk from "chalk";
 import path from "node:path";
+import os from "node:os";
 import process from "node:process";
 import baseMiddleware from "../middlewares/base.js";
-import {resolveUi5DataDir} from "@ui5/project/utils/dataDir";
+import Configuration from "@ui5/project/config/Configuration";
 import * as frameworkCache from "@ui5/project/ui5Framework/cache";
 import CacheManager from "@ui5/project/build/cache/CacheManager";
 
@@ -227,8 +228,22 @@ async function getConfirmation(argv) {
 	});
 }
 
+async function resolveCacheUi5DataDir() {
+	// TODO: Consolidate ui5DataDir resolution once PR #1455 follow-up cleanup is done.
+	// Keep behavior aligned with existing main-branch resolution order.
+	let ui5DataDir = process.env.UI5_DATA_DIR;
+	if (!ui5DataDir) {
+		const config = await Configuration.fromFile();
+		ui5DataDir = config.getUi5DataDir();
+	}
+	if (ui5DataDir) {
+		return path.resolve(process.cwd(), ui5DataDir);
+	}
+	return path.join(os.homedir(), ".ui5");
+}
+
 async function handleCache(argv) {
-	const ui5DataDir = await resolveUi5DataDir();
+	const ui5DataDir = await resolveCacheUi5DataDir();
 
 	process.stderr.write(`Checking cache at ${chalk.bold(ui5DataDir)} …\n`);
 
