@@ -47,8 +47,8 @@ async function getPackageStats(frameworkDir) {
 			});
 	};
 
-	const libDirs = (await Promise.all(extractSubDir(projectDirs))).flat();
-	const versionDirs = (await Promise.all(extractSubDir(libDirs))).flat();
+	const libDirs = (await Promise.all(extractSubDir(projectDirs))).filter(Boolean).flat();
+	const versionDirs = (await Promise.all(extractSubDir(libDirs))).filter(Boolean).flat();
 
 	const librarySet = new Set(libDirs.map((e) => e.name));
 	const versionSet = new Set(versionDirs.map((e) => e.name));
@@ -150,13 +150,13 @@ export async function cleanAdditional(ui5DataDir) {
 /**
  * Clean the framework cache directory.
  *
- * Uses an atomic rename to make the framework directory disappear in a single
+ * Returns <code>null</code> if no framework packages are installed.
+ * Otherwise uses an atomic rename to make the framework directory disappear in a single
  * filesystem operation:
  *
  *  1. Clear cacache's in-process memoization (no path needed — global operation).
- *  2. Atomically rename <code>framework/</code> to a hidden staging dir.
- *     After this point the original path no longer exists: concurrent builds will
- *     see it as absent and create a fresh <code>framework/</code> directory.
+ *  2. Atomically rename <code>framework/</code> to a staging dir.
+ *     After this point the original path no longer exists.
  *  3. Delete the staging dir recursively. Its contents are now fully private
  *     to this operation.
  *
