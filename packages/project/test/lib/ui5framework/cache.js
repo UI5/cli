@@ -117,7 +117,7 @@ test("cleanCache: renames then removes framework directory and returns stats", a
 
 	// No staging dirs remain after a successful clean
 	const entries = await fs.readdir(t.context.testDir);
-	t.false(entries.some((e) => e.startsWith(".framework_to_delete_")),
+	t.false(entries.some((e) => e.startsWith("_framework_to_delete_")),
 		"no staging dirs remain after successful clean");
 
 	// packages/ is gone
@@ -150,7 +150,7 @@ test("cleanCache: does not include orphaned field in result", async (t) => {
 test("cleanCache: does not remove orphaned staging dirs — that is cleanAdditional's job", async (t) => {
 	await mkPackage(t.context.testDir, "@openui5", "sap.m", "1.120.0");
 
-	const orphanDir = path.join(t.context.testDir, ".framework_to_delete_abcd");
+	const orphanDir = path.join(t.context.testDir, "_framework_to_delete_abcd");
 	await mkPackageIn(orphanDir, "@openui5", "sap.ui.core", "1.100.0");
 
 	await cleanCache(t.context.testDir);
@@ -167,7 +167,7 @@ test("cleanAdditional: returns empty array when no orphaned staging dirs exist",
 });
 
 test("cleanAdditional: detects and removes orphaned staging dirs, reports them", async (t) => {
-	const orphanDir = path.join(t.context.testDir, ".framework_to_delete_abcd");
+	const orphanDir = path.join(t.context.testDir, "_framework_to_delete_abcd");
 	await mkPackageIn(orphanDir, "@openui5", "sap.ui.core", "1.100.0");
 	await mkPackageIn(orphanDir, "@openui5", "sap.ui.core", "1.110.0");
 
@@ -175,7 +175,7 @@ test("cleanAdditional: detects and removes orphaned staging dirs, reports them",
 
 	t.is(result.length, 1, "one orphaned dir reported");
 	const orphanResult = result[0];
-	t.true(orphanResult.path.startsWith(".framework_to_delete_"), "orphan path has staging prefix");
+	t.true(orphanResult.path.startsWith("_framework_to_delete_"), "orphan path has staging prefix");
 	t.is(orphanResult.libraryCount, 1);
 	t.is(orphanResult.versionCount, 2);
 
@@ -183,8 +183,8 @@ test("cleanAdditional: detects and removes orphaned staging dirs, reports them",
 });
 
 test("cleanAdditional: removes multiple orphaned staging dirs and reports each", async (t) => {
-	const orphan1 = path.join(t.context.testDir, ".framework_to_delete_1111");
-	const orphan2 = path.join(t.context.testDir, ".framework_to_delete_2222");
+	const orphan1 = path.join(t.context.testDir, "_framework_to_delete_1111");
+	const orphan2 = path.join(t.context.testDir, "_framework_to_delete_2222");
 
 	await mkPackageIn(orphan1, "@openui5", "sap.m", "1.90.0");
 	await mkPackageIn(orphan2, "@openui5", "sap.ui.core", "1.91.0");
@@ -205,7 +205,7 @@ test("cleanAdditional: removes multiple orphaned staging dirs and reports each",
 });
 
 test("cleanAdditional: orphaned dir deletion failure is non-fatal", async (t) => {
-	const orphanDir = path.join(t.context.testDir, ".framework_to_delete_fail");
+	const orphanDir = path.join(t.context.testDir, "_framework_to_delete_fail");
 	await mkPackageIn(orphanDir, "@openui5", "sap.m", "1.80.0");
 
 	const rmStub = sinon.stub().callsFake(async (p, opts) => {
