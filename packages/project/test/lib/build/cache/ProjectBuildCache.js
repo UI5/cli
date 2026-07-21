@@ -1,6 +1,7 @@
 import test from "ava";
 import sinon from "sinon";
 import ProjectBuildCache from "../../../../lib/build/cache/ProjectBuildCache.js";
+import ResourceRequestManager from "../../../../lib/build/cache/ResourceRequestManager.js";
 import Cache from "../../../../lib/build/cache/Cache.js";
 
 // Helper to create mock Project instances
@@ -2171,3 +2172,193 @@ test("Fail-then-succeed: delta merge does not resurrect resources from a stage a
 			`even though its source is gone. Written paths: ${JSON.stringify(writtenPaths)}`);
 	});
 
+// ===== Regression: transitive dependency added/removed between builds =====
+//
+// Scenario reproduced here:
+//   Some tasks read dependency resources by glob over *all* available libraries. buildThemes is
+//   the prominent case (it globs "/resources/**/themes/**/*.less" across every available library),
+//   but this is not theme-specific: any task recording a glob request against the dependency reader
+//   is affected.
+//
+//   Between two builds of the same project, a transitive dependency is added to (or removed from)
+//   the project graph. No *resource* changed, so nothing is reported through
+//   dependencyResourcesChanged(). #changedDependencyResourcePaths stays empty.
+//
+//   In validateCache, the RESTORING_DEPENDENCY_INDICES branch only calls _refreshDependencyIndices
+//   when #changedDependencyResourcePaths is non-empty. With an empty accumulator the refresh is
+//   skipped, so the restored dependency index keeps reflecting the previous build's dependency set.
+//   The task's dependency-index signature stays stale, the result signature still matches, and the
+//   project is served from cache -- even though the set of dependency resources the task would read
+//   has changed.
+//
+// These tests seed a persisted dependency-request cache recorded against an OLD dependency set,
+// then validate the project against a reader exposing the NEW (changed) dependency set. The
+// signature the cache reports afterwards is compared against the signature a full refresh against
+// the new set produces (computed independently via ResourceRequestManager).
+//
+// They are marked test.failing: they assert the *desired* behavior and currently fail because the
+// bug is unfixed. AVA reports a failing-marked test as a pass while it throws and as a hard error
+// once it starts passing, so committing them keeps CI green and flips to a signal the moment the
+// fix lands (at which point drop the `.failing`).
+
+// Builds a persisted "dependencies" task-metadata object by recording a single glob request
+// against `oldDepResources`, mirroring what a real build stores for a task that globs dependency
+// resources (e.g. buildThemes over available libraries).
+async function recordDependencyRequestCache(taskName, globPatterns, oldDepResources) {
+	const oldDepReader = {
+		byGlob: async () => oldDepResources.slice(),
+		byPath: async (p) => oldDepResources.find((r) => r.getPath() === p) ?? null,
+	};
+	const mgr = new ResourceRequestManager("test.lib", taskName, false);
+	const {signature} = await mgr.addRequests({paths: [], patterns: [globPatterns]}, oldDepReader);
+	return {cacheObject: mgr.toCacheObject(), signature};
+}
+
+// Computes the dependency-index signature a correct full refresh against `newDepResources` would
+// produce, starting from the same persisted cache object. This is the "expected" value the build
+// cache should converge on once the stale dependency set is picked up.
+async function expectedRefreshedSignature(taskName, cacheObject, newDepResources) {
+	const newDepReader = {
+		byGlob: async () => newDepResources.slice(),
+		byPath: async (p) => newDepResources.find((r) => r.getPath() === p) ?? null,
+	};
+	const mgr = ResourceRequestManager.fromCache("test.lib", taskName, false, cacheObject);
+	await mgr.refreshIndices(newDepReader);
+	return mgr.getIndexSignatures()[0];
+}
+
+// Creates a ProjectBuildCache restored from disk (RESTORING_DEPENDENCY_INDICES state) whose single
+// task has a recorded dependency glob request. Returns the cache plus the old/expected signatures
+// and a dependency reader exposing the NEW dependency set.
+async function createCacheWithDependencyGlob({
+	taskName = "buildThemes",
+	globPatterns = ["/resources/**/themes/**/*.less"],
+	oldDepResources,
+	newDepResources,
+} = {}) {
+	const {cacheObject: depCacheObject, signature: oldDepSignature} =
+		await recordDependencyRequestCache(taskName, globPatterns, oldDepResources);
+	const expectedDepSignature =
+		await expectedRefreshedSignature(taskName, depCacheObject, newDepResources);
+
+	const project = createMockProject("test.lib", "test-lib-id");
+	const cacheManager = createMockCacheManager();
+
+	const src = createMockResource("/test.js", "hash1", 1000, 100, 1);
+	project.getSourceReader.callsFake(() => ({
+		byGlob: sinon.stub().resolves([src]),
+		byPath: sinon.stub().callsFake((p) => Promise.resolve(p === "/test.js" ? src : null)),
+	}));
+
+	const indexCache = {
+		version: "1.0",
+		indexTree: {
+			version: 1,
+			indexTimestamp: 500,
+			root: {
+				name: "",
+				type: "directory",
+				hash: "root-hash",
+				children: {
+					"test.js": {
+						name: "test.js",
+						type: "resource",
+						hash: "node-hash-test.js",
+						integrity: "hash1",
+						lastModified: 1000,
+						size: 100,
+						inode: 1,
+						tags: null,
+					},
+				},
+			},
+		},
+		tasks: [[taskName, false]],
+	};
+	cacheManager.readIndexCache.returns(indexCache);
+	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, task, type) => {
+		if (type === "dependencies") {
+			return depCacheObject;
+		}
+		return {requestSetGraph: {nodes: [], nextId: 1}, rootIndices: [], deltaIndices: [], unusedAtLeastOnce: false};
+	});
+
+	const cache = await ProjectBuildCache.create(project, "build-signature", cacheManager);
+	await cache.initSourceIndex();
+
+	const newDependencyReader = {
+		byGlob: sinon.stub().callsFake(async () => newDepResources.slice()),
+		byPath: sinon.stub().callsFake(async (p) => newDepResources.find((r) => r.getPath() === p) ?? null),
+	};
+
+	return {cache, project, cacheManager, newDependencyReader, oldDepSignature, expectedDepSignature, taskName};
+}
+
+test.failing("validateCache: added transitive dependency refreshes dependency index (buildThemes glob)",
+	async (t) => {
+	// Old build saw one library's theme sources; a transitive library was added since, exposing a
+	// second .less file. No resource "changed", so dependencyResourcesChanged() is never called.
+		const libA = createMockResource("/resources/libA/themes/base/library.source.less", "iA");
+		const libB = createMockResource("/resources/libB/themes/base/library.source.less", "iB");
+
+		const {cache, newDependencyReader, oldDepSignature, expectedDepSignature, taskName} =
+		await createCacheWithDependencyGlob({
+			oldDepResources: [libA],
+			newDepResources: [libA, libB],
+		});
+
+		t.not(oldDepSignature, expectedDepSignature,
+			"precondition: adding libB must change the dependency index signature");
+		t.is(cache.getTaskCache(taskName).getDependencyIndexSignatures()[0], oldDepSignature,
+			"restored dependency index starts at the old signature");
+
+		await cache.validateCache(newDependencyReader, {prepareForBuild: true});
+
+		t.is(cache.getTaskCache(taskName).getDependencyIndexSignatures()[0], expectedDepSignature,
+			"dependency index must reflect the added transitive dependency after validateCache");
+	});
+
+test.failing("validateCache: removed transitive dependency refreshes dependency index", async (t) => {
+	// Reverse direction: a library present in the previous build is no longer a dependency, so its
+	// theme sources should drop out of the index. Again nothing is reported as a changed resource.
+	const libA = createMockResource("/resources/libA/themes/base/library.source.less", "iA");
+	const libB = createMockResource("/resources/libB/themes/base/library.source.less", "iB");
+
+	const {cache, newDependencyReader, oldDepSignature, expectedDepSignature, taskName} =
+		await createCacheWithDependencyGlob({
+			oldDepResources: [libA, libB],
+			newDepResources: [libA],
+		});
+
+	t.not(oldDepSignature, expectedDepSignature,
+		"precondition: removing libB must change the dependency index signature");
+
+	await cache.validateCache(newDependencyReader, {prepareForBuild: true});
+
+	t.is(cache.getTaskCache(taskName).getDependencyIndexSignatures()[0], expectedDepSignature,
+		"dependency index must reflect the removed transitive dependency after validateCache");
+});
+
+test.failing("validateCache: dependency-set change is general, not specific to the buildThemes glob",
+	async (t) => {
+	// The same staleness affects any task that globs dependency resources. Use a generic JS glob and
+	// task name to show the defect is not tied to theme handling.
+		const modA = createMockResource("/resources/libA/Component.js", "iA");
+		const modB = createMockResource("/resources/libB/Component.js", "iB");
+
+		const {cache, newDependencyReader, oldDepSignature, expectedDepSignature, taskName} =
+		await createCacheWithDependencyGlob({
+			taskName: "generateComponentPreload",
+			globPatterns: ["/resources/**/*.js"],
+			oldDepResources: [modA],
+			newDepResources: [modA, modB],
+		});
+
+		t.not(oldDepSignature, expectedDepSignature,
+			"precondition: adding libB's module must change the dependency index signature");
+
+		await cache.validateCache(newDependencyReader, {prepareForBuild: true});
+
+		t.is(cache.getTaskCache(taskName).getDependencyIndexSignatures()[0], expectedDepSignature,
+			"dependency index must refresh for any dependency-globbing task, not just buildThemes");
+	});
