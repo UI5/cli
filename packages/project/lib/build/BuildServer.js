@@ -3,6 +3,7 @@ import {createReaderCollectionPrioritized} from "@ui5/fs/resourceFactory";
 import BuildReader from "./BuildReader.js";
 import WatchHandler from "./helpers/WatchHandler.js";
 import {isAbortError} from "./helpers/abort.js";
+import {WATCHER_BURST_SETTLE_MS} from "./helpers/watchSettle.js";
 import {getLogger} from "@ui5/logger";
 import ServeLogger from "@ui5/logger/internal/loggers/Serve";
 const log = getLogger("build:BuildServer");
@@ -13,14 +14,8 @@ const log = getLogger("build:BuildServer");
 // well under 100 ms on small projects, where a trailing debounce would dominate edit-to-reload
 // latency. The emit is therefore leading-edge (the first change of a quiet period fires
 // immediately), followed by this window that coalesces the rest of a burst into one trailing emit.
-//
-// The value is tied to @parcel/watcher's MAX_WAIT_TIME (500 ms): the watcher caps its own
-// coalescing there, so a continuous operation (e.g. `git checkout`) arrives as batches up to
-// 500 ms apart rather than one quiet-terminated batch. A window below the cap would see quiet
-// between batches and emit per batch; above it, each batch resets the window so the whole
-// operation collapses to one leading + one trailing emit. Do not lower below 500 ms without
-// revisiting that relationship.
-const SOURCES_CHANGED_SETTLE_MS = 550;
+// Sized to WATCHER_BURST_SETTLE_MS so a multi-batch operation collapses (see that constant).
+const SOURCES_CHANGED_SETTLE_MS = WATCHER_BURST_SETTLE_MS;
 
 // Debounce for the request queue. A reader request enqueues a build and triggers the queue after
 // this short delay so near-simultaneous requests build together. Serving a request must not wait,
@@ -41,13 +36,12 @@ const FIRST_BUILD_SETTLE_MS = 100;
 
 // Settle window for restarting a build that a source change aborted. When a change lands mid-build
 // the running build is aborted at once, but the restart is held until changes have been quiet for
-// this long (each further change resets it). During a burst (a `git checkout`, a save-all, a bundler
-// writing many files) @parcel/watcher delivers batches up to its MAX_WAIT_TIME (500 ms) apart;
-// restarting on BUILD_REQUEST_DEBOUNCE_MS would spawn a build per batch, each aborted by the next.
-// Holding the restart above the watcher's cap collapses the burst into a single build against the
-// settled tree. Reader-request-driven builds keep the short debounce, so this delay only applies to
-// the speculative post-abort restart, not to serving a request.
-const ABORTED_BUILD_RESTART_SETTLE_MS = 550;
+// this long (each further change resets it). Sized to WATCHER_BURST_SETTLE_MS so a burst (a `git
+// checkout`, a save-all, a bundler writing many files) collapses into a single build against the
+// settled tree rather than one aborted build per watcher batch (see that constant). Reader-request-
+// driven builds keep the short debounce, so this delay only applies to the speculative post-abort
+// restart, not to serving a request.
+const ABORTED_BUILD_RESTART_SETTLE_MS = WATCHER_BURST_SETTLE_MS;
 
 // Loop protection for watcher recovery, so a persistently failing watcher (e.g. a watched path
 // that keeps erroring on re-subscribe, or an FS that keeps dropping events) does not cycle

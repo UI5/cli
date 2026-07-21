@@ -3,6 +3,7 @@ import path from "node:path";
 import parcelWatcher from "@parcel/watcher";
 import {getLogger} from "@ui5/logger";
 import {drainSubscriptions} from "./watchSubscriptions.js";
+import {WATCHER_BURST_SETTLE_MS} from "./watchSettle.js";
 const log = getLogger("build:helpers:DefinitionWatcher");
 
 // Default filename of the workspace configuration, resolved against cwd.
@@ -10,13 +11,13 @@ const WORKSPACE_CONFIG_DEFAULT = "ui5-workspace.yaml";
 
 // Settle window for the `definitionChanged` event, in milliseconds.
 //
-// A `git checkout` or branch switch writes ui5.yaml + package.json + sources within one
-// operation; @parcel/watcher delivers that as batches up to its MAX_WAIT_TIME (500 ms) apart.
-// A trailing timer, reset on each further event, collapses the burst into a single emit. A
-// re-init needs no leading edge (re-creating the serving stack on the first byte of a checkout
-// is wasteful), so this window is trailing-only. Mirrors BuildServer's SOURCES_CHANGED_SETTLE_MS
-// and must stay above the 500 ms cap so each batch resets the window rather than terminating it.
-const DEFINITION_CHANGED_SETTLE_MS = 550;
+// A `git checkout` or branch switch writes ui5.yaml + package.json + sources within one operation;
+// a trailing timer, reset on each further event, collapses that burst into a single emit. Unlike
+// BuildServer's live-reload emit, a re-init needs no leading edge (re-creating the serving stack on
+// the first byte of a checkout is wasteful), so this window is trailing-only. Sized to
+// WATCHER_BURST_SETTLE_MS so each batch resets the window rather than terminating it (see that
+// constant).
+const DEFINITION_CHANGED_SETTLE_MS = WATCHER_BURST_SETTLE_MS;
 
 // Loop protection for watcher recovery, so a persistently failing watcher does not cycle
 // error → recover → error forever. More than WATCHER_RECOVERY_MAX_ATTEMPTS recoveries within
