@@ -71,7 +71,7 @@
 		"@istanbuljs/esm-loader-hook": "^0.3.0",
 		"ava": "^6.4.1",
 		"cross-env": "^10.1.0",
-		"eslint": "^10.5.0",
+		"eslint": "^10.7.0",
 		"esmock": "^2.7.6",
 		"nyc": "^18.0.0",
 		"rimraf": "^6.1.3",

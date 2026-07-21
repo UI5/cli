@@ -102,8 +102,8 @@
 		"less-openui5": "^0.11.6",
 		"pretty-data": "^0.40.0",
 		"semver": "^7.8.5",
-		"terser": "^5.48.0",
-		"workerpool": "^10.0.2",
+		"terser": "^5.49.0",
+		"workerpool": "^10.0.3",
 		"xml2js": "^0.6.2"
 	},
 	"devDependencies": {
@@ -112,7 +112,7 @@
 		"@ui5/project": "^5.0.0-alpha.6",
 		"ava": "^6.4.1",
 		"cross-env": "^10.1.0",
-		"eslint": "^10.5.0",
+		"eslint": "^10.7.0",
 		"esmock": "^2.7.6",
 		"line-column": "^1.0.2",
 		"nyc": "^18.0.0",
