@@ -416,6 +416,9 @@ export default class CacheManager {
 	/**
 	 * Clean additional build cache resources that are safe to remove independently.
 	 *
+	 * Note: This method is a placeholder for interface compatibility across
+	 * cleanup tasks and currently does not perform any cleanup.
+	 *
 	 * @static
 	 * @param {string} _ui5DataDir Resolved absolute path to UI5 data directory
 	 * @returns {Promise<Array>} Always resolves with an empty array

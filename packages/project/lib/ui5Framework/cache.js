@@ -7,7 +7,7 @@ const FRAMEWORK_DIR_NAME = "framework";
 /**
  * Prefix used for staging directories created during an atomic framework cache clean.
  * The directory is renamed to this prefix + a random hex suffix before deletion so that
- * the original path immediately becomes unavailable to concurrent processes.
+ * the original path is immediately removed and the deletion can proceed outside the rename.
  */
 const STAGING_DIR_PREFIX = ".framework_to_delete_";
 
@@ -151,8 +151,7 @@ export async function cleanAdditional(ui5DataDir) {
  * Clean the framework cache directory.
  *
  * Uses an atomic rename to make the framework directory disappear in a single
- * filesystem operation. The caller is responsible for holding the cleanup lock
- * for the full duration of this call:
+ * filesystem operation:
  *
  *  1. Clear cacache's in-process memoization (no path needed — global operation).
  *  2. Atomically rename <code>framework/</code> to a hidden staging dir.
