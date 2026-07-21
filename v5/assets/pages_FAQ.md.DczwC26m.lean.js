@@ -1,0 +1,1 @@
+import{_ as a,o as r,h as t,a2 as n}from"./chunks/framework.GaPwploY.js";const u=JSON.parse('{"title":"FAQ","description":"","frontmatter":{},"headers":[],"relativePath":"pages/FAQ.md","filePath":"pages/FAQ.md"}'),o={name:"pages/FAQ.md"};function s(i,e,p,h,l,c){return r(),t("div",null,[...e[0]||(e[0]=[n("",16)])])}const f=a(o,[["render",s]]);export{u as __pageData,f as default};
