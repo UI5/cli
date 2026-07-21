@@ -2755,6 +2755,51 @@ test.serial("Build application.a with --cache=Force (2)", async (t) => {
 		`Use "Default", "ReadOnly" or "Off" to rebuild.`));
 });
 
+test.serial("Build application.a with --exclude-task=generateVersionInfo", async (t) => {
+	// This test verifies that when task generateVersionInfo is excluded,
+	// the sap-ui-version.json file is NOT generated in the output
+	// AND the dependencies are not automatically built.
+
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+
+	// #1 Build with empty cache and exclude generateVersionInfo task
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: false, excludedTasks: ["generateVersionInfo"]},
+		assertions: {
+			projects: {
+				// Only application.a is built, dependencies are skipped
+				"application.a": {}
+			}
+		}
+	});
+
+	// Verify that sap-ui-version.json does NOT exist in the output
+	const versionInfoPath = `${destPath}/resources/sap-ui-version.json`;
+	await t.throwsAsync(fs.readFile(versionInfoPath, {encoding: "utf8"}), undefined,
+		"sap-ui-version.json should NOT exist when generateVersionInfo task is excluded");
+
+
+	// #2 Build with empty cache and include all default tasks now
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: false},
+		assertions: {
+			projects: {
+				// All dependencies are built now
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+				"application.a": {}
+			}
+		}
+	});
+
+	// Verify that sap-ui-version.json DOES exist in the output now
+	await t.notThrowsAsync(fs.readFile(versionInfoPath, {encoding: "utf8"}), undefined,
+		"sap-ui-version.json should exist when generateVersionInfo task is included");
+});
+
 function getFixturePath(fixtureName) {
 	return fileURLToPath(new URL(`../../fixtures/${fixtureName}`, import.meta.url));
 }
