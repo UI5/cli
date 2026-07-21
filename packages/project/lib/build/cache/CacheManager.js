@@ -358,6 +358,7 @@ export default class CacheManager {
 	/**
 	 * Get build cache info for the current version.
 	 *
+	 * @public
 	 * @static
 	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
 	 * @returns {Promise<{path: string, size: number}|null>} Build cache info or null
@@ -387,6 +388,7 @@ export default class CacheManager {
 	/**
 	 * Clean build cache by clearing all records from SQLite database for the current version.
 	 *
+	 * @public
 	 * @static
 	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
 	 * @returns {Promise<{path: string, size: number}|null>} Removal result or null
@@ -419,6 +421,7 @@ export default class CacheManager {
 	 * Note: This method is a placeholder for interface compatibility across
 	 * cleanup tasks and currently does not perform any cleanup.
 	 *
+	 * @public
 	 * @static
 	 * @param {string} _ui5DataDir Resolved absolute path to UI5 data directory
 	 * @returns {Promise<Array>} Always resolves with an empty array

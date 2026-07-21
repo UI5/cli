@@ -2,6 +2,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import {getRandomValues} from "node:crypto";
 
+/**
+ * Utilities for cleaning the UI5 framework cache.
+ *
+ * @public
+ * @module @ui5/project/ui5Framework/cache
+ */
+
 const FRAMEWORK_DIR_NAME = "framework";
 
 /**
@@ -61,6 +68,7 @@ async function getPackageStats(frameworkDir) {
 /**
  * Get framework cache info.
  *
+ * @public
  * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
  * @returns {Promise<{path: string, libraryCount: number, versionCount: number}|null>}
  *   Framework cache info, or null if no packages are installed.
@@ -83,6 +91,7 @@ export async function getCacheInfo(ui5DataDir) {
  * interrupted clean operations (i.e. process killed after rename but before deletion).
  * Returns stats per orphan without deleting anything.
  *
+ * @public
  * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
  * @returns {Promise<Array<{path: string, libraryCount: number, versionCount: number}>>}
  */
@@ -129,6 +138,7 @@ export async function getOrphanedInfo(ui5DataDir) {
  * Deletion failures are swallowed per entry so one stuck directory does not prevent
  * the others from being removed.
  *
+ * @public
  * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
  * @returns {Promise<Array<{path: string, libraryCount: number, versionCount: number}>>}
  */
@@ -160,6 +170,7 @@ export async function cleanAdditional(ui5DataDir) {
  *  3. Delete the staging dir recursively. Its contents are now fully private
  *     to this operation.
  *
+ * @public
  * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
  * @returns {Promise<{path: string, libraryCount: number, versionCount: number}|null>}
  *   Removal result, or null if no framework packages were installed.
