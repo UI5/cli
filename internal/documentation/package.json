@@ -37,15 +37,15 @@
 		"download-packages": "./scripts/downloadPackages.sh"
 	},
 	"dependencies": {
-		"@tailwindcss/vite": "^4.3.1",
+		"@tailwindcss/vite": "^4.3.3",
 		"@types/node": "^25.2.2",
-		"autoprefixer": "^10.5.0",
+		"autoprefixer": "^10.5.4",
 		"cssnano": "^7.1.9",
 		"markdown-it-implicit-figures": "^0.12.0",
-		"postcss": "^8.5.15",
+		"postcss": "^8.5.19",
 		"tailwindcss": "^4.2.2",
 		"vitepress": "^1.6.4",
-		"vue": "^3.4.38"
+		"vue": "^3.5.40"
 	},
 	"devDependencies": {
 		"@apidevtools/json-schema-ref-parser": "^14.2.1",

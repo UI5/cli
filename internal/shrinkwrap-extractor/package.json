@@ -38,11 +38,11 @@
 		"npm": ">= 8"
 	},
 	"dependencies": {
-		"@npmcli/arborist": "^9.8.0",
-		"@npmcli/config": "^10.11.0",
+		"@npmcli/arborist": "^9.9.0",
+		"@npmcli/config": "^10.12.0",
 		"pacote": "^21.5.1"
 	},
 	"devDependencies": {
-		"eslint": "^10.5.0"
+		"eslint": "^10.7.0"
 	}
 }
