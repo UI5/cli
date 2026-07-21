@@ -9,7 +9,7 @@ const FRAMEWORK_DIR_NAME = "framework";
  * The directory is renamed to this prefix + a random hex suffix before deletion so that
  * the original path is immediately removed and the deletion can proceed outside the rename.
  */
-const STAGING_DIR_PREFIX = ".framework_to_delete_";
+const STAGING_DIR_PREFIX = "_framework_to_delete_";
 
 /**
  * Count unique libraries and versions in the packages/ subdirectory.

@@ -162,7 +162,7 @@ test.serial("ui5 cache clean: removes both entries and reports", async (t) => {
 	t.true(allOutput.includes("5 versions of 18 libraries"), "Shows library stats format");
 	t.true(allOutput.includes("8.0 MB"), "Shows pre-clean build cache size");
 	t.false(allOutput.includes("7.0 MB"), "Does not show VACUUM-freed size");
-	t.true(allOutput.includes("Cleaned UI5 Framework packages and Build cache (DB)"),
+	t.true(allOutput.includes("Cleaned UI5 Framework packages and Build cache (Db)"),
 		"Shows success summary");
 });
 
@@ -200,7 +200,7 @@ test.serial("ui5 cache clean: framework only — formats library stats correctly
 
 	let allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes("5 versions of 18 libraries"), "Shows plural format");
-	t.false(allOutput.includes("Build cache (DB)"), "Does not mention build cache");
+	t.false(allOutput.includes("Build cache (Db)"), "Does not mention build cache");
 
 	// Singular
 	stderrWriteStub.resetHistory();
@@ -249,7 +249,7 @@ test.serial("ui5 cache clean: build only", async (t) => {
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.false(allOutput.includes("UI5 Framework packages"), "Does not mention framework");
 	t.true(allOutput.includes("50.0 KB"), "Shows build cache size");
-	t.true(allOutput.includes("Cleaned Build cache (DB)"), "Success mentions build cache only");
+	t.true(allOutput.includes("Cleaned Build cache (Db)"), "Success mentions build cache only");
 });
 
 test.serial("ui5 cache clean: formats byte sizes correctly (< 1 KB)", async (t) => {
@@ -326,7 +326,7 @@ test.serial("ui5 cache clean: shows orphaned framework data in pre-confirmation 
 	t.context.frameworkCacheGetCacheInfo.resolves(null);
 	t.context.buildCacheGetCacheInfo.resolves(null);
 	frameworkCacheGetOrphanedInfo.resolves([
-		{path: ".framework_to_delete_abcd", libraryCount: 5, versionCount: 2},
+		{path: "_framework_to_delete_abcd", libraryCount: 5, versionCount: 2},
 	]);
 	frameworkCacheCleanCache.resolves(null);
 
@@ -339,7 +339,7 @@ test.serial("ui5 cache clean: shows orphaned framework data in pre-confirmation 
 	t.true(allOutput.includes("Orphaned framework data"), "Shows orphaned section in pre-confirm summary");
 	t.true(allOutput.includes("incomplete previous clean"), "Shows orphaned context message");
 	t.true(allOutput.includes("1 directory"), "Shows singular 'directory' for one orphan");
-	t.true(allOutput.includes(".framework_to_delete_abcd"), "Shows orphaned dir path");
+	t.true(allOutput.includes("_framework_to_delete_abcd"), "Shows orphaned dir path");
 	t.true(allOutput.includes("2 versions of 5 libraries"), "Shows orphaned dir stats");
 });
 
@@ -350,13 +350,13 @@ test.serial("ui5 cache clean: shows orphaned framework data in post-clean summar
 	t.context.frameworkCacheGetCacheInfo.resolves({path: "framework", libraryCount: 3, versionCount: 1});
 	t.context.buildCacheGetCacheInfo.resolves(null);
 	frameworkCacheGetOrphanedInfo.resolves([
-		{path: ".framework_to_delete_ab12", libraryCount: 3, versionCount: 1},
-		{path: ".framework_to_delete_cd34", libraryCount: 3, versionCount: 1},
+		{path: "_framework_to_delete_ab12", libraryCount: 3, versionCount: 1},
+		{path: "_framework_to_delete_cd34", libraryCount: 3, versionCount: 1},
 	]);
 	frameworkCacheCleanCache.resolves({path: "framework", libraryCount: 3, versionCount: 1});
 	frameworkCacheCleanAdditional.resolves([
-		{path: ".framework_to_delete_ab12", libraryCount: 3, versionCount: 1},
-		{path: ".framework_to_delete_cd34", libraryCount: 3, versionCount: 1},
+		{path: "_framework_to_delete_ab12", libraryCount: 3, versionCount: 1},
+		{path: "_framework_to_delete_cd34", libraryCount: 3, versionCount: 1},
 	]);
 
 	argv["_"] = ["cache", "clean"];
@@ -366,8 +366,8 @@ test.serial("ui5 cache clean: shows orphaned framework data in post-clean summar
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes("Removed Orphaned framework data"), "Shows orphaned section in result");
 	t.true(allOutput.includes("2 directories"), "Shows plural 'directories' for multiple orphans");
-	t.true(allOutput.includes(".framework_to_delete_ab12"), "Shows first orphaned dir path");
-	t.true(allOutput.includes(".framework_to_delete_cd34"), "Shows second orphaned dir path");
+	t.true(allOutput.includes("_framework_to_delete_ab12"), "Shows first orphaned dir path");
+	t.true(allOutput.includes("_framework_to_delete_cd34"), "Shows second orphaned dir path");
 });
 
 test.serial("ui5 cache clean: shows orphaned-only success summary when no active framework", async (t) => {
@@ -377,11 +377,11 @@ test.serial("ui5 cache clean: shows orphaned-only success summary when no active
 	t.context.frameworkCacheGetCacheInfo.resolves(null);
 	t.context.buildCacheGetCacheInfo.resolves(null);
 	frameworkCacheGetOrphanedInfo.resolves([
-		{path: ".framework_to_delete_zz99", libraryCount: 10, versionCount: 3},
+		{path: "_framework_to_delete_zz99", libraryCount: 10, versionCount: 3},
 	]);
 	frameworkCacheCleanCache.resolves(null);
 	frameworkCacheCleanAdditional.resolves([
-		{path: ".framework_to_delete_zz99", libraryCount: 10, versionCount: 3},
+		{path: "_framework_to_delete_zz99", libraryCount: 10, versionCount: 3},
 	]);
 
 	argv["_"] = ["cache", "clean"];

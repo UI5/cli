@@ -42,7 +42,7 @@ cacheCommand.builder = function(cli) {
 						"  Build cache (Db): Build data " +
 							"(~/.ui5/buildCache/)\n" +
 						"  Orphaned framework data: Incomplete directories from previously interrupted cleanups\n" +
-							"                        (~/.ui5/.framework_to_delete_*/)"
+							"                        (~/.ui5/_framework_to_delete_*/)"
 					);
 			},
 			middlewares: [baseMiddleware],
