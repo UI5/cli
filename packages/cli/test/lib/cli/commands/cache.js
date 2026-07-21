@@ -121,7 +121,25 @@ test.serial("ui5 cache clean: uses resolved path from configuration", async (t) 
 	t.true(allOutput.includes(TEST_UI5_DATA_DIR), "Resolved ui5DataDir shown in checking line");
 });
 
-test.serial("ui5 cache clean: falls back to ~/.ui5 when getUi5DataDir has no value", async (t) => {
+test.serial("ui5 cache clean: prefers UI5_DATA_DIR env var over configuration", async (t) => {
+	const {cache, argv, frameworkCacheGetCacheInfo, buildCacheGetCacheInfo,
+		configurationFromFileStub} = t.context;
+
+	const envUi5DataDir = path.resolve("env-ui5-home");
+	process.env.UI5_DATA_DIR = envUi5DataDir;
+	frameworkCacheGetCacheInfo.resolves(null);
+	buildCacheGetCacheInfo.resolves(null);
+
+	argv["_"] = ["cache", "clean"];
+	await cache.handler(argv);
+
+	t.is(configurationFromFileStub.callCount, 0,
+		"Configuration.fromFile must not be called when UI5_DATA_DIR is set");
+	t.is(frameworkCacheGetCacheInfo.firstCall.args[0], envUi5DataDir,
+		"getCacheInfo receives value from UI5_DATA_DIR");
+});
+
+test.serial("ui5 cache clean: falls back to ~/.ui5 when configuration has no value", async (t) => {
 	const {cache, argv, frameworkCacheGetCacheInfo, buildCacheGetCacheInfo,
 		stderrWriteStub, configurationGetUi5DataDirStub} = t.context;
 
