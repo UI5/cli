@@ -731,13 +731,13 @@ test("Get index of resources", async (t) => {
 			t.is(res.statusCode, 200, "Correct HTTP status code");
 			t.is(res.headers["content-type"], "text/html; charset=utf-8", "Correct content type");
 			t.is(/<title>(.*)<\/title>/i.exec(res.text)[1], "Index of /resources", "Found correct title");
-			t.is(res.text.match(/<li/g).length, 3, "Found correct amount of <li> elements");
+			t.is(res.text.match(/<li/g).length, 2, "Found correct amount of <li> elements");
 		}),
 		request.get("/resources/").then((res) => {
 			t.is(res.statusCode, 200, "Correct HTTP status code");
 			t.is(res.headers["content-type"], "text/html; charset=utf-8", "Correct content type");
 			t.is(/<title>(.*)<\/title>/i.exec(res.text)[1], "Index of /resources/", "Found correct title");
-			t.is(res.text.match(/<li/g).length, 3, "Found correct amount of <li> elements");
+			t.is(res.text.match(/<li/g).length, 2, "Found correct amount of <li> elements");
 		}),
 		request.get("/not-existing-folder").then((res) => {
 			t.is(res.statusCode, 404, "Correct HTTP status code");
