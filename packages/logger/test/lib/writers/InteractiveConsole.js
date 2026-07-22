@@ -199,7 +199,7 @@ test.serial("warn / error logs scroll above the live region", (t) => {
 	writer.disable();
 });
 
-test.serial("info logs are filtered — status line represents build state", (t) => {
+test.serial("info logs logs scroll above the live region", (t) => {
 	const {writer, stderr} = createWriter();
 
 	process.emit("ui5.log", {
@@ -208,10 +208,8 @@ test.serial("info logs are filtered — status line represents build state", (t)
 		moduleName: "my:module",
 	});
 
-	// The persistent frame renders on info events too because #render is
-	// called; but no line containing the info text should scroll above.
 	const output = stripAnsi(stderr.writes.join(""));
-	t.notRegex(output, /quiet info/);
+	t.regex(output, /quiet info/);
 
 	writer.disable();
 });

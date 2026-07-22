@@ -260,15 +260,6 @@ class InteractiveConsole {
 	}
 
 	#handleLog({level, message, moduleName}) {
-		// The banner curates `info` away (the status line already represents
-		// the build's state). Verbose / perf / silly users hit the fallback
-		// path before the writer ever activates. Warnings and errors persist —
-		// but only if the configured log level lets them through. The standard
-		// ConsoleWriter does this filtering implicitly via its `#writeMessage`;
-		// this writer acts as its own sink here, so it has to check too.
-		if (level !== "warn" && level !== "error") {
-			return;
-		}
 		if (!Logger.isLevelEnabled(level)) {
 			return;
 		}
