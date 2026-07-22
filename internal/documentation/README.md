@@ -41,7 +41,6 @@ The development server starts at `http://localhost:5173` with hot-reload for liv
 | `download-packages` | Downloads the latest published versions of all UI5 CLI packages (`@ui5/builder`, `@ui5/cli`, etc.) via `npm pack` and extracts them to `tmp/packages/`. This enables gh-pages builds to use published npm packages instead of local workspace code. |
 | `jsdoc-generate` | Generates API documentation from local workspace package sources (`../../packages/*/lib/**/*.js`). Uses the workspace JSDoc config targeting the current development version (v5). |
 | `jsdoc-generate-gh-pages` | Generates API documentation from downloaded packages in `tmp/packages/`. Uses the gh-pages JSDoc config targeting the published version (v4). Requires `download-packages` to run first. |
-| `jsdoc` | Generates JSDoc API documentation from the local workspace and opens the result in the browser. Convenience wrapper for local development. |
 
 
 ## Dual-Version Documentation
