@@ -42,7 +42,7 @@ test.serial("Log event with invalid log level 'silent'", (t) => {
 			moduleName: "my:module"
 		});
 	}, {
-		message: `writers/internal/levelPrefix: Invalid message log level "silent"`
+		message: `writers/internal/format: Invalid message log level "silent"`
 	});
 
 	t.is(stderrWriteStub.callCount, 0, "Logged no message");
