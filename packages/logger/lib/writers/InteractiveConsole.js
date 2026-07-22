@@ -17,6 +17,12 @@ import {
 // Spinner tick interval while in `building` or `validating` state.
 const BUILDING_TICK_MS = 120;
 
+// Module names whose info-level logs duplicate state the banner already renders
+// via named build events (ui5.build-metadata / ui5.build-status). Their info
+// lines are suppressed so they don't scroll above the live region. Warnings and
+// errors from these modules, and all other levels, still pass through.
+const BANNER_REDUNDANT_INFO_MODULES = new Set(["ProjectBuilder"]);
+
 // Decode the tail of `stream.write(chunk[, encoding][, callback])`. `encoding`
 // falls back to "utf8" (Node's default) when not supplied.
 function parseWriteArgs(encodingOrCallback, maybeCallback) {
@@ -261,6 +267,9 @@ class InteractiveConsole {
 
 	#handleLog({level, message, moduleName}) {
 		if (!Logger.isLevelEnabled(level)) {
+			return;
+		}
+		if (level === "info" && BANNER_REDUNDANT_INFO_MODULES.has(moduleName)) {
 			return;
 		}
 		this.logAbove(formatLogLine(level, prefixModuleName(message, moduleName)));
