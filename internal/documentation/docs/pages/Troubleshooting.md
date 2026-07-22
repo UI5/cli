@@ -40,7 +40,7 @@ The command removes the following cached data:
 
 If a previous `ui5 cache clean` was interrupted (e.g. process killed or system crash), the command also detects and removes any leftover data from that interrupted operation, listed as separate entries:
 - **Orphaned UI5 Framework packages** — incomplete framework directories left over from a previously interrupted cleanup (`~/.ui5/_framework_to_delete_*/`)
-- **Orphaned build cache (Db)** — freed database pages not yet reclaimed by VACUUM during a previously interrupted cleanup
+- **Orphaned build cache (Db)** — freed database pages not yet reclaimed during a previously interrupted cleanup
 
 Any required framework dependencies will be re-downloaded during the next UI5 CLI invocation.
 
