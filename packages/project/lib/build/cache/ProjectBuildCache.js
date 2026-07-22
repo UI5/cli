@@ -69,6 +69,14 @@ export default class ProjectBuildCache {
 	#cachedResultSignature;
 	#currentResultSignature;
 
+	// Dependency-set identity: a hash over the project's transitive dependency ids, computed by the
+	// caller from the graph and passed into validateCache. #cachedDependencySetIdentity is restored
+	// from the persisted source index, #currentDependencySetIdentity reflects the current graph. A
+	// mismatch means a dependency was added to or removed from the set since the last build even
+	// though no dependency resource changed, and forces a full dependency-index refresh.
+	#cachedDependencySetIdentity;
+	#currentDependencySetIdentity;
+
 	// Pending changes
 	#changedProjectSourcePaths = [];
 	#changedDependencyResourcePaths = [];
@@ -168,11 +176,16 @@ export default class ProjectBuildCache {
 	 * @param {object} [options]
 	 * @param {boolean} [options.prepareForBuild=false] Run the pre-build side effects before
 	 *   validating (see method description)
+	 * @param {string} [options.dependencySetIdentity] Hash identifying the current dependency set
+	 *   (see {@link @ui5/project/build/helpers/ProjectBuildContext#getDependencySetIdentity}).
+	 *   Compared against the identity persisted with the previous build's source index; a mismatch
+	 *   forces a dependency-index refresh even when no dependency resource change was propagated.
 	 * @returns {Promise<string[]|boolean>}
 	 *  Array of changed resource paths since last build, true if cache is fresh, false
 	 *  if cache is empty
 	 */
-	async validateCache(dependencyReader, {prepareForBuild = false} = {}) {
+	async validateCache(dependencyReader, {prepareForBuild = false, dependencySetIdentity} = {}) {
+		this.#currentDependencySetIdentity = dependencySetIdentity;
 		if (prepareForBuild) {
 			this.#stageCache.discardPending();
 			this.#currentProjectReader = this.#project.getReader();
@@ -192,13 +205,20 @@ export default class ProjectBuildCache {
 		}
 
 		if (this.#combinedIndexState === INDEX_STATES.RESTORING_DEPENDENCY_INDICES) {
-			if (this.#changedDependencyResourcePaths.length) {
+			// A refresh is required when a dependency resource changed (accumulator non-empty) or
+			// when the dependency set itself changed since the last build. The latter is not
+			// reported through dependencyResourcesChanged(), so it would otherwise be missed and the
+			// restored indices would keep reflecting the previous build's dependency set.
+			const dependencySetChanged =
+				this.#currentDependencySetIdentity !== this.#cachedDependencySetIdentity;
+			if (this.#changedDependencyResourcePaths.length || dependencySetChanged) {
 				const updateStart = performance.now();
 				await this._refreshDependencyIndices(dependencyReader);
 				if (log.isLevelEnabled("perf")) {
 					log.perf(
 						`Initialized dependency indices for project ${this.#project.getName()} ` +
-						`in ${(performance.now() - updateStart).toFixed(2)} ms`);
+						`in ${(performance.now() - updateStart).toFixed(2)} ms ` +
+						`(dependencySetChanged=${dependencySetChanged})`);
 				}
 			} else if (log.isLevelEnabled("perf")) {
 				log.perf(
@@ -1399,6 +1419,10 @@ export default class ProjectBuildCache {
 		const indexCache = this.#cacheManager.readIndexCache(this.#project.getId(), this.#buildSignature, "source");
 		if (indexCache) {
 			log.verbose(`Using cached resource index for project ${this.#project.getName()}`);
+			// Restore the dependency-set identity persisted with the previous build's source index.
+			// validateCache compares it against the current identity to decide whether the restored
+			// dependency indices still match the current dependency set.
+			this.#cachedDependencySetIdentity = indexCache.availableDependencies;
 			// Create and diff resource index
 			const {resourceIndex, changedPaths} =
 				await ResourceIndex.fromCacheWithDelta(indexCache, resources, Date.now());
@@ -1811,8 +1835,11 @@ export default class ProjectBuildCache {
 	 * @returns {{projectId: string, buildSignature: string, kind: string, index: object}|null}
 	 */
 	#prepareSourceIndex() {
-		if (this.#cachedSourceSignature === this.#sourceIndex.getSignature()) {
-			// No changes to already cached result index
+		if (this.#cachedSourceSignature === this.#sourceIndex.getSignature() &&
+			this.#currentDependencySetIdentity === this.#cachedDependencySetIdentity) {
+			// Neither the source index nor the dependency-set identity changed. The identity is
+			// persisted in this row, so it must be rewritten when it changes even if the source
+			// index signature is unchanged (a dependency-set change does not touch source files).
 			return null;
 		}
 		log.verbose(`Preparing resource index cache for project ${this.#project.getName()} ` +
@@ -1829,6 +1856,7 @@ export default class ProjectBuildCache {
 			index: {
 				...sourceIndexObject,
 				tasks,
+				availableDependencies: this.#currentDependencySetIdentity,
 			},
 		};
 	}
