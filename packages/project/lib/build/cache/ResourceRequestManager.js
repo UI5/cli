@@ -1,9 +1,36 @@
+import crypto from "node:crypto";
 import micromatch from "micromatch";
 import ResourceRequestGraph, {Request} from "./ResourceRequestGraph.js";
 import ResourceIndex from "./index/ResourceIndex.js";
 import TreeRegistry from "./index/TreeRegistry.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("build:cache:ResourceRequestManager");
+
+/**
+ * Restores an unresolved-requests marker from its serialized (array) form onto a metadata object.
+ * No-op for a missing or empty array, keeping the marker absent rather than an empty Set.
+ *
+ * @param {object} metadata Request-set node metadata (mutated in place)
+ * @param {string[]|undefined} serialized Serialized unresolved request keys
+ */
+function deserializeUnresolvedRequests(metadata, serialized) {
+	if (serialized?.length) {
+		metadata.unresolvedRequests = new Set(serialized);
+	}
+}
+
+/**
+ * Serializes an unresolved-requests marker to its array form onto a cache entry.
+ * No-op for a missing or empty Set, keeping the marker out of the serialized output.
+ *
+ * @param {object} entry Cache entry (mutated in place)
+ * @param {Set<string>|undefined} unresolvedRequests Set of unresolved request keys
+ */
+function serializeUnresolvedRequests(entry, unresolvedRequests) {
+	if (unresolvedRequests?.size) {
+		entry.unresolvedRequests = Array.from(unresolvedRequests);
+	}
+}
 
 /**
  * Manages resource requests and their associated indices for a single task
@@ -73,15 +100,16 @@ class ResourceRequestManager {
 			projectName, taskName, useDifferentialUpdate, requestGraph, unusedAtLeastOnce);
 		const registries = new Map();
 		// Restore root resource indices
-		for (const {nodeId, resourceIndex: serializedIndex} of rootIndices) {
+		for (const {nodeId, resourceIndex: serializedIndex, unresolvedRequests} of rootIndices) {
 			const metadata = requestGraph.getMetadata(nodeId);
 			const registry = resourceRequestManager.#newTreeRegistry();
 			registries.set(nodeId, registry);
 			metadata.resourceIndex = ResourceIndex.fromCacheShared(serializedIndex, registry);
+			deserializeUnresolvedRequests(metadata, unresolvedRequests);
 		}
 		// Restore delta resource indices
 		if (deltaIndices) {
-			for (const {nodeId, addedResourceIndex} of deltaIndices) {
+			for (const {nodeId, addedResourceIndex, unresolvedRequests} of deltaIndices) {
 				const node = requestGraph.getNode(nodeId);
 				const {resourceIndex: parentResourceIndex} = requestGraph.getMetadata(node.getParentId());
 				const registry = registries.get(node.getParentId());
@@ -91,9 +119,9 @@ class ResourceRequestManager {
 				}
 				const resourceIndex = parentResourceIndex.deriveTreeWithIndex(addedResourceIndex);
 
-				requestGraph.setMetadata(nodeId, {
-					resourceIndex,
-				});
+				const metadata = {resourceIndex};
+				deserializeUnresolvedRequests(metadata, unresolvedRequests);
+				requestGraph.setMetadata(nodeId, metadata);
 			}
 		}
 		return resourceRequestManager;
@@ -113,11 +141,11 @@ class ResourceRequestManager {
 	getIndexSignatures() {
 		const requestSetIds = this.#requestGraph.getAllNodeIds();
 		const signatures = requestSetIds.map((requestSetId) => {
-			const {resourceIndex} = this.#requestGraph.getMetadata(requestSetId);
+			const {resourceIndex, unresolvedRequests} = this.#requestGraph.getMetadata(requestSetId);
 			if (!resourceIndex) {
 				throw new Error(`Resource index missing for request set ID ${requestSetId}`);
 			}
-			return resourceIndex.getSignature();
+			return this.#computeNodeSignature(resourceIndex, unresolvedRequests);
 		});
 		if (this.#unusedAtLeastOnce) {
 			signatures.push("X"); // Signature for when no requests were made
@@ -262,7 +290,8 @@ class ResourceRequestManager {
 
 		// Phase 3: Process each request set from cache
 		for (const requestSetId of matchingRequestSetIds) {
-			const {resourceIndex} = this.#requestGraph.getMetadata(requestSetId);
+			const metadata = this.#requestGraph.getMetadata(requestSetId);
+			const {resourceIndex} = metadata;
 			if (!resourceIndex) {
 				throw new Error(`Missing resource index for request set ID ${requestSetId}`);
 			}
@@ -283,6 +312,16 @@ class ResourceRequestManager {
 			}
 			if (resourcesToUpdate.length) {
 				await resourceIndex.upsertResources(resourcesToUpdate);
+			}
+			// Drain unresolved markers: any recorded added-request that now resolves
+			// to at least one resource is no longer unresolved. Only inspect
+			// added-requests (the ones this node contributes); inherited requests
+			// are the parent's responsibility.
+			if (metadata.unresolvedRequests?.size &&
+				resourcesToUpdate.length) {
+				this.#drainUnresolvedRequests(
+					metadata, this.#requestGraph.getNode(requestSetId).getAddedRequests(),
+					resourcesToUpdate.map((res) => res.getOriginalPath()));
 			}
 		}
 		let hasChanges;
@@ -555,10 +594,13 @@ class ResourceRequestManager {
 		// Try to find an existing request set that we can reuse
 		let setId = this.#requestGraph.findExactMatch(requests);
 		let resourceIndex;
+		let unresolvedRequests;
 		if (setId) {
 			// Reuse existing resource index.
 			// Note: This index has already been updated before the task executed, so no update is necessary here
-			resourceIndex = this.#requestGraph.getMetadata(setId).resourceIndex;
+			const existingMetadata = this.#requestGraph.getMetadata(setId);
+			resourceIndex = existingMetadata.resourceIndex;
+			unresolvedRequests = existingMetadata.unresolvedRequests;
 		} else {
 			// New request set, check whether we can create a delta
 			const metadata = {}; // Will populate with resourceIndex below
@@ -572,27 +614,133 @@ class ResourceRequestManager {
 				const addedRequests = requestSet.getAddedRequests();
 				const resourcesToAdd =
 					await this.#getResourcesForRequests(addedRequests, reader);
-				if (!resourcesToAdd.length) {
-					throw new Error(`Unexpected empty added resources for request set ID ${setId} ` +
-						`of task '${this.#taskName}' of project '${this.#projectName}'`);
-				}
 				log.verbose(`Task '${this.#taskName}' of project '${this.#projectName}' ` +
 					`created derived resource index for request set ID ${setId} ` +
 					`based on parent ID ${parentId} with ${resourcesToAdd.length} additional resources`);
 				resourceIndex = await parentResourceIndex.deriveTree(resourcesToAdd);
+				// Some added requests may resolve to no resource (e.g. a byPath probe for an
+				// optional file, or every request after a branch switch deletes probed files).
+				// Those reads still influence task output, so record the unresolved requests to
+				// keep the exposed signature distinct from the parent's until they resolve.
+				unresolvedRequests = this.#collectUnresolvedRequests(addedRequests, resourcesToAdd);
 			} else {
 				const resourcesRead =
 					await this.#getResourcesForRequests(requests, reader);
 				resourceIndex = await ResourceIndex.createShared(resourcesRead, Date.now(), this.#newTreeRegistry());
+				// Same handling for the root case: distinguish independent recordings that
+				// happen to resolve to zero resources today.
+				unresolvedRequests = this.#collectUnresolvedRequests(requests, resourcesRead);
 			}
 			metadata.resourceIndex = resourceIndex;
+			if (unresolvedRequests?.size) {
+				metadata.unresolvedRequests = unresolvedRequests;
+			}
 		}
 		return {
 			setId,
-			signature: resourceIndex.getSignature(),
+			signature: this.#computeNodeSignature(resourceIndex, unresolvedRequests),
 		};
 	}
 
+	/**
+	 * Computes the exposed signature for a request-set node
+	 *
+	 * With no unresolved requests, returns the underlying tree signature. When some
+	 * recorded requests resolved to no resources (byPath probes for files that don't
+	 * exist yet, or byGlob patterns matching nothing), those reads still influence
+	 * task output, so the exposed signature must stay distinct from the tree hash of
+	 * an otherwise-identical index. The signature therefore hashes the tree signature
+	 * together with the sorted unresolved keys.
+	 *
+	 * Once all unresolved requests drain (a later updateIndices upserts each probed
+	 * resource as it appears), the composite falls back to the tree signature,
+	 * matching what a fresh recording with the resource present would produce.
+	 *
+	 * @param {ResourceIndex} resourceIndex Resource index of the node
+	 * @param {Set<string>|undefined} unresolvedRequests Set of unresolved request keys
+	 * @returns {string} Exposed signature
+	 */
+	#computeNodeSignature(resourceIndex, unresolvedRequests) {
+		const treeSignature = resourceIndex.getSignature();
+		if (!unresolvedRequests?.size) {
+			return treeSignature;
+		}
+		const sortedKeys = Array.from(unresolvedRequests).sort();
+		// Separate the fields with NUL so the concatenation is unambiguous: the tree
+		// signature is hex and request keys are UTF-8 paths/patterns, so neither can
+		// contain a NUL byte. Without it, sha256("ab" + ["c"]) and sha256("a" + ["bc"])
+		// would collide. sortedKeys is joined on NUL for the same reason.
+		return crypto.createHash("sha256")
+			.update(treeSignature)
+			.update("\0")
+			.update(sortedKeys.join("\0"))
+			.digest("hex");
+	}
+
+	/**
+	 * Determines which recorded requests did not resolve to any resource
+	 *
+	 * A 'path' request is unresolved if no fetched resource has that exact path.
+	 * A 'patterns' request is unresolved if no fetched resource path matches any
+	 * pattern in the array.
+	 *
+	 * @param {Request[]} recordedRequests Requests as recorded by the MonitoredReader
+	 * @param {Array<module:@ui5/fs.Resource>} fetchedResources Resources actually returned
+	 * @returns {Set<string>} Set of unresolved request keys (Request.toKey() form)
+	 */
+	#collectUnresolvedRequests(recordedRequests, fetchedResources) {
+		const fetchedPaths = fetchedResources.map((res) => res.getOriginalPath());
+		const unresolved = new Set();
+		for (const request of recordedRequests) {
+			if (request.type === "path") {
+				if (!fetchedPaths.includes(request.value)) {
+					unresolved.add(request.toKey());
+				}
+			} else {
+				const matches = micromatch(fetchedPaths, request.value, {dot: true});
+				if (!matches.length) {
+					unresolved.add(request.toKey());
+				}
+			}
+		}
+		return unresolved;
+	}
+
+	/**
+	 * Drops keys from metadata.unresolvedRequests whose recorded request now resolves to
+	 * at least one of the given paths.
+	 *
+	 * Called from updateIndices after upserting newly-appeared resources into a
+	 * node's index. Once every key drains, the node's exposed signature collapses
+	 * back to the pure tree hash, matching what a fresh recording with the
+	 * resource present would have produced.
+	 *
+	 * @param {object} metadata Request-set node metadata (mutated in place)
+	 * @param {Request[]} addedRequests Recorded added-requests for this node
+	 * @param {string[]} resolvedPaths Paths that now resolve to a resource
+	 */
+	#drainUnresolvedRequests(metadata, addedRequests, resolvedPaths) {
+		for (const request of addedRequests) {
+			const key = request.toKey();
+			if (!metadata.unresolvedRequests.has(key)) {
+				continue;
+			}
+			let resolvesNow;
+			if (request.type === "path") {
+				resolvesNow = resolvedPaths.includes(request.value);
+			} else {
+				resolvesNow = micromatch(resolvedPaths, request.value, {dot: true}).length > 0;
+			}
+			if (resolvesNow) {
+				metadata.unresolvedRequests.delete(key);
+			}
+		}
+		if (metadata.unresolvedRequests.size === 0) {
+			delete metadata.unresolvedRequests;
+		}
+	}
+
+	/**
 	/**
 	 * Associates a request set from this manager with one from another manager
 	 *
@@ -691,15 +839,17 @@ class ResourceRequestManager {
 		const rootIndices = [];
 		const deltaIndices = [];
 		for (const {nodeId, parentId} of this.#requestGraph.traverseByDepth()) {
-			const {resourceIndex} = this.#requestGraph.getMetadata(nodeId);
+			const {resourceIndex, unresolvedRequests} = this.#requestGraph.getMetadata(nodeId);
 			if (!resourceIndex) {
 				throw new Error(`Missing resource index for node ID ${nodeId}`);
 			}
 			if (!parentId) {
-				rootIndices.push({
+				const entry = {
 					nodeId,
 					resourceIndex: resourceIndex.toCacheObject(),
-				});
+				};
+				serializeUnresolvedRequests(entry, unresolvedRequests);
+				rootIndices.push(entry);
 			} else {
 				const {resourceIndex: rootResourceIndex} = this.#requestGraph.getMetadata(parentId);
 				if (!rootResourceIndex) {
@@ -708,10 +858,12 @@ class ResourceRequestManager {
 				// Store the metadata for all added resources. Note: Those resources might not be available
 				// in the current tree. In that case we store an empty array.
 				const addedResourceIndex = resourceIndex.getAddedResourceIndex(rootResourceIndex);
-				deltaIndices.push({
+				const entry = {
 					nodeId,
 					addedResourceIndex,
-				});
+				};
+				serializeUnresolvedRequests(entry, unresolvedRequests);
+				deltaIndices.push(entry);
 			}
 		}
 		return {
