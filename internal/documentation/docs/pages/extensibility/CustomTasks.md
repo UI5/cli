@@ -352,7 +352,7 @@ The following code snippets show examples for custom task implementations.
 
 #### Example: lib/tasks/renderMarkdownFiles.js
 
-This example is making use of the `resourceFactory` [TaskUtil](../../api/@ui5_project_build_helpers_TaskUtil.html)
+This example is making use of the `resourceFactory` [TaskUtil](https://ui5.github.io/cli/v5/api/@ui5_project_build_helpers_TaskUtil.html)
 API to create new resources based on the output of a third-party module for rendering Markdown files. The created resources are added to the build
 result by writing them into the provided `workspace`.
 In addition, this task supports differential builds, which re-process only changed resources.
@@ -449,7 +449,7 @@ Tasks should ideally use the reader/writer APIs provided by UI5 CLI for working 
 
 #### Example: lib/tasks/compileLicenseSummary.js
 
-This example is making use of multiple [TaskUtil](../../api/@ui5_project_build_helpers_TaskUtil.html)
+This example is making use of multiple [TaskUtil](https://ui5.github.io/cli/v5/api/@ui5_project_build_helpers_TaskUtil.html)
 APIs to retrieve additional information about the project currently being built (`taskUtil.getProject()`) and its direct dependencies
 (`taskUtil.getDependencies()`). Project configuration files like `package.json` can be accessed directly using `project.getRootReader()`.
 
@@ -554,6 +554,6 @@ module.exports = async function({dependencies, log, options, taskUtil, workspace
 
 ## Helper Class `TaskUtil`
 
-Custom tasks defining [Specification Version](../Configuration.md#specification-versions) 2.2 or higher have access to an interface of a [TaskUtil](../../api/@ui5_project_build_helpers_TaskUtil.html) instance.
+Custom tasks defining [Specification Version](../Configuration.md#specification-versions) 2.2 or higher have access to an interface of a [TaskUtil](https://ui5.github.io/cli/v5/api/@ui5_project_build_helpers_TaskUtil.html) instance.
 
-In this case, a `taskUtil` object is provided as a part of the custom task's [parameters](#task-implementation). Depending on the specification version of the custom task, a set of helper functions is available to the implementation. The lowest required specification version for every function is listed in the [TaskUtil API reference](../../api/@ui5_project_build_helpers_TaskUtil.html).
+In this case, a `taskUtil` object is provided as a part of the custom task's [parameters](#task-implementation). Depending on the specification version of the custom task, a set of helper functions is available to the implementation. The lowest required specification version for every function is listed in the [TaskUtil API reference](https://ui5.github.io/cli/v5/api/@ui5_project_build_helpers_TaskUtil.html).

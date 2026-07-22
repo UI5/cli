@@ -237,7 +237,7 @@ Live demo of the above example: [openui5-sample-app with custom middleware](http
 
 Custom middleware defining [Specification Version](../Configuration.md#specification-versions) 2.0 or higher have access to an interface of a [MiddlewareUtil](https://ui5.github.io/cli/v5/api/@ui5_server_middleware_MiddlewareUtil.html) instance.
 
-In this case, a `middlewareUtil` object is provided as a part of the custom middleware's [parameters](#custom-middleware-implementation). Depending on the specification version of the custom middleware, a set of helper functions is available to the implementation. The lowest required specification version for every function is listed in the [MiddlewareUtil API reference](../../api/@ui5_server_middleware_MiddlewareUtil.html).
+In this case, a `middlewareUtil` object is provided as a part of the custom middleware's [parameters](#custom-middleware-implementation). Depending on the specification version of the custom middleware, a set of helper functions is available to the implementation. The lowest required specification version for every function is listed in the [MiddlewareUtil API reference](https://ui5.github.io/cli/v5/api/@ui5_server_middleware_MiddlewareUtil.html).
 
 ## Integration with `karma-ui5`
 
