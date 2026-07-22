@@ -2,7 +2,6 @@ import {DatabaseSync} from "node:sqlite";
 import {mkdirSync, existsSync} from "node:fs";
 import path from "node:path";
 import {gzipSync, gunzipSync} from "node:zlib";
-import {getRandomValues} from "node:crypto";
 import {getLogger} from "@ui5/logger";
 
 const log = getLogger("build:cache:BuildCacheStorage");
@@ -84,6 +83,11 @@ export default class BuildCacheStorage {
 				data BLOB NOT NULL,
 				PRIMARY KEY (project_id, build_signature, stage_signature)
 			) WITHOUT ROWID;
+
+			CREATE TABLE IF NOT EXISTS _vacuum_pending (
+				pending INTEGER NOT NULL DEFAULT 0
+			);
+			INSERT OR IGNORE INTO _vacuum_pending(rowid, pending) VALUES(1, 0);
 		`);
 	}
 
@@ -553,33 +557,40 @@ export default class BuildCacheStorage {
 	}
 
 	/**
-	 * Atomically renames all live tables to stale staging names and recreates
-	 * fresh empty tables in a single transaction. The rename is O(1) — only
-	 * sqlite_master is updated — so the operation completes in milliseconds
-	 * regardless of data volume.
+	 * Atomically drops all live tables and recreates fresh empty ones in a single
+	 * transaction. The operation completes in milliseconds regardless of data volume —
+	 * DROP TABLE never reads row data; it only removes the schema entry and adds
+	 * pages to the freelist. Call {@link vacuum} afterwards to reclaim disk space.
 	 *
-	 * Stale tables follow the naming convention <code>_&lt;table&gt;_to_delete_&lt;hex&gt;</code>
-	 * (matching the framework staging-dir prefix) and are cleaned up later by
-	 * {@link dropStaleTables}.
+	 * A persistent marker is set so that a deferred VACUUM can be detected on the
+	 * next invocation even if the process exits before {@link vacuum} runs.
 	 *
-	 * @returns {number} Database size in bytes before the rename (pending reclamation)
+	 * @returns {number} Database size in bytes before the drop (pending reclamation after vacuum)
 	 */
-	markAllTablesAsStale() {
-		const hex = Buffer.from(getRandomValues(new Uint8Array(2))).toString("hex");
-		const suffix = `_to_delete_${hex}`;
+	dropAllRecords() {
 		const tables = ["content", "index_cache", "stage_metadata", "task_metadata", "result_metadata"];
-
 		const bytesBefore = this.getDatabaseSize();
 
 		this.#db.exec("BEGIN");
 		try {
 			for (const table of tables) {
-				this.#db.exec(`ALTER TABLE ${table} RENAME TO _${table}${suffix}`);
+				this.#db.exec(`DROP TABLE ${table}`);
 			}
 			this.#createTables();
+			this.#db.exec("UPDATE _vacuum_pending SET pending = 1 WHERE rowid = 1");
 			this.#db.exec("COMMIT");
 		} catch (err) {
 			this.#db.exec("ROLLBACK");
+			// "no such table" would only occur if a concurrent process dropped the tables
+			// between our BEGIN and our first DROP — an edge case that WAL's writer
+			// serialization makes nearly impossible, but guard for a clear error message.
+			if (/** @type {NodeJS.ErrnoException} */ (err).message?.includes("no such table")) {
+				throw new Error(
+					"Build cache clean was already performed by another process. " +
+					"Run ui5 cache clean again to complete the deferred VACUUM.",
+					{cause: err}
+				);
+			}
 			throw err;
 		}
 
@@ -587,49 +598,26 @@ export default class BuildCacheStorage {
 	}
 
 	/**
-	 * Returns true if the database contains any stale staging tables
-	 * (tables whose names follow the <code>_*_to_delete_*</code> pattern).
+	 * Returns true if a VACUUM is pending — i.e. {@link dropAllRecords} was called
+	 * but {@link vacuum} has not yet run to reclaim the freed disk space.
 	 *
 	 * @returns {boolean}
 	 */
-	hasStaleTables() {
-		const row = this.#db.prepare(
-			"SELECT COUNT(*) AS cnt FROM sqlite_master WHERE type='table' AND name LIKE '\\_%\\_to\\_delete\\_%' ESCAPE '\\'"
-		).get();
-		return row.cnt > 0;
+	hasVacuumPending() {
+		return this.#db.prepare("SELECT pending FROM _vacuum_pending WHERE rowid = 1").get().pending === 1;
 	}
 
 	/**
-	 * Drops all stale staging tables and runs VACUUM to reclaim disk space.
+	 * Runs VACUUM to reclaim disk space from freed pages and clears the pending marker.
 	 * This is the slow half of the two-phase cache clean; call it from
-	 * <code>cleanAdditional</code> after the fast {@link markAllTablesAsStale} pass.
+	 * <code>cleanAdditional</code> after the fast {@link dropAllRecords} pass.
 	 *
 	 * @returns {number} Number of bytes freed
 	 */
-	dropStaleTables() {
-		const staleRows = this.#db.prepare(
-			"SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '\\_%\\_to\\_delete\\_%' ESCAPE '\\'"
-		).all();
-
-		if (staleRows.length === 0) {
-			return 0;
-		}
-
+	vacuum() {
 		const bytesBefore = this.getDatabaseSize();
-
-		this.#db.exec("BEGIN");
-		try {
-			for (const {name} of staleRows) {
-				this.#db.exec(`DROP TABLE "${name}"`);
-			}
-			this.#db.exec("COMMIT");
-		} catch (err) {
-			this.#db.exec("ROLLBACK");
-			throw err;
-		}
-
 		this.#db.exec("VACUUM");
-
+		this.#db.exec("UPDATE _vacuum_pending SET pending = 0 WHERE rowid = 1");
 		return bytesBefore - this.getDatabaseSize();
 	}
 

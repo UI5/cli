@@ -527,73 +527,74 @@ test("readContent: Legacy compressed tiny content is still readable", (t) => {
 	t.deepEqual(t.context.storage.readContent("sha256-legacy-tiny"), content);
 });
 
-// ===== Stale-table operations =====
+// ===== dropAllRecords / hasFreelistPages / vacuum =====
 
-test("markAllTablesAsStale: renames all 5 live tables and recreates fresh ones", (t) => {
+test("dropAllRecords: drops all live tables and recreates fresh ones", (t) => {
 	t.context.storage.writeIndexCache("p", "sig", "source", {value: 1});
-	t.context.storage.putContent("sha256-stale-1", Buffer.from("data"));
+	t.context.storage.putContent("sha256-drop-1", Buffer.from("data"));
 
-	const bytesBefore = t.context.storage.markAllTablesAsStale();
+	const bytesBefore = t.context.storage.dropAllRecords();
 
-	t.true(bytesBefore > 0, "returns pre-rename byte count");
-	t.false(t.context.storage.hasRecords(), "fresh tables are empty after rename");
-	t.true(t.context.storage.hasStaleTables(), "stale tables exist after rename");
+	t.true(bytesBefore > 0, "returns pre-drop byte count");
+	t.false(t.context.storage.hasRecords(), "fresh tables are empty after drop");
+	t.true(t.context.storage.hasVacuumPending(), "vacuum pending marker set after drop");
 });
 
-test("markAllTablesAsStale: fresh tables accept new writes immediately", (t) => {
+test("dropAllRecords: fresh tables accept new writes immediately", (t) => {
 	t.context.storage.writeIndexCache("p", "sig", "source", {old: true});
-	t.context.storage.markAllTablesAsStale();
+	t.context.storage.dropAllRecords();
 
 	t.notThrows(() => {
 		t.context.storage.writeIndexCache("p", "sig", "source", {new: true});
-	}, "can write to fresh tables right after stale rename");
+	}, "can write to fresh tables right after drop");
 
 	t.deepEqual(t.context.storage.readIndexCache("p", "sig", "source"), {new: true});
 });
 
-test("markAllTablesAsStale: multiple calls produce independent stale groups", (t) => {
+test("dropAllRecords: calling twice succeeds — second drop operates on freshly-created tables", (t) => {
 	t.context.storage.putContent("sha256-a", Buffer.from("a"));
-	t.context.storage.markAllTablesAsStale();
+	t.context.storage.dropAllRecords();
 
-	t.context.storage.putContent("sha256-b", Buffer.from("b"));
-	t.context.storage.markAllTablesAsStale();
-
-	t.true(t.context.storage.hasStaleTables(), "stale tables from both calls exist");
-	t.false(t.context.storage.hasRecords(), "fresh tables are empty");
+	t.notThrows(() => t.context.storage.dropAllRecords(),
+		"second drop succeeds because #createTables recreated the tables in the first call");
+	t.false(t.context.storage.hasRecords());
 });
 
-test("hasStaleTables: returns false when no stale tables exist", (t) => {
-	t.false(t.context.storage.hasStaleTables());
+test("hasVacuumPending: returns false on a fresh database", (t) => {
+	t.false(t.context.storage.hasVacuumPending());
 });
 
-test("hasStaleTables: returns true after markAllTablesAsStale", (t) => {
+test("hasVacuumPending: returns true after dropAllRecords", (t) => {
 	t.context.storage.putContent("sha256-has", Buffer.from("x"));
-	t.context.storage.markAllTablesAsStale();
-	t.true(t.context.storage.hasStaleTables());
+	t.context.storage.dropAllRecords();
+	t.true(t.context.storage.hasVacuumPending());
 });
 
-test("dropStaleTables: returns 0 when no stale tables exist", (t) => {
-	t.is(t.context.storage.dropStaleTables(), 0);
+test("hasVacuumPending: returns false after vacuum", (t) => {
+	t.context.storage.putContent("sha256-vac", Buffer.from("y"));
+	t.context.storage.dropAllRecords();
+	t.context.storage.vacuum();
+	t.false(t.context.storage.hasVacuumPending());
 });
 
-test("dropStaleTables: removes stale tables and frees space", (t) => {
+test("vacuum: reclaims space and returns freed bytes", (t) => {
 	const largeContent = Buffer.alloc(64 * 1024, "x");
-	t.context.storage.putContent("sha256-large", largeContent);
-	t.context.storage.markAllTablesAsStale();
+	t.context.storage.putContent("sha256-large-vac", largeContent);
+	t.context.storage.dropAllRecords();
 
-	const freed = t.context.storage.dropStaleTables();
+	const freed = t.context.storage.vacuum();
 
 	t.true(freed >= 0, "freed bytes is non-negative");
-	t.false(t.context.storage.hasStaleTables(), "no stale tables remain after drop");
+	t.false(t.context.storage.hasVacuumPending(), "vacuum pending cleared after vacuum");
 });
 
-test("dropStaleTables: live tables and data are unaffected", (t) => {
+test("vacuum: live data written after drop is unaffected", (t) => {
 	t.context.storage.putContent("sha256-old", Buffer.from("old"));
-	t.context.storage.markAllTablesAsStale();
+	t.context.storage.dropAllRecords();
 	t.context.storage.writeIndexCache("p", "sig", "source", {fresh: true});
 
-	t.context.storage.dropStaleTables();
+	t.context.storage.vacuum();
 
 	t.deepEqual(t.context.storage.readIndexCache("p", "sig", "source"), {fresh: true},
-		"data written after stale rename is still accessible");
+		"data written after drop survives vacuum");
 });

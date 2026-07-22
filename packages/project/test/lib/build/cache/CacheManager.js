@@ -254,7 +254,7 @@ test.serial("cleanCache: Clears records and returns removal result", async (t) =
 	t.is(infoAfterClean, null, "getCacheInfo returns null for empty fresh tables after cleanCache");
 
 	const additionalInfo = await CacheManager.getAdditionalCacheInfo(testDir);
-	t.is(additionalInfo.length, 1, "stale tables are reported as additional info");
+	t.is(additionalInfo.length, 1, "vacuum pending reported as additional info");
 	t.true(additionalInfo[0].size > 0);
 });
 
