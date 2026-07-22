@@ -101,7 +101,7 @@ const processManifest = async (manifestResource) => {
  */
 const isBundledWithLibrary = (embeddedBy, componentPath, libraryPathPrefix) => {
 	if (typeof embeddedBy === "undefined") {
-		log.verbose("  Component doesn't declare 'sap.app/embeddedBy', don't list it as 'embedded'");
+		log.verbose(`  Component '${componentPath}' doesn't declare 'sap.app/embeddedBy', don't list it as 'embedded'`);
 		return false;
 	}
 	if (typeof embeddedBy !== "string") {
@@ -122,11 +122,13 @@ const isBundledWithLibrary = (embeddedBy, componentPath, libraryPathPrefix) => {
 		resolvedEmbeddedBy = resolvedEmbeddedBy + "/";
 	}
 	if ( libraryPathPrefix === resolvedEmbeddedBy ) {
-		log.verbose("  Component's 'sap.app/embeddedBy' property points to library, list it as 'embedded'");
+		log.verbose(
+			`  Component '${componentPath}': property 'sap.app/embeddedBy' points to library, list it as 'embedded'`);
 		return true;
 	} else {
 		log.verbose(
-			`  Component's 'sap.app/embeddedBy' points to '${resolvedEmbeddedBy}', don't list it as 'embedded'`);
+			`  Component '${componentPath}': property 'sap.app/embeddedBy' points to '${resolvedEmbeddedBy}', ` +
+			`don't list it as 'embedded'`);
 		return false;
 	}
 };

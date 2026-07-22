@@ -355,6 +355,10 @@ test.serial("versionInfoGenerator library infos with embeds", async (t) => {
 	assertVersionInfoContent(t, oExpected, result);
 	t.is(t.context.infoLogStub.callCount, 0);
 	t.is(t.context.warnLogStub.callCount, 0);
+	t.is(t.context.verboseLogStub.callCount, 1);
+	t.is(t.context.verboseLogStub.getCall(0).args[0],
+		"  Component '/resources/lib/a/sub' doesn't declare 'sap.app/embeddedBy', " +
+		"don't list it as 'embedded'");
 });
 
 test.serial("versionInfoGenerator library infos with no embeds", async (t) => {
@@ -512,4 +516,8 @@ test.serial("versionInfoGenerator library infos with embeds and embeddedBy (hasO
 	assertVersionInfoContent(t, oExpected, result);
 	t.is(t.context.infoLogStub.callCount, 0);
 	t.is(t.context.warnLogStub.callCount, 0);
+	t.is(t.context.verboseLogStub.callCount, 1);
+	t.is(t.context.verboseLogStub.getCall(0).args[0],
+		"  Component '/resources/lib/a/sub': property 'sap.app/embeddedBy' points to library, " +
+		"list it as 'embedded'");
 });
