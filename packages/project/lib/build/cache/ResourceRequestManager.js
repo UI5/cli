@@ -690,17 +690,11 @@ class ResourceRequestManager {
 	 */
 	#collectUnresolvedRequests(recordedRequests, fetchedResources) {
 		const fetchedPaths = fetchedResources.map((res) => res.getOriginalPath());
+		const fetchedPathSet = new Set(fetchedPaths);
 		const unresolved = new Set();
 		for (const request of recordedRequests) {
-			if (request.type === "path") {
-				if (!fetchedPaths.includes(request.value)) {
-					unresolved.add(request.toKey());
-				}
-			} else {
-				const matches = micromatch(fetchedPaths, request.value, {dot: true});
-				if (!matches.length) {
-					unresolved.add(request.toKey());
-				}
+			if (!this.#requestResolvesAgainstPaths(request, fetchedPathSet, fetchedPaths)) {
+				unresolved.add(request.toKey());
 			}
 		}
 		return unresolved;
@@ -720,18 +714,13 @@ class ResourceRequestManager {
 	 * @param {string[]} resolvedPaths Paths that now resolve to a resource
 	 */
 	#drainUnresolvedRequests(metadata, addedRequests, resolvedPaths) {
+		const resolvedPathSet = new Set(resolvedPaths);
 		for (const request of addedRequests) {
 			const key = request.toKey();
 			if (!metadata.unresolvedRequests.has(key)) {
 				continue;
 			}
-			let resolvesNow;
-			if (request.type === "path") {
-				resolvesNow = resolvedPaths.includes(request.value);
-			} else {
-				resolvesNow = micromatch(resolvedPaths, request.value, {dot: true}).length > 0;
-			}
-			if (resolvesNow) {
+			if (this.#requestResolvesAgainstPaths(request, resolvedPathSet, resolvedPaths)) {
 				metadata.unresolvedRequests.delete(key);
 			}
 		}
@@ -741,6 +730,22 @@ class ResourceRequestManager {
 	}
 
 	/**
+	 * Whether a recorded request would resolve against the given set of resource paths.
+	 * 'path' requests hit the Set for O(1) lookup; 'patterns' requests fall back to
+	 * micromatch, which needs the array form.
+	 *
+	 * @param {Request} request
+	 * @param {Set<string>} pathSet Set of resource paths
+	 * @param {string[]} pathList Same paths in array form, for micromatch
+	 * @returns {boolean}
+	 */
+	#requestResolvesAgainstPaths(request, pathSet, pathList) {
+		if (request.type === "path") {
+			return pathSet.has(request.value);
+		}
+		return micromatch(pathList, request.value, {dot: true}).length > 0;
+	}
+
 	/**
 	 * Associates a request set from this manager with one from another manager
 	 *
