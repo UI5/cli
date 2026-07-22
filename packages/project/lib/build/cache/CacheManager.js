@@ -386,8 +386,8 @@ export default class CacheManager {
 	}
 
 	/**
-	 * Clean build cache by atomically renaming all live tables to stale staging names
-	 * and recreating fresh empty tables. The rename is O(1) and completes in milliseconds.
+	 * Clean build cache by atomically dropping all live tables and recreating fresh
+	 * empty ones. The drop is O(1) and completes in milliseconds.
 	 * Actual disk reclamation (VACUUM) is deferred to {@link cleanAdditional}.
 	 *
 	 * @public
@@ -405,7 +405,7 @@ export default class CacheManager {
 		const storage = new BuildCacheStorage(dbDir);
 		try {
 			if (storage.hasRecords()) {
-				const bytesBefore = storage.markAllTablesAsStale();
+				const bytesBefore = storage.dropAllRecords();
 				return {
 					path: `buildCache/${CACHE_VERSION}`,
 					size: bytesBefore,
@@ -418,14 +418,13 @@ export default class CacheManager {
 	}
 
 	/**
-	 * Drops stale build cache staging tables and runs VACUUM to reclaim disk space.
-	 * Stale tables are created by {@link cleanCache} via an atomic rename; this method
-	 * performs the slow cleanup pass that was deferred.
+	 * Runs VACUUM to reclaim disk space from a previous {@link cleanCache} call.
+	 * Only runs if the database has freelist pages (i.e. cleanup was deferred).
 	 *
 	 * @public
 	 * @static
 	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
-	 * @returns {Promise<Array<{path: string, size: number}>>} Cleaned entries, or empty array if nothing to clean
+	 * @returns {Promise<Array<{path: string, size: number}>>} Cleaned entries, or empty array if nothing to reclaim
 	 */
 	static async cleanAdditional(ui5DataDir) {
 		const dbDir = path.join(ui5DataDir, "buildCache", CACHE_VERSION);
@@ -436,10 +435,10 @@ export default class CacheManager {
 
 		const storage = new BuildCacheStorage(dbDir);
 		try {
-			if (!storage.hasStaleTables()) {
+			if (!storage.hasVacuumPending()) {
 				return [];
 			}
-			const freedSize = storage.dropStaleTables();
+			const freedSize = storage.vacuum();
 			return [{
 				path: `buildCache/${CACHE_VERSION}`,
 				size: freedSize,
@@ -450,8 +449,8 @@ export default class CacheManager {
 	}
 
 	/**
-	 * Returns info about stale build cache staging tables left by a previous
-	 * {@link cleanCache} call that has not yet been followed by {@link cleanAdditional}.
+	 * Returns info about pending disk reclamation — i.e. a previous {@link cleanCache}
+	 * whose VACUUM has not yet been run by {@link cleanAdditional}.
 	 *
 	 * @public
 	 * @static
@@ -467,7 +466,7 @@ export default class CacheManager {
 
 		const storage = new BuildCacheStorage(dbDir);
 		try {
-			if (!storage.hasStaleTables()) {
+			if (!storage.hasVacuumPending()) {
 				return [];
 			}
 			const size = storage.getDatabaseSize();
