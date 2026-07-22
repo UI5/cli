@@ -64,22 +64,22 @@ export default class FrameworkCache {
 			return [];
 		}
 
-		const orphans = entries.filter(
+		const staleDirs = entries.filter(
 			(e) => e.isDirectory() && e.name.startsWith(STAGING_DIR_PREFIX)
 		);
 
-		if (orphans.length === 0) {
+		if (staleDirs.length === 0) {
 			return [];
 		}
 
-		const results = await Promise.all(orphans.map(async (orphan) => {
-			const orphanDir = path.join(ui5DataDir, orphan.name);
-			const stats = await getPackageStats(orphanDir);
+		const results = await Promise.all(staleDirs.map(async (staleDir) => {
+			const staleDirPath = path.join(ui5DataDir, staleDir.name);
+			const stats = await getPackageStats(staleDirPath);
 			if (!stats) {
 				return null;
 			}
 			return {
-				path: orphan.name,
+				path: staleDir.name,
 				libraryCount: stats.libraries,
 				versionCount: stats.versions,
 			};
@@ -104,18 +104,18 @@ export default class FrameworkCache {
 	 * @returns {Promise<Array<{path: string, libraryCount: number, versionCount: number}>>}
 	 */
 	static async cleanAdditional(ui5DataDir) {
-		const orphans = await FrameworkCache.getAdditionalCacheInfo(ui5DataDir);
+		const staleDirs = await FrameworkCache.getAdditionalCacheInfo(ui5DataDir);
 
-		for (const orphan of orphans) {
-			const orphanDir = path.join(ui5DataDir, orphan.path);
+		for (const staleDir of staleDirs) {
+			const staleDirPath = path.join(ui5DataDir, staleDir.path);
 			try {
-				await fs.rm(orphanDir, {recursive: true, force: true});
+				await fs.rm(staleDirPath, {recursive: true, force: true});
 			} catch {
 				// Ignore deletion errors
 			}
 		}
 
-		return orphans;
+		return staleDirs;
 	}
 
 	/**
