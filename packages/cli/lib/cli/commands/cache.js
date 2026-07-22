@@ -4,7 +4,7 @@ import os from "node:os";
 import process from "node:process";
 import baseMiddleware from "../middlewares/base.js";
 import Configuration from "@ui5/project/config/Configuration";
-import * as frameworkCache from "@ui5/project/ui5Framework/cache";
+import FrameworkCache from "@ui5/project/ui5Framework/cache";
 import CacheManager from "@ui5/project/build/cache/CacheManager";
 
 const cacheCommand = {
@@ -247,10 +247,11 @@ async function handleCache(argv) {
 
 	process.stderr.write(`Checking cache at ${chalk.bold(ui5DataDir)} …\n`);
 
-	const [frameworkInfo, buildInfo, orphanedInfo] = await Promise.all([
-		frameworkCache.getCacheInfo(ui5DataDir),
+	const [frameworkInfo, orphanedInfo, buildInfo] = await Promise.all([
+		FrameworkCache.getCacheInfo(ui5DataDir),
+		FrameworkCache.getAdditionalCacheInfo(ui5DataDir),
 		CacheManager.getCacheInfo(ui5DataDir),
-		frameworkCache.getOrphanedInfo(ui5DataDir),
+		CacheManager.getAdditionalCacheInfo(ui5DataDir),
 	]);
 
 	if (!frameworkInfo && !buildInfo && orphanedInfo.length === 0) {
@@ -282,12 +283,12 @@ async function handleCache(argv) {
 	}
 
 	const [frameworkResult, buildResult] = await Promise.all([
-		frameworkCache.cleanCache(ui5DataDir),
+		FrameworkCache.cleanCache(ui5DataDir),
 		CacheManager.cleanCache(ui5DataDir),
 	]);
 
 	const [additionalFrameworkResult] = await Promise.all([
-		frameworkCache.cleanAdditional(ui5DataDir),
+		FrameworkCache.cleanAdditional(ui5DataDir),
 		CacheManager.cleanAdditional(ui5DataDir),
 	]);
 	const orphanedInfoWithAbsPaths = additionalFrameworkResult.map(
