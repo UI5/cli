@@ -517,29 +517,6 @@ export default class BuildCacheStorage {
 	}
 
 	/**
-	 * Clears all records from all tables and runs VACUUM.
-	 * Returns the number of bytes freed.
-	 *
-	 * @returns {number} Number of bytes freed
-	 */
-	clearAllRecords() {
-		const bytesBefore = this.getDatabaseSize();
-
-		this.#db.exec("BEGIN");
-		this.#db.exec("DELETE FROM content");
-		this.#db.exec("DELETE FROM index_cache");
-		this.#db.exec("DELETE FROM stage_metadata");
-		this.#db.exec("DELETE FROM task_metadata");
-		this.#db.exec("DELETE FROM result_metadata");
-		this.#db.exec("COMMIT");
-		this.#db.exec("VACUUM");
-
-		const bytesAfter = this.getDatabaseSize();
-
-		return bytesBefore - bytesAfter;
-	}
-
-	/**
 	 * Checks if the database has any records in any table.
 	 *
 	 * @returns {boolean} True if there are any records
