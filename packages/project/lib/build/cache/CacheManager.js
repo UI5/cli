@@ -386,12 +386,14 @@ export default class CacheManager {
 	}
 
 	/**
-	 * Clean build cache by clearing all records from SQLite database for the current version.
+	 * Clean build cache by atomically renaming all live tables to stale staging names
+	 * and recreating fresh empty tables. The rename is O(1) and completes in milliseconds.
+	 * Actual disk reclamation (VACUUM) is deferred to {@link cleanAdditional}.
 	 *
 	 * @public
 	 * @static
 	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
-	 * @returns {Promise<{path: string, size: number}|null>} Removal result or null
+	 * @returns {Promise<{path: string, size: number}|null>} Removal result (size = bytes pending reclamation) or null
 	 */
 	static async cleanCache(ui5DataDir) {
 		const dbDir = path.join(ui5DataDir, "buildCache", CACHE_VERSION);
@@ -403,10 +405,10 @@ export default class CacheManager {
 		const storage = new BuildCacheStorage(dbDir);
 		try {
 			if (storage.hasRecords()) {
-				const freedSize = storage.clearAllRecords();
+				const bytesBefore = storage.markAllTablesAsStale();
 				return {
 					path: `buildCache/${CACHE_VERSION}`,
-					size: freedSize,
+					size: bytesBefore,
 				};
 			}
 		} finally {
@@ -416,32 +418,65 @@ export default class CacheManager {
 	}
 
 	/**
-	 * Clean additional build cache resources that are safe to remove independently.
-	 *
-	 * Note: This method is a placeholder for interface compatibility across
-	 * cleanup tasks and currently does not perform any cleanup.
+	 * Drops stale build cache staging tables and runs VACUUM to reclaim disk space.
+	 * Stale tables are created by {@link cleanCache} via an atomic rename; this method
+	 * performs the slow cleanup pass that was deferred.
 	 *
 	 * @public
 	 * @static
-	 * @param {string} _ui5DataDir Resolved absolute path to UI5 data directory
-	 * @returns {Promise<Array>} Always resolves with an empty array
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<Array<{path: string, size: number}>>} Cleaned entries, or empty array if nothing to clean
 	 */
-	static async cleanAdditional(_ui5DataDir) {
-		return [];
+	static async cleanAdditional(ui5DataDir) {
+		const dbDir = path.join(ui5DataDir, "buildCache", CACHE_VERSION);
+		const isAvailable = await CacheManager.#isCacheDbAvailable(dbDir);
+		if (!isAvailable) {
+			return [];
+		}
+
+		const storage = new BuildCacheStorage(dbDir);
+		try {
+			if (!storage.hasStaleTables()) {
+				return [];
+			}
+			const freedSize = storage.dropStaleTables();
+			return [{
+				path: `buildCache/${CACHE_VERSION}`,
+				size: freedSize,
+			}];
+		} finally {
+			storage.close();
+		}
 	}
 
 	/**
-	 * Get additional build cache info that is safe to remove independently.
-	 *
-	 * Note: This method is a placeholder for interface compatibility across
-	 * cleanup tasks and currently does not return any additional info.
+	 * Returns info about stale build cache staging tables left by a previous
+	 * {@link cleanCache} call that has not yet been followed by {@link cleanAdditional}.
 	 *
 	 * @public
 	 * @static
-	 * @param {string} _ui5DataDir Resolved absolute path to UI5 data directory
-	 * @returns {Promise<Array>} Always resolves with an empty array
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<Array<{path: string, size: number}>>} Pending entries, or empty array if none
 	 */
-	static async getAdditionalCacheInfo(_ui5DataDir) {
-		return [];
+	static async getAdditionalCacheInfo(ui5DataDir) {
+		const dbDir = path.join(ui5DataDir, "buildCache", CACHE_VERSION);
+		const isAvailable = await CacheManager.#isCacheDbAvailable(dbDir);
+		if (!isAvailable) {
+			return [];
+		}
+
+		const storage = new BuildCacheStorage(dbDir);
+		try {
+			if (!storage.hasStaleTables()) {
+				return [];
+			}
+			const size = storage.getDatabaseSize();
+			return [{
+				path: `buildCache/${CACHE_VERSION}`,
+				size,
+			}];
+		} finally {
+			storage.close();
+		}
 	}
 }

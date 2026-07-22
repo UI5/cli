@@ -96,6 +96,7 @@ function padLabel(label) {
  * @param {string|null} data.buildAbsPath
  * @param {number} data.buildPreSize
  * @param {Array<{absPath: string, libraryCount: number, versionCount: number}>} data.orphanedInfo
+ * @param {Array<{absPath: string, size: number}>} data.buildAdditionalInfo
  */
 async function displayCacheInfo({
 	frameworkInfo,
@@ -104,6 +105,7 @@ async function displayCacheInfo({
 	buildAbsPath,
 	buildPreSize,
 	orphanedInfo,
+	buildAdditionalInfo,
 }) {
 	process.stderr.write(chalk.bold("\nThe following cached data will be removed:\n\n"));
 	if (frameworkInfo) {
@@ -129,6 +131,16 @@ async function displayCacheInfo({
 			process.stderr.write(`      ${chalk.dim(orphan.absPath)}   (${detail})\n`);
 		}
 	}
+	if (buildAdditionalInfo && buildAdditionalInfo.length > 0) {
+		process.stderr.write(
+			`  ${chalk.yellow("•")} ${chalk.bold("Stale build cache data")}` +
+			`   (incomplete previous clean)\n`
+		);
+		for (const entry of buildAdditionalInfo) {
+			const detail = entry.size > 0 ? formatSize(entry.size) : "";
+			process.stderr.write(`      ${chalk.dim(entry.absPath)}${detail ? `   (${detail})` : ""}\n`);
+		}
+	}
 	process.stderr.write("\n");
 }
 
@@ -144,6 +156,7 @@ async function displayCacheInfo({
  * @param {string|null} data.buildAbsPath
  * @param {number} data.buildPreSize
  * @param {Array<{absPath: string, libraryCount: number, versionCount: number}>} data.orphanedInfoWithAbsPaths
+ * @param {Array<{absPath: string, size: number}>} data.buildAdditionalResult
  */
 async function displayCleanupResult({
 	frameworkResult,
@@ -152,6 +165,7 @@ async function displayCleanupResult({
 	buildAbsPath,
 	buildPreSize,
 	orphanedInfoWithAbsPaths,
+	buildAdditionalResult,
 }) {
 	process.stderr.write("\n");
 	if (frameworkResult && frameworkAbsPath) {
@@ -182,6 +196,15 @@ async function displayCleanupResult({
 				`   (${buildAbsPath}${detail ? ` · ${detail}` : ""})\n`,
 		);
 	}
+	if (buildAdditionalResult && buildAdditionalResult.length > 0) {
+		for (const entry of buildAdditionalResult) {
+			const detail = entry.size > 0 ? formatSize(entry.size) : "";
+			process.stderr.write(
+				`${chalk.green("✓")} Cleaned ${chalk.bold("Stale build cache data")}` +
+				`   (${entry.absPath}${detail ? ` · freed ${detail}` : ""})\n`
+			);
+		}
+	}
 
 	// Success summary
 	const cleaned = [];
@@ -193,6 +216,9 @@ async function displayCleanupResult({
 	}
 	if (buildResult) {
 		cleaned.push(LABEL_BUILD);
+	}
+	if (buildAdditionalResult && buildAdditionalResult.length > 0) {
+		cleaned.push("Stale build cache data");
 	}
 	process.stderr.write(
 		`\n${chalk.green("Success:")} Cleaned ${cleaned.join(" and ")}\n`,
@@ -235,14 +261,14 @@ async function handleCache(argv) {
 
 	process.stderr.write(`Checking cache at ${chalk.bold(ui5DataDir)} …\n`);
 
-	const [frameworkInfo, orphanedInfo, buildInfo] = await Promise.all([
+	const [frameworkInfo, orphanedInfo, buildInfo, buildAdditionalInfo] = await Promise.all([
 		FrameworkCache.getCacheInfo(ui5DataDir),
 		FrameworkCache.getAdditionalCacheInfo(ui5DataDir),
 		CacheManager.getCacheInfo(ui5DataDir),
-		// CacheManager.getAdditionalCacheInfo(ui5DataDir), // API compatibility. Currently not needed.
+		CacheManager.getAdditionalCacheInfo(ui5DataDir),
 	]);
 
-	if (!frameworkInfo && !buildInfo && orphanedInfo.length === 0) {
+	if (!frameworkInfo && !buildInfo && orphanedInfo.length === 0 && buildAdditionalInfo.length === 0) {
 		process.stderr.write("Nothing to clean\n");
 		return;
 	}
@@ -254,6 +280,9 @@ async function handleCache(argv) {
 	const preCleanOrphanedInfo = orphanedInfo.map(
 		(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
 	);
+	const preCleanBuildAdditionalInfo = buildAdditionalInfo.map(
+		(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
+	);
 
 	await displayCacheInfo({
 		frameworkInfo,
@@ -262,6 +291,7 @@ async function handleCache(argv) {
 		buildAbsPath,
 		buildPreSize,
 		orphanedInfo: preCleanOrphanedInfo,
+		buildAdditionalInfo: preCleanBuildAdditionalInfo,
 	});
 
 	const confirmed = await getConfirmation(argv);
@@ -275,11 +305,14 @@ async function handleCache(argv) {
 		CacheManager.cleanCache(ui5DataDir),
 	]);
 
-	const [additionalFrameworkResult] = await Promise.all([
+	const [additionalFrameworkResult, additionalBuildResult] = await Promise.all([
 		FrameworkCache.cleanAdditional(ui5DataDir),
-		// CacheManager.cleanAdditional(ui5DataDir), // API compatibility. Currently not needed.
+		CacheManager.cleanAdditional(ui5DataDir),
 	]);
 	const orphanedInfoWithAbsPaths = additionalFrameworkResult.map(
+		(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
+	);
+	const buildAdditionalResult = additionalBuildResult.map(
 		(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
 	);
 
@@ -290,6 +323,7 @@ async function handleCache(argv) {
 		buildAbsPath,
 		buildPreSize,
 		orphanedInfoWithAbsPaths,
+		buildAdditionalResult,
 	});
 }
 

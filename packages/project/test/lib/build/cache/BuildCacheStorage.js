@@ -526,3 +526,74 @@ test("readContent: Legacy compressed tiny content is still readable", (t) => {
 	t.context.storage.putCompressedContent("sha256-legacy-tiny", compressed);
 	t.deepEqual(t.context.storage.readContent("sha256-legacy-tiny"), content);
 });
+
+// ===== Stale-table operations =====
+
+test("markAllTablesAsStale: renames all 5 live tables and recreates fresh ones", (t) => {
+	t.context.storage.writeIndexCache("p", "sig", "source", {value: 1});
+	t.context.storage.putContent("sha256-stale-1", Buffer.from("data"));
+
+	const bytesBefore = t.context.storage.markAllTablesAsStale();
+
+	t.true(bytesBefore > 0, "returns pre-rename byte count");
+	t.false(t.context.storage.hasRecords(), "fresh tables are empty after rename");
+	t.true(t.context.storage.hasStaleTables(), "stale tables exist after rename");
+});
+
+test("markAllTablesAsStale: fresh tables accept new writes immediately", (t) => {
+	t.context.storage.writeIndexCache("p", "sig", "source", {old: true});
+	t.context.storage.markAllTablesAsStale();
+
+	t.notThrows(() => {
+		t.context.storage.writeIndexCache("p", "sig", "source", {new: true});
+	}, "can write to fresh tables right after stale rename");
+
+	t.deepEqual(t.context.storage.readIndexCache("p", "sig", "source"), {new: true});
+});
+
+test("markAllTablesAsStale: multiple calls produce independent stale groups", (t) => {
+	t.context.storage.putContent("sha256-a", Buffer.from("a"));
+	t.context.storage.markAllTablesAsStale();
+
+	t.context.storage.putContent("sha256-b", Buffer.from("b"));
+	t.context.storage.markAllTablesAsStale();
+
+	t.true(t.context.storage.hasStaleTables(), "stale tables from both calls exist");
+	t.false(t.context.storage.hasRecords(), "fresh tables are empty");
+});
+
+test("hasStaleTables: returns false when no stale tables exist", (t) => {
+	t.false(t.context.storage.hasStaleTables());
+});
+
+test("hasStaleTables: returns true after markAllTablesAsStale", (t) => {
+	t.context.storage.putContent("sha256-has", Buffer.from("x"));
+	t.context.storage.markAllTablesAsStale();
+	t.true(t.context.storage.hasStaleTables());
+});
+
+test("dropStaleTables: returns 0 when no stale tables exist", (t) => {
+	t.is(t.context.storage.dropStaleTables(), 0);
+});
+
+test("dropStaleTables: removes stale tables and frees space", (t) => {
+	const largeContent = Buffer.alloc(64 * 1024, "x");
+	t.context.storage.putContent("sha256-large", largeContent);
+	t.context.storage.markAllTablesAsStale();
+
+	const freed = t.context.storage.dropStaleTables();
+
+	t.true(freed >= 0, "freed bytes is non-negative");
+	t.false(t.context.storage.hasStaleTables(), "no stale tables remain after drop");
+});
+
+test("dropStaleTables: live tables and data are unaffected", (t) => {
+	t.context.storage.putContent("sha256-old", Buffer.from("old"));
+	t.context.storage.markAllTablesAsStale();
+	t.context.storage.writeIndexCache("p", "sig", "source", {fresh: true});
+
+	t.context.storage.dropStaleTables();
+
+	t.deepEqual(t.context.storage.readIndexCache("p", "sig", "source"), {fresh: true},
+		"data written after stale rename is still accessible");
+});
