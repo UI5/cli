@@ -121,20 +121,23 @@ export default class FrameworkCache {
 	/**
 	 * Clean the framework cache directory.
 	 *
-	 * Returns <code>null</code> if no framework packages are installed.
+	 * Returns <code>null</code> if no framework packages are installed, or if the
+	 * directory was concurrently removed by another process during the operation.
 	 * Otherwise uses an atomic rename to make the framework directory disappear in a single
 	 * filesystem operation:
 	 *
 	 *  1. Clear cacache's in-process memoization (no path needed — global operation).
 	 *  2. Atomically rename <code>framework/</code> to a staging dir.
 	 *     After this point the original path no longer exists.
+	 *     If ENOENT is raised (concurrent deletion), returns null.
 	 *  3. Delete the staging dir recursively. Its contents are now fully private
 	 *     to this operation.
 	 *
 	 * @public
 	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
 	 * @returns {Promise<{path: string, libraryCount: number, versionCount: number}|null>}
-	 *   Removal result, or null if no framework packages were installed.
+	 *   Removal result, or null if no framework packages were installed or the directory
+	 *   was concurrently removed.
 	 */
 	static async cleanCache(ui5DataDir) {
 		const frameworkDir = path.join(ui5DataDir, FRAMEWORK_DIR_NAME);
@@ -159,7 +162,15 @@ export default class FrameworkCache {
 			ui5DataDir,
 			`${STAGING_DIR_PREFIX}${Buffer.from(getRandomValues(new Uint8Array(2))).toString("hex")}`
 		);
-		await fs.rename(frameworkDir, stagingDir);
+		try {
+			await fs.rename(frameworkDir, stagingDir);
+		} catch (err) {
+			if (/** @type {NodeJS.ErrnoException} */ (err).code === "ENOENT") {
+				// Directory was removed by another process after our check — already clean.
+				return null;
+			}
+			throw err;
+		}
 
 		await fs.rm(stagingDir, {recursive: true, force: true});
 
