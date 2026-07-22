@@ -40,7 +40,9 @@ cacheCommand.builder = function(cli) {
 
 const LABEL_FRAMEWORK = "UI5 Framework packages";
 const LABEL_BUILD = "Build cache (Db)";
-// Pad labels to equal width for two-column alignment
+const LABEL_ORPHANED_FRAMEWORK = "Orphaned UI5 Framework packages";
+const LABEL_ORPHANED_BUILD = "Orphaned build cache (Db)";
+// Pad main labels to equal width for two-column alignment (orphaned labels are bold headers, not padded)
 const LABEL_WIDTH = Math.max(LABEL_FRAMEWORK.length, LABEL_BUILD.length);
 
 /**
@@ -86,8 +88,9 @@ function padLabel(label) {
 
 /**
  * Display information about the cached data that will be removed,
- * including the absolute paths and details about the framework and build caches,
- * and any orphaned staging directories from previously interrupted clean operations.
+ * including the absolute paths and details about the framework and build caches.
+ * Orphaned entries (from previously interrupted cleans) are shown as separate
+ * items only when present.
  *
  * @param {object} data
  * @param {object|null} data.frameworkInfo
@@ -117,24 +120,21 @@ async function displayCacheInfo({
 	if (buildInfo) {
 		const detail = buildPreSize > 0 ? formatSize(buildPreSize) : "";
 		process.stderr.write(
-			`  ${chalk.yellow("•")} ${padLabel(LABEL_BUILD)}   ${buildAbsPath}   (${detail})\n`
+			`  ${chalk.yellow("•")} ${padLabel(LABEL_BUILD)}   ${buildAbsPath}${detail ? `   (${detail})` : ""}\n`
 		);
 	}
-	if (orphanedInfo && orphanedInfo.length > 0) {
+	if (orphanedInfo?.length > 0) {
 		process.stderr.write(
-			`  ${chalk.yellow("•")} ${chalk.bold("Orphaned framework data")}` +
-			`   (incomplete previous clean — ` +
-			`${orphanedInfo.length} director${orphanedInfo.length === 1 ? "y" : "ies"})\n`
+			`  ${chalk.yellow("•")} ${chalk.bold(LABEL_ORPHANED_FRAMEWORK)}\n`
 		);
 		for (const orphan of orphanedInfo) {
 			const detail = formatFrameworkStats(orphan.libraryCount, orphan.versionCount);
 			process.stderr.write(`      ${chalk.dim(orphan.absPath)}   (${detail})\n`);
 		}
 	}
-	if (buildAdditionalInfo && buildAdditionalInfo.length > 0) {
+	if (buildAdditionalInfo?.length > 0) {
 		process.stderr.write(
-			`  ${chalk.yellow("•")} ${chalk.bold("Stale build cache data")}` +
-			`   (incomplete previous clean)\n`
+			`  ${chalk.yellow("•")} ${chalk.bold(LABEL_ORPHANED_BUILD)}\n`
 		);
 		for (const entry of buildAdditionalInfo) {
 			const detail = entry.size > 0 ? formatSize(entry.size) : "";
@@ -145,12 +145,11 @@ async function displayCacheInfo({
 }
 
 /**
- * Display the result of the cache cleanup operation,
- * including which caches were removed and their details,
- * and any orphaned staging directories that were also cleaned up.
+ * Display the result of the cache cleanup operation.
+ * Orphaned entries are shown as separate items only when present.
  *
  * @param {object} data
- * @param {object|null} data.frameworkResult
+ * @param {{libraryCount: number, versionCount: number}|null} data.frameworkResult
  * @param {object|null} data.buildResult
  * @param {string|null} data.frameworkAbsPath
  * @param {string|null} data.buildAbsPath
@@ -169,60 +168,41 @@ async function displayCleanupResult({
 }) {
 	process.stderr.write("\n");
 	if (frameworkResult && frameworkAbsPath) {
-		const detail = formatFrameworkStats(
-			frameworkResult.libraryCount,
-			frameworkResult.versionCount,
-		);
+		const detail = formatFrameworkStats(frameworkResult.libraryCount, frameworkResult.versionCount);
 		process.stderr.write(
 			`${chalk.green("✓")} Removed ${chalk.bold(LABEL_FRAMEWORK)}` +
-				`   (${frameworkAbsPath} · ${detail})\n`,
+			`   (${frameworkAbsPath} · ${detail})\n`
 		);
-	}
-	if (orphanedInfoWithAbsPaths && orphanedInfoWithAbsPaths.length > 0) {
-		process.stderr.write(
-			`${chalk.green("✓")} Removed ${chalk.bold("Orphaned framework data")}` +
-			`   (${orphanedInfoWithAbsPaths.length}` +
-			` director${orphanedInfoWithAbsPaths.length === 1 ? "y" : "ies"})\n`
-		);
-		for (const orphan of orphanedInfoWithAbsPaths) {
-			const detail = formatFrameworkStats(orphan.libraryCount, orphan.versionCount);
-			process.stderr.write(`    ${chalk.dim(orphan.absPath)}   (${detail})\n`);
-		}
 	}
 	if (buildResult) {
 		const detail = buildPreSize > 0 ? formatSize(buildPreSize) : "";
 		process.stderr.write(
 			`${chalk.green("✓")} Removed ${chalk.bold(LABEL_BUILD)}` +
-				`   (${buildAbsPath}${detail ? ` · ${detail}` : ""})\n`,
+			`   (${buildAbsPath}${detail ? ` · ${detail}` : ""})\n`
 		);
 	}
-	if (buildAdditionalResult && buildAdditionalResult.length > 0) {
+	if (orphanedInfoWithAbsPaths?.length > 0) {
+		process.stderr.write(`${chalk.green("✓")} Removed ${chalk.bold(LABEL_ORPHANED_FRAMEWORK)}\n`);
+		for (const orphan of orphanedInfoWithAbsPaths) {
+			const detail = formatFrameworkStats(orphan.libraryCount, orphan.versionCount);
+			process.stderr.write(`    ${chalk.dim(orphan.absPath)}   (${detail})\n`);
+		}
+	}
+	if (buildAdditionalResult?.length > 0) {
+		process.stderr.write(`${chalk.green("✓")} Removed ${chalk.bold(LABEL_ORPHANED_BUILD)}\n`);
 		for (const entry of buildAdditionalResult) {
 			const detail = entry.size > 0 ? formatSize(entry.size) : "";
-			process.stderr.write(
-				`${chalk.green("✓")} Cleaned ${chalk.bold("Stale build cache data")}` +
-				`   (${entry.absPath}${detail ? ` · freed ${detail}` : ""})\n`
-			);
+			process.stderr.write(`    ${chalk.dim(entry.absPath)}${detail ? `   (freed ${detail})` : ""}\n`);
 		}
 	}
 
 	// Success summary
 	const cleaned = [];
-	if (frameworkResult) {
-		cleaned.push(LABEL_FRAMEWORK);
-	}
-	if (orphanedInfoWithAbsPaths && orphanedInfoWithAbsPaths.length > 0) {
-		cleaned.push("Orphaned framework data");
-	}
-	if (buildResult) {
-		cleaned.push(LABEL_BUILD);
-	}
-	if (buildAdditionalResult && buildAdditionalResult.length > 0) {
-		cleaned.push("Stale build cache data");
-	}
-	process.stderr.write(
-		`\n${chalk.green("Success:")} Cleaned ${cleaned.join(" and ")}\n`,
-	);
+	if (frameworkResult) cleaned.push(LABEL_FRAMEWORK);
+	if (buildResult) cleaned.push(LABEL_BUILD);
+	if (orphanedInfoWithAbsPaths?.length > 0) cleaned.push(LABEL_ORPHANED_FRAMEWORK);
+	if (buildAdditionalResult?.length > 0) cleaned.push(LABEL_ORPHANED_BUILD);
+	process.stderr.write(`\n${chalk.green("Success:")} Cleaned ${cleaned.join(" and ")}\n`);
 }
 
 /**
@@ -312,9 +292,12 @@ async function handleCache(argv) {
 	const orphanedInfoWithAbsPaths = additionalFrameworkResult.map(
 		(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
 	);
-	const buildAdditionalResult = additionalBuildResult.map(
-		(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
-	);
+	// Only surface build orphaned data in the summary when it existed before this clean started.
+	// cleanCache() itself sets the vacuum-pending flag, so cleanAdditional() always fires here —
+	// but the user should only see "Orphaned build cache" when it was leftover from a prior run.
+	const buildAdditionalResult = preCleanBuildAdditionalInfo.length > 0 ?
+		additionalBuildResult.map((o) => ({...o, absPath: path.join(ui5DataDir, o.path)})) :
+		[];
 
 	await displayCleanupResult({
 		frameworkResult,
