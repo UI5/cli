@@ -32,19 +32,7 @@ cacheCommand.builder = function(cli) {
 					.example("$0 cache clean --yes",
 						"Remove all cached UI5 data without confirmation (e.g. in CI scenarios)")
 					.example("UI5_DATA_DIR=/custom/path $0 cache clean",
-						"Remove cached data from a non-default UI5 data directory")
-					.epilogue(
-						"The cache is stored in the UI5 data directory (default: ~/.ui5).\n" +
-						"Override the location with the UI5_DATA_DIR environment variable or\n" +
-						"the 'ui5 config set ui5DataDir' configuration option (see 'ui5 config --help').\n\n" +
-						"The following cache types are removed:\n" +
-						"  UI5 framework packages:  Downloaded UI5 library files " +
-							"(~/.ui5/framework/)\n" +
-						"  Build cache (Db): Build data " +
-							"(~/.ui5/buildCache/)\n" +
-						"  Orphaned framework data: Incomplete directories from previously interrupted cleanups\n" +
-							"                        (~/.ui5/_framework_to_delete_*/)"
-					);
+						"Remove cached data from a non-default UI5 data directory");
 			},
 			middlewares: [baseMiddleware],
 		});
@@ -229,7 +217,7 @@ async function getConfirmation(argv) {
 }
 
 async function resolveCacheUi5DataDir() {
-	// TODO: Consolidate ui5DataDir resolution once PR #1455 follow-up cleanup is done.
+	// TODO: Consolidate ui5DataDir resolution once PR #1456 follow-up cleanup is done.
 	// Keep behavior aligned with existing main-branch resolution order.
 	let ui5DataDir = process.env.UI5_DATA_DIR;
 	if (!ui5DataDir) {
