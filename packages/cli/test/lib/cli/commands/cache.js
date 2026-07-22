@@ -37,7 +37,7 @@ test.beforeEach(async (t) => {
 	t.context.frameworkCacheGetCacheInfo = sinon.stub();
 	t.context.frameworkCacheCleanCache = sinon.stub();
 	t.context.frameworkCacheCleanAdditional = sinon.stub().resolves([]);
-	t.context.frameworkCacheGetOrphanedInfo = sinon.stub().resolves([]);
+	t.context.frameworkCacheGetAdditionalCacheInfo = sinon.stub().resolves([]);
 	t.context.buildCacheGetCacheInfo = sinon.stub();
 	t.context.buildCacheCleanCache = sinon.stub();
 
@@ -50,10 +50,12 @@ test.beforeEach(async (t) => {
 			},
 		},
 		"@ui5/project/ui5Framework/cache": {
-			getCacheInfo: t.context.frameworkCacheGetCacheInfo,
-			cleanCache: t.context.frameworkCacheCleanCache,
-			cleanAdditional: t.context.frameworkCacheCleanAdditional,
-			getOrphanedInfo: t.context.frameworkCacheGetOrphanedInfo,
+			default: class {
+				static getCacheInfo = t.context.frameworkCacheGetCacheInfo;
+				static cleanCache = t.context.frameworkCacheCleanCache;
+				static cleanAdditional = t.context.frameworkCacheCleanAdditional;
+				static getAdditionalCacheInfo = t.context.frameworkCacheGetAdditionalCacheInfo;
+			}
 		},
 		"@ui5/project/build/cache/CacheManager": {
 			default: class {
@@ -363,11 +365,11 @@ test.serial("ui5 cache clean --yes: skips confirmation prompt", async (t) => {
 
 test.serial("ui5 cache clean: shows orphaned framework data in pre-confirmation summary", async (t) => {
 	const {cache, argv, stderrWriteStub, yesnoStub,
-		frameworkCacheCleanCache, frameworkCacheGetOrphanedInfo} = t.context;
+		frameworkCacheCleanCache, frameworkCacheGetAdditionalCacheInfo} = t.context;
 
 	t.context.frameworkCacheGetCacheInfo.resolves(null);
 	t.context.buildCacheGetCacheInfo.resolves(null);
-	frameworkCacheGetOrphanedInfo.resolves([
+	frameworkCacheGetAdditionalCacheInfo.resolves([
 		{path: "_framework_to_delete_abcd", libraryCount: 5, versionCount: 2},
 	]);
 	frameworkCacheCleanCache.resolves(null);
@@ -386,12 +388,12 @@ test.serial("ui5 cache clean: shows orphaned framework data in pre-confirmation 
 });
 
 test.serial("ui5 cache clean: shows orphaned framework data in post-clean summary", async (t) => {
-	const {cache, argv, stderrWriteStub, frameworkCacheGetOrphanedInfo,
+	const {cache, argv, stderrWriteStub, frameworkCacheGetAdditionalCacheInfo,
 		frameworkCacheCleanCache, frameworkCacheCleanAdditional} = t.context;
 
 	t.context.frameworkCacheGetCacheInfo.resolves({path: "framework", libraryCount: 3, versionCount: 1});
 	t.context.buildCacheGetCacheInfo.resolves(null);
-	frameworkCacheGetOrphanedInfo.resolves([
+	frameworkCacheGetAdditionalCacheInfo.resolves([
 		{path: "_framework_to_delete_ab12", libraryCount: 3, versionCount: 1},
 		{path: "_framework_to_delete_cd34", libraryCount: 3, versionCount: 1},
 	]);
@@ -413,12 +415,12 @@ test.serial("ui5 cache clean: shows orphaned framework data in post-clean summar
 });
 
 test.serial("ui5 cache clean: shows orphaned-only success summary when no active framework", async (t) => {
-	const {cache, argv, stderrWriteStub, frameworkCacheGetOrphanedInfo,
+	const {cache, argv, stderrWriteStub, frameworkCacheGetAdditionalCacheInfo,
 		frameworkCacheCleanCache, frameworkCacheCleanAdditional} = t.context;
 
 	t.context.frameworkCacheGetCacheInfo.resolves(null);
 	t.context.buildCacheGetCacheInfo.resolves(null);
-	frameworkCacheGetOrphanedInfo.resolves([
+	frameworkCacheGetAdditionalCacheInfo.resolves([
 		{path: "_framework_to_delete_zz99", libraryCount: 10, versionCount: 3},
 	]);
 	frameworkCacheCleanCache.resolves(null);

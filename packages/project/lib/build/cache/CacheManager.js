@@ -429,4 +429,19 @@ export default class CacheManager {
 	static async cleanAdditional(_ui5DataDir) {
 		return [];
 	}
+
+	/**
+	 * Get additional build cache info that is safe to remove independently.
+	 *
+	 * Note: This method is a placeholder for interface compatibility across
+	 * cleanup tasks and currently does not return any additional info.
+	 *
+	 * @public
+	 * @static
+	 * @param {string} _ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<Array>} Always resolves with an empty array
+	 */
+	static async getAdditionalCacheInfo(_ui5DataDir) {
+		return [];
+	}
 }
