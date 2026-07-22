@@ -214,6 +214,43 @@ test.serial("info logs logs scroll above the live region", (t) => {
 	writer.disable();
 });
 
+test.serial("info logs from ProjectBuilder are suppressed (banner-redundant)", (t) => {
+	const {writer, stderr} = createWriter();
+
+	process.emit("ui5.log", {
+		level: "info",
+		message: "Preparing build for projects",
+		moduleName: "ProjectBuilder",
+	});
+
+	const output = stripAnsi(stderr.writes.join(""));
+	t.notRegex(output, /Preparing build for projects/,
+		"ProjectBuilder info line does not scroll above the live region");
+
+	writer.disable();
+});
+
+test.serial("non-info logs from ProjectBuilder still scroll above the live region", (t) => {
+	const {writer, stderr} = createWriter();
+
+	process.emit("ui5.log", {
+		level: "warn",
+		message: "Build warning",
+		moduleName: "ProjectBuilder",
+	});
+	process.emit("ui5.log", {
+		level: "error",
+		message: "Build failed",
+		moduleName: "ProjectBuilder",
+	});
+
+	const output = stripAnsi(stderr.writes.join(""));
+	t.regex(output, /Build warning/);
+	t.regex(output, /Build failed/);
+
+	writer.disable();
+});
+
 test.serial("build-metadata a second time resets and continues (rebuild)", (t) => {
 	const {writer} = createWriter();
 
