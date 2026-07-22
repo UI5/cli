@@ -203,3 +203,53 @@ test.serial("transaction: throwing rolls back metadata and content writes", asyn
 		"Metadata should not exist after rollback");
 	cm.close();
 });
+
+// Static cleanup/info helpers
+
+test.serial("getCacheInfo: Returns null when cache db is not available", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+
+	const info = await CacheManager.getCacheInfo(testDir);
+	t.is(info, null);
+});
+
+test.serial("getCacheInfo: Returns null when cache has no records", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.close();
+
+	const info = await CacheManager.getCacheInfo(testDir);
+	t.is(info, null);
+});
+
+test.serial("getCacheInfo: Returns cache info when records exist", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.writeIndexCache("project-x", "build-sig", "source", {value: 1});
+	cm.close();
+
+	const info = await CacheManager.getCacheInfo(testDir);
+	t.truthy(info);
+	t.true(Number.isInteger(info.size));
+	t.true(info.size > 0);
+});
+
+test.serial("cleanCache: Clears records and returns removal result", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.writeIndexCache("project-x", "build-sig", "source", {value: 1});
+	cm.putContent("sha256-clean", Buffer.from("content"));
+	cm.close();
+
+	const result = await CacheManager.cleanCache(testDir);
+	t.truthy(result);
+	t.true(Number.isInteger(result.size));
+	t.true(result.size >= 0);
+
+	const infoAfterClean = await CacheManager.getCacheInfo(testDir);
+	t.is(infoAfterClean, null);
+});
