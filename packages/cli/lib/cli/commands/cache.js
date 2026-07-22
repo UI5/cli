@@ -239,7 +239,7 @@ async function handleCache(argv) {
 		FrameworkCache.getCacheInfo(ui5DataDir),
 		FrameworkCache.getAdditionalCacheInfo(ui5DataDir),
 		CacheManager.getCacheInfo(ui5DataDir),
-		CacheManager.getAdditionalCacheInfo(ui5DataDir),
+		// CacheManager.getAdditionalCacheInfo(ui5DataDir), // API compatibility. Currently not needed.
 	]);
 
 	if (!frameworkInfo && !buildInfo && orphanedInfo.length === 0) {
@@ -277,7 +277,7 @@ async function handleCache(argv) {
 
 	const [additionalFrameworkResult] = await Promise.all([
 		FrameworkCache.cleanAdditional(ui5DataDir),
-		CacheManager.cleanAdditional(ui5DataDir),
+		// CacheManager.cleanAdditional(ui5DataDir), // API compatibility. Currently not needed.
 	]);
 	const orphanedInfoWithAbsPaths = additionalFrameworkResult.map(
 		(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
