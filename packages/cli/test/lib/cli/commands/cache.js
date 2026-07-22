@@ -84,16 +84,26 @@ test.afterEach.always((t) => {
 
 test("Command builder", async (t) => {
 	const cacheModule = await import("../../../../lib/cli/commands/cache.js");
+	const yargsStub = {
+		option: sinon.stub().returnsThis(),
+		example: sinon.stub().returnsThis(),
+	};
 	const cliStub = {
 		demandCommand: sinon.stub().returnsThis(),
-		command: sinon.stub().returnsThis(),
-		example: sinon.stub().returnsThis(),
+		command: sinon.stub().callsFake((_name, _desc, config) => {
+			// Invoke the sub-command builder to cover the inner yargs setup
+			if (config?.builder) {
+				config.builder(yargsStub);
+			}
+			return cliStub;
+		}),
 	};
 	const result = cacheModule.default.builder(cliStub);
 	t.is(result, cliStub, "Builder returns cli instance");
 	t.is(cliStub.demandCommand.callCount, 1, "demandCommand called once");
 	t.is(cliStub.command.callCount, 1, "command called once");
-	t.is(cliStub.example.callCount, 0, "example not called on parent command");
+	t.is(yargsStub.option.callCount, 1, "option called for --yes flag");
+	t.is(yargsStub.example.callCount, 3, "example called 3 times");
 });
 
 test.serial("Command definition is correct", (t) => {
@@ -436,4 +446,56 @@ test.serial("ui5 cache clean: shows orphaned-only success summary when no active
 	t.true(allOutput.includes("Orphaned UI5 Framework packages"), "Shows orphaned header");
 	t.true(allOutput.includes("Cleaned Orphaned UI5 Framework packages"), "Success summary mentions orphaned label");
 	t.false(allOutput.includes("Removed UI5 Framework packages"), "Does not show main framework removed line when absent");
+});
+
+test.serial("ui5 cache clean: shows orphaned build cache in pre-confirm and post-clean summary", async (t) => {
+	const {cache, argv, stderrWriteStub, buildCacheGetAdditionalCacheInfo,
+		buildCacheCleanCache, buildCacheCleanAdditional} = t.context;
+
+	t.context.frameworkCacheGetCacheInfo.resolves(null);
+	t.context.buildCacheGetCacheInfo.resolves(null);
+	buildCacheGetAdditionalCacheInfo.resolves([
+		{path: "buildCache/v0_7", size: 40 * 1024 * 1024},
+	]);
+	buildCacheCleanCache.resolves(null);
+	buildCacheCleanAdditional.resolves([
+		{path: "buildCache/v0_7", size: 40 * 1024 * 1024},
+	]);
+
+	argv["_"] = ["cache", "clean"];
+	argv["yes"] = true;
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("Orphaned build cache (Db)"), "Shows orphaned build cache header");
+	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "buildCache/v0_7")),
+		"Shows orphaned build cache path indented");
+	t.true(allOutput.includes("Removed Orphaned build cache (Db)"), "Post-clean result shows orphaned build label");
+	t.true(allOutput.includes("freed 40.0 MB"), "Shows freed size in post-clean result");
+	t.true(allOutput.includes("Cleaned Orphaned build cache (Db)"), "Success summary mentions orphaned build cache");
+});
+
+test.serial("ui5 cache clean: build cache and orphaned build cache with size 0 omit size detail", async (t) => {
+	const {cache, argv, stderrWriteStub, buildCacheGetAdditionalCacheInfo,
+		buildCacheCleanCache, buildCacheCleanAdditional, buildCacheGetCacheInfo} = t.context;
+
+	t.context.frameworkCacheGetCacheInfo.resolves(null);
+	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 0});
+	buildCacheGetAdditionalCacheInfo.resolves([
+		{path: "buildCache/v0_7", size: 0},
+	]);
+	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 0});
+	buildCacheCleanAdditional.resolves([
+		{path: "buildCache/v0_7", size: 0},
+	]);
+
+	argv["_"] = ["cache", "clean"];
+	argv["yes"] = true;
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.false(allOutput.includes("0 B"), "Does not show zero size");
+	t.true(allOutput.includes("Removed Build cache (Db)"), "Shows build cache result line");
+	t.true(allOutput.includes("Removed Orphaned build cache (Db)"), "Shows orphaned build cache result line");
+	t.false(allOutput.includes("freed"), "Does not show freed label when size is 0");
 });
