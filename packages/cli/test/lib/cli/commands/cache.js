@@ -40,6 +40,8 @@ test.beforeEach(async (t) => {
 	t.context.frameworkCacheGetAdditionalCacheInfo = sinon.stub().resolves([]);
 	t.context.buildCacheGetCacheInfo = sinon.stub();
 	t.context.buildCacheCleanCache = sinon.stub();
+	t.context.buildCacheCleanAdditional = sinon.stub().resolves([]);
+	t.context.buildCacheGetAdditionalCacheInfo = sinon.stub().resolves([]);
 
 	t.context.yesnoStub = sinon.stub();
 
@@ -61,7 +63,8 @@ test.beforeEach(async (t) => {
 			default: class {
 				static getCacheInfo = t.context.buildCacheGetCacheInfo;
 				static cleanCache = t.context.buildCacheCleanCache;
-				static cleanAdditional = sinon.stub().resolves([]);
+				static cleanAdditional = t.context.buildCacheCleanAdditional;
+				static getAdditionalCacheInfo = t.context.buildCacheGetAdditionalCacheInfo;
 			}
 		},
 		"yesno": {
