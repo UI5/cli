@@ -420,6 +420,61 @@ test("findExistingContentIntegrities: Handles large batches", (t) => {
 	t.false(result.has("sha256-nonexistent"));
 });
 
+test("hasRecords: Returns false for empty database", (t) => {
+	t.false(t.context.storage.hasRecords());
+});
+
+test("hasRecords: Returns true when content table has records", (t) => {
+	t.context.storage.putContent("sha256-content", Buffer.from("content"));
+	t.true(t.context.storage.hasRecords());
+});
+
+test("hasRecords: Returns true when index cache table has records", (t) => {
+	t.context.storage.writeIndexCache("project-a", "build-sig", "source", {v: 1});
+	t.true(t.context.storage.hasRecords());
+});
+
+test("hasRecords: Returns true when stage metadata table has records", (t) => {
+	t.context.storage.writeStageCache("project-a", "build-sig", "task/minify", "sig-a", {v: 1});
+	t.true(t.context.storage.hasRecords());
+});
+
+test("hasRecords: Returns true when task metadata table has records", (t) => {
+	t.context.storage.writeTaskMetadata("project-a", "build-sig", "minify", "project", {v: 1});
+	t.true(t.context.storage.hasRecords());
+});
+
+test("hasRecords: Returns true when result metadata table has records", (t) => {
+	t.context.storage.writeResultMetadata("project-a", "build-sig", "sig-a", {v: 1});
+	t.true(t.context.storage.hasRecords());
+});
+
+test("getDatabaseSize: Returns positive database size", (t) => {
+	const size = t.context.storage.getDatabaseSize();
+	t.true(Number.isInteger(size));
+	t.true(size > 0);
+});
+
+test("clearAllRecords: Clears all tables and returns freed size", (t) => {
+	t.context.storage.putContent("sha256-content", Buffer.from("content"));
+	t.context.storage.writeIndexCache("project-a", "build-sig", "source", {v: 1});
+	t.context.storage.writeStageCache("project-a", "build-sig", "task/minify", "sig-a", {v: 1});
+	t.context.storage.writeTaskMetadata("project-a", "build-sig", "minify", "project", {v: 1});
+	t.context.storage.writeResultMetadata("project-a", "build-sig", "sig-a", {v: 1});
+
+	t.true(t.context.storage.hasRecords());
+	const freedSize = t.context.storage.clearAllRecords();
+
+	t.true(Number.isInteger(freedSize));
+	t.true(freedSize >= 0);
+	t.false(t.context.storage.hasRecords());
+	t.false(t.context.storage.hasContent("sha256-content"));
+	t.is(t.context.storage.readIndexCache("project-a", "build-sig", "source"), null);
+	t.is(t.context.storage.readStageCache("project-a", "build-sig", "task/minify", "sig-a"), null);
+	t.is(t.context.storage.readTaskMetadata("project-a", "build-sig", "minify", "project"), null);
+	t.is(t.context.storage.readResultMetadata("project-a", "build-sig", "sig-a"), null);
+});
+
 // ===== Pre-compressed content =====
 
 test("putCompressedContent: Stores pre-compressed data retrievable via readContent", (t) => {
