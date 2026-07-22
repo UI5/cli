@@ -1,4 +1,5 @@
 import ProjectBuildLogger from "@ui5/logger/internal/loggers/ProjectBuild";
+import crypto from "node:crypto";
 import TaskUtil from "./TaskUtil.js";
 import TaskRunner from "../TaskRunner.js";
 import TaskDefinitions from "../TaskDefinitions.js";
@@ -286,7 +287,10 @@ class ProjectBuildContext {
 				`getDependenciesReader completed in ${(performance.now() - readerStart).toFixed(2)} ms`);
 		}
 		const cacheStart = perfEnabled ? performance.now() : 0;
-		const boolOrChangedPaths = await this.getBuildCache().validateCache(depReader, {prepareForBuild});
+		const boolOrChangedPaths = await this.getBuildCache().validateCache(depReader, {
+			prepareForBuild,
+			dependencySetIdentity: this.#getDependencySetIdentity(),
+		});
 		if (perfEnabled) {
 			this._log.perf(
 				`ProjectBuildCache.validateCache completed in ` +
@@ -298,6 +302,27 @@ class ProjectBuildContext {
 			this.propagateResourceChanges(boolOrChangedPaths);
 		}
 		return !!boolOrChangedPaths;
+	}
+
+	/**
+	 * Computes a hash identifying the project's dependency set for build-cache validation.
+	 *
+	 * The identity covers the project's full transitive dependency closure taken from the graph,
+	 * hashed over the sorted dependency ids. It is deliberately the graph closure and not the
+	 * task-scoped required set: the dependency reader exposes the transitive closure to a standard
+	 * dependency-globbing task (getRequiredDependencies() returns only direct dependencies, the
+	 * reader expands them transitively), and the required set flips all-or-nothing with task
+	 * selection, which would trigger spurious refreshes. Ids are used rather than names because a
+	 * project's name and id can differ under npm aliasing and the id is what the cache keys on.
+	 *
+	 * @returns {string} sha256 hex hash over the sorted transitive dependency ids
+	 */
+	#getDependencySetIdentity() {
+		const graph = this._buildContext.getGraph();
+		const ids = graph.getTransitiveDependencies(this._project.getName())
+			.map((name) => graph.getProject(name).getId())
+			.sort();
+		return crypto.createHash("sha256").update(ids.join("\n")).digest("hex");
 	}
 
 	/**
