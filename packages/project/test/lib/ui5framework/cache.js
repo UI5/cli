@@ -223,3 +223,55 @@ test("cleanAdditional: orphaned dir deletion failure is non-fatal", async (t) =>
 	}
 });
 
+test("cleanCache: returns null if framework dir removed between check and rename (ENOENT race)", async (t) => {
+	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.m", "1.120.0");
+
+	const frameworkDir = path.join(t.context.testDir, "framework");
+	const renameStub = sinon.stub().callsFake(async (oldPath, newPath) => {
+		if (oldPath === frameworkDir) {
+			const err = Object.assign(new Error("ENOENT: no such file or directory, rename"), {code: "ENOENT"});
+			throw err;
+		}
+		return fs.rename(oldPath, newPath);
+	});
+
+	const FrameworkCacheMocked = await esmock.p(
+		"../../../lib/ui5Framework/cache.js",
+		{"node:fs/promises": {...fs, rename: renameStub}}
+	);
+
+	try {
+		const result = await FrameworkCacheMocked.cleanCache(t.context.testDir);
+		t.is(result, null, "returns null when directory is concurrently removed");
+	} finally {
+		esmock.purge(FrameworkCacheMocked);
+		await fs.rm(frameworkDir, {recursive: true, force: true}).catch(() => {});
+	}
+});
+
+test("cleanCache: re-throws non-ENOENT errors from fs.rename", async (t) => {
+	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.m", "1.120.0");
+
+	const frameworkDir = path.join(t.context.testDir, "framework");
+	const renameStub = sinon.stub().callsFake(async (oldPath, newPath) => {
+		if (oldPath === frameworkDir) {
+			const err = Object.assign(new Error("EACCES: permission denied, rename"), {code: "EACCES"});
+			throw err;
+		}
+		return fs.rename(oldPath, newPath);
+	});
+
+	const FrameworkCacheMocked = await esmock.p(
+		"../../../lib/ui5Framework/cache.js",
+		{"node:fs/promises": {...fs, rename: renameStub}}
+	);
+
+	try {
+		const error = await t.throwsAsync(FrameworkCacheMocked.cleanCache(t.context.testDir));
+		t.is(/** @type {NodeJS.ErrnoException} */ (error).code, "EACCES");
+	} finally {
+		esmock.purge(FrameworkCacheMocked);
+		await fs.rm(frameworkDir, {recursive: true, force: true}).catch(() => {});
+	}
+});
+
