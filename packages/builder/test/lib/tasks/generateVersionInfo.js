@@ -955,7 +955,8 @@ test.serial("integration: Library without dependencies and embeddedBy undefined"
 
 	t.is(verboseLogStub.callCount, 1);
 	t.is(verboseLogStub.firstCall.args[0],
-		"  Component doesn't declare 'sap.app/embeddedBy', don't list it as 'embedded'");
+		"  Component '/resources/lib/a/sub/fold' doesn't declare 'sap.app/embeddedBy', " +
+		"don't list it as 'embedded'");
 });
 
 test.serial("integration: Library without dependencies and embeddedBy not a string", async (t) => {
@@ -1098,7 +1099,8 @@ test.serial("integration: Library without dependencies and embeddedBy path not c
 
 	t.is(verboseLogStub.callCount, 1);
 	t.is(verboseLogStub.firstCall.args[0],
-		"  Component's 'sap.app/embeddedBy' points to '/resources/lib/a/sub/', don't list it as 'embedded'");
+		"  Component '/resources/lib/a/sub/fold': property 'sap.app/embeddedBy' points to " +
+		"'/resources/lib/a/sub/', don't list it as 'embedded'");
 });
 
 test.serial("integration: Library with manifest with invalid dependency", async (t) => {
