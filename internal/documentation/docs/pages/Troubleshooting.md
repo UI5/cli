@@ -20,13 +20,9 @@ UI5 CLI stores several kinds of data under your user's home directory in `~/.ui5
 | `~/.ui5/buildCache/` | Build cache used by `ui5 build` and `ui5 serve` (see [Build Cache Control](./Builder.md#build-cache-control)) | Yes — rebuilt on next `ui5 build` / `ui5 serve` |
 | `~/.ui5/server/` | Locally generated SSL certificate and private key for HTTPS / HTTP/2 mode | Yes — regenerated on next HTTPS server start; the new certificate must be re-trusted |
 
-::: warning
-Only remove these directories when no UI5 CLI process and no `@ui5/*` API consumer is actively running. Deleting files that are in use can cause running builds or servers to fail or produce inconsistent results.
-:::
-
 #### Resolution
 
-Use the dedicated cache clean command, which safely removes all cached data:
+Use the dedicated cache clean command, which removes all cached data:
 
 ```sh
 ui5 cache clean
@@ -47,6 +43,10 @@ Any required framework dependencies will be re-downloaded during the next UI5 CL
 
 ::: info
 If you have configured a custom data directory via `UI5_DATA_DIR` or `ui5 config set ui5DataDir`, the `ui5 cache clean` command will clean up that location instead of the default `~/.ui5/`. See [Changing UI5 CLI's Data Directory](#changing-ui5-cli-s-data-directory).
+:::
+
+::: warning
+Only remove these directories, or run `ui5 cache clean`, when no UI5 CLI process and no `@ui5/*` API consumer is actively running. Running `ui5 cache clean` while `ui5 build` or `ui5 serve` is in progress can break the running process and lead to failed or inconsistent results.
 :::
 
 ## Environment Variables
