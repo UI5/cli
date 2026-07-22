@@ -2235,6 +2235,8 @@ async function createCacheWithDependencyGlob({
 	globPatterns = ["/resources/**/themes/**/*.less"],
 	oldDepResources,
 	newDepResources,
+	oldDependencySetIdentity = "old-dependency-set-identity",
+	newDependencySetIdentity = "new-dependency-set-identity",
 } = {}) {
 	const {cacheObject: depCacheObject, signature: oldDepSignature} =
 		await recordDependencyRequestCache(taskName, globPatterns, oldDepResources);
@@ -2274,6 +2276,9 @@ async function createCacheWithDependencyGlob({
 			},
 		},
 		tasks: [[taskName, false]],
+		// Persisted dependency-set identity from the previous build. validateCache compares the
+		// identity passed at the next build against this; a mismatch forces the refresh.
+		availableDependencies: oldDependencySetIdentity,
 	};
 	cacheManager.readIndexCache.returns(indexCache);
 	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, task, type) => {
@@ -2291,17 +2296,21 @@ async function createCacheWithDependencyGlob({
 		byPath: sinon.stub().callsFake(async (p) => newDepResources.find((r) => r.getPath() === p) ?? null),
 	};
 
-	return {cache, project, cacheManager, newDependencyReader, oldDepSignature, expectedDepSignature, taskName};
+	return {
+		cache, project, cacheManager, newDependencyReader,
+		oldDepSignature, expectedDepSignature, taskName, newDependencySetIdentity,
+	};
 }
 
-test.failing("validateCache: added transitive dependency refreshes dependency index (buildThemes glob)",
+test("validateCache: added transitive dependency refreshes dependency index (buildThemes glob)",
 	async (t) => {
 	// Old build saw one library's theme sources; a transitive library was added since, exposing a
 	// second .less file. No resource "changed", so dependencyResourcesChanged() is never called.
 		const libA = createMockResource("/resources/libA/themes/base/library.source.less", "iA");
 		const libB = createMockResource("/resources/libB/themes/base/library.source.less", "iB");
 
-		const {cache, newDependencyReader, oldDepSignature, expectedDepSignature, taskName} =
+		const {cache, newDependencyReader, oldDepSignature, expectedDepSignature, taskName,
+			newDependencySetIdentity} =
 		await createCacheWithDependencyGlob({
 			oldDepResources: [libA],
 			newDepResources: [libA, libB],
@@ -2312,19 +2321,21 @@ test.failing("validateCache: added transitive dependency refreshes dependency in
 		t.is(cache.getTaskCache(taskName).getDependencyIndexSignatures()[0], oldDepSignature,
 			"restored dependency index starts at the old signature");
 
-		await cache.validateCache(newDependencyReader, {prepareForBuild: true});
+		await cache.validateCache(newDependencyReader,
+			{prepareForBuild: true, dependencySetIdentity: newDependencySetIdentity});
 
 		t.is(cache.getTaskCache(taskName).getDependencyIndexSignatures()[0], expectedDepSignature,
 			"dependency index must reflect the added transitive dependency after validateCache");
 	});
 
-test.failing("validateCache: removed transitive dependency refreshes dependency index", async (t) => {
+test("validateCache: removed transitive dependency refreshes dependency index", async (t) => {
 	// Reverse direction: a library present in the previous build is no longer a dependency, so its
 	// theme sources should drop out of the index. Again nothing is reported as a changed resource.
 	const libA = createMockResource("/resources/libA/themes/base/library.source.less", "iA");
 	const libB = createMockResource("/resources/libB/themes/base/library.source.less", "iB");
 
-	const {cache, newDependencyReader, oldDepSignature, expectedDepSignature, taskName} =
+	const {cache, newDependencyReader, oldDepSignature, expectedDepSignature, taskName,
+		newDependencySetIdentity} =
 		await createCacheWithDependencyGlob({
 			oldDepResources: [libA, libB],
 			newDepResources: [libA],
@@ -2333,20 +2344,22 @@ test.failing("validateCache: removed transitive dependency refreshes dependency 
 	t.not(oldDepSignature, expectedDepSignature,
 		"precondition: removing libB must change the dependency index signature");
 
-	await cache.validateCache(newDependencyReader, {prepareForBuild: true});
+	await cache.validateCache(newDependencyReader,
+		{prepareForBuild: true, dependencySetIdentity: newDependencySetIdentity});
 
 	t.is(cache.getTaskCache(taskName).getDependencyIndexSignatures()[0], expectedDepSignature,
 		"dependency index must reflect the removed transitive dependency after validateCache");
 });
 
-test.failing("validateCache: dependency-set change is general, not specific to the buildThemes glob",
+test("validateCache: dependency-set change is general, not specific to the buildThemes glob",
 	async (t) => {
 	// The same staleness affects any task that globs dependency resources. Use a generic JS glob and
 	// task name to show the defect is not tied to theme handling.
 		const modA = createMockResource("/resources/libA/Component.js", "iA");
 		const modB = createMockResource("/resources/libB/Component.js", "iB");
 
-		const {cache, newDependencyReader, oldDepSignature, expectedDepSignature, taskName} =
+		const {cache, newDependencyReader, oldDepSignature, expectedDepSignature, taskName,
+			newDependencySetIdentity} =
 		await createCacheWithDependencyGlob({
 			taskName: "generateComponentPreload",
 			globPatterns: ["/resources/**/*.js"],
@@ -2357,7 +2370,8 @@ test.failing("validateCache: dependency-set change is general, not specific to t
 		t.not(oldDepSignature, expectedDepSignature,
 			"precondition: adding libB's module must change the dependency index signature");
 
-		await cache.validateCache(newDependencyReader, {prepareForBuild: true});
+		await cache.validateCache(newDependencyReader,
+			{prepareForBuild: true, dependencySetIdentity: newDependencySetIdentity});
 
 		t.is(cache.getTaskCache(taskName).getDependencyIndexSignatures()[0], expectedDepSignature,
 			"dependency index must refresh for any dependency-globbing task, not just buildThemes");
