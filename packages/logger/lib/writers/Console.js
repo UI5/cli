@@ -3,7 +3,7 @@ import {chalkStderr as chalk} from "chalk";
 import figures from "figures";
 import {MultiBar} from "cli-progress";
 import Logger from "../loggers/Logger.js";
-import {getLevelPrefix} from "./internal/levelPrefix.js";
+import {formatLogLine, prefixModuleName} from "./internal/format.js";
 import {REMOTE_CONNECTIONS_WARNING_LINES} from "./interactiveConsole/remoteConnectionsWarning.js";
 
 /**
@@ -199,8 +199,7 @@ class Console {
 		if (!Logger.isLevelEnabled(level)) {
 			return;
 		}
-		const levelPrefix = getLevelPrefix(level);
-		const msg = `${levelPrefix} ${message}\n`;
+		const msg = formatLogLine(level, message) + "\n";
 
 		if (this.#progressBarContainer) {
 			// If a progress bar is in use, we have to log through it's API
@@ -213,7 +212,7 @@ class Console {
 
 	#handleLogEvent({level, message, moduleName}) {
 		if (this.#filterModule(moduleName)) {
-			this.#writeMessage(level, `${chalk.blue(moduleName)} ${message}`);
+			this.#writeMessage(level, prefixModuleName(message, moduleName));
 		}
 	}
 

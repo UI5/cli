@@ -1,9 +1,8 @@
 import process from "node:process";
 import {createLogUpdate} from "log-update";
 import sliceAnsi from "slice-ansi";
-import chalk from "chalk";
 import Logger from "../loggers/Logger.js";
-import {getLevelPrefix} from "./internal/levelPrefix.js";
+import {formatLogLine, prefixModuleName} from "./internal/format.js";
 import {createHeaderState, setTool} from "./interactiveConsole/state/header.js";
 import {createProjectState, setProject, enableProjectPlaceholders} from "./interactiveConsole/state/project.js";
 import {createServerState, setListening, enableServerPlaceholders} from "./interactiveConsole/state/server.js";
@@ -273,11 +272,7 @@ class InteractiveConsole {
 		if (!Logger.isLevelEnabled(level)) {
 			return;
 		}
-		const levelPrefix = getLevelPrefix(level);
-		const formatted = moduleName ?
-			`${levelPrefix} ${chalk.blue(moduleName)} ${message}` :
-			`${levelPrefix} ${message}`;
-		this.logAbove(formatted);
+		this.logAbove(formatLogLine(level, prefixModuleName(message, moduleName)));
 	}
 
 	#handleToolInfo(evt) {
