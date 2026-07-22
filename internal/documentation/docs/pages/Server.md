@@ -6,9 +6,9 @@ The [UI5 Server](https://github.com/SAP/ui5-server) module provides server capab
 import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
 </script>
 
-<div style="margin: 1rem 0;">
-  <VPButton class="no-decoration" text="📚 API Reference" href="https://ui5.github.io/cli/v5/api/module-@ui5_server.html"/>
-</div>
+::: tip
+Browse the API reference for each Server API by navigating in the sidebar menu to **📚 API -> @ui5/server**.
+:::
 
 ::: warning Development Use Only
 The UI5 Server is intended for **local development purposes only**. It must not be exposed to untrusted parties or used as a public-facing web server.

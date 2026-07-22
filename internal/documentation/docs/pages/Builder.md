@@ -10,9 +10,9 @@ Based on a project's type, the UI5 Builder defines a series of build steps to ex
 
 For every type there is a set of default tasks. You can disable single tasks using the `--exclude-task` [CLI parameter](./CLI.md#ui5-build), and you can include tasks using the `--include-task` parameter.
 
-<div style="margin: 1rem 0;">
-  <VPButton class="no-decoration" text="📚 API Reference" href="https://ui5.github.io/cli/v5/api/index.html"/>
-</div>
+::: tip
+Browse the API reference for each Builder API by navigating in the sidebar menu to **📚 API -> @ui5/builder**.
+:::
 
 ## Tasks
 Tasks are specific build steps to be executed during build phase.
@@ -23,31 +23,31 @@ A project can add custom tasks to the build by using the [Custom Tasks Extensibi
 
 ### Standard Tasks
 
-All available standard tasks are documented [in the API reference](https://ui5.github.io/cli/v5/api/index.html). Search for `@ui5/builder/tasks/` to filter the API reference for all available tasks. The list below offers the actual order of their execution:
+All available standard tasks are documented under **📚 API -> @ui5/builder -> tasks**. Use the sidebar menu to access the respective pages. The list below offers the actual order of their execution:
 
 | Task                           |   Type `application`    |    Type `component`     |     Type `library`      |  Type `theme-library`   |
 |--------------------------------|:-----------------------:|:-----------------------:|:-----------------------:|:-----------------------:|
-| escapeNonAsciiCharacters       |         enabled         |         enabled         |         enabled         |                         |
-| replaceCopyright               |         enabled         |         enabled         |         enabled         |         enabled         |
-| replaceVersion                 |         enabled         |         enabled         |         enabled         |         enabled         |
-| replaceBuildtime               |                         |                         |         enabled         |                         |
-| generateJsdoc                  |                         |                         | *disabled* <sup>1</sup> |                         |
-| executeJsdocSdkTransformation  |                         |                         | *disabled* <sup>1</sup> |                         |
-| minify                         |         enabled         |         enabled         |         enabled         |                         |
-| generateFlexChangesBundle      |         enabled         |         enabled         |         enabled         |                         |
-| generateLibraryManifest        |                         |                         |         enabled         |                         |
-| enhanceManifest                |         enabled         |         enabled         |         enabled         |                         |
-| generateComponentPreload       |         enabled         |         enabled         | *disabled* <sup>2</sup> |                         |
-| generateLibraryPreload         |                         |                         |         enabled         |                         |
-| generateStandaloneAppBundle    | *disabled* <sup>3</sup> |                         |                         |                         |
-| transformBootstrapHtml         | *disabled* <sup>3</sup> |                         |                         |                         |
-| generateBundle                 | *disabled* <sup>4</sup> | *disabled* <sup>4</sup> | *disabled* <sup>4</sup> |                         |
-| buildThemes                    |                         |                         |         enabled         |         enabled         |
-| generateThemeDesignerResources |                         |                         | *disabled* <sup>5</sup> | *disabled* <sup>5</sup> |
-| generateVersionInfo            | *disabled* <sup>1</sup> |                         |                         |                         |
-| generateCachebusterInfo        |       *disabled*        |       *disabled*        |                         |                         |
-| generateApiIndex               | *disabled* <sup>1</sup> |                         |                         |                         |
-| generateResourcesJson          |       *disabled*        |       *disabled*        |       *disabled*        |       *disabled*        |
+| [escapeNonAsciiCharacters](../api/module-@ui5_builder_tasks_escapeNonAsciiCharacters)                  |         enabled         |         enabled         |         enabled         |                         |
+| [replaceCopyright](../api/module-@ui5_builder_tasks_replaceCopyright)                                  |         enabled         |         enabled         |         enabled         |         enabled         |
+| [replaceVersion](../api/module-@ui5_builder_tasks_replaceVersion)                                      |         enabled         |         enabled         |         enabled         |         enabled         |
+| [replaceBuildtime](../api/module-@ui5_builder_tasks_replaceBuildtime)                                  |                         |                         |         enabled         |                         |
+| [generateJsdoc](../api/module-@ui5_builder_tasks_jsdoc_generateJsdoc)                                  |                         |                         | *disabled* <sup>1</sup> |                         |
+| [executeJsdocSdkTransformation](../api/module-@ui5_builder_tasks_jsdoc_executeJsdocSdkTransformation)  |                         |                         | *disabled* <sup>1</sup> |                         |
+| [minify](../api/module-@ui5_builder_tasks_minify)                         |         enabled            |         enabled         |         enabled         |                         |
+| [generateFlexChangesBundle](../api/module-@ui5_builder_tasks_bundlers_generateFlexChangesBundle)       |         enabled         |         enabled         |         enabled         |                         |
+| [generateLibraryManifest](../api/module-@ui5_builder_tasks_generateLibraryManifest)                    |                         |                         |         enabled         |                         |
+| [enhanceManifest](../api/module-@ui5_builder_tasks_enhanceManifest)                                    |         enabled         |         enabled         |         enabled         |                         |
+| [generateComponentPreload](../api/module-@ui5_builder_tasks_bundlers_generateComponentPreload)         |         enabled         |         enabled         | *disabled* <sup>2</sup> |                         |
+| [generateLibraryPreload](../api/module-@ui5_builder_tasks_bundlers_generateLibraryPreload)             |                         |                         |         enabled         |                         |
+| [generateStandaloneAppBundle](../api/module-@ui5_builder_tasks_bundlers_generateStandaloneAppBundle)   | *disabled* <sup>3</sup> |                         |                         |                         |
+| transformBootstrapHtml                                                                                 | *disabled* <sup>3</sup> |                         |                         |                         |
+| [generateBundle](../api/module-@ui5_builder_tasks_bundlers_generateBundle)                             | *disabled* <sup>4</sup> | *disabled* <sup>4</sup> | *disabled* <sup>4</sup> |                         |
+| [buildThemes](../api/module-@ui5_builder_tasks_buildThemes)                                            |                         |                         |         enabled         |         enabled         |
+| [generateThemeDesignerResources](../api/module-@ui5_builder_tasks_generateThemeDesignerResources)      |                         |                         | *disabled* <sup>5</sup> | *disabled* <sup>5</sup> |
+| [generateVersionInfo](../api/module-@ui5_builder_tasks_generateVersionInfo)                            |         enabled         |                         |                         |                         |
+| [generateCachebusterInfo](../api/module-@ui5_builder_tasks_generateCachebusterInfo)                    |       *disabled*        |       *disabled*        |                         |                         |
+| [generateApiIndex](../api/module-@ui5_builder_tasks_jsdoc_generateApiIndex)                            | *disabled* <sup>1</sup> |                         |                         |                         |
+| [generateResourcesJson](../api/module-@ui5_builder_tasks_generateResourcesJson)                        |       *disabled*        |       *disabled*        |       *disabled*        |       *disabled*        |
 
 *Disabled tasks can be activated by certain build modes, the project configuration, or by using the `--include-task` [CLI parameter](./CLI.md#ui5-build). See footnotes where given*
 
@@ -157,7 +157,7 @@ Processors work with provided resources. They contain the actual build step logi
 Processors can be implemented generically. The string replacer is an example for that.
 Since string replacement is a common build step, it can be useful in different contexts, e.g. code, version, date, and copyright replacement. A concrete replacement operation could be achieved by passing a custom configuration to the processor. This way, multiple tasks can make use of the same processor to achieve their build step.
 
-To get a list of all available processors, please visit [the API reference](https://ui5.github.io/cli/v5/api/index.html) and search for `@ui5/builder/processors/`.
+To get a list of all available processors, use the sidebar menu and navigate to **📚 API -> @ui5/builder -> processors**.
 
 ## Legacy Bundle Tooling (lbt)
 JavaScript port of the "legacy" Maven/Java based bundle tooling.

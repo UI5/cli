@@ -91,10 +91,9 @@ In the table below you can find the available combinations of project type & out
 ² Theme libraries in most cases have more than one namespace.  
 ³ Modules have explicit path mappings configured and no namespace concept.  
 
-
-<div style="margin: 1rem 0;">
-  <VPButton class="no-decoration" text="📚 API Reference" href="https://ui5.github.io/cli/v5/api/@ui5_project_build_ProjectBuilder.html"/>
-</div>
+::: tip
+Browse the API reference for each Project API by navigating in the sidebar menu to **📚 API -> @ui5/project**.
+:::
 
 <style>
 .no-decoration {
