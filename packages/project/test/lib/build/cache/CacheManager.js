@@ -251,5 +251,99 @@ test.serial("cleanCache: Clears records and returns removal result", async (t) =
 	t.true(result.size >= 0);
 
 	const infoAfterClean = await CacheManager.getCacheInfo(testDir);
-	t.is(infoAfterClean, null);
+	t.is(infoAfterClean, null, "getCacheInfo returns null for empty fresh tables after cleanCache");
+
+	const additionalInfo = await CacheManager.getAdditionalCacheInfo(testDir);
+	t.is(additionalInfo.length, 1, "stale tables are reported as additional info");
+	t.true(additionalInfo[0].size > 0);
+});
+
+test.serial("cleanCache: returns null when no records exist", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.close();
+
+	const result = await CacheManager.cleanCache(testDir);
+	t.is(result, null);
+});
+
+test.serial("cleanCache: returns null when db does not exist", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+
+	const result = await CacheManager.cleanCache(testDir);
+	t.is(result, null);
+});
+
+test.serial("getAdditionalCacheInfo: returns empty array when no stale tables", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.writeIndexCache("p", "sig", "source", {v: 1});
+	cm.close();
+
+	const info = await CacheManager.getAdditionalCacheInfo(testDir);
+	t.deepEqual(info, []);
+});
+
+test.serial("getAdditionalCacheInfo: returns empty array when db does not exist", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+
+	const info = await CacheManager.getAdditionalCacheInfo(testDir);
+	t.deepEqual(info, []);
+});
+
+test.serial("getAdditionalCacheInfo: reports stale tables after cleanCache", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.writeIndexCache("p", "sig", "source", {v: 1});
+	cm.close();
+
+	await CacheManager.cleanCache(testDir);
+
+	const info = await CacheManager.getAdditionalCacheInfo(testDir);
+	t.is(info.length, 1);
+	t.true(info[0].size > 0);
+	t.truthy(info[0].path);
+});
+
+test.serial("cleanAdditional: returns empty array when no stale tables", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.writeIndexCache("p", "sig", "source", {v: 1});
+	cm.close();
+
+	const result = await CacheManager.cleanAdditional(testDir);
+	t.deepEqual(result, []);
+});
+
+test.serial("cleanAdditional: returns empty array when db does not exist", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+
+	const result = await CacheManager.cleanAdditional(testDir);
+	t.deepEqual(result, []);
+});
+
+test.serial("cleanAdditional: drops stale tables, returns freed size, leaves nothing pending", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.writeIndexCache("p", "sig", "source", {v: 1});
+	cm.putContent("sha256-cleanup", Buffer.alloc(64 * 1024, "z"));
+	cm.close();
+
+	await CacheManager.cleanCache(testDir);
+
+	const result = await CacheManager.cleanAdditional(testDir);
+	t.is(result.length, 1);
+	t.true(result[0].size >= 0);
+	t.truthy(result[0].path);
+
+	const remainingAdditional = await CacheManager.getAdditionalCacheInfo(testDir);
+	t.deepEqual(remainingAdditional, [], "no stale tables remain after cleanAdditional");
 });
