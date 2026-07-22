@@ -213,11 +213,7 @@ test.serial("Serve application.a, request application resource", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
-				"application.a": {},
+				"application.a": {}
 			}
 		}
 	});
@@ -247,7 +243,6 @@ test.serial("Serve application.a, request application resource", async (t) => {
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
-						"generateVersionInfo",
 					]
 				}
 			}
@@ -314,11 +309,7 @@ test.serial("Serve application.a, create and delete a source file", async (t) =>
 		resource: "/created.js",
 		assertions: {
 			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
-				"application.a": {},
+				"application.a": {}
 			}
 		}
 	});
@@ -350,7 +341,6 @@ test.serial("Serve application.a, create and delete a source file", async (t) =>
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
-						"generateVersionInfo",
 					]
 				}
 			}
@@ -372,13 +362,22 @@ test.serial("Serve application.a, create and delete a source file", async (t) =>
 		}
 	});
 
-	// #5 the second file is no longer served, thus requesting it shouldn't trigger a rebuild
-	// (all projects are still cached from the previous builds)
+	// #5 the second file is no longer served, but requesting it triggers a build of the dependencies
+	// because the file is not known anymore and might come from a different project.
+	// Note: This is special for applications, which are served at root level. For libraries, the server
+	// can determine whether a resource is inside a project namespace and only trigger a build for the affected
+	// project. The logic could be improved, especially like in this case where the requested resource is outside
+	// of /resources or /test-resources.
 	await fixtureTester.requestResource({
 		resource: "/another.js",
 		notFound: true,
 		assertions: {
-			projects: {}
+			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+			}
 		}
 	});
 
@@ -399,7 +398,6 @@ test.serial("Serve application.a, create and delete a source file", async (t) =>
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
-						"generateVersionInfo",
 					]
 				}
 			}
@@ -578,11 +576,8 @@ test.serial("Serve application.a, request application resource AND library resou
 		resources: ["/test.js", "/resources/library/a/.library"],
 		assertions: {
 			projects: {
-				"library.d": {},
 				"library.a": {},
-				"library.b": {},
-				"library.c": {},
-				"application.a": {},
+				"application.a": {}
 			}
 		}
 	});
@@ -653,11 +648,7 @@ test.serial("Serve application.a with --cache=Default", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
-				"application.a": {},
+				"application.a": {}
 			}
 		}
 	});
@@ -686,7 +677,6 @@ test.serial("Serve application.a with --cache=Default", async (t) => {
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
-						"generateVersionInfo",
 					]
 				}
 			}
@@ -709,16 +699,12 @@ test.serial("Serve application.a with --cache=Off", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
-				"application.a": {},
+				"application.a": {}
 			}
 		}
 	});
 
-	// #2: Request with cache=Off (again) --> all tasks execute again (no cache reuse)
+	// #2: Request with cache=Off (again) --> nothing rebuilds (cache not written, but no changes)
 	await fixtureTester.requestResource({
 		resource: "/test.js",
 		assertions: {
@@ -735,11 +721,7 @@ test.serial("Serve application.a with --cache=Off", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
-				"application.a": {},
+				"application.a": {}
 			}
 		}
 	});
@@ -759,11 +741,7 @@ test.serial("Serve application.a with --cache=Off", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
-				"application.a": {},
+				"application.a": {}
 			}
 		}
 	});
@@ -785,11 +763,7 @@ test.serial("Serve application.a with --cache=Off", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
-				"application.a": {},
+				"application.a": {}
 			}
 		}
 	});
@@ -804,11 +778,7 @@ test.serial("Serve application.a with --cache=ReadOnly", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
-				"application.a": {},
+				"application.a": {}
 			}
 		}
 	});
@@ -841,7 +811,6 @@ test.serial("Serve application.a with --cache=ReadOnly", async (t) => {
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
-						"generateVersionInfo",
 					]
 				}
 			}
@@ -870,7 +839,6 @@ test.serial("Serve application.a with --cache=ReadOnly", async (t) => {
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
-						"generateVersionInfo",
 					]
 				}
 			}
@@ -887,11 +855,7 @@ test.serial("Serve application.a with --cache=Force (1)", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
-				"application.a": {},
+				"application.a": {}
 			}
 		}
 	});
@@ -1230,6 +1194,36 @@ test.serial("Source change during second build retries cleanly without no_cache 
 		"Retry served content reflecting the mid-build-2 change");
 });
 
+test.serial("Serve application.a (test exclusion of generateVersionInfo)", async (t) => {
+	// This test verifies that task "generateVersionInfo" is excluded
+	// (default for server builds).
+
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
+
+	await fixtureTester.serveProject();
+
+	// Request a resource to trigger the build:
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {
+				"application.a": {
+					executedTasks: [
+						"escapeNonAsciiCharacters",
+						"replaceCopyright",
+						"replaceVersion",
+						"minify",
+						"generateFlexChangesBundle",
+						"enhanceManifest",
+						"generateComponentPreload"
+						// no "generateVersionInfo" as expected
+					],
+				},
+			}
+		},
+	});
+});
+
 function getFixturePath(fixtureName) {
 	return fileURLToPath(new URL(`../../fixtures/${fixtureName}`, import.meta.url));
 }
@@ -1368,6 +1362,18 @@ class FixtureTester {
 		// Assert projects built in order
 		const expectedProjects = Object.keys(projects);
 		this._t.deepEqual(projectsInOrder, expectedProjects);
+
+		// Optional check: Assert executed tasks
+		for (const [projectName, expected] of Object.entries(projects)) {
+			if (!expected.executedTasks) {
+				continue; // no executedTasks specified -> skip the check
+			}
+			const expectedExecuted = expected.executedTasks || [];
+			const actualExecuted = (tasksByProject[projectName]?.executed || []).sort();
+			const expectedArray = expectedExecuted.sort();
+			this._t.deepEqual(actualExecuted, expectedArray,
+				"All executed tasks of all projects should match expected");
+		}
 
 		// Assert skipped tasks per project
 		for (const [projectName, expectedSkipped] of Object.entries(projects)) {
