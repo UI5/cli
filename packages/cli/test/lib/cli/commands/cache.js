@@ -383,10 +383,8 @@ test.serial("ui5 cache clean: shows orphaned framework data in pre-confirmation 
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes("Orphaned framework data"), "Shows orphaned section in pre-confirm summary");
-	t.true(allOutput.includes("incomplete previous clean"), "Shows orphaned context message");
-	t.true(allOutput.includes("1 directory"), "Shows singular 'directory' for one orphan");
-	t.true(allOutput.includes("_framework_to_delete_abcd"), "Shows orphaned dir path");
+	t.true(allOutput.includes("Orphaned UI5 Framework packages"), "Shows orphaned header in pre-confirm summary");
+	t.true(allOutput.includes("_framework_to_delete_abcd"), "Shows orphaned dir path indented");
 	t.true(allOutput.includes("2 versions of 5 libraries"), "Shows orphaned dir stats");
 });
 
@@ -411,10 +409,9 @@ test.serial("ui5 cache clean: shows orphaned framework data in post-clean summar
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes("Removed Orphaned framework data"), "Shows orphaned section in result");
-	t.true(allOutput.includes("2 directories"), "Shows plural 'directories' for multiple orphans");
-	t.true(allOutput.includes("_framework_to_delete_ab12"), "Shows first orphaned dir path");
-	t.true(allOutput.includes("_framework_to_delete_cd34"), "Shows second orphaned dir path");
+	t.true(allOutput.includes("Removed Orphaned UI5 Framework packages"), "Shows orphaned header in result");
+	t.true(allOutput.includes("_framework_to_delete_ab12"), "Shows first orphaned dir path indented");
+	t.true(allOutput.includes("_framework_to_delete_cd34"), "Shows second orphaned dir path indented");
 });
 
 test.serial("ui5 cache clean: shows orphaned-only success summary when no active framework", async (t) => {
@@ -436,7 +433,7 @@ test.serial("ui5 cache clean: shows orphaned-only success summary when no active
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes("Orphaned framework data"), "Shows orphaned section");
-	t.true(allOutput.includes("Cleaned Orphaned framework data"), "Success summary mentions orphaned data");
-	t.false(allOutput.includes("UI5 Framework packages"), "Does not mention main framework when absent");
+	t.true(allOutput.includes("Orphaned UI5 Framework packages"), "Shows orphaned header");
+	t.true(allOutput.includes("Cleaned Orphaned UI5 Framework packages"), "Success summary mentions orphaned label");
+	t.false(allOutput.includes("Removed UI5 Framework packages"), "Does not show main framework removed line when absent");
 });
