@@ -110,7 +110,7 @@ dependencies:
 
 By placing this file in the root directory of the `my.app` application project, you can start a server with a local copy of the `my.lib` dependency, located in the same parent directory, using the command `ui5 serve --dependency-definition ./projectDependencies.yaml`.
 
-The structure of the dependency definition file follows that of the [`@ui5/project/graph/providers/DependencyTree~TreeNode`](../api/@ui5_project_graph_providers_DependencyTree.html#~TreeNode) type.
+The structure of the dependency definition file follows that of the [`@ui5/project/graph/providers/DependencyTree~TreeNode`](https://ui5.github.io/cli/v5/api/@ui5_project_graph_providers_DependencyTree.html#~TreeNode) type.
 
 ## HTTP/2 Development Webserver
 The UI5 CLI contains a web server to serve the project via HTTP/2 protocol.
@@ -124,4 +124,4 @@ This requires an SSL certificate. You are guided through the automatic generatio
 ## Integration in Other Tools
 One of the key features of the UI5 CLI is its modularization. Single parts of UI5 CLI can easily be integrated in other `Node.js`-based tools and frameworks like [Grunt](https://gruntjs.com/) or [Gulp](https://gulpjs.com/).
 
-All JavaScript APIs available for direct consumption are listed in the sidebar menu under **📚 API**. However, for standard UI5 development, the [UI5 CLI](./CLI.md) should always be the first choice.
+All JavaScript APIs available for direct consumption are listed [here](https://ui5.github.io/cli/v5/api/index.html). However, for standard UI5 development, the [UI5 CLI](./CLI.md) should always be the first choice.
