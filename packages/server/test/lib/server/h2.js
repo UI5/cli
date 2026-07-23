@@ -17,8 +17,10 @@ if (nodeVersion < 24) {
 	// Start server before running tests
 	test.before(async (t) => {
 		process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0";
+		const ui5DataDir = isolatedUi5DataDir(t);
 
 		const graph = await graphFromPackageDependencies({
+			ui5DataDir,
 			cwd: "./test/fixtures/application.a"
 		});
 		const sslPath = path.join(process.cwd(), "./test/fixtures/ssl/");
@@ -27,11 +29,11 @@ if (nodeVersion < 24) {
 			path.join(sslPath, "server.crt"),
 		);
 		server = await serve(graph, {
+			ui5DataDir,
 			port: 3366,
 			h2: true,
 			key,
 			cert,
-			ui5DataDir: isolatedUi5DataDir(t),
 		});
 		request = supertest("https://localhost:3366");
 	});

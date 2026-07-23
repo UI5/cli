@@ -556,18 +556,15 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'latest'", async (
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0", "1.75.1", "1.76.0"]);
 
-	const version = await MyResolver.resolveVersion("latest", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("latest", "/ui5DataDir", {cwd: "/cwd"});
 
 	t.is(version, "1.76.0", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR'", async (t) => {
@@ -575,18 +572,15 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR'", async (t
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0", "1.75.1", "1.76.0"]);
 
-	const version = await MyResolver.resolveVersion("1", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("1", "/ui5DataDir", {cwd: "/cwd"});
 
 	t.is(version, "1.76.0", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR-SNAPSHOT'", async (t) => {
@@ -594,18 +588,15 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR-SNAPSHOT'",
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.76.0", "1.77.0", "1.77.0-SNAPSHOT", "1.78.0", "1.79.0-SNAPSHOT"]);
 
-	const version = await MyResolver.resolveVersion("1-SNAPSHOT", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("1-SNAPSHOT", "/ui5DataDir", {cwd: "/cwd"});
 
 	t.is(version, "1.79.0-SNAPSHOT", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR'", async (t) => {
@@ -613,18 +604,15 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR'", as
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0", "1.75.1", "1.76.0"]);
 
-	const version = await MyResolver.resolveVersion("1.75", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("1.75", "/ui5DataDir", {cwd: "/cwd"});
 
 	t.is(version, "1.75.1", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR-SNAPSHOT'", async (t) => {
@@ -632,18 +620,15 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR-SNAPS
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.76.0", "1.77.0", "1.77.0-SNAPSHOT", "1.78.0", "1.79.0-SNAPSHOT"]);
 
-	const version = await MyResolver.resolveVersion("1.79-SNAPSHOT", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("1.79-SNAPSHOT", "/ui5DataDir", {cwd: "/cwd"});
 
 	t.is(version, "1.79.0-SNAPSHOT", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR.PATCH'", async (t) => {
@@ -651,18 +636,15 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR.PATCH
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0", "1.75.1", "1.76.0"]);
 
-	const version = await MyResolver.resolveVersion("1.75.0", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("1.75.0", "/ui5DataDir", {cwd: "/cwd"});
 
 	t.is(version, "1.75.0", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR.PATCH-SNAPSHOT'", async (t) => {
@@ -670,18 +652,15 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR.PATCH
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.76.0", "1.77.0", "1.77.0-SNAPSHOT", "1.78.0", "1.79.0-SNAPSHOT"]);
 
-	const version = await MyResolver.resolveVersion("1.79.0-SNAPSHOT", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("1.79.0-SNAPSHOT", "/ui5DataDir", {cwd: "/cwd"});
 
 	t.is(version, "1.79.0-SNAPSHOT", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion does not include prereleases for 'latest' version", async (t) => {
@@ -689,18 +668,15 @@ test.serial("AbstractResolver: Static resolveVersion does not include prerelease
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.76.0", "1.77.0", "1.78.0", "1.79.0-SNAPSHOT"]);
 
-	const version = await MyResolver.resolveVersion("latest", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("latest", "/ui5DataDir", {cwd: "/cwd"});
 
 	t.is(version, "1.78.0", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves 'latest-snapshot'", async (t) => {
@@ -708,18 +684,15 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'latest-snapshot'"
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0-SNAPSHOT", "1.75.1-SNAPSHOT", "1.76.0-SNAPSHOT", "1.76.1-SNAPSHOT"]);
 
-	const version = await MyResolver.resolveVersion("latest-snapshot", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("latest-snapshot", "/ui5DataDir", {cwd: "/cwd"});
 
 	t.is(version, "1.76.1-SNAPSHOT", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion includes non-prereleases for 'latest-snapshot'", async (t) => {
@@ -729,42 +702,28 @@ test.serial("AbstractResolver: Static resolveVersion includes non-prereleases fo
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.76.0", "1.77.0", "1.78.0", "1.79.0-SNAPSHOT", "1.79.1"]);
 
-	const version = await MyResolver.resolveVersion("latest-snapshot", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("latest-snapshot", "/ui5DataDir", {cwd: "/cwd"});
 
 	t.is(version, "1.79.1", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion without options", async (t) => {
 	const {MyResolver} = t.context;
-	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
-		.returns(["1.75.0"]);
-
-	await MyResolver.resolveVersion("1.75.0");
-
-	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: undefined,
-		ui5DataDir: undefined
-	}], "fetchAllVersions should be called with expected arguments");
+	const error = await t.throwsAsync(MyResolver.resolveVersion("1.75.0"));
+	t.is(error.message, "MyResolver: Missing parameter \"ui5DataDir\"");
 });
 
 test.serial("AbstractResolver: Static resolveVersion throws error for 'lts'", async (t) => {
 	const {MyResolver} = t.context;
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions");
 
-	const error = await t.throwsAsync(MyResolver.resolveVersion("lts", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}));
+	const error = await t.throwsAsync(MyResolver.resolveVersion("lts", "/ui5DataDir", {cwd: "/cwd"}));
 
 	t.is(error.message, `Framework version specifier "lts" is incorrect or not supported`);
 
@@ -776,18 +735,15 @@ test.serial("AbstractResolver: Static resolveVersion resolves '1.x'", async (t) 
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0", "1.75.1", "1.76.0", "2.0.0"]);
 
-	const version = await MyResolver.resolveVersion("1.x", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("1.x", "/ui5DataDir", {cwd: "/cwd"});
 
 	t.is(version, "1.76.0", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves '1.75.x'", async (t) => {
@@ -795,18 +751,15 @@ test.serial("AbstractResolver: Static resolveVersion resolves '1.75.x'", async (
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0", "1.75.1", "1.76.0", "2.0.0"]);
 
-	const version = await MyResolver.resolveVersion("1.75.x", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("1.75.x", "/ui5DataDir", {cwd: "/cwd"});
 
 	t.is(version, "1.75.1", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves '^1.75.0'", async (t) => {
@@ -814,18 +767,15 @@ test.serial("AbstractResolver: Static resolveVersion resolves '^1.75.0'", async 
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0", "1.75.1", "1.76.0", "2.0.0"]);
 
-	const version = await MyResolver.resolveVersion("^1.75.0", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("^1.75.0", "/ui5DataDir", {cwd: "/cwd"});
 
 	t.is(version, "1.76.0", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves '~1.75.0'", async (t) => {
@@ -833,18 +783,15 @@ test.serial("AbstractResolver: Static resolveVersion resolves '~1.75.0'", async 
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0", "1.75.1", "1.76.0", "2.0.0"]);
 
-	const version = await MyResolver.resolveVersion("~1.75.0", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("~1.75.0", "/ui5DataDir", {cwd: "/cwd"});
 
 	t.is(version, "1.75.1", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves '> 1.75.0 < 1.75.3'", async (t) => {
@@ -852,18 +799,15 @@ test.serial("AbstractResolver: Static resolveVersion resolves '> 1.75.0 < 1.75.3
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0", "1.75.1", "1.75.2", "1.75.3"]);
 
-	const version = await MyResolver.resolveVersion("> 1.75.0 < 1.75.3", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("> 1.75.0 < 1.75.3", "/ui5DataDir", {cwd: "/cwd"});
 
 	t.is(version, "1.75.2", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves 'x.x.x-SNAPSHOT'", async (t) => {
@@ -871,20 +815,17 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'x.x.x-SNAPSHOT'",
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0-SNAPSHOT", "1.76.0-SNAPSHOT", "1.77.0-SNAPSHOT"]);
 
-	const version = await MyResolver.resolveVersion("x.x.x-SNAPSHOT", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("x.x.x-SNAPSHOT", "/ui5DataDir", {cwd: "/cwd"});
 
 	// All ranges ending with -SNAPSHOT should use "includePrerelease" in order to
 	// properly match prerelease (i.e. -SNAPSHOT) versions.
 	t.is(version, "1.77.0-SNAPSHOT", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves '^2.0.0-SNAPSHOT'", async (t) => {
@@ -892,20 +833,17 @@ test.serial("AbstractResolver: Static resolveVersion resolves '^2.0.0-SNAPSHOT'"
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["2.0.0-SNAPSHOT", "2.0.1-SNAPSHOT", "2.1.0-SNAPSHOT"]);
 
-	const version = await MyResolver.resolveVersion("^2.0.0-SNAPSHOT", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("^2.0.0-SNAPSHOT", "/ui5DataDir", {cwd: "/cwd"});
 
 	// All ranges ending with -SNAPSHOT should use "includePrerelease" in order to
 	// properly match prerelease (i.e. -SNAPSHOT) versions.
 	t.is(version, "2.1.0-SNAPSHOT", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves '2.x.x-alpha'", async (t) => {
@@ -913,20 +851,17 @@ test.serial("AbstractResolver: Static resolveVersion resolves '2.x.x-alpha'", as
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["2.0.0-alpha", "2.0.1-alpha", "2.1.0-alpha"]);
 
-	const version = await MyResolver.resolveVersion("^2.0.0-alpha", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("^2.0.0-alpha", "/ui5DataDir", {cwd: "/cwd"});
 
 	// Prerelease ranges other than -SNAPSHOT should not use "includePrerelease"
 	// and therefore not match pre-releases like normal versions
 	t.is(version, "2.0.0-alpha", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves 'next' using tags", async (t) => {
@@ -939,23 +874,20 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'next' using tags"
 			"next": "2.0.0"
 		});
 
-	const version = await MyResolver.resolveVersion("next", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("next", "/ui5DataDir", {cwd: "/cwd"});
 
 	t.is(version, "2.0.0", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 	t.is(fetchAllTagsStub.callCount, 1, "fetchAllTagsStub should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllTags should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllTags should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves 'next' to a pre-release using tags", async (t) => {
@@ -968,23 +900,20 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'next' to a pre-re
 			"next": "2.0.0-SNAPSHOT"
 		});
 
-	const version = await MyResolver.resolveVersion("next", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version = await MyResolver.resolveVersion("next", "/ui5DataDir", {cwd: "/cwd"});
 
 	t.is(version, "2.0.0-SNAPSHOT", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllVersions should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllVersions should be called with expected arguments");
 	t.is(fetchAllTagsStub.callCount, 1, "fetchAllTagsStub should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllTags should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllTags should be called with expected arguments");
 });
 
 
@@ -998,34 +927,28 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'latest' using tag
 
 	// Resolver does not support tags (resolves with "null" instead of an object)
 	// 'latest' should resolve to the highest version available
-	const version1 = await MyResolver.resolveVersion("latest", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version1 = await MyResolver.resolveVersion("latest", "/ui5DataDir", {cwd: "/cwd"});
 	t.is(version1, "2.0.0", "Resolved version should be correct");
 
 	t.is(fetchAllTagsStub.callCount, 1, "fetchAllTagsStub should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllTags should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllTags should be called with expected arguments");
 
 	// Change behavior of Resolver to support tags, so that version should be used now
 	// instead of the highest version
 	fetchAllTagsStub.resolves({
 		"latest": "1.76.0"
 	});
-	const version2 = await MyResolver.resolveVersion("latest", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	});
+	const version2 = await MyResolver.resolveVersion("latest", "/ui5DataDir", {cwd: "/cwd"});
 	t.is(version2, "1.76.0", "Resolved version should be correct");
 
 	t.is(fetchAllTagsStub.callCount, 2, "fetchAllTagsStub should be called twice");
-	t.deepEqual(fetchAllVersionsStub.getCall(1).args, [{
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}], "fetchAllTags should be called with expected arguments");
+	t.deepEqual(fetchAllVersionsStub.getCall(1).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "fetchAllTags should be called with expected arguments");
 });
 
 test.serial("AbstractResolver: Static resolveVersion throws error for empty string", async (t) => {
@@ -1033,10 +956,7 @@ test.serial("AbstractResolver: Static resolveVersion throws error for empty stri
 	sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0", "1.75.1", "1.76.0"]);
 
-	const error = await t.throwsAsync(MyResolver.resolveVersion("", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}));
+	const error = await t.throwsAsync(MyResolver.resolveVersion("", "/ui5DataDir", {cwd: "/cwd"}));
 
 	t.is(error.message, `Framework version specifier "" is incorrect or not supported`);
 });
@@ -1046,10 +966,7 @@ test.serial("AbstractResolver: Static resolveVersion throws error for invalid ta
 	sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0", "1.75.1", "1.76.0"]);
 
-	const error = await t.throwsAsync(MyResolver.resolveVersion("%20", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}));
+	const error = await t.throwsAsync(MyResolver.resolveVersion("%20", "/ui5DataDir", {cwd: "/cwd"}));
 
 	t.is(error.message, `Framework version specifier "%20" is incorrect or not supported`);
 });
@@ -1061,10 +978,9 @@ test.serial("AbstractResolver: Static resolveVersion throws error for non-existi
 	sinon.stub(MyResolver, "fetchAllTags")
 		.resolves({"latest": "1.76.0"});
 
-	const error = await t.throwsAsync(MyResolver.resolveVersion("this-tag-does-not-exist", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}));
+	const error = await t.throwsAsync(
+		MyResolver.resolveVersion("this-tag-does-not-exist", "/ui5DataDir", {cwd: "/cwd"})
+	);
 
 	t.is(error.message, `Could not resolve framework version via tag 'this-tag-does-not-exist'. ` +
 		`Make sure the tag is available in the configured registry.`
@@ -1076,10 +992,7 @@ test.serial("AbstractResolver: Static resolveVersion throws error for version no
 	sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0", "1.75.1", "1.76.0"]);
 
-	const error = await t.throwsAsync(MyResolver.resolveVersion("1.74.0", {
-		cwd: "/cwd",
-		ui5DataDir: "/ui5DataDir"
-	}));
+	const error = await t.throwsAsync(MyResolver.resolveVersion("1.74.0", "/ui5DataDir", {cwd: "/cwd"}));
 
 	t.is(error.message, `Could not resolve framework version 1.74.0. ` +
 		`Make sure the version is valid and available in the configured registry.`);
@@ -1095,10 +1008,7 @@ test.serial(
 		sinon.stub(Openui5Resolver, "fetchAllVersions")
 			.returns(["1.75.0", "1.75.1", "1.76.0"]);
 
-		const error = await t.throwsAsync(Openui5Resolver.resolveVersion("1.50.0", {
-			cwd: "/cwd",
-			ui5DataDir: "/ui5DataDir"
-		}));
+		const error = await t.throwsAsync(Openui5Resolver.resolveVersion("1.50.0", "/ui5DataDir", {cwd: "/cwd"}));
 
 		t.is(error.message,
 			`Could not resolve framework version 1.50.0. Note that OpenUI5 framework libraries can only be ` +
@@ -1115,10 +1025,7 @@ test.serial(
 		sinon.stub(Sapui5Resolver, "fetchAllVersions")
 			.returns(["1.76.0", "1.76.1", "1.90.0"]);
 
-		const error = await t.throwsAsync(Sapui5Resolver.resolveVersion("1.75.0", {
-			cwd: "/cwd",
-			ui5DataDir: "/ui5DataDir"
-		}));
+		const error = await t.throwsAsync(Sapui5Resolver.resolveVersion("1.75.0", "/ui5DataDir", {cwd: "/cwd"}));
 
 		t.is(error.message,
 			`Could not resolve framework version 1.75.0. Note that SAPUI5 framework libraries can only be ` +
@@ -1135,10 +1042,7 @@ test.serial(
 		sinon.stub(Openui5Resolver, "fetchAllVersions")
 			.returns([]);
 
-		const error = await t.throwsAsync(Openui5Resolver.resolveVersion("latest", {
-			cwd: "/cwd",
-			ui5DataDir: "/ui5DataDir"
-		}));
+		const error = await t.throwsAsync(Openui5Resolver.resolveVersion("latest", "/ui5DataDir", {cwd: "/cwd"}));
 
 		t.is(error.message, `Could not resolve framework version latest. ` +
 			`Make sure the version is valid and available in the configured registry.`);
@@ -1154,10 +1058,7 @@ test.serial(
 		sinon.stub(Sapui5Resolver, "fetchAllVersions")
 			.returns([]);
 
-		const error = await t.throwsAsync(Sapui5Resolver.resolveVersion("latest", {
-			cwd: "/cwd",
-			ui5DataDir: "/ui5DataDir"
-		}));
+		const error = await t.throwsAsync(Sapui5Resolver.resolveVersion("latest", "/ui5DataDir", {cwd: "/cwd"}));
 
 		t.is(error.message, `Could not resolve framework version latest. ` +
 			`Make sure the version is valid and available in the configured registry.`);
@@ -1173,10 +1074,7 @@ test.serial(
 		sinon.stub(Openui5Resolver, "fetchAllVersions")
 			.returns([]);
 
-		const error = await t.throwsAsync(Openui5Resolver.resolveVersion("1.99", {
-			cwd: "/cwd",
-			ui5DataDir: "/ui5DataDir"
-		}));
+		const error = await t.throwsAsync(Openui5Resolver.resolveVersion("1.99", "/ui5DataDir", {cwd: "/cwd"}));
 
 		t.is(error.message, `Could not resolve framework version 1.99. ` +
 			`Make sure the version is valid and available in the configured registry.`);
@@ -1192,10 +1090,7 @@ test.serial(
 		sinon.stub(Sapui5Resolver, "fetchAllVersions")
 			.returns([]);
 
-		const error = await t.throwsAsync(Sapui5Resolver.resolveVersion("1.99", {
-			cwd: "/cwd",
-			ui5DataDir: "/ui5DataDir"
-		}));
+		const error = await t.throwsAsync(Sapui5Resolver.resolveVersion("1.99", "/ui5DataDir", {cwd: "/cwd"}));
 
 		t.is(error.message, `Could not resolve framework version 1.99. ` +
 			`Make sure the version is valid and available in the configured registry.`);

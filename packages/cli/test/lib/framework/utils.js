@@ -64,6 +64,8 @@ test.serial("getRootProjectConfiguration: dependencyDefinition", async (t) => {
 
 	t.is(graphFromStaticFile.callCount, 1);
 	t.deepEqual(graphFromStaticFile.getCall(0).args, [{
+		cwd: process.cwd(),
+		ui5DataDir: "my-default-ui5-data-dir",
 		filePath: "foo",
 		resolveFrameworkDependencies: false
 	}]);
@@ -86,6 +88,8 @@ test.serial("getRootProjectConfiguration: config", async (t) => {
 
 	t.is(graphFromPackageDependencies.callCount, 1);
 	t.deepEqual(graphFromPackageDependencies.getCall(0).args, [{
+		cwd: process.cwd(),
+		ui5DataDir: "my-default-ui5-data-dir",
 		rootConfigPath: "foo",
 		resolveFrameworkDependencies: false
 	}]);
@@ -230,9 +234,7 @@ test.serial("frameworkResolverResolveVersion", async (t) => {
 	t.is(resolveVersionStub.callCount, 1);
 	t.deepEqual(resolveVersionStub.getCall(0).args, [
 		"latest",
-		{
-			cwd: "my-project-path",
-			ui5DataDir: "my-default-ui5-data-dir"
-		}
+		"my-default-ui5-data-dir",
+		{cwd: "my-project-path"}
 	]);
 });

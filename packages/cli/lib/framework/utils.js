@@ -2,14 +2,21 @@ import {graphFromStaticFile, graphFromPackageDependencies} from "@ui5/project/gr
 import {resolveUi5DataDir} from "@ui5/project/utils/dataDir";
 
 export async function getRootProjectConfiguration(projectGraphOptions) {
+	const cwd = projectGraphOptions.cwd || process.cwd();
+	const ui5DataDir = await resolveUi5DataDir({projectRootPath: cwd});
+
 	let graph;
 	if (projectGraphOptions.dependencyDefinition) {
 		graph = await graphFromStaticFile({
+			cwd,
+			ui5DataDir,
 			filePath: projectGraphOptions.dependencyDefinition,
 			resolveFrameworkDependencies: false
 		});
 	} else {
 		graph = await graphFromPackageDependencies({
+			cwd,
+			ui5DataDir,
 			rootConfigPath: projectGraphOptions.config,
 			resolveFrameworkDependencies: false
 		});
@@ -42,10 +49,8 @@ export async function createFrameworkResolverInstance({frameworkName, frameworkV
 
 export async function frameworkResolverResolveVersion({frameworkName, frameworkVersion}, {cwd}) {
 	const Resolver = await utils.getFrameworkResolver(frameworkName, frameworkVersion);
-	return Resolver.resolveVersion(frameworkVersion, {
-		cwd,
-		ui5DataDir: await resolveUi5DataDir({projectRootPath: cwd})
-	});
+	const ui5DataDir = await resolveUi5DataDir({projectRootPath: cwd});
+	return Resolver.resolveVersion(frameworkVersion, ui5DataDir, {cwd});
 }
 
 const utils = {

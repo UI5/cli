@@ -210,21 +210,26 @@ class AbstractResolver {
 		};
 	}
 
-	static async resolveVersion(version, {ui5DataDir, cwd} = {}) {
+	static async resolveVersion(version, ui5DataDir, {cwd} = {}) {
 		// Don't allow nullish values
 		// An empty string is a valid semver range that converts to "*", which should not be supported
 		if (!version) {
 			throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
 		}
 
-		const spec = await this._getVersionSpec(version, {ui5DataDir, cwd});
+		if (!ui5DataDir) {
+			throw new Error(`${this.name}: Missing parameter "ui5DataDir"`);
+		}
+		ui5DataDir = path.resolve(ui5DataDir);
+
+		const spec = await this._getVersionSpec(version, ui5DataDir, {cwd});
 
 		// For all invalid cases which are not explicitly handled in _getVersionSpec
 		if (!spec) {
 			throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
 		}
 
-		const versions = await this.fetchAllVersions({ui5DataDir, cwd});
+		const versions = await this.fetchAllVersions(ui5DataDir, {cwd});
 		const resolvedVersion = semver.maxSatisfying(versions, spec, {
 			// Allow ranges that end with -SNAPSHOT to match any -SNAPSHOT version
 			// like a normal version in order to support ranges like 1.x.x-SNAPSHOT.
@@ -251,7 +256,7 @@ class AbstractResolver {
 		return resolvedVersion;
 	}
 
-	static async _getVersionSpec(version, {ui5DataDir, cwd}) {
+	static async _getVersionSpec(version, ui5DataDir, {cwd} = {}) {
 		if (this._isSnapshotVersionOrRange(version)) {
 			const versionMatch = version.match(VERSION_RANGE_REGEXP);
 			if (versionMatch) {
@@ -273,7 +278,7 @@ class AbstractResolver {
 			return null;
 		}
 
-		const allTags = await this.fetchAllTags({ui5DataDir, cwd});
+		const allTags = await this.fetchAllTags(ui5DataDir, {cwd});
 
 		if (!allTags) {
 			// Resolver doesn't support tags (e.g. Sapui5MavenSnapshotResolver)
@@ -309,10 +314,10 @@ class AbstractResolver {
 	async handleLibrary(libraryName) {
 		throw new Error("AbstractResolver: handleLibrary must be implemented!");
 	}
-	static fetchAllVersions(options) {
+	static fetchAllVersions(ui5DataDir, options) {
 		throw new Error("AbstractResolver: static fetchAllVersions must be implemented!");
 	}
-	static fetchAllTags(options) {
+	static fetchAllTags(ui5DataDir, options) {
 		return null;
 	}
 }

@@ -5,7 +5,6 @@ import {getBaseSignature} from "./getBuildSignature.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("build:helpers:BuildContext");
 import Cache from "../cache/Cache.js";
-import {resolveUi5DataDir} from "../../utils/dataDir.js";
 
 /**
  * Context of a build process
@@ -24,7 +23,7 @@ class BuildContext {
 		outputStyle = OutputStyleEnum.Default,
 		includedTasks = [], excludedTasks = [],
 		cache = Cache.Default,
-	} = {}, {ui5DataDir} = {}) {
+	} = {}, ui5DataDir) {
 		if (!graph) {
 			throw new Error(`Missing parameter 'graph'`);
 		}
@@ -171,10 +170,10 @@ class BuildContext {
 		if (this.#cacheManager) {
 			return this.#cacheManager;
 		}
-		this.#cacheManager = await CacheManager.create({
-			ui5DataDir: this._ui5DataDir ??
-				await resolveUi5DataDir({projectRootPath: this.getRootProject().getRootPath()}),
-		});
+		if (!this._ui5DataDir) {
+			throw new Error("BuildContext: Missing parameter \"ui5DataDir\" for cache-enabled builds");
+		}
+		this.#cacheManager = await CacheManager.create(this._ui5DataDir);
 		return this.#cacheManager;
 	}
 

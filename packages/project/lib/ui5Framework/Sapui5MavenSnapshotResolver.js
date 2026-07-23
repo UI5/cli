@@ -144,12 +144,13 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 		};
 	}
 
-	static async fetchAllVersions({ui5DataDir, cwd, snapshotEndpointUrl} = {}) {
+	static async fetchAllVersions(ui5DataDir, {cwd, snapshotEndpointUrl} = {}) {
+		if (!ui5DataDir) {
+			throw new Error(`${this.name}: Missing parameter "ui5DataDir"`);
+		}
 		const installer = new Installer({
 			cwd: cwd ? path.resolve(cwd) : process.cwd(),
-			ui5DataDir: path.resolve(
-				ui5DataDir || path.join(os.homedir(), ".ui5")
-			),
+			ui5DataDir: path.resolve(ui5DataDir),
 			snapshotEndpointUrlCb: Sapui5MavenSnapshotResolver._createSnapshotEndpointUrlCallback(snapshotEndpointUrl),
 		});
 		return await installer.fetchPackageVersions({

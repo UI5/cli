@@ -315,7 +315,7 @@ test("getProjectContext", async (t) => {
 		.returns({getType: () => "library", getRootPath: () => ""});
 	const graph = {getRoot: rootProjectStub, getProject: () => "project"};
 
-	const buildContext = new BuildContext(graph, "taskRepository");
+	const buildContext = new BuildContext(graph, "taskRepository", undefined, "/ui5DataDir");
 	const projectBuildContext = await buildContext.getProjectContext("project");
 	t.is(t.context.ProjectBuildContextCreateStub.callCount, 1);
 
@@ -350,7 +350,7 @@ test("getCacheManager: Creates and caches CacheManager for default cache mode", 
 	const graph = {
 		getRoot: () => ({getType: () => "library", getRootPath: () => "/some/path"}),
 	};
-	const buildContext = new BuildContext(graph, "taskRepository");
+	const buildContext = new BuildContext(graph, "taskRepository", undefined, "/ui5DataDir");
 
 	const cacheManager1 = await buildContext.getCacheManager();
 	t.is(cacheManager1, cacheManagerInstance, "Returned CacheManager instance");

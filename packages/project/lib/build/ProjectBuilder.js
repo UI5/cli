@@ -123,7 +123,7 @@ class ProjectBuilder {
 		}
 
 		this._graph = graph;
-		this._buildContext = new BuildContext(graph, taskRepository, buildConfig, {ui5DataDir});
+		this._buildContext = new BuildContext(graph, taskRepository, buildConfig, ui5DataDir);
 		this.#log = new BuildLogger("ProjectBuilder");
 	}
 

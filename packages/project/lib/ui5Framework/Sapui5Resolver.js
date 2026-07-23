@@ -1,5 +1,4 @@
 import path from "node:path";
-import os from "node:os";
 import semver from "semver";
 import AbstractResolver from "./AbstractResolver.js";
 import Installer from "./npm/Installer.js";
@@ -106,22 +105,23 @@ class Sapui5Resolver extends AbstractResolver {
 			})
 		};
 	}
-	static async fetchAllVersions(options) {
-		const installer = this._getInstaller(options);
+	static async fetchAllVersions(ui5DataDir, {cwd} = {}) {
+		const installer = this._getInstaller(ui5DataDir, {cwd});
 		return await installer.fetchPackageVersions({pkgName: DIST_PKG_NAME});
 	}
 
-	static async fetchAllTags(options) {
-		const installer = this._getInstaller(options);
+	static async fetchAllTags(ui5DataDir, {cwd} = {}) {
+		const installer = this._getInstaller(ui5DataDir, {cwd});
 		return installer.fetchPackageDistTags({pkgName: DIST_PKG_NAME});
 	}
 
-	static _getInstaller({ui5DataDir, cwd} = {}) {
+	static _getInstaller(ui5DataDir, {cwd} = {}) {
+		if (!ui5DataDir) {
+			throw new Error(`${this.name}: Missing parameter "ui5DataDir"`);
+		}
 		return new Installer({
 			cwd: cwd ? path.resolve(cwd) : process.cwd(),
-			ui5DataDir:
-				ui5DataDir ? path.resolve(ui5DataDir) :
-					path.join(os.homedir(), ".ui5")
+			ui5DataDir: path.resolve(ui5DataDir)
 		});
 	}
 }
