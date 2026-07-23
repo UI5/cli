@@ -2,6 +2,7 @@ import {getRandomValues} from "node:crypto";
 import os from "node:os";
 import process from "node:process";
 import express from "express";
+import https from "https";
 import portscanner from "portscanner";
 import MiddlewareManager from "./middleware/MiddlewareManager.js";
 import createErrorHandler from "./middleware/errorHandler.js";
@@ -93,10 +94,7 @@ function _listen(app, port, changePortIfInUse, acceptRemoteConnections) {
  * @private
  */
 async function _addSsl({app, key, cert}) {
-	// Using spdy as http2 server as the native http2 implementation
-	// from Node v8.4.0 doesn't seem to work with express
-	const {default: spdy} = await import("spdy");
-	return spdy.createServer({cert, key}, app);
+        return https.createServer({key: key, cert: cert}, app);
 }
 
 
@@ -250,12 +248,6 @@ export async function serve(graph, {
 	app.use(createErrorHandler({liveReload: liveReloadOptions}));
 
 	if (h2) {
-		const nodeVersion = parseInt(process.versions.node.split(".")[0], 10);
-		if (nodeVersion >= 24) {
-			log.error("ERROR: With Node v24, usage of HTTP/2 is no longer supported. Please check https://github.com/UI5/cli/issues/327 for updates.");
-			process.exit(1);
-		}
-
 		app = await _addSsl({app, key, cert});
 	}
 
