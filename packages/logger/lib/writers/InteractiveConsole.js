@@ -28,6 +28,14 @@ const BUILDING_TICK_MS = 120;
 // errors from these modules, and all other levels, still pass through.
 const BANNER_REDUNDANT_INFO_MODULES = new Set(["ProjectBuilder"]);
 
+// DECTCEM "show cursor". log-update hides the cursor on each render; disable()
+// emits this to restore it.
+const CURSOR_SHOW = "[?25h";
+
+// Signals that terminate the process while the live region is on-screen.
+// SIGBREAK exists only on Windows; on other platforms the listener is inert.
+const TERMINATION_SIGNALS = ["SIGHUP", "SIGINT", "SIGTERM", "SIGBREAK"];
+
 // Decode the tail of `stream.write(chunk[, encoding][, callback])`. `encoding`
 // falls back to "utf8" (Node's default) when not supplied.
 function parseWriteArgs(encodingOrCallback, maybeCallback) {
@@ -105,6 +113,10 @@ class InteractiveConsole {
 	#onStopConsole;
 	#onResize;
 
+	// Termination-signal handlers (plus an `exit` catch-all), keyed by event
+	// name, so disable() detaches exactly what enable() registered.
+	#signalHandlers = new Map();
+
 	constructor({stderr = process.stderr} = {}) {
 		this.#stderr = stderr;
 		this.#headerState = createHeaderState();
@@ -125,6 +137,7 @@ class InteractiveConsole {
 		process.emit("ui5.log.stop-console");
 		this.#stopped = false;
 		this.#attachListeners();
+		this.#registerSignalHandlers();
 		if (!this.#logUpdate) {
 			this.#logUpdate = createLogUpdate(this.#stderr);
 		}
@@ -146,6 +159,9 @@ class InteractiveConsole {
 		this.#stopped = true;
 		this.#clearTick();
 		this.#detachListeners();
+		// Detach before the terminal teardown so a re-raised signal (see
+		// #handleTerminationSignal) doesn't re-enter our handler.
+		this.#deregisterSignalHandlers();
 		// Flush any partial (non-newline-terminated) buffered writes before
 		// we tear down the live region, then restore the process.* originals.
 		// Flushing first while the live region is still on-screen keeps the
@@ -156,7 +172,46 @@ class InteractiveConsole {
 		// and resets state. End on a clean newline so the prompt lands
 		// below the final frame.
 		this.#withRenderingGuard(() => this.#logUpdate?.done());
+		// done() is a no-op on a non-TTY stderr, so restore the cursor
+		// explicitly. This runs after #uninstallWriteInterceptors so the escape
+		// reaches the stream instead of being buffered as a partial write.
+		this.#stderr.write(CURSOR_SHOW);
 		this.#stderr.write("\n");
+	}
+
+	// ---- Termination-signal teardown -----------------------------------------
+	// On CTRL+C the process dies without disable() ever running, leaving the
+	// cursor hidden. Tear the live region down on the terminating signals, then
+	// re-raise so cooperating handlers (profile.js, ProjectBuilder) still run.
+
+	#registerSignalHandlers() {
+		for (const signal of TERMINATION_SIGNALS) {
+			const handler = () => this.#handleTerminationSignal(signal);
+			this.#signalHandlers.set(signal, handler);
+			process.on(signal, handler);
+		}
+		// `exit` covers cooperating handlers that call process.exit(); it never
+		// fires on a bare signal kill, hence the signal handlers above.
+		const onExit = () => this.disable();
+		this.#signalHandlers.set("exit", onExit);
+		process.on("exit", onExit);
+	}
+
+	#deregisterSignalHandlers() {
+		for (const [event, handler] of this.#signalHandlers) {
+			process.off(event, handler);
+		}
+		this.#signalHandlers.clear();
+	}
+
+	#handleTerminationSignal(signal) {
+		// Re-raise only if this call did the teardown, so a stale handler
+		// invoked after disable() can't kill an already-stopped process.
+		const wasStopped = this.#stopped;
+		this.disable();
+		if (!wasStopped) {
+			process.kill(process.pid, signal);
+		}
 	}
 
 	// Compose the full live region as a single string. One block per region,

@@ -1017,3 +1017,93 @@ test.serial("ui5.log.stop-console handler calls disable() on the active writer",
 	const output = stripAnsi(stderr.writes.join(""));
 	t.notRegex(output, /post-stop warn/, "listeners are detached after the stop-console handler");
 });
+
+// ---- Termination-signal teardown --------------------------------------------
+// enable() registers a handler per terminating signal; on CTRL+C it tears the
+// region down (restoring the cursor) and re-raises. The tests capture the
+// handler via process.listeners(signal) and stub process.kill, so invoking it
+// directly exercises the teardown without terminating the AVA worker.
+
+const CURSOR_SHOW = "[?25h";
+
+test.serial("enable() registers a handler for each termination signal", (t) => {
+	const {writer} = createWriter();
+	// Capture the writer's own handler per signal by identity, so the assertions
+	// hold regardless of other listeners present on the shared process object.
+	const registered = {};
+	for (const signal of ["SIGHUP", "SIGINT", "SIGTERM", "SIGBREAK"]) {
+		const handler = process.listeners(signal).at(-1);
+		t.is(typeof handler, "function", `${signal} handler registered on enable`);
+		registered[signal] = handler;
+	}
+	writer.disable();
+	// disable() removes exactly what enable() added.
+	for (const signal of ["SIGHUP", "SIGINT", "SIGTERM", "SIGBREAK"]) {
+		t.false(process.listeners(signal).includes(registered[signal]),
+			`${signal} handler removed on disable`);
+	}
+});
+
+test.serial("SIGINT handler restores the cursor and re-raises the signal", (t) => {
+	const killStub = sinon.stub(process, "kill");
+	t.teardown(() => killStub.restore());
+
+	const {stderr} = createWriter();
+	const handler = process.listeners("SIGINT").at(-1);
+	t.is(typeof handler, "function", "SIGINT handler captured");
+
+	stderr.writes.length = 0;
+	handler(); // invoke directly: process.kill is stubbed, so the worker survives
+
+	const raw = stderr.writes.join("");
+	t.true(raw.includes(CURSOR_SHOW), "show-cursor escape written on SIGINT teardown");
+	t.true(raw.endsWith("\n"), "trailing newline written after teardown");
+	t.true(killStub.calledOnceWithExactly(process.pid, "SIGINT"),
+		"signal re-raised to self rather than process.exit()");
+
+	// Own listener must be gone before the re-raise, else it loops.
+	t.false(process.listeners("SIGINT").includes(handler),
+		"own SIGINT listener removed before re-raise");
+});
+
+test.serial("signal teardown detaches ui5 event listeners", (t) => {
+	const killStub = sinon.stub(process, "kill");
+	t.teardown(() => killStub.restore());
+
+	const {stderr} = createWriter();
+	process.listeners("SIGINT").at(-1)();
+
+	stderr.writes.length = 0;
+	process.emit("ui5.log", {level: "warn", message: "post-signal warn"});
+	const output = stripAnsi(stderr.writes.join(""));
+	t.notRegex(output, /post-signal warn/, "ui5.* listeners detached after signal teardown");
+});
+
+test.serial("a stale signal handler invoked after disable() does not re-raise", (t) => {
+	const killStub = sinon.stub(process, "kill");
+	t.teardown(() => killStub.restore());
+
+	const {writer} = createWriter();
+	const handler = process.listeners("SIGINT").at(-1);
+	writer.disable(); // first teardown; removes the real listener
+
+	killStub.resetHistory();
+	// A stale handler invoked after disable() must be a no-op: disable()
+	// short-circuits on #stopped and the guarded re-raise never fires.
+	t.notThrows(() => handler());
+	t.true(killStub.notCalled, "no re-raise after the writer was already stopped");
+});
+
+test.serial("process 'exit' handler tears down as a best-effort catch-all", (t) => {
+	const {writer, stderr} = createWriter();
+	const exitHandler = process.listeners("exit").at(-1);
+	t.is(typeof exitHandler, "function", "exit handler registered on enable");
+
+	stderr.writes.length = 0;
+	exitHandler();
+
+	const raw = stderr.writes.join("");
+	t.true(raw.includes(CURSOR_SHOW), "cursor restored via the exit catch-all");
+	// Idempotent with a later explicit disable().
+	t.notThrows(() => writer.disable());
+});
