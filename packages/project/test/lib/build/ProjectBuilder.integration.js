@@ -453,7 +453,19 @@ test.serial("Build application.a (including only some dependencies)", async (t) 
 			dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
 			allProjects: ["library.a", "library.b", "library.c", "application.a"],
-			projects: {}, // no project should be rebuilt
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"enhanceManifest",
+						"escapeNonAsciiCharacters",
+						"generateComponentPreload",
+						"generateFlexChangesBundle",
+						"minify",
+						"replaceCopyright",
+						"replaceVersion",
+					]
+				}
+			},
 		}
 	});
 });
