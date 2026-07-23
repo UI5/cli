@@ -343,10 +343,11 @@ test.serial("enrichProjectGraph: With versionOverride", async (t) => {
 	await ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir({versionOverride: "1.99"}));
 
 	t.is(Sapui5ResolverResolveVersionStub.callCount, 1);
-	t.deepEqual(Sapui5ResolverResolveVersionStub.getCall(0).args, ["1.99", {
-		cwd: dependencyTree.path,
-		ui5DataDir: path.resolve("fake-ui5-data-dir"),
-	}]);
+	t.deepEqual(Sapui5ResolverResolveVersionStub.getCall(0).args, [
+		"1.99",
+		path.resolve("fake-ui5-data-dir"),
+		{cwd: dependencyTree.path},
+	]);
 
 	t.is(Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
 	t.deepEqual(Sapui5ResolverStub.getCall(0).args, [{
@@ -405,10 +406,11 @@ test.serial("enrichProjectGraph: With versionOverride containing snapshot versio
 	await ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir({versionOverride: "1.99-SNAPSHOT"}));
 
 	t.is(Sapui5MavenSnapshotResolverResolveVersionStub.callCount, 1);
-	t.deepEqual(Sapui5MavenSnapshotResolverResolveVersionStub.getCall(0).args, ["1.99-SNAPSHOT", {
-		cwd: dependencyTree.path,
-		ui5DataDir: path.resolve("fake-ui5-data-dir"),
-	}]);
+	t.deepEqual(Sapui5MavenSnapshotResolverResolveVersionStub.getCall(0).args, [
+		"1.99-SNAPSHOT",
+		path.resolve("fake-ui5-data-dir"),
+		{cwd: dependencyTree.path},
+	]);
 
 	t.is(Sapui5MavenSnapshotResolverStub.callCount, 1,
 		"Sapui5MavenSnapshotResolverStub#constructor should be called once");
@@ -468,10 +470,11 @@ test.serial("enrichProjectGraph: With versionOverride containing latest-snapshot
 	await ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir({versionOverride: "latest-snapshot"}));
 
 	t.is(Sapui5MavenSnapshotResolverResolveVersionStub.callCount, 1);
-	t.deepEqual(Sapui5MavenSnapshotResolverResolveVersionStub.getCall(0).args, ["latest-snapshot", {
-		cwd: dependencyTree.path,
-		ui5DataDir: path.resolve("fake-ui5-data-dir"),
-	}]);
+	t.deepEqual(Sapui5MavenSnapshotResolverResolveVersionStub.getCall(0).args, [
+		"latest-snapshot",
+		path.resolve("fake-ui5-data-dir"),
+		{cwd: dependencyTree.path},
+	]);
 
 	t.is(Sapui5MavenSnapshotResolverStub.callCount, 1,
 		"Sapui5MavenSnapshotResolverStub#constructor should be called once");
@@ -733,10 +736,11 @@ test.serial("enrichProjectGraph should resolve framework project " +
 	t.is(projectGraph.getSize(), 3, "Project graph should remain unchanged");
 
 	t.is(Sapui5ResolverResolveVersionStub.callCount, 1);
-	t.deepEqual(Sapui5ResolverResolveVersionStub.getCall(0).args, ["3.4.5", {
-		cwd: dependencyTree.path,
-		ui5DataDir: path.resolve("fake-ui5-data-dir"),
-	}]);
+	t.deepEqual(Sapui5ResolverResolveVersionStub.getCall(0).args, [
+		"3.4.5",
+		path.resolve("fake-ui5-data-dir"),
+		{cwd: dependencyTree.path},
+	]);
 
 	t.is(Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
 	t.is(getFrameworkLibrariesFromGraphStub.callCount, 1, "getFrameworkLibrariesFromGraph should be called once");
