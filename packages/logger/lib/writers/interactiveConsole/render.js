@@ -148,7 +148,7 @@ function renderStatusLine(state) {
 			suffix = ` ${chalk.dim("·")} ${chalk.dim("Time elapsed: " + prettyHrtime(state.lastBuildHrtime))}`;
 		}
 		// Append the stale count to the ready line.
-		const staleCount = state.changedProjects.length;
+		const staleCount = state.staleProjects.length;
 		if (staleCount > 0) {
 			suffix += ` ${chalk.dim("·")} ` +
 				chalk.yellow(`${projectCount(staleCount)} stale`);

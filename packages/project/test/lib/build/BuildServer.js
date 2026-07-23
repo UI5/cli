@@ -212,7 +212,7 @@ test.serial("serve-status: serve-stale reports the stale set on sources change",
 	// The last serve-stale emit reports the now-stale project. (An initial "all up-to-date" emit may
 	// precede it from the build cycle close.)
 	const last = staleCalls.at(-1);
-	t.deepEqual(last.changedProjects, ["root.project"],
+	t.deepEqual(last.staleProjects, ["root.project"],
 		"serve-stale reports the now-stale project");
 });
 
@@ -762,7 +762,7 @@ test.serial(
 		t.true(seq.lastIndexOf("serve-ready") > seq.indexOf("serve-validating"),
 			`ready follows validating; got: ${seq.join(", ")}`);
 		const stale = statusEvents.filter((e) => e.status === "serve-stale").at(-1);
-		t.deepEqual(stale.changedProjects, ["library.x"],
+		t.deepEqual(stale.staleProjects, ["library.x"],
 			"the still-stale dependency is reported via serve-stale");
 	});
 
@@ -1084,7 +1084,7 @@ test.serial(
 		t.true(seqMid.indexOf("serve-ready", validatingIdx) > validatingIdx,
 			`Expected activity to leave VALIDATING for ready; got: ${seqMid.join(", ")}`);
 		const stale = statusEvents.find((e, i) => e.status === "serve-stale" && i >= validatingIdx);
-		t.true(stale.changedProjects.includes("library.x"),
+		t.true(stale.staleProjects.includes("library.x"),
 			"the changed project is reported stale");
 
 		// Release validation so the test can tear down cleanly.

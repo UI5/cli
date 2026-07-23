@@ -18,7 +18,7 @@ test("createBuildState: starts in INITIAL with empty counters", (t) => {
 	t.is(state.currentProjectIndex, 0);
 	t.is(state.totalProjects, 0);
 	t.deepEqual(state.projectOrder, []);
-	t.deepEqual(state.changedProjects, []);
+	t.deepEqual(state.staleProjects, []);
 	t.deepEqual(state.validatingProjects, []);
 	t.is(state.spinFrame, 0);
 	t.is(state.errorMessage, "");
@@ -112,16 +112,16 @@ test("setStale: records the stale set without touching the activity state", (t) 
 	transitionTo(state, STATES.READY);
 	state.spinFrame = 3;
 	setStale(state, ["library.a", "library.b"]);
-	t.deepEqual(state.changedProjects, ["library.a", "library.b"]);
+	t.deepEqual(state.staleProjects, ["library.a", "library.b"]);
 	t.is(state.state, STATES.READY, "activity state is unchanged");
 	t.is(state.spinFrame, 3, "spinner frame is not reset");
 });
 
 test("setStale: a non-array resolves to an empty set", (t) => {
 	const state = createBuildState();
-	state.changedProjects = ["stale"];
+	state.staleProjects = ["stale"];
 	setStale(state, undefined);
-	t.deepEqual(state.changedProjects, []);
+	t.deepEqual(state.staleProjects, []);
 });
 
 test("enableBuildPlaceholders: promotes INITIAL to STARTING", (t) => {

@@ -348,7 +348,7 @@ class InteractiveConsole {
 		case "serve-stale":
 			// Record the stale set and re-render without a state transition, so the count updates
 			// in place beneath the current status (typically `ready`).
-			setStale(this.#buildState, evt.changedProjects);
+			setStale(this.#buildState, evt.staleProjects);
 			this.#render();
 			break;
 		case "serve-settling":

@@ -554,20 +554,20 @@ test.serial("serve-status: serve-build-done without a valid hrtime records null"
 	writer.disable();
 });
 
-test.serial("serve-status: serve-stale records changedProjects without a state transition", (t) => {
+test.serial("serve-status: serve-stale records staleProjects without a state transition", (t) => {
 	const {writer} = createWriter();
 	process.emit("ui5.serve-status", {status: "serve-ready"});
-	process.emit("ui5.serve-status", {status: "serve-stale", changedProjects: ["my.app"]});
+	process.emit("ui5.serve-status", {status: "serve-stale", staleProjects: ["my.app"]});
 	const state = writer._getStateForTest().build;
 	t.is(state.state, STATES.READY, "the stale report does not change the activity state");
-	t.deepEqual(state.changedProjects, ["my.app"]);
+	t.deepEqual(state.staleProjects, ["my.app"]);
 	writer.disable();
 });
 
 test.serial("serve-status: serve-stale without a payload falls back to an empty list", (t) => {
 	const {writer} = createWriter();
 	process.emit("ui5.serve-status", {status: "serve-stale"});
-	t.deepEqual(writer._getStateForTest().build.changedProjects, []);
+	t.deepEqual(writer._getStateForTest().build.staleProjects, []);
 	writer.disable();
 });
 

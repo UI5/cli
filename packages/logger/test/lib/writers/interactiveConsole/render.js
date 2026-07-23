@@ -248,7 +248,7 @@ test("renderBuildRegion: ready state with hrtime shows elapsed suffix", (t) => {
 
 test("renderBuildRegion: ready state appends a singular stale count", (t) => {
 	const state = createBuildState();
-	state.changedProjects = ["library.a"];
+	state.staleProjects = ["library.a"];
 	transitionTo(state, STATES.READY);
 	const plain = renderBuildRegion(state).map(stripAnsi).join("\n");
 	t.regex(plain, /ready.*·\s+1 project(?!s) stale/);
@@ -256,7 +256,7 @@ test("renderBuildRegion: ready state appends a singular stale count", (t) => {
 
 test("renderBuildRegion: ready state appends a plural stale count", (t) => {
 	const state = createBuildState();
-	state.changedProjects = ["library.a", "library.b"];
+	state.staleProjects = ["library.a", "library.b"];
 	transitionTo(state, STATES.READY);
 	const plain = renderBuildRegion(state).map(stripAnsi).join("\n");
 	t.regex(plain, /ready.*·\s+2 projects stale/);
@@ -266,7 +266,7 @@ test("renderBuildRegion: ready state omits the stale count when everything is fr
 	const state = createBuildState();
 	transitionTo(state, STATES.READY);
 	const plain = renderBuildRegion(state).map(stripAnsi).join("\n");
-	t.notRegex(plain, /stale/, "no stale fragment when changedProjects is empty");
+	t.notRegex(plain, /stale/, "no stale fragment when staleProjects is empty");
 });
 
 test("renderBuildRegion: settling state includes 'waiting for changes to settle' hint", (t) => {

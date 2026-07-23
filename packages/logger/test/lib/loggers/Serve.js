@@ -43,7 +43,7 @@ test.serial("stale emits serve-stale", (t) => {
 	t.deepEqual(statusHandler.getCall(0).args[0], {
 		level: "info",
 		status: "serve-stale",
-		changedProjects: ["project.a", "project.b"],
+		staleProjects: ["project.a", "project.b"],
 	}, "Status event has expected payload");
 });
 
@@ -54,7 +54,7 @@ test.serial("stale emits serve-stale with an empty set", (t) => {
 	t.deepEqual(statusHandler.getCall(0).args[0], {
 		level: "info",
 		status: "serve-stale",
-		changedProjects: [],
+		staleProjects: [],
 	}, "Status event has expected payload");
 });
 
@@ -63,7 +63,7 @@ test.serial("stale: Missing parameter", (t) => {
 	t.throws(() => {
 		serveLogger.stale();
 	}, {
-		message: "loggers/Serve#stale: Missing or incorrect changedProjects parameter",
+		message: "loggers/Serve#stale: Missing or incorrect staleProjects parameter",
 	}, "Threw with expected error message");
 });
 

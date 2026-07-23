@@ -27,7 +27,7 @@ export function createBuildState() {
 		currentTaskName: "",
 		// Names of projects currently stale, reported via `serve-stale`. The renderer surfaces
 		// the count alongside the ready line.
-		changedProjects: [],
+		staleProjects: [],
 		// Names of projects collected via `serve-validating` payloads — used to
 		// label the validating state if/when the renderer wants to.
 		validatingProjects: [],
@@ -93,8 +93,8 @@ export function transitionTo(state, newState) {
 
 // Record the current stale-project set, reported via `serve-stale`. Does not touch the
 // activity `state` or reset the spinner: the count updates in place beneath the current status.
-export function setStale(state, changedProjects) {
-	state.changedProjects = Array.isArray(changedProjects) ? changedProjects : [];
+export function setStale(state, staleProjects) {
+	state.staleProjects = Array.isArray(staleProjects) ? staleProjects : [];
 }
 
 export function setError(state, message) {
