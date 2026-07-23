@@ -7,6 +7,20 @@ import Configuration from "@ui5/project/config/Configuration";
 import FrameworkCache from "@ui5/project/ui5Framework/cache";
 import CacheManager from "@ui5/project/build/cache/CacheManager";
 
+const LABEL_FRAMEWORK = "UI5 Framework packages";
+const LABEL_BUILD = "Build cache (Db)";
+const LABEL_ORPHANED_FRAMEWORK = "Orphaned UI5 Framework packages";
+const LABEL_ORPHANED_BUILD = "Orphaned build cache (Db)";
+const CACHE_CLEAN_WARNING =
+	"Only run ui5 cache clean when no UI5 CLI process and no @ui5/* API consumer is actively running.";
+const CACHE_CLEAN_WARNING_IMPACT =
+	"Running ui5 cache clean while ui5 build or ui5 serve is in progress can break the running process " +
+	"and lead to failed or inconsistent results.";
+const CACHE_CLEAN_HELP_USAGE =
+	`WARNING: ${CACHE_CLEAN_WARNING}\n${CACHE_CLEAN_WARNING_IMPACT}\n\nUsage: ui5 cache clean [options]`;
+// Pad main labels to equal width for two-column alignment (orphaned labels are bold headers, not padded)
+const LABEL_WIDTH = Math.max(LABEL_FRAMEWORK.length, LABEL_BUILD.length);
+
 const cacheCommand = {
 	command: "cache",
 	describe: "Manage the UI5 CLI cache (downloaded framework packages and build data)",
@@ -21,6 +35,7 @@ cacheCommand.builder = function(cli) {
 			handler: handleCache,
 			builder: function(yargs) {
 				return yargs
+					.usage(CACHE_CLEAN_HELP_USAGE)
 					.option("yes", {
 						alias: "y",
 						describe: "Skip the confirmation prompt, e.g. for use in CI pipelines",
@@ -37,13 +52,6 @@ cacheCommand.builder = function(cli) {
 			middlewares: [baseMiddleware],
 		});
 };
-
-const LABEL_FRAMEWORK = "UI5 Framework packages";
-const LABEL_BUILD = "Build cache (Db)";
-const LABEL_ORPHANED_FRAMEWORK = "Orphaned UI5 Framework packages";
-const LABEL_ORPHANED_BUILD = "Orphaned build cache (Db)";
-// Pad main labels to equal width for two-column alignment (orphaned labels are bold headers, not padded)
-const LABEL_WIDTH = Math.max(LABEL_FRAMEWORK.length, LABEL_BUILD.length);
 
 /**
  * Format a byte size as a human-readable string.
@@ -84,6 +92,11 @@ function formatFrameworkStats(libraryCount, versionCount) {
  */
 function padLabel(label) {
 	return label.padEnd(LABEL_WIDTH);
+}
+
+function displayCacheCleanWarning() {
+	process.stderr.write(`${chalk.bold.yellow("Warning:")} ${chalk.italic(CACHE_CLEAN_WARNING)}\n`);
+	process.stderr.write(`${chalk.italic(CACHE_CLEAN_WARNING_IMPACT)}\n\n`);
 }
 
 /**
@@ -223,6 +236,7 @@ async function getConfirmation(argv) {
 	if (argv.yes) {
 		return true;
 	}
+	displayCacheCleanWarning();
 	const {default: yesno} = await import("yesno");
 	return yesno({
 		question: "Do you want to continue? (y/N)",
