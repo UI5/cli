@@ -921,9 +921,11 @@ class BuildServer extends EventEmitter {
 	 * De-duplicated against the last reported set (<code>#lastStaleKey</code>) so repeated calls
 	 * from the several emission sites (reconcile, eager source-change, watcher recovery) don't spam
 	 * the banner with an unchanged signal.
+	 *
+	 * @param {string[]} [staleProjects] Pre-computed stale set, passed by callers that already ran
+	 *   {@link #getStaleProjectNames} to avoid a second sweep; recomputed here when omitted.
 	 */
-	#emitStale() {
-		const staleProjects = this.#getStaleProjectNames();
+	#emitStale(staleProjects = this.#getStaleProjectNames()) {
 		const key = staleProjects.slice().sort().join("\n");
 		if (key === this.#lastStaleKey) {
 			return;
@@ -1010,9 +1012,10 @@ class BuildServer extends EventEmitter {
 			return;
 		}
 		// The server is at rest. Activity -> IDLE ("ready"); the stale set (which projects remain
-		// stale) is reported separately and does not gate "ready".
+		// stale) is reported separately and does not gate "ready". Pass the set computed above so
+		// #emitStale doesn't re-sweep #projectBuildStatus.
 		this.#setState(SERVER_STATES.IDLE, {hrtime});
-		this.#emitStale();
+		this.#emitStale(staleProjects);
 	}
 
 	/**
