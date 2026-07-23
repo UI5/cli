@@ -198,10 +198,18 @@ async function displayCleanupResult({
 
 	// Success summary
 	const cleaned = [];
-	if (frameworkResult) cleaned.push(LABEL_FRAMEWORK);
-	if (buildResult) cleaned.push(LABEL_BUILD);
-	if (orphanedInfoWithAbsPaths?.length > 0) cleaned.push(LABEL_ORPHANED_FRAMEWORK);
-	if (buildAdditionalResult?.length > 0) cleaned.push(LABEL_ORPHANED_BUILD);
+	if (frameworkResult) {
+		cleaned.push(LABEL_FRAMEWORK);
+	}
+	if (buildResult) {
+		cleaned.push(LABEL_BUILD);
+	}
+	if (orphanedInfoWithAbsPaths?.length > 0) {
+		cleaned.push(LABEL_ORPHANED_FRAMEWORK);
+	}
+	if (buildAdditionalResult?.length > 0) {
+		cleaned.push(LABEL_ORPHANED_BUILD);
+	}
 	process.stderr.write(`\n${chalk.green("Success:")} Cleaned ${cleaned.join(" and ")}\n`);
 }
 
@@ -292,9 +300,6 @@ async function handleCache(argv) {
 	const orphanedInfoWithAbsPaths = additionalFrameworkResult.map(
 		(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
 	);
-	// Only surface build orphaned data in the summary when it existed before this clean started.
-	// cleanCache() itself sets the vacuum-pending flag, so cleanAdditional() always fires here —
-	// but the user should only see "Orphaned build cache" when it was leftover from a prior run.
 	const buildAdditionalResult = preCleanBuildAdditionalInfo.length > 0 ?
 		additionalBuildResult.map((o) => ({...o, absPath: path.join(ui5DataDir, o.path)})) :
 		[];
