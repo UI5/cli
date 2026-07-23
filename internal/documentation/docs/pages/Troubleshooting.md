@@ -20,28 +20,36 @@ UI5 CLI stores several kinds of data under your user's home directory in `~/.ui5
 | `~/.ui5/buildCache/` | Build cache used by `ui5 build` and `ui5 serve` (see [Build Cache Control](./Builder.md#build-cache-control)) | Yes — rebuilt on next `ui5 build` / `ui5 serve` |
 | `~/.ui5/server/` | Locally generated SSL certificate and private key for HTTPS / HTTP/2 mode | Yes — regenerated on next HTTPS server start; the new certificate must be re-trusted |
 
-::: warning
-Only remove these directories when no UI5 CLI process and no `@ui5/*` API consumer is actively running. Deleting files that are in use can cause running builds or servers to fail or produce inconsistent results.
-:::
-
 #### Resolution
 
-To free disk space, remove the relevant subdirectory.
-
-To only remove framework downloads:
+Use the dedicated cache clean command, which removes all cached data:
 
 ```sh
-rm -rf ~/.ui5/framework/
+ui5 cache clean
 ```
 
-To only remove the build cache:
+This displays the cache location, the amount of data that gets removed, and asks for confirmation before proceeding. To skip the confirmation prompt (for example in CI environments), use the `--yes` flag:
 
 ```sh
-rm -rf ~/.ui5/buildCache/
+ui5 cache clean --yes
 ```
+
+The command removes the following cached data:
+- **UI5 Framework packages** — downloaded UI5 library files (`~/.ui5/framework/`)
+- **Build cache (Db)** — build data (`~/.ui5/buildCache/`)
+
+If a previous `ui5 cache clean` was interrupted (e.g. process killed or system crash), the command also detects and removes any leftover data from that interrupted operation, listed as separate entries:
+- **Orphaned UI5 Framework packages** — incomplete framework directories left over from a previously interrupted cleanup (`~/.ui5/_framework_to_delete_*/`)
+- **Orphaned build cache (Db)** — freed database pages not yet reclaimed during a previously interrupted cleanup
+
+Any required framework dependencies will be re-downloaded during the next UI5 CLI invocation.
 
 ::: info
-If you have configured a custom data directory via `UI5_DATA_DIR` or `ui5 config set ui5DataDir`, replace `~/.ui5/` with that path. See [Changing UI5 CLI's Data Directory](#changing-ui5-cli-s-data-directory).
+If you have configured a custom data directory via `UI5_DATA_DIR` or `ui5 config set ui5DataDir`, the `ui5 cache clean` command will clean up that location instead of the default `~/.ui5/`. See [Changing UI5 CLI's Data Directory](#changing-ui5-cli-s-data-directory).
+:::
+
+::: warning
+Only remove these directories, or run `ui5 cache clean`, when no UI5 CLI process and no `@ui5/*` API consumer is actively running. Running `ui5 cache clean` while `ui5 build` or `ui5 serve` is in progress can break the running process and lead to failed or inconsistent results.
 :::
 
 ## Environment Variables

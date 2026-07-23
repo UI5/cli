@@ -420,6 +420,41 @@ test("findExistingContentIntegrities: Handles large batches", (t) => {
 	t.false(result.has("sha256-nonexistent"));
 });
 
+test("hasRecords: Returns false for empty database", (t) => {
+	t.false(t.context.storage.hasRecords());
+});
+
+test("hasRecords: Returns true when content table has records", (t) => {
+	t.context.storage.putContent("sha256-content", Buffer.from("content"));
+	t.true(t.context.storage.hasRecords());
+});
+
+test("hasRecords: Returns true when index cache table has records", (t) => {
+	t.context.storage.writeIndexCache("project-a", "build-sig", "source", {v: 1});
+	t.true(t.context.storage.hasRecords());
+});
+
+test("hasRecords: Returns true when stage metadata table has records", (t) => {
+	t.context.storage.writeStageCache("project-a", "build-sig", "task/minify", "sig-a", {v: 1});
+	t.true(t.context.storage.hasRecords());
+});
+
+test("hasRecords: Returns true when task metadata table has records", (t) => {
+	t.context.storage.writeTaskMetadata("project-a", "build-sig", "minify", "project", {v: 1});
+	t.true(t.context.storage.hasRecords());
+});
+
+test("hasRecords: Returns true when result metadata table has records", (t) => {
+	t.context.storage.writeResultMetadata("project-a", "build-sig", "sig-a", {v: 1});
+	t.true(t.context.storage.hasRecords());
+});
+
+test("getDatabaseSize: Returns positive database size", (t) => {
+	const size = t.context.storage.getDatabaseSize();
+	t.true(Number.isInteger(size));
+	t.true(size > 0);
+});
+
 // ===== Pre-compressed content =====
 
 test("putCompressedContent: Stores pre-compressed data retrievable via readContent", (t) => {
@@ -470,4 +505,76 @@ test("readContent: Legacy compressed tiny content is still readable", (t) => {
 	const compressed = gzipSync(content, {level: 1});
 	t.context.storage.putCompressedContent("sha256-legacy-tiny", compressed);
 	t.deepEqual(t.context.storage.readContent("sha256-legacy-tiny"), content);
+});
+
+// ===== dropAllRecords / hasFreelistPages / vacuum =====
+
+test("dropAllRecords: drops all live tables and recreates fresh ones", (t) => {
+	t.context.storage.writeIndexCache("p", "sig", "source", {value: 1});
+	t.context.storage.putContent("sha256-drop-1", Buffer.from("data"));
+
+	const bytesBefore = t.context.storage.dropAllRecords();
+
+	t.true(bytesBefore > 0, "returns pre-drop byte count");
+	t.false(t.context.storage.hasRecords(), "fresh tables are empty after drop");
+	t.true(t.context.storage.hasVacuumPending(), "vacuum pending marker set after drop");
+});
+
+test("dropAllRecords: fresh tables accept new writes immediately", (t) => {
+	t.context.storage.writeIndexCache("p", "sig", "source", {old: true});
+	t.context.storage.dropAllRecords();
+
+	t.notThrows(() => {
+		t.context.storage.writeIndexCache("p", "sig", "source", {new: true});
+	}, "can write to fresh tables right after drop");
+
+	t.deepEqual(t.context.storage.readIndexCache("p", "sig", "source"), {new: true});
+});
+
+test("dropAllRecords: calling twice succeeds — second drop operates on freshly-created tables", (t) => {
+	t.context.storage.putContent("sha256-a", Buffer.from("a"));
+	t.context.storage.dropAllRecords();
+
+	t.notThrows(() => t.context.storage.dropAllRecords(),
+		"second drop succeeds because #createTables recreated the tables in the first call");
+	t.false(t.context.storage.hasRecords());
+});
+
+test("hasVacuumPending: returns false on a fresh database", (t) => {
+	t.false(t.context.storage.hasVacuumPending());
+});
+
+test("hasVacuumPending: returns true after dropAllRecords", (t) => {
+	t.context.storage.putContent("sha256-has", Buffer.from("x"));
+	t.context.storage.dropAllRecords();
+	t.true(t.context.storage.hasVacuumPending());
+});
+
+test("hasVacuumPending: returns false after vacuum", (t) => {
+	t.context.storage.putContent("sha256-vac", Buffer.from("y"));
+	t.context.storage.dropAllRecords();
+	t.context.storage.vacuum();
+	t.false(t.context.storage.hasVacuumPending());
+});
+
+test("vacuum: reclaims space and returns freed bytes", (t) => {
+	const largeContent = Buffer.alloc(64 * 1024, "x");
+	t.context.storage.putContent("sha256-large-vac", largeContent);
+	t.context.storage.dropAllRecords();
+
+	const freed = t.context.storage.vacuum();
+
+	t.true(freed >= 0, "freed bytes is non-negative");
+	t.false(t.context.storage.hasVacuumPending(), "vacuum pending cleared after vacuum");
+});
+
+test("vacuum: live data written after drop is unaffected", (t) => {
+	t.context.storage.putContent("sha256-old", Buffer.from("old"));
+	t.context.storage.dropAllRecords();
+	t.context.storage.writeIndexCache("p", "sig", "source", {fresh: true});
+
+	t.context.storage.vacuum();
+
+	t.deepEqual(t.context.storage.readIndexCache("p", "sig", "source"), {fresh: true},
+		"data written after drop survives vacuum");
 });

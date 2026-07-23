@@ -83,6 +83,11 @@ export default class BuildCacheStorage {
 				data BLOB NOT NULL,
 				PRIMARY KEY (project_id, build_signature, stage_signature)
 			) WITHOUT ROWID;
+
+			CREATE TABLE IF NOT EXISTS _vacuum_pending (
+				pending INTEGER NOT NULL DEFAULT 0
+			);
+			INSERT OR IGNORE INTO _vacuum_pending(rowid, pending) VALUES(1, 0);
 		`);
 	}
 
@@ -512,6 +517,88 @@ export default class BuildCacheStorage {
 	}
 
 	/**
+	 * Checks if the database has any records in any table.
+	 *
+	 * @returns {boolean} True if there are any records
+	 */
+	hasRecords() {
+		const tables = ["content", "index_cache", "stage_metadata", "task_metadata", "result_metadata"];
+		for (const table of tables) {
+			const {is_populated: isPopulated} =
+				this.#db.prepare(`SELECT EXISTS(SELECT 1 FROM ${table} LIMIT 1) as is_populated`).get();
+			if (isPopulated) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Atomically drops all live tables and recreates fresh empty ones in a single
+	 * transaction. The operation completes in milliseconds regardless of data volume —
+	 * DROP TABLE never reads row data; it only removes the schema entry and adds
+	 * pages to the freelist. Call {@link vacuum} afterwards to reclaim disk space.
+	 *
+	 * A persistent marker is set so that a deferred VACUUM can be detected on the
+	 * next invocation even if the process exits before {@link vacuum} runs.
+	 *
+	 * @returns {number} Database size in bytes before the drop (pending reclamation after vacuum)
+	 */
+	dropAllRecords() {
+		const tables = ["content", "index_cache", "stage_metadata", "task_metadata", "result_metadata"];
+		const bytesBefore = this.getDatabaseSize();
+
+		this.#db.exec("BEGIN");
+		try {
+			for (const table of tables) {
+				this.#db.exec(`DROP TABLE ${table}`);
+			}
+			this.#createTables();
+			this.#db.exec("UPDATE _vacuum_pending SET pending = 1 WHERE rowid = 1");
+			this.#db.exec("COMMIT");
+		} catch (err) {
+			this.#db.exec("ROLLBACK");
+			// "no such table" would only occur if a concurrent process dropped the tables
+			// between our BEGIN and our first DROP — an edge case that WAL's writer
+			// serialization makes nearly impossible, but guard for a clear error message.
+			if (/** @type {NodeJS.ErrnoException} */ (err).message?.includes("no such table")) {
+				throw new Error(
+					"Build cache clean was already performed by another process. " +
+					"Run ui5 cache clean again to complete the deferred VACUUM.",
+					{cause: err}
+				);
+			}
+			throw err;
+		}
+
+		return bytesBefore;
+	}
+
+	/**
+	 * Returns true if a VACUUM is pending — i.e. {@link dropAllRecords} was called
+	 * but {@link vacuum} has not yet run to reclaim the freed disk space.
+	 *
+	 * @returns {boolean}
+	 */
+	hasVacuumPending() {
+		return this.#db.prepare("SELECT pending FROM _vacuum_pending WHERE rowid = 1").get().pending === 1;
+	}
+
+	/**
+	 * Runs VACUUM to reclaim disk space from freed pages and clears the pending marker.
+	 * This is the slow half of the two-phase cache clean; call it from
+	 * <code>cleanAdditional</code> after the fast {@link dropAllRecords} pass.
+	 *
+	 * @returns {number} Number of bytes freed
+	 */
+	vacuum() {
+		const bytesBefore = this.getDatabaseSize();
+		this.#db.exec("VACUUM");
+		this.#db.exec("UPDATE _vacuum_pending SET pending = 0 WHERE rowid = 1");
+		return bytesBefore - this.getDatabaseSize();
+	}
+
+	/**
 	 * Closes the database connection
 	 */
 	close() {
@@ -524,5 +611,16 @@ export default class BuildCacheStorage {
 		}
 		this.#db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
 		this.#db.close();
+	}
+
+	/**
+	 * Get the total size of the database file
+	 *
+	 * @returns {number} Database size in bytes
+	 */
+	getDatabaseSize() {
+		const pageCount = this.#db.prepare("PRAGMA page_count").get().page_count;
+		const pageSize = this.#db.prepare("PRAGMA page_size").get().page_size;
+		return pageCount * pageSize;
 	}
 }

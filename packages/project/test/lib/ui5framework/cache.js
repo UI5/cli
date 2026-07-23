@@ -1,0 +1,339 @@
+import test from "ava";
+import path from "node:path";
+import fs from "node:fs/promises";
+import sinon from "sinon";
+import esmock from "esmock";
+import FrameworkCache from "../../../lib/ui5Framework/cache.js";
+
+const TEST_DIR = path.join(import.meta.dirname, "..", "..", "tmp", "ui5framework-cache");
+
+test.beforeEach(async (t) => {
+	const testDir = path.join(TEST_DIR, `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+	await fs.mkdir(testDir, {recursive: true});
+	t.context.testDir = testDir;
+});
+
+test.afterEach.always(async (t) => {
+	await fs.rm(t.context.testDir, {recursive: true, force: true});
+	sinon.restore();
+});
+
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+async function mkPackageIn(baseDir, project, library, version) {
+	const dir = path.join(baseDir, "packages", project, library, version);
+	await fs.mkdir(dir, {recursive: true});
+	await fs.writeFile(path.join(dir, "package.json"), JSON.stringify({name: `${project}/${library}`, version}));
+}
+
+// ─── getCacheInfo ─────────────────────────────────────────────────────────────
+
+test("getCacheInfo: non-existent framework directory returns null", async (t) => {
+	const result = await FrameworkCache.getCacheInfo(t.context.testDir);
+	t.is(result, null);
+});
+
+test("getCacheInfo: framework dir exists but no packages/ subdir returns null", async (t) => {
+	await fs.mkdir(path.join(t.context.testDir, "framework", "cacache"), {recursive: true});
+	const result = await FrameworkCache.getCacheInfo(t.context.testDir);
+	t.is(result, null);
+});
+
+test("getCacheInfo: packages/ exists but is empty returns null", async (t) => {
+	await fs.mkdir(path.join(t.context.testDir, "framework", "packages"), {recursive: true});
+	const result = await FrameworkCache.getCacheInfo(t.context.testDir);
+	t.is(result, null);
+});
+
+test("getCacheInfo: counts libraries and versions", async (t) => {
+	// 2 unique library names across 2 scopes, 3 unique versions
+	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.m", "1.120.0");
+	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.ui.core", "1.120.0");
+	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.ui.core", "1.148.0");
+	await mkPackageIn(path.join(t.context.testDir, "framework"), "@sapui5", "sap.m", "1.38.1");
+
+	const result = await FrameworkCache.getCacheInfo(t.context.testDir);
+	t.truthy(result);
+	t.is(result.path, "framework");
+	t.is(result.libraryCount, 2); // sap.m counted once (deduplicated across scopes)
+	t.is(result.versionCount, 3); // 1.120.0, 1.148.0, 1.38.1
+});
+
+test("getCacheInfo: deduplicates versions across libraries", async (t) => {
+	// Both libraries have 1.120.0 — version should count once
+	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.m", "1.120.0");
+	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.ui.core", "1.120.0");
+
+	const result = await FrameworkCache.getCacheInfo(t.context.testDir);
+	t.truthy(result);
+	t.is(result.libraryCount, 2);
+	t.is(result.versionCount, 1); // 1.120.0 deduplicated
+});
+
+test("getCacheInfo: single library and version", async (t) => {
+	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.m", "1.120.0");
+
+	const result = await FrameworkCache.getCacheInfo(t.context.testDir);
+	t.truthy(result);
+	t.is(result.libraryCount, 1);
+	t.is(result.versionCount, 1);
+});
+
+test("getCacheInfo: skips unreadable subdirectories without throwing", async (t) => {
+	const frameworkDir = path.join(t.context.testDir, "framework");
+	await mkPackageIn(frameworkDir, "@openui5", "sap.m", "1.120.0");
+	await mkPackageIn(frameworkDir, "@sapui5", "sap.ui.core", "1.110.0");
+
+	const unreadableScopeDir = path.join(frameworkDir, "packages", "@sapui5");
+	const readdirStub = sinon.stub().callsFake(async (dirPath, opts) => {
+		if (dirPath === unreadableScopeDir) {
+			const err = Object.assign(new Error("EACCES: permission denied, scandir"), {code: "EACCES"});
+			throw err;
+		}
+		return fs.readdir(dirPath, opts);
+	});
+
+	const FrameworkCacheMocked = await esmock.p(
+		"../../../lib/ui5Framework/cache.js",
+		{"node:fs/promises": {...fs, readdir: readdirStub}}
+	);
+
+	try {
+		const result = await FrameworkCacheMocked.getCacheInfo(t.context.testDir);
+		t.truthy(result);
+		t.is(result.path, "framework");
+		t.is(result.libraryCount, 1);
+		t.is(result.versionCount, 1);
+	} finally {
+		esmock.purge(FrameworkCacheMocked);
+	}
+});
+
+// ─── cleanCache ───────────────────────────────────────────────────────────────
+
+test("cleanCache: returns null for non-existent framework directory", async (t) => {
+	const result = await FrameworkCache.cleanCache(t.context.testDir);
+	t.is(result, null);
+});
+
+test("cleanCache: returns null when packages/ has no installed libraries", async (t) => {
+	await fs.mkdir(path.join(t.context.testDir, "framework", "packages"), {recursive: true});
+	const result = await FrameworkCache.cleanCache(t.context.testDir);
+	t.is(result, null);
+});
+
+test("cleanCache: renames then removes framework directory and returns stats", async (t) => {
+	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.m", "1.120.0");
+	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.ui.core", "1.120.0");
+	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.ui.core", "1.148.0");
+
+	const frameworkDir = path.join(t.context.testDir, "framework");
+	const result = await FrameworkCache.cleanCache(t.context.testDir);
+
+	t.truthy(result);
+	t.is(result.path, "framework");
+	t.is(result.libraryCount, 2);
+	t.is(result.versionCount, 2); // 1.120.0, 1.148.0
+
+	// framework/ is gone — getCacheInfo returns null
+	t.is(await FrameworkCache.getCacheInfo(t.context.testDir), null);
+
+	// No staging dirs remain after a successful clean
+	const entries = await fs.readdir(t.context.testDir);
+	t.false(entries.some((e) => e.startsWith("_framework_to_delete_")),
+		"no staging dirs remain after successful clean");
+
+	// packages/ is gone
+	await t.throwsAsync(fs.access(path.join(frameworkDir, "packages")));
+});
+
+test("cleanCache: removes directory with multiple scopes", async (t) => {
+	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.m", "1.120.0");
+	await mkPackageIn(path.join(t.context.testDir, "framework"), "@sapui5", "sap.m", "1.38.1");
+
+	const result = await FrameworkCache.cleanCache(t.context.testDir);
+
+	t.truthy(result);
+	t.is(result.libraryCount, 1); // sap.m deduplicated
+	t.is(result.versionCount, 2);
+
+	t.is(await FrameworkCache.getCacheInfo(t.context.testDir), null);
+});
+
+test("cleanCache: does not include orphaned field in result", async (t) => {
+	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.m", "1.120.0");
+
+	const result = await FrameworkCache.cleanCache(t.context.testDir);
+
+	t.truthy(result);
+	t.false(Object.prototype.hasOwnProperty.call(result, "orphaned"),
+		"cleanCache result does not include orphaned — use cleanAdditional for that");
+});
+
+test("cleanCache: does not remove orphaned staging dirs — that is cleanAdditional's job", async (t) => {
+	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.m", "1.120.0");
+
+	const orphanDir = path.join(t.context.testDir, "_framework_to_delete_abcd");
+	await mkPackageIn(orphanDir, "@openui5", "sap.ui.core", "1.100.0");
+
+	await FrameworkCache.cleanCache(t.context.testDir);
+
+	// Orphan is still present after cleanCache — cleanAdditional handles it
+	await t.notThrowsAsync(fs.access(orphanDir), "orphaned dir is not touched by cleanCache");
+});
+
+// ─── cleanAdditional ──────────────────────────────────────────────────────────
+
+test("cleanAdditional: returns empty array when no orphaned staging dirs exist", async (t) => {
+	const result = await FrameworkCache.cleanAdditional(t.context.testDir);
+	t.deepEqual(result, []);
+});
+
+test("cleanAdditional: detects and removes orphaned staging dirs, reports them", async (t) => {
+	const orphanDir = path.join(t.context.testDir, "_framework_to_delete_abcd");
+	await mkPackageIn(orphanDir, "@openui5", "sap.ui.core", "1.100.0");
+	await mkPackageIn(orphanDir, "@openui5", "sap.ui.core", "1.110.0");
+
+	const result = await FrameworkCache.cleanAdditional(t.context.testDir);
+
+	t.is(result.length, 1, "one orphaned dir reported");
+	const orphanResult = result[0];
+	t.true(orphanResult.path.startsWith("_framework_to_delete_"), "orphan path has staging prefix");
+	t.is(orphanResult.libraryCount, 1);
+	t.is(orphanResult.versionCount, 2);
+
+	await t.throwsAsync(fs.access(orphanDir), {code: "ENOENT"}, "orphaned staging dir removed");
+});
+
+test("cleanAdditional: removes multiple orphaned staging dirs and reports each", async (t) => {
+	const orphan1 = path.join(t.context.testDir, "_framework_to_delete_1111");
+	const orphan2 = path.join(t.context.testDir, "_framework_to_delete_2222");
+
+	await mkPackageIn(orphan1, "@openui5", "sap.m", "1.90.0");
+	await mkPackageIn(orphan2, "@openui5", "sap.ui.core", "1.91.0");
+	await mkPackageIn(orphan2, "@openui5", "sap.ui.core", "1.92.0");
+
+	const result = await FrameworkCache.cleanAdditional(t.context.testDir);
+
+	t.is(result.length, 2, "two orphaned dirs reported");
+
+	const sorted = [...result].sort((a, b) => a.path.localeCompare(b.path));
+	t.is(sorted[0].libraryCount, 1);
+	t.is(sorted[0].versionCount, 1);
+	t.is(sorted[1].libraryCount, 1);
+	t.is(sorted[1].versionCount, 2);
+
+	await t.throwsAsync(fs.access(orphan1), {code: "ENOENT"});
+	await t.throwsAsync(fs.access(orphan2), {code: "ENOENT"});
+});
+
+test("cleanAdditional: orphaned dir deletion failure is non-fatal", async (t) => {
+	const orphanDir = path.join(t.context.testDir, "_framework_to_delete_fail");
+	await mkPackageIn(orphanDir, "@openui5", "sap.m", "1.80.0");
+
+	const rmStub = sinon.stub().callsFake(async (p, opts) => {
+		if (p === orphanDir) {
+			throw new Error("simulated deletion failure");
+		}
+		return fs.rm(p, opts);
+	});
+
+	const FrameworkCacheMocked = await esmock.p(
+		"../../../lib/ui5Framework/cache.js",
+		{"node:fs/promises": {...fs, rm: rmStub}}
+	);
+
+	try {
+		const result = await FrameworkCacheMocked.cleanAdditional(t.context.testDir);
+		t.deepEqual(result, [], "failed deletion is excluded from the returned list");
+		await t.notThrowsAsync(fs.access(orphanDir), "failed orphan deletion keeps directory on disk");
+	} finally {
+		esmock.purge(FrameworkCacheMocked);
+		await fs.rm(orphanDir, {recursive: true, force: true}).catch(() => {});
+	}
+});
+
+test("cleanAdditional: returns only successfully removed orphaned dirs", async (t) => {
+	const orphanOk = path.join(t.context.testDir, "_framework_to_delete_ok");
+	const orphanFail = path.join(t.context.testDir, "_framework_to_delete_fail");
+	await mkPackageIn(orphanOk, "@openui5", "sap.m", "1.80.0");
+	await mkPackageIn(orphanFail, "@openui5", "sap.ui.core", "1.81.0");
+
+	const rmStub = sinon.stub().callsFake(async (p, opts) => {
+		if (p === orphanFail) {
+			throw new Error("simulated deletion failure");
+		}
+		return fs.rm(p, opts);
+	});
+
+	const FrameworkCacheMocked = await esmock.p(
+		"../../../lib/ui5Framework/cache.js",
+		{"node:fs/promises": {...fs, rm: rmStub}}
+	);
+
+	try {
+		const result = await FrameworkCacheMocked.cleanAdditional(t.context.testDir);
+		t.is(result.length, 1);
+		t.is(result[0].path, "_framework_to_delete_ok");
+
+		await t.throwsAsync(fs.access(orphanOk), {code: "ENOENT"});
+		await t.notThrowsAsync(fs.access(orphanFail));
+	} finally {
+		esmock.purge(FrameworkCacheMocked);
+		await fs.rm(orphanFail, {recursive: true, force: true}).catch(() => {});
+	}
+});
+
+test("cleanCache: returns null if framework dir removed between check and rename (ENOENT race)", async (t) => {
+	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.m", "1.120.0");
+
+	const frameworkDir = path.join(t.context.testDir, "framework");
+	const renameStub = sinon.stub().callsFake(async (oldPath, newPath) => {
+		if (oldPath === frameworkDir) {
+			const err = Object.assign(new Error("ENOENT: no such file or directory, rename"), {code: "ENOENT"});
+			throw err;
+		}
+		return fs.rename(oldPath, newPath);
+	});
+
+	const FrameworkCacheMocked = await esmock.p(
+		"../../../lib/ui5Framework/cache.js",
+		{"node:fs/promises": {...fs, rename: renameStub}}
+	);
+
+	try {
+		const result = await FrameworkCacheMocked.cleanCache(t.context.testDir);
+		t.is(result, null, "returns null when directory is concurrently removed");
+	} finally {
+		esmock.purge(FrameworkCacheMocked);
+		await fs.rm(frameworkDir, {recursive: true, force: true}).catch(() => {});
+	}
+});
+
+test("cleanCache: re-throws non-ENOENT errors from fs.rename", async (t) => {
+	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.m", "1.120.0");
+
+	const frameworkDir = path.join(t.context.testDir, "framework");
+	const renameStub = sinon.stub().callsFake(async (oldPath, newPath) => {
+		if (oldPath === frameworkDir) {
+			const err = Object.assign(new Error("EACCES: permission denied, rename"), {code: "EACCES"});
+			throw err;
+		}
+		return fs.rename(oldPath, newPath);
+	});
+
+	const FrameworkCacheMocked = await esmock.p(
+		"../../../lib/ui5Framework/cache.js",
+		{"node:fs/promises": {...fs, rename: renameStub}}
+	);
+
+	try {
+		const error = await t.throwsAsync(FrameworkCacheMocked.cleanCache(t.context.testDir));
+		t.is(/** @type {NodeJS.ErrnoException} */ (error).code, "EACCES");
+	} finally {
+		esmock.purge(FrameworkCacheMocked);
+		await fs.rm(frameworkDir, {recursive: true, force: true}).catch(() => {});
+	}
+});
+

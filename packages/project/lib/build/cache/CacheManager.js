@@ -1,6 +1,7 @@
 import path from "node:path";
 import os from "node:os";
 import Configuration from "../../config/Configuration.js";
+import {access} from "node:fs/promises";
 import {getLogger} from "@ui5/logger";
 import BuildCacheStorage from "./BuildCacheStorage.js";
 
@@ -335,6 +336,146 @@ export default class CacheManager {
 		if (--this.#refCount <= 0) {
 			this.#storage.close();
 			cacheManagerInstances.delete(this.#cacheDir);
+		}
+	}
+
+	/**
+	 * Checks if the cache database exists and is accessible for the given directory.
+	 *
+	 * @param {string} dbDir Path to DB
+	 * @returns {Promise<boolean>} True if the cache database exists and is accessible
+	 */
+	static async #isCacheDbAvailable(dbDir) {
+		const dbPath = path.join(dbDir, "cache.db");
+		try {
+			await access(dbPath);
+		} catch {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Get build cache info for the current version.
+	 *
+	 * @public
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<{path: string, size: number}|null>} Build cache info or null
+	 */
+	static async getCacheInfo(ui5DataDir) {
+		const dbDir = path.join(ui5DataDir, "buildCache", CACHE_VERSION);
+		const isAvailable = await CacheManager.#isCacheDbAvailable(dbDir);
+		if (!isAvailable) {
+			return null;
+		}
+
+		const storage = new BuildCacheStorage(dbDir);
+		try {
+			if (storage.hasRecords()) {
+				const size = storage.getDatabaseSize();
+				return {
+					path: `buildCache/${CACHE_VERSION}`,
+					size,
+				};
+			}
+		} finally {
+			storage.close();
+		}
+		return null;
+	}
+
+	/**
+	 * Clean build cache by atomically dropping all live tables and recreating fresh
+	 * empty ones. The drop is O(1) and completes in milliseconds.
+	 * Actual disk reclamation (VACUUM) is deferred to {@link cleanAdditional}.
+	 *
+	 * @public
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<{path: string, size: number}|null>} Removal result (size = bytes pending reclamation) or null
+	 */
+	static async cleanCache(ui5DataDir) {
+		const dbDir = path.join(ui5DataDir, "buildCache", CACHE_VERSION);
+		const isAvailable = await CacheManager.#isCacheDbAvailable(dbDir);
+		if (!isAvailable) {
+			return null;
+		}
+
+		const storage = new BuildCacheStorage(dbDir);
+		try {
+			if (storage.hasRecords()) {
+				const bytesBefore = storage.dropAllRecords();
+				return {
+					path: `buildCache/${CACHE_VERSION}`,
+					size: bytesBefore,
+				};
+			}
+		} finally {
+			storage.close();
+		}
+		return null;
+	}
+
+	/**
+	 * Runs VACUUM to reclaim disk space from a previous {@link cleanCache} call.
+	 * Only runs if the database has freelist pages (i.e. cleanup was deferred).
+	 *
+	 * @public
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<Array<{path: string, size: number}>>} Cleaned entries, or empty array if nothing to reclaim
+	 */
+	static async cleanAdditional(ui5DataDir) {
+		const dbDir = path.join(ui5DataDir, "buildCache", CACHE_VERSION);
+		const isAvailable = await CacheManager.#isCacheDbAvailable(dbDir);
+		if (!isAvailable) {
+			return [];
+		}
+
+		const storage = new BuildCacheStorage(dbDir);
+		try {
+			if (!storage.hasVacuumPending()) {
+				return [];
+			}
+			const freedSize = storage.vacuum();
+			return [{
+				path: `buildCache/${CACHE_VERSION}`,
+				size: freedSize,
+			}];
+		} finally {
+			storage.close();
+		}
+	}
+
+	/**
+	 * Returns info about pending disk reclamation — i.e. a previous {@link cleanCache}
+	 * whose VACUUM has not yet been run by {@link cleanAdditional}.
+	 *
+	 * @public
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<Array<{path: string, size: number}>>} Pending entries, or empty array if none
+	 */
+	static async getAdditionalCacheInfo(ui5DataDir) {
+		const dbDir = path.join(ui5DataDir, "buildCache", CACHE_VERSION);
+		const isAvailable = await CacheManager.#isCacheDbAvailable(dbDir);
+		if (!isAvailable) {
+			return [];
+		}
+
+		const storage = new BuildCacheStorage(dbDir);
+		try {
+			if (!storage.hasVacuumPending()) {
+				return [];
+			}
+			const size = storage.getDatabaseSize();
+			return [{
+				path: `buildCache/${CACHE_VERSION}`,
+				size,
+			}];
+		} finally {
+			storage.close();
 		}
 	}
 }

@@ -203,3 +203,147 @@ test.serial("transaction: throwing rolls back metadata and content writes", asyn
 		"Metadata should not exist after rollback");
 	cm.close();
 });
+
+// Static cleanup/info helpers
+
+test.serial("getCacheInfo: Returns null when cache db is not available", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+
+	const info = await CacheManager.getCacheInfo(testDir);
+	t.is(info, null);
+});
+
+test.serial("getCacheInfo: Returns null when cache has no records", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.close();
+
+	const info = await CacheManager.getCacheInfo(testDir);
+	t.is(info, null);
+});
+
+test.serial("getCacheInfo: Returns cache info when records exist", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.writeIndexCache("project-x", "build-sig", "source", {value: 1});
+	cm.close();
+
+	const info = await CacheManager.getCacheInfo(testDir);
+	t.truthy(info);
+	t.true(Number.isInteger(info.size));
+	t.true(info.size > 0);
+});
+
+test.serial("cleanCache: Clears records and returns removal result", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.writeIndexCache("project-x", "build-sig", "source", {value: 1});
+	cm.putContent("sha256-clean", Buffer.from("content"));
+	cm.close();
+
+	const result = await CacheManager.cleanCache(testDir);
+	t.truthy(result);
+	t.true(Number.isInteger(result.size));
+	t.true(result.size >= 0);
+
+	const infoAfterClean = await CacheManager.getCacheInfo(testDir);
+	t.is(infoAfterClean, null, "getCacheInfo returns null for empty fresh tables after cleanCache");
+
+	const additionalInfo = await CacheManager.getAdditionalCacheInfo(testDir);
+	t.is(additionalInfo.length, 1, "vacuum pending reported as additional info");
+	t.true(additionalInfo[0].size > 0);
+});
+
+test.serial("cleanCache: returns null when no records exist", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.close();
+
+	const result = await CacheManager.cleanCache(testDir);
+	t.is(result, null);
+});
+
+test.serial("cleanCache: returns null when db does not exist", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+
+	const result = await CacheManager.cleanCache(testDir);
+	t.is(result, null);
+});
+
+test.serial("getAdditionalCacheInfo: returns empty array when no stale tables", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.writeIndexCache("p", "sig", "source", {v: 1});
+	cm.close();
+
+	const info = await CacheManager.getAdditionalCacheInfo(testDir);
+	t.deepEqual(info, []);
+});
+
+test.serial("getAdditionalCacheInfo: returns empty array when db does not exist", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+
+	const info = await CacheManager.getAdditionalCacheInfo(testDir);
+	t.deepEqual(info, []);
+});
+
+test.serial("getAdditionalCacheInfo: reports stale tables after cleanCache", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.writeIndexCache("p", "sig", "source", {v: 1});
+	cm.close();
+
+	await CacheManager.cleanCache(testDir);
+
+	const info = await CacheManager.getAdditionalCacheInfo(testDir);
+	t.is(info.length, 1);
+	t.true(info[0].size > 0);
+	t.truthy(info[0].path);
+});
+
+test.serial("cleanAdditional: returns empty array when no stale tables", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.writeIndexCache("p", "sig", "source", {v: 1});
+	cm.close();
+
+	const result = await CacheManager.cleanAdditional(testDir);
+	t.deepEqual(result, []);
+});
+
+test.serial("cleanAdditional: returns empty array when db does not exist", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+
+	const result = await CacheManager.cleanAdditional(testDir);
+	t.deepEqual(result, []);
+});
+
+test.serial("cleanAdditional: drops stale tables, returns freed size, leaves nothing pending", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.writeIndexCache("p", "sig", "source", {v: 1});
+	cm.putContent("sha256-cleanup", Buffer.alloc(64 * 1024, "z"));
+	cm.close();
+
+	await CacheManager.cleanCache(testDir);
+
+	const result = await CacheManager.cleanAdditional(testDir);
+	t.is(result.length, 1);
+	t.true(result[0].size >= 0);
+	t.truthy(result[0].path);
+
+	const remainingAdditional = await CacheManager.getAdditionalCacheInfo(testDir);
+	t.deepEqual(remainingAdditional, [], "no stale tables remain after cleanAdditional");
+});
