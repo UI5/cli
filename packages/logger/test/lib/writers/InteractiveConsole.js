@@ -554,11 +554,12 @@ test.serial("serve-status: serve-build-done without a valid hrtime records null"
 	writer.disable();
 });
 
-test.serial("serve-status: serve-stale records changedProjects and transitions to STALE", (t) => {
+test.serial("serve-status: serve-stale records changedProjects without a state transition", (t) => {
 	const {writer} = createWriter();
+	process.emit("ui5.serve-status", {status: "serve-ready"});
 	process.emit("ui5.serve-status", {status: "serve-stale", changedProjects: ["my.app"]});
 	const state = writer._getStateForTest().build;
-	t.is(state.state, STATES.STALE);
+	t.is(state.state, STATES.READY, "the stale report does not change the activity state");
 	t.deepEqual(state.changedProjects, ["my.app"]);
 	writer.disable();
 });

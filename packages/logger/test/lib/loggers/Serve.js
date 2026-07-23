@@ -47,6 +47,17 @@ test.serial("stale emits serve-stale", (t) => {
 	}, "Status event has expected payload");
 });
 
+test.serial("stale emits serve-stale with an empty set", (t) => {
+	const {serveLogger, statusHandler} = t.context;
+	serveLogger.stale([]);
+	t.is(statusHandler.callCount, 1, "One serve-status event emitted");
+	t.deepEqual(statusHandler.getCall(0).args[0], {
+		level: "info",
+		status: "serve-stale",
+		changedProjects: [],
+	}, "Status event has expected payload");
+});
+
 test.serial("stale: Missing parameter", (t) => {
 	const {serveLogger} = t.context;
 	t.throws(() => {
@@ -164,8 +175,18 @@ test.serial("No event listener: stale", (t) => {
 	t.is(logStub.callCount, 1, "_log got called once");
 	t.is(logStub.getCall(0).args[0], "info", "Logged with expected log-level");
 	t.is(logStub.getCall(0).args[1],
-		"Sources changed in: project.a, project.b",
+		"Stale projects: project.a, project.b",
 		"Logged expected message");
+	t.is(logHandler.callCount, 0, "No log event emitted");
+});
+
+test.serial("No event listener: stale with an empty set", (t) => {
+	const {serveLogger, statusHandler, logHandler, logStub} = t.context;
+	process.off(ServeLogger.SERVE_STATUS_EVENT_NAME, statusHandler);
+	serveLogger.stale([]);
+	t.is(logStub.callCount, 1, "_log got called once");
+	t.is(logStub.getCall(0).args[0], "info", "Logged with expected log-level");
+	t.is(logStub.getCall(0).args[1], "All projects up-to-date", "Logged expected message");
 	t.is(logHandler.callCount, 0, "No log event emitted");
 });
 

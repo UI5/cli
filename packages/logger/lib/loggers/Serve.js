@@ -38,12 +38,15 @@ class Serve extends Logger {
 		this.#emitStatus("serve-ready", {}, `Server ready`);
 	}
 
+	// Emits the current stale-project set. An empty list means every project is up-to-date.
 	stale(changedProjects) {
 		if (!changedProjects || !Array.isArray(changedProjects)) {
 			throw new Error("loggers/Serve#stale: Missing or incorrect changedProjects parameter");
 		}
 		this.#emitStatus("serve-stale", {changedProjects},
-			`Sources changed in: ${changedProjects.join(", ")}`);
+			changedProjects.length ?
+				`Stale projects: ${changedProjects.join(", ")}` :
+				`All projects up-to-date`);
 	}
 
 	settling(pendingProjects) {

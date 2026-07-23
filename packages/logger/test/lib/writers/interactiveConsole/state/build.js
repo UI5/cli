@@ -7,6 +7,7 @@ import {
 	setTask,
 	transitionTo,
 	setError,
+	setStale,
 	enableBuildPlaceholders,
 	STATES,
 } from "../../../../../lib/writers/interactiveConsole/state/build.js";
@@ -104,6 +105,23 @@ test("setError: falsy message resolves to an empty string", (t) => {
 	setError(state, undefined);
 	t.is(state.state, STATES.ERROR);
 	t.is(state.errorMessage, "");
+});
+
+test("setStale: records the stale set without touching the activity state", (t) => {
+	const state = createBuildState();
+	transitionTo(state, STATES.READY);
+	state.spinFrame = 3;
+	setStale(state, ["library.a", "library.b"]);
+	t.deepEqual(state.changedProjects, ["library.a", "library.b"]);
+	t.is(state.state, STATES.READY, "activity state is unchanged");
+	t.is(state.spinFrame, 3, "spinner frame is not reset");
+});
+
+test("setStale: a non-array resolves to an empty set", (t) => {
+	const state = createBuildState();
+	state.changedProjects = ["stale"];
+	setStale(state, undefined);
+	t.deepEqual(state.changedProjects, []);
 });
 
 test("enableBuildPlaceholders: promotes INITIAL to STARTING", (t) => {
