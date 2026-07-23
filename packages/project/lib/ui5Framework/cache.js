@@ -214,8 +214,8 @@ async function getPackageStats(frameworkDir) {
 	 * Reads direct subdirectories for each given directory entry and flattens the result.
 	 * Any unreadable subdirectory is skipped.
 	 *
-	 * @param {import("node:fs").Dirent[]} dirList
-	 * @returns {Promise<import("node:fs").Dirent[]>}
+	 * @param {Array<object>} dirList
+	 * @returns {Promise<Array<object>>}
 	 */
 	async function readSubDirectories(dirList) {
 		const directoryEntries = dirList.filter((entry) => entry.isDirectory());
