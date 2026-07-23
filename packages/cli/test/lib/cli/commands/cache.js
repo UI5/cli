@@ -445,7 +445,8 @@ test.serial("ui5 cache clean: shows orphaned-only success summary when no active
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes("Orphaned UI5 Framework packages"), "Shows orphaned header");
 	t.true(allOutput.includes("Cleaned Orphaned UI5 Framework packages"), "Success summary mentions orphaned label");
-	t.false(allOutput.includes("Removed UI5 Framework packages"), "Does not show main framework removed line when absent");
+	t.false(allOutput.includes("Removed UI5 Framework packages"),
+		"Does not show main framework removed line when absent");
 });
 
 test.serial("ui5 cache clean: shows orphaned build cache in pre-confirm and post-clean summary", async (t) => {
