@@ -386,6 +386,8 @@ class BuildServer extends EventEmitter {
 			// (e.g. Force-mode stale-cache errors). Otherwise the SQLite handle leaks
 			// and subsequent fs.rm of the cache directory fails with EBUSY on Windows.
 			this.#projectBuilder.closeCacheManager();
+			// Explicitly destroy the ProjectGraph to release any process-coordination locks
+			this.#graph.destroy();
 		}
 	}
 

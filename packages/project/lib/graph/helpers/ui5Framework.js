@@ -2,8 +2,7 @@ import Module from "../Module.js";
 import ProjectGraph from "../ProjectGraph.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:helpers:ui5Framework");
-import Configuration from "../../config/Configuration.js";
-import path from "node:path";
+import {resolveUi5DataDir} from "../../utils/dataDir.js";
 
 class ProjectProcessor {
 	constructor({libraryMetadata, graph, workspace}) {
@@ -290,6 +289,11 @@ export default {
 	 *   Promise resolving with the given graph instance to allow method chaining
 	 */
 	enrichProjectGraph: async function(projectGraph, options = {}) {
+		// Lock the graph so the entire lifecycle from this point — framework resolution,
+		// build, and serve — is treated as atomic by ui5 cache clean. Without this lock,
+		// cache clean could wipe framework packages or build data that the graph is actively using.
+		await projectGraph._preventCacheClean();
+
 		const {workspace, snapshotCache} = options;
 		const rootProject = projectGraph.getRoot();
 		const frameworkName = rootProject.getFrameworkName();
@@ -349,14 +353,7 @@ export default {
 		}
 
 		// ENV var should take precedence over the dataDir from the configuration.
-		let ui5DataDir = process.env.UI5_DATA_DIR;
-		if (!ui5DataDir) {
-			const config = await Configuration.fromFile();
-			ui5DataDir = config.getUi5DataDir();
-		}
-		if (ui5DataDir) {
-			ui5DataDir = path.resolve(cwd, ui5DataDir);
-		}
+		const ui5DataDir = await resolveUi5DataDir();
 
 		if (options.versionOverride) {
 			version = await Resolver.resolveVersion(options.versionOverride, {
@@ -406,7 +403,8 @@ export default {
 		}
 
 		const frameworkGraph = new ProjectGraph({
-			rootProjectName: `fake-root-of-${rootProject.getName()}-framework-dependency-graph`
+			rootProjectName: `fake-root-of-${rootProject.getName()}-framework-dependency-graph`,
+			ui5DataDir,
 		});
 
 		const projectProcessor = new utils.ProjectProcessor({

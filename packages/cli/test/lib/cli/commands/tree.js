@@ -33,6 +33,7 @@ test.beforeEach(async (t) => {
 		traverseBreadthFirst: t.context.traverseBreadthFirst,
 		getExtensionNames: t.context.getExtensionNames,
 		getExtension: t.context.getExtension,
+		destroy: sinon.stub(),
 	};
 	t.context.graph = {
 		graphFromStaticFile: sinon.stub().resolves(fakeGraph),

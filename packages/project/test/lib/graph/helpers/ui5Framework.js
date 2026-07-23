@@ -54,19 +54,15 @@ test.beforeEach(async (t) => {
 	t.context.Sapui5MavenSnapshotResolverResolveVersionStub = sinon.stub();
 	t.context.Sapui5MavenSnapshotResolverStub.resolveVersion = t.context.Sapui5MavenSnapshotResolverResolveVersionStub;
 
-	t.context.getUi5DataDirStub = sinon.stub().returns(undefined);
-
-	t.context.ConfigurationStub = {
-		fromFile: sinon.stub().resolves({
-			getUi5DataDir: t.context.getUi5DataDirStub
-		})
-	};
+	t.context.resolveUi5DataDirStub = sinon.stub().resolves("/test/ui5/data");
 
 	t.context.ui5Framework = await esmock.p("../../../../lib/graph/helpers/ui5Framework.js", {
 		"@ui5/logger": ui5Logger,
 		"../../../../lib/ui5Framework/Sapui5Resolver.js": t.context.Sapui5ResolverStub,
 		"../../../../lib/ui5Framework/Sapui5MavenSnapshotResolver.js": t.context.Sapui5MavenSnapshotResolverStub,
-		"../../../../lib/config/Configuration.js": t.context.ConfigurationStub,
+		"../../../../lib/utils/dataDir.js": {
+			resolveUi5DataDir: t.context.resolveUi5DataDirStub
+		},
 	});
 	t.context.utils = t.context.ui5Framework._utils;
 });
@@ -131,7 +127,7 @@ test.serial("enrichProjectGraph", async (t) => {
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: dependencyTree.configuration.framework.version,
-		ui5DataDir: undefined,
+		ui5DataDir: "/test/ui5/data",
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 
@@ -336,7 +332,7 @@ test.serial("enrichProjectGraph: With versionOverride", async (t) => {
 	t.is(Sapui5ResolverResolveVersionStub.callCount, 1);
 	t.deepEqual(Sapui5ResolverResolveVersionStub.getCall(0).args, ["1.99", {
 		cwd: dependencyTree.path,
-		ui5DataDir: undefined,
+		ui5DataDir: "/test/ui5/data",
 	}]);
 
 	t.is(Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
@@ -344,7 +340,7 @@ test.serial("enrichProjectGraph: With versionOverride", async (t) => {
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: "1.99.9",
-		ui5DataDir: undefined,
+		ui5DataDir: "/test/ui5/data",
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
@@ -398,7 +394,7 @@ test.serial("enrichProjectGraph: With versionOverride containing snapshot versio
 	t.is(Sapui5MavenSnapshotResolverResolveVersionStub.callCount, 1);
 	t.deepEqual(Sapui5MavenSnapshotResolverResolveVersionStub.getCall(0).args, ["1.99-SNAPSHOT", {
 		cwd: dependencyTree.path,
-		ui5DataDir: undefined,
+		ui5DataDir: "/test/ui5/data",
 	}]);
 
 	t.is(Sapui5MavenSnapshotResolverStub.callCount, 1,
@@ -407,7 +403,7 @@ test.serial("enrichProjectGraph: With versionOverride containing snapshot versio
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: "1.99.9-SNAPSHOT",
-		ui5DataDir: undefined,
+		ui5DataDir: "/test/ui5/data",
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
@@ -461,7 +457,7 @@ test.serial("enrichProjectGraph: With versionOverride containing latest-snapshot
 	t.is(Sapui5MavenSnapshotResolverResolveVersionStub.callCount, 1);
 	t.deepEqual(Sapui5MavenSnapshotResolverResolveVersionStub.getCall(0).args, ["latest-snapshot", {
 		cwd: dependencyTree.path,
-		ui5DataDir: undefined,
+		ui5DataDir: "/test/ui5/data",
 	}]);
 
 	t.is(Sapui5MavenSnapshotResolverStub.callCount, 1,
@@ -470,7 +466,7 @@ test.serial("enrichProjectGraph: With versionOverride containing latest-snapshot
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: "1.99.9-SNAPSHOT",
-		ui5DataDir: undefined,
+		ui5DataDir: "/test/ui5/data",
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
@@ -630,7 +626,7 @@ test.serial("enrichProjectGraph should resolve framework project with version an
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: "1.2.3",
-		ui5DataDir: undefined,
+		ui5DataDir: "/test/ui5/data",
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
@@ -726,7 +722,7 @@ test.serial("enrichProjectGraph should resolve framework project " +
 	t.is(Sapui5ResolverResolveVersionStub.callCount, 1);
 	t.deepEqual(Sapui5ResolverResolveVersionStub.getCall(0).args, ["3.4.5", {
 		cwd: dependencyTree.path,
-		ui5DataDir: undefined,
+		ui5DataDir: "/test/ui5/data",
 	}]);
 
 	t.is(Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
@@ -735,7 +731,7 @@ test.serial("enrichProjectGraph should resolve framework project " +
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: "1.99.9",
-		ui5DataDir: undefined,
+		ui5DataDir: "/test/ui5/data",
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
@@ -1000,7 +996,7 @@ test.serial("enrichProjectGraph should use framework library metadata from works
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: "1.111.1",
-		ui5DataDir: undefined,
+		ui5DataDir: "/test/ui5/data",
 		providedLibraryMetadata: workspaceFrameworkLibraryMetadata
 	}], "Sapui5Resolver#constructor should be called with expected args");
 	t.is(Sapui5ResolverStub.getCall(0).args[0].providedLibraryMetadata, workspaceFrameworkLibraryMetadata);
@@ -1058,7 +1054,7 @@ test.serial("enrichProjectGraph should allow omitting framework version in case 
 	t.deepEqual(Sapui5ResolverStub.getCall(0).args, [{
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
-		ui5DataDir: undefined,
+		ui5DataDir: "/test/ui5/data",
 		version: undefined,
 		providedLibraryMetadata: workspaceFrameworkLibraryMetadata
 	}], "Sapui5Resolver#constructor should be called with expected args");
@@ -1108,6 +1104,7 @@ test.serial("enrichProjectGraph should use UI5 data dir from env var", async (t)
 	process.env.UI5_DATA_DIR = "./ui5-data-dir-from-env-var";
 
 	const expectedUi5DataDir = path.resolve(dependencyTree.path, "./ui5-data-dir-from-env-var");
+	t.context.resolveUi5DataDirStub.resolves(expectedUi5DataDir);
 
 	await ui5Framework.enrichProjectGraph(projectGraph);
 
@@ -1122,7 +1119,7 @@ test.serial("enrichProjectGraph should use UI5 data dir from env var", async (t)
 });
 
 test.serial("enrichProjectGraph should use UI5 data dir from configuration", async (t) => {
-	const {sinon, ui5Framework, utils, Sapui5ResolverInstallStub, getUi5DataDirStub} = t.context;
+	const {sinon, ui5Framework, utils, Sapui5ResolverInstallStub, resolveUi5DataDirStub} = t.context;
 
 	const dependencyTree = {
 		id: "test1",
@@ -1161,9 +1158,8 @@ test.serial("enrichProjectGraph should use UI5 data dir from configuration", asy
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	getUi5DataDirStub.returns("./ui5-data-dir-from-config");
-
 	const expectedUi5DataDir = path.resolve(dependencyTree.path, "./ui5-data-dir-from-config");
+	resolveUi5DataDirStub.resolves(expectedUi5DataDir);
 
 	await ui5Framework.enrichProjectGraph(projectGraph);
 
@@ -1178,7 +1174,7 @@ test.serial("enrichProjectGraph should use UI5 data dir from configuration", asy
 });
 
 test.serial("enrichProjectGraph should use absolute UI5 data dir from configuration", async (t) => {
-	const {sinon, ui5Framework, utils, Sapui5ResolverInstallStub, getUi5DataDirStub} = t.context;
+	const {sinon, ui5Framework, utils, Sapui5ResolverInstallStub, resolveUi5DataDirStub} = t.context;
 
 	const dependencyTree = {
 		id: "test1",
@@ -1217,9 +1213,8 @@ test.serial("enrichProjectGraph should use absolute UI5 data dir from configurat
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	getUi5DataDirStub.returns("/absolute-ui5-data-dir-from-config");
-
 	const expectedUi5DataDir = path.resolve("/absolute-ui5-data-dir-from-config");
+	resolveUi5DataDirStub.resolves(expectedUi5DataDir);
 
 	await ui5Framework.enrichProjectGraph(projectGraph);
 

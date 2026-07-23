@@ -6,6 +6,9 @@ import Specification from "../../../lib/specifications/Specification.js";
 
 const __dirname = import.meta.dirname;
 
+// Dummy data directory passed to all ProjectGraph instances in unit tests.
+const TEST_UI5_DATA_DIR = "/test/tmp/ui5/data";
+
 const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
 
 async function createProject(name) {
@@ -77,7 +80,13 @@ test.beforeEach(async (t) => {
 	t.context.ProjectGraph = await esmock.p("../../../lib/graph/ProjectGraph.js", {
 		"@ui5/logger": {
 			getLogger: sinon.stub().withArgs("graph:ProjectGraph").returns(t.context.log)
-		}
+		},
+		"../../../lib/utils/lock.js": {
+			acquireLock: sinon.stub().resolves(() => {}),
+			getLockDir: sinon.stub().returns("/test/locks"),
+			CLEANUP_LOCK_NAME: "cache-cleanup.lock",
+			hasActiveLocks: sinon.stub().resolves(false),
+		},
 	});
 });
 
@@ -90,7 +99,8 @@ test("Instantiate a basic project graph", (t) => {
 	const {ProjectGraph} = t.context;
 	t.notThrows(() => {
 		new ProjectGraph({
-			rootProjectName: "my root project"
+			rootProjectName: "my root project",
+			ui5DataDir: TEST_UI5_DATA_DIR,
 		});
 	}, "Should not throw");
 });
@@ -107,7 +117,8 @@ test("Instantiate a basic project with missing parameter rootProjectName", (t) =
 test("getRoot", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "application.a"
+		rootProjectName: "application.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	const project = await createProject("application.a");
 	graph.addProject(project);
@@ -118,7 +129,8 @@ test("getRoot", async (t) => {
 test("getRoot: Root not added to graph", (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "application.a"
+		rootProjectName: "application.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 
 	const error = t.throws(() => {
@@ -132,7 +144,8 @@ test("getRoot: Root not added to graph", (t) => {
 test("add-/getProject", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	const project = await createProject("application.a");
 	graph.addProject(project);
@@ -143,7 +156,8 @@ test("add-/getProject", async (t) => {
 test("addProject: Add duplicate", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	const project1 = await createProject("application.a");
 	graph.addProject(project1);
@@ -164,7 +178,8 @@ test("addProject: Add duplicate", async (t) => {
 test("addProject: Add project with integer-like name", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	const project = await createProject("1337");
 
@@ -179,7 +194,8 @@ test("addProject: Add project with integer-like name", async (t) => {
 test("getProject: Project is not in graph", (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	const res = graph.getProject("application.a");
 	t.is(res, undefined, "Should return undefined");
@@ -188,7 +204,8 @@ test("getProject: Project is not in graph", (t) => {
 test("getProjects", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	const project1 = await createProject("application.a");
 	graph.addProject(project1);
@@ -205,7 +222,8 @@ test("getProjects", async (t) => {
 test("getProjectNames", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	const project1 = await createProject("application.a");
 	graph.addProject(project1);
@@ -222,7 +240,8 @@ test("getProjectNames", async (t) => {
 test("getSize", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	const project1 = await createProject("application.a");
 	graph.addProject(project1);
@@ -240,7 +259,8 @@ test("getSize", async (t) => {
 test("add-/getExtension", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	const extension = await createExtension("extension.a");
 	graph.addExtension(extension);
@@ -251,7 +271,8 @@ test("add-/getExtension", async (t) => {
 test("addExtension: Add duplicate", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	const extension1 = await createExtension("extension.a");
 	graph.addExtension(extension1);
@@ -272,7 +293,8 @@ test("addExtension: Add duplicate", async (t) => {
 test("addExtension: Add extension with integer-like name", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	const extension = await createExtension("1337");
 
@@ -287,7 +309,8 @@ test("addExtension: Add extension with integer-like name", async (t) => {
 test("getExtension: Project is not in graph", (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	const res = graph.getExtension("extension.a");
 	t.is(res, undefined, "Should return undefined");
@@ -296,7 +319,8 @@ test("getExtension: Project is not in graph", (t) => {
 test("getExtensions", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	const extension1 = await createExtension("extension.a");
 	graph.addExtension(extension1);
@@ -312,7 +336,8 @@ test("getExtensions", async (t) => {
 test("declareDependency / getDependencies", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -343,7 +368,8 @@ test("declareDependency / getDependencies", async (t) => {
 test("getTransitiveDependencies", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -368,7 +394,8 @@ test("getTransitiveDependencies", async (t) => {
 test("getTransitiveDependencies: Unknown project", (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 
 	const error = t.throws(() => {
@@ -382,7 +409,8 @@ test("getTransitiveDependencies: Unknown project", (t) => {
 test("declareDependency: Unknown source", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.b"));
 
@@ -398,7 +426,8 @@ test("declareDependency: Unknown source", async (t) => {
 test("declareDependency: Unknown target", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 
@@ -414,7 +443,8 @@ test("declareDependency: Unknown target", async (t) => {
 test("declareDependency: Same target as source", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -431,7 +461,8 @@ test("declareDependency: Same target as source", async (t) => {
 test("declareDependency: Already declared", async (t) => {
 	const {ProjectGraph, log} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -448,7 +479,8 @@ test("declareDependency: Already declared", async (t) => {
 test("declareDependency: Already declared as optional", async (t) => {
 	const {ProjectGraph, log} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -468,7 +500,8 @@ test("declareDependency: Already declared as optional", async (t) => {
 test("declareDependency: Already declared as non-optional", async (t) => {
 	const {ProjectGraph, log} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -486,7 +519,8 @@ test("declareDependency: Already declared as non-optional", async (t) => {
 test("declareDependency: Already declared as optional, now non-optional", async (t) => {
 	const {ProjectGraph, log} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -503,7 +537,8 @@ test("declareDependency: Already declared as optional, now non-optional", async 
 test("getDependencies: Project without dependencies", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 
 	graph.addProject(await createProject("library.a"));
@@ -515,7 +550,8 @@ test("getDependencies: Project without dependencies", async (t) => {
 test("getDependencies: Unknown project", (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
+		rootProjectName: "my root project",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 
 	const error = t.throws(() => {
@@ -529,7 +565,8 @@ test("getDependencies: Unknown project", (t) => {
 test("resolveOptionalDependencies", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -564,7 +601,8 @@ test("resolveOptionalDependencies", async (t) => {
 test("resolveOptionalDependencies: Optional dependency has not been resolved", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -615,7 +653,8 @@ test("resolveOptionalDependencies: Optional dependency has not been resolved", a
 test("resolveOptionalDependencies: Dependency of optional dependency has not been resolved", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -642,7 +681,8 @@ test("resolveOptionalDependencies: Dependency of optional dependency has not bee
 test("resolveOptionalDependencies: Cyclic optional dependency is not resolved", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -671,7 +711,8 @@ test("resolveOptionalDependencies: Cyclic optional dependency is not resolved", 
 test("resolveOptionalDependencies: Resolves transitive optional dependencies", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -706,7 +747,8 @@ test("resolveOptionalDependencies: Resolves transitive optional dependencies", a
 test("traverseBreadthFirst: Async", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -736,7 +778,8 @@ test("traverseBreadthFirst: Async", async (t) => {
 test("traverseBreadthFirst: Sync", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -759,7 +802,8 @@ test("traverseBreadthFirst: Sync", async (t) => {
 test("traverseBreadthFirst: No project visited twice", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -779,7 +823,8 @@ test("traverseBreadthFirst: No project visited twice", async (t) => {
 test("traverseBreadthFirst: Detect cycle", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -796,7 +841,8 @@ test("traverseBreadthFirst: Detect cycle", async (t) => {
 test("traverseBreadthFirst: No cycle when visited breadth first", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -817,7 +863,8 @@ test("traverseBreadthFirst: No cycle when visited breadth first", async (t) => {
 test("traverseBreadthFirst: Can't find start node", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 
 	const error = await t.throwsAsync(graph.traverseBreadthFirst(() => {}));
@@ -829,7 +876,8 @@ test("traverseBreadthFirst: Can't find start node", async (t) => {
 test("traverseBreadthFirst: Custom start node", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -854,7 +902,8 @@ test("traverseBreadthFirst: Custom start node", async (t) => {
 test("traverseBreadthFirst: dependencies parameter", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -890,7 +939,8 @@ test("traverseBreadthFirst: dependencies parameter", async (t) => {
 test("traverseBreadthFirst: Dependency declaration order is followed", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph1 = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph1.addProject(await createProject("library.a"));
 	graph1.addProject(await createProject("library.b"));
@@ -909,7 +959,8 @@ test("traverseBreadthFirst: Dependency declaration order is followed", async (t)
 	]);
 
 	const graph2 = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph2.addProject(await createProject("library.a"));
 	graph2.addProject(await createProject("library.b"));
@@ -931,7 +982,8 @@ test("traverseBreadthFirst: Dependency declaration order is followed", async (t)
 test("traverseDepthFirst: Async", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -961,7 +1013,8 @@ test("traverseDepthFirst: Async", async (t) => {
 test("traverseDepthFirst: Sync", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -984,7 +1037,8 @@ test("traverseDepthFirst: Sync", async (t) => {
 test("traverseDepthFirst: No project visited twice", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1004,7 +1058,8 @@ test("traverseDepthFirst: No project visited twice", async (t) => {
 test("traverseDepthFirst: Detect cycle", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1021,7 +1076,8 @@ test("traverseDepthFirst: Detect cycle", async (t) => {
 test("traverseDepthFirst: Cycle which does not occur in BFS", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1041,7 +1097,8 @@ test("traverseDepthFirst: Cycle which does not occur in BFS", async (t) => {
 test("traverseDepthFirst: Can't find start node", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 
 	const error = await t.throwsAsync(graph.traverseDepthFirst(() => {}));
@@ -1053,7 +1110,8 @@ test("traverseDepthFirst: Can't find start node", async (t) => {
 test("traverseDepthFirst: Custom start node", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1078,7 +1136,8 @@ test("traverseDepthFirst: Custom start node", async (t) => {
 test("traverseDepthFirst: dependencies parameter", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1114,7 +1173,8 @@ test("traverseDepthFirst: dependencies parameter", async (t) => {
 test("traverseDepthFirst: Dependency declaration order is followed", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph1 = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph1.addProject(await createProject("library.a"));
 	graph1.addProject(await createProject("library.b"));
@@ -1133,7 +1193,8 @@ test("traverseDepthFirst: Dependency declaration order is followed", async (t) =
 	]);
 
 	const graph2 = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph2.addProject(await createProject("library.a"));
 	graph2.addProject(await createProject("library.b"));
@@ -1155,7 +1216,8 @@ test("traverseDepthFirst: Dependency declaration order is followed", async (t) =
 test("traverseDependenciesDepthFirst: Basic traversal without including start module", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1178,7 +1240,8 @@ test("traverseDependenciesDepthFirst: Basic traversal without including start mo
 test("traverseDependenciesDepthFirst: Basic traversal including start module", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1202,7 +1265,8 @@ test("traverseDependenciesDepthFirst: Basic traversal including start module", a
 test("traverseDependenciesDepthFirst: Using boolean as first parameter", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1226,7 +1290,8 @@ test("traverseDependenciesDepthFirst: Using boolean as first parameter", async (
 test("traverseDependenciesDepthFirst: No dependencies", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 
@@ -1241,7 +1306,8 @@ test("traverseDependenciesDepthFirst: No dependencies", async (t) => {
 test("traverseDependenciesDepthFirst: Diamond dependency structure", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1268,7 +1334,8 @@ test("traverseDependenciesDepthFirst: Diamond dependency structure", async (t) =
 test("traverseDependenciesDepthFirst: Complex dependency chain", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1297,7 +1364,8 @@ test("traverseDependenciesDepthFirst: Complex dependency chain", async (t) => {
 test("traverseDependenciesDepthFirst: No project visited twice", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1323,7 +1391,8 @@ test("traverseDependenciesDepthFirst: No project visited twice", async (t) => {
 test("traverseDependenciesDepthFirst: Can't find start node", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 
@@ -1341,7 +1410,8 @@ test("traverseDependenciesDepthFirst: Can't find start node", async (t) => {
 test("traverseDependenciesDepthFirst: dependencies parameter", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1377,7 +1447,8 @@ test("traverseDependenciesDepthFirst: dependencies parameter", async (t) => {
 test("traverseDependenciesDepthFirst: Detect cycle", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1399,7 +1470,8 @@ test("traverseDependenciesDepthFirst: Detect cycle", async (t) => {
 test("traverseDependenciesDepthFirst: Dependency declaration order is followed", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph1 = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph1.addProject(await createProject("library.a"));
 	graph1.addProject(await createProject("library.b"));
@@ -1422,7 +1494,8 @@ test("traverseDependenciesDepthFirst: Dependency declaration order is followed",
 	], "First graph should visit in declaration order");
 
 	const graph2 = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph2.addProject(await createProject("library.a"));
 	graph2.addProject(await createProject("library.b"));
@@ -1448,7 +1521,8 @@ test("traverseDependenciesDepthFirst: Dependency declaration order is followed",
 test("traverseDependents: Basic traversal without including start module", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1471,7 +1545,8 @@ test("traverseDependents: Basic traversal without including start module", async
 test("traverseDependents: Basic traversal including start module", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1495,7 +1570,8 @@ test("traverseDependents: Basic traversal including start module", async (t) => 
 test("traverseDependents: Using boolean as first parameter", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.c"
+		rootProjectName: "library.c",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1519,7 +1595,8 @@ test("traverseDependents: Using boolean as first parameter", async (t) => {
 test("traverseDependents: No dependents", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1537,7 +1614,8 @@ test("traverseDependents: No dependents", async (t) => {
 test("traverseDependents: Multiple dependents", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1563,7 +1641,8 @@ test("traverseDependents: Multiple dependents", async (t) => {
 test("traverseDependents: Complex chain", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1592,7 +1671,8 @@ test("traverseDependents: Complex chain", async (t) => {
 test("traverseDependents: No project visited twice", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1620,7 +1700,8 @@ test("traverseDependents: No project visited twice", async (t) => {
 test("traverseDependents: Can't find start node", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 
@@ -1639,7 +1720,8 @@ test("traverseDependents: Can't find start node", async (t) => {
 test("traverseDependents: dependents parameter", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1677,7 +1759,8 @@ test("traverseDependents: dependents parameter", async (t) => {
 test("traverseDependents: Detect cycle", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1699,10 +1782,12 @@ test("traverseDependents: Detect cycle", async (t) => {
 test("join", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph1 = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	const graph2 = new ProjectGraph({
-		rootProjectName: "theme.a"
+		rootProjectName: "theme.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph1.addProject(await createProject("library.a"));
 	graph1.addProject(await createProject("library.b"));
@@ -1764,10 +1849,12 @@ test("join", async (t) => {
 test("join: Preserves hasUnresolvedOptionalDependencies flag", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph1 = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	const graph2 = new ProjectGraph({
-		rootProjectName: "theme.a"
+		rootProjectName: "theme.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph1.addProject(await createProject("library.a"));
 	graph1.addProject(await createProject("library.b"));
@@ -1784,10 +1871,12 @@ test("join: Preserves hasUnresolvedOptionalDependencies flag", async (t) => {
 test("join: Seals incoming graph", (t) => {
 	const {ProjectGraph} = t.context;
 	const graph1 = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	const graph2 = new ProjectGraph({
-		rootProjectName: "theme.a"
+		rootProjectName: "theme.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 
 
@@ -1800,10 +1889,12 @@ test("join: Seals incoming graph", (t) => {
 test("join: Incoming graph already sealed", (t) => {
 	const {ProjectGraph} = t.context;
 	const graph1 = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	const graph2 = new ProjectGraph({
-		rootProjectName: "theme.a"
+		rootProjectName: "theme.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 
 	graph2.seal();
@@ -1816,10 +1907,12 @@ test("join: Incoming graph already sealed", (t) => {
 test("join: Unexpected project intersection", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph1 = new ProjectGraph({
-		rootProjectName: "😹"
+		rootProjectName: "😹",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	const graph2 = new ProjectGraph({
-		rootProjectName: "😼"
+		rootProjectName: "😼",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph1.addProject(await createProject("library.a"));
 	graph2.addProject(await createProject("library.a"));
@@ -1837,10 +1930,12 @@ test("join: Unexpected project intersection", async (t) => {
 test("join: Unexpected extension intersection", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph1 = new ProjectGraph({
-		rootProjectName: "😹"
+		rootProjectName: "😹",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	const graph2 = new ProjectGraph({
-		rootProjectName: "😼"
+		rootProjectName: "😼",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph1.addExtension(await createExtension("extension.a"));
 	graph2.addExtension(await createExtension("extension.a"));
@@ -1859,7 +1954,8 @@ test("join: Unexpected extension intersection", async (t) => {
 test("Seal/isSealed", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
-		rootProjectName: "library.a"
+		rootProjectName: "library.a",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	graph.addProject(await createProject("library.a"));
 	graph.addProject(await createProject("library.b"));
@@ -1907,7 +2003,8 @@ test("Seal/isSealed", async (t) => {
 
 
 	const graph2 = new ProjectGraph({
-		rootProjectName: "library.x"
+		rootProjectName: "library.x",
+		ui5DataDir: TEST_UI5_DATA_DIR,
 	});
 	t.throws(() => {
 		graph.join(graph2);
@@ -1933,4 +2030,71 @@ test("Seal/isSealed", async (t) => {
 
 	const extension = graph.getExtension("extension.b");
 	t.is(extension, undefined, "extension.b should not be added");
+});
+
+test.serial("_preventCacheClean(): calling it multiple times reuses the same lock", async (t) => {
+	const sinon = t.context.sinon;
+
+	const releaseSpy = sinon.spy();
+	const acquireLockStub = sinon.stub().resolves(releaseSpy);
+
+	const ProjectGraph = await esmock.p("../../../lib/graph/ProjectGraph.js", {
+		"@ui5/logger": {getLogger: sinon.stub().returns(t.context.log)},
+		"../../../lib/utils/lock.js": {
+			acquireLock: acquireLockStub,
+			getLockDir: sinon.stub().returns("/test/locks"),
+			CLEANUP_LOCK_NAME: "cache-cleanup.lock",
+			hasActiveLocks: sinon.stub().resolves(false),
+		},
+	});
+
+	const graph = new ProjectGraph({rootProjectName: "test", ui5DataDir: TEST_UI5_DATA_DIR});
+
+	await graph._preventCacheClean();
+	await graph._preventCacheClean();
+	await graph._preventCacheClean();
+
+	t.is(acquireLockStub.callCount, 1,
+		"acquireLock called exactly once — subsequent calls reuse the existing lock");
+	t.is(releaseSpy.callCount, 0, "lock not released between calls");
+
+	esmock.purge(ProjectGraph);
+});
+
+test.serial("_preventCacheClean(): after destroy() releases the lock, a new call acquires a fresh one", async (t) => {
+	const sinon = t.context.sinon;
+
+	const releaseSpy = sinon.spy();
+	const acquireLockStub = sinon.stub().resolves(releaseSpy);
+
+	const ProjectGraph = await esmock.p("../../../lib/graph/ProjectGraph.js", {
+		"@ui5/logger": {getLogger: sinon.stub().returns(t.context.log)},
+		"../../../lib/utils/lock.js": {
+			acquireLock: acquireLockStub,
+			getLockDir: sinon.stub().returns("/test/locks"),
+			CLEANUP_LOCK_NAME: "cache-cleanup.lock",
+			hasActiveLocks: sinon.stub().resolves(false),
+		},
+	});
+
+	const graph = new ProjectGraph({rootProjectName: "test", ui5DataDir: TEST_UI5_DATA_DIR});
+
+	// First acquisition
+	await graph._preventCacheClean();
+	t.is(acquireLockStub.callCount, 1, "lock acquired on first call");
+
+	// Repeated call — still the same lock, not re-acquired
+	await graph._preventCacheClean();
+	t.is(acquireLockStub.callCount, 1, "no second acquisition while lock is held");
+
+	// Release via destroy()
+	graph.destroy();
+	t.is(releaseSpy.callCount, 1, "lock released by destroy()");
+
+	// After release, _preventCacheClean() must acquire a fresh lock
+	await graph._preventCacheClean();
+	t.is(acquireLockStub.callCount, 2,
+		"new lock acquired after destroy() — lock is not held anymore");
+
+	esmock.purge(ProjectGraph);
 });
