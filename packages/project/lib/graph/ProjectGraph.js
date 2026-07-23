@@ -768,15 +768,6 @@ class ProjectGraph {
 		cache = Cache.Default,
 		ui5DataDir,
 	}) {
-		// Explicitly exclude task "generateVersionInfo" for Server builds
-		// because middleware "versionInfo" will generate the version info anyways.
-		if (!Array.isArray(excludedTasks)) {
-			excludedTasks = [];
-		}
-		if (!excludedTasks.includes("generateVersionInfo")) {
-			excludedTasks.push("generateVersionInfo");
-		}
-
 		this.seal(); // Do not allow further changes to the graph
 		if (this._builtOrServed) {
 			throw new Error(

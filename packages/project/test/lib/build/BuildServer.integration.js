@@ -213,6 +213,10 @@ test.serial("Serve application.a, request application resource", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -243,6 +247,7 @@ test.serial("Serve application.a, request application resource", async (t) => {
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
+						"generateVersionInfo"
 					]
 				}
 			}
@@ -309,6 +314,10 @@ test.serial("Serve application.a, create and delete a source file", async (t) =>
 		resource: "/created.js",
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -341,6 +350,7 @@ test.serial("Serve application.a, create and delete a source file", async (t) =>
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
+						"generateVersionInfo"
 					]
 				}
 			}
@@ -362,22 +372,13 @@ test.serial("Serve application.a, create and delete a source file", async (t) =>
 		}
 	});
 
-	// #5 the second file is no longer served, but requesting it triggers a build of the dependencies
-	// because the file is not known anymore and might come from a different project.
-	// Note: This is special for applications, which are served at root level. For libraries, the server
-	// can determine whether a resource is inside a project namespace and only trigger a build for the affected
-	// project. The logic could be improved, especially like in this case where the requested resource is outside
-	// of /resources or /test-resources.
+	// #5 the second file is no longer served, thus requesting it shouldn't trigger a rebuild
+	// (all projects are still cached from the previous builds)
 	await fixtureTester.requestResource({
 		resource: "/another.js",
 		notFound: true,
 		assertions: {
-			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
-			}
+			projects: {}
 		}
 	});
 
@@ -398,6 +399,7 @@ test.serial("Serve application.a, create and delete a source file", async (t) =>
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
+						"generateVersionInfo"
 					]
 				}
 			}
@@ -576,7 +578,10 @@ test.serial("Serve application.a, request application resource AND library resou
 		resources: ["/test.js", "/resources/library/a/.library"],
 		assertions: {
 			projects: {
+				"library.d": {},
 				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -648,6 +653,10 @@ test.serial("Serve application.a with --cache=Default", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -677,6 +686,7 @@ test.serial("Serve application.a with --cache=Default", async (t) => {
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
+						"generateVersionInfo"
 					]
 				}
 			}
@@ -699,6 +709,10 @@ test.serial("Serve application.a with --cache=Off", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -717,10 +731,15 @@ test.serial("Serve application.a with --cache=Off", async (t) => {
 	await fs.appendFile(changedFilePath, `\ntest("line added for ReadOnly test");\n`);
 	await fixtureTester.fireWatcherEvent("update", changedFilePath);
 
+	// #3: Request the source file --> all tasks execute (cache still not written, but changes detected)
 	await fixtureTester.requestResource({
 		resource: "/test.js",
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -736,17 +755,21 @@ test.serial("Serve application.a with --cache=Off", async (t) => {
 	await fixtureTester.teardown();
 	await fixtureTester.serveProject({config: {cache: Cache.Default}});
 
-	// #3: Request with cache=Default --> all tasks execute (no cache from previous Off mode)
+	// #4: Request with cache=Default --> all tasks execute (no cache from previous Off mode)
 	await fixtureTester.requestResource({
 		resource: "/test.js",
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
 	});
 
-	// #4: Request with cache=Default (again) --> nothing rebuilds (cache now exists)
+	// #5: Request with cache=Default (again) --> nothing rebuilds (cache now exists)
 	await fixtureTester.requestResource({
 		resource: "/test.js",
 		assertions: {
@@ -758,11 +781,15 @@ test.serial("Serve application.a with --cache=Off", async (t) => {
 	await fixtureTester.teardown();
 	await fixtureTester.serveProject({config: {cache: Cache.Off}});
 
-	// #5: Request with cache=Off --> all tasks execute (ignores existing cache)
+	// #6: Request with cache=Off --> all tasks execute (ignores existing cache)
 	await fixtureTester.requestResource({
 		resource: "/test.js",
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -778,6 +805,10 @@ test.serial("Serve application.a with --cache=ReadOnly", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -811,6 +842,7 @@ test.serial("Serve application.a with --cache=ReadOnly", async (t) => {
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
+						"generateVersionInfo"
 					]
 				}
 			}
@@ -827,7 +859,8 @@ test.serial("Serve application.a with --cache=ReadOnly", async (t) => {
 	await fixtureTester.teardown();
 	await fixtureTester.serveProject({config: {cache: Cache.Default}});
 
-	// #4: Request with cache=Default, no new changes --> rebuilds again (cache from #3 missing)
+	// #4: Request with cache=Default, no new changes --> cache from #3 missing
+	// --> only affected tasks get re-executed (cache reuse)
 	// This validates that ReadOnly didn't write the cache in step #3
 	await fixtureTester.requestResource({
 		resource: "/test.js",
@@ -839,6 +872,7 @@ test.serial("Serve application.a with --cache=ReadOnly", async (t) => {
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
+						"generateVersionInfo"
 					]
 				}
 			}
@@ -855,6 +889,10 @@ test.serial("Serve application.a with --cache=Force (1)", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -1195,12 +1233,17 @@ test.serial("Source change during second build retries cleanly without no_cache 
 });
 
 test.serial("Serve application.a (test exclusion of generateVersionInfo)", async (t) => {
-	// This test verifies that task "generateVersionInfo" is excluded
-	// (default for server builds).
+	// This test verifies that the "generateVersionInfo" task
+	// can be excluded from the server build via the "excludedTasks" config option.
 
 	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
 
-	await fixtureTester.serveProject();
+	// #1 Exclude "generateVersionInfo":
+	await fixtureTester.serveProject({
+		config: {
+			excludedTasks: ["generateVersionInfo"],
+		}
+	});
 
 	// Request a resource to trigger the build:
 	await fixtureTester.requestResource({
@@ -1216,7 +1259,42 @@ test.serial("Serve application.a (test exclusion of generateVersionInfo)", async
 						"generateFlexChangesBundle",
 						"enhanceManifest",
 						"generateComponentPreload"
-						// no "generateVersionInfo" as expected
+						// "generateVersionInfo" is NOT EXECUTED
+					],
+				},
+			}
+		},
+	});
+
+	await fixtureTester.teardown();
+
+
+	// #2 Don't exclude tasks (includes "generateVersionInfo"):
+	await fixtureTester.serveProject({
+		config: {
+			excludedTasks: [],
+		}
+	});
+
+	// Request a resource to trigger the build:
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+				"application.a": {
+					executedTasks: [
+						"escapeNonAsciiCharacters",
+						"replaceCopyright",
+						"replaceVersion",
+						"minify",
+						"generateFlexChangesBundle",
+						"enhanceManifest",
+						"generateComponentPreload",
+						"generateVersionInfo" // IS EXECUTED
 					],
 				},
 			}
