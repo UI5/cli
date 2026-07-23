@@ -80,6 +80,36 @@ test("getCacheInfo: single library and version", async (t) => {
 	t.is(result.versionCount, 1);
 });
 
+test("getCacheInfo: skips unreadable subdirectories without throwing", async (t) => {
+	const frameworkDir = path.join(t.context.testDir, "framework");
+	await mkPackageIn(frameworkDir, "@openui5", "sap.m", "1.120.0");
+	await mkPackageIn(frameworkDir, "@sapui5", "sap.ui.core", "1.110.0");
+
+	const unreadableScopeDir = path.join(frameworkDir, "packages", "@sapui5");
+	const readdirStub = sinon.stub().callsFake(async (dirPath, opts) => {
+		if (dirPath === unreadableScopeDir) {
+			const err = Object.assign(new Error("EACCES: permission denied, scandir"), {code: "EACCES"});
+			throw err;
+		}
+		return fs.readdir(dirPath, opts);
+	});
+
+	const FrameworkCacheMocked = await esmock.p(
+		"../../../lib/ui5Framework/cache.js",
+		{"node:fs/promises": {...fs, readdir: readdirStub}}
+	);
+
+	try {
+		const result = await FrameworkCacheMocked.getCacheInfo(t.context.testDir);
+		t.truthy(result);
+		t.is(result.path, "framework");
+		t.is(result.libraryCount, 1);
+		t.is(result.versionCount, 1);
+	} finally {
+		esmock.purge(FrameworkCacheMocked);
+	}
+});
+
 // ─── cleanCache ───────────────────────────────────────────────────────────────
 
 test("cleanCache: returns null for non-existent framework directory", async (t) => {
@@ -215,11 +245,43 @@ test("cleanAdditional: orphaned dir deletion failure is non-fatal", async (t) =>
 	);
 
 	try {
-		const result = await t.notThrowsAsync(FrameworkCacheMocked.cleanAdditional(t.context.testDir));
-		t.truthy(result, "cleanAdditional completes despite orphan deletion failure");
+		const result = await FrameworkCacheMocked.cleanAdditional(t.context.testDir);
+		t.deepEqual(result, [], "failed deletion is excluded from the returned list");
+		await t.notThrowsAsync(fs.access(orphanDir), "failed orphan deletion keeps directory on disk");
 	} finally {
 		esmock.purge(FrameworkCacheMocked);
 		await fs.rm(orphanDir, {recursive: true, force: true}).catch(() => {});
+	}
+});
+
+test("cleanAdditional: returns only successfully removed orphaned dirs", async (t) => {
+	const orphanOk = path.join(t.context.testDir, "_framework_to_delete_ok");
+	const orphanFail = path.join(t.context.testDir, "_framework_to_delete_fail");
+	await mkPackageIn(orphanOk, "@openui5", "sap.m", "1.80.0");
+	await mkPackageIn(orphanFail, "@openui5", "sap.ui.core", "1.81.0");
+
+	const rmStub = sinon.stub().callsFake(async (p, opts) => {
+		if (p === orphanFail) {
+			throw new Error("simulated deletion failure");
+		}
+		return fs.rm(p, opts);
+	});
+
+	const FrameworkCacheMocked = await esmock.p(
+		"../../../lib/ui5Framework/cache.js",
+		{"node:fs/promises": {...fs, rm: rmStub}}
+	);
+
+	try {
+		const result = await FrameworkCacheMocked.cleanAdditional(t.context.testDir);
+		t.is(result.length, 1);
+		t.is(result[0].path, "_framework_to_delete_ok");
+
+		await t.throwsAsync(fs.access(orphanOk), {code: "ENOENT"});
+		await t.notThrowsAsync(fs.access(orphanFail));
+	} finally {
+		esmock.purge(FrameworkCacheMocked);
+		await fs.rm(orphanFail, {recursive: true, force: true}).catch(() => {});
 	}
 });
 
