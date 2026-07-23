@@ -97,7 +97,8 @@ export default class FrameworkCache {
 	 * them in the cleanup summary.
 	 *
 	 * Deletion failures are swallowed per entry so one stuck directory does not prevent
-	 * the others from being removed.
+	 * the others from being removed. Only entries that were removed successfully are
+	 * returned.
 	 *
 	 * @public
 	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
@@ -105,17 +106,19 @@ export default class FrameworkCache {
 	 */
 	static async cleanAdditional(ui5DataDir) {
 		const staleDirs = await FrameworkCache.getAdditionalCacheInfo(ui5DataDir);
+		const removedStaleDirs = [];
 
 		for (const staleDir of staleDirs) {
 			const staleDirPath = path.join(ui5DataDir, staleDir.path);
 			try {
 				await fs.rm(staleDirPath, {recursive: true, force: true});
+				removedStaleDirs.push(staleDir);
 			} catch {
 				// Ignore deletion errors
 			}
 		}
 
-		return staleDirs;
+		return removedStaleDirs;
 	}
 
 	/**
@@ -207,19 +210,26 @@ async function getPackageStats(frameworkDir) {
 		return null;
 	}
 
-	const extractSubDir = (dirList) => {
-		return dirList.filter((e) => e.isDirectory())
-			.map((currentDir) => {
-				try {
-					return fs.readdir(path.join(currentDir.parentPath, currentDir.name), {withFileTypes: true});
-				} catch {
-					return;
-				}
-			});
-	};
+	/**
+	 * Reads direct subdirectories for each given directory entry and flattens the result.
+	 * Any unreadable subdirectory is skipped.
+	 *
+	 * @param {import("node:fs").Dirent[]} dirList
+	 * @returns {Promise<import("node:fs").Dirent[]>}
+	 */
+	async function readSubDirectories(dirList) {
+		const directoryEntries = dirList.filter((entry) => entry.isDirectory());
+		const nestedEntries = await Promise.all(directoryEntries.map((currentDir) => {
+			return fs.readdir(
+				path.join(currentDir.parentPath, currentDir.name),
+				{withFileTypes: true}
+			).catch(() => undefined);
+		}));
+		return nestedEntries.filter(Boolean).flat();
+	}
 
-	const libDirs = (await Promise.all(extractSubDir(projectDirs))).filter(Boolean).flat();
-	const versionDirs = (await Promise.all(extractSubDir(libDirs))).filter(Boolean).flat();
+	const libDirs = await readSubDirectories(projectDirs);
+	const versionDirs = await readSubDirectories(libDirs);
 
 	const librarySet = new Set(libDirs.map((e) => e.name));
 	const versionSet = new Set(versionDirs.map((e) => e.name));
