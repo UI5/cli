@@ -21,6 +21,12 @@ const TEST_UI5_DATA_DIR = path.resolve("test-ui5-home");
 
 // Typical framework stub result shape: { path, libraryCount, versionCount }
 const FRAMEWORK_STUB = {path: "framework", libraryCount: 18, versionCount: 5};
+const WARNING_PREFIX = "Warning:";
+const WARNING_TEXT =
+	"Only run ui5 cache clean when no UI5 CLI process and no @ui5/* API consumer is actively running.";
+const WARNING_IMPACT_TEXT =
+	"Running ui5 cache clean while ui5 build or ui5 serve is in progress can break the running process " +
+	"and lead to failed or inconsistent results.";
 
 test.beforeEach(async (t) => {
 	t.context.argv = getDefaultArgv();
@@ -85,6 +91,7 @@ test.afterEach.always((t) => {
 test("Command builder", async (t) => {
 	const cacheModule = await import("../../../../lib/cli/commands/cache.js");
 	const yargsStub = {
+		usage: sinon.stub().returnsThis(),
 		option: sinon.stub().returnsThis(),
 		example: sinon.stub().returnsThis(),
 	};
@@ -102,6 +109,9 @@ test("Command builder", async (t) => {
 	t.is(result, cliStub, "Builder returns cli instance");
 	t.is(cliStub.demandCommand.callCount, 1, "demandCommand called once");
 	t.is(cliStub.command.callCount, 1, "command called once");
+	t.is(yargsStub.usage.callCount, 1, "usage called once for warning help banner");
+	t.true(yargsStub.usage.firstCall.args[0].startsWith("WARNING:"),
+		"usage banner starts with warning");
 	t.is(yargsStub.option.callCount, 1, "option called for --yes flag");
 	t.is(yargsStub.example.callCount, 3, "example called 3 times");
 });
@@ -214,6 +224,9 @@ test.serial("ui5 cache clean: removes both entries and reports", async (t) => {
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes("Checking cache at"), "Prints checking line");
 	t.true(allOutput.includes(TEST_UI5_DATA_DIR), "Shows resolved ui5DataDir");
+	t.true(allOutput.includes(WARNING_PREFIX), "Shows safety warning before interactive confirmation");
+	t.true(allOutput.includes(WARNING_TEXT), "Shows safety warning details");
+	t.true(allOutput.includes(WARNING_IMPACT_TEXT), "Shows warning impact details");
 	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "framework")), "Shows absolute framework path");
 	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "buildCache/v0_7")), "Shows absolute build path");
 	t.true(allOutput.includes("5 versions of 18 libraries"), "Shows library stats format");
@@ -221,6 +234,12 @@ test.serial("ui5 cache clean: removes both entries and reports", async (t) => {
 	t.false(allOutput.includes("7.0 MB"), "Does not show VACUUM-freed size");
 	t.true(allOutput.includes("Cleaned UI5 Framework packages and Build cache (Db)"),
 		"Shows success summary");
+	const warningCall = stderrWriteStub.getCalls().find((call) => {
+		return call.args[0].includes(WARNING_PREFIX);
+	});
+	t.truthy(warningCall, "Warning line is written to stderr");
+	t.true(warningCall.callId < yesnoStub.firstCall.callId,
+		"Warning is displayed before the confirmation prompt is shown");
 });
 
 test.serial("ui5 cache clean: user cancels", async (t) => {
@@ -374,6 +393,7 @@ test.serial("ui5 cache clean --yes: skips confirmation prompt", async (t) => {
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes("Success"), "Shows success message");
+	t.false(allOutput.includes(WARNING_PREFIX), "Does not show warning when --yes is used");
 });
 
 test.serial("ui5 cache clean: shows orphaned framework data in pre-confirmation summary", async (t) => {
