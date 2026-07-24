@@ -188,6 +188,16 @@ export async function serve(graph, {
 		// Ensure sap.ui.core is always built initially (if present in the graph)
 		initialBuildIncludedDependencies.push("sap.ui.core");
 	}
+
+	// Explicitly exclude task "generateVersionInfo" for Server builds
+	// because middleware "versionInfo" will generate the version info anyways.
+	if (!Array.isArray(excludedTasks)) {
+		excludedTasks = [];
+	}
+	if (!excludedTasks.includes("generateVersionInfo")) {
+		excludedTasks = [...excludedTasks, "generateVersionInfo"];
+	}
+
 	const buildServer = await graph.serve({
 		initialBuildIncludedDependencies,
 		includedTasks,

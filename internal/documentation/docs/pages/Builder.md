@@ -44,7 +44,7 @@ All available standard tasks are documented [in the API reference](https://ui5.g
 | generateBundle                 | *disabled* <sup>4</sup> | *disabled* <sup>4</sup> | *disabled* <sup>4</sup> |                         |
 | buildThemes                    |                         |                         |         enabled         |         enabled         |
 | generateThemeDesignerResources |                         |                         | *disabled* <sup>5</sup> | *disabled* <sup>5</sup> |
-| generateVersionInfo            | *disabled* <sup>1</sup> |                         |                         |                         |
+| generateVersionInfo            |  enabled <sup>6</sup>   |                         |                         |                         |
 | generateCachebusterInfo        |       *disabled*        |       *disabled*        |                         |                         |
 | generateApiIndex               | *disabled* <sup>1</sup> |                         |                         |                         |
 | generateResourcesJson          |       *disabled*        |       *disabled*        |       *disabled*        |       *disabled*        |
@@ -57,7 +57,8 @@ All available standard tasks are documented [in the API reference](https://ui5.g
 <sup>2</sup> Enabled for projects defining a [component preload configuration](./Configuration.md#component-preload-generation)  
 <sup>3</sup> Enabled in `self-contained` build, which disables `generateComponentPreload` and `generateLibraryPreload`  
 <sup>4</sup> Enabled for projects defining a [bundle configuration](./Configuration.md#custom-bundling)  
-<sup>5</sup> Can be enabled for framework projects via the `includeTask` option. For other projects, this task is skipped
+<sup>5</sup> Can be enabled for framework projects via the `includeTask` option. For other projects, this task is skipped  
+<sup>6</sup> Disabled for the server due to a corresponding middleware producing the same output
 
 ### minify
 
