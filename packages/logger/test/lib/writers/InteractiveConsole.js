@@ -947,6 +947,65 @@ test.serial("enable() reuses an existing log-update instance across disable+enab
 	writer.disable();
 });
 
+test.serial("a second enable() does not leak signal handlers", (t) => {
+	// A re-enable self-disables via ui5.log.stop-console, so the SIGINT handler
+	// count stays at one and returns to baseline after a single disable().
+	const stderr = createStubStderr();
+	const baseline = process.listenerCount("SIGINT");
+	const writer = new InteractiveConsole({stderr});
+
+	writer.enable();
+	const afterEnable = process.listenerCount("SIGINT");
+	t.is(afterEnable, baseline + 1, "enable() registers exactly one SIGINT handler");
+
+	writer.enable();
+	t.is(process.listenerCount("SIGINT"), afterEnable,
+		"second enable() does not add another SIGINT handler");
+
+	writer.disable();
+	t.is(process.listenerCount("SIGINT"), baseline,
+		"a single disable() detaches the handler, leaving no leak");
+});
+
+test.serial("#registerSignalHandlers() is a no-op when the map is already populated", (t) => {
+	// Reach the size guard: drop the writer's ui5.log.stop-console listener so
+	// the second enable() skips its self-disable and registration runs with the
+	// map still populated. #attachListeners() runs again unguarded, so restore
+	// process's listeners to baseline on teardown.
+	const events = [
+		"ui5.log", "ui5.build-metadata", "ui5.build-status", "ui5.project-build-status",
+		"ui5.serve-status", "ui5.tool-info", "ui5.tool-mode", "ui5.project-resolved",
+		"ui5.server-listening", "ui5.log.stop-console",
+		"SIGHUP", "SIGINT", "SIGTERM", "SIGBREAK", "exit",
+	];
+	const snapshot = new Map(events.map((e) => [e, new Set(process.listeners(e))]));
+	t.teardown(() => {
+		for (const [event, original] of snapshot) {
+			for (const listener of process.listeners(event)) {
+				if (!original.has(listener)) {
+					process.off(event, listener);
+				}
+			}
+		}
+	});
+
+	const stderr = createStubStderr();
+	const writer = new InteractiveConsole({stderr});
+	writer.enable();
+	const firstHandler = process.listeners("SIGINT").at(-1);
+
+	// Drop the stop-console listener enable() attached, so the next emit skips
+	// the self-disable.
+	process.off("ui5.log.stop-console", process.listeners("ui5.log.stop-console").at(-1));
+
+	writer.enable();
+
+	// Guard returned early: the first SIGINT handler is still live, not
+	// overwritten by a second registration.
+	t.is(process.listeners("SIGINT").at(-1), firstHandler,
+		"map-populated guard preserves the originally-registered handler");
+});
+
 test.serial("spinner tick timer without unref support is left as-is", (t) => {
 	// Node returns Timeout objects with an unref() method; some polyfills and
 	// runtimes don't. The writer must survive that shape — it doesn't rely on

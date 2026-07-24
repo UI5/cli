@@ -177,6 +177,11 @@ class InteractiveConsole {
 	// re-raise so cooperating handlers (profile.js, ProjectBuilder) still run.
 
 	#registerSignalHandlers() {
+		// Re-registering would strand the previous handlers on `process`:
+		// #deregisterSignalHandlers() can only detach what the map tracks.
+		if (this.#signalHandlers.size > 0) {
+			return;
+		}
 		for (const signal of TERMINATION_SIGNALS) {
 			const handler = () => this.#handleTerminationSignal(signal);
 			this.#signalHandlers.set(signal, handler);
