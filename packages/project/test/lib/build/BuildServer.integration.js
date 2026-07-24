@@ -85,17 +85,7 @@ function createParcelWatcherMock() {
 		subscriptions.length = 0;
 	}
 
-	// Deliver an error to every active subscription callback, mirroring how @parcel/watcher
-	// surfaces a dropped-events condition ("File system must be re-scanned.").
-	async function fireError(err) {
-		// Snapshot: recovery destroys/recreates subscriptions while we iterate.
-		for (const sub of subscriptions.slice()) {
-			sub.callback(err);
-		}
-		await new Promise((resolve) => setImmediate(resolve));
-	}
-
-	return {api, fire, fireError, reset};
+	return {api, fire, reset};
 }
 
 test.beforeEach((t) => {
@@ -164,46 +154,6 @@ test.serial("Serve application.a, initial file changes", async (t) => {
 	t.true(servedFileContent.includes(`test("third change");`), "Resource contains third changed file content");
 });
 
-// Complements the unit-level transient-failure coverage with a real-timer end-to-end pass: a
-// burst of rapid watcher events arrives while a reader request is parked. The extra first-build
-// (100 ms) and post-abort/transient (550 ms) settle windows must not hang the request, and the
-// transient aborts within the burst must never surface a `serve-error` on the status feed — the
-// server reports `serve-settling` while holding, then resolves on the single settled-tree rebuild.
-test.serial("Serve application.a, rapid change burst reports settling and never errors", async (t) => {
-	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
-
-	const statusEvents = [];
-	const statusHandler = (evt) => statusEvents.push(evt.status);
-	process.on("ui5.serve-status", statusHandler);
-	t.teardown(() => process.off("ui5.serve-status", statusHandler));
-
-	await fixtureTester.serveProject();
-
-	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
-
-	// Park a request, then fire several rapid changes around it — the shape of an editor save-all
-	// or a `git checkout` landing while a build is in flight.
-	await fs.appendFile(changedFilePath, `\ntest("burst 1");\n`);
-	await fixtureTester.fireWatcherEvent("update", changedFilePath);
-
-	const resourceRequestPromise = fixtureTester.requestResource({resource: "/test.js"});
-
-	await fs.appendFile(changedFilePath, `\ntest("burst 2");\n`);
-	await fixtureTester.fireWatcherEvent("update", changedFilePath);
-	await fs.appendFile(changedFilePath, `\ntest("burst 3");\n`);
-	await fixtureTester.fireWatcherEvent("update", changedFilePath);
-
-	await resourceRequestPromise;
-
-	const resource = await fixtureTester.requestResource({resource: "/test.js"});
-	const servedFileContent = await resource.getString();
-	t.true(servedFileContent.includes(`test("burst 1");`), "Resource reflects the first burst change");
-	t.true(servedFileContent.includes(`test("burst 3");`), "Resource reflects the final burst change");
-
-	t.false(statusEvents.includes("serve-error"),
-		`No serve-error surfaced during the transient burst; got: ${statusEvents.join(", ")}`);
-});
-
 test.serial("Serve application.a, request application resource", async (t) => {
 	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
 
@@ -213,6 +163,10 @@ test.serial("Serve application.a, request application resource", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -243,6 +197,7 @@ test.serial("Serve application.a, request application resource", async (t) => {
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
+						"generateVersionInfo"
 					]
 				}
 			}
@@ -252,46 +207,6 @@ test.serial("Serve application.a, request application resource", async (t) => {
 	// Check whether the changed file is in the destPath
 	const servedFileContent = await res.getString();
 	t.true(servedFileContent.includes(`test("line added");`), "Resource contains changed file content");
-});
-
-// The incremental cache learns "what changed" only from watcher events. When @parcel/watcher
-// reports that events were dropped, a source change may go unreported — a naive rebuild would
-// then serve a stale cache hit. The recovery path forces a full re-scan so the un-notified
-// change is still picked up.
-test.serial("Serve application.a, dropped watcher events force a full re-scan", async (t) => {
-	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
-
-	await fixtureTester.serveProject();
-
-	// #1 build and cache the resource.
-	const before = await fixtureTester.requestResource({resource: "/test.js"});
-	t.false((await before.getString()).includes(`test("dropped-event change");`),
-		"baseline content does not yet contain the change");
-
-	// #2 confirm the cache is warm — a repeated request rebuilds nothing.
-	await fixtureTester.requestResource({
-		resource: "/test.js",
-		assertions: {projects: {}},
-	});
-
-	// Modify a source file WITHOUT firing a watcher change event: this models the OS dropping
-	// the FS event. Without recovery, the cache would keep serving the stale build result.
-	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
-	await fs.appendFile(changedFilePath, `\ntest("dropped-event change");\n`);
-
-	// The watcher reports the drop instead of the change. Recovery runs asynchronously and
-	// emits `sourcesChanged` on completion; await that so the forced re-scan + invalidation
-	// have settled before the next request.
-	const recovered = new Promise((resolve) => fixtureTester.buildServer.once("sourcesChanged", resolve));
-	await fixtureTester.fireWatcherError(
-		new Error("Events were dropped by the FSEvents client. File system must be re-scanned."));
-	await recovered;
-
-	// #3 the next request must reflect the un-notified change, proving the forced re-scan
-	// re-indexed the source tree and invalidated the stale cache.
-	const after = await fixtureTester.requestResource({resource: "/test.js"});
-	t.true((await after.getString()).includes(`test("dropped-event change");`),
-		"resource reflects the change the watcher never reported, after the forced re-scan");
 });
 
 test.serial("Serve application.a, create and delete a source file", async (t) => {
@@ -309,6 +224,10 @@ test.serial("Serve application.a, create and delete a source file", async (t) =>
 		resource: "/created.js",
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -341,6 +260,7 @@ test.serial("Serve application.a, create and delete a source file", async (t) =>
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
+						"generateVersionInfo"
 					]
 				}
 			}
@@ -362,22 +282,13 @@ test.serial("Serve application.a, create and delete a source file", async (t) =>
 		}
 	});
 
-	// #5 the second file is no longer served, but requesting it triggers a build of the dependencies
-	// because the file is not known anymore and might come from a different project.
-	// Note: This is special for applications, which are served at root level. For libraries, the server
-	// can determine whether a resources is inside a project namespace and only trigger a build for the affected
-	// project. The logic could be improved, especially like in this case where the requested resource is outside
-	// of /resources or /test-resources.
+	// #5 the second file is no longer served, thus requesting it shouldn't trigger a rebuild
+	// (all projects are still cached from the previous builds)
 	await fixtureTester.requestResource({
 		resource: "/another.js",
 		notFound: true,
 		assertions: {
-			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
-			}
+			projects: {}
 		}
 	});
 
@@ -398,6 +309,7 @@ test.serial("Serve application.a, create and delete a source file", async (t) =>
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
+						"generateVersionInfo"
 					]
 				}
 			}
@@ -576,7 +488,10 @@ test.serial("Serve application.a, request application resource AND library resou
 		resources: ["/test.js", "/resources/library/a/.library"],
 		assertions: {
 			projects: {
+				"library.d": {},
 				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -648,6 +563,10 @@ test.serial("Serve application.a with --cache=Default", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -677,6 +596,7 @@ test.serial("Serve application.a with --cache=Default", async (t) => {
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
+						"generateVersionInfo"
 					]
 				}
 			}
@@ -699,12 +619,16 @@ test.serial("Serve application.a with --cache=Off", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
 	});
 
-	// #2: Request with cache=Off (again) --> all tasks execute again (no cache reuse)
+	// #2: Request with cache=Off (again) --> nothing rebuilds (cache not written, but no changes)
 	await fixtureTester.requestResource({
 		resource: "/test.js",
 		assertions: {
@@ -717,10 +641,15 @@ test.serial("Serve application.a with --cache=Off", async (t) => {
 	await fs.appendFile(changedFilePath, `\ntest("line added for ReadOnly test");\n`);
 	await fixtureTester.fireWatcherEvent("update", changedFilePath);
 
+	// #3: Request the source file --> all tasks execute (cache still not written, but changes detected)
 	await fixtureTester.requestResource({
 		resource: "/test.js",
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -736,17 +665,21 @@ test.serial("Serve application.a with --cache=Off", async (t) => {
 	await fixtureTester.teardown();
 	await fixtureTester.serveProject({config: {cache: Cache.Default}});
 
-	// #3: Request with cache=Default --> all tasks execute (no cache from previous Off mode)
+	// #4: Request with cache=Default --> all tasks execute (no cache from previous Off mode)
 	await fixtureTester.requestResource({
 		resource: "/test.js",
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
 	});
 
-	// #4: Request with cache=Default (again) --> nothing rebuilds (cache now exists)
+	// #5: Request with cache=Default (again) --> nothing rebuilds (cache now exists)
 	await fixtureTester.requestResource({
 		resource: "/test.js",
 		assertions: {
@@ -758,11 +691,15 @@ test.serial("Serve application.a with --cache=Off", async (t) => {
 	await fixtureTester.teardown();
 	await fixtureTester.serveProject({config: {cache: Cache.Off}});
 
-	// #5: Request with cache=Off --> all tasks execute (ignores existing cache)
+	// #6: Request with cache=Off --> all tasks execute (ignores existing cache)
 	await fixtureTester.requestResource({
 		resource: "/test.js",
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -778,6 +715,10 @@ test.serial("Serve application.a with --cache=ReadOnly", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -811,6 +752,7 @@ test.serial("Serve application.a with --cache=ReadOnly", async (t) => {
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
+						"generateVersionInfo"
 					]
 				}
 			}
@@ -827,7 +769,8 @@ test.serial("Serve application.a with --cache=ReadOnly", async (t) => {
 	await fixtureTester.teardown();
 	await fixtureTester.serveProject({config: {cache: Cache.Default}});
 
-	// #4: Request with cache=Default, no new changes --> rebuilds again (cache from #3 missing)
+	// #4: Request with cache=Default, no new changes --> cache from #3 missing
+	// --> only affected tasks get re-executed (cache reuse)
 	// This validates that ReadOnly didn't write the cache in step #3
 	await fixtureTester.requestResource({
 		resource: "/test.js",
@@ -839,6 +782,7 @@ test.serial("Serve application.a with --cache=ReadOnly", async (t) => {
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
+						"generateVersionInfo"
 					]
 				}
 			}
@@ -855,6 +799,10 @@ test.serial("Serve application.a with --cache=Force (1)", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -912,8 +860,8 @@ test.serial("Serve application.a with --cache=Force (2)", async (t) => {
 
 // Regression: a non-abort build error used to leave #activeBuild set, deadlocking the BuildServer
 // so subsequent resource requests would hang forever. The fix in #processBuildRequests clears
-// #activeBuild in a finally block and surfaces the error via ServeLogger instead of throwing —
-// verify a second request still rejects (with the same root cause) instead of hanging.
+// #activeBuild in a finally block and emits "error" instead of throwing — verify a second request
+// still rejects (with the same root cause) instead of hanging.
 test.serial("Build server recovers from non-abort build error (no deadlock)", async (t) => {
 	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
 
@@ -939,86 +887,9 @@ test.serial("Build server recovers from non-abort build error (no deadlock)", as
 		`Second request rejects with the same error instead of deadlocking. Got: ${secondError && secondError.message}`
 	);
 
-	// Build errors are surfaced via ServeLogger, not via the "error" event — the latter stays
-	// reserved for fatal failures (watcher crash, etc.) that must terminate the server.
+	// Each failed build emits exactly one "error" event
 	await setTimeout(50);
-	t.is(errorEvents.length, 0, "No fatal 'error' events emitted for recoverable build failures");
-});
-
-// A normal build error must gate further rebuilds of the same project: deterministic
-// builds recover only when their input changes, so re-running the same build would just
-// re-produce the same failure. The gate lifts on any source change that invalidates the
-// errored project (directly or via a dependency), routed through _projectResourceChanged.
-test.serial("Errored project is not rebuilt until input changes", async (t) => {
-	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
-	await fixtureTester.serveProject({config: {cache: Cache.Force}, expectBuildErrors: true});
-
-	// First request triggers a build that fails because cache=Force has no cache.
-	const firstError = await t.throwsAsync(() => fixtureTester.requestResource({resource: "/test.js"}));
-
-	// Second and third requests must reject with the *same error instance* — the gate
-	// short-circuits with the captured error rather than re-running the build (which
-	// would produce a new Error instance carrying the same message).
-	const secondError = await t.throwsAsync(() => fixtureTester.requestResource({resource: "/test.js"}));
-	const thirdError = await t.throwsAsync(() => fixtureTester.requestResource({resource: "/test.js"}));
-	t.is(secondError, firstError, "Gate returns the captured error instance instead of rebuilding");
-	t.is(thirdError, firstError, "Gate keeps returning the same error until input changes");
-
-	// Simulate a source change that invalidates the errored project. This should lift the
-	// gate; the next request attempts a rebuild (still fails since cache=Force has no cache,
-	// but with a *new* error instance — proving the gate released and the build ran).
-	fixtureTester.buildServer._projectResourceChanged(
-		fixtureTester.graph.getProject("application.a"),
-		"/resources/application/a/test.js",
-		false
-	);
-	await setTimeout(50);
-	const afterChangeError = await t.throwsAsync(() => fixtureTester.requestResource({resource: "/test.js"}));
-	t.not(afterChangeError, firstError, "Source change lifted the gate; a fresh build ran");
-	t.true(afterChangeError.message.includes(`Cache is in "Force" mode`),
-		"Fresh build produced an equivalent error");
-});
-
-// A build task that throws (here: buildThemes on a LESS syntax error) leaves the project's
-// reused in-memory state holding the failing task's partial output and the previous
-// successful build's result signature. Without a failure-path reset, fixing the source and
-// re-requesting keeps serving the broken stages: the recovered source signature matches the
-// retained result signature, so #findResultCache short-circuits and never re-imports the
-// (uncorrupted) cached stages. This is the theme-build "fails to recover" scenario.
-test.serial("Failed theme build recovers after the source is fixed", async (t) => {
-	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "theme.library.e");
-	await fixtureTester.serveProject({expectBuildErrors: true});
-
-	const cssResource = "/resources/theme/library/e/themes/my_theme/library.css";
-	const lessFilePath =
-		`${fixtureTester.fixturePath}/src/theme/library/e/themes/my_theme/library.source.less`;
-	const originalLess = await fs.readFile(lessFilePath, {encoding: "utf8"});
-
-	// #1 initial request builds the theme successfully.
-	const initialCss = await fixtureTester.requestResource({resource: cssResource});
-	t.true((await initialCss.getString()).includes("background-color"),
-		"Initial build produced valid CSS");
-
-	// Inject a LESS syntax error and notify the watcher.
-	await fs.writeFile(lessFilePath, `${originalLess}\n@@@ this is not valid less @@@\n`);
-	await fixtureTester.fireWatcherEvent("update", lessFilePath);
-
-	// #2 request now fails: buildThemes throws on the malformed input.
-	const buildError = await t.throwsAsync(() => fixtureTester.requestResource({resource: cssResource}));
-	t.truthy(buildError, "Build fails while the LESS file has a syntax error");
-
-	// Fix the source and notify the watcher.
-	await fs.writeFile(lessFilePath, originalLess);
-	await fixtureTester.fireWatcherEvent("update", lessFilePath);
-
-	// #3 request after the fix must recover and serve valid CSS — the failed build's partial
-	// state was discarded and clean stages were re-imported.
-	const recoveredCss = await fixtureTester.requestResource({resource: cssResource});
-	const recoveredContent = await recoveredCss.getString();
-	t.true(recoveredContent.includes("background-color"),
-		"Build recovers and serves valid CSS after the source is fixed");
-	t.false(recoveredContent.includes("test{"),
-		"Recovered CSS does not contain artifacts of the broken build");
+	t.is(errorEvents.length, 2, "Two build errors were emitted, one per failed build attempt");
 });
 
 // ProjectBuildCache's StageCache must be cleared correctly when a build is aborted.
@@ -1194,6 +1065,76 @@ test.serial("Source change during second build retries cleanly without no_cache 
 		"Retry served content reflecting the mid-build-2 change");
 });
 
+test.serial("Serve application.a (test exclusion of generateVersionInfo)", async (t) => {
+	// This test verifies that the "generateVersionInfo" task
+	// can be excluded from the server build via the "excludedTasks" config option.
+
+	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
+
+	// #1 Exclude "generateVersionInfo":
+	await fixtureTester.serveProject({
+		config: {
+			excludedTasks: ["generateVersionInfo"],
+		}
+	});
+
+	// Request a resource to trigger the build:
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {
+				"application.a": {
+					executedTasks: [
+						"escapeNonAsciiCharacters",
+						"replaceCopyright",
+						"replaceVersion",
+						"minify",
+						"generateFlexChangesBundle",
+						"enhanceManifest",
+						"generateComponentPreload"
+						// "generateVersionInfo" is NOT EXECUTED
+					],
+				},
+			}
+		},
+	});
+
+	await fixtureTester.teardown();
+
+
+	// #2 Don't exclude tasks (includes "generateVersionInfo"):
+	await fixtureTester.serveProject({
+		config: {
+			excludedTasks: [],
+		}
+	});
+
+	// Request a resource to trigger the build:
+	await fixtureTester.requestResource({
+		resource: "/test.js",
+		assertions: {
+			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+				"application.a": {
+					executedTasks: [
+						"escapeNonAsciiCharacters",
+						"replaceCopyright",
+						"replaceVersion",
+						"minify",
+						"generateFlexChangesBundle",
+						"enhanceManifest",
+						"generateComponentPreload",
+						"generateVersionInfo" // IS EXECUTED
+					],
+				},
+			}
+		},
+	});
+});
+
 function getFixturePath(fixtureName) {
 	return fileURLToPath(new URL(`../../fixtures/${fixtureName}`, import.meta.url));
 }
@@ -1291,13 +1232,6 @@ class FixtureTester {
 		await watcherMock.fire(type, filePath);
 	}
 
-	// Fires a dropped-events error through the in-process @parcel/watcher mock. Models the
-	// real-world "Events were dropped by the FSEvents client. File system must be
-	// re-scanned." fault: the incremental change signal is now known to be incomplete.
-	async fireWatcherError(err) {
-		await watcherMock.fireError(err);
-	}
-
 	_assertBuild(assertions) {
 		const {projects = {}} = assertions;
 
@@ -1332,6 +1266,18 @@ class FixtureTester {
 		// Assert projects built in order
 		const expectedProjects = Object.keys(projects);
 		this._t.deepEqual(projectsInOrder, expectedProjects);
+
+		// Optional check: Assert executed tasks
+		for (const [projectName, expected] of Object.entries(projects)) {
+			if (!expected.executedTasks) {
+				continue; // no executedTasks specified -> skip the check
+			}
+			const expectedExecuted = expected.executedTasks || [];
+			const actualExecuted = (tasksByProject[projectName]?.executed || []).sort();
+			const expectedArray = expectedExecuted.sort();
+			this._t.deepEqual(actualExecuted, expectedArray,
+				"All executed tasks of all projects should match expected");
+		}
 
 		// Assert skipped tasks per project
 		for (const [projectName, expectedSkipped] of Object.entries(projects)) {

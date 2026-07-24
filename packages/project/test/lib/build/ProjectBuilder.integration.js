@@ -44,6 +44,13 @@ test.serial("Build application.a project multiple times", async (t) => {
 		config: {destPath, cleanDest: false},
 		assertions: {
 			projects: {
+				// Default builds of project type "application" include the "generateVersionInfo"
+				// task which requires dependencies to be built, so all dependencies are expected to be built here.
+				// Subsequent builds can reuse the cached results of these dependencies.
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -75,6 +82,7 @@ test.serial("Build application.a project multiple times", async (t) => {
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
+						"generateVersionInfo",
 					]
 				}
 			}
@@ -90,12 +98,10 @@ test.serial("Build application.a project multiple times", async (t) => {
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
-			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
-			}
+			// Dependencies are NOT rebuilt because
+			// they were already built in build #1 and can be reused from cache.
+			// Thus, empty assertion for built projects.
+			projects: {}
 		}
 	});
 
@@ -180,6 +186,7 @@ test.serial("Build application.a project multiple times", async (t) => {
 						"enhanceManifest",
 						"escapeNonAsciiCharacters",
 						"generateFlexChangesBundle",
+						"generateVersionInfo",
 						"replaceCopyright"
 					]
 				}
@@ -204,6 +211,7 @@ test.serial("Build application.a project multiple times", async (t) => {
 					"escapeNonAsciiCharacters",
 					"generateFlexChangesBundle",
 					"replaceCopyright",
+					"generateVersionInfo",
 				]
 			}}
 		}
@@ -264,6 +272,7 @@ test.serial("Build application.a (with various dependencies)", async (t) => {
 						"escapeNonAsciiCharacters",
 						"generateFlexChangesBundle",
 						"replaceCopyright",
+						"generateVersionInfo",
 					]
 				}
 			}
@@ -308,6 +317,7 @@ test.serial("Build application.a (with various dependencies)", async (t) => {
 						"escapeNonAsciiCharacters",
 						"generateFlexChangesBundle",
 						"replaceCopyright",
+						"generateVersionInfo",
 					]
 				}
 			}
@@ -330,6 +340,7 @@ test.serial("Build application.a (with various dependencies)", async (t) => {
 						"escapeNonAsciiCharacters",
 						"generateFlexChangesBundle",
 						"replaceCopyright",
+						"generateVersionInfo",
 					]
 				}
 			}
@@ -342,18 +353,25 @@ test.serial("Build application.a (including only some dependencies)", async (t) 
 	const destPath = fixtureTester.destPath;
 
 	// In this test, we're testing the "dependencyIncludes" build option
-	// which allows to include only a subset of the dependencies of a project in the build.
+	// which allows to include only a subset of the dependencies of a project in the build result.
 	// "application.a" has 4 dependencies defined: library.a, library.b, library.c and library.d.
 
 	// #1 build
 	// Only include library.a and library.b as dependencies, but not library.c and library.d:
+
+	// Note: For the initial build, ALL dependencies are built,
+	// due to the execution of the "generateVersionInfo" task in application.a which requires dependencies to be built.
+	// In subsequent builds, the cached results of the dependencies can be reused,
+	// so "includeDependency" can come to effect.
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: false,
 			dependencyIncludes: {includeDependency: ["library.a", "library.b"]}},
 		assertions: {
 			projects: {
+				"library.d": {},
 				"library.a": {},
 				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -364,6 +382,10 @@ test.serial("Build application.a (including only some dependencies)", async (t) 
 		{encoding: "utf8"}));
 	await t.notThrowsAsync(fs.readFile(`${destPath}/resources/library/b/library-preload.js`,
 		{encoding: "utf8"}));
+
+	// Check that the remaining dependencies are NOT in the destPath:
+	// (Note: although library.c and library.d were built,
+	// they are not included in the build result because of the flag)
 	await t.throwsAsync(fs.readFile(`${destPath}/resources/library/c/library-preload.js`,
 		{encoding: "utf8"}));
 	await t.throwsAsync(fs.readFile(`${destPath}/resources/library/d/library-preload.js`,
@@ -372,14 +394,12 @@ test.serial("Build application.a (including only some dependencies)", async (t) 
 
 	// #2 build
 	// Exclude library.d as dependency, but include all other dependencies
-	// (builds of library.a and library.b can be reused from cache):
+	// (builds of library.a, library.b and library.c can be reused from cache):
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true,
 			dependencyIncludes: {includeAllDependencies: true, excludeDependency: ["library.d"]}},
 		assertions: {
-			projects: {
-				"library.c": {},
-			}
+			projects: {}
 		}
 	});
 
@@ -390,20 +410,20 @@ test.serial("Build application.a (including only some dependencies)", async (t) 
 		{encoding: "utf8"}));
 	await t.notThrowsAsync(fs.readFile(`${destPath}/resources/library/c/library-preload.js`,
 		{encoding: "utf8"}));
+
+	// Check that the excluded dependency is NOT in the destPath:
 	await t.throwsAsync(fs.readFile(`${destPath}/resources/library/d/library-preload.js`,
 		{encoding: "utf8"}));
 
 
 	// #3 build
-	// Include all dependencies (only library.d is built)
-	// (builds of library.a, library.b, and library.c can be reused from cache):
+	// Include all dependencies
+	// (builds of ALL libraries can be reused from cache):
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true,
 			dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
-			projects: {
-				"library.d": {},
-			}
+			projects: {}
 		}
 	});
 
@@ -448,6 +468,10 @@ test.serial("Build application.a (custom task and tag handling)", async (t) => {
 		config: {destPath, cleanDest: true},
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -471,6 +495,7 @@ test.serial("Build application.a (custom task and tag handling)", async (t) => {
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
+						"generateVersionInfo",
 					]
 				}
 			}
@@ -523,6 +548,10 @@ test.serial("Build application.a (multiple custom tasks)", async (t) => {
 		config: {destPath, cleanDest: true},
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -561,6 +590,7 @@ test.serial("Build application.a (multiple custom tasks)", async (t) => {
 						"escapeNonAsciiCharacters",
 						"generateFlexChangesBundle",
 						"replaceCopyright",
+						"generateVersionInfo",
 					]
 				}
 			}
@@ -582,6 +612,10 @@ test.serial("Build application.a (multiple custom tasks 2)", async (t) => {
 		config: {destPath, cleanDest: true},
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -606,6 +640,7 @@ test.serial("Build application.a (multiple custom tasks 2)", async (t) => {
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
+						"generateVersionInfo",
 					]
 				}
 			}
@@ -635,6 +670,7 @@ test.serial("Build application.a (multiple custom tasks 2)", async (t) => {
 						"escapeNonAsciiCharacters",
 						"generateFlexChangesBundle",
 						"replaceCopyright",
+						"generateVersionInfo",
 					]
 				}
 			}
@@ -834,6 +870,7 @@ builder:
 						"generateFlexChangesBundle",
 						"replaceCopyright",
 						"replaceVersion",
+						"generateVersionInfo",
 					]
 				},
 			}
@@ -985,6 +1022,10 @@ test.serial("Build application.a (Custom Component preload configuration)", asyn
 		config: {destPath, cleanDest: true},
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -1064,6 +1105,7 @@ test.serial("Build application.a (self-contained build)", async (t) => {
 						"generateFlexChangesBundle",
 						"replaceCopyright",
 						"transformBootstrapHtml",
+						"generateVersionInfo",
 					]
 				}
 			}
@@ -1181,6 +1223,7 @@ test.serial("Build application.a (Custom bundling)", async (t) => {
 						"escapeNonAsciiCharacters",
 						"generateFlexChangesBundle",
 						"replaceCopyright",
+						"generateVersionInfo",
 					]
 				}
 			}
@@ -1217,6 +1260,7 @@ test.serial("Build application.a (Custom bundling)", async (t) => {
 						"escapeNonAsciiCharacters",
 						"generateFlexChangesBundle",
 						"replaceCopyright",
+						"generateVersionInfo",
 					]
 				}
 			}
@@ -2465,6 +2509,10 @@ test.serial("Build application.a with --cache=Default", async (t) => {
 		config: {destPath, cleanDest: false, cache: Cache.Default},
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -2493,6 +2541,7 @@ test.serial("Build application.a with --cache=Default", async (t) => {
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
+						"generateVersionInfo",
 					]
 				}
 			}
@@ -2514,7 +2563,11 @@ test.serial("Build application.a with --cache=Off", async (t) => {
 		config: {destPath, cleanDest: false, cache: Cache.Off},
 		assertions: {
 			projects: {
-				"application.a": {}
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+				"application.a": {},
 			}
 		}
 	});
@@ -2524,7 +2577,11 @@ test.serial("Build application.a with --cache=Off", async (t) => {
 		config: {destPath, cleanDest: true, cache: Cache.Off},
 		assertions: {
 			projects: {
-				"application.a": {}
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+				"application.a": {},
 			}
 		}
 	});
@@ -2534,7 +2591,11 @@ test.serial("Build application.a with --cache=Off", async (t) => {
 		config: {destPath, cleanDest: true, cache: Cache.Default},
 		assertions: {
 			projects: {
-				"application.a": {}
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+				"application.a": {},
 			}
 		}
 	});
@@ -2552,7 +2613,11 @@ test.serial("Build application.a with --cache=Off", async (t) => {
 		config: {destPath, cleanDest: true, cache: Cache.Off},
 		assertions: {
 			projects: {
-				"application.a": {}
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+				"application.a": {},
 			}
 		}
 	});
@@ -2567,6 +2632,10 @@ test.serial("Build application.a with --cache=ReadOnly", async (t) => {
 		config: {destPath, cleanDest: false, cache: Cache.Default},
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -2595,6 +2664,7 @@ test.serial("Build application.a with --cache=ReadOnly", async (t) => {
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
+						"generateVersionInfo",
 					]
 				}
 			}
@@ -2618,6 +2688,7 @@ test.serial("Build application.a with --cache=ReadOnly", async (t) => {
 						"replaceCopyright",
 						"enhanceManifest",
 						"generateFlexChangesBundle",
+						"generateVersionInfo",
 					]
 				}
 			}
@@ -2634,6 +2705,10 @@ test.serial("Build application.a with --cache=Force (1)", async (t) => {
 		config: {destPath, cleanDest: false, cache: Cache.Default},
 		assertions: {
 			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -2678,6 +2753,51 @@ test.serial("Build application.a with --cache=Force (2)", async (t) => {
 	t.truthy(error, "Build with Force mode should throw error when cache is empty");
 	t.true(error.message.includes(`Cache is in "Force" mode but no cache found for project application.a. ` +
 		`Use "Default", "ReadOnly" or "Off" to rebuild.`));
+});
+
+test.serial("Build application.a with --exclude-task=generateVersionInfo", async (t) => {
+	// This test verifies that when task generateVersionInfo is excluded,
+	// the sap-ui-version.json file is NOT generated in the output
+	// AND the dependencies are not automatically built.
+
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+
+	// #1 Build with empty cache and exclude generateVersionInfo task
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: false, excludedTasks: ["generateVersionInfo"]},
+		assertions: {
+			projects: {
+				// Only application.a is built, dependencies are skipped
+				"application.a": {}
+			}
+		}
+	});
+
+	// Verify that sap-ui-version.json does NOT exist in the output
+	const versionInfoPath = `${destPath}/resources/sap-ui-version.json`;
+	await t.throwsAsync(fs.readFile(versionInfoPath, {encoding: "utf8"}), undefined,
+		"sap-ui-version.json should NOT exist when generateVersionInfo task is excluded");
+
+
+	// #2 Build with empty cache and include all default tasks now
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: false},
+		assertions: {
+			projects: {
+				// All dependencies are built now
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+				"application.a": {}
+			}
+		}
+	});
+
+	// Verify that sap-ui-version.json DOES exist in the output now
+	await t.notThrowsAsync(fs.readFile(versionInfoPath, {encoding: "utf8"}), undefined,
+		"sap-ui-version.json should exist when generateVersionInfo task is included");
 });
 
 function getFixturePath(fixtureName) {

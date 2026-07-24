@@ -71,14 +71,20 @@ async function checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, 
 				currentContent = JSON.parse(currentContent.replace(/(:\s+)(\d+)/g, ": 0"));
 				expectedContent = JSON.parse(expectedContent.replace(/(:\s+)(\d+)/g, ": 0"));
 				t.deepEqual(currentContent, expectedContent);
-			} else {
-				if (expectedFile.endsWith(".json")) {
-					try {
-						t.deepEqual(JSON.parse(currentContent), JSON.parse(expectedContent), expectedFile);
-					} catch (e) {
-						t.falsy(e, expectedFile);
+			} else if (expectedFile.endsWith(".json")) {
+				try {
+					const currentJson = JSON.parse(currentContent);
+					const expectedJson = JSON.parse(expectedContent);
+					// Check if file is "sap-ui-version.json" and ignore the buildTimestamp property for comparison:
+					if (expectedFile.endsWith("sap-ui-version.json")) {
+						delete currentJson.buildTimestamp;
+						delete expectedJson.buildTimestamp;
 					}
+					t.deepEqual(currentJson, expectedJson, expectedFile);
+				} catch (e) {
+					t.falsy(e, expectedFile);
 				}
+			} else {
 				t.is(currentContent.replace(newLineRegexp, "\n"),
 					expectedContent.replace(newLineRegexp, "\n"),
 					relativeFile);

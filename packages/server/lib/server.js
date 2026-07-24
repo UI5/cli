@@ -4,11 +4,11 @@ import process from "node:process";
 import express from "express";
 import portscanner from "portscanner";
 import MiddlewareManager from "./middleware/MiddlewareManager.js";
-import createErrorHandler from "./middleware/errorHandler.js";
 import attachLiveReloadServer from "./liveReload/server.js";
 import {createReaderCollection} from "@ui5/fs/resourceFactory";
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
 import {getLogger} from "@ui5/logger";
+import Cache from "@ui5/project/build/cache/Cache";
 
 const log = getLogger("server");
 /**
@@ -151,7 +151,7 @@ async function _addSsl({app, key, cert}) {
 export async function serve(graph, {
 	port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
 	acceptRemoteConnections = false, sendSAPTargetCSP = false,
-	simpleIndex = false, liveReload = false, serveCSPReports = false, cache = "Default",
+	simpleIndex = false, liveReload = false, serveCSPReports = false, cache = Cache.Default,
 	ui5DataDir, includedTasks, excludedTasks,
 }, error) {
 	const rootProject = graph.getRoot();
@@ -188,6 +188,16 @@ export async function serve(graph, {
 		// Ensure sap.ui.core is always built initially (if present in the graph)
 		initialBuildIncludedDependencies.push("sap.ui.core");
 	}
+
+	// Explicitly exclude task "generateVersionInfo" for Server builds
+	// because middleware "versionInfo" will generate the version info anyways.
+	if (!Array.isArray(excludedTasks)) {
+		excludedTasks = [];
+	}
+	if (!excludedTasks.includes("generateVersionInfo")) {
+		excludedTasks.push("generateVersionInfo");
+	}
+
 	const buildServer = await graph.serve({
 		initialBuildIncludedDependencies,
 		includedTasks,
@@ -220,11 +230,6 @@ export async function serve(graph, {
 		Buffer.from(getRandomValues(new Uint8Array(9))).toString("base64url") :
 		null;
 
-	const liveReloadOptions = {
-		active: liveReload,
-		token: webSocketToken
-	};
-
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject,
@@ -234,20 +239,15 @@ export async function serve(graph, {
 			sendSAPTargetCSP,
 			serveCSPReports,
 			simpleIndex,
-			liveReload: liveReloadOptions,
-			// Consulted by the serveBuildError gate to divert HTML navigations while the
-			// build server is globally in ERROR.
-			getServeError: () => buildServer.getServeError()
+			liveReload: {
+				active: liveReload,
+				token: webSocketToken
+			}
 		}
 	});
 
 	let app = express();
 	await middlewareManager.applyMiddleware(app);
-	// Terminal error handler for the middleware chain. Registered after applyMiddleware
-	// so it sits last and intercepts every next(err) — including those from custom
-	// middleware where we can't wrap a try/catch. Threads the live-reload config in
-	// so the HTML error page can embed the live-reload client script.
-	app.use(createErrorHandler({liveReload: liveReloadOptions}));
 
 	if (h2) {
 		const nodeVersion = parseInt(process.versions.node.split(".")[0], 10);
