@@ -100,7 +100,7 @@ test("getBuildConfig: Custom values", (t) => {
 				getType: () => "library"
 			};
 		}
-	}, "taskRepository", {
+	}, "taskRepository", undefined, {
 		selfContained: true,
 		outputStyle: OutputStyleEnum.Namespace,
 		cssVariables: true,
@@ -133,7 +133,7 @@ test("createBuildManifest not supported for type application", (t) => {
 					getType: () => "application"
 				};
 			}
-		}, "taskRepository", {
+		}, "taskRepository", undefined, {
 			createBuildManifest: true
 		});
 	});
@@ -152,7 +152,7 @@ test("createBuildManifest not supported for type module", (t) => {
 					getType: () => "module"
 				};
 			}
-		}, "taskRepository", {
+		}, "taskRepository", undefined, {
 			createBuildManifest: true
 		});
 	});
@@ -171,7 +171,7 @@ test("createBuildManifest not supported for self-contained build", (t) => {
 					getType: () => "library"
 				};
 			}
-		}, "taskRepository", {
+		}, "taskRepository", undefined, {
 			createBuildManifest: true,
 			selfContained: true
 		});
@@ -191,7 +191,7 @@ test("createBuildManifest supported for css-variables build", (t) => {
 					getType: () => "library"
 				};
 			}
-		}, "taskRepository", {
+		}, "taskRepository", undefined, {
 			createBuildManifest: true,
 			cssVariables: true
 		});
@@ -208,7 +208,7 @@ test("createBuildManifest supported for jsdoc build", (t) => {
 					getType: () => "library"
 				};
 			}
-		}, "taskRepository", {
+		}, "taskRepository", undefined, {
 			createBuildManifest: true,
 			jsdoc: true
 		});
@@ -225,7 +225,7 @@ test("outputStyle='Namespace' supported for type application", (t) => {
 					getType: () => "application"
 				};
 			}
-		}, "taskRepository", {
+		}, "taskRepository", undefined, {
 			outputStyle: OutputStyleEnum.Namespace
 		});
 	});
@@ -241,7 +241,7 @@ test("outputStyle='Flat' not supported for type theme-library", (t) => {
 					getType: () => "theme-library"
 				};
 			}
-		}, "taskRepository", {
+		}, "taskRepository", undefined, {
 			outputStyle: OutputStyleEnum.Flat
 		});
 	});
@@ -261,7 +261,7 @@ test("outputStyle='Flat' not supported for type module", (t) => {
 					getType: () => "module"
 				};
 			}
-		}, "taskRepository", {
+		}, "taskRepository", undefined, {
 			outputStyle: OutputStyleEnum.Flat
 		});
 	});
@@ -281,7 +281,7 @@ test("outputStyle='Flat' not supported for createBuildManifest build", (t) => {
 					getType: () => "library"
 				};
 			}
-		}, "taskRepository", {
+		}, "taskRepository", undefined, {
 			createBuildManifest: true,
 			outputStyle: OutputStyleEnum.Flat
 		});
@@ -297,7 +297,7 @@ test("getOption", (t) => {
 	const graph = {
 		getRoot: () => ({getType: () => "library"}),
 	};
-	const buildContext = new BuildContext(graph, "taskRepository", {
+	const buildContext = new BuildContext(graph, "taskRepository", undefined, {
 		cssVariables: "value",
 	});
 
@@ -315,7 +315,7 @@ test("getProjectContext", async (t) => {
 		.returns({getType: () => "library", getRootPath: () => ""});
 	const graph = {getRoot: rootProjectStub, getProject: () => "project"};
 
-	const buildContext = new BuildContext(graph, "taskRepository", undefined, "/ui5DataDir");
+	const buildContext = new BuildContext(graph, "taskRepository", "/ui5DataDir");
 	const projectBuildContext = await buildContext.getProjectContext("project");
 	t.is(t.context.ProjectBuildContextCreateStub.callCount, 1);
 
@@ -330,7 +330,7 @@ test("getCacheManager: Returns null when cache mode is 'Off'", async (t) => {
 	const graph = {
 		getRoot: () => ({getType: () => "library", getRootPath: () => ""}),
 	};
-	const buildContext = new BuildContext(graph, "taskRepository", {
+	const buildContext = new BuildContext(graph, "taskRepository", undefined, {
 		cache: "Off"
 	});
 
@@ -350,7 +350,7 @@ test("getCacheManager: Creates and caches CacheManager for default cache mode", 
 	const graph = {
 		getRoot: () => ({getType: () => "library", getRootPath: () => "/some/path"}),
 	};
-	const buildContext = new BuildContext(graph, "taskRepository", undefined, "/ui5DataDir");
+	const buildContext = new BuildContext(graph, "taskRepository", "/ui5DataDir");
 
 	const cacheManager1 = await buildContext.getCacheManager();
 	t.is(cacheManager1, cacheManagerInstance, "Returned CacheManager instance");
@@ -369,7 +369,7 @@ test("closeCacheManager: No-op when cache mode is 'Off'", async (t) => {
 	const graph = {
 		getRoot: () => ({getType: () => "library", getRootPath: () => ""}),
 	};
-	const buildContext = new BuildContext(graph, "taskRepository", {
+	const buildContext = new BuildContext(graph, "taskRepository", undefined, {
 		cache: "Off"
 	});
 

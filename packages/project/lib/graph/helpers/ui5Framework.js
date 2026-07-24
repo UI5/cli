@@ -286,8 +286,6 @@ export default {
 	 *   metadata and package resolution.
 	 * @param {@ui5/project/graph/Workspace} [options.workspace]
 	 *   Optional workspace instance to use for overriding node resolutions
-	 * @throws {Error} If framework libraries are referenced but no <code>options.ui5DataDir</code>
-	 *   is provided.
 	 * @returns {Promise<@ui5/project/graph/ProjectGraph>}
 	 *   Promise resolving with the given graph instance to allow method chaining
 	 */
@@ -339,10 +337,6 @@ export default {
 				`No ${frameworkName} libraries referenced in project ${rootProject.getName()} ` +
 				`or in any of its dependencies`);
 			return projectGraph;
-		}
-
-		if (!ui5DataDir) {
-			throw new Error("ui5Framework.enrichProjectGraph: Missing parameter \"ui5DataDir\"");
 		}
 
 		let Resolver;
