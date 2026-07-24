@@ -210,6 +210,18 @@ class AbstractResolver {
 		};
 	}
 
+	/**
+	 * Resolves a framework version specifier to an exact available framework version.
+	 *
+	 * @public
+	 * @static
+	 * @param {string} version Framework version or semver range to resolve
+	 * @param {string} ui5DataDir Resolved UI5 home directory location used for framework metadata and packages
+	 * @param {object} [options] Additional options
+	 * @param {string} [options.cwd=process.cwd()] Current working directory
+	 * @returns {Promise<string>} Promise resolving to the resolved framework version
+	 */
+
 	static async resolveVersion(version, ui5DataDir, {cwd} = {}) {
 		// Don't allow nullish values
 		// An empty string is a valid semver range that converts to "*", which should not be supported
