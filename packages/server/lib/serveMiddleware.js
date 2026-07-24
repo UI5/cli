@@ -17,6 +17,19 @@ import {buildServeRouter} from "./serveApp.js";
  * Note: A project graph can be served only once. Do not call both <code>serveMiddleware</code>
  * and {@link module:@ui5/server.serve} for the same graph.
  *
+ * @example
+ * import express from "express";
+ * import {serveMiddleware} from "@ui5/server";
+ *
+ * const app = express();
+ * const {middleware, close} = await serveMiddleware(graph);
+ * app.use(middleware);
+ * const listener = app.listen(8080);
+ *
+ * // On teardown, release the BuildServer's watcher and build-cache handle.
+ * listener.close();
+ * await close();
+ *
  * @public
  * @alias module:@ui5/server.serveMiddleware
  * @param {@ui5/project/graph/ProjectGraph} graph Project graph
