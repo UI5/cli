@@ -314,7 +314,7 @@ class InteractiveConsole {
 		process.on("ui5.serve-status", this.#onServeStatus);
 		process.on("ui5.tool-info", this.#onToolInfo);
 		process.on("ui5.tool-mode", this.#onToolMode);
-		process.on("ui5.project-resolved", this.#onProjectResolved);
+		process.on("ui5.project-resolve-succeeded", this.#onProjectResolved);
 		process.on("ui5.project-framework-resolved", this.#onProjectFrameworkResolved);
 		process.on("ui5.project-resolve-started", this.#onProjectResolving);
 		process.on("ui5.project-resolve-failed", this.#onProjectResolveFailed);
@@ -333,7 +333,7 @@ class InteractiveConsole {
 		process.off("ui5.serve-status", this.#onServeStatus);
 		process.off("ui5.tool-info", this.#onToolInfo);
 		process.off("ui5.tool-mode", this.#onToolMode);
-		process.off("ui5.project-resolved", this.#onProjectResolved);
+		process.off("ui5.project-resolve-succeeded", this.#onProjectResolved);
 		process.off("ui5.project-framework-resolved", this.#onProjectFrameworkResolved);
 		process.off("ui5.project-resolve-started", this.#onProjectResolving);
 		process.off("ui5.project-resolve-failed", this.#onProjectResolveFailed);
@@ -392,14 +392,14 @@ class InteractiveConsole {
 	}
 
 	// A definition change is coming: blank the version slot(s) to a "resolving…" placeholder. A
-	// completed resolve arrives as `ui5.project-resolved` and repopulates them via
+	// completed resolve arrives as `ui5.project-resolve-succeeded` and repopulates them via
 	// #handleProjectResolved; an abandoned/failed resolve arrives as `ui5.project-resolve-failed`.
 	#handleProjectResolving() {
 		setVersionResolving(this.#projectState);
 		this.#render();
 	}
 
-	// A re-resolve was abandoned or failed without a completing `ui5.project-resolved`: release the
+	// A re-resolve was abandoned or failed without a completing `ui5.project-resolve-succeeded`: release the
 	// placeholder back to the last-known version rather than leaving it on "resolving…".
 	#handleProjectResolveFailed() {
 		clearVersionResolving(this.#projectState);

@@ -144,7 +144,7 @@ class Supervisor extends EventEmitter {
 		// Leading edge of a definition-file burst: a re-resolve (and a likely version change) is
 		// coming. Blank the interactive console's version slot so the Project region shows a
 		// "resolving…" placeholder until the swap's own resolve repopulates it via
-		// `ui5.project-resolved` (or a failed swap releases it; see #swap). Attached here so it
+		// `ui5.project-resolve-succeeded` (or a failed swap releases it; see #swap). Attached here so it
 		// survives watcher re-targeting after each swap, mirroring the definitionChanged wiring.
 		watcher.on("definitionChanging", () => process.emit("ui5.project-resolve-started"));
 		watcher.on("error", (err) => log.warn(`Definition watcher error: ${err?.message ?? err}`));
@@ -187,7 +187,7 @@ class Supervisor extends EventEmitter {
 		if (this.#reinitInProgress) {
 			// Collapse overlapping requests into one trailing pass against the settled definition.
 			// The version slot stays on the "resolving…" placeholder (armed by definitionChanging)
-			// until the trailing pass resolves and repaints it via `ui5.project-resolved`.
+			// until the trailing pass resolves and repaints it via `ui5.project-resolve-succeeded`.
 			this.#reinitQueued = true;
 			return;
 		}
@@ -215,7 +215,7 @@ class Supervisor extends EventEmitter {
 			if (err?.stack) {
 				log.verbose(err.stack);
 			}
-			// A failed resolve never emits `ui5.project-resolved`, so the version slot would keep
+			// A failed resolve never emits `ui5.project-resolve-succeeded`, so the version slot would keep
 			// the "resolving…" placeholder indefinitely. Release it back to the last-known version
 			// the old (still-serving) stack resolved. Harmless if the failure was in buildApp,
 			// where the resolve already repainted the slot.

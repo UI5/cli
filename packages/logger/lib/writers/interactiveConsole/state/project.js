@@ -1,4 +1,4 @@
-// Region 2 — root project. Populated by `ui5.project-resolved` and, when
+// Region 2 — root project. Populated by `ui5.project-resolve-succeeded` and, when
 // framework usage is actually resolved for the current run, by
 // `ui5.project-framework-resolved`.
 export function createProjectState() {
@@ -41,7 +41,7 @@ export function setVersionResolving(state) {
 }
 
 // Releases the placeholder back to the last-known version: a re-resolve was abandoned or failed
-// without a completing `ui5.project-resolved`.
+// without a completing `ui5.project-resolve-succeeded`.
 export function clearVersionResolving(state) {
 	state.versionResolving = false;
 }

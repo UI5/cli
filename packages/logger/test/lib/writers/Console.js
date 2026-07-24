@@ -1122,7 +1122,7 @@ test.serial("Build metadata events (same project)", (t) => {
 
 test.serial("Project resolved event renders a one-line summary", (t) => {
 	const {stderrWriteStub} = t.context;
-	process.emit("ui5.project-resolved", {
+	process.emit("ui5.project-resolve-succeeded", {
 		name: "my.app",
 		type: "application",
 		version: "1.0.0",
@@ -1134,7 +1134,7 @@ test.serial("Project resolved event renders a one-line summary", (t) => {
 
 test.serial("Project resolved event omits the type label when the type is missing", (t) => {
 	const {stderrWriteStub} = t.context;
-	process.emit("ui5.project-resolved", {name: "my.app", version: "1.0.0"});
+	process.emit("ui5.project-resolve-succeeded", {name: "my.app", version: "1.0.0"});
 	t.is(stderrWriteStub.callCount, 1);
 	t.is(stripAnsi(stderrWriteStub.getCall(0).args[0]),
 		`info Root project: my.app (1.0.0)\n`);
@@ -1142,7 +1142,7 @@ test.serial("Project resolved event omits the type label when the type is missin
 
 test.serial("Project resolved event omits the version suffix when the version is missing", (t) => {
 	const {stderrWriteStub} = t.context;
-	process.emit("ui5.project-resolved", {name: "my.app", type: "library"});
+	process.emit("ui5.project-resolve-succeeded", {name: "my.app", type: "library"});
 	t.is(stderrWriteStub.callCount, 1);
 	t.is(stripAnsi(stderrWriteStub.getCall(0).args[0]),
 		`info Root project: library project my.app\n`);
