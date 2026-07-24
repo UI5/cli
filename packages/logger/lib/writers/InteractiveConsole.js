@@ -50,9 +50,11 @@ function parseWriteArgs(encodingOrCallback, maybeCallback) {
  * No command knowledge. Regions render top-to-bottom in a fixed order —
  * header, root project, server, build status — and hidden regions collapse.
  * <br><br>
- * All state is event-driven. See the design at
- * <code>docs/interactive-console-writer.md</code> and the public event API
- * exposed by <code>@ui5/logger</code>.
+ * All state is event-driven. It reacts to process events emitted across
+ * <code>@ui5/logger</code> and related packages, including CLI, project,
+ * server, build, serve, and log events. These event shapes are internal
+ * cross-package contracts within the UI5 CLI codebase and should be kept
+ * stable for their in-repo consumers.
  *
  * @public
  * @class
@@ -308,10 +310,10 @@ class InteractiveConsole {
 
 	#handleProjectResolved(evt) {
 		if (this.#seenProjectResolved) {
-			// See docs/interactive-console-writer.md § Ordering rules: the
-			// writer's model is single-root-project. Two events means the
-			// caller's invariant is violated and any subsequent event
-			// attribution is ambiguous.
+			// The writer's model is single-root-project. A second
+			// `ui5.project-resolved` event means the emitter violated that
+			// invariant, making subsequent event attribution ambiguous, so fail
+			// fast instead of trying to deduplicate.
 			throw new Error(
 				`writers/InteractiveConsole: Received duplicate ui5.project-resolved event`);
 		}
