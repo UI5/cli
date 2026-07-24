@@ -5,7 +5,6 @@ export const STATES = Object.freeze({
 	INITIAL: "initial",
 	STARTING: "starting", // pre-populated placeholder before the first real state arrives
 	READY: "ready",
-	STALE: "stale",
 	SETTLING: "settling", // changes seen, rebuild deferred until they quiesce
 	BUILDING: "building",
 	VALIDATING: "validating",
@@ -26,9 +25,9 @@ export function createBuildState() {
 		totalProjects: 0,
 		currentProjectName: "",
 		currentTaskName: "",
-		// Names of projects collected via `serve-stale` payloads — used to label
-		// the stale state if/when the renderer wants to.
-		changedProjects: [],
+		// Names of projects currently stale, reported via `serve-stale`. The renderer surfaces
+		// the count alongside the ready line.
+		staleProjects: [],
 		// Names of projects collected via `serve-validating` payloads — used to
 		// label the validating state if/when the renderer wants to.
 		validatingProjects: [],
@@ -90,6 +89,12 @@ export function setTask(state, taskName) {
 export function transitionTo(state, newState) {
 	state.state = newState;
 	state.spinFrame = 0;
+}
+
+// Record the current stale-project set, reported via `serve-stale`. Does not touch the
+// activity `state` or reset the spinner: the count updates in place beneath the current status.
+export function setStale(state, staleProjects) {
+	state.staleProjects = Array.isArray(staleProjects) ? staleProjects : [];
 }
 
 export function setError(state, message) {

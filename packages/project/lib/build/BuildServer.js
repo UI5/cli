@@ -56,11 +56,13 @@ const ABORTED_BUILD_RESTART_SETTLE_MS = 550;
 const WATCHER_RECOVERY_MAX_ATTEMPTS = 5;
 const WATCHER_RECOVERY_WINDOW_MS = 60000;
 
-// The server's lifecycle state. Mutated exclusively through #setState.
-// Ordering intent: IDLE -> STALE -> SETTLING -> BUILDING.
+// The server's ACTIVITY state: what the server is doing right now. Mutated exclusively through
+// #setState. Orthogonal to project staleness (which projects are up-to-date), which is reported
+// separately via #emitStale. A server can be IDLE ("ready") while some lazily-built projects
+// remain stale; those rebuild on their next reader request and never force a non-IDLE activity.
+// Ordering intent: IDLE -> SETTLING -> BUILDING.
 const SERVER_STATES = Object.freeze({
-	IDLE: "idle", // No pending requests, no recent changes, no unvalidated caches.
-	STALE: "stale", // Pending changes / pending requests, queue not yet flushed.
+	IDLE: "idle", // No build active, nothing pending. Rendered as "ready".
 	SETTLING: "settling", // Rebuild pending, deferred until changes quiesce. No build is active
 	// (#activeBuild === null); the deferred timer moves it to BUILDING.
 	BUILDING: "building", // A build is in flight.
@@ -121,9 +123,12 @@ class BuildServer extends EventEmitter {
 	#rootReader;
 	#dependenciesReader;
 	#serveLogger = new ServeLogger("build:BuildServer");
-	// Server lifecycle state. Starts as `null` so the first #setState call
+	// Server lifecycle activity state. Starts as `null` so the first #setState call
 	// always emits the initial state.
 	#serverState = null;
+	// The stale set most recently reported via #emitStale, so repeated emits of an
+	// unchanged set are dropped.
+	#lastStaleKey = null;
 	// The error captured on the last transition to ERROR, or null in any other state.
 	// Exposed via getServeError() so the dev server can surface it on HTML navigations
 	// regardless of which resource was requested. Cleared on every non-ERROR transition
@@ -346,9 +351,11 @@ class BuildServer extends EventEmitter {
 			this.#watcherRecoveryTimestamps.push(Date.now());
 			log.info(`File watcher recovered. Re-scanning all project sources.`);
 
-			// Every project is now non-fresh. Surface STALE and prompt connected clients to
-			// reload, which drives the lazy rebuild against the re-scanned index.
-			this.#setState(SERVER_STATES.STALE);
+			// Every project is now non-fresh. The build was quiesced above, so the server is at rest:
+			// report IDLE ("ready") plus the new stale set, and prompt connected clients to reload,
+			// which drives the lazy rebuild against the re-scanned index.
+			this.#setState(SERVER_STATES.IDLE);
+			this.#emitStale();
 			this.emit("sourcesChanged");
 		} catch (recoveryErr) {
 			// Recreation itself failed (e.g. watch() rejected). The watcher is genuinely broken;
@@ -581,18 +588,21 @@ class BuildServer extends EventEmitter {
 			this.#resourceChangeQueue.set(project.getName(), new Set([filePath]));
 		}
 
-		// Surface the new STALE state right away from any "quiet" state.
-		// IDLE and ERROR are both quiet; ERROR is sticky, but a change lifts it because the input
-		// tree has moved and the previous failure isn't the final word anymore. VALIDATING is quiet
-		// in the same sense: the change is already registered here, so reporting VALIDATING any
-		// longer would mislead consumers. The validation pass's finally clause guards on
-		// `#serverState === VALIDATING` and bails when the state has moved on, so there's no
-		// double-transition risk. BUILDING already implies progress, so don't disturb it.
+		// From the quiet states, settle activity on IDLE ("ready") first: ERROR is sticky and the
+		// invalidate() calls above lifted the per-project gate (input tree moved), so the server-level
+		// error must clear too: #setState(IDLE) does that via #serveError. VALIDATING is being aborted
+		// for the changed project (its per-project signal fired in invalidate()); dropping to IDLE
+		// reports the rest state promptly rather than leaving a stale "validating" until the pass
+		// settles.
+		// BUILDING and SETTLING own their own transitions, so leave them be.
 		if (this.#serverState === SERVER_STATES.IDLE ||
 			this.#serverState === SERVER_STATES.VALIDATING ||
 			this.#serverState === SERVER_STATES.ERROR) {
-			this.#setState(SERVER_STATES.STALE);
+			this.#setState(SERVER_STATES.IDLE);
 		}
+		// Collect the stale set once and reuse it for #setState below
+		const staleProjects = this.#getStaleProjectNames();
+		this.#emitStale(staleProjects);
 
 		// Reschedule a pending post-abort/transient restart so its settle window measures quiet
 		// from this change, not from the abort. Only fires while a restart is waiting (no active
@@ -607,7 +617,7 @@ class BuildServer extends EventEmitter {
 			// of firing into a half-written one. Laziness is preserved: with nothing queued, a change
 			// still waits for a reader request rather than provoking a speculative build. A later
 			// reader request supersedes the settle by re-arming at the short debounce.
-			this.#setState(SERVER_STATES.SETTLING);
+			this.#setState(SERVER_STATES.SETTLING, {pendingProjects: staleProjects});
 			this.#triggerRequestQueue(FIRST_BUILD_SETTLE_MS);
 		}
 
@@ -895,6 +905,27 @@ class BuildServer extends EventEmitter {
 	}
 
 	/**
+	 * Reports the current stale-project set to the ServeLogger, independently of the activity
+	 * state. Which projects are stale is orthogonal to activity (what the server is
+	 * doing): the server can be IDLE ("ready") while some lazily-built projects remain stale.
+	 *
+	 * De-duplicated against the last reported set (<code>#lastStaleKey</code>) so repeated calls
+	 * from the several emission sites (reconcile, eager source-change, watcher recovery) don't spam
+	 * the banner with an unchanged signal.
+	 *
+	 * @param {string[]} [staleProjects] Pre-computed stale set, passed by callers that already ran
+	 *   {@link #getStaleProjectNames} to avoid a second sweep; recomputed here when omitted.
+	 */
+	#emitStale(staleProjects = this.#getStaleProjectNames()) {
+		const key = staleProjects.slice().sort().join("\n");
+		if (key === this.#lastStaleKey) {
+			return;
+		}
+		this.#lastStaleKey = key;
+		this.#serveLogger.stale(staleProjects);
+	}
+
+	/**
 	 * Aborts the in-flight background validation pass (if any) and awaits its settlement.
 	 * Swallows the resulting abort rejection - callers use this to make room for a build
 	 * or to drain on destroy, neither of which surfaces validation errors.
@@ -915,9 +946,9 @@ class BuildServer extends EventEmitter {
 	}
 
 	/**
-	 * Single point of truth for the terminal state at the end of a producer cycle
+	 * Single point of truth for the terminal ACTIVITY state at the end of a producer cycle
 	 * (build cycle, background validation pass). Each producer that used to open-code
-	 * an IDLE-vs-STALE-vs-VALIDATING guard now calls this after its own work settles;
+	 * an IDLE-vs-VALIDATING guard now calls this after its own work settles;
 	 * the reconciler picks the target state from the current fields (<code>#activeBuild</code>,
 	 * <code>#pendingBuildRequest</code>, <code>#serverState</code>, the stale set) rather than
 	 * trusting each producer to check them.
@@ -930,19 +961,22 @@ class BuildServer extends EventEmitter {
 	 * - <code>#serverState === SETTLING</code>: a deferred restart is armed; the timer owns
 	 *   the SETTLING -> BUILDING transition. Every SETTLING entry leaves
 	 *   <code>#pendingBuildRequest</code> non-empty (so the check below already bails), but the
-	 *   explicit guard keeps a stray reconcile from flipping SETTLING to IDLE/STALE should that
+	 *   explicit guard keeps a stray reconcile from flipping SETTLING to IDLE should that
 	 *   invariant ever break.
 	 * - <code>#activeBuild || #pendingBuildRequest.size > 0</code>: a build cycle owns
 	 *   the next transition. Notably fires when this call comes from the post-validation
 	 *   finally and <code>releaseValidating</code>'s <code>onBuildRequired</code> callback
 	 *   just enqueued a build for a project with pending readers.
 	 *
-	 * Otherwise: fully-fresh -> IDLE. Any stale projects -> try
-	 * {@link #scheduleBackgroundValidation} when <code>mayValidate</code> is true and
-	 * fall back to STALE. When called from the post-validation finally
-	 * (<code>mayValidate=false</code>), goes straight to STALE, since the pass just settled
-	 * on those projects, so re-scheduling would be pointless and would recurse this
-	 * finally into a new pass.
+	 * Otherwise the server is at rest: activity -> IDLE ("ready"), and the stale-project set is
+	 * reported separately via {@link #emitStale}. Latent staleness does NOT force a non-IDLE
+	 * activity: an unrequested stale project rebuilds lazily on its next reader request, so holding
+	 * the server out of "ready" for it would wedge the state (nobody rebuilds it, so it never clears).
+	 * When <code>mayValidate</code> is true and any project is merely INITIAL (cache validity unknown
+	 * but possibly fresh), {@link #scheduleBackgroundValidation} runs first to promote cache-clean
+	 * projects to FRESH before the stale count is taken. The post-validation finally passes
+	 * <code>mayValidate=false</code> so it does not recurse into a new pass over the projects it just
+	 * released.
 	 *
 	 * @param {object} [opts]
 	 * @param {Array<number>} [opts.hrtime] Build duration to forward to
@@ -962,18 +996,17 @@ class BuildServer extends EventEmitter {
 		const staleProjects = this.#getStaleProjectNames();
 		log.verbose(`Reconciling server state. Stale projects: ` +
 			`${staleProjects.length} (${staleProjects.join(", ")})`);
-		if (staleProjects.length === 0) {
-			this.#setState(SERVER_STATES.IDLE, {hrtime});
+		// Some projects may be merely INITIAL (cache validity unknown but possibly fresh). Validate
+		// them in the background first so cache-clean ones become FRESH before the count is reported;
+		// the transition to VALIDATING happens inside #scheduleBackgroundValidation.
+		if (staleProjects.length > 0 && mayValidate && this.#scheduleBackgroundValidation({hrtime})) {
 			return;
 		}
-		// Some projects are still non-FRESH. Try to validate any that are merely
-		// INITIAL (cache validity unknown but possibly fresh) in the background.
-		// If a pass actually starts, the transition to VALIDATING happens inside
-		// #scheduleBackgroundValidation; otherwise we fall back to STALE.
-		if (mayValidate && this.#scheduleBackgroundValidation({hrtime})) {
-			return;
-		}
-		this.#setState(SERVER_STATES.STALE, {hrtime, staleProjects});
+		// The server is at rest. Activity -> IDLE ("ready"); the stale set (which projects remain
+		// stale) is reported separately and does not gate "ready". Pass the set computed above so
+		// #emitStale doesn't re-sweep #projectBuildStatus.
+		this.#setState(SERVER_STATES.IDLE, {hrtime});
+		this.#emitStale(staleProjects);
 	}
 
 	/**
@@ -982,9 +1015,9 @@ class BuildServer extends EventEmitter {
 	 * <code>#activeValidation</code> so {@link #triggerRequestQueue} and {@link #destroy} can
 	 * abort it.
 	 *
-	 * Drives the server lifecycle through VALIDATING -> IDLE/STALE on completion. Caller
-	 * supplies the post-build hrtime so the BUILDING -> VALIDATING transition can emit a
-	 * <code>buildDone</code> event with the correct duration.
+	 * Drives the server activity state through VALIDATING -> IDLE on completion (the stale set is
+	 * reported separately). Caller supplies the post-build hrtime so the BUILDING -> VALIDATING
+	 * transition can emit a <code>buildDone</code> event with the correct duration.
 	 *
 	 * Idempotent while a validation pass is already in flight. Skipped while a build is
 	 * active; the post-build cycle-end hook will schedule the next pass.
@@ -993,7 +1026,7 @@ class BuildServer extends EventEmitter {
 	 * @param {Array<number>} [opts.hrtime] Build hrtime to forward to the VALIDATING state
 	 *   transition. Only relevant when called from a post-build cycle-end hook.
 	 * @returns {boolean} True if a validation pass was actually scheduled, false otherwise.
-	 *   When false, callers may want to transition the server to STALE explicitly.
+	 *   When false, the reconciler settles the server on IDLE and reports the stale set itself.
 	 */
 	#scheduleBackgroundValidation({hrtime} = {}) {
 		if (this.#destroyed || this.#activeValidation || this.#activeBuild || this.#recoveringWatcher) {
@@ -1029,7 +1062,7 @@ class BuildServer extends EventEmitter {
 				// Non-abort failure: mirror the build error path so consumers (the banner,
 				// integration tests, the yargs fail-handler) can react. The ERROR transition
 				// here doubles as the signal to the finally clause to skip its post-pass
-				// IDLE/STALE transition.
+				// IDLE transition.
 				this.#setState(SERVER_STATES.ERROR, {error: err});
 				this.emit("error", err);
 			})
@@ -1092,40 +1125,39 @@ class BuildServer extends EventEmitter {
 	}
 
 	/**
-	 * Single source of truth for the server lifecycle state. Mutates
+	 * Single source of truth for the server ACTIVITY state. Mutates
 	 * <code>#serverState</code> and emits the matching ServeLogger event for the
 	 * transition. A no-op when <code>next</code> equals the current state, so a
-	 * burst of source changes collapses into one IDLE->STALE emission.
+	 * burst of activity transitions collapses into one emission. Project staleness
+	 * is reported separately via {@link #emitStale} and is not routed through here.
 	 *
 	 * Transition policy:
 	 * <ul>
 	 *   <li>BUILDING -> IDLE: buildDone(hrtime) then ready()</li>
-	 *   <li>BUILDING -> STALE: buildDone(hrtime) then stale(names)</li>
 	 *   <li>BUILDING -> VALIDATING: buildDone(hrtime) then validating(names)</li>
 	 *   <li>BUILDING -> SETTLING: settling(names) only - no buildDone, since no successful
 	 *       cycle closed (mirrors the BUILDING -> ERROR carve-out)</li>
 	 *   <li>BUILDING -> ERROR: serveError(err) only - buildDone is skipped so
 	 *       consumers don't see a successful cycle close before the error</li>
-	 *   <li>VALIDATING -> IDLE/STALE: ready()/stale() - no buildDone (no build happened)</li>
+	 *   <li>VALIDATING -> IDLE: ready() - no buildDone (no build happened)</li>
 	 *   <li>* -> SETTLING: settling(names)</li>
 	 *   <li>SETTLING -> BUILDING: building()</li>
 	 *   <li>any -> ERROR: serveError(err)</li>
-	 *   <li>* -> IDLE/STALE/BUILDING/VALIDATING: ready()/stale()/building()/validating() as appropriate</li>
+	 *   <li>* -> IDLE/BUILDING/VALIDATING: ready()/building()/validating() as appropriate</li>
 	 * </ul>
 	 *
 	 * @param {string} next One of the SERVER_STATES values.
 	 * @param {object} [opts]
 	 * @param {Array<number>} [opts.hrtime] Build duration as a [seconds, nanoseconds]
 	 *     tuple produced by <code>process.hrtime(start)</code>; required when leaving
-	 *     BUILDING for IDLE/STALE/VALIDATING.
-	 * @param {string[]} [opts.staleProjects] Stale project names; required when transitioning to STALE.
+	 *     BUILDING for IDLE/VALIDATING.
 	 * @param {string[]} [opts.pendingProjects] Names of projects awaiting the deferred rebuild;
 	 *     used when transitioning to SETTLING. Defaults to the stale project set.
 	 * @param {string[]} [opts.validatingProjects] Names of projects undergoing background cache
 	 *     validation; required when transitioning to VALIDATING.
 	 * @param {Error} [opts.error] Error instance; required when transitioning to ERROR.
 	 */
-	#setState(next, {hrtime, staleProjects, pendingProjects, validatingProjects, error} = {}) {
+	#setState(next, {hrtime, pendingProjects, validatingProjects, error} = {}) {
 		if (this.#serverState === next) {
 			return;
 		}
@@ -1144,9 +1176,6 @@ class BuildServer extends EventEmitter {
 		switch (next) {
 		case SERVER_STATES.IDLE:
 			this.#serveLogger.ready();
-			break;
-		case SERVER_STATES.STALE:
-			this.#serveLogger.stale(staleProjects ?? this.#getStaleProjectNames());
 			break;
 		case SERVER_STATES.SETTLING:
 			this.#serveLogger.settling(pendingProjects ?? this.#getStaleProjectNames());

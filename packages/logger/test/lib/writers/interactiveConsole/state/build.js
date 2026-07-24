@@ -7,6 +7,7 @@ import {
 	setTask,
 	transitionTo,
 	setError,
+	setStale,
 	enableBuildPlaceholders,
 	STATES,
 } from "../../../../../lib/writers/interactiveConsole/state/build.js";
@@ -17,7 +18,7 @@ test("createBuildState: starts in INITIAL with empty counters", (t) => {
 	t.is(state.currentProjectIndex, 0);
 	t.is(state.totalProjects, 0);
 	t.deepEqual(state.projectOrder, []);
-	t.deepEqual(state.changedProjects, []);
+	t.deepEqual(state.staleProjects, []);
 	t.deepEqual(state.validatingProjects, []);
 	t.is(state.spinFrame, 0);
 	t.is(state.errorMessage, "");
@@ -104,6 +105,23 @@ test("setError: falsy message resolves to an empty string", (t) => {
 	setError(state, undefined);
 	t.is(state.state, STATES.ERROR);
 	t.is(state.errorMessage, "");
+});
+
+test("setStale: records the stale set without touching the activity state", (t) => {
+	const state = createBuildState();
+	transitionTo(state, STATES.READY);
+	state.spinFrame = 3;
+	setStale(state, ["library.a", "library.b"]);
+	t.deepEqual(state.staleProjects, ["library.a", "library.b"]);
+	t.is(state.state, STATES.READY, "activity state is unchanged");
+	t.is(state.spinFrame, 3, "spinner frame is not reset");
+});
+
+test("setStale: a non-array resolves to an empty set", (t) => {
+	const state = createBuildState();
+	state.staleProjects = ["stale"];
+	setStale(state, undefined);
+	t.deepEqual(state.staleProjects, []);
 });
 
 test("enableBuildPlaceholders: promotes INITIAL to STARTING", (t) => {

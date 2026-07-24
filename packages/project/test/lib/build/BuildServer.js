@@ -198,23 +198,22 @@ test.serial("serve-status: serve-ready emitted when no initial build is requeste
 	t.is(readyCalls.length, 1, "serve-ready emitted once when no initial build is enqueued");
 });
 
-test.serial("serve-status: serve-stale emitted on sources change", (t) => {
-	const {buildServer, rootProject, clock, sinon, SOURCES_CHANGED_SETTLE_MS} = t.context;
-	const statusHandler = sinon.stub();
-	process.on("ui5.serve-status", statusHandler);
-	t.teardown(() => process.off("ui5.serve-status", statusHandler));
+test.serial("serve-status: serve-stale reports the stale set on sources change", async (t) => {
+	const {rootProject, clock, SOURCES_CHANGED_SETTLE_MS} = t.context;
+	// Build root to FRESH first, so the change below actually moves the stale set ([] -> [root.project])
+	// rather than being a no-op on an already-stale INITIAL project.
+	const {statusEvents} = await runInitialBuildCycle(t);
+	const {buildServer} = t.context;
 
 	buildServer._projectResourceChanged(rootProject, "/foo.js", false);
 	clock.tick(SOURCES_CHANGED_SETTLE_MS);
 
-	const staleCalls = statusHandler.getCalls()
-		.filter((c) => c.args[0]?.status === "serve-stale");
-	t.is(staleCalls.length, 1, "serve-stale emitted exactly once for one window");
-	t.deepEqual(staleCalls[0].args[0], {
-		level: "info",
-		status: "serve-stale",
-		changedProjects: ["root.project"],
-	}, "serve-stale event has expected payload");
+	const staleCalls = statusEvents.filter((e) => e.status === "serve-stale");
+	// The last serve-stale emit reports the now-stale project. (An initial "all up-to-date" emit may
+	// precede it from the build cycle close.)
+	const last = staleCalls.at(-1);
+	t.deepEqual(last.staleProjects, ["root.project"],
+		"serve-stale reports the now-stale project");
 });
 
 // Helper: drive a full build cycle through the 10ms request-queue debounce.
@@ -266,12 +265,10 @@ test.serial("serve-status: initial build cycle emits building → buildDone → 
 	const idxReady = seq.indexOf("serve-ready");
 	t.true(idxBuilding >= 0 && idxBuildDone > idxBuilding && idxReady > idxBuildDone,
 		`Expected building → buildDone → ready, got: ${seq.join(", ")}`);
-	t.false(seq.slice(idxBuilding, idxReady + 1).includes("serve-stale"),
-		"no intermediate stale emission during the cycle");
 });
 
 test.serial(
-	"serve-status: source change mid-build emits settling at cycle end (not stale)", async (t) => {
+	"serve-status: source change mid-build settles activity on SETTLING at cycle end", async (t) => {
 		const {BuildServer, graph, projectBuilder, rootProject, sinon, clock} = t.context;
 		const statusEvents = makeStatusRecorder(t);
 
@@ -299,14 +296,14 @@ test.serial(
 		await clock.tickAsync(0);
 
 		const seq = statusEvents.map((e) => e.status);
-		// The aborted cycle defers its restart, so the end-of-cycle state is SETTLING
-		// (rebuild pending, held until changes quiesce) rather than STALE. No buildDone
-		// is emitted on BUILDING → SETTLING — no successful cycle closed.
+		// The aborted cycle defers its restart, so the terminal activity state is SETTLING
+		// (rebuild pending, held until changes quiesce), not IDLE ("ready"). No buildDone
+		// is emitted on BUILDING → SETTLING — no successful cycle closed. The mid-build change
+		// reports the now-stale project via serve-stale, but that rides the stale-set channel and
+		// does not gate the terminal activity.
 		const settlingCalls = seq.filter((s) => s === "serve-settling");
 		t.is(settlingCalls.length, 1,
 			`Expected exactly one settling emission at cycle end, got sequence: ${seq.join(", ")}`);
-		t.false(seq.includes("serve-stale"),
-			`No stale emission on the aborted cycle; got: ${seq.join(", ")}`);
 		t.false(seq.includes("serve-build-done"),
 			`No buildDone on BUILDING → SETTLING; got: ${seq.join(", ")}`);
 		t.is(seq[seq.length - 1], "serve-settling",
@@ -624,9 +621,9 @@ test.serial("serve-status: build failure emits serveError and no orphan building
 	const lastBuildingIdx = seq.lastIndexOf("serve-building");
 	const errorIdx = seq.indexOf("serve-error");
 	t.true(errorIdx > lastBuildingIdx, "serve-error follows serve-building");
-	// The error must remain the terminal state of the cycle — no serve-stale or
-	// serve-ready may follow it, as that would clear the red banner while the
-	// project is still gated on its captured error.
+	// The error must remain the terminal activity state of the cycle — no serve-ready may
+	// follow it, as that would clear the red banner while the project is still gated on its
+	// captured error.
 	t.is(seq[seq.length - 1], "serve-error", "serve-error is the final status of a failed cycle");
 });
 
@@ -725,21 +722,18 @@ test.serial(
 		const validatingEvt = statusEvents[idxValidating];
 		t.deepEqual(validatingEvt.validatingProjects, ["library.x"],
 			"validating event carries the project being validated");
-
-		// No STALE in between — VALIDATING is the post-build state when caches can still be fresh.
-		t.false(seq.slice(idxBuildDone, idxReady).includes("serve-stale"),
-			`No stale emission between buildDone and ready; got: ${seq.join(", ")}`);
 	});
 
 // When background validation finds a stale cache (usesCache=false), the project stays
-// INITIAL and the validation pass must end on STALE, not IDLE.
+// INITIAL and the validation pass must end on IDLE ("ready") with the project reported stale via
+// serve-stale: the server can still serve everything; library.x rebuilds on its next request.
 test.serial(
-	"serve-status: VALIDATING → STALE when validation finds a stale cache", async (t) => {
+	"serve-status: VALIDATING -> ready + serve-stale when validation finds a stale cache", async (t) => {
 		const {BuildServer, sinon, clock} = t.context;
 
 		const {graph} = makeGraphWithLib();
 
-		// usesCache=false → project must stay INITIAL → final state is STALE.
+		// usesCache=false -> project stays INITIAL -> reported stale via serve-stale, activity ready.
 		const projectBuilder = {
 			closeCacheManager: sinon.stub(),
 			resourcesChanged: sinon.stub(),
@@ -765,10 +759,11 @@ test.serial(
 
 		const seq = statusEvents.map((e) => e.status);
 		t.true(seq.includes("serve-validating"), `validating emitted; got: ${seq.join(", ")}`);
-		t.true(seq.indexOf("serve-stale") > seq.indexOf("serve-validating"),
-			`stale follows validating; got: ${seq.join(", ")}`);
-		t.false(seq.includes("serve-ready"),
-			`No ready when validation found stale cache; got: ${seq.join(", ")}`);
+		t.true(seq.lastIndexOf("serve-ready") > seq.indexOf("serve-validating"),
+			`ready follows validating; got: ${seq.join(", ")}`);
+		const stale = statusEvents.filter((e) => e.status === "serve-stale").at(-1);
+		t.deepEqual(stale.staleProjects, ["library.x"],
+			"the still-stale dependency is reported via serve-stale");
 	});
 
 // When validateCaches itself rejects with a non-abort error, the failure must be
@@ -823,12 +818,14 @@ test.serial(
 			`validating emitted before the failure; got: ${seq.join(", ")}`);
 		t.true(seq.indexOf("serve-error") > seq.indexOf("serve-validating"),
 			`serve-error follows serve-validating; got: ${seq.join(", ")}`);
-		// Crucial: a failed validation must NOT settle on ready or stale.
+		// Crucial: a failed validation is terminal on ERROR. It must neither transition to ready
+		// (which would clear the red banner) nor emit an orthogonal stale report (the post-pass
+		// finally skips its rest-state reporting once the pass has errored).
 		const lastError = seq.lastIndexOf("serve-error");
 		t.is(seq.indexOf("serve-ready", lastError + 1), -1,
 			`No ready after a failed validation; got: ${seq.join(", ")}`);
 		t.is(seq.indexOf("serve-stale", lastError + 1), -1,
-			`No stale after a failed validation; got: ${seq.join(", ")}`);
+			`No stale report after a failed validation; got: ${seq.join(", ")}`);
 	});
 
 // A reader request issued while a project is in VALIDATING must NOT enqueue a build
@@ -1026,9 +1023,9 @@ test.serial(
 	});
 
 // When a source change lands during a validation pass, the server must transition
-// VALIDATING → STALE right away rather than waiting for the pass to finish.
+// VALIDATING -> ready + serve-stale right away rather than waiting for the pass to finish.
 test.serial(
-	"serve-status: source change during VALIDATING transitions to STALE eagerly", async (t) => {
+	"serve-status: source change during VALIDATING reports the stale set eagerly", async (t) => {
 		const {BuildServer, sinon, clock} = t.context;
 
 		const rootProject = {getName: () => "root.project"};
@@ -1073,15 +1070,22 @@ test.serial(
 
 		// Source change on a project currently in the validation set. This invalidates
 		// the project (firing its per-project abort signal which the validation pass is
-		// composing with) AND triggers the new VALIDATING → STALE branch in
-		// _projectResourceChanged.
+		// composing with) AND drops activity out of VALIDATING while reporting the new stale set
+		// via _projectResourceChanged.
 		buildServer._projectResourceChanged(libProject, "/x.js", false);
 
-		// STALE must land synchronously — before the validation pass is even released.
+		// The stale report must land synchronously, before the validation pass is even released, and
+		// activity leaves VALIDATING for the resting IDLE ("ready"): staleness rides its own channel
+		// and does not gate activity.
 		const seqMid = statusEvents.map((e) => e.status);
 		const staleIdx = seqMid.indexOf("serve-stale", validatingIdx);
 		t.true(staleIdx > validatingIdx,
 			`Expected serve-stale promptly after the change; got: ${seqMid.join(", ")}`);
+		t.true(seqMid.indexOf("serve-ready", validatingIdx) > validatingIdx,
+			`Expected activity to leave VALIDATING for ready; got: ${seqMid.join(", ")}`);
+		const stale = statusEvents.find((e, i) => e.status === "serve-stale" && i >= validatingIdx);
+		t.true(stale.staleProjects.includes("library.x"),
+			"the changed project is reported stale");
 
 		// Release validation so the test can tear down cleanly.
 		releaseValidation();
@@ -1439,7 +1443,8 @@ test.serial(
 
 		// (2) User edits a file in root.project. Fix 2 walks
 		// getTransitiveDependencies(root.project) and clears library.a's ERRORED
-		// gate, since the user's activity signals retry intent.
+		// gate, since the user's activity signals retry intent. The change lifts the sticky ERROR
+		// activity to ready and reports the new stale set.
 		buildServer._projectResourceChanged(rootProject, "/index.html", false);
 		await drainUntil(clock, statusEvents, (e) => e.status === "serve-stale");
 
@@ -1720,7 +1725,10 @@ test.serial(
 
 		// Fire the dropped-events error on the initial watcher.
 		watchHandlers[0].emitError(droppedEventsError());
-		await drainUntil(clock, statusEvents, (e) => e.status === "serve-stale");
+		// Recovery is async; drain until it has recreated the watcher. Keying on the serve-stale
+		// event is not enough (the build cycle close already emitted one) so wait on the
+		// recovery-specific effect (the fresh watcher subscription).
+		await drainUntil(clock, statusEvents, () => watchHandlers.length === 2);
 
 		t.true(watchHandlers[0].destroy.calledOnce, "old watcher destroyed");
 		t.is(watchHandlers.length, 2, "a fresh watcher was created");
@@ -1732,7 +1740,11 @@ test.serial(
 		t.true(sourcesChanged.calledOnce, "sourcesChanged emitted so clients reload");
 
 		const seq = statusEvents.map((e) => e.status);
-		t.is(seq[seq.length - 1], "serve-stale", "server settles on STALE after recovery");
+		t.is(seq[seq.length - 1], "serve-ready",
+			"server settles on ready after recovery, everything is servable, stale projects " +
+			"rebuild lazily on request");
+		t.true(seq.includes("serve-stale"),
+			`the stale set was reported after the re-scan; got: ${seq.join(", ")}`);
 	});
 
 test.serial(

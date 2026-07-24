@@ -246,11 +246,27 @@ test("renderBuildRegion: ready state with hrtime shows elapsed suffix", (t) => {
 	t.regex(plain, /ready.*Time elapsed:/);
 });
 
-test("renderBuildRegion: stale state includes 'files changed' hint", (t) => {
+test("renderBuildRegion: ready state appends a singular stale count", (t) => {
 	const state = createBuildState();
-	transitionTo(state, STATES.STALE);
+	state.staleProjects = ["library.a"];
+	transitionTo(state, STATES.READY);
 	const plain = renderBuildRegion(state).map(stripAnsi).join("\n");
-	t.regex(plain, /Status\s+.+?\s+stale\s+·\s+files changed/);
+	t.regex(plain, /ready.*·\s+1 project(?!s) stale/);
+});
+
+test("renderBuildRegion: ready state appends a plural stale count", (t) => {
+	const state = createBuildState();
+	state.staleProjects = ["library.a", "library.b"];
+	transitionTo(state, STATES.READY);
+	const plain = renderBuildRegion(state).map(stripAnsi).join("\n");
+	t.regex(plain, /ready.*·\s+2 projects stale/);
+});
+
+test("renderBuildRegion: ready state omits the stale count when everything is fresh", (t) => {
+	const state = createBuildState();
+	transitionTo(state, STATES.READY);
+	const plain = renderBuildRegion(state).map(stripAnsi).join("\n");
+	t.notRegex(plain, /stale/, "no stale fragment when staleProjects is empty");
 });
 
 test("renderBuildRegion: settling state includes 'waiting for changes to settle' hint", (t) => {
@@ -382,7 +398,6 @@ test("renderBuildRegion: building state renders bare project/task names when no 
 const GLYPH_BY_STATE = [
 	{state: STATES.STARTING, glyph: figures.circle, name: "circle"},
 	{state: STATES.READY, glyph: figures.bullet, name: "bullet"},
-	{state: STATES.STALE, glyph: figures.circle, name: "circle"},
 	{state: STATES.ERROR, glyph: figures.cross, name: "cross"},
 ];
 for (const {state: s, glyph, name} of GLYPH_BY_STATE) {
@@ -404,7 +419,6 @@ const WIDTH = "building".length;
 const COLOR_BY_STATE = [
 	{state: STATES.STARTING, wrap: (x) => chalk.dim(x), word: "starting", name: "dim"},
 	{state: STATES.READY, wrap: (x) => chalk.green(x), word: "ready", name: "green"},
-	{state: STATES.STALE, wrap: (x) => chalk.yellow(x), word: "stale", name: "yellow"},
 	{state: STATES.BUILDING, wrap: (x) => chalk.yellow(x), word: "building", name: "yellow"},
 	{state: STATES.VALIDATING, wrap: (x) => chalk.cyan(x), word: "validating cache", name: "cyan"},
 	{state: STATES.ERROR, wrap: (x) => chalk.red(x), word: "error", name: "red"},

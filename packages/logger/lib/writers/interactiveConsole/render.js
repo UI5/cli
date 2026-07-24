@@ -8,6 +8,8 @@ import {REMOTE_CONNECTIONS_WARNING_LINES} from "./remoteConnectionsWarning.js";
 const SPINNER_FRAMES = ["◐", "◓", "◑", "◒"];
 const STATE_LABEL_WIDTH = "building".length;
 const pad = (s) => s.padEnd(STATE_LABEL_WIDTH);
+// "1 project" / "2 projects" - shared by the stale (ready) and validating counts.
+const projectCount = (n) => `${n} project${n === 1 ? "" : "s"}`;
 
 // Align continuation lines (additional network URLs / extra placeholders)
 // under the first URL slot. The arrow, single space, and "Network:  " label
@@ -145,11 +147,14 @@ function renderStatusLine(state) {
 		if (state.lastBuildHrtime) {
 			suffix = ` ${chalk.dim("·")} ${chalk.dim("Time elapsed: " + prettyHrtime(state.lastBuildHrtime))}`;
 		}
+		// Append the stale count to the ready line.
+		const staleCount = state.staleProjects.length;
+		if (staleCount > 0) {
+			suffix += ` ${chalk.dim("·")} ` +
+				chalk.yellow(`${projectCount(staleCount)} stale`);
+		}
 		return `${label}${chalk.green(figures.bullet)} ${chalk.green(pad("ready"))}${suffix}`;
 	}
-	case STATES.STALE:
-		return `${label}${chalk.yellow(figures.circle)} ${chalk.yellow(pad("stale"))} ` +
-			`${chalk.dim("· files changed, rebuild on next request")}`;
 	case STATES.SETTLING: {
 		const frame = SPINNER_FRAMES[state.spinFrame % SPINNER_FRAMES.length];
 		return `${label}${chalk.yellow(frame)} ${chalk.yellow(pad("settling"))} ` +
@@ -164,7 +169,7 @@ function renderStatusLine(state) {
 		];
 		const count = state.validatingProjects.length;
 		if (count > 0) {
-			parts.push(chalk.dim("·"), chalk.dim(`${count} project${count === 1 ? "" : "s"}`));
+			parts.push(chalk.dim("·"), chalk.dim(projectCount(count)));
 		}
 		return `${label}${parts.join(" ")}`;
 	}

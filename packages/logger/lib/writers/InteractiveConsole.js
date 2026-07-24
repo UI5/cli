@@ -7,7 +7,7 @@ import {createHeaderState, setTool} from "./interactiveConsole/state/header.js";
 import {createProjectState, setProject, enableProjectPlaceholders} from "./interactiveConsole/state/project.js";
 import {createServerState, setListening, enableServerPlaceholders} from "./interactiveConsole/state/server.js";
 import {
-	createBuildState, beginBuild, advanceToProject, setTask, transitionTo, setError, STATES,
+	createBuildState, beginBuild, advanceToProject, setTask, transitionTo, setError, setStale, STATES,
 	SPINNING_STATES, enableBuildPlaceholders,
 } from "./interactiveConsole/state/build.js";
 import {
@@ -346,8 +346,10 @@ class InteractiveConsole {
 			this.#transitionTo(STATES.READY);
 			break;
 		case "serve-stale":
-			this.#buildState.changedProjects = evt.changedProjects || [];
-			this.#transitionTo(STATES.STALE);
+			// Record the stale set and re-render without a state transition, so the count updates
+			// in place beneath the current status (typically `ready`).
+			setStale(this.#buildState, evt.staleProjects);
+			this.#render();
 			break;
 		case "serve-settling":
 			this.#buildState.pendingProjects = evt.pendingProjects || [];
