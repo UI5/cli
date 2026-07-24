@@ -21,6 +21,7 @@ test.serial("integration: build library.d with library preload", async (t) => {
 	const includedTasks = ["generateLibraryPreload"];
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: libraryDTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -75,6 +76,7 @@ test.serial("integration: build library.d-minified with library preload", async 
 	const includedTasks = ["generateLibraryPreload"];
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: libraryDMinifiedTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -129,6 +131,7 @@ test.serial("integration: build sap.ui.core with library preload", async (t) => 
 	const includedTasks = ["minify", "generateLibraryPreload"];
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: sapUiCoreTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -333,6 +336,7 @@ test.serial("integration: build library.n without enabled string bundling", asyn
 	const includedTasks = ["generateLibraryPreload"];
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: libraryNTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -379,6 +383,7 @@ test.serial("integration: build library.n with enabled string bundling", async (
 	const includedTasks = ["generateLibraryPreload"];
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: libraryNTreeLegacy
 	});
 	graph.setTaskRepository(taskRepository);

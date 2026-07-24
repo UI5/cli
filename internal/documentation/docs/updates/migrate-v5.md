@@ -27,6 +27,10 @@ Or update your global install via: `npm i --global @ui5/cli@next`
 
 - **@ui5/cli: `ui5 serve` renders a status banner in interactive terminals**
 
+- **@ui5/project: UI5 framework resolver constructors now require explicit `ui5DataDir`**
+
+- **@ui5/project: UI5 framework resolver static APIs now require explicit `ui5DataDir`**
+
 
 ## Node.js and npm Version Support
 
@@ -106,6 +110,71 @@ If you previously passed any of these options to a command that did not use them
 ## UI5 CLI Init Command
 
 The `ui5 init` command now generates projects with Specification Version 5.0 by default.
+
+## Changes to @ui5/project (Node.js API)
+
+When consuming the Node.js API, UI5 framework resolver constructors now require the `ui5DataDir` option.
+This affects `Openui5Resolver`, `Sapui5Resolver`, and `Sapui5MavenSnapshotResolver`.
+
+The same requirement now applies to static resolver APIs (for example `resolveVersion`, `fetchAllVersions`, and
+`fetchAllTags`). Calls without `ui5DataDir` now throw and no longer fall back to implicit default paths.
+
+Previously, `ui5DataDir` was optional and resolver constructors implicitly resolved a fallback from
+environment/configuration. In UI5 CLI v5, callers must resolve the UI5 data directory before constructing a
+resolver and pass it explicitly. This change improves API clarity by making the dependency explicit.
+
+Use [`resolveUi5DataDir`](../api/module-@ui5_project_utils_dataDir.md) to resolve the path once at your async
+entry boundary and forward the resolved value to all APIs that need it.
+
+::: code-group
+```js [Before]
+import Sapui5Resolver from "@ui5/project/ui5Framework/Sapui5Resolver";
+
+const resolver = new Sapui5Resolver({
+    cwd: process.cwd(),
+    version: "1.120.15"
+});
+```
+
+```js [After]
+import Sapui5Resolver from "@ui5/project/ui5Framework/Sapui5Resolver";
+import {resolveUi5DataDir} from "@ui5/project/utils/dataDir";
+
+async function createResolver() {
+    const ui5DataDir = await resolveUi5DataDir({projectRootPath: process.cwd()});
+
+    const resolver = new Sapui5Resolver({
+        cwd: process.cwd(),
+        version: "1.120.15",
+        ui5DataDir
+    });
+
+    return resolver;
+}
+```
+:::
+
+For static APIs, pass the same resolved value as the second argument:
+
+::: code-group
+```js [Before]
+import Sapui5Resolver from "@ui5/project/ui5Framework/Sapui5Resolver";
+
+const version = await Sapui5Resolver.resolveVersion("latest");
+```
+
+```js [After]
+import Sapui5Resolver from "@ui5/project/ui5Framework/Sapui5Resolver";
+import {resolveUi5DataDir} from "@ui5/project/utils/dataDir";
+
+async function resolveFrameworkVersion(projectRootPath) {
+    const ui5DataDir = await resolveUi5DataDir({projectRootPath});
+    return Sapui5Resolver.resolveVersion("latest", ui5DataDir, {
+        cwd: projectRootPath
+    });
+}
+```
+:::
 
 ## Component Type
 

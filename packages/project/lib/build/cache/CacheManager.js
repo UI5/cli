@@ -1,6 +1,4 @@
 import path from "node:path";
-import os from "node:os";
-import Configuration from "../../config/Configuration.js";
 import {getLogger} from "@ui5/logger";
 import BuildCacheStorage from "./BuildCacheStorage.js";
 
@@ -58,33 +56,16 @@ export default class CacheManager {
 	 * Factory method to create or retrieve a CacheManager instance
 	 *
 	 * Returns a singleton CacheManager for the determined cache directory.
-	 * The cache directory is resolved in this order:
-	 * 1. Explicit <code>ui5DataDir</code> option (resolved relative to cwd)
-	 * 2. UI5_DATA_DIR environment variable (resolved relative to cwd)
-	 * 3. ui5DataDir from UI5 configuration file
-	 * 4. Default: ~/.ui5/
 	 *
 	 * @public
-	 * @param {string} cwd Current working directory for resolving relative paths
-	 * @param {object} [options]
-	 * @param {string} [options.ui5DataDir] Explicit UI5 data directory. When provided,
-	 *   environment variable, configuration file, and home-directory fallbacks are skipped.
+	 * @param {string} ui5DataDir Resolved UI5 data directory.
 	 * @returns {Promise<CacheManager>} Singleton CacheManager instance for the cache directory
 	 */
-	static async create(cwd, {ui5DataDir} = {}) {
+	static async create(ui5DataDir) {
 		if (!ui5DataDir) {
-			// ENV var should take precedence over the dataDir from the configuration.
-			ui5DataDir = process.env.UI5_DATA_DIR;
-			if (!ui5DataDir) {
-				const config = await Configuration.fromFile();
-				ui5DataDir = config.getUi5DataDir();
-			}
+			throw new Error("CacheManager: Missing parameter \"ui5DataDir\"");
 		}
-		if (ui5DataDir) {
-			ui5DataDir = path.resolve(cwd, ui5DataDir);
-		} else {
-			ui5DataDir = path.join(os.homedir(), ".ui5");
-		}
+		ui5DataDir = path.resolve(ui5DataDir);
 		const cacheDir = path.join(ui5DataDir, "buildCache");
 		log.verbose(`Using build cache directory: ${cacheDir}`);
 

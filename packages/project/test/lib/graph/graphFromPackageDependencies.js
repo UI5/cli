@@ -15,13 +15,19 @@ test.afterEach.always((t) => {
 });
 
 test("Application A", async (t) => {
-	const projectGraph = await graphFromPackageDependencies({cwd: applicationAPath});
+	const projectGraph = await graphFromPackageDependencies({
+		ui5DataDir: "/path/to/ui5-data-dir",
+		cwd: applicationAPath
+	});
 	const rootProject = projectGraph.getRoot();
 	t.is(rootProject.getName(), "application.a", "Returned correct root project");
 });
 
 test("Application A: Traverse project graph breadth first", async (t) => {
-	const projectGraph = await graphFromPackageDependencies({cwd: applicationAPath});
+	const projectGraph = await graphFromPackageDependencies({
+		ui5DataDir: "/path/to/ui5-data-dir",
+		cwd: applicationAPath
+	});
 	const callbackStub = t.context.sinon.stub().resolves();
 	await projectGraph.traverseBreadthFirst(callbackStub);
 

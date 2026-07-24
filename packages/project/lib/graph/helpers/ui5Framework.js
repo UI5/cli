@@ -2,8 +2,6 @@ import Module from "../Module.js";
 import ProjectGraph from "../ProjectGraph.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:helpers:ui5Framework");
-import Configuration from "../../config/Configuration.js";
-import path from "node:path";
 
 class ProjectProcessor {
 	constructor({libraryMetadata, graph, workspace}) {
@@ -284,13 +282,15 @@ export default {
 	 *   version
 	 * @param {module:@ui5/project/ui5Framework/maven/SnapshotCache} [options.snapshotCache]
  	 *   Snapshot cache mode to use when consuming SNAPSHOT versions of a framework
+	 * @param {string} options.ui5DataDir Resolved UI5 data directory to use for framework
+	 *   metadata and package resolution.
 	 * @param {@ui5/project/graph/Workspace} [options.workspace]
 	 *   Optional workspace instance to use for overriding node resolutions
 	 * @returns {Promise<@ui5/project/graph/ProjectGraph>}
 	 *   Promise resolving with the given graph instance to allow method chaining
 	 */
 	enrichProjectGraph: async function(projectGraph, options = {}) {
-		const {workspace, snapshotCache} = options;
+		const {workspace, snapshotCache, ui5DataDir} = options;
 		const rootProject = projectGraph.getRoot();
 		const frameworkName = rootProject.getFrameworkName();
 		const frameworkVersion = rootProject.getFrameworkVersion();
@@ -348,21 +348,8 @@ export default {
 			Resolver = (await import("../../ui5Framework/Sapui5Resolver.js")).default;
 		}
 
-		// ENV var should take precedence over the dataDir from the configuration.
-		let ui5DataDir = process.env.UI5_DATA_DIR;
-		if (!ui5DataDir) {
-			const config = await Configuration.fromFile();
-			ui5DataDir = config.getUi5DataDir();
-		}
-		if (ui5DataDir) {
-			ui5DataDir = path.resolve(cwd, ui5DataDir);
-		}
-
 		if (options.versionOverride) {
-			version = await Resolver.resolveVersion(options.versionOverride, {
-				ui5DataDir,
-				cwd
-			});
+			version = await Resolver.resolveVersion(options.versionOverride, ui5DataDir, {cwd});
 			log.info(
 				`Overriding configured ${frameworkName} version ` +
 				`${frameworkVersion} with version ${version}`

@@ -2,7 +2,6 @@ import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
 import path from "node:path";
-import os from "node:os";
 import Openui5Resolver from "../../../lib/ui5Framework/Openui5Resolver.js";
 
 test.beforeEach(async (t) => {
@@ -37,7 +36,8 @@ test.serial(
 
 		const resolver = new Sapui5Resolver({
 			cwd: "/test-project/",
-			version: "1.75.0"
+			version: "1.75.0",
+			ui5DataDir: "/ui5DataDir"
 		});
 
 		t.context.getTargetDirForPackageStub.callsFake(({pkgName, version}) => {
@@ -88,7 +88,8 @@ test.serial("Sapui5Resolver: handleLibrary", async (t) => {
 
 	const resolver = new Sapui5Resolver({
 		cwd: "/test-project/",
-		version: "1.75.0"
+		version: "1.75.0",
+		ui5DataDir: "/ui5DataDir"
 	});
 
 	const loadDistMetadataStub = sinon.stub(resolver, "loadDistMetadata");
@@ -135,7 +136,7 @@ test.serial("Sapui5Resolver: Static _getInstaller", (t) => {
 		ui5DataDir: "/ui5DataDir"
 	};
 
-	const installer = Sapui5Resolver._getInstaller(options);
+	const installer = Sapui5Resolver._getInstaller(options.ui5DataDir, options);
 
 	t.is(t.context.InstallerStub.callCount, 1, "Installer should be called once");
 	t.true(t.context.InstallerStub.calledWithNew(), "Installer should be called with new");
@@ -149,15 +150,11 @@ test.serial("Sapui5Resolver: Static _getInstaller", (t) => {
 test.serial("Sapui5Resolver: Static _getInstaller without options", (t) => {
 	const {Sapui5Resolver} = t.context;
 
-	const installer = Sapui5Resolver._getInstaller();
-
-	t.is(t.context.InstallerStub.callCount, 1, "Installer should be called once");
-	t.true(t.context.InstallerStub.calledWithNew(), "Installer should be called with new");
-	t.is(installer, t.context.InstallerStub.getCall(0).returnValue, "Installer instance is returned");
-	t.deepEqual(t.context.InstallerStub.getCall(0).args, [{
-		cwd: process.cwd(),
-		ui5DataDir: path.join(os.homedir(), ".ui5")
-	}], "Installer should be called with expected arguments");
+	const err = t.throws(() => {
+		Sapui5Resolver._getInstaller();
+	});
+	t.is(err.message, "Sapui5Resolver: Missing parameter \"ui5DataDir\"");
+	t.is(t.context.InstallerStub.callCount, 0, "Installer should not be called");
 });
 
 test.serial("Sapui5Resolver: Static fetchAllVersions", async (t) => {
@@ -169,7 +166,9 @@ test.serial("Sapui5Resolver: Static fetchAllVersions", async (t) => {
 
 	const getInstallerSpy = sinon.spy(Sapui5Resolver, "_getInstaller");
 
-	const versions = await Sapui5Resolver.fetchAllVersions();
+	const versions = await Sapui5Resolver.fetchAllVersions("/ui5DataDir", {
+		cwd: "/cwd"
+	});
 
 	t.deepEqual(versions, expectedVersions, "Fetched versions should be correct");
 
@@ -177,7 +176,10 @@ test.serial("Sapui5Resolver: Static fetchAllVersions", async (t) => {
 	t.deepEqual(t.context.fetchPackageVersionsStub.getCall(0).args, [{pkgName: "@sapui5/distribution-metadata"}],
 		"fetchPackageVersions should be called with expected arguments");
 	t.is(getInstallerSpy.callCount, 1, "_getInstaller should be called once");
-	t.is(getInstallerSpy.getCall(0).args[0], undefined, "_getInstaller should be called without any options");
+	t.deepEqual(getInstallerSpy.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "_getInstaller should be called with expected arguments");
 });
 
 test.serial("Sapui5Resolver: Static fetchAllTags", async (t) => {
@@ -189,7 +191,9 @@ test.serial("Sapui5Resolver: Static fetchAllTags", async (t) => {
 
 	const getInstallerSpy = sinon.spy(Sapui5Resolver, "_getInstaller");
 
-	const tags = await Sapui5Resolver.fetchAllTags();
+	const tags = await Sapui5Resolver.fetchAllTags("/ui5DataDir", {
+		cwd: "/cwd"
+	});
 
 	t.deepEqual(tags, expectedTags, "Fetched tags should be correct");
 
@@ -198,7 +202,10 @@ test.serial("Sapui5Resolver: Static fetchAllTags", async (t) => {
 		"fetchPackageVersions should be called with expected arguments");
 
 	t.is(getInstallerSpy.callCount, 1, "_getInstaller should be called once");
-	t.is(getInstallerSpy.getCall(0).args[0], undefined, "_getInstaller should be called without any options");
+	t.deepEqual(getInstallerSpy.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "_getInstaller should be called with expected arguments");
 });
 
 test.serial(
@@ -207,7 +214,8 @@ test.serial(
 
 		const resolver = new Sapui5Resolver({
 			cwd: "/test-project/",
-			version: "1.77.7"
+			version: "1.77.7",
+			ui5DataDir: "/ui5DataDir"
 		});
 
 		const openui5LibraryMetadata = {

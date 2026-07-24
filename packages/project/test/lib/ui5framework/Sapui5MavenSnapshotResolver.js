@@ -2,7 +2,6 @@ import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
 import path from "node:path";
-import os from "node:os";
 
 test.beforeEach(async (t) => {
 	t.context.InstallerStub = sinon.stub();
@@ -63,7 +62,8 @@ test.serial(
 
 		const resolver = new Sapui5MavenSnapshotResolver({
 			cwd: "/test-project/",
-			version: "1.75.0"
+			version: "1.75.0",
+			ui5DataDir: "/ui5DataDir"
 		});
 
 		const expectedMetadata = {
@@ -114,7 +114,8 @@ test.serial("Sapui5MavenSnapshotResolver: getLibraryMetadata throws", async (t) 
 
 	const resolver = new Sapui5MavenSnapshotResolver({
 		cwd: "/test-project/",
-		version: "1.75.0"
+		version: "1.75.0",
+		ui5DataDir: "/ui5DataDir"
 	});
 
 	const loadDistMetadataStub = sinon.stub(resolver, "loadDistMetadata");
@@ -132,7 +133,8 @@ test.serial("Sapui5MavenSnapshotResolver: handleLibrary", async (t) => {
 
 	const resolver = new Sapui5MavenSnapshotResolver({
 		cwd: "/test-project/",
-		version: "1.116.0-SNAPSHOT"
+		version: "1.116.0-SNAPSHOT",
+		ui5DataDir: "/ui5DataDir"
 	});
 
 	const loadDistMetadataStub = sinon.stub(resolver, "loadDistMetadata");
@@ -186,7 +188,8 @@ test.serial("Sapui5MavenSnapshotResolver: handleLibrary - legacy version", async
 
 	const resolver = new Sapui5MavenSnapshotResolver({
 		cwd: "/test-project/",
-		version: "1.75.0-SNAPSHOT"
+		version: "1.75.0-SNAPSHOT",
+		ui5DataDir: "/ui5DataDir"
 	});
 
 	const loadDistMetadataStub = sinon.stub(resolver, "loadDistMetadata");
@@ -240,6 +243,7 @@ test.serial("Sapui5MavenSnapshotResolver: handleLibrary - sources requested", as
 	const resolver = new Sapui5MavenSnapshotResolver({
 		cwd: "/test-project/",
 		version: "1.116.0-SNAPSHOT",
+		ui5DataDir: "/ui5DataDir",
 		sources: true
 	});
 
@@ -294,6 +298,7 @@ test.serial("Sapui5MavenSnapshotResolver: handleLibrary - sources requested with
 	const resolver = new Sapui5MavenSnapshotResolver({
 		cwd: "/test-project/",
 		version: "1.75.0-SNAPSHOT",
+		ui5DataDir: "/ui5DataDir",
 		sources: true
 	});
 
@@ -347,7 +352,8 @@ test.serial("Sapui5MavenSnapshotResolver: handleLibrary throws", async (t) => {
 
 	const resolver = new Sapui5MavenSnapshotResolver({
 		cwd: "/test-project/",
-		version: "1.75.0"
+		version: "1.75.0",
+		ui5DataDir: "/ui5DataDir"
 	});
 
 	sinon.stub(resolver, "getLibraryMetadata").resolves({});
@@ -372,7 +378,7 @@ test.serial("Sapui5MavenSnapshotResolver: Static fetchAllVersions", async (t) =>
 	sinon.stub(Sapui5MavenSnapshotResolver, "_createSnapshotEndpointUrlCallback")
 		.returns("snapshotEndpointUrlCallback");
 
-	const versions = await Sapui5MavenSnapshotResolver.fetchAllVersions(options);
+	const versions = await Sapui5MavenSnapshotResolver.fetchAllVersions(options.ui5DataDir, options);
 
 	t.deepEqual(versions, expectedVersions, "Fetched versions should be correct");
 
@@ -395,28 +401,9 @@ test.serial("Sapui5MavenSnapshotResolver: Static fetchAllVersions", async (t) =>
 test.serial("Sapui5MavenSnapshotResolver: Static fetchAllVersions without options", async (t) => {
 	const {Sapui5MavenSnapshotResolver} = t.context;
 
-	const expectedVersions = ["1.75.0-SNAPSHOT", "1.75.1-SNAPSHOT", "1.76.0-SNAPSHOT"];
-
-	t.context.fetchPackageVersionsStub.returns(expectedVersions);
-	sinon.stub(Sapui5MavenSnapshotResolver, "_createSnapshotEndpointUrlCallback")
-		.returns("snapshotEndpointUrlCallback");
-
-	const versions = await Sapui5MavenSnapshotResolver.fetchAllVersions();
-
-	t.deepEqual(versions, expectedVersions, "Fetched versions should be correct");
-
-	t.is(t.context.fetchPackageVersionsStub.callCount, 1, "fetchPackageVersions should be called once");
-	t.deepEqual(t.context.fetchPackageVersionsStub.getCall(0).args,
-		[{artifactId: "sapui5-sdk-dist", groupId: "com.sap.ui5.dist"}],
-		"fetchPackageVersions should be called with expected arguments");
-
-	t.is(t.context.InstallerStub.callCount, 1, "Installer should be called once");
-	t.true(t.context.InstallerStub.calledWithNew(), "Installer should be called with new");
-	t.deepEqual(t.context.InstallerStub.getCall(0).args, [{
-		cwd: process.cwd(),
-		snapshotEndpointUrlCb: "snapshotEndpointUrlCallback",
-		ui5DataDir: path.join(os.homedir(), ".ui5")
-	}], "Installer should be called with expected arguments");
+	const err = await t.throwsAsync(Sapui5MavenSnapshotResolver.fetchAllVersions());
+	t.is(err.message, "Sapui5MavenSnapshotResolver: Missing parameter \"ui5DataDir\"");
+	t.is(t.context.InstallerStub.callCount, 0, "Installer should not be called");
 });
 
 test.serial("_createSnapshotEndpointUrlCallback: Environment variable", async (t) => {

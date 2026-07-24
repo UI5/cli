@@ -1,5 +1,4 @@
 import path from "node:path";
-import os from "node:os";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("ui5Framework:AbstractResolver");
 import semver from "semver";
@@ -26,8 +25,8 @@ class AbstractResolver {
 	 * @param {boolean} [options.sources=false] Whether to install framework libraries as sources or
 	 * 					pre-built (with build manifest)
 	 * @param {string} [options.cwd=process.cwd()] Current working directory
-	 * @param {string} [options.ui5DataDir="~/.ui5"] UI5 home directory location. This will be used to store packages,
-	 * metadata and configuration used by the resolvers. Relative to `process.cwd()`
+	 * @param {string} options.ui5DataDir Resolved UI5 home directory location. This is used to store
+	 * metadata and packages used by the resolvers and must be resolved by the caller.
 	 * @param {object.<string, @ui5/project/ui5Framework/AbstractResolver~LibraryMetadataEntry>} [options.providedLibraryMetadata]
 	 * Resolver skips installing listed libraries and uses the dependency information to resolve their dependencies.
 	 * <code>version</code> can be omitted in case all libraries can be resolved via the <code>providedLibraryMetadata</code>.
@@ -38,12 +37,12 @@ class AbstractResolver {
 		if (new.target === AbstractResolver) {
 			throw new TypeError("Class 'AbstractResolver' is abstract");
 		}
+		if (!ui5DataDir) {
+			const resolverName = new.target?.name || "AbstractResolver";
+			throw new Error(`${resolverName}: Missing parameter "ui5DataDir"`);
+		}
 
-		// In some CI environments, the homedir might be set explicitly to a relative
-		// path (e.g. "./"), but tooling requires an absolute path
-		this._ui5DataDir = path.resolve(
-			ui5DataDir || path.join(os.homedir(), ".ui5")
-		);
+		this._ui5DataDir = path.resolve(ui5DataDir);
 		this._cwd = cwd ? path.resolve(cwd) : process.cwd();
 		this._version = version;
 
@@ -174,9 +173,12 @@ class AbstractResolver {
 	 * Installs the provided libraries and their dependencies
 	 *
 	 * ```js
-	 * const resolver = new Sapui5Resolver({version: "1.76.0"});
+	 * const resolver = new Sapui5Resolver({
+	 * 	version: "1.76.0",
+	 * 	ui5DataDir: "/path/to/.ui5"
+	 * });
 	 * // Or for OpenUI5:
-	 * // const resolver = new Openui5Resolver({version: "1.76.0"});
+	 * // const resolver = new Openui5Resolver({version: "1.76.0", ui5DataDir: "/path/to/.ui5"});
 	 *
 	 * resolver.install(["sap.ui.core", "sap.m"]).then(({libraryMetadata}) => {
 	 * 	// Installation done
@@ -208,21 +210,38 @@ class AbstractResolver {
 		};
 	}
 
-	static async resolveVersion(version, {ui5DataDir, cwd} = {}) {
+	/**
+	 * Resolves a framework version specifier to an exact available framework version.
+	 *
+	 * @public
+	 * @static
+	 * @param {string} version Framework version or semver range to resolve
+	 * @param {string} ui5DataDir Resolved UI5 home directory location used for framework metadata and packages
+	 * @param {object} [options] Additional options
+	 * @param {string} [options.cwd=process.cwd()] Current working directory
+	 * @returns {Promise<string>} Promise resolving to the resolved framework version
+	 */
+
+	static async resolveVersion(version, ui5DataDir, {cwd} = {}) {
 		// Don't allow nullish values
 		// An empty string is a valid semver range that converts to "*", which should not be supported
 		if (!version) {
 			throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
 		}
 
-		const spec = await this._getVersionSpec(version, {ui5DataDir, cwd});
+		if (!ui5DataDir) {
+			throw new Error(`${this.name}: Missing parameter "ui5DataDir"`);
+		}
+		ui5DataDir = path.resolve(ui5DataDir);
+
+		const spec = await this._getVersionSpec(version, ui5DataDir, {cwd});
 
 		// For all invalid cases which are not explicitly handled in _getVersionSpec
 		if (!spec) {
 			throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
 		}
 
-		const versions = await this.fetchAllVersions({ui5DataDir, cwd});
+		const versions = await this.fetchAllVersions(ui5DataDir, {cwd});
 		const resolvedVersion = semver.maxSatisfying(versions, spec, {
 			// Allow ranges that end with -SNAPSHOT to match any -SNAPSHOT version
 			// like a normal version in order to support ranges like 1.x.x-SNAPSHOT.
@@ -249,7 +268,7 @@ class AbstractResolver {
 		return resolvedVersion;
 	}
 
-	static async _getVersionSpec(version, {ui5DataDir, cwd}) {
+	static async _getVersionSpec(version, ui5DataDir, {cwd} = {}) {
 		if (this._isSnapshotVersionOrRange(version)) {
 			const versionMatch = version.match(VERSION_RANGE_REGEXP);
 			if (versionMatch) {
@@ -271,7 +290,7 @@ class AbstractResolver {
 			return null;
 		}
 
-		const allTags = await this.fetchAllTags({ui5DataDir, cwd});
+		const allTags = await this.fetchAllTags(ui5DataDir, {cwd});
 
 		if (!allTags) {
 			// Resolver doesn't support tags (e.g. Sapui5MavenSnapshotResolver)
@@ -307,10 +326,10 @@ class AbstractResolver {
 	async handleLibrary(libraryName) {
 		throw new Error("AbstractResolver: handleLibrary must be implemented!");
 	}
-	static fetchAllVersions(options) {
+	static fetchAllVersions(ui5DataDir, options) {
 		throw new Error("AbstractResolver: static fetchAllVersions must be implemented!");
 	}
-	static fetchAllTags(options) {
+	static fetchAllTags(ui5DataDir, options) {
 		return null;
 	}
 }

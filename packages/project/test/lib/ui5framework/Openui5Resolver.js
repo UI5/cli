@@ -2,7 +2,6 @@ import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
 import path from "node:path";
-import os from "node:os";
 
 test.beforeEach(async (t) => {
 	t.context.InstallerStub = sinon.stub();
@@ -44,7 +43,8 @@ test.serial("Openui5Resolver: getLibraryMetadata", async (t) => {
 
 	const resolver = new Openui5Resolver({
 		cwd: "/test-project/",
-		version: "1.75.0"
+		version: "1.75.0",
+		ui5DataDir: "/ui5DataDir"
 	});
 
 	t.context.fetchPackageManifestStub
@@ -104,7 +104,8 @@ test.serial("Openui5Resolver: handleLibrary", async (t) => {
 
 	const resolver = new Openui5Resolver({
 		cwd: "/test-project/",
-		version: "1.75.0"
+		version: "1.75.0",
+		ui5DataDir: "/ui5DataDir"
 	});
 
 	const getLibraryMetadataStub = sinon.stub(resolver, "getLibraryMetadata");
@@ -149,7 +150,7 @@ test.serial("Openui5Resolver: Static _getInstaller", (t) => {
 		ui5DataDir: "/ui5DataDir"
 	};
 
-	const installer = Openui5Resolver._getInstaller(options);
+	const installer = Openui5Resolver._getInstaller(options.ui5DataDir, options);
 
 	t.is(t.context.InstallerStub.callCount, 1, "Installer should be called once");
 	t.true(t.context.InstallerStub.calledWithNew(), "Installer should be called with new");
@@ -163,15 +164,11 @@ test.serial("Openui5Resolver: Static _getInstaller", (t) => {
 test.serial("Openui5Resolver: Static _getInstaller without options", (t) => {
 	const {Openui5Resolver} = t.context;
 
-	const installer = Openui5Resolver._getInstaller();
-
-	t.is(t.context.InstallerStub.callCount, 1, "Installer should be called once");
-	t.true(t.context.InstallerStub.calledWithNew(), "Installer should be called with new");
-	t.is(installer, t.context.InstallerStub.getCall(0).returnValue, "Installer instance is returned");
-	t.deepEqual(t.context.InstallerStub.getCall(0).args, [{
-		cwd: process.cwd(),
-		ui5DataDir: path.join(os.homedir(), ".ui5")
-	}], "Installer should be called with expected arguments");
+	const err = t.throws(() => {
+		Openui5Resolver._getInstaller();
+	});
+	t.is(err.message, "Openui5Resolver: Missing parameter \"ui5DataDir\"");
+	t.is(t.context.InstallerStub.callCount, 0, "Installer should not be called");
 });
 
 test.serial("Openui5Resolver: Static fetchAllVersions", async (t) => {
@@ -183,7 +180,9 @@ test.serial("Openui5Resolver: Static fetchAllVersions", async (t) => {
 
 	const getInstallerSpy = sinon.spy(Openui5Resolver, "_getInstaller");
 
-	const versions = await Openui5Resolver.fetchAllVersions();
+	const versions = await Openui5Resolver.fetchAllVersions("/ui5DataDir", {
+		cwd: "/cwd"
+	});
 
 	t.deepEqual(versions, expectedVersions, "Fetched versions should be correct");
 
@@ -192,7 +191,10 @@ test.serial("Openui5Resolver: Static fetchAllVersions", async (t) => {
 		"fetchPackageVersions should be called with expected arguments");
 
 	t.is(getInstallerSpy.callCount, 1, "_getInstaller should be called once");
-	t.is(getInstallerSpy.getCall(0).args[0], undefined, "_getInstaller should be called without any options");
+	t.deepEqual(getInstallerSpy.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "_getInstaller should be called with expected arguments");
 });
 
 test.serial("Openui5Resolver: Static fetchAllTags", async (t) => {
@@ -204,7 +206,9 @@ test.serial("Openui5Resolver: Static fetchAllTags", async (t) => {
 
 	const getInstallerSpy = sinon.spy(Openui5Resolver, "_getInstaller");
 
-	const tags = await Openui5Resolver.fetchAllTags();
+	const tags = await Openui5Resolver.fetchAllTags("/ui5DataDir", {
+		cwd: "/cwd"
+	});
 
 	t.deepEqual(tags, expectedTags, "Fetched tags should be correct");
 
@@ -213,5 +217,8 @@ test.serial("Openui5Resolver: Static fetchAllTags", async (t) => {
 		"fetchPackageVersions should be called with expected arguments");
 
 	t.is(getInstallerSpy.callCount, 1, "_getInstaller should be called once");
-	t.is(getInstallerSpy.getCall(0).args[0], undefined, "_getInstaller should be called without any options");
+	t.deepEqual(getInstallerSpy.getCall(0).args, [
+		"/ui5DataDir",
+		{cwd: "/cwd"}
+	], "_getInstaller should be called with expected arguments");
 });

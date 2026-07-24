@@ -54,6 +54,7 @@ test.serial("graphFromPackageDependencies", async (t) => {
 	const {graphFromPackageDependencies} = t.context.graph;
 
 	const res = await graphFromPackageDependencies({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: "cwd",
 		rootConfiguration: "rootConfiguration",
 		rootConfigPath: "/rootConfigPath",
@@ -67,7 +68,7 @@ test.serial("graphFromPackageDependencies", async (t) => {
 	t.is(createWorkspaceStub.callCount, 0, "createWorkspace did not get called");
 	t.is(npmProviderConstructorStub.callCount, 1, "NPM provider constructor got called once");
 	t.deepEqual(npmProviderConstructorStub.getCall(0).args[0], {
-		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
+		cwd: path.resolve("cwd"),
 		rootConfiguration: "rootConfiguration",
 		rootConfigPath: "/rootConfigPath"
 	}, "Created NodePackageDependencies provider instance with correct parameters");
@@ -84,7 +85,8 @@ test.serial("graphFromPackageDependencies", async (t) => {
 	t.deepEqual(enrichProjectGraphStub.getCall(0).args[1], {
 		versionOverride: "versionOverride",
 		workspace: undefined,
-		snapshotCache: "Off"
+		snapshotCache: "Off",
+		ui5DataDir: "/path/to/ui5-data-dir"
 	}, "enrichProjectGraph got called with correct options");
 });
 
@@ -96,6 +98,7 @@ test.serial("graphFromPackageDependencies with workspace name", async (t) => {
 	const {graphFromPackageDependencies} = t.context.graph;
 
 	const res = await graphFromPackageDependencies({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: "cwd",
 		rootConfiguration: "rootConfiguration",
 		rootConfigPath: "/rootConfigPath",
@@ -108,7 +111,7 @@ test.serial("graphFromPackageDependencies with workspace name", async (t) => {
 
 	t.is(createWorkspaceStub.callCount, 1, "createWorkspace got called once");
 	t.deepEqual(createWorkspaceStub.getCall(0).args[0], {
-		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
+		cwd: path.resolve("cwd"),
 		name: "dolphin",
 		configPath: "ui5-workspace.yaml",
 		configObject: undefined,
@@ -116,7 +119,7 @@ test.serial("graphFromPackageDependencies with workspace name", async (t) => {
 
 	t.is(npmProviderConstructorStub.callCount, 1, "NPM provider constructor got called once");
 	t.deepEqual(npmProviderConstructorStub.getCall(0).args[0], {
-		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
+		cwd: path.resolve("cwd"),
 		rootConfiguration: "rootConfiguration",
 		rootConfigPath: "/rootConfigPath",
 	}, "Created NodePackageDependencies provider instance with correct parameters");
@@ -133,7 +136,8 @@ test.serial("graphFromPackageDependencies with workspace name", async (t) => {
 	t.deepEqual(enrichProjectGraphStub.getCall(0).args[1], {
 		versionOverride: "versionOverride",
 		workspace: "workspace",
-		snapshotCache: "Off"
+		snapshotCache: "Off",
+		ui5DataDir: "/path/to/ui5-data-dir"
 	}, "enrichProjectGraph got called with correct options");
 });
 
@@ -144,6 +148,7 @@ test.serial("graphFromPackageDependencies with workspace object", async (t) => {
 	const {graphFromPackageDependencies} = t.context.graph;
 
 	const res = await graphFromPackageDependencies({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: "cwd",
 		rootConfiguration: "rootConfiguration",
 		rootConfigPath: "/rootConfigPath",
@@ -156,7 +161,7 @@ test.serial("graphFromPackageDependencies with workspace object", async (t) => {
 
 	t.is(createWorkspaceStub.callCount, 1, "createWorkspace got called once");
 	t.deepEqual(createWorkspaceStub.getCall(0).args[0], {
-		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
+		cwd: path.resolve("cwd"),
 		configPath: "ui5-workspace.yaml",
 		name: null,
 		configObject: "workspaceConfiguration"
@@ -170,6 +175,7 @@ test.serial("graphFromPackageDependencies with workspace object and workspace na
 	const {graphFromPackageDependencies} = t.context.graph;
 
 	const res = await graphFromPackageDependencies({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: "cwd",
 		rootConfiguration: "rootConfiguration",
 		rootConfigPath: "/rootConfigPath",
@@ -182,7 +188,7 @@ test.serial("graphFromPackageDependencies with workspace object and workspace na
 
 	t.is(createWorkspaceStub.callCount, 1, "createWorkspace got called once");
 	t.deepEqual(createWorkspaceStub.getCall(0).args[0], {
-		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
+		cwd: path.resolve("cwd"),
 		name: "dolphin",
 		configPath: "ui5-workspace.yaml",
 		configObject: "workspaceConfiguration"
@@ -196,6 +202,7 @@ test.serial("graphFromPackageDependencies with workspace path and workspace name
 	const {graphFromPackageDependencies} = t.context.graph;
 
 	const res = await graphFromPackageDependencies({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: "cwd",
 		rootConfiguration: "rootConfiguration",
 		rootConfigPath: "/rootConfigPath",
@@ -208,7 +215,7 @@ test.serial("graphFromPackageDependencies with workspace path and workspace name
 
 	t.is(createWorkspaceStub.callCount, 1, "createWorkspace got called once");
 	t.deepEqual(createWorkspaceStub.getCall(0).args[0], {
-		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
+		cwd: path.resolve("cwd"),
 		name: "dolphin",
 		configPath: "workspaceConfigurationPath",
 		configObject: undefined
@@ -226,6 +233,7 @@ test.serial("graphFromPackageDependencies with empty workspace", async (t) => {
 	createWorkspaceStub.resolves(null);
 
 	const res = await graphFromPackageDependencies({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: "cwd",
 		rootConfiguration: "rootConfiguration",
 		rootConfigPath: "/rootConfigPath",
@@ -238,7 +246,7 @@ test.serial("graphFromPackageDependencies with empty workspace", async (t) => {
 
 	t.is(createWorkspaceStub.callCount, 1, "createWorkspace got called once");
 	t.deepEqual(createWorkspaceStub.getCall(0).args[0], {
-		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
+		cwd: path.resolve("cwd"),
 		name: "dolphin",
 		configPath: "ui5-workspace.yaml",
 		configObject: undefined,
@@ -246,7 +254,7 @@ test.serial("graphFromPackageDependencies with empty workspace", async (t) => {
 
 	t.is(npmProviderConstructorStub.callCount, 1, "NPM provider constructor got called once");
 	t.deepEqual(npmProviderConstructorStub.getCall(0).args[0], {
-		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
+		cwd: path.resolve("cwd"),
 		rootConfiguration: "rootConfiguration",
 		rootConfigPath: "/rootConfigPath",
 	}, "Created NodePackageDependencies provider instance with correct parameters");
@@ -263,7 +271,8 @@ test.serial("graphFromPackageDependencies with empty workspace", async (t) => {
 	t.deepEqual(enrichProjectGraphStub.getCall(0).args[1], {
 		versionOverride: "versionOverride",
 		workspace: null,
-		snapshotCache: "Off"
+		snapshotCache: "Off",
+		ui5DataDir: "/path/to/ui5-data-dir"
 	}, "enrichProjectGraph got called with correct options");
 });
 
@@ -272,6 +281,7 @@ test.serial("graphFromPackageDependencies: Do not resolve framework dependencies
 	const {graphFromPackageDependencies} = t.context.graph;
 
 	const res = await graphFromPackageDependencies({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: "cwd",
 		rootConfiguration: "rootConfiguration",
 		rootConfigPath: "/rootConfigPath",
@@ -288,6 +298,7 @@ test.serial("graphFromPackageDependencies: Default workspace name", async (t) =>
 	const {graphFromPackageDependencies} = t.context.graph;
 
 	const res = await graphFromPackageDependencies({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: "cwd",
 		rootConfiguration: "rootConfiguration",
 		rootConfigPath: "/rootConfigPath",
@@ -312,6 +323,7 @@ test.serial("graphFromStaticFile", async (t) => {
 		.resolves("dependencyTree");
 
 	const res = await graphFromStaticFile({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: "cwd",
 		filePath: "file/path",
 		rootConfiguration: "rootConfiguration",
@@ -323,7 +335,7 @@ test.serial("graphFromStaticFile", async (t) => {
 	t.is(res, "graph");
 
 	t.is(readDependencyConfigFileStub.callCount, 1, "_readDependencyConfigFile got called once");
-	t.is(readDependencyConfigFileStub.getCall(0).args[0], path.join(__dirname, "..", "..", "..", "cwd"),
+	t.is(readDependencyConfigFileStub.getCall(0).args[0], path.resolve("cwd"),
 		"_readDependencyConfigFile got called with correct directory");
 	t.is(readDependencyConfigFileStub.getCall(0).args[1], "file/path",
 		"_readDependencyConfigFile got called with correct file path");
@@ -344,7 +356,8 @@ test.serial("graphFromStaticFile", async (t) => {
 		"enrichProjectGraph got called with graph");
 	t.deepEqual(enrichProjectGraphStub.getCall(0).args[1], {
 		versionOverride: "versionOverride",
-		snapshotCache: "Off"
+		snapshotCache: "Off",
+		ui5DataDir: "/path/to/ui5-data-dir"
 	}, "enrichProjectGraph got called with correct options");
 });
 
@@ -356,6 +369,7 @@ test.serial("graphFromStaticFile: Do not resolve framework dependencies", async 
 		.resolves("dependencyTree");
 
 	const res = await graphFromStaticFile({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: "cwd",
 		filePath: "filePath",
 		rootConfiguration: "rootConfiguration",
@@ -376,6 +390,7 @@ test.serial("usingObject", async (t) => {
 	const {graphFromObject} = t.context.graph;
 
 	const res = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: "dependencyTree",
 		rootConfiguration: "rootConfiguration",
 		rootConfigPath: "/rootConfigPath",
@@ -401,7 +416,8 @@ test.serial("usingObject", async (t) => {
 		"enrichProjectGraph got called with graph");
 	t.deepEqual(enrichProjectGraphStub.getCall(0).args[1], {
 		versionOverride: "versionOverride",
-		snapshotCache: "Off"
+		snapshotCache: "Off",
+		ui5DataDir: "/path/to/ui5-data-dir"
 	}, "enrichProjectGraph got called with correct options");
 });
 
@@ -409,6 +425,7 @@ test.serial("usingObject: Do not resolve framework dependencies", async (t) => {
 	const {enrichProjectGraphStub} = t.context;
 	const {graphFromObject} = t.context.graph;
 	const res = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: "cwd",
 		filePath: "filePath",
 		rootConfiguration: "rootConfiguration",

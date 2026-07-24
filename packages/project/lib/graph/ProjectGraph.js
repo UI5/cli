@@ -716,10 +716,8 @@ class ProjectGraph {
 	 *   Processes build results into a specific directory structure.
 	 * @param {module:@ui5/project/build/cache/Cache} [parameters.cache=Default]
 	 *   Cache mode to use for building UI5 projects
-	 * @param {string} [parameters.ui5DataDir]
-	 *   Explicit UI5 data directory to use for the build cache. Overrides the
-	 *   <code>UI5_DATA_DIR</code> environment variable, the UI5 configuration file,
-	 *   and the default of <code>~/.ui5</code>.
+	 * @param {string} parameters.ui5DataDir
+	 *   Resolved UI5 data directory to use for the build cache.
 	 * @returns {Promise} Promise resolving to <code>undefined</code> once build has finished
 	 */
 	async build({
@@ -732,6 +730,9 @@ class ProjectGraph {
 		cache = Cache.Default,
 		ui5DataDir,
 	}) {
+		if (!ui5DataDir) {
+			throw new Error("ProjectGraph#build: Missing parameter \"ui5DataDir\"");
+		}
 		this.seal(); // Do not allow further changes to the graph
 		if (this._builtOrServed) {
 			throw new Error(
@@ -760,6 +761,32 @@ class ProjectGraph {
 		});
 	}
 
+	/**
+	 * Starts a build server for the graph.
+	 *
+	 * @public
+	 * @param {object} parameters Serve parameters
+	 * @param {boolean} [parameters.initialBuildRootProject=false]
+	 * 			Whether to build the root project in the initial build.
+	 * @param {Array.<string>} [parameters.initialBuildIncludedDependencies=[]]
+	 * 			List of names of dependencies to include in the initial build.
+	 * @param {Array.<string>} [parameters.initialBuildExcludedDependencies=[]]
+	 * 			List of names of dependencies to exclude from the initial build.
+	 * @param {boolean} [parameters.selfContained=false] Flag to activate self contained build
+	 * @param {boolean} [parameters.cssVariables=false] Flag to activate CSS variables generation
+	 * @param {boolean} [parameters.jsdoc=false] Flag to activate JSDoc build
+	 * @param {boolean} [parameters.createBuildManifest=false]
+	 * 			Whether to create a build manifest file for the root project.
+	 * 			This is currently only supported for projects of type 'library' and 'theme-library'
+	 * @param {Array.<string>} [parameters.includedTasks=[]] List of tasks to be included
+	 * @param {Array.<string>} [parameters.excludedTasks=[]] List of tasks to be excluded.
+	 * @param {module:@ui5/project/build/cache/Cache} [parameters.cache=Default]
+	 *   Cache mode to use for building UI5 projects
+	 * @param {string} parameters.ui5DataDir
+	 *   Resolved UI5 data directory to use for the build cache.
+	 * @returns {Promise<BuildServer>} Promise resolving to a build server instance
+	 */
+
 	async serve({
 		initialBuildRootProject = false,
 		initialBuildIncludedDependencies = [], initialBuildExcludedDependencies = [],
@@ -768,6 +795,9 @@ class ProjectGraph {
 		cache = Cache.Default,
 		ui5DataDir,
 	}) {
+		if (!ui5DataDir) {
+			throw new Error("ProjectGraph#serve: Missing parameter \"ui5DataDir\"");
+		}
 		this.seal(); // Do not allow further changes to the graph
 		if (this._builtOrServed) {
 			throw new Error(

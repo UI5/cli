@@ -11,6 +11,7 @@ const __dirname = import.meta.dirname;
 const fakeBaseDir = path.join(__dirname, "fake-tmp");
 const ui5FrameworkBaseDir = path.join(fakeBaseDir, "homedir", ".ui5", "framework");
 const ui5PackagesBaseDir = path.join(ui5FrameworkBaseDir, "packages");
+const defaultUi5DataDir = path.join(fakeBaseDir, "homedir", ".ui5");
 
 test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
@@ -135,7 +136,7 @@ test.beforeEach(async (t) => {
 		"../../../../lib/graph/Module.js": t.context.Module,
 		"../../../../lib/ui5Framework/Openui5Resolver.js": t.context.Openui5Resolver,
 		"../../../../lib/ui5Framework/Sapui5Resolver.js": t.context.Sapui5Resolver,
-		"../../../../lib/config/Configuration.js": t.context.Configuration
+		"../../../../lib/config/Configuration.js": t.context.Configuration,
 	});
 
 	t.context.projectGraphBuilder = await esmock.p("../../../../lib/graph/projectGraphBuilder.js", {
@@ -493,9 +494,9 @@ function defineTest(testName, {
 				getModuleByProjectName
 			};
 
-			await ui5Framework.enrichProjectGraph(projectGraph, {workspace});
+			await ui5Framework.enrichProjectGraph(projectGraph, {workspace, ui5DataDir: defaultUi5DataDir});
 		} else {
-			await ui5Framework.enrichProjectGraph(projectGraph);
+			await ui5Framework.enrichProjectGraph(projectGraph, {ui5DataDir: defaultUi5DataDir});
 		}
 
 		const callbackStub = sinon.stub().resolves();
@@ -704,7 +705,7 @@ function defineErrorTest(testName, {
 		const provider = new DependencyTreeProvider({dependencyTree});
 		const projectGraph = await projectGraphBuilder(provider);
 		await t.throwsAsync(async () => {
-			await ui5Framework.enrichProjectGraph(projectGraph);
+			await ui5Framework.enrichProjectGraph(projectGraph, {ui5DataDir: defaultUi5DataDir});
 		}, {message: expectedErrorMessage});
 	});
 }
@@ -782,7 +783,7 @@ test.serial("ui5Framework helper should not fail when no framework configuration
 	};
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
-	await ui5Framework.enrichProjectGraph(projectGraph);
+	await ui5Framework.enrichProjectGraph(projectGraph, {ui5DataDir: defaultUi5DataDir});
 
 	t.is(projectGraph, projectGraph, "Returned same graph without error");
 });
@@ -810,7 +811,7 @@ test.serial("ui5Framework translator should not try to install anything when no 
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	await ui5Framework.enrichProjectGraph(projectGraph);
+	await ui5Framework.enrichProjectGraph(projectGraph, {ui5DataDir: defaultUi5DataDir});
 
 	t.is(pacote.extract.callCount, 0, "No package should be extracted");
 	t.is(pacote.manifest.callCount, 0, "No manifest should be requested");
@@ -838,7 +839,7 @@ test.serial("ui5Framework helper shouldn't throw when framework version and libr
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	await ui5Framework.enrichProjectGraph(projectGraph);
+	await ui5Framework.enrichProjectGraph(projectGraph, {ui5DataDir: defaultUi5DataDir});
 
 	t.is(logStub.verbose.callCount, 5);
 	t.deepEqual(logStub.verbose.getCall(0).args, [
@@ -915,7 +916,7 @@ test.serial(
 			});
 
 		await t.throwsAsync(async () => {
-			await ui5Framework.enrichProjectGraph(projectGraph);
+			await ui5Framework.enrichProjectGraph(projectGraph, {ui5DataDir: defaultUi5DataDir});
 		}, {
 			message: `Failed to resolve library does.not.exist: Could not find library "does.not.exist"`});
 	});

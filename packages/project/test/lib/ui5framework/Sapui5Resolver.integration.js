@@ -126,7 +126,9 @@ test.serial("resolveVersion", async (t) => {
 
 	// Generic testing without and with options argument
 	const optionsArguments = [
-		undefined,
+		{
+			ui5DataDir: defaultUi5DataDir
+		},
 		{
 			cwd: path.join(fakeBaseDir, "custom-cwd"),
 			ui5DataDir: path.join(fakeBaseDir, "custom-datadir", ".ui5")
@@ -138,49 +140,49 @@ test.serial("resolveVersion", async (t) => {
 		pacote.packument.resetHistory();
 
 		// Ranges
-		t.is(await Sapui5Resolver.resolveVersion("1", options), "1.120.1");
-		t.is(await Sapui5Resolver.resolveVersion("1.120", options), "1.120.1");
-		t.is(await Sapui5Resolver.resolveVersion("1.x", options), "1.120.1");
-		t.is(await Sapui5Resolver.resolveVersion("1.x.x", options), "1.120.1");
-		t.is(await Sapui5Resolver.resolveVersion("^1", options), "1.120.1");
-		t.is(await Sapui5Resolver.resolveVersion("*", options), "1.120.1");
+		t.is(await Sapui5Resolver.resolveVersion("1", options.ui5DataDir, options), "1.120.1");
+		t.is(await Sapui5Resolver.resolveVersion("1.120", options.ui5DataDir, options), "1.120.1");
+		t.is(await Sapui5Resolver.resolveVersion("1.x", options.ui5DataDir, options), "1.120.1");
+		t.is(await Sapui5Resolver.resolveVersion("1.x.x", options.ui5DataDir, options), "1.120.1");
+		t.is(await Sapui5Resolver.resolveVersion("^1", options.ui5DataDir, options), "1.120.1");
+		t.is(await Sapui5Resolver.resolveVersion("*", options.ui5DataDir, options), "1.120.1");
 
 		// Tags
-		t.is(await Sapui5Resolver.resolveVersion("latest", options), "1.120.0");
-		t.is(await Sapui5Resolver.resolveVersion("next", options), "2.0.0-rc.1");
-		t.is(await Sapui5Resolver.resolveVersion("not-a-snapshot", options), "1.118.0");
+		t.is(await Sapui5Resolver.resolveVersion("latest", options.ui5DataDir, options), "1.120.0");
+		t.is(await Sapui5Resolver.resolveVersion("next", options.ui5DataDir, options), "2.0.0-rc.1");
+		t.is(await Sapui5Resolver.resolveVersion("not-a-snapshot", options.ui5DataDir, options), "1.118.0");
 
 		// Exact versions
-		t.is(await Sapui5Resolver.resolveVersion("1.118.0", options), "1.118.0");
-		t.is(await Sapui5Resolver.resolveVersion("2.0.0-rc.1", options), "2.0.0-rc.1");
-		t.is(await Sapui5Resolver.resolveVersion("1.123.4-SNAPSHOT", options), "1.123.4-SNAPSHOT");
+		t.is(await Sapui5Resolver.resolveVersion("1.118.0", options.ui5DataDir, options), "1.118.0");
+		t.is(await Sapui5Resolver.resolveVersion("2.0.0-rc.1", options.ui5DataDir, options), "2.0.0-rc.1");
+		t.is(await Sapui5Resolver.resolveVersion("1.123.4-SNAPSHOT", options.ui5DataDir, options), "1.123.4-SNAPSHOT");
 
 		// SNAPSHOT ranges
-		t.is(await Sapui5Resolver.resolveVersion("1-SNAPSHOT", options), "1.123.4-SNAPSHOT");
-		t.is(await Sapui5Resolver.resolveVersion("1.123-SNAPSHOT", options), "1.123.4-SNAPSHOT");
+		t.is(await Sapui5Resolver.resolveVersion("1-SNAPSHOT", options.ui5DataDir, options), "1.123.4-SNAPSHOT");
+		t.is(await Sapui5Resolver.resolveVersion("1.123-SNAPSHOT", options.ui5DataDir, options), "1.123.4-SNAPSHOT");
 
 		// Error cases
-		await t.throwsAsync(Sapui5Resolver.resolveVersion("", options), {
+		await t.throwsAsync(Sapui5Resolver.resolveVersion("", options.ui5DataDir, options), {
 			message: `Framework version specifier "" is incorrect or not supported`
 		});
-		await t.throwsAsync(Sapui5Resolver.resolveVersion("tag-does-not-exist", options), {
+		await t.throwsAsync(Sapui5Resolver.resolveVersion("tag-does-not-exist", options.ui5DataDir, options), {
 			message: `Could not resolve framework version via tag 'tag-does-not-exist'. ` +
 				`Make sure the tag is available in the configured registry.`
 		});
-		await t.throwsAsync(Sapui5Resolver.resolveVersion("invalid-tag-%20", options), {
+		await t.throwsAsync(Sapui5Resolver.resolveVersion("invalid-tag-%20", options.ui5DataDir, options), {
 			message: `Framework version specifier "invalid-tag-%20" is incorrect or not supported`
 		});
 
-		await t.throwsAsync(Sapui5Resolver.resolveVersion("1.999.9", options), {
+		await t.throwsAsync(Sapui5Resolver.resolveVersion("1.999.9", options.ui5DataDir, options), {
 			message: `Could not resolve framework version 1.999.9. ` +
 				`Make sure the version is valid and available in the configured registry.`
 		});
-		await t.throwsAsync(Sapui5Resolver.resolveVersion("1.0.0", options), {
+		await t.throwsAsync(Sapui5Resolver.resolveVersion("1.0.0", options.ui5DataDir, options), {
 			message: `Could not resolve framework version 1.0.0. ` +
 				`Note that SAPUI5 framework libraries can only be consumed by the UI5 CLI ` +
 				`starting with SAPUI5 v1.76.0`
 		});
-		await t.throwsAsync(Sapui5Resolver.resolveVersion("^999", options), {
+		await t.throwsAsync(Sapui5Resolver.resolveVersion("^999", options.ui5DataDir, options), {
 			message: `Could not resolve framework version ^999. ` +
 				`Make sure the version is valid and available in the configured registry.`
 		});

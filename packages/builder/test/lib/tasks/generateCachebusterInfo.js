@@ -19,6 +19,7 @@ test("integration: Build application.g", async (t) => {
 	const cleanupCacheBusterInfo = (fileContent) => fileContent.replace(/(:\s+)(\d+)/g, ": 0");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationGTree
 	});
 
@@ -58,6 +59,7 @@ test("integration: Build application.g with cachebuster using hashes", async (t)
 	const cleanupCacheBusterInfo = (fileContent) => fileContent.replace(/(:\s+)("[^"]+")/g, ": \"\"");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationGTreeWithCachebusterHash
 	});
 

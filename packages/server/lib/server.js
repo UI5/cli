@@ -135,9 +135,7 @@ async function _addSsl({app, key, cert}) {
  * @param {boolean} [options.serveCSPReports=false] Enable CSP reports serving for request url
  * 										'/.ui5/csp/csp-reports.json'
  * @param {string} [options.cache="Default"] Cache mode to use for building UI5 projects.
- * @param {string} [options.ui5DataDir] Explicit UI5 data directory to use for the build cache.
- * 										Overrides the <code>UI5_DATA_DIR</code> environment variable,
- * 										the UI5 configuration file, and the default of <code>~/.ui5</code>.
+ * @param {string} options.ui5DataDir Resolved UI5 data directory to use for the build cache.
  * @param {string[]} [options.includedTasks] A list of tasks to be added to the default execution set.
  * 										Takes precedence over <code>excludedTasks</code>.
  * @param {string[]} [options.excludedTasks] A list of tasks to be excluded from the default task
@@ -154,6 +152,9 @@ export async function serve(graph, {
 	simpleIndex = false, liveReload = false, serveCSPReports = false, cache = "Default",
 	ui5DataDir, includedTasks, excludedTasks,
 }, error) {
+	if (!ui5DataDir) {
+		throw new Error("server.serve: Missing parameter \"ui5DataDir\"");
+	}
 	const rootProject = graph.getRoot();
 
 	const readers = [];

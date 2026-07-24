@@ -25,6 +25,7 @@ function getDefaultArgv() {
 
 test.beforeEach(async (t) => {
 	t.context.argv = getDefaultArgv();
+	t.context.ui5DataDir = path.join(path.sep, "resolved", "ui5-data-dir");
 
 	t.context.traverseBreadthFirst = sinon.stub();
 	t.context.getExtensionNames = sinon.stub().returns([]);
@@ -38,6 +39,7 @@ test.beforeEach(async (t) => {
 		graphFromStaticFile: sinon.stub().resolves(fakeGraph),
 		graphFromPackageDependencies: sinon.stub().resolves(fakeGraph)
 	};
+	t.context.resolveUi5DataDirStub = sinon.stub().resolves(t.context.ui5DataDir);
 
 	t.context.consoleOutput = "";
 	t.context.processStderrWrite = sinon.stub(process.stderr, "write").callsFake((message) => {
@@ -48,7 +50,10 @@ test.beforeEach(async (t) => {
 	});
 
 	t.context.tree = await esmock.p("../../../../lib/cli/commands/tree.js", {
-		"@ui5/project/graph": t.context.graph
+		"@ui5/project/graph": t.context.graph,
+		"@ui5/project/utils/dataDir": {
+			resolveUi5DataDir: t.context.resolveUi5DataDirStub
+		}
 	});
 });
 test.afterEach.always((t) => {
@@ -81,6 +86,7 @@ test.serial("ui5 tree (Without dependencies)", async (t) => {
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
 		snapshotCache: "Default",
+		ui5DataDir: t.context.ui5DataDir,
 	}]);
 
 	t.is(t.context.consoleOutput,
@@ -151,6 +157,7 @@ test.serial("ui5 tree", async (t) => {
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
 		snapshotCache: "Default",
+		ui5DataDir: t.context.ui5DataDir,
 	}]);
 
 	t.is(t.context.consoleOutput,
@@ -231,6 +238,7 @@ test.serial("ui5 tree --flat", async (t) => {
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
 		snapshotCache: "Default",
+		ui5DataDir: t.context.ui5DataDir,
 	}]);
 
 	t.is(t.context.consoleOutput,
@@ -308,6 +316,7 @@ test.serial("ui5 tree --level 1", async (t) => {
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
 		snapshotCache: "Default",
+		ui5DataDir: t.context.ui5DataDir,
 	}]);
 
 	t.is(t.context.consoleOutput,
@@ -398,6 +407,7 @@ test.serial("ui5 tree (With extensions)", async (t) => {
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
 		snapshotCache: "Default",
+		ui5DataDir: t.context.ui5DataDir,
 	}]);
 
 	t.is(t.context.consoleOutput,
@@ -444,6 +454,7 @@ test.serial("ui5 tree --perf", async (t) => {
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
 		snapshotCache: "Default",
+		ui5DataDir: t.context.ui5DataDir,
 	}]);
 
 	t.is(t.context.consoleOutput,
@@ -485,6 +496,7 @@ test.serial("ui5 tree --framework-version", async (t) => {
 		rootConfigPath: undefined, versionOverride: "1.234.5",
 		workspaceConfigPath: undefined, workspaceName: undefined,
 		snapshotCache: "Default",
+		ui5DataDir: t.context.ui5DataDir,
 	}]);
 
 	t.is(t.context.consoleOutput,
@@ -524,6 +536,7 @@ test.serial("ui5 tree --snapshot-cache", async (t) => {
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
 		snapshotCache: "Force",
+		ui5DataDir: t.context.ui5DataDir,
 	}]);
 
 	t.is(t.context.consoleOutput,
@@ -564,6 +577,7 @@ test.serial("ui5 tree --config", async (t) => {
 		rootConfigPath: fakePath, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
 		snapshotCache: "Default",
+		ui5DataDir: t.context.ui5DataDir,
 	}]);
 
 	t.is(t.context.consoleOutput,
@@ -603,6 +617,7 @@ test.serial("ui5 tree --workspace", async (t) => {
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: "dolphin",
 		snapshotCache: "Default",
+		ui5DataDir: t.context.ui5DataDir,
 	}]);
 
 	t.is(t.context.consoleOutput,
@@ -642,6 +657,7 @@ test.serial("ui5 tree --no-workspace", async (t) => {
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: null,
 		snapshotCache: "Default",
+		ui5DataDir: t.context.ui5DataDir,
 	}]);
 
 	t.is(t.context.consoleOutput,
@@ -682,6 +698,7 @@ test.serial("ui5 tree --workspace-config", async (t) => {
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: fakePath, workspaceName: undefined,
 		snapshotCache: "Default",
+		ui5DataDir: t.context.ui5DataDir,
 	}]);
 
 	t.is(t.context.consoleOutput,
@@ -719,7 +736,11 @@ test.serial("ui5 tree --dependency-definition", async (t) => {
 	t.is(graph.graphFromPackageDependencies.callCount, 0);
 	t.is(graph.graphFromStaticFile.callCount, 1);
 	t.deepEqual(graph.graphFromStaticFile.getCall(0).args, [{
-		filePath: fakePath, rootConfigPath: undefined, versionOverride: undefined, snapshotCache: "Default"
+		filePath: fakePath,
+		rootConfigPath: undefined,
+		versionOverride: undefined,
+		snapshotCache: "Default",
+		ui5DataDir: t.context.ui5DataDir
 	}]);
 
 	t.is(t.context.consoleOutput,
@@ -762,6 +783,7 @@ test.serial("ui5 tree --dependency-definition --config", async (t) => {
 		filePath: fakeDepDefPath,
 		rootConfigPath: fakeConfigPath,
 		versionOverride: undefined,
-		snapshotCache: "Default"
+		snapshotCache: "Default",
+		ui5DataDir: t.context.ui5DataDir
 	}], "graphFromStaticFile got called with --config forwarded as rootConfigPath");
 });

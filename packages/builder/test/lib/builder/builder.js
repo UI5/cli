@@ -97,6 +97,7 @@ test.serial("Build application.a", async (t) => {
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest");
 
 	const graph = await graphFromPackageDependencies({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: applicationAPath
 	});
 	graph.setTaskRepository(taskRepository);
@@ -119,6 +120,7 @@ test.serial("Build application.a with dependencies", async (t) => {
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-deps");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationATree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -145,6 +147,7 @@ test.serial("Build application.a with dependencies exclude", async (t) => {
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-deps-excl");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationATree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -172,6 +175,7 @@ test.serial("Build application.a self-contained", async (t) => {
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-self");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationATree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -195,6 +199,7 @@ test.serial("Build application.a with dependencies self-contained", async (t) =>
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-depself");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationATree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -221,21 +226,26 @@ test.serial("Build application.a and clean target path", async (t) => {
 	const destPath = "./test/tmp/build/application.a/dest-clean";
 	const destPathRubbishSubFolder = destPath + "/rubbish-should-be-deleted";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-clean");
+	const ui5DataDir = isolatedUi5DataDir(t);
 
 	const graph1 = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationATree
 	});
 	const graph2 = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationATree
 	});
 	graph1.setTaskRepository(taskRepository);
 	await graph1.build({
+		ui5DataDir,
 		graph: graph1,
 		destPath: destPathRubbishSubFolder,
 		excludedTasks: ["*"]
 	});
 	graph2.setTaskRepository(taskRepository);
 	await graph2.build({
+		ui5DataDir,
 		graph: graph2,
 		destPath,
 		cleanDest: true,
@@ -255,6 +265,7 @@ test.serial("Build application.g", async (t) => {
 	const expectedPath = path.join("test", "expected", "build", "application.g", "dest");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationGTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -277,6 +288,7 @@ test.serial("Build application.g with component preload paths", async (t) => {
 	const expectedPath = path.join("test", "expected", "build", "application.g", "dest");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationGTreeComponentPreloadPaths
 	});
 	graph.setTaskRepository(taskRepository);
@@ -299,6 +311,7 @@ test.serial("Build application.g with excludes", async (t) => {
 	const expectedPath = path.join("test", "expected", "build", "application.g", "excludes");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationGTreeWithExcludes
 	});
 	graph.setTaskRepository(taskRepository);
@@ -321,6 +334,7 @@ test.serial("Build application.h", async (t) => {
 	const expectedPath = path.join("test", "expected", "build", "application.h", "dest");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationHTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -344,6 +358,7 @@ test.serial("Build application.h (no minify)", async (t) => {
 	const expectedPath = path.join("test", "expected", "build", "application.h", "no-minify");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationHTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -367,6 +382,7 @@ test.serial("Build application.i", async (t) => {
 	const expectedPath = path.join("test", "expected", "build", "application.i", "dest");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationITree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -389,6 +405,7 @@ test.serial("Build application.j", async (t) => {
 	const expectedPath = path.join("test", "expected", "build", "application.j", "dest");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationJTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -417,6 +434,7 @@ test.serial("Build application.j with resources.json and version info", async (t
 	sinon.stub(Date.prototype, "getMinutes").returns(17);
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationJTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -439,6 +457,7 @@ test.serial("Build application.k (componentPreload excludes)", async (t) => {
 	const expectedPath = path.join("test", "expected", "build", "application.k", "dest");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationKTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -462,6 +481,7 @@ test.serial("Build application.k (package sub-components / componentPreload excl
 	const expectedPath = path.join("test", "expected", "build", "application.k", "dest-package-subcomponents");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationKPackageSubcomponentsTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -485,6 +505,7 @@ test.serial("Build application.l: minification excludes, w/ namespace", async (t
 	const expectedPath = path.join("test", "expected", "build", "application.l", "dest");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationLTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -507,6 +528,7 @@ test.serial("Build application.m: bundle should not contain hashbang but an empt
 	const expectedPath = path.join("test", "expected", "build", "application.m", "dest");
 
 	const graph = await graphFromPackageDependencies({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: applicationMPath
 	});
 	graph.setTaskRepository(taskRepository);
@@ -528,6 +550,7 @@ test.serial("Build application.ø", async (t) => {
 	const expectedPath = path.join("test", "expected", "build", "application.ø", "dest");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationØTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -550,6 +573,7 @@ test.serial("Build library.d with copyright from .library file", async (t) => {
 	const expectedPath = path.join("test", "expected", "build", "library.d", "dest");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: libraryDTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -572,6 +596,7 @@ test.serial("Build library.e with copyright from metadata configuration of tree"
 	const expectedPath = path.join("test", "expected", "build", "library.e", "dest");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: libraryETree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -598,6 +623,7 @@ test.serial("Build library.e with build manifest", async (t) => {
 	// Stub date because of timestamp in build-manifest.json
 	const toISOStringStub = sinon.stub(Date.prototype, "toISOString").returns("2022-07-27T09:00:00.000Z");
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: libraryETree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -674,6 +700,7 @@ test.serial("Build library.h with custom bundles and component-preloads", async 
 	const expectedPath = path.join("test", "expected", "build", "library.h", "dest");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: libraryHTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -696,6 +723,7 @@ test.serial("Build library.h with custom bundles and component-preloads (no mini
 	const expectedPath = path.join("test", "expected", "build", "library.h", "no-minify");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: libraryHTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -722,6 +750,7 @@ test.serial("Build library.h w/ custom bundles, component-preloads, resources.js
 	// Stub date because of timestamp in build-manifest.json
 	const toISOStringStub = sinon.stub(Date.prototype, "toISOString").returns("2022-07-27T09:00:00.000Z");
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: libraryHTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -872,6 +901,7 @@ test.serial("Build library.i with manifest info taken from .library and library.
 	const expectedPath = path.join("test", "expected", "build", "library.i", "dest");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: libraryITree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -894,6 +924,7 @@ test.serial("Build library.j with JSDoc build only", async (t) => {
 	const expectedPath = path.join("test", "expected", "build", "library.j", "dest");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: libraryJTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -921,6 +952,7 @@ test.serial("Build library.i, bundling library.h", async (t) => {
 	const expectedPath = path.join("test", "expected", "build", "library.i", "bundle-library.h");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: libraryIBundlingHTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -944,15 +976,18 @@ test.serial("Build library.i, bundling library.h with build manifest", async (t)
 	const expectedPath = path.join("test", "expected", "build", "library.i", "bundle-library.h-build-manifest");
 	const resultBuildManifestPath = path.join(__dirname,
 		"..", "..", "tmp", "build", "library.i", "bundle-library.h-build-manifest", ".ui5", "build-manifest.json");
+	const ui5DataDir = isolatedUi5DataDir(t);
 
 
 	setLogLevel("verbose");
 	const graph1 = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: libraryHTree
 	});
 	graph1.setTaskRepository(taskRepository);
 
 	await graph1.build({
+		ui5DataDir,
 		destPath: libraryHDestPath,
 		createBuildManifest: true
 	});
@@ -964,10 +999,12 @@ test.serial("Build library.i, bundling library.h with build manifest", async (t)
 	// Stub date because of timestamp in build-manifest.json
 	const toISOStringStub = sinon.stub(Date.prototype, "toISOString").returns("2022-07-27T09:00:00.000Z");
 	const graph2 = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: projectTree
 	});
 	graph2.setTaskRepository(taskRepository);
 	await graph2.build({
+		ui5DataDir,
 		destPath,
 		createBuildManifest: true
 	});
@@ -1030,6 +1067,7 @@ test.serial("Build library.l", async (t) => {
 	const expectedPath = path.join("test", "expected", "build", "library.l", "dest");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: libraryLTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1052,6 +1090,7 @@ test.serial("Build theme.j even without an library", async (t) => {
 	const expectedPath = "./test/expected/build/theme.j/dest";
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: themeJTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1073,6 +1112,7 @@ test.serial("Build theme.j even without an library with resources.json", async (
 	const expectedPath = "./test/expected/build/theme.j/dest-resources-json";
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: themeJTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1101,6 +1141,7 @@ test.serial("Build theme.j with build manifest", async (t) => {
 	// Stub date because of timestamp in build-manifest.json
 	const toISOStringStub = sinon.stub(Date.prototype, "toISOString").returns("2022-07-27T09:00:00.000Z");
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: themeJTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1158,6 +1199,7 @@ test.serial("Build library.ø", async (t) => {
 	const expectedPath = path.join("test", "expected", "build", "library.ø", "dest");
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: libraryØTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1187,6 +1229,7 @@ test.serial("Build library.coreBuildtime: replaceBuildtime", async (t) => {
 	];
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: libraryCoreBuildtimeTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1211,6 +1254,7 @@ test.serial("Build library with theme configured for CSS variables", async (t) =
 	const expectedPath = "./test/expected/build/theme.j/dest-css-variables";
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: themeJTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1233,6 +1277,7 @@ test.serial("Build library with theme configured for CSS variables and theme des
 	const expectedPath = "./test/expected/build/theme.j/dest-css-variables-theme-designer-resources";
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: themeJTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1256,6 +1301,7 @@ test.serial("Build theme-library with CSS variables", async (t) => {
 	const expectedPath = "./test/expected/build/theme.library.e/dest-css-variables";
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: themeLibraryETree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1278,6 +1324,7 @@ test.serial("Build theme-library with CSS variables and theme designer resources
 	const expectedPath = "./test/expected/build/theme.library.e/dest-css-variables-theme-designer-resources";
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: themeLibraryETree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1301,6 +1348,7 @@ test.serial("Build library.o with terminologies and supportedLocales", async (t)
 	const expectedPath = path.join("test", "expected", "build", "library.o", "dest");
 
 	const graph = await graphFromPackageDependencies({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: libraryOPath
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1322,6 +1370,7 @@ test.serial("Build application.o with terminologies and supportedLocales", async
 	const expectedPath = path.join("test", "expected", "build", "application.o", "dest");
 
 	const graph = await graphFromPackageDependencies({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: applicationOPath
 	});
 	graph.setTaskRepository(taskRepository);

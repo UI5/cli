@@ -1,16 +1,22 @@
-import path from "node:path";
 import {graphFromStaticFile, graphFromPackageDependencies} from "@ui5/project/graph";
-import Configuration from "@ui5/project/config/Configuration";
+import {resolveUi5DataDir} from "@ui5/project/utils/dataDir";
 
 export async function getRootProjectConfiguration(projectGraphOptions) {
+	const cwd = projectGraphOptions.cwd || process.cwd();
+	const ui5DataDir = await resolveUi5DataDir({projectRootPath: cwd});
+
 	let graph;
 	if (projectGraphOptions.dependencyDefinition) {
 		graph = await graphFromStaticFile({
+			cwd,
+			ui5DataDir,
 			filePath: projectGraphOptions.dependencyDefinition,
 			resolveFrameworkDependencies: false
 		});
 	} else {
 		graph = await graphFromPackageDependencies({
+			cwd,
+			ui5DataDir,
 			rootConfigPath: projectGraphOptions.config,
 			resolveFrameworkDependencies: false
 		});
@@ -37,26 +43,14 @@ export async function createFrameworkResolverInstance({frameworkName, frameworkV
 	return new Resolver({
 		cwd,
 		version: frameworkVersion,
-		ui5DataDir: await utils.getUi5DataDir({cwd})
+		ui5DataDir: await resolveUi5DataDir({projectRootPath: cwd})
 	});
 }
 
 export async function frameworkResolverResolveVersion({frameworkName, frameworkVersion}, {cwd}) {
 	const Resolver = await utils.getFrameworkResolver(frameworkName, frameworkVersion);
-	return Resolver.resolveVersion(frameworkVersion, {
-		cwd,
-		ui5DataDir: await utils.getUi5DataDir({cwd})
-	});
-}
-
-async function getUi5DataDir({cwd}) {
-	// ENV var should take precedence over the dataDir from the configuration.
-	let ui5DataDir = process.env.UI5_DATA_DIR;
-	if (!ui5DataDir) {
-		const config = await Configuration.fromFile();
-		ui5DataDir = config.getUi5DataDir();
-	}
-	return ui5DataDir ? path.resolve(cwd, ui5DataDir) : undefined;
+	const ui5DataDir = await resolveUi5DataDir({projectRootPath: cwd});
+	return Resolver.resolveVersion(frameworkVersion, ui5DataDir, {cwd});
 }
 
 const utils = {
@@ -64,7 +58,6 @@ const utils = {
 	getFrameworkResolver,
 	createFrameworkResolverInstance,
 	frameworkResolverResolveVersion,
-	getUi5DataDir
 };
 let _utils;
 // For mocking of functions in unit tests and testing internal functions

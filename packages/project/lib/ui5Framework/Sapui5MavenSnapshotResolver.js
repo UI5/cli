@@ -32,8 +32,8 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 	 * @param {boolean} [options.sources=false] Whether to install framework libraries as sources or
 	 * pre-built (with build manifest)
 	 * @param {string} [options.cwd=process.cwd()] Current working directory
-	 * @param {string} [options.ui5DataDir="~/.ui5"] UI5 home directory location. This will be used to store packages,
-	 * metadata and configuration used by the resolvers. Relative to `process.cwd()`
+	 * @param {string} options.ui5DataDir Resolved UI5 home directory location. This is used to
+	 * store metadata and packages used by the resolvers.
 	 * @param {module:@ui5/project/ui5Framework/maven/SnapshotCache} [options.snapshotCache=Default]
 	 * Snapshot cache mode to use
 	 */
@@ -144,12 +144,13 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 		};
 	}
 
-	static async fetchAllVersions({ui5DataDir, cwd, snapshotEndpointUrl} = {}) {
+	static async fetchAllVersions(ui5DataDir, {cwd, snapshotEndpointUrl} = {}) {
+		if (!ui5DataDir) {
+			throw new Error(`${this.name}: Missing parameter "ui5DataDir"`);
+		}
 		const installer = new Installer({
 			cwd: cwd ? path.resolve(cwd) : process.cwd(),
-			ui5DataDir: path.resolve(
-				ui5DataDir || path.join(os.homedir(), ".ui5")
-			),
+			ui5DataDir: path.resolve(ui5DataDir),
 			snapshotEndpointUrlCb: Sapui5MavenSnapshotResolver._createSnapshotEndpointUrlCallback(snapshotEndpointUrl),
 		});
 		return await installer.fetchPackageVersions({

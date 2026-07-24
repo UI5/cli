@@ -22,6 +22,7 @@ test.serial("integration: build application.b standalone", async (t) => {
 	const includedTasks = ["minify", "generateStandaloneAppBundle"];
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationBTree
 	});
 
@@ -186,6 +187,7 @@ test("integration: build application.n standalone without enabled string bundlin
 	const includedTasks = ["minify", "generateStandaloneAppBundle"];
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationNTree
 	});
 
@@ -230,6 +232,7 @@ test("integration: build application.n standalone with enabled string bundling",
 	const includedTasks = ["minify", "generateStandaloneAppBundle"];
 
 	const graph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: applicationNTreeLegacy
 	});
 

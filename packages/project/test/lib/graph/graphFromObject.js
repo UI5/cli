@@ -48,14 +48,20 @@ test.afterEach.always((t) => {
 
 test("Application A", async (t) => {
 	const {graphFromObject} = t.context;
-	const projectGraph = await graphFromObject({dependencyTree: getApplicationATree()});
+	const projectGraph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
+		dependencyTree: getApplicationATree()
+	});
 	const rootProject = projectGraph.getRoot();
 	t.is(rootProject.getName(), "application.a", "Returned correct root project");
 });
 
 test("Application A: Traverse project graph breadth first", async (t) => {
 	const {graphFromObject} = t.context;
-	const projectGraph = await graphFromObject({dependencyTree: getApplicationATree()});
+	const projectGraph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
+		dependencyTree: getApplicationATree()
+	});
 	const callbackStub = t.context.sinon.stub().resolves();
 	await projectGraph.traverseBreadthFirst(callbackStub);
 
@@ -74,7 +80,10 @@ test("Application A: Traverse project graph breadth first", async (t) => {
 
 test("Application Cycle A: Traverse project graph breadth first with cycles", async (t) => {
 	const {graphFromObject, sinon} = t.context;
-	const projectGraph = await graphFromObject({dependencyTree: applicationCycleATreeIncDeduped});
+	const projectGraph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
+		dependencyTree: applicationCycleATreeIncDeduped
+	});
 	const callbackStub = sinon.stub().resolves();
 	const error = await t.throwsAsync(projectGraph.traverseBreadthFirst(callbackStub));
 
@@ -96,7 +105,10 @@ test("Application Cycle A: Traverse project graph breadth first with cycles", as
 
 test("Application Cycle B: Traverse project graph breadth first with cycles", async (t) => {
 	const {graphFromObject, sinon} = t.context;
-	const projectGraph = await graphFromObject({dependencyTree: applicationCycleBTreeIncDeduped});
+	const projectGraph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
+		dependencyTree: applicationCycleBTreeIncDeduped
+	});
 	const callbackStub = sinon.stub().resolves();
 	await projectGraph.traverseBreadthFirst(callbackStub);
 
@@ -115,7 +127,10 @@ test("Application Cycle B: Traverse project graph breadth first with cycles", as
 
 test("Application A: Traverse project graph depth first", async (t) => {
 	const {graphFromObject, sinon} = t.context;
-	const projectGraph = await graphFromObject({dependencyTree: getApplicationATree()});
+	const projectGraph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
+		dependencyTree: getApplicationATree()
+	});
 	const callbackStub = sinon.stub().resolves();
 	await projectGraph.traverseDepthFirst(callbackStub);
 
@@ -136,7 +151,10 @@ test("Application A: Traverse project graph depth first", async (t) => {
 
 test("Application Cycle A: Traverse project graph depth first with cycles", async (t) => {
 	const {graphFromObject, sinon} = t.context;
-	const projectGraph = await graphFromObject({dependencyTree: applicationCycleATreeIncDeduped});
+	const projectGraph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
+		dependencyTree: applicationCycleATreeIncDeduped
+	});
 	const callbackStub = sinon.stub().resolves();
 	const error = await t.throwsAsync(projectGraph.traverseDepthFirst(callbackStub));
 
@@ -150,7 +168,10 @@ test("Application Cycle A: Traverse project graph depth first with cycles", asyn
 
 test("Application Cycle B: Traverse project graph depth first with cycles", async (t) => {
 	const {graphFromObject, sinon} = t.context;
-	const projectGraph = await graphFromObject({dependencyTree: applicationCycleBTreeIncDeduped});
+	const projectGraph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
+		dependencyTree: applicationCycleBTreeIncDeduped
+	});
 	const callbackStub = sinon.stub().resolves();
 	const error = await t.throwsAsync(projectGraph.traverseDepthFirst(callbackStub));
 
@@ -179,7 +200,7 @@ async function _testBasicGraphCreation(t, tree, expectedOrder, bfs) {
 		throw new Error("Test error: Parameter 'bfs' must be specified");
 	}
 	const {graphFromObject, sinon} = t.context;
-	const projectGraph = await graphFromObject({dependencyTree: tree});
+	const projectGraph = await graphFromObject({ui5DataDir: "/path/to/ui5-data-dir", dependencyTree: tree});
 	const callbackStub = sinon.stub().resolves();
 	if (bfs) {
 		await projectGraph.traverseBreadthFirst(callbackStub);
@@ -258,7 +279,7 @@ test("Project with inline configuration for two projects", async (t) => {
 		}]
 	};
 
-	await t.throwsAsync(graphFromObject({dependencyTree: tree}),
+	await t.throwsAsync(graphFromObject({ui5DataDir: "/path/to/ui5-data-dir", dependencyTree: tree}),
 		{
 			message:
 				`Found 2 configurations of kind 'project' for module application.a.id. ` +
@@ -315,7 +336,7 @@ test("Missing configuration file for root project", async (t) => {
 		path: "/non-existent",
 		dependencies: []
 	};
-	await t.throwsAsync(graphFromObject({dependencyTree: tree}),
+	await t.throwsAsync(graphFromObject({ui5DataDir: "/path/to/ui5-data-dir", dependencyTree: tree}),
 		{
 			message:
 				"Failed to create a UI5 project from module application.a.id at /non-existent. " +
@@ -330,7 +351,7 @@ test("Missing id for root project", async (t) => {
 		path: path.join(__dirname, "fixtures/application.a"),
 		dependencies: []
 	};
-	await t.throwsAsync(graphFromObject({dependencyTree: tree}),
+	await t.throwsAsync(graphFromObject({ui5DataDir: "/path/to/ui5-data-dir", dependencyTree: tree}),
 		{message: "Could not create Module: Missing or empty parameter 'id'"}, "Rejected with error");
 });
 
@@ -349,7 +370,7 @@ test("No type configured for root project", async (t) => {
 			}
 		}
 	};
-	const error = await t.throwsAsync(graphFromObject({dependencyTree: tree}));
+	const error = await t.throwsAsync(graphFromObject({ui5DataDir: "/path/to/ui5-data-dir", dependencyTree: tree}));
 
 	t.is(error.message, `Unable to create Specification instance: Unknown specification type 'undefined'`);
 });
@@ -361,7 +382,7 @@ test("Missing dependencies", async (t) => {
 		version: "1.0.0",
 		path: applicationAPath
 	});
-	await t.notThrowsAsync(graphFromObject({dependencyTree: tree}),
+	await t.notThrowsAsync(graphFromObject({ui5DataDir: "/path/to/ui5-data-dir", dependencyTree: tree}),
 		"Gracefully accepted project with no dependencies attribute");
 });
 
@@ -377,7 +398,7 @@ test("Missing second-level dependencies", async (t) => {
 			path: path.join(applicationAPath, "node_modules", "library.d")
 		}]
 	});
-	await t.notThrowsAsync(graphFromObject({dependencyTree: tree}),
+	await t.notThrowsAsync(graphFromObject({ui5DataDir: "/path/to/ui5-data-dir", dependencyTree: tree}),
 		"Gracefully accepted project with no dependencies attribute");
 });
 
@@ -1268,7 +1289,10 @@ test("Project with project-shim extension with invalid dependency configuration"
 			dependencies: []
 		}]
 	};
-	const validationError = await t.throwsAsync(graphFromObject({dependencyTree: tree}), {
+	const validationError = await t.throwsAsync(graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
+		dependencyTree: tree
+	}), {
 		instanceOf: ValidationError
 	});
 	t.true(validationError.message.includes("Configuration must have required property 'metadata'"),
@@ -1552,7 +1576,10 @@ test("Project with unknown extension dependency inline configuration", async (t)
 			dependencies: [],
 		}],
 	};
-	const validationError = await t.throwsAsync(graphFromObject({dependencyTree: tree}));
+	const validationError = await t.throwsAsync(graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
+		dependencyTree: tree
+	}));
 	t.is(validationError.message,
 		`Unable to create Specification instance: Unknown specification type 'phony-pony'`,
 		"Should throw with expected error message");
@@ -1633,6 +1660,7 @@ test("Project with middleware extension dependency", async (t) => {
 test("rootConfiguration", async (t) => {
 	const {graphFromObject} = t.context;
 	const projectGraph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: getApplicationATree(),
 		rootConfiguration: {
 			specVersion: "2.6",
@@ -1654,6 +1682,7 @@ test("rootConfiguration", async (t) => {
 test("rootConfig", async (t) => {
 	const {graphFromObject} = t.context;
 	const projectGraph = await graphFromObject({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		dependencyTree: getApplicationATree(),
 		cwd: applicationAPath,
 		rootConfigPath: "ui5-test-configPath.yaml",

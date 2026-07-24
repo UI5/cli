@@ -20,6 +20,7 @@ test.afterEach.always((t) => {
 
 test("Application H: Traverse project graph breadth first", async (t) => {
 	const projectGraph = await graphFromStaticFile({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: applicationHPath
 	});
 	const callbackStub = t.context.sinon.stub().resolves();
@@ -37,6 +38,7 @@ test("Application H: Traverse project graph breadth first", async (t) => {
 
 test("Throws error if file not found", async (t) => {
 	const err = await t.throwsAsync(graphFromStaticFile({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: notExistingPath
 	}));
 	t.is(err.message,
@@ -48,6 +50,7 @@ test("Throws error if file not found", async (t) => {
 
 test("Throws for missing id", async (t) => {
 	const err = await t.throwsAsync(graphFromStaticFile({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: applicationHPath,
 		filePath: "projectDependencies-missing-id.yaml"
 	}));
@@ -60,6 +63,7 @@ test("Throws for missing id", async (t) => {
 
 test("Throws for missing version", async (t) => {
 	const err = await t.throwsAsync(graphFromStaticFile({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: applicationHPath,
 		filePath: "projectDependencies-missing-version.yaml"
 	}));
@@ -72,6 +76,7 @@ test("Throws for missing version", async (t) => {
 
 test("Throws for missing path", async (t) => {
 	const err = await t.throwsAsync(graphFromStaticFile({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: applicationHPath,
 		filePath: "projectDependencies-missing-path.yaml"
 	}));
@@ -84,6 +89,7 @@ test("Throws for missing path", async (t) => {
 
 test("rootConfiguration", async (t) => {
 	const projectGraph = await graphFromStaticFile({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: applicationHPath,
 		rootConfiguration: {
 			specVersion: "2.6",
@@ -103,6 +109,7 @@ test("rootConfiguration", async (t) => {
 
 test("rootConfig", async (t) => {
 	const projectGraph = await graphFromStaticFile({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: applicationHPath,
 		rootConfigPath: "../application.a/ui5-test-configPath.yaml"
 	});

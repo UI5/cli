@@ -9,14 +9,16 @@ let server;
 
 // Start server before running tests
 test.before(async (t) => {
+	const ui5DataDir = isolatedUi5DataDir(t);
 	const graph = await graphFromPackageDependencies({
+		ui5DataDir,
 		cwd: "./test/fixtures/application.a"
 	});
 
 	server = await serve(graph, {
+		ui5DataDir,
 		port: 3334,
 		acceptRemoteConnections: true,
-		ui5DataDir: isolatedUi5DataDir(t),
 	});
 
 	request = supertest("http://127.0.0.1:3334");

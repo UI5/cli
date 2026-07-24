@@ -60,6 +60,7 @@ test.serial("Verify source maps (test.application)", async (t) => {
 	const destURL = t.context.destURL = new URL("./dest-standard-build/", applicationDestRootURL);
 
 	const graph = await graphFromPackageDependencies({
+		ui5DataDir: "/path/to/ui5-data-dir",
 		cwd: fileURLToPath(applicationURL)
 	});
 	graph.setTaskRepository(taskRepository);
