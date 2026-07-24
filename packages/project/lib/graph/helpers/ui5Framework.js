@@ -1,5 +1,6 @@
 import Module from "../Module.js";
 import ProjectGraph from "../ProjectGraph.js";
+import process from "node:process";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:helpers:ui5Framework");
 import Configuration from "../../config/Configuration.js";
@@ -396,6 +397,15 @@ export default {
 		}
 
 		const {libraryMetadata} = await resolver.install(referencedLibraries);
+
+		if (version) {
+			process.emit("ui5.project-framework-resolved", {
+				framework: {
+					name: frameworkName,
+					version,
+				},
+			});
+		}
 
 		if (log.isLevelEnabled("verbose")) {
 			const timeDiff = process.hrtime(startTime);

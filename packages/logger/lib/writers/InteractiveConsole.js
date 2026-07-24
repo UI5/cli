@@ -4,7 +4,12 @@ import sliceAnsi from "slice-ansi";
 import Logger from "../loggers/Logger.js";
 import {formatLogLine, prefixModuleName} from "./internal/format.js";
 import {createHeaderState, setTool} from "./interactiveConsole/state/header.js";
-import {createProjectState, setProject, enableProjectPlaceholders} from "./interactiveConsole/state/project.js";
+import {
+	createProjectState,
+	setProject,
+	setFramework,
+	enableProjectPlaceholders,
+} from "./interactiveConsole/state/project.js";
 import {createServerState, setListening, enableServerPlaceholders} from "./interactiveConsole/state/server.js";
 import {
 	createBuildState, beginBuild, advanceToProject, setTask, transitionTo, setError, STATES,
@@ -93,6 +98,7 @@ class InteractiveConsole {
 	#onToolInfo;
 	#onToolMode;
 	#onProjectResolved;
+	#onProjectFrameworkResolved;
 	#onServerListening;
 	#onStopConsole;
 	#onResize;
@@ -230,6 +236,7 @@ class InteractiveConsole {
 		this.#onToolInfo = (evt) => this.#handleToolInfo(evt);
 		this.#onToolMode = (evt) => this.#handleToolMode(evt);
 		this.#onProjectResolved = (evt) => this.#handleProjectResolved(evt);
+		this.#onProjectFrameworkResolved = (evt) => this.#handleProjectFrameworkResolved(evt);
 		this.#onServerListening = (evt) => this.#handleServerListening(evt);
 		this.#onStopConsole = () => this.disable();
 		this.#onResize = () => this.#handleResize();
@@ -242,6 +249,7 @@ class InteractiveConsole {
 		process.on("ui5.tool-info", this.#onToolInfo);
 		process.on("ui5.tool-mode", this.#onToolMode);
 		process.on("ui5.project-resolved", this.#onProjectResolved);
+		process.on("ui5.project-framework-resolved", this.#onProjectFrameworkResolved);
 		process.on("ui5.server-listening", this.#onServerListening);
 		process.on("ui5.log.stop-console", this.#onStopConsole);
 		if (typeof this.#stderr.on === "function") {
@@ -258,6 +266,7 @@ class InteractiveConsole {
 		process.off("ui5.tool-info", this.#onToolInfo);
 		process.off("ui5.tool-mode", this.#onToolMode);
 		process.off("ui5.project-resolved", this.#onProjectResolved);
+		process.off("ui5.project-framework-resolved", this.#onProjectFrameworkResolved);
 		process.off("ui5.server-listening", this.#onServerListening);
 		process.off("ui5.log.stop-console", this.#onStopConsole);
 		if (typeof this.#stderr.off === "function") {
@@ -308,6 +317,11 @@ class InteractiveConsole {
 		}
 		this.#seenProjectResolved = true;
 		setProject(this.#projectState, evt);
+		this.#render();
+	}
+
+	#handleProjectFrameworkResolved({framework}) {
+		setFramework(this.#projectState, framework);
 		this.#render();
 	}
 

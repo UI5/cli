@@ -141,15 +141,12 @@ async function projectGraphBuilder(nodeProvider, workspace) {
 
 	// Announce the resolved root project on the event bus, before dependency
 	// traversal. Consumed by @ui5/logger writers to populate their header /
-	// scrollback lines. Framework name/version may be null for projects without
-	// a UI5 framework dependency.
-	const frameworkName = rootProject.getFrameworkName?.();
-	const frameworkVersion = rootProject.getFrameworkVersion?.();
+	// scrollback lines. Framework information is emitted separately once a
+	// caller actually resolves framework usage for the current run.
 	process.emit("ui5.project-resolved", {
 		name: rootProject.getName(),
 		type: rootProject.getType(),
 		version: rootProject.getVersion(),
-		framework: frameworkName ? {name: frameworkName, version: frameworkVersion} : null,
 	});
 
 	function handleExtensions(extensions) {

@@ -84,6 +84,10 @@ test.afterEach.always((t) => {
 
 test.serial("enrichProjectGraph", async (t) => {
 	const {sinon, ui5Framework, utils, Sapui5ResolverInstallStub} = t.context;
+	const frameworkEvents = [];
+	const frameworkListener = (evt) => frameworkEvents.push(evt);
+	process.on("ui5.project-framework-resolved", frameworkListener);
+	t.teardown(() => process.off("ui5.project-framework-resolved", frameworkListener));
 
 	const dependencyTree = {
 		id: "test1",
@@ -168,6 +172,13 @@ test.serial("enrichProjectGraph", async (t) => {
 	t.deepEqual(callbackCalls, [
 		"application.a"
 	], "Traversed graph in correct order");
+
+	t.deepEqual(frameworkEvents, [{
+		framework: {
+			name: "SAPUI5",
+			version: "1.75.0",
+		},
+	}], "Emits the effective framework metadata for the current run");
 });
 
 test.serial("enrichProjectGraph: without framework configuration", async (t) => {
@@ -293,6 +304,10 @@ test.serial("enrichProjectGraph: With versionOverride", async (t) => {
 		sinon, ui5Framework, utils,
 		Sapui5ResolverStub, Sapui5ResolverResolveVersionStub, Sapui5ResolverInstallStub
 	} = t.context;
+	const frameworkEvents = [];
+	const frameworkListener = (evt) => frameworkEvents.push(evt);
+	process.on("ui5.project-framework-resolved", frameworkListener);
+	t.teardown(() => process.off("ui5.project-framework-resolved", frameworkListener));
 
 	const dependencyTree = {
 		id: "test1",
@@ -347,6 +362,12 @@ test.serial("enrichProjectGraph: With versionOverride", async (t) => {
 		ui5DataDir: undefined,
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
+	t.deepEqual(frameworkEvents, [{
+		framework: {
+			name: "SAPUI5",
+			version: "1.99.9",
+		},
+	}], "Emits the overridden effective framework metadata for the current run");
 });
 
 test.serial("enrichProjectGraph: With versionOverride containing snapshot version", async (t) => {
@@ -477,6 +498,11 @@ test.serial("enrichProjectGraph: With versionOverride containing latest-snapshot
 
 test.serial("enrichProjectGraph shouldn't throw when no framework version and no libraries are provided", async (t) => {
 	const {ui5Framework, log, Sapui5ResolverResolveVersionStub} = t.context;
+	const frameworkListener = () => {
+		t.fail("Framework event must not be emitted when no libraries are used");
+	};
+	process.on("ui5.project-framework-resolved", frameworkListener);
+	t.teardown(() => process.off("ui5.project-framework-resolved", frameworkListener));
 	const dependencyTree = {
 		id: "test-id",
 		version: "1.2.3",
@@ -1009,6 +1035,11 @@ test.serial("enrichProjectGraph should use framework library metadata from works
 test.serial("enrichProjectGraph should allow omitting framework version in case " +
 	"all framework libraries come from the workspace", async (t) => {
 	const {ui5Framework, utils, Sapui5ResolverStub, Sapui5ResolverInstallStub, sinon} = t.context;
+	const frameworkListener = () => {
+		t.fail("Framework event must not be emitted when no direct version is known");
+	};
+	process.on("ui5.project-framework-resolved", frameworkListener);
+	t.teardown(() => process.off("ui5.project-framework-resolved", frameworkListener));
 	const dependencyTree = {
 		id: "@sapui5/project",
 		version: "1.2.3",

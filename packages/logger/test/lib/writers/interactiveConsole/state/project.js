@@ -1,6 +1,6 @@
 import test from "ava";
 
-import {createProjectState, setProject, enableProjectPlaceholders} from
+import {createProjectState, setProject, setFramework, enableProjectPlaceholders} from
 	"../../../../../lib/writers/interactiveConsole/state/project.js";
 
 test("createProjectState: fresh state has no project/framework and placeholders disabled", (t) => {
@@ -17,16 +17,28 @@ test("setProject: keeps only {name, type, version} from the incoming event", (t)
 		name: "my.app",
 		type: "application",
 		version: "1.0.0",
-		framework: {name: "SAPUI5", version: "1.150.0"},
 		extraNoise: "dropped",
 	});
 	t.deepEqual(state.project, {name: "my.app", type: "application", version: "1.0.0"});
-	t.deepEqual(state.framework, {name: "SAPUI5", version: "1.150.0"});
+	t.is(state.framework, null);
 });
 
-test("setProject: framework becomes null when the event omits one", (t) => {
+test("setFramework: keeps known framework fields from the incoming event", (t) => {
 	const state = createProjectState();
-	setProject(state, {name: "my.app", type: "application", version: "1.0.0", framework: null});
+	setFramework(state, {
+		name: "SAPUI5",
+		version: "1.150.0",
+		extraNoise: "dropped",
+	});
+	t.deepEqual(state.framework, {
+		name: "SAPUI5",
+		version: "1.150.0",
+	});
+});
+
+test("setFramework: framework becomes null when the event omits one", (t) => {
+	const state = createProjectState();
+	setFramework(state, null);
 	t.is(state.framework, null);
 });
 

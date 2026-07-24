@@ -1,4 +1,6 @@
-// Region 2 — root project. Populated by `ui5.project-resolved`.
+// Region 2 — root project. Populated by `ui5.project-resolved` and, when
+// framework usage is actually resolved for the current run, by
+// `ui5.project-framework-resolved`.
 export function createProjectState() {
 	return {
 		project: null, // {name, type, version}
@@ -12,7 +14,13 @@ export function createProjectState() {
 
 export function setProject(state, evt) {
 	state.project = {name: evt.name, type: evt.type, version: evt.version};
-	state.framework = evt.framework ? {name: evt.framework.name, version: evt.framework.version} : null;
+}
+
+export function setFramework(state, framework) {
+	state.framework = framework ? {
+		name: framework.name,
+		version: framework.version,
+	} : null;
 }
 
 export function enableProjectPlaceholders(state) {

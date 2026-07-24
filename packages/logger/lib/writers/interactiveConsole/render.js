@@ -59,7 +59,7 @@ export function renderProjectRegion(projectState) {
 		}
 	} else {
 		// Placeholder mode: reserve only the Project row. The Framework row is
-		// deferred until project-resolved reveals a real framework name.
+		// deferred until framework resolution reveals a real framework name.
 		lines.push(`${chalk.dim("Project")}   ${placeholder("resolving…")}`);
 	}
 	return lines;

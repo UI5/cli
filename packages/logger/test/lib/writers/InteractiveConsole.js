@@ -51,12 +51,30 @@ test.serial("project-resolved populates the project region", (t) => {
 		name: "my.app",
 		type: "application",
 		version: "1.0.0",
-		framework: {name: "SAPUI5", version: "1.150.0"},
 	});
 
 	const state = writer._getStateForTest();
 	t.deepEqual(state.project.project, {name: "my.app", type: "application", version: "1.0.0"});
-	t.deepEqual(state.project.framework, {name: "SAPUI5", version: "1.150.0"});
+	t.is(state.project.framework, null);
+
+	writer.disable();
+});
+
+test.serial("project-framework-resolved populates the framework region", (t) => {
+	const {writer} = createWriter();
+
+	process.emit("ui5.project-framework-resolved", {
+		framework: {
+			name: "SAPUI5",
+			version: "1.150.0",
+		},
+	});
+
+	const state = writer._getStateForTest();
+	t.deepEqual(state.project.framework, {
+		name: "SAPUI5",
+		version: "1.150.0",
+	});
 
 	writer.disable();
 });
@@ -68,7 +86,6 @@ test.serial("duplicate project-resolved throws", (t) => {
 		name: "my.app",
 		type: "application",
 		version: "1.0.0",
-		framework: null,
 	});
 
 	// The writer's model is single-root-project. A second event means the
@@ -78,7 +95,6 @@ test.serial("duplicate project-resolved throws", (t) => {
 			name: "other.app",
 			type: "application",
 			version: "2.0.0",
-			framework: null,
 		});
 	}, {
 		message: /duplicate ui5\.project-resolved/,
@@ -174,7 +190,7 @@ test.serial("regions are order-tolerant — server before project", (t) => {
 		acceptRemoteConnections: false,
 	});
 	process.emit("ui5.project-resolved", {
-		name: "my.app", type: "application", version: "1.0.0", framework: null,
+		name: "my.app", type: "application", version: "1.0.0",
 	});
 
 	const state = writer._getStateForTest();
@@ -288,7 +304,12 @@ test.serial("frame includes visible content for each populated region", (t) => {
 	process.emit("ui5.tool-info", {name: "UI5 CLI", version: "1.2.3"});
 	process.emit("ui5.project-resolved", {
 		name: "my.app", type: "application", version: "1.0.0",
-		framework: {name: "SAPUI5", version: "1.150.0"},
+	});
+	process.emit("ui5.project-framework-resolved", {
+		framework: {
+			name: "SAPUI5",
+			version: "1.150.0",
+		},
 	});
 	process.emit("ui5.server-listening", {
 		urls: [{label: "Local", url: "http://localhost:8080"}],
@@ -361,7 +382,12 @@ test.serial("tool-mode 'serve' placeholders are replaced by real data", (t) => {
 
 	process.emit("ui5.project-resolved", {
 		name: "my.app", type: "application", version: "1.0.0",
-		framework: {name: "SAPUI5", version: "1.150.0"},
+	});
+	process.emit("ui5.project-framework-resolved", {
+		framework: {
+			name: "SAPUI5",
+			version: "1.150.0",
+		},
 	});
 	process.emit("ui5.server-listening", {
 		urls: [{label: "Local", url: "http://localhost:8080"}],
@@ -372,6 +398,10 @@ test.serial("tool-mode 'serve' placeholders are replaced by real data", (t) => {
 	// State reflects real data now — the placeholder rendering path is gone.
 	const state = writer._getStateForTest();
 	t.deepEqual(state.project.project, {name: "my.app", type: "application", version: "1.0.0"});
+	t.deepEqual(state.project.framework, {
+		name: "SAPUI5",
+		version: "1.150.0",
+	});
 	t.truthy(state.server.urls);
 	t.is(state.build.state, STATES.READY);
 
@@ -410,7 +440,7 @@ test.serial("region blocks are separated by a blank line in the composed frame",
 	setTool(header, {name: "UI5 CLI", version: "1.2.3"});
 	const project = createProjectState();
 	setProject(project, {
-		name: "my.app", type: "application", version: "1.0.0", framework: null,
+		name: "my.app", type: "application", version: "1.0.0",
 	});
 	const server = createServerState();
 	setListening(server, {
