@@ -146,13 +146,6 @@ build.builder = function(cli) {
 			defaultDescription: "Default", // Use "defaultDescription" to allow undefined (needed for evaluation)
 			choices: ["Default", "Force", "Off"],
 		})
-		.option("experimental-css-variables", {
-			describe:
-				"Generate CSS variables (css-variables.css, css-variables.source.less)" +
-				" and skeleton (library-skeleton(-RTL).css) for all themes",
-			default: false,
-			type: "boolean"
-		})
 		.option("output-style", {
 			describe:
 				"Processes build results into a specific directory structure.<br>" +
@@ -177,9 +170,7 @@ build.builder = function(cli) {
 			"Build project but only apply the minify- and generateComponentPreload tasks")
 		.example("ui5 build --include-task=minify --exclude-task=generateComponentPreload",
 			"Build project by applying all default tasks including the minify " +
-			"task and excluding the generateComponentPreload task")
-		.example("ui5 build --experimental-css-variables",
-			"Preload build with experimental CSS variables artifacts");
+			"task and excluding the generateComponentPreload task");
 };
 
 async function handleBuild(argv) {
@@ -226,7 +217,6 @@ async function handleBuild(argv) {
 		jsdoc: command === "jsdoc",
 		includedTasks: argv["include-task"],
 		excludedTasks: argv["exclude-task"],
-		cssVariables: argv["experimental-css-variables"],
 		outputStyle: argv["output-style"],
 		cache: argv["cache"],
 	});

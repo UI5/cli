@@ -1,5 +1,5 @@
 /**
- * Get tasks and their configuration for a given application project
+ * Get tasks and their configuration for a given module project
  *
  * @private
  * @param {object} parameters

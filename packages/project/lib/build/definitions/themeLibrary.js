@@ -1,6 +1,6 @@
 
 /**
- * Get tasks and their configuration for a given application project
+ * Get tasks and their configuration for a given themeLibrary project
  *
  * @private
  * @param {object} parameters
@@ -33,7 +33,6 @@ export default function({project, taskUtil, getTask}) {
 			librariesPattern: !taskUtil.isRootProject() ? "/resources/**/(*.library|library.js)" : undefined,
 			themesPattern: !taskUtil.isRootProject() ? "/resources/sap/ui/core/themes/*" : undefined,
 			inputPattern: "/resources/**/themes/*/library.source.less",
-			cssVariables: taskUtil.getBuildOption("cssVariables")
 		}
 	});
 
