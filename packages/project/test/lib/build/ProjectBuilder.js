@@ -266,7 +266,7 @@ test("build: Failure", async (t) => {
 test("build: Abort does not reset the project", async (t) => {
 	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
 
-	const builder = new ProjectBuilder({graph, taskRepository});
+	const builder = new ProjectBuilder({graph, taskRepository, ui5DataDir: "/ui5DataDir"});
 
 	const filterProjectStub = sinon.stub().returns(true);
 	sinon.stub(builder, "_createProjectFilter").returns(filterProjectStub);
