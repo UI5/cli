@@ -1,6 +1,6 @@
 import express from "express";
-import MiddlewareManager from "./middleware/MiddlewareManager.js";
-import createErrorHandler from "./middleware/errorHandler.js";
+import MiddlewareManager from "../middleware/MiddlewareManager.js";
+import createErrorHandler from "../middleware/errorHandler.js";
 import {createReaderCollection} from "@ui5/fs/resourceFactory";
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
 import {getLogger} from "@ui5/logger";
@@ -11,7 +11,7 @@ const log = getLogger("server");
 /**
  * Builds the middleware-bearing router and its BuildServer for a project graph, without
  * binding to a port and without a terminal error handler. This is the router-agnostic core
- * shared between the {@link module:@ui5/server.serve} wrapper (via {@link buildServeApp}) and
+ * shared between the {@link module:@ui5/server.serve} wrapper (via {@link buildApp}) and
  * the {@link module:@ui5/server.serveMiddleware} embedding API: everything needed to answer
  * requests is mounted onto an {@link https://expressjs.com/en/4x/api.html#router Express Router},
  * which both an Express application and a Connect app accept via <code>use()</code>.
@@ -27,7 +27,7 @@ const log = getLogger("server");
  *   of request handling
  * @returns {Promise<object>} Resolves with <code>{router, buildServer, liveReloadOptions}</code>
  */
-export async function buildServeRouter(graph, config, error) {
+export async function buildRouter(graph, config, error) {
 	const {
 		sendSAPTargetCSP = false, simpleIndex = false, liveReload = false, serveCSPReports = false,
 		cache = Cache.Default, ui5DataDir, includedTasks, excludedTasks, webSocketToken = null,
@@ -128,22 +128,22 @@ export async function buildServeRouter(graph, config, error) {
 
 /**
  * Builds the Express application and its BuildServer for a project graph, without binding
- * to a port. Wraps {@link buildServeRouter} with an {@link express} application and the
+ * to a port. Wraps {@link buildRouter} with an {@link express} application and the
  * terminal error handler, so the {@link module:@ui5/server.serve} wrapper and the
- * {@link ServeSupervisor} can own the listener and re-create the app behind a stable HTTP
+ * {@link Supervisor} can own the listener and re-create the app behind a stable HTTP
  * server on a graph swap. The error handler and the live-reload WebSocket server are
  * CLI-owned concerns and stay out of the router core used by the embedding API.
  *
  * @private
- * @module @ui5/server/serveApp
+ * @module @ui5/server/serve/stack
  * @param {@ui5/project/graph/ProjectGraph} graph Project graph
- * @param {object} config Server configuration; see {@link buildServeRouter}
+ * @param {object} config Server configuration; see {@link buildRouter}
  * @param {Function} [error] Error callback invoked when the BuildServer emits an error outside
  *   of request handling
  * @returns {Promise<object>} Resolves with <code>{app, buildServer, liveReloadOptions}</code>
  */
-export default async function buildServeApp(graph, config, error) {
-	const {router, buildServer, liveReloadOptions} = await buildServeRouter(graph, config, error);
+export default async function buildApp(graph, config, error) {
+	const {router, buildServer, liveReloadOptions} = await buildRouter(graph, config, error);
 
 	const app = express();
 	app.use(router);

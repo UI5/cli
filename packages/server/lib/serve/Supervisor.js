@@ -3,11 +3,11 @@ import process from "node:process";
 import {EventEmitter} from "node:events";
 import {getLogger} from "@ui5/logger";
 import DefinitionWatcher from "@ui5/project/build/helpers/DefinitionWatcher";
-import buildServeApp from "./serveApp.js";
-import attachLiveReloadServer from "./liveReload/server.js";
-import {listen, addSsl, announceListening} from "./serveHttp.js";
+import buildApp from "./stack.js";
+import attachLiveReloadServer from "../liveReload/server.js";
+import {listen, addSsl, announceListening} from "./httpListener.js";
 
-const log = getLogger("server:ServeSupervisor");
+const log = getLogger("server:Supervisor");
 
 /**
  * Owns the stable HTTP front door for a served project and re-creates the serving stack
@@ -23,7 +23,7 @@ const log = getLogger("server:ServeSupervisor");
  *
  * @private
  */
-class ServeSupervisor extends EventEmitter {
+class Supervisor extends EventEmitter {
 	#config;
 	#graphFactory;
 	#error;
@@ -66,11 +66,11 @@ class ServeSupervisor extends EventEmitter {
 	 * @param {Function} [error] Error callback for out-of-band BuildServer errors
 	 * @param {object} [options]
 	 * @param {Function} [options.graphFactory] Async factory returning a fresh ProjectGraph;
-	 *   required for {@link ServeSupervisor#reinitialize} to do anything
-	 * @returns {Promise<ServeSupervisor>} The listening supervisor
+	 *   required for {@link Supervisor#reinitialize} to do anything
+	 * @returns {Promise<Supervisor>} The listening supervisor
 	 */
 	static async create(graph, config, error, {graphFactory} = {}) {
-		const supervisor = new ServeSupervisor(config, error, {graphFactory});
+		const supervisor = new Supervisor(config, error, {graphFactory});
 		await supervisor.#init(graph);
 		return supervisor;
 	}
@@ -91,7 +91,7 @@ class ServeSupervisor extends EventEmitter {
 		}
 
 		// Build the initial stack before binding so a construction failure surfaces to the caller.
-		this.#stack = await buildServeApp(graph, this.#config, this.#error);
+		this.#stack = await buildApp(graph, this.#config, this.#error);
 
 		// Stable request handler. Reads #stack.app on every request so a swap retargets
 		// transparently without touching the bound socket.
@@ -208,7 +208,7 @@ class ServeSupervisor extends EventEmitter {
 		let newGraph;
 		try {
 			newGraph = await this.#graphFactory();
-			newStack = await buildServeApp(newGraph, this.#config, this.#error);
+			newStack = await buildApp(newGraph, this.#config, this.#error);
 		} catch (err) {
 			// Keep the last-good stack serving. A subsequent valid edit will swap cleanly.
 			log.error(`Failed to re-initialize server: ${err?.message ?? err}`);
@@ -217,7 +217,7 @@ class ServeSupervisor extends EventEmitter {
 			}
 			// A failed resolve never emits `ui5.project-resolved`, so the version slot would keep
 			// the "resolving…" placeholder indefinitely. Release it back to the last-known version
-			// the old (still-serving) stack resolved. Harmless if the failure was in buildServeApp,
+			// the old (still-serving) stack resolved. Harmless if the failure was in buildApp,
 			// where the resolve already repainted the slot.
 			process.emit("ui5.project-resolve-failed");
 			return;
@@ -283,4 +283,4 @@ class ServeSupervisor extends EventEmitter {
 	}
 }
 
-export default ServeSupervisor;
+export default Supervisor;

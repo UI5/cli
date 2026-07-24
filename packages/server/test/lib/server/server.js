@@ -2,10 +2,10 @@ import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
 
-// server.js is now a thin wrapper over ServeSupervisor: it generates the live-reload token, builds
-// the config, delegates to ServeSupervisor.create(), and shapes the {h2, port, close, reinitialize}
+// server.js is now a thin wrapper over Supervisor: it generates the live-reload token, builds
+// the config, delegates to Supervisor.create(), and shapes the {h2, port, close, reinitialize}
 // result. These tests exercise that wrapper; the swap/relay/trampoline behavior lives in
-// ServeSupervisor.js and is covered in ServeSupervisor.js.
+// serve/Supervisor.js and is covered there.
 
 function createSupervisorMock({port = 3000, createRejects = null} = {}) {
 	const supervisor = {
@@ -16,15 +16,15 @@ function createSupervisorMock({port = 3000, createRejects = null} = {}) {
 	const create = createRejects ?
 		sinon.stub().rejects(createRejects) :
 		sinon.stub().resolves(supervisor);
-	const ServeSupervisor = {
+	const Supervisor = {
 		create,
 	};
-	return {supervisor, ServeSupervisor};
+	return {supervisor, Supervisor};
 }
 
-async function importServe(ServeSupervisor) {
+async function importServe(Supervisor) {
 	return esmock("../../../lib/server.js", {
-		"../../../lib/ServeSupervisor.js": {default: ServeSupervisor},
+		"../../../lib/serve/Supervisor.js": {default: Supervisor},
 	});
 }
 
@@ -32,16 +32,16 @@ test.afterEach.always(() => {
 	sinon.restore();
 });
 
-test("serve() delegates to ServeSupervisor.create and returns port/h2/close/reinitialize", async (t) => {
-	const {supervisor, ServeSupervisor} = createSupervisorMock({port: 3000});
-	const {serve} = await importServe(ServeSupervisor);
+test("serve() delegates to Supervisor.create and returns port/h2/close/reinitialize", async (t) => {
+	const {supervisor, Supervisor} = createSupervisorMock({port: 3000});
+	const {serve} = await importServe(Supervisor);
 	const graph = {};
 	const graphFactory = sinon.stub();
 
 	const result = await serve(graph, {port: 3000, h2: false, liveReload: true}, undefined, {graphFactory});
 
-	t.true(ServeSupervisor.create.calledOnce);
-	const [passedGraph, config, , options] = ServeSupervisor.create.firstCall.args;
+	t.true(Supervisor.create.calledOnce);
+	const [passedGraph, config, , options] = Supervisor.create.firstCall.args;
 	t.is(passedGraph, graph);
 	t.is(options.graphFactory, graphFactory, "graphFactory is threaded through to the supervisor");
 	t.is(typeof config.webSocketToken, "string", "a token is generated when liveReload is active");
@@ -56,18 +56,18 @@ test("serve() delegates to ServeSupervisor.create and returns port/h2/close/rein
 });
 
 test("serve() does not generate a live-reload token when liveReload is off", async (t) => {
-	const {ServeSupervisor} = createSupervisorMock();
-	const {serve} = await importServe(ServeSupervisor);
+	const {Supervisor} = createSupervisorMock();
+	const {serve} = await importServe(Supervisor);
 
 	await serve({}, {port: 3000, liveReload: false}, undefined, {});
 
-	const config = ServeSupervisor.create.firstCall.args[1];
+	const config = Supervisor.create.firstCall.args[1];
 	t.is(config.webSocketToken, null);
 });
 
 test("serve() close() forwards to supervisor.destroy()", async (t) => {
-	const {supervisor, ServeSupervisor} = createSupervisorMock();
-	const {serve} = await importServe(ServeSupervisor);
+	const {supervisor, Supervisor} = createSupervisorMock();
+	const {serve} = await importServe(Supervisor);
 
 	const result = await serve({}, {port: 3000}, undefined, {});
 	await new Promise((resolve) => result.close(resolve));
@@ -75,21 +75,21 @@ test("serve() close() forwards to supervisor.destroy()", async (t) => {
 	t.true(supervisor.destroy.calledOnce);
 });
 
-test("serve() rejects when ServeSupervisor.create rejects", async (t) => {
+test("serve() rejects when Supervisor.create rejects", async (t) => {
 	const createError = new Error("bind failed");
-	const {ServeSupervisor} = createSupervisorMock({createRejects: createError});
-	const {serve} = await importServe(ServeSupervisor);
+	const {Supervisor} = createSupervisorMock({createRejects: createError});
+	const {serve} = await importServe(Supervisor);
 
 	const err = await t.throwsAsync(serve({}, {port: 3000}, undefined, {}));
 	t.is(err, createError);
 });
 
 test("serve() works without the 4th options argument (backward compatible)", async (t) => {
-	const {ServeSupervisor} = createSupervisorMock();
-	const {serve} = await importServe(ServeSupervisor);
+	const {Supervisor} = createSupervisorMock();
+	const {serve} = await importServe(Supervisor);
 
 	const result = await serve({}, {port: 3000}, undefined);
 	t.is(result.port, 3000);
-	const options = ServeSupervisor.create.firstCall.args[3];
+	const options = Supervisor.create.firstCall.args[3];
 	t.is(options.graphFactory, undefined);
 });

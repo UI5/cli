@@ -6,7 +6,7 @@ import {serve} from "../../../lib/server.js";
 import {graphFromPackageDependencies} from "@ui5/project/graph";
 import {isolatedUi5DataDir} from "../../utils/buildCacheIsolation.js";
 
-// Integration coverage for the ServeSupervisor swap against a real graph + BuildServer: the port
+// Integration coverage for the Supervisor swap against a real graph + BuildServer: the port
 // stays bound, the same socket keeps serving, and a re-init reuses the (config-keyed, refcounted)
 // build cache rather than cold-rebuilding. Uses a fixed cwd so the graphFactory re-resolves the
 // same project.

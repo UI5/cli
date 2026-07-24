@@ -1,6 +1,6 @@
 import {getRandomValues} from "node:crypto";
 import {getLogger} from "@ui5/logger";
-import ServeSupervisor from "./ServeSupervisor.js";
+import Supervisor from "./serve/Supervisor.js";
 
 const log = getLogger("server");
 /**
@@ -94,7 +94,7 @@ export async function serve(graph, {
 
 	let supervisor;
 	try {
-		supervisor = await ServeSupervisor.create(graph, config, error, {graphFactory});
+		supervisor = await Supervisor.create(graph, config, error, {graphFactory});
 	} catch (err) {
 		log.verbose(`Failed to start server: ${err?.message ?? err}`);
 		throw err;

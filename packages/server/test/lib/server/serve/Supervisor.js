@@ -11,9 +11,9 @@ function createBuildServer() {
 	return buildServer;
 }
 
-// Builds a mock set for esmock. Each buildServeApp invocation returns the next queued stack, so a
+// Builds a mock set for esmock. Each buildApp invocation returns the next queued stack, so a
 // test can hand out distinct {app, buildServer} pairs across the initial build and re-inits.
-function createMocks({stacks, buildServeAppImpl, definitionWatcherCreate} = {}) {
+function createMocks({stacks, buildAppImpl, definitionWatcherCreate} = {}) {
 	const httpServer = new EventEmitter();
 	httpServer.close = sinon.stub().callsFake((cb) => cb && cb());
 
@@ -42,9 +42,9 @@ function createMocks({stacks, buildServeAppImpl, definitionWatcherCreate} = {}) 
 	};
 
 	const stackQueue = stacks ? [...stacks] : null;
-	const buildServeApp = sinon.stub().callsFake(async (graph, config, error) => {
-		if (buildServeAppImpl) {
-			return buildServeAppImpl(graph, config, error);
+	const buildApp = sinon.stub().callsFake(async (graph, config, error) => {
+		if (buildAppImpl) {
+			return buildAppImpl(graph, config, error);
 		}
 		return stackQueue.shift();
 	});
@@ -61,14 +61,14 @@ function createMocks({stacks, buildServeAppImpl, definitionWatcherCreate} = {}) 
 	const mocks = {
 		"node:http": httpMock,
 		"@ui5/project/build/helpers/DefinitionWatcher": {default: DefinitionWatcher},
-		"../../../lib/serveApp.js": {default: buildServeApp},
-		"../../../lib/serveHttp.js": {listen, addSsl, announceListening},
-		"../../../lib/liveReload/server.js": {default: attachLiveReloadServer},
+		"../../../../lib/serve/stack.js": {default: buildApp},
+		"../../../../lib/serve/httpListener.js": {listen, addSsl, announceListening},
+		"../../../../lib/liveReload/server.js": {default: attachLiveReloadServer},
 	};
 
 	return {
 		mocks, httpServer, listen, addSsl, announceListening,
-		attachLiveReloadServer, liveReloadHandle, buildServeApp, createdHandlers,
+		attachLiveReloadServer, liveReloadHandle, buildApp, createdHandlers,
 		DefinitionWatcher, definitionWatchers,
 	};
 }
@@ -82,7 +82,7 @@ function createStack(app) {
 }
 
 async function importSupervisor(mocks) {
-	return esmock("../../../lib/ServeSupervisor.js", mocks);
+	return esmock("../../../../lib/serve/Supervisor.js", mocks);
 }
 
 const baseConfig = {port: 3000, liveReload: true, webSocketToken: "tok"};
@@ -93,13 +93,13 @@ test.afterEach.always(() => {
 
 test("create() builds the initial stack, binds once, attaches live-reload to a stable relay", async (t) => {
 	const stack = createStack();
-	const {mocks, listen, attachLiveReloadServer, buildServeApp} = createMocks({stacks: [stack]});
-	const {default: ServeSupervisor} = await importSupervisor(mocks);
+	const {mocks, listen, attachLiveReloadServer, buildApp} = createMocks({stacks: [stack]});
+	const {default: Supervisor} = await importSupervisor(mocks);
 
-	const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {});
+	const supervisor = await Supervisor.create({}, baseConfig, undefined, {});
 
 	t.is(supervisor.getPort(), 3000);
-	t.true(buildServeApp.calledOnce);
+	t.true(buildApp.calledOnce);
 	t.true(listen.calledOnce, "port is bound exactly once");
 	// Live-reload is attached to the stable relay, not the BuildServer directly.
 	t.true(attachLiveReloadServer.calledOnce);
@@ -115,9 +115,9 @@ test("request trampoline retargets to the swapped app after reinitialize()", asy
 	const stack2 = createStack(app2);
 	const graphFactory = sinon.stub().resolves({});
 	const {mocks, listen, createdHandlers} = createMocks({stacks: [stack1, stack2]});
-	const {default: ServeSupervisor} = await importSupervisor(mocks);
+	const {default: Supervisor} = await importSupervisor(mocks);
 
-	const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+	const supervisor = await Supervisor.create({}, baseConfig, undefined, {graphFactory});
 
 	// The stable request handler passed to http.createServer.
 	const trampoline = createdHandlers[0];
@@ -143,19 +143,19 @@ test("reinitialize() is build-new-then-swap: new stack is built before the old i
 		return {};
 	});
 	const {mocks} = createMocks({
-		buildServeAppImpl: async () => {
-			order.push("buildServeApp");
-			return order.filter((s) => s === "buildServeApp").length === 1 ? stack1 : stack2;
+		buildAppImpl: async () => {
+			order.push("buildApp");
+			return order.filter((s) => s === "buildApp").length === 1 ? stack1 : stack2;
 		}
 	});
-	const {default: ServeSupervisor} = await importSupervisor(mocks);
+	const {default: Supervisor} = await importSupervisor(mocks);
 
-	const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+	const supervisor = await Supervisor.create({}, baseConfig, undefined, {graphFactory});
 	order.length = 0; // drop the initial build
 
 	await supervisor.reinitialize();
 
-	t.deepEqual(order, ["graphFactory", "buildServeApp", "destroy-old"],
+	t.deepEqual(order, ["graphFactory", "buildApp", "destroy-old"],
 		"new graph resolved and new app built before the old BuildServer is destroyed");
 });
 
@@ -166,7 +166,7 @@ test("reinitialize() failure keeps the last-good stack serving", async (t) => {
 	const buildError = new Error("invalid ui5.yaml");
 	const graphFactory = sinon.stub().resolves({});
 	const {mocks, attachLiveReloadServer, createdHandlers} = createMocks({
-		buildServeAppImpl: async () => {
+		buildAppImpl: async () => {
 			calls++;
 			if (calls === 1) {
 				return stack1;
@@ -174,10 +174,10 @@ test("reinitialize() failure keeps the last-good stack serving", async (t) => {
 			throw buildError;
 		}
 	});
-	const {default: ServeSupervisor} = await importSupervisor(mocks);
+	const {default: Supervisor} = await importSupervisor(mocks);
 
 	const errorEvents = [];
-	const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+	const supervisor = await Supervisor.create({}, baseConfig, undefined, {graphFactory});
 	supervisor.on("error", (err) => errorEvents.push(err));
 
 	await t.notThrowsAsync(supervisor.reinitialize(), "a broken definition does not reject");
@@ -197,9 +197,9 @@ test("live-reload subscription moves to the new BuildServer across a swap", asyn
 	sinon.spy(stack2.buildServer, "on");
 	const graphFactory = sinon.stub().resolves({});
 	const {mocks, attachLiveReloadServer} = createMocks({stacks: [stack1, stack2]});
-	const {default: ServeSupervisor} = await importSupervisor(mocks);
+	const {default: Supervisor} = await importSupervisor(mocks);
 
-	const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+	const supervisor = await Supervisor.create({}, baseConfig, undefined, {graphFactory});
 	const relay = attachLiveReloadServer.firstCall.args[0].buildServer;
 
 	await supervisor.reinitialize();
@@ -225,7 +225,7 @@ test("overlapping reinitialize() calls collapse into one trailing pass", async (
 	let buildCalls = 0;
 	const graphFactory = sinon.stub().resolves({});
 	const {mocks} = createMocks({
-		buildServeAppImpl: async () => {
+		buildAppImpl: async () => {
 			buildCalls++;
 			if (buildCalls === 1) {
 				return stack1; // initial build
@@ -237,9 +237,9 @@ test("overlapping reinitialize() calls collapse into one trailing pass", async (
 			return createStack();
 		}
 	});
-	const {default: ServeSupervisor} = await importSupervisor(mocks);
+	const {default: Supervisor} = await importSupervisor(mocks);
 
-	const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+	const supervisor = await Supervisor.create({}, baseConfig, undefined, {graphFactory});
 
 	const p1 = supervisor.reinitialize();
 	const p2 = supervisor.reinitialize(); // collapses into a trailing pass while p1 is in flight
@@ -253,12 +253,12 @@ test("overlapping reinitialize() calls collapse into one trailing pass", async (
 test("a queued reinitialize() does not re-resolve early; the trailing pass owns the only extra resolve",
 	async (t) => {
 		const stack1 = createStack();
-		// Hold the first re-init inside buildServeApp to open an overlap window, mirroring a slow
+		// Hold the first re-init inside buildApp to open an overlap window, mirroring a slow
 		// framework build on a large project.
 		const firstBuildGate = Promise.withResolvers();
 		let buildCalls = 0;
 		const {mocks} = createMocks({
-			buildServeAppImpl: async () => {
+			buildAppImpl: async () => {
 				buildCalls++;
 				if (buildCalls === 1) {
 					return stack1; // initial build
@@ -270,12 +270,12 @@ test("a queued reinitialize() does not re-resolve early; the trailing pass owns 
 			}
 		});
 		const graphFactory = sinon.stub().resolves({});
-		const {default: ServeSupervisor} = await importSupervisor(mocks);
+		const {default: Supervisor} = await importSupervisor(mocks);
 
-		const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+		const supervisor = await Supervisor.create({}, baseConfig, undefined, {graphFactory});
 		t.is(graphFactory.callCount, 0, "no resolve on the initial build");
 
-		const p1 = supervisor.reinitialize(); // starts #swap(): resolves, then parks in buildServeApp
+		const p1 = supervisor.reinitialize(); // starts #swap(): resolves, then parks in buildApp
 		// Let the first swap reach its (blocked) build so #reinitInProgress is set.
 		await new Promise((resolve) => setImmediate(resolve));
 		t.is(graphFactory.callCount, 1, "first swap resolved the graph");
@@ -297,9 +297,9 @@ test("destroy() closes live-reload, the socket, and the BuildServer; reinitializ
 	const stack = createStack();
 	const graphFactory = sinon.stub().resolves({});
 	const {mocks, httpServer, liveReloadHandle} = createMocks({stacks: [stack]});
-	const {default: ServeSupervisor} = await importSupervisor(mocks);
+	const {default: Supervisor} = await importSupervisor(mocks);
 
-	const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+	const supervisor = await Supervisor.create({}, baseConfig, undefined, {graphFactory});
 
 	await new Promise((resolve) => supervisor.destroy(resolve));
 
@@ -315,9 +315,9 @@ test("destroy() closes the socket even when BuildServer.destroy() rejects", asyn
 	const stack = createStack();
 	stack.buildServer.destroy = sinon.stub().rejects(new Error("destroy failed"));
 	const {mocks, httpServer} = createMocks({stacks: [stack]});
-	const {default: ServeSupervisor} = await importSupervisor(mocks);
+	const {default: Supervisor} = await importSupervisor(mocks);
 
-	const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {});
+	const supervisor = await Supervisor.create({}, baseConfig, undefined, {});
 
 	await new Promise((resolve) => supervisor.destroy(resolve));
 	t.true(httpServer.close.calledOnce, "socket is closed despite the BuildServer destroy rejection");
@@ -325,20 +325,20 @@ test("destroy() closes the socket even when BuildServer.destroy() rejects", asyn
 
 test("reinitialize() warns and no-ops when no graphFactory was provided", async (t) => {
 	const stack = createStack();
-	const {mocks, buildServeApp} = createMocks({stacks: [stack]});
-	const {default: ServeSupervisor} = await importSupervisor(mocks);
+	const {mocks, buildApp} = createMocks({stacks: [stack]});
+	const {default: Supervisor} = await importSupervisor(mocks);
 
-	const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {});
+	const supervisor = await Supervisor.create({}, baseConfig, undefined, {});
 	await supervisor.reinitialize();
-	t.true(buildServeApp.calledOnce, "no re-init build happens without a graphFactory");
+	t.true(buildApp.calledOnce, "no re-init build happens without a graphFactory");
 });
 
 test("definition watcher is created on create() only when a graphFactory is present", async (t) => {
 	const stack = createStack();
 	const {mocks, DefinitionWatcher} = createMocks({stacks: [stack]});
-	const {default: ServeSupervisor} = await importSupervisor(mocks);
+	const {default: Supervisor} = await importSupervisor(mocks);
 
-	await ServeSupervisor.create({}, baseConfig, undefined, {});
+	await Supervisor.create({}, baseConfig, undefined, {});
 	t.true(DefinitionWatcher.create.notCalled, "no watcher without a graphFactory");
 });
 
@@ -354,9 +354,9 @@ test("definition watcher is created with the threaded config params", async (t) 
 		cwd: "/app",
 	};
 	const {mocks, DefinitionWatcher} = createMocks({stacks: [stack]});
-	const {default: ServeSupervisor} = await importSupervisor(mocks);
+	const {default: Supervisor} = await importSupervisor(mocks);
 
-	await ServeSupervisor.create(graph, config, undefined, {graphFactory});
+	await Supervisor.create(graph, config, undefined, {graphFactory});
 
 	t.true(DefinitionWatcher.create.calledOnce);
 	const opts = DefinitionWatcher.create.firstCall.args[0];
@@ -373,9 +373,9 @@ test("a definitionChanged event triggers reinitialize()", async (t) => {
 	const stack2 = createStack(app2);
 	const graphFactory = sinon.stub().resolves({});
 	const {mocks, definitionWatchers, createdHandlers} = createMocks({stacks: [stack1, stack2]});
-	const {default: ServeSupervisor} = await importSupervisor(mocks);
+	const {default: Supervisor} = await importSupervisor(mocks);
 
-	await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+	await Supervisor.create({}, baseConfig, undefined, {graphFactory});
 
 	// The watcher created on init drives the re-init.
 	definitionWatchers[0].emit("definitionChanged", {eventType: "update", filePath: "/app/ui5.yaml"});
@@ -390,9 +390,9 @@ test.serial("a definitionChanging event signals ui5.project-resolving (version-s
 	const stack1 = createStack();
 	const graphFactory = sinon.stub().resolves({});
 	const {mocks, definitionWatchers} = createMocks({stacks: [stack1]});
-	const {default: ServeSupervisor} = await importSupervisor(mocks);
+	const {default: Supervisor} = await importSupervisor(mocks);
 
-	await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+	await Supervisor.create({}, baseConfig, undefined, {graphFactory});
 
 	const emit = sinon.spy(process, "emit");
 	// The watcher's leading-edge event: a re-resolve is coming, blank the version slot.
@@ -407,7 +407,7 @@ test.serial("a failed swap releases the version placeholder via ui5.project-reso
 	let calls = 0;
 	const graphFactory = sinon.stub().resolves({});
 	const {mocks} = createMocks({
-		buildServeAppImpl: async () => {
+		buildAppImpl: async () => {
 			calls++;
 			if (calls === 1) {
 				return stack1; // initial build
@@ -415,9 +415,9 @@ test.serial("a failed swap releases the version placeholder via ui5.project-reso
 			throw new Error("invalid ui5.yaml"); // the re-init build fails
 		}
 	});
-	const {default: ServeSupervisor} = await importSupervisor(mocks);
+	const {default: Supervisor} = await importSupervisor(mocks);
 
-	const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+	const supervisor = await Supervisor.create({}, baseConfig, undefined, {graphFactory});
 
 	const emit = sinon.spy(process, "emit");
 	await supervisor.reinitialize();
@@ -432,9 +432,9 @@ test("watcher is re-targeted to the new graph after a swap (old destroyed, new c
 	const newGraph = {name: "newGraph", getRoot: () => ({})};
 	const graphFactory = sinon.stub().resolves(newGraph);
 	const {mocks, DefinitionWatcher, definitionWatchers} = createMocks({stacks: [stack1, stack2]});
-	const {default: ServeSupervisor} = await importSupervisor(mocks);
+	const {default: Supervisor} = await importSupervisor(mocks);
 
-	const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+	const supervisor = await Supervisor.create({}, baseConfig, undefined, {graphFactory});
 	t.is(DefinitionWatcher.create.callCount, 1, "watcher created on init");
 	const firstWatcher = definitionWatchers[0];
 
@@ -463,9 +463,9 @@ test("a watcher-create failure during swap keeps the server serving", async (t) 
 			throw new Error("watcher failed to arm");
 		},
 	});
-	const {default: ServeSupervisor} = await importSupervisor(mocks);
+	const {default: Supervisor} = await importSupervisor(mocks);
 
-	const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+	const supervisor = await Supervisor.create({}, baseConfig, undefined, {graphFactory});
 
 	await t.notThrowsAsync(supervisor.reinitialize(), "a watcher-create failure does not reject the swap");
 
@@ -478,9 +478,9 @@ test("destroy() tears the definition watcher down", async (t) => {
 	const stack = createStack();
 	const graphFactory = sinon.stub().resolves({});
 	const {mocks, definitionWatchers} = createMocks({stacks: [stack]});
-	const {default: ServeSupervisor} = await importSupervisor(mocks);
+	const {default: Supervisor} = await importSupervisor(mocks);
 
-	const supervisor = await ServeSupervisor.create({}, baseConfig, undefined, {graphFactory});
+	const supervisor = await Supervisor.create({}, baseConfig, undefined, {graphFactory});
 
 	await new Promise((resolve) => supervisor.destroy(resolve));
 	t.true(definitionWatchers[0].destroy.calledOnce, "watcher destroyed on teardown");

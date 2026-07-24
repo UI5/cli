@@ -30,9 +30,9 @@ function createBuildServer() {
 	};
 }
 
-async function importBuildServeRouter(applyMiddleware) {
-	return esmock("../../../lib/serveApp.js", {
-		"../../../lib/middleware/MiddlewareManager.js": class MiddlewareManager {
+async function importBuildRouter(applyMiddleware) {
+	return esmock("../../../../lib/serve/stack.js", {
+		"../../../../lib/middleware/MiddlewareManager.js": class MiddlewareManager {
 			applyMiddleware(...args) {
 				return applyMiddleware(...args);
 			}
@@ -40,28 +40,28 @@ async function importBuildServeRouter(applyMiddleware) {
 	});
 }
 
-test("buildServeRouter() destroys the BuildServer when middleware assembly fails", async (t) => {
+test("buildRouter() destroys the BuildServer when middleware assembly fails", async (t) => {
 	const buildServer = createBuildServer();
 	const graph = createGraph(buildServer);
 	const assemblyError = new Error("applyMiddleware failed");
 	const applyMiddleware = sinon.stub().rejects(assemblyError);
 
-	const {buildServeRouter} = await importBuildServeRouter(applyMiddleware);
+	const {buildRouter} = await importBuildRouter(applyMiddleware);
 
-	const err = await t.throwsAsync(buildServeRouter(graph, {}));
+	const err = await t.throwsAsync(buildRouter(graph, {}));
 	t.is(err, assemblyError, "the original assembly error is rethrown");
 	t.true(buildServer.destroy.calledOnce,
 		"the BuildServer is destroyed so its watcher and cache handle are released");
 });
 
-test("buildServeRouter() returns the router and BuildServer on success", async (t) => {
+test("buildRouter() returns the router and BuildServer on success", async (t) => {
 	const buildServer = createBuildServer();
 	const graph = createGraph(buildServer);
 	const applyMiddleware = sinon.stub().resolves();
 
-	const {buildServeRouter} = await importBuildServeRouter(applyMiddleware);
+	const {buildRouter} = await importBuildRouter(applyMiddleware);
 
-	const result = await buildServeRouter(graph, {});
+	const result = await buildRouter(graph, {});
 	t.is(result.buildServer, buildServer, "the BuildServer is returned to the caller");
 	t.is(typeof result.router, "function", "an express router is returned");
 	t.true(buildServer.destroy.notCalled, "the BuildServer is not destroyed on success");

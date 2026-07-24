@@ -65,34 +65,34 @@ test("Does not inject the live-reload client script", async (t) => {
 // router from the shared core, close() releases the BuildServer once and is idempotent, and
 // the live-reload WebSocket path is disabled.
 
-function createBuildServeRouterMock() {
+function createBuildRouterMock() {
 	const router = sinon.stub();
 	const buildServer = {
 		destroy: sinon.stub().resolves(),
 	};
-	const buildServeRouter = sinon.stub().resolves({
+	const buildRouter = sinon.stub().resolves({
 		router,
 		buildServer,
 		liveReloadOptions: {active: false, token: null},
 	});
-	return {router, buildServer, buildServeRouter};
+	return {router, buildServer, buildRouter};
 }
 
-async function importServeMiddleware(buildServeRouter) {
+async function importServeMiddleware(buildRouter) {
 	return esmock("../../../lib/serveMiddleware.js", {
-		"../../../lib/serveApp.js": {buildServeRouter},
+		"../../../lib/serve/stack.js": {buildRouter},
 	});
 }
 
 test("serveMiddleware() returns the router as middleware and disables live-reload", async (t) => {
-	const {router, buildServeRouter} = createBuildServeRouterMock();
-	const {default: serveMiddlewareMocked} = await importServeMiddleware(buildServeRouter);
+	const {router, buildRouter} = createBuildRouterMock();
+	const {default: serveMiddlewareMocked} = await importServeMiddleware(buildRouter);
 	const graph = {};
 
 	const result = await serveMiddlewareMocked(graph, {ui5DataDir: "/tmp/data"});
 
-	t.true(buildServeRouter.calledOnce);
-	const [passedGraph, config] = buildServeRouter.firstCall.args;
+	t.true(buildRouter.calledOnce);
+	const [passedGraph, config] = buildRouter.firstCall.args;
 	t.is(passedGraph, graph, "the graph is threaded through to the shared core");
 	t.is(config.liveReload, false, "live-reload is disabled for the embedding API");
 	t.is(config.webSocketToken, null, "no WebSocket token is minted for the embedding API");
@@ -102,8 +102,8 @@ test("serveMiddleware() returns the router as middleware and disables live-reloa
 });
 
 test("serveMiddleware() close() destroys the BuildServer once and is idempotent", async (t) => {
-	const {buildServer, buildServeRouter} = createBuildServeRouterMock();
-	const {default: serveMiddlewareMocked} = await importServeMiddleware(buildServeRouter);
+	const {buildServer, buildRouter} = createBuildRouterMock();
+	const {default: serveMiddlewareMocked} = await importServeMiddleware(buildRouter);
 
 	const {close} = await serveMiddlewareMocked({}, {});
 	await close();
@@ -113,12 +113,12 @@ test("serveMiddleware() close() destroys the BuildServer once and is idempotent"
 });
 
 test("serveMiddleware() works without options", async (t) => {
-	const {buildServeRouter} = createBuildServeRouterMock();
-	const {default: serveMiddlewareMocked} = await importServeMiddleware(buildServeRouter);
+	const {buildRouter} = createBuildRouterMock();
+	const {default: serveMiddlewareMocked} = await importServeMiddleware(buildRouter);
 
 	await serveMiddlewareMocked({});
 
-	const config = buildServeRouter.firstCall.args[1];
+	const config = buildRouter.firstCall.args[1];
 	t.is(config.liveReload, false);
 	t.is(config.webSocketToken, null);
 });

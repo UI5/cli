@@ -1,5 +1,5 @@
 import Cache from "@ui5/project/build/cache/Cache";
-import {buildServeRouter} from "./serveApp.js";
+import {buildRouter} from "./serve/stack.js";
 
 /**
  * Assembles the UI5 middleware for a project graph and returns it as a single connect/Express
@@ -70,7 +70,7 @@ export default async function serveMiddleware(graph, {
 		webSocketToken: null,
 	};
 
-	const {router, buildServer} = await buildServeRouter(graph, config, error);
+	const {router, buildServer} = await buildRouter(graph, config, error);
 
 	let destroyed = false;
 	return {

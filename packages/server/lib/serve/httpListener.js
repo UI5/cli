@@ -3,11 +3,11 @@ import portscanner from "portscanner";
 
 /**
  * HTTP-listener helpers shared between the single-shot {@link module:@ui5/server.serve}
- * wrapper and the {@link ServeSupervisor}, which binds the port once and swaps the
+ * wrapper and the {@link Supervisor}, which binds the port once and swaps the
  * request handler behind it.
  *
  * @private
- * @module @ui5/server/serveHttp
+ * @module @ui5/server/serve/httpListener
  */
 
 /**
