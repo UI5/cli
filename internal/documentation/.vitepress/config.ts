@@ -285,7 +285,7 @@ function guide() {
 		(() => {
 			// This function builds the tree for the api docs
 			const tree = {
-				text: "API",
+				text: "📚 API",
 				collapsed: false,
 				items: [{
 					text: "@ui5",
