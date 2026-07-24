@@ -4,6 +4,23 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v4.0.6...HEAD).
 
+## [5.0.0-alpha.7](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.6...project-v5.0.0-alpha.7) (2026-07-24)
+
+
+### Bug Fixes
+
+* Show resolved framework version in serve console output ([3210e8b](https://github.com/UI5/cli/commit/3210e8b4f1e212621b03afb6f0b888a32aa19f3e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/fs bumped from ^5.0.0-alpha.6 to ^5.0.0-alpha.7
+    * @ui5/logger bumped from ^5.0.0-alpha.6 to ^5.0.0-alpha.7
+  * peerDependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.6 to ^5.0.0-alpha.7
+
 ## [5.0.0-alpha.6](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.5...project-v5.0.0-alpha.6) (2026-07-10)
 
 

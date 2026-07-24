@@ -4,6 +4,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v4.0.7...HEAD).
 
+## [5.0.0-alpha.7](https://github.com/UI5/cli/compare/server-v5.0.0-alpha.6...server-v5.0.0-alpha.7) (2026-07-24)
+
+
+### Bug Fixes
+
+* **server:** Remove import of @ui5/project build cache enum ([5889980](https://github.com/UI5/cli/commit/588998011e5cb609126a36ff43fc72962a50619a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.6 to ^5.0.0-alpha.7
+    * @ui5/fs bumped from ^5.0.0-alpha.6 to ^5.0.0-alpha.7
+    * @ui5/logger bumped from ^5.0.0-alpha.6 to ^5.0.0-alpha.7
+  * devDependencies
+    * @ui5/project bumped from ^5.0.0-alpha.6 to ^5.0.0-alpha.7
+
 ## [5.0.0-alpha.6](https://github.com/UI5/cli/compare/server-v5.0.0-alpha.5...server-v5.0.0-alpha.6) (2026-07-10)
 
 
