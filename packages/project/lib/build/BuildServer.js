@@ -126,8 +126,8 @@ class BuildServer extends EventEmitter {
 	// Server lifecycle activity state. Starts as `null` so the first #setState call
 	// always emits the initial state.
 	#serverState = null;
-	// The stale set most recently reported via #emitStale, serialized to a stable key (sorted
-	// names joined), so repeated emits of an unchanged set are dropped. `null` until the first emit.
+	// The stale set most recently reported via #emitStale, so repeated emits of an
+	// unchanged set are dropped.
 	#lastStaleKey = null;
 	// The error captured on the last transition to ERROR, or null in any other state.
 	// Exposed via getServeError() so the dev server can surface it on HTML navigations
@@ -236,10 +236,7 @@ class BuildServer extends EventEmitter {
 			}
 		}
 		if (this.#pendingBuildRequest.size === 0) {
-			// No initial build was requested. Signal "idle" / "ready" right away. Don't report the
-			// stale set yet: every project is still INITIAL, and counting those as stale would be
-			// wrong for an up-to-date cache. The first reconcile after a reader request validates
-			// them and reports the real set.
+			// No initial build was requested. Signal "idle" / "ready" right away.
 			this.#setState(SERVER_STATES.IDLE);
 		}
 	}
@@ -591,25 +588,19 @@ class BuildServer extends EventEmitter {
 			this.#resourceChangeQueue.set(project.getName(), new Set([filePath]));
 		}
 
-		// A source change moves project staleness: the affected project and its dependents are now
-		// stale. Report the new stale set right away, independently of the activity state: a change
-		// from a quiet IDLE must not force a non-IDLE activity (the project rebuilds lazily on its next
-		// reader request, per the lazy-build contract).
-		//
 		// From the quiet states, settle activity on IDLE ("ready") first: ERROR is sticky and the
 		// invalidate() calls above lifted the per-project gate (input tree moved), so the server-level
 		// error must clear too: #setState(IDLE) does that via #serveError. VALIDATING is being aborted
 		// for the changed project (its per-project signal fired in invalidate()); dropping to IDLE
 		// reports the rest state promptly rather than leaving a stale "validating" until the pass
-		// settles. #setState(IDLE) is a no-op from IDLE, so a lone edit doesn't re-emit ready().
+		// settles.
 		// BUILDING and SETTLING own their own transitions, so leave them be.
 		if (this.#serverState === SERVER_STATES.IDLE ||
 			this.#serverState === SERVER_STATES.VALIDATING ||
 			this.#serverState === SERVER_STATES.ERROR) {
 			this.#setState(SERVER_STATES.IDLE);
 		}
-		// Sweep the stale set once and reuse it below: nothing mutates #projectBuildStatus between
-		// here and the SETTLING transition, so the same set feeds both #emitStale and settling().
+		// Collect the stale set once and reuse it for #setState below
 		const staleProjects = this.#getStaleProjectNames();
 		this.#emitStale(staleProjects);
 
