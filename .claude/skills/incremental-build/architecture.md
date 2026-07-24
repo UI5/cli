@@ -38,7 +38,11 @@ Use this table to locate source files. ALWAYS read the relevant source file befo
 | `BuildContext` | `lib/build/helpers/BuildContext.js` | Global build config, project context cache |
 | `getBuildSignature` | `lib/build/helpers/getBuildSignature.js` | Build signature computation: `BUILD_SIG_VERSION` + build config + project config |
 | `ProjectBuildContext` | `lib/build/helpers/ProjectBuildContext.js` | Per-project bridge between builder, tasks, and cache |
-| `WatchHandler` | `lib/build/helpers/WatchHandler.js` | `@parcel/watcher`-based source path watcher; emits change events to BuildServer. The watcher coalesces its own events with a 50 ms min / 500 ms max wait, so a continuous operation is delivered as batches up to 500 ms apart |
+| `WatchHandler` | `lib/build/helpers/WatchHandler.js` | `@parcel/watcher`-based source path watcher; emits `change` events to BuildServer. The watcher coalesces its own events with a 50 ms min / 500 ms max wait, so a continuous operation is delivered as batches up to 500 ms apart. Survives a `git checkout` moving source paths: drops events whose path no longer maps (`getVirtualPath` throws) and skips a path that vanished before `subscribe` resolved, instead of escalating to a fatal error. The `ProjectDefinitionWatcher` then re-inits over the new graph |
+| `ProjectDefinitionWatcher` | `lib/graph/ProjectDefinitionWatcher.js` | `@parcel/watcher`-based watcher for project-definition files (`ui5.yaml` / `--config`, `package.json`, workspace config, static dependency-definition file). Emits `definitionChanging` (leading) and `definitionChanged` (trailing, coalesced) to drive a full serving-stack re-init. Owned by `@ui5/server`'s `Supervisor`, not the BuildServer; exported via the `@ui5/project/graph/ProjectDefinitionWatcher` subpath |
+| `RecoveryBudget` | `lib/build/helpers/RecoveryBudget.js` | Sliding-window loop protection for watcher recovery (`WATCHER_RECOVERY_MAX_ATTEMPTS` = 5 within `WATCHER_RECOVERY_WINDOW_MS` = 60000). One instance per watcher, so a fault in one does not consume the other's budget |
+| `watchSettle` | `lib/build/helpers/watchSettle.js` | Single source of `WATCHER_BURST_SETTLE_MS` = 550 ms, shared by every `@parcel/watcher` consumer (sized above the watcher's 500 ms coalescing cap) |
+| `drainSubscriptions` | `lib/build/helpers/watchSubscriptions.js` | Unsubscribes a list of subscriptions in parallel (`Promise.allSettled`), returns the failures. Used by both watchers' `destroy()` and BuildServer's recovery re-subscribe |
 | `TaskRunner` | `lib/build/TaskRunner.js` | Task composition, execution loop, abort handling |
 | `Cache` enum | `lib/build/cache/Cache.js` | Cache mode constants: `Default`, `Force`, `ReadOnly`, `Off` (CLI `--cache` option) |
 | `ProjectBuildCache` | `lib/build/cache/ProjectBuildCache.js` | Cache orchestration per project: index management, stage lookup, result recording |
@@ -95,11 +99,15 @@ When a source file changes:
 2. `_projectResourceChanged()` walks `traverseDependents()` and calls `ProjectBuildStatus.invalidate({reason, fileAddedOrRemoved})` on the affected project and every dependent. Change is queued in `#resourceChangeQueue`
 3. `invalidate()` clears any latched error (lifting the ERRORED gate), aborts the running build via `AbortSignal`, and rotates the `AbortController`
 4. `fileAddedOrRemoved=true` (create/delete events) additionally evicts the cached reader on the status. Pure modifies keep the reader so callers already holding its promise still resolve
-5. The build loop catches `AbortBuildError`, distinguishes abort from concurrent-change failure, and re-enqueues projects that aren't fresh. Both the source-change-aborted build and a build that *failed* while sources were still changing (the transient branch, `signal.aborted || #resourceChangeQueue.size > 0`) defer their restart until changes settle (`ABORTED_BUILD_RESTART_SETTLE_MS` = 550 ms, reset by each further change) rather than firing on the snappy request debounce — a burst delivered as multiple watcher batches then collapses into one rebuild against the settled tree instead of a build-abort cycle per batch. Both report `SETTLING` for the window's duration: the doomed build no longer parks the banner on `building` (abort) or flips it to `error` (transient failure); it reports "waiting for changes to settle" and retries once the tree is quiet. A reader request supersedes the deferred restart by enqueueing on the normal `BUILD_REQUEST_DEBOUNCE_MS` (10 ms), so serving a request is not delayed. A genuine, non-transient failure still latches ERRORED.
+5. The build loop catches `AbortBuildError` and re-enqueues projects that aren't fresh. Two branches defer their restart instead of firing on the request debounce: the source-change-aborted build, and a build that *failed* while sources were still changing (the transient branch, `signal.aborted || #resourceChangeQueue.size > 0`). The restart waits `ABORTED_BUILD_RESTART_SETTLE_MS` (= `WATCHER_BURST_SETTLE_MS` = 550 ms) of quiet, reset by each further change, so a multi-batch burst collapses into one rebuild against the settled tree. The deferral arms the queue timer and sets `#pendingDeferredRestart`. Both branches report `SETTLING` for the window (they no longer park the banner on `building` or flip it to `error`). A genuine, non-transient failure still latches ERRORED.
+
+   While `#pendingDeferredRestart` holds, a reader request does *not* supersede the window: `#enqueueBuild` queues the project and returns without re-arming, and the request resolves when the deferred rebuild runs. Pulling the restart forward would build into a still-arriving burst; resetting it per request would let live-reload traffic defer the rebuild indefinitely. Only source changes reset the window.
 6. The first speculative build after a source change from a quiet state is held for a short first-build window (`FIRST_BUILD_SETTLE_MS` = 100 ms, also reported as `SETTLING`) rather than the snappy debounce — this absorbs an editor's own multi-file save fan-out (100 ms sits far below the watcher's 500 ms coalescing cap, roughly at its 50 ms floor) so a save-all doesn't fire a build into a half-written tree. It applies only to a build that is already pending (a reader request queued but not yet started); laziness is preserved — with nothing queued, a change still waits for a reader request. On its own it does not cover a multi-second `git checkout`; full coverage of that comes from the transient-failure deferral above.
 7. Queued resource changes are flushed via `#flushResourceChanges()` before the next build starts (must happen before `projectBuilder.build`)
 
-The server also emits a `sourcesChanged` event to drive live-reload notifications. Emission is **leading-edge**: the first change of a quiet period notifies immediately (a lone edit reaches clients at the watcher's own ~50 ms latency floor with no debounce added), and a trailing settle window (`SOURCES_CHANGED_SETTLE_MS` = 550 ms, above the watcher's 500 ms cap) coalesces the remainder of a burst into one further emit. Because emission is leading-edge, the window size does not affect single-edit latency — it only controls burst coalescing.
+The server also emits a `sourcesChanged` event to drive live-reload notifications. Emission is **leading-edge**: the first change of a quiet period notifies immediately (a lone edit reaches clients at the watcher's own ~50 ms latency floor with no debounce added), and a trailing settle window (`SOURCES_CHANGED_SETTLE_MS` = `WATCHER_BURST_SETTLE_MS` = 550 ms, above the watcher's 500 ms cap) coalesces the remainder of a burst into one further emit. Because emission is leading-edge, the window size does not affect single-edit latency: it only controls burst coalescing.
+
+The three source-watcher settle windows (`SOURCES_CHANGED_SETTLE_MS`, `ABORTED_BUILD_RESTART_SETTLE_MS`, and the ProjectDefinitionWatcher's `DEFINITION_CHANGED_SETTLE_MS`) all resolve to `WATCHER_BURST_SETTLE_MS` in `watchSettle.js`, sized above `@parcel/watcher`'s 500 ms `MAX_WAIT_TIME` so each batch resets the window rather than terminating it. `FIRST_BUILD_SETTLE_MS` (100 ms) is deliberately separate: it absorbs an editor's save fan-out, not a multi-batch operation.
 
 ### State Machine (per project)
 
@@ -185,6 +193,31 @@ After a build cycle ends with some projects still in INITIAL (e.g. dependencies 
 4. The `finally` clause guarantees no project is left stuck in VALIDATING regardless of how the pass ended.
 
 A build request preempts an in-flight pass: `#triggerRequestQueue` awaits `#stopActiveValidation` before claiming the builder's `buildIsRunning` lock. The pass's `finally` re-invokes `#reconcileServerState({mayValidate: false})` — `mayValidate=false` prevents stack recursion into another validation pass over the projects the previous one just released.
+
+## Two Watchers: Source vs. Definition
+
+Two independent `@parcel/watcher` consumers feed different pipelines:
+
+- **Source watcher** (`WatchHandler`, owned by the `BuildServer`): watches source paths, emits `change` events that drive incremental rebuilds *inside* the BuildServer (the File Watch and Abort flow above).
+- **Definition watcher** (`ProjectDefinitionWatcher`, owned by `@ui5/server`'s `Supervisor`): watches project-definition files, drives a full re-init of the serving stack *above* the BuildServer. A definition change (topology, config) requires re-resolving the graph, which no incremental rebuild can do, so it re-creates the graph + Express app + BuildServer behind the stable `http.Server`.
+
+The split is why the source watcher tolerates a `git checkout` moving paths under it: the definition watcher owns the re-init that re-targets it at the new graph, so the source watcher only has to survive the churn.
+
+Both watchers share `RecoveryBudget` (loop protection, one budget each), `drainSubscriptions` (parallel unsubscribe), and `WATCHER_BURST_SETTLE_MS`.
+
+### ProjectDefinitionWatcher
+
+`ProjectDefinitionWatcher extends EventEmitter`, modeled on `WatchHandler`. Documented here because it shares the watch helpers and settle discipline, though it is owned by `@ui5/server`.
+
+- **Watch set** (`#resolveWatchSet`): traverses `graph.traverseBreadthFirst()` collecting each `project.getRootPath()`. Per project it watches `package.json` always, plus `ui5.yaml` (except the root when a custom `rootConfigPath` (`--config`) is given, which is watched instead and may live outside the root). Adds `workspaceConfigPath` (default `ui5-workspace.yaml` at cwd) when set, and `dependencyDefinitionPath` in `--dependency-definition` mode, where that file is itself a topology definition.
+- **Include-based model**: subscribes to each distinct directory (deduplicated across projects); the callback drops every event whose resolved path is not in `#watchedFiles`. The `node_modules`/`.git` ignore globs only reduce OS-level watch load; correctness comes from the include set.
+- **Events**:
+  - `definitionChanging` on the leading edge (first watched event), used to placeholder the project version during re-resolution.
+  - `definitionChanged` on the trailing edge after `DEFINITION_CHANGED_SETTLE_MS` (= `WATCHER_BURST_SETTLE_MS`), coalescing a `git checkout` burst into a single re-init. Trailing-only: re-creating the stack on the first byte of a checkout would be wasted.
+- **Recovery** (`#recoverWatcher`): mirrors `BuildServer.#recoverWatcher`. A synchronous re-entrancy guard collapses parcel's per-path error storm into one recovery, `RecoveryBudget` caps attempts, exhaustion escalates to a terminal `error`. The include set is unchanged; only OS-level handles are renewed.
+- **`destroy()`**: idempotent (drains `#subscriptions` to `[]` first), aggregates unsubscribe failures into an `AggregateError` emitted as `error`.
+
+The supervisor owns the watcher because it outlives individual BuildServer instances (destroyed on every swap) and is re-targeted over the new graph after each swap. See `@ui5/server`'s `Supervisor` for the re-init/swap wiring.
 
 ## Caching Architecture
 
@@ -452,7 +485,7 @@ Stage metadata stored on disk includes:
 ## Key Architectural Patterns
 
 1. **Lazy building**: Projects built on-demand when readers are requested
-2. **Request batching**: Multiple pending build requests processed in single batch (`BUILD_REQUEST_DEBOUNCE_MS` = 10ms debounce). A source-change-driven first build is held on a short settle window (`FIRST_BUILD_SETTLE_MS` = 100ms) to absorb editor save fan-out, and a source-change-aborted or transiently-failed build restarts on a longer window (`ABORTED_BUILD_RESTART_SETTLE_MS` = 550ms) so a burst collapses into one rebuild. Both windows report the `SETTLING` state; a reader request supersedes them at the snappy 10ms debounce.
+2. **Request batching**: Multiple pending build requests processed in single batch (`BUILD_REQUEST_DEBOUNCE_MS` = 10ms debounce). A source-change-driven first build is held on `FIRST_BUILD_SETTLE_MS` = 100ms to absorb editor save fan-out; a source-change-aborted or transiently-failed build restarts on `ABORTED_BUILD_RESTART_SETTLE_MS` (= `WATCHER_BURST_SETTLE_MS` = 550ms) so a burst collapses into one rebuild. Both windows report `SETTLING`. A reader request supersedes the first-build window at the 10ms debounce, but not the deferred post-abort/transient restart (`#pendingDeferredRestart`): the queued request waits for the deferred rebuild.
 3. **Abort/retry**: File changes abort running builds; projects re-queued automatically
 4. **Structural sharing**: Derived hash trees share unchanged subtrees, reducing memory
 5. **Content-addressed storage**: Resources deduplicated via integrity hashes in custom CAS (synchronous path resolution, gzip-compressed)

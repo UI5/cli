@@ -9,6 +9,8 @@ import {
 	setProject,
 	setFramework,
 	enableProjectPlaceholders,
+	setVersionResolving,
+	clearVersionResolving,
 } from "./interactiveConsole/state/project.js";
 import {createServerState, setListening, enableServerPlaceholders} from "./interactiveConsole/state/server.js";
 import {
@@ -97,8 +99,6 @@ class InteractiveConsole {
 		stderr: {orig: null, partial: ""},
 	};
 
-	#seenProjectResolved = false;
-
 	// Bound listeners so we can `process.off` them on stop().
 	#onLog;
 	#onBuildMetadata;
@@ -109,6 +109,8 @@ class InteractiveConsole {
 	#onToolMode;
 	#onProjectResolved;
 	#onProjectFrameworkResolved;
+	#onProjectResolving;
+	#onProjectResolveFailed;
 	#onServerListening;
 	#onStopConsole;
 	#onResize;
@@ -299,6 +301,8 @@ class InteractiveConsole {
 		this.#onToolMode = (evt) => this.#handleToolMode(evt);
 		this.#onProjectResolved = (evt) => this.#handleProjectResolved(evt);
 		this.#onProjectFrameworkResolved = (evt) => this.#handleProjectFrameworkResolved(evt);
+		this.#onProjectResolving = () => this.#handleProjectResolving();
+		this.#onProjectResolveFailed = () => this.#handleProjectResolveFailed();
 		this.#onServerListening = (evt) => this.#handleServerListening(evt);
 		this.#onStopConsole = () => this.disable();
 		this.#onResize = () => this.#handleResize();
@@ -310,8 +314,10 @@ class InteractiveConsole {
 		process.on("ui5.serve-status", this.#onServeStatus);
 		process.on("ui5.tool-info", this.#onToolInfo);
 		process.on("ui5.tool-mode", this.#onToolMode);
-		process.on("ui5.project-resolved", this.#onProjectResolved);
+		process.on("ui5.project-resolve-succeeded", this.#onProjectResolved);
 		process.on("ui5.project-framework-resolved", this.#onProjectFrameworkResolved);
+		process.on("ui5.project-resolve-started", this.#onProjectResolving);
+		process.on("ui5.project-resolve-failed", this.#onProjectResolveFailed);
 		process.on("ui5.server-listening", this.#onServerListening);
 		process.on("ui5.log.stop-console", this.#onStopConsole);
 		if (typeof this.#stderr.on === "function") {
@@ -327,8 +333,10 @@ class InteractiveConsole {
 		process.off("ui5.serve-status", this.#onServeStatus);
 		process.off("ui5.tool-info", this.#onToolInfo);
 		process.off("ui5.tool-mode", this.#onToolMode);
-		process.off("ui5.project-resolved", this.#onProjectResolved);
+		process.off("ui5.project-resolve-succeeded", this.#onProjectResolved);
 		process.off("ui5.project-framework-resolved", this.#onProjectFrameworkResolved);
+		process.off("ui5.project-resolve-started", this.#onProjectResolving);
+		process.off("ui5.project-resolve-failed", this.#onProjectResolveFailed);
 		process.off("ui5.server-listening", this.#onServerListening);
 		process.off("ui5.log.stop-console", this.#onStopConsole);
 		if (typeof this.#stderr.off === "function") {
@@ -369,21 +377,32 @@ class InteractiveConsole {
 	}
 
 	#handleProjectResolved(evt) {
-		if (this.#seenProjectResolved) {
-			// The writer's model is single-root-project. A second
-			// `ui5.project-resolved` event means the emitter violated that
-			// invariant, making subsequent event attribution ambiguous, so fail
-			// fast instead of trying to deduplicate.
-			throw new Error(
-				`writers/InteractiveConsole: Received duplicate ui5.project-resolved event`);
-		}
-		this.#seenProjectResolved = true;
+		// The writer's model is single-root-project, but the root can be resolved more
+		// than once in a process: `Supervisor.reinitialize()` re-resolves the graph
+		// on a project-definition change (a `git checkout`, a hand-edit of ui5.yaml), and
+		// re-emits this event for the same root. A repeat updates the project region in
+		// place; framework data is updated through `ui5.project-framework-resolved`.
 		setProject(this.#projectState, evt);
 		this.#render();
 	}
 
 	#handleProjectFrameworkResolved({framework}) {
 		setFramework(this.#projectState, framework);
+		this.#render();
+	}
+
+	// A definition change is coming: blank the version slot(s) to a "resolving…" placeholder. A
+	// completed resolve arrives as `ui5.project-resolve-succeeded` and repopulates them via
+	// #handleProjectResolved; an abandoned/failed resolve arrives as `ui5.project-resolve-failed`.
+	#handleProjectResolving() {
+		setVersionResolving(this.#projectState);
+		this.#render();
+	}
+
+	// A re-resolve was abandoned or failed without a completing `ui5.project-resolve-succeeded`: release the
+	// placeholder back to the last-known version rather than leaving it on "resolving…".
+	#handleProjectResolveFailed() {
+		clearVersionResolving(this.#projectState);
 		this.#render();
 	}
 

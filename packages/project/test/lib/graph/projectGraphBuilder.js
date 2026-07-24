@@ -966,11 +966,11 @@ test("Multiple dependencies to different module containing the same extension", 
 	});
 });
 
-test.serial("Emits ui5.project-resolved with the root project's shape", async (t) => {
+test.serial("Emits ui5.project-resolve-succeeded with the root project's shape", async (t) => {
 	const events = [];
 	const listener = (evt) => events.push(evt);
-	process.on("ui5.project-resolved", listener);
-	t.teardown(() => process.off("ui5.project-resolved", listener));
+	process.on("ui5.project-resolve-succeeded", listener);
+	t.teardown(() => process.off("ui5.project-resolve-succeeded", listener));
 
 	t.context.getRootNode.resolves(createNode({
 		id: "id1",
@@ -979,7 +979,7 @@ test.serial("Emits ui5.project-resolved with the root project's shape", async (t
 
 	await projectGraphBuilder(t.context.provider);
 
-	t.is(events.length, 1, "ui5.project-resolved emitted exactly once");
+	t.is(events.length, 1, "ui5.project-resolve-succeeded emitted exactly once");
 	t.is(events[0].name, "root.project");
 	t.is(events[0].type, "library");
 	t.is(events[0].version, "1.0.0");

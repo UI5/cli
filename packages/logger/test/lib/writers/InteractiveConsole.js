@@ -47,7 +47,7 @@ test.serial("tool-info populates the header region", (t) => {
 test.serial("project-resolved populates the project region", (t) => {
 	const {writer} = createWriter();
 
-	process.emit("ui5.project-resolved", {
+	process.emit("ui5.project-resolve-succeeded", {
 		name: "my.app",
 		type: "application",
 		version: "1.0.0",
@@ -79,26 +79,86 @@ test.serial("project-framework-resolved populates the framework region", (t) => 
 	writer.disable();
 });
 
-test.serial("duplicate project-resolved throws", (t) => {
+test.serial("repeated project-resolved updates the project region in place", (t) => {
 	const {writer} = createWriter();
 
-	process.emit("ui5.project-resolved", {
+	process.emit("ui5.project-resolve-succeeded", {
 		name: "my.app",
 		type: "application",
 		version: "1.0.0",
 	});
-
-	// The writer's model is single-root-project. A second event means the
-	// caller violated the invariant.
-	t.throws(() => {
-		process.emit("ui5.project-resolved", {
-			name: "other.app",
-			type: "application",
-			version: "2.0.0",
-		});
-	}, {
-		message: /duplicate ui5\.project-resolved/,
+	process.emit("ui5.project-framework-resolved", {
+		framework: {name: "SAPUI5", version: "1.150.0"},
 	});
+
+	// A re-init (Supervisor.reinitialize) re-resolves the graph and re-emits
+	// for the same root; the framework version and type may have changed across the
+	// switch. The writer updates the region in place rather than throwing.
+	process.emit("ui5.project-resolve-succeeded", {
+		name: "my.app",
+		type: "library",
+		version: "2.0.0",
+	});
+	process.emit("ui5.project-framework-resolved", {
+		framework: {name: "OpenUI5", version: "1.151.0"},
+	});
+
+	const state = writer._getStateForTest();
+	t.deepEqual(state.project.project, {name: "my.app", type: "library", version: "2.0.0"});
+	t.deepEqual(state.project.framework, {name: "OpenUI5", version: "1.151.0"});
+
+	writer.disable();
+});
+
+test.serial("project-resolving shows a version placeholder, project-resolved clears it", (t) => {
+	const {writer, stderr} = createWriter();
+
+	process.emit("ui5.project-resolve-succeeded", {
+		name: "my.app",
+		type: "application",
+		version: "1.0.0",
+	});
+	process.emit("ui5.project-framework-resolved", {
+		framework: {name: "SAPUI5", version: "1.150.0"},
+	});
+
+	// A definition change is coming (a branch switch): the version is stale and
+	// about to change, so the version slots render a placeholder in place.
+	process.emit("ui5.project-resolve-started");
+	t.true(writer._getStateForTest().project.versionResolving);
+	let output = stripAnsi(stderr.writes.join(""));
+	t.regex(output, /Project\s+my\.app\s+\(application\)\s+resolving…/, "version slot shows the placeholder");
+
+	// The completed resolve arrives and replaces the placeholder with the new version.
+	process.emit("ui5.project-resolve-succeeded", {
+		name: "my.app",
+		type: "application",
+		version: "2.0.0",
+	});
+	process.emit("ui5.project-framework-resolved", {
+		framework: {name: "SAPUI5", version: "1.151.0"},
+	});
+	t.false(writer._getStateForTest().project.versionResolving, "a completed resolve clears the placeholder");
+	output = stripAnsi(stderr.writes.join(""));
+	t.regex(output, /v2\.0\.0/, "the new version is shown after resolve");
+
+	writer.disable();
+});
+
+test.serial("project-resolve-failed clears the placeholder back to the last-known version", (t) => {
+	const {writer} = createWriter();
+
+	process.emit("ui5.project-resolve-succeeded", {
+		name: "my.app", type: "application", version: "1.0.0",
+	});
+	process.emit("ui5.project-resolve-started");
+	t.true(writer._getStateForTest().project.versionResolving);
+
+	// A re-resolve was abandoned without a project-resolved (e.g. a failed graph
+	// resolution): the placeholder is released, falling back to the last version.
+	process.emit("ui5.project-resolve-failed");
+	t.false(writer._getStateForTest().project.versionResolving);
+	t.is(writer._getStateForTest().project.project.version, "1.0.0", "last-known version is retained");
 
 	writer.disable();
 });
@@ -189,7 +249,7 @@ test.serial("regions are order-tolerant — server before project", (t) => {
 		urls: [{label: "Local", url: "http://localhost:8080"}],
 		acceptRemoteConnections: false,
 	});
-	process.emit("ui5.project-resolved", {
+	process.emit("ui5.project-resolve-succeeded", {
 		name: "my.app", type: "application", version: "1.0.0",
 	});
 
@@ -302,7 +362,7 @@ test.serial("frame includes visible content for each populated region", (t) => {
 	const {writer, stderr} = createWriter();
 
 	process.emit("ui5.tool-info", {name: "UI5 CLI", version: "1.2.3"});
-	process.emit("ui5.project-resolved", {
+	process.emit("ui5.project-resolve-succeeded", {
 		name: "my.app", type: "application", version: "1.0.0",
 	});
 	process.emit("ui5.project-framework-resolved", {
@@ -380,7 +440,7 @@ test.serial("tool-mode 'serve' placeholders are replaced by real data", (t) => {
 	t.regex(midOutput, /binding…/);
 	t.regex(midOutput, /starting/);
 
-	process.emit("ui5.project-resolved", {
+	process.emit("ui5.project-resolve-succeeded", {
 		name: "my.app", type: "application", version: "1.0.0",
 	});
 	process.emit("ui5.project-framework-resolved", {
@@ -1005,7 +1065,7 @@ test.serial("#registerSignalHandlers() is a no-op when the map is already popula
 	// process's listeners to baseline on teardown.
 	const events = [
 		"ui5.log", "ui5.build-metadata", "ui5.build-status", "ui5.project-build-status",
-		"ui5.serve-status", "ui5.tool-info", "ui5.tool-mode", "ui5.project-resolved",
+		"ui5.serve-status", "ui5.tool-info", "ui5.tool-mode", "ui5.project-resolve-succeeded",
 		"ui5.server-listening", "ui5.log.stop-console",
 		"SIGHUP", "SIGINT", "SIGTERM", "SIGBREAK", "exit",
 	];

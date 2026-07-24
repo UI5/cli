@@ -125,9 +125,21 @@ test.serial("ui5 serve: default", async (t) => {
 			liveReload: true,
 			includedTasks: undefined,
 			excludedTasks: undefined,
+			rootConfigPath: undefined,
+			workspaceConfigPath: null,
+			dependencyDefinitionPath: undefined,
 		}
 	]);
 	t.is(typeof server.serve.getCall(0).args[2], "function");
+
+	// The 4th argument carries a graphFactory the server can call to re-resolve the graph on a
+	// project-definition change. It must produce the same graph via the same builder + args.
+	const options = server.serve.getCall(0).args[3];
+	t.is(typeof options.graphFactory, "function");
+	await options.graphFactory();
+	t.is(graph.graphFromPackageDependencies.callCount, 2, "graphFactory re-invokes the same builder");
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(1).args, graph.graphFromPackageDependencies.getCall(0).args,
+		"graphFactory re-resolves with identical parameters");
 });
 
 test.serial("ui5 serve --h2", async (t) => {
@@ -169,6 +181,9 @@ test.serial("ui5 serve --h2", async (t) => {
 			liveReload: true,
 			includedTasks: undefined,
 			excludedTasks: undefined,
+			rootConfigPath: undefined,
+			workspaceConfigPath: null,
+			dependencyDefinitionPath: undefined,
 		}
 	]);
 
@@ -204,6 +219,9 @@ test.serial("ui5 serve --accept-remote-connections", async (t) => {
 			liveReload: true,
 			includedTasks: undefined,
 			excludedTasks: undefined,
+			rootConfigPath: undefined,
+			workspaceConfigPath: null,
+			dependencyDefinitionPath: undefined,
 		}
 	]);
 });

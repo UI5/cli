@@ -1,141 +1,95 @@
 import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
-import {EventEmitter} from "node:events";
 
-function createMockGraph(mockBuildServer) {
-	const mockProject = {
-		getName: sinon.stub().returns("test.project"),
-		getSourceReader: sinon.stub().returns({})
+// server.js is now a thin wrapper over Supervisor: it generates the live-reload token, builds
+// the config, delegates to Supervisor.create(), and shapes the {h2, port, close, reinitialize}
+// result. These tests exercise that wrapper; the swap/relay/trampoline behavior lives in
+// serve/Supervisor.js and is covered there.
+
+function createSupervisorMock({port = 3000, createRejects = null} = {}) {
+	const supervisor = {
+		getPort: sinon.stub().returns(port),
+		destroy: sinon.stub().callsFake((cb) => cb && cb()),
+		reinitialize: sinon.stub().resolves(),
 	};
-	return {
-		getRoot: sinon.stub().returns(mockProject),
-		traverseBreadthFirst: sinon.stub().resolves(),
-		getProject: sinon.stub().returns(null),
-		serve: sinon.stub().resolves(mockBuildServer)
+	const create = createRejects ?
+		sinon.stub().rejects(createRejects) :
+		sinon.stub().resolves(supervisor);
+	const Supervisor = {
+		create,
 	};
+	return {supervisor, Supervisor};
 }
 
-function createMockBuildServer() {
-	const buildServer = new EventEmitter();
-	buildServer.getRootReader = sinon.stub().returns({});
-	buildServer.getDependenciesReader = sinon.stub().returns({});
-	buildServer.getReader = sinon.stub().returns({});
-	buildServer.destroy = sinon.stub().resolves();
-	return buildServer;
+async function importServe(Supervisor) {
+	return esmock("../../../lib/server.js", {
+		"../../../lib/serve/Supervisor.js": {default: Supervisor},
+	});
 }
 
-function createMockServer() {
-	const mockServer = new EventEmitter();
-	mockServer.close = sinon.stub().callsFake((cb) => cb());
-	return mockServer;
-}
-
-function createMocks(mockServer) {
-	const mockApp = {
-		use: sinon.stub(),
-		listen: sinon.stub().callsFake((options, cb) => {
-			process.nextTick(cb);
-			return mockServer;
-		})
-	};
-
-	return {
-		"express": sinon.stub().returns(mockApp),
-		"portscanner": {
-			findAPortNotInUse: sinon.stub().callsFake((port, portMax, host, cb) => {
-				cb(null, port);
-			})
-		},
-		"../../../lib/middleware/MiddlewareManager.js": {
-			default: class MockMiddlewareManager {
-				applyMiddleware() {}
-			}
-		},
-		"@ui5/fs/resourceFactory": {
-			createReaderCollection: sinon.stub().returns({})
-		},
-		"@ui5/fs/ReaderCollectionPrioritized": {
-			default: class MockReaderCollectionPrioritized {}
-		}
-	};
-}
-
-test("server.on('error') rejects the serve promise", async (t) => {
-	const mockServer = createMockServer();
-	const mockBuildServer = createMockBuildServer();
-	const testError = new Error("server error");
-
-	const mockApp = {
-		use: sinon.stub(),
-		listen: sinon.stub().callsFake((options, cb) => {
-			// Emit error before the listen callback fires so reject() is called
-			process.nextTick(() => {
-				mockServer.emit("error", testError);
-			});
-			return mockServer;
-		})
-	};
-
-	const mocks = {
-		"express": sinon.stub().returns(mockApp),
-		"portscanner": {
-			findAPortNotInUse: sinon.stub().callsFake((port, portMax, host, cb) => {
-				cb(null, port);
-			})
-		},
-		"../../../lib/middleware/MiddlewareManager.js": {
-			default: class MockMiddlewareManager {
-				applyMiddleware() {}
-			}
-		},
-		"@ui5/fs/resourceFactory": {
-			createReaderCollection: sinon.stub().returns({})
-		},
-		"@ui5/fs/ReaderCollectionPrioritized": {
-			default: class MockReaderCollectionPrioritized {}
-		}
-	};
-
-	const {serve} = await esmock("../../../lib/server.js", mocks);
-	const graph = createMockGraph(mockBuildServer);
-	const error = await t.throwsAsync(serve(graph, {port: 3000}));
-	t.is(error, testError);
+test.afterEach.always(() => {
+	sinon.restore();
 });
 
+test("serve() delegates to Supervisor.create and returns port/h2/close/reinitialize", async (t) => {
+	const {supervisor, Supervisor} = createSupervisorMock({port: 3000});
+	const {serve} = await importServe(Supervisor);
+	const graph = {};
+	const graphFactory = sinon.stub();
 
-test("buildServer 'error' event is forwarded to error callback", async (t) => {
-	const mockServer = createMockServer();
-	const mockBuildServer = createMockBuildServer();
-	const mocks = createMocks(mockServer);
-	const testError = new Error("build error");
+	const result = await serve(graph, {port: 3000, h2: false, liveReload: true}, undefined, {graphFactory});
 
-	const {serve} = await esmock("../../../lib/server.js", mocks);
-	const graph = createMockGraph(mockBuildServer);
+	t.true(Supervisor.create.calledOnce);
+	const [passedGraph, config, , options] = Supervisor.create.firstCall.args;
+	t.is(passedGraph, graph);
+	t.is(options.graphFactory, graphFactory, "graphFactory is threaded through to the supervisor");
+	t.is(typeof config.webSocketToken, "string", "a token is generated when liveReload is active");
+	t.is(config.webSocketToken.length, 12, "the token is 72 bits base64url-encoded to 12 characters");
+	t.is(result.port, 3000);
+	t.is(result.h2, false);
+	t.is(typeof result.close, "function");
+	t.is(typeof result.reinitialize, "function");
 
-	const errorReceived = new Promise((resolve) => {
-		serve(graph, {port: 3000}, resolve).then(() => {
-			mockBuildServer.emit("error", testError);
-		});
-	});
-
-	const err = await errorReceived;
-	t.is(err, testError);
+	result.reinitialize();
+	t.true(supervisor.reinitialize.calledOnce, "reinitialize forwards to the supervisor");
 });
 
-test("close() still calls server.close when buildServer.destroy() rejects", async (t) => {
-	const mockServer = createMockServer();
-	const mockBuildServer = createMockBuildServer();
-	const mocks = createMocks(mockServer);
+test("serve() does not generate a live-reload token when liveReload is off", async (t) => {
+	const {Supervisor} = createSupervisorMock();
+	const {serve} = await importServe(Supervisor);
 
-	mockBuildServer.destroy = sinon.stub().rejects(new Error("destroy failed"));
+	await serve({}, {port: 3000, liveReload: false}, undefined, {});
 
-	const {serve} = await esmock("../../../lib/server.js", mocks);
-	const graph = createMockGraph(mockBuildServer);
-	const result = await serve(graph, {port: 3000});
+	const config = Supervisor.create.firstCall.args[1];
+	t.is(config.webSocketToken, null);
+});
 
-	await new Promise((resolve) => {
-		result.close(resolve);
-	});
-	t.true(mockServer.close.calledOnce, "server.close was called despite destroy rejection");
+test("serve() close() forwards to supervisor.destroy()", async (t) => {
+	const {supervisor, Supervisor} = createSupervisorMock();
+	const {serve} = await importServe(Supervisor);
+
+	const result = await serve({}, {port: 3000}, undefined, {});
+	await new Promise((resolve) => result.close(resolve));
+
+	t.true(supervisor.destroy.calledOnce);
+});
+
+test("serve() rejects when Supervisor.create rejects", async (t) => {
+	const createError = new Error("bind failed");
+	const {Supervisor} = createSupervisorMock({createRejects: createError});
+	const {serve} = await importServe(Supervisor);
+
+	const err = await t.throwsAsync(serve({}, {port: 3000}, undefined, {}));
+	t.is(err, createError);
+});
+
+test("serve() works without the 4th options argument (backward compatible)", async (t) => {
+	const {Supervisor} = createSupervisorMock();
+	const {serve} = await importServe(Supervisor);
+
+	const result = await serve({}, {port: 3000}, undefined);
+	t.is(result.port, 3000);
+	const options = Supervisor.create.firstCall.args[3];
+	t.is(options.graphFactory, undefined);
 });

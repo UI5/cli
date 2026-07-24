@@ -1,6 +1,7 @@
 import test from "ava";
 
-import {createProjectState, setProject, setFramework, enableProjectPlaceholders} from
+import {createProjectState, setProject, setFramework, enableProjectPlaceholders, setVersionResolving,
+	clearVersionResolving} from
 	"../../../../../lib/writers/interactiveConsole/state/project.js";
 
 test("createProjectState: fresh state has no project/framework and placeholders disabled", (t) => {
@@ -8,6 +9,7 @@ test("createProjectState: fresh state has no project/framework and placeholders 
 		project: null,
 		framework: null,
 		showPlaceholders: false,
+		versionResolving: false,
 	});
 });
 
@@ -46,4 +48,19 @@ test("enableProjectPlaceholders: flips the showPlaceholders flag", (t) => {
 	const state = createProjectState();
 	enableProjectPlaceholders(state);
 	t.true(state.showPlaceholders);
+});
+
+test("setVersionResolving: sets the versionResolving flag; clearVersionResolving releases it", (t) => {
+	const state = createProjectState();
+	setVersionResolving(state);
+	t.true(state.versionResolving);
+	clearVersionResolving(state);
+	t.false(state.versionResolving);
+});
+
+test("setProject: clears a pending versionResolving flag", (t) => {
+	const state = createProjectState();
+	setVersionResolving(state);
+	setProject(state, {name: "my.app", type: "application", version: "2.0.0"});
+	t.false(state.versionResolving, "a completed resolve drops the placeholder");
 });
