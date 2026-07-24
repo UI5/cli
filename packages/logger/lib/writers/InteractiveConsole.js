@@ -316,7 +316,7 @@ class InteractiveConsole {
 		process.on("ui5.tool-mode", this.#onToolMode);
 		process.on("ui5.project-resolved", this.#onProjectResolved);
 		process.on("ui5.project-framework-resolved", this.#onProjectFrameworkResolved);
-		process.on("ui5.project-resolving", this.#onProjectResolving);
+		process.on("ui5.project-resolve-started", this.#onProjectResolving);
 		process.on("ui5.project-resolve-failed", this.#onProjectResolveFailed);
 		process.on("ui5.server-listening", this.#onServerListening);
 		process.on("ui5.log.stop-console", this.#onStopConsole);
@@ -335,7 +335,7 @@ class InteractiveConsole {
 		process.off("ui5.tool-mode", this.#onToolMode);
 		process.off("ui5.project-resolved", this.#onProjectResolved);
 		process.off("ui5.project-framework-resolved", this.#onProjectFrameworkResolved);
-		process.off("ui5.project-resolving", this.#onProjectResolving);
+		process.off("ui5.project-resolve-started", this.#onProjectResolving);
 		process.off("ui5.project-resolve-failed", this.#onProjectResolveFailed);
 		process.off("ui5.server-listening", this.#onServerListening);
 		process.off("ui5.log.stop-console", this.#onStopConsole);
@@ -378,7 +378,7 @@ class InteractiveConsole {
 
 	#handleProjectResolved(evt) {
 		// The writer's model is single-root-project, but the root can be resolved more
-		// than once in a process: `ServeSupervisor.reinitialize()` re-resolves the graph
+		// than once in a process: `Supervisor.reinitialize()` re-resolves the graph
 		// on a project-definition change (a `git checkout`, a hand-edit of ui5.yaml), and
 		// re-emits this event for the same root. A repeat updates the project region in
 		// place; framework data is updated through `ui5.project-framework-resolved`.

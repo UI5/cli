@@ -38,8 +38,8 @@ Use this table to locate source files. ALWAYS read the relevant source file befo
 | `BuildContext` | `lib/build/helpers/BuildContext.js` | Global build config, project context cache |
 | `getBuildSignature` | `lib/build/helpers/getBuildSignature.js` | Build signature computation: `BUILD_SIG_VERSION` + build config + project config |
 | `ProjectBuildContext` | `lib/build/helpers/ProjectBuildContext.js` | Per-project bridge between builder, tasks, and cache |
-| `WatchHandler` | `lib/build/helpers/WatchHandler.js` | `@parcel/watcher`-based source path watcher; emits `change` events to BuildServer. The watcher coalesces its own events with a 50 ms min / 500 ms max wait, so a continuous operation is delivered as batches up to 500 ms apart. Survives a `git checkout` moving source paths: drops events whose path no longer maps (`getVirtualPath` throws) and skips a path that vanished before `subscribe` resolved, instead of escalating to a fatal error. The `DefinitionWatcher` then re-inits over the new graph |
-| `DefinitionWatcher` | `lib/build/helpers/DefinitionWatcher.js` | `@parcel/watcher`-based watcher for project-definition files (`ui5.yaml` / `--config`, `package.json`, workspace config, static dependency-definition file). Emits `definitionChanging` (leading) and `definitionChanged` (trailing, coalesced) to drive a full serving-stack re-init. Owned by `@ui5/server`'s `ServeSupervisor`, not the BuildServer; exported via the `@ui5/project/build/helpers/DefinitionWatcher` subpath |
+| `WatchHandler` | `lib/build/helpers/WatchHandler.js` | `@parcel/watcher`-based source path watcher; emits `change` events to BuildServer. The watcher coalesces its own events with a 50 ms min / 500 ms max wait, so a continuous operation is delivered as batches up to 500 ms apart. Survives a `git checkout` moving source paths: drops events whose path no longer maps (`getVirtualPath` throws) and skips a path that vanished before `subscribe` resolved, instead of escalating to a fatal error. The `ProjectDefinitionWatcher` then re-inits over the new graph |
+| `ProjectDefinitionWatcher` | `lib/graph/ProjectDefinitionWatcher.js` | `@parcel/watcher`-based watcher for project-definition files (`ui5.yaml` / `--config`, `package.json`, workspace config, static dependency-definition file). Emits `definitionChanging` (leading) and `definitionChanged` (trailing, coalesced) to drive a full serving-stack re-init. Owned by `@ui5/server`'s `Supervisor`, not the BuildServer; exported via the `@ui5/project/graph/ProjectDefinitionWatcher` subpath |
 | `RecoveryBudget` | `lib/build/helpers/RecoveryBudget.js` | Sliding-window loop protection for watcher recovery (`WATCHER_RECOVERY_MAX_ATTEMPTS` = 5 within `WATCHER_RECOVERY_WINDOW_MS` = 60000). One instance per watcher, so a fault in one does not consume the other's budget |
 | `watchSettle` | `lib/build/helpers/watchSettle.js` | Single source of `WATCHER_BURST_SETTLE_MS` = 550 ms, shared by every `@parcel/watcher` consumer (sized above the watcher's 500 ms coalescing cap) |
 | `drainSubscriptions` | `lib/build/helpers/watchSubscriptions.js` | Unsubscribes a list of subscriptions in parallel (`Promise.allSettled`), returns the failures. Used by both watchers' `destroy()` and BuildServer's recovery re-subscribe |
@@ -107,7 +107,7 @@ When a source file changes:
 
 The server also emits a `sourcesChanged` event to drive live-reload notifications. Emission is **leading-edge**: the first change of a quiet period notifies immediately (a lone edit reaches clients at the watcher's own ~50 ms latency floor with no debounce added), and a trailing settle window (`SOURCES_CHANGED_SETTLE_MS` = `WATCHER_BURST_SETTLE_MS` = 550 ms, above the watcher's 500 ms cap) coalesces the remainder of a burst into one further emit. Because emission is leading-edge, the window size does not affect single-edit latency: it only controls burst coalescing.
 
-The three source-watcher settle windows (`SOURCES_CHANGED_SETTLE_MS`, `ABORTED_BUILD_RESTART_SETTLE_MS`, and the DefinitionWatcher's `DEFINITION_CHANGED_SETTLE_MS`) all resolve to `WATCHER_BURST_SETTLE_MS` in `watchSettle.js`, sized above `@parcel/watcher`'s 500 ms `MAX_WAIT_TIME` so each batch resets the window rather than terminating it. `FIRST_BUILD_SETTLE_MS` (100 ms) is deliberately separate: it absorbs an editor's save fan-out, not a multi-batch operation.
+The three source-watcher settle windows (`SOURCES_CHANGED_SETTLE_MS`, `ABORTED_BUILD_RESTART_SETTLE_MS`, and the ProjectDefinitionWatcher's `DEFINITION_CHANGED_SETTLE_MS`) all resolve to `WATCHER_BURST_SETTLE_MS` in `watchSettle.js`, sized above `@parcel/watcher`'s 500 ms `MAX_WAIT_TIME` so each batch resets the window rather than terminating it. `FIRST_BUILD_SETTLE_MS` (100 ms) is deliberately separate: it absorbs an editor's save fan-out, not a multi-batch operation.
 
 ### State Machine (per project)
 
@@ -199,15 +199,15 @@ A build request preempts an in-flight pass: `#triggerRequestQueue` awaits `#stop
 Two independent `@parcel/watcher` consumers feed different pipelines:
 
 - **Source watcher** (`WatchHandler`, owned by the `BuildServer`): watches source paths, emits `change` events that drive incremental rebuilds *inside* the BuildServer (the File Watch and Abort flow above).
-- **Definition watcher** (`DefinitionWatcher`, owned by `@ui5/server`'s `ServeSupervisor`): watches project-definition files, drives a full re-init of the serving stack *above* the BuildServer. A definition change (topology, config) requires re-resolving the graph, which no incremental rebuild can do, so it re-creates the graph + Express app + BuildServer behind the stable `http.Server`.
+- **Definition watcher** (`ProjectDefinitionWatcher`, owned by `@ui5/server`'s `Supervisor`): watches project-definition files, drives a full re-init of the serving stack *above* the BuildServer. A definition change (topology, config) requires re-resolving the graph, which no incremental rebuild can do, so it re-creates the graph + Express app + BuildServer behind the stable `http.Server`.
 
 The split is why the source watcher tolerates a `git checkout` moving paths under it: the definition watcher owns the re-init that re-targets it at the new graph, so the source watcher only has to survive the churn.
 
 Both watchers share `RecoveryBudget` (loop protection, one budget each), `drainSubscriptions` (parallel unsubscribe), and `WATCHER_BURST_SETTLE_MS`.
 
-### DefinitionWatcher
+### ProjectDefinitionWatcher
 
-`DefinitionWatcher extends EventEmitter`, modeled on `WatchHandler`. Documented here because it shares the watch helpers and settle discipline, though it is owned by `@ui5/server`.
+`ProjectDefinitionWatcher extends EventEmitter`, modeled on `WatchHandler`. Documented here because it shares the watch helpers and settle discipline, though it is owned by `@ui5/server`.
 
 - **Watch set** (`#resolveWatchSet`): traverses `graph.traverseBreadthFirst()` collecting each `project.getRootPath()`. Per project it watches `package.json` always, plus `ui5.yaml` (except the root when a custom `rootConfigPath` (`--config`) is given, which is watched instead and may live outside the root). Adds `workspaceConfigPath` (default `ui5-workspace.yaml` at cwd) when set, and `dependencyDefinitionPath` in `--dependency-definition` mode, where that file is itself a topology definition.
 - **Include-based model**: subscribes to each distinct directory (deduplicated across projects); the callback drops every event whose resolved path is not in `#watchedFiles`. The `node_modules`/`.git` ignore globs only reduce OS-level watch load; correctness comes from the include set.
@@ -217,7 +217,7 @@ Both watchers share `RecoveryBudget` (loop protection, one budget each), `drainS
 - **Recovery** (`#recoverWatcher`): mirrors `BuildServer.#recoverWatcher`. A synchronous re-entrancy guard collapses parcel's per-path error storm into one recovery, `RecoveryBudget` caps attempts, exhaustion escalates to a terminal `error`. The include set is unchanged; only OS-level handles are renewed.
 - **`destroy()`**: idempotent (drains `#subscriptions` to `[]` first), aggregates unsubscribe failures into an `AggregateError` emitted as `error`.
 
-The supervisor owns the watcher because it outlives individual BuildServer instances (destroyed on every swap) and is re-targeted over the new graph after each swap. See `@ui5/server`'s `ServeSupervisor` for the re-init/swap wiring.
+The supervisor owns the watcher because it outlives individual BuildServer instances (destroyed on every swap) and is re-targeted over the new graph after each swap. See `@ui5/server`'s `Supervisor` for the re-init/swap wiring.
 
 ## Caching Architecture
 

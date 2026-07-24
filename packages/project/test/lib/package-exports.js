@@ -20,7 +20,6 @@ test("check number of exports", (t) => {
 [
 	"config/Configuration",
 	"build/cache/Cache",
-	"build/helpers/DefinitionWatcher",
 	"specifications/Specification",
 	"specifications/SpecificationVersion",
 	"ui5Framework/Openui5Resolver",
@@ -30,6 +29,7 @@ test("check number of exports", (t) => {
 	"validation/validator",
 	"validation/ValidationError",
 	"graph/ProjectGraph",
+	"graph/ProjectDefinitionWatcher",
 	"graph/projectGraphBuilder",
 	{exportedSpecifier: "graph", mappedModule: "../../lib/graph/graph.js"},
 ].forEach((v) => {

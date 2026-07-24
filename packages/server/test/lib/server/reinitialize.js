@@ -43,7 +43,7 @@ test.serial("reinitialize() keeps the port bound and continues serving", async (
 	await new Promise((resolve) => server.close(resolve));
 });
 
-// Integration coverage for the DefinitionWatcher trigger: editing a project's ui5.yaml on disk
+// Integration coverage for the ProjectDefinitionWatcher trigger: editing a project's ui5.yaml on disk
 // drives a real re-init through the watcher (not a programmatic reinitialize() call). Runs against
 // a fixture copied to test/tmp so the edit does not mutate the checked-in fixture.
 test.serial("editing ui5.yaml triggers a re-init and keeps serving on the same port", async (t) => {

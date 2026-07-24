@@ -2,10 +2,12 @@ import EventEmitter from "node:events";
 import path from "node:path";
 import parcelWatcher from "@parcel/watcher";
 import {getLogger} from "@ui5/logger";
-import {drainSubscriptions} from "./watchSubscriptions.js";
-import {WATCHER_BURST_SETTLE_MS} from "./watchSettle.js";
-import RecoveryBudget, {WATCHER_RECOVERY_MAX_ATTEMPTS, WATCHER_RECOVERY_WINDOW_MS} from "./RecoveryBudget.js";
-const log = getLogger("build:helpers:DefinitionWatcher");
+import {drainSubscriptions} from "../build/helpers/watchSubscriptions.js";
+import {WATCHER_BURST_SETTLE_MS} from "../build/helpers/watchSettle.js";
+import RecoveryBudget, {
+	WATCHER_RECOVERY_MAX_ATTEMPTS, WATCHER_RECOVERY_WINDOW_MS,
+} from "../build/helpers/RecoveryBudget.js";
+const log = getLogger("graph:ProjectDefinitionWatcher");
 
 // Default filename of the workspace configuration, resolved against cwd.
 const WORKSPACE_CONFIG_DEFAULT = "ui5-workspace.yaml";
@@ -35,9 +37,9 @@ const DEFINITION_CHANGED_SETTLE_MS = WATCHER_BURST_SETTLE_MS;
  * correctness comes from the include set.
  *
  * @private
- * @memberof @ui5/project/build/helpers
+ * @memberof @ui5/project/graph
  */
-class DefinitionWatcher extends EventEmitter {
+class ProjectDefinitionWatcher extends EventEmitter {
 	#subscriptions = [];
 	// Absolute paths of the definition files to react to. The subscription callback filters
 	// against this set; everything else is dropped.
@@ -66,10 +68,10 @@ class DefinitionWatcher extends EventEmitter {
 	 * @param {string} [options.dependencyDefinitionPath] Static dependency-definition file
 	 *   (--dependency-definition), watched when present
 	 * @param {string} [options.cwd=process.cwd()] Base directory for resolving relative paths
-	 * @returns {Promise<DefinitionWatcher>} The armed watcher
+	 * @returns {Promise<ProjectDefinitionWatcher>} The armed watcher
 	 */
 	static async create({graph, rootConfigPath, workspaceConfigPath, dependencyDefinitionPath, cwd} = {}) {
-		const watcher = new DefinitionWatcher();
+		const watcher = new ProjectDefinitionWatcher();
 		await watcher.#resolveWatchSet({graph, rootConfigPath, workspaceConfigPath, dependencyDefinitionPath, cwd});
 		await watcher.#subscribeAll();
 		return watcher;
@@ -234,4 +236,4 @@ class DefinitionWatcher extends EventEmitter {
 	}
 }
 
-export default DefinitionWatcher;
+export default ProjectDefinitionWatcher;

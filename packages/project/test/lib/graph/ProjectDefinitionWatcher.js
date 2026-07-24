@@ -3,12 +3,12 @@ import sinon from "sinon";
 import esmock from "esmock";
 import path from "node:path";
 
-let DefinitionWatcher;
+let ProjectDefinitionWatcher;
 let subscribeStub;
 
 test.before(async () => {
 	subscribeStub = sinon.stub();
-	DefinitionWatcher = await esmock("../../../../lib/build/helpers/DefinitionWatcher.js", {
+	ProjectDefinitionWatcher = await esmock("../../../lib/graph/ProjectDefinitionWatcher.js", {
 		"@parcel/watcher": {
 			default: {
 				subscribe: subscribeStub
@@ -59,7 +59,7 @@ test.serial("create: resolves watch set to distinct roots with ui5.yaml + packag
 		[{name: "dep-a", rootPath: "/deps/a"}, {name: "dep-b", rootPath: "/deps/b"}]
 	);
 
-	const watcher = await DefinitionWatcher.create({graph});
+	const watcher = await ProjectDefinitionWatcher.create({graph});
 
 	const dirs = subscribeStub.getCalls().map((c) => c.args[0]).sort();
 	t.deepEqual(dirs, ["/app", "/deps/a", "/deps/b"], "subscribed once per distinct root");
@@ -78,7 +78,7 @@ test.serial("create: shared parent directory is subscribed once", async (t) => {
 		[{name: "dep-a", rootPath: "/mono"}]
 	);
 
-	const watcher = await DefinitionWatcher.create({graph});
+	const watcher = await ProjectDefinitionWatcher.create({graph});
 
 	t.is(subscribeStub.callCount, 1, "distinct directory subscribed once");
 	t.is(subscribeStub.firstCall.args[0], "/mono");
@@ -90,7 +90,7 @@ test.serial("create: custom rootConfigPath replaces root ui5.yaml and subscribes
 	captureCallbacks();
 	const graph = createGraph({name: "root", rootPath: "/app"});
 
-	const watcher = await DefinitionWatcher.create({
+	const watcher = await ProjectDefinitionWatcher.create({
 		graph, rootConfigPath: "/configs/custom.yaml", cwd: "/app"
 	});
 
@@ -121,7 +121,7 @@ test.serial("create: relative rootConfigPath is resolved against cwd", async (t)
 	captureCallbacks();
 	const graph = createGraph({name: "root", rootPath: "/app"});
 
-	const watcher = await DefinitionWatcher.create({
+	const watcher = await ProjectDefinitionWatcher.create({
 		graph, rootConfigPath: "custom/ui5.yaml", cwd: "/app"
 	});
 
@@ -136,7 +136,7 @@ test.serial("create: workspaceConfigPath included (default filename applied) whe
 	const graph = createGraph({name: "root", rootPath: "/app"});
 
 	// null → active, use default filename ui5-workspace.yaml at cwd.
-	const watcher = await DefinitionWatcher.create({graph, workspaceConfigPath: null, cwd: "/ws"});
+	const watcher = await ProjectDefinitionWatcher.create({graph, workspaceConfigPath: null, cwd: "/ws"});
 
 	const wsCall = subscribeStub.getCalls().find((c) => c.args[0] === "/ws");
 	t.truthy(wsCall, "workspace directory subscribed");
@@ -156,7 +156,7 @@ test.serial("create: workspaceConfigPath undefined skips the workspace file", as
 	captureCallbacks();
 	const graph = createGraph({name: "root", rootPath: "/app"});
 
-	const watcher = await DefinitionWatcher.create({graph, workspaceConfigPath: undefined, cwd: "/ws"});
+	const watcher = await ProjectDefinitionWatcher.create({graph, workspaceConfigPath: undefined, cwd: "/ws"});
 
 	t.falsy(subscribeStub.getCalls().find((c) => c.args[0] === "/ws"), "workspace dir not subscribed");
 	await watcher.destroy();
@@ -166,7 +166,7 @@ test.serial("create: dependencyDefinitionPath is watched when present", async (t
 	captureCallbacks();
 	const graph = createGraph({name: "root", rootPath: "/app"});
 
-	const watcher = await DefinitionWatcher.create({
+	const watcher = await ProjectDefinitionWatcher.create({
 		graph, dependencyDefinitionPath: "deps.yaml", cwd: "/app"
 	});
 
@@ -185,7 +185,7 @@ test.serial("create: dependencyDefinitionPath is watched when present", async (t
 test.serial("filtering: non-definition file events do not emit", async (t) => {
 	captureCallbacks();
 	const graph = createGraph({name: "root", rootPath: "/app"});
-	const watcher = await DefinitionWatcher.create({graph});
+	const watcher = await ProjectDefinitionWatcher.create({graph});
 	const callback = subscribeStub.firstCall.args[1];
 
 	const emitted = [];
@@ -206,7 +206,7 @@ test.serial("filtering: non-definition file events do not emit", async (t) => {
 test.serial("filtering: a watched ui5.yaml event emits", async (t) => {
 	captureCallbacks();
 	const graph = createGraph({name: "root", rootPath: "/app"});
-	const watcher = await DefinitionWatcher.create({graph});
+	const watcher = await ProjectDefinitionWatcher.create({graph});
 	const callback = subscribeStub.firstCall.args[1];
 
 	const emitted = [];
@@ -225,7 +225,7 @@ test.serial("filtering: a watched ui5.yaml event emits", async (t) => {
 test.serial("settle: a burst within the window emits definitionChanged exactly once", async (t) => {
 	captureCallbacks();
 	const graph = createGraph({name: "root", rootPath: "/app"});
-	const watcher = await DefinitionWatcher.create({graph});
+	const watcher = await ProjectDefinitionWatcher.create({graph});
 	const callback = subscribeStub.firstCall.args[1];
 
 	const emitted = [];
@@ -256,7 +256,7 @@ test.serial("leading edge: definitionChanging fires once on the first event of a
 	async (t) => {
 		captureCallbacks();
 		const graph = createGraph({name: "root", rootPath: "/app"});
-		const watcher = await DefinitionWatcher.create({graph});
+		const watcher = await ProjectDefinitionWatcher.create({graph});
 		const callback = subscribeStub.firstCall.args[1];
 
 		const changing = [];
@@ -292,7 +292,7 @@ test.serial("leading edge: definitionChanging fires once on the first event of a
 test.serial("leading edge: a filtered (non-definition) event does not fire definitionChanging", async (t) => {
 	captureCallbacks();
 	const graph = createGraph({name: "root", rootPath: "/app"});
-	const watcher = await DefinitionWatcher.create({graph});
+	const watcher = await ProjectDefinitionWatcher.create({graph});
 	const callback = subscribeStub.firstCall.args[1];
 
 	const changing = [];
@@ -318,7 +318,7 @@ test.serial("recovery: a watcher error tears down and re-subscribes", async (t) 
 	subscribeStub.onSecondCall().resolves(sub2);
 
 	const graph = createGraph({name: "root", rootPath: "/app"});
-	const watcher = await DefinitionWatcher.create({graph});
+	const watcher = await ProjectDefinitionWatcher.create({graph});
 
 	t.is(subscribeStub.callCount, 1);
 	cb(new Error("watcher blew up"));
@@ -340,7 +340,7 @@ test.serial("recovery: loop protection escalates to error after the max attempts
 	});
 
 	const graph = createGraph({name: "root", rootPath: "/app"});
-	const watcher = await DefinitionWatcher.create({graph});
+	const watcher = await ProjectDefinitionWatcher.create({graph});
 
 	const errors = [];
 	watcher.on("error", (err) => errors.push(err));
@@ -367,7 +367,7 @@ test.serial("destroy: unsubscribes all, is idempotent", async (t) => {
 		{name: "root", rootPath: "/app"},
 		[{name: "dep", rootPath: "/dep"}]
 	);
-	const watcher = await DefinitionWatcher.create({graph});
+	const watcher = await ProjectDefinitionWatcher.create({graph});
 
 	await watcher.destroy();
 	await watcher.destroy();
@@ -388,7 +388,7 @@ test.serial("destroy: aggregates unsubscribe failures into an error", async (t) 
 		{name: "root", rootPath: "/app"},
 		[{name: "dep", rootPath: "/dep"}]
 	);
-	const watcher = await DefinitionWatcher.create({graph});
+	const watcher = await ProjectDefinitionWatcher.create({graph});
 
 	const errorSpy = sinon.spy();
 	watcher.on("error", errorSpy);

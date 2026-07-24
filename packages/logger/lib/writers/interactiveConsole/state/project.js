@@ -10,7 +10,7 @@ export function createProjectState() {
 		// the layout is stable from the very first frame.
 		showPlaceholders: false,
 		// When true, the version slot(s) render a dim "resolving…" placeholder while the
-		// project name and type keep showing. Enabled by `ui5.project-resolving` once a
+		// project name and type keep showing. Enabled by `ui5.project-resolve-started` once a
 		// definition change is known to be coming (a `git checkout`, a ui5.yaml edit) and the
 		// resolved version is about to change. `setProject` clears it; a failed re-resolve
 		// releases it via `clearVersionResolving`.

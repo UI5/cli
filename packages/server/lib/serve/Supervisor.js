@@ -2,7 +2,7 @@ import http from "node:http";
 import process from "node:process";
 import {EventEmitter} from "node:events";
 import {getLogger} from "@ui5/logger";
-import DefinitionWatcher from "@ui5/project/build/helpers/DefinitionWatcher";
+import ProjectDefinitionWatcher from "@ui5/project/graph/ProjectDefinitionWatcher";
 import buildApp from "./stack.js";
 import attachLiveReloadServer from "../liveReload/server.js";
 import {listen, addSsl, announceListening} from "./httpListener.js";
@@ -137,7 +137,7 @@ class Supervisor extends EventEmitter {
 			return;
 		}
 		const {rootConfigPath, workspaceConfigPath, dependencyDefinitionPath, cwd} = this.#config;
-		const watcher = await DefinitionWatcher.create({
+		const watcher = await ProjectDefinitionWatcher.create({
 			graph, rootConfigPath, workspaceConfigPath, dependencyDefinitionPath, cwd,
 		});
 		watcher.on("definitionChanged", () => this.reinitialize());
@@ -146,7 +146,7 @@ class Supervisor extends EventEmitter {
 		// "resolving…" placeholder until the swap's own resolve repopulates it via
 		// `ui5.project-resolved` (or a failed swap releases it; see #swap). Attached here so it
 		// survives watcher re-targeting after each swap, mirroring the definitionChanged wiring.
-		watcher.on("definitionChanging", () => process.emit("ui5.project-resolving"));
+		watcher.on("definitionChanging", () => process.emit("ui5.project-resolve-started"));
 		watcher.on("error", (err) => log.warn(`Definition watcher error: ${err?.message ?? err}`));
 		this.#definitionWatcher = watcher;
 	}

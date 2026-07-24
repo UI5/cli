@@ -10,9 +10,9 @@ export const WATCHER_RECOVERY_WINDOW_MS = 60000;
  * before attempting one and call {@link recordRecovery} once it succeeds.
  *
  * Owned per watcher (the source {@link WatchHandler}'s recovery in BuildServer and the
- * {@link DefinitionWatcher} each hold their own), so a fault in one does not consume the other's
- * budget. The re-entrancy guard, the recovery work, and the escalation on exhaustion stay with the
- * owner, which knows how to escalate (a state transition, a terminal event).
+ * {@link @ui5/project/graph/ProjectDefinitionWatcher} each hold their own), so a fault in one does
+ * not consume the other's budget. The re-entrancy guard, the recovery work, and the escalation on
+ * exhaustion stay with the owner, which knows how to escalate (a state transition, a terminal event).
  *
  * @private
  * @memberof @ui5/project/build/helpers

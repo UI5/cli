@@ -20,7 +20,6 @@
 	"exports": {
 		"./config/Configuration": "./lib/config/Configuration.js",
 		"./build/cache/Cache": "./lib/build/cache/Cache.js",
-		"./build/helpers/DefinitionWatcher": "./lib/build/helpers/DefinitionWatcher.js",
 		"./specifications/Specification": "./lib/specifications/Specification.js",
 		"./specifications/SpecificationVersion": "./lib/specifications/SpecificationVersion.js",
 		"./ui5Framework/Sapui5MavenSnapshotResolver": "./lib/ui5Framework/Sapui5MavenSnapshotResolver.js",
@@ -30,6 +29,7 @@
 		"./validation/validator": "./lib/validation/validator.js",
 		"./validation/ValidationError": "./lib/validation/ValidationError.js",
 		"./graph/ProjectGraph": "./lib/graph/ProjectGraph.js",
+		"./graph/ProjectDefinitionWatcher": "./lib/graph/ProjectDefinitionWatcher.js",
 		"./graph/projectGraphBuilder": "./lib/graph/projectGraphBuilder.js",
 		"./graph": "./lib/graph/graph.js",
 		"./package.json": "./package.json"

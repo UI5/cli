@@ -91,7 +91,7 @@ test.serial("repeated project-resolved updates the project region in place", (t)
 		framework: {name: "SAPUI5", version: "1.150.0"},
 	});
 
-	// A re-init (ServeSupervisor.reinitialize) re-resolves the graph and re-emits
+	// A re-init (Supervisor.reinitialize) re-resolves the graph and re-emits
 	// for the same root; the framework version and type may have changed across the
 	// switch. The writer updates the region in place rather than throwing.
 	process.emit("ui5.project-resolved", {
@@ -124,7 +124,7 @@ test.serial("project-resolving shows a version placeholder, project-resolved cle
 
 	// A definition change is coming (a branch switch): the version is stale and
 	// about to change, so the version slots render a placeholder in place.
-	process.emit("ui5.project-resolving");
+	process.emit("ui5.project-resolve-started");
 	t.true(writer._getStateForTest().project.versionResolving);
 	let output = stripAnsi(stderr.writes.join(""));
 	t.regex(output, /Project\s+my\.app\s+\(application\)\s+resolving…/, "version slot shows the placeholder");
@@ -151,7 +151,7 @@ test.serial("project-resolve-failed clears the placeholder back to the last-know
 	process.emit("ui5.project-resolved", {
 		name: "my.app", type: "application", version: "1.0.0",
 	});
-	process.emit("ui5.project-resolving");
+	process.emit("ui5.project-resolve-started");
 	t.true(writer._getStateForTest().project.versionResolving);
 
 	// A re-resolve was abandoned without a project-resolved (e.g. a failed graph

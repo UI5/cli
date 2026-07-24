@@ -25,10 +25,10 @@ function createMocks({stacks, buildAppImpl, definitionWatcherCreate} = {}) {
 	const liveReloadHandle = {close: sinon.stub()};
 	const attachLiveReloadServer = sinon.stub().returns(liveReloadHandle);
 
-	// Fake DefinitionWatcher: each create() hands out a fresh EventEmitter with a destroy() stub,
+	// Fake ProjectDefinitionWatcher: each create() hands out a fresh EventEmitter with a destroy() stub,
 	// recorded so a test can assert re-targeting/teardown. A custom impl overrides create().
 	const definitionWatchers = [];
-	const DefinitionWatcher = {
+	const ProjectDefinitionWatcher = {
 		create: sinon.stub().callsFake(async (opts) => {
 			if (definitionWatcherCreate) {
 				return definitionWatcherCreate(opts);
@@ -60,7 +60,7 @@ function createMocks({stacks, buildAppImpl, definitionWatcherCreate} = {}) {
 
 	const mocks = {
 		"node:http": httpMock,
-		"@ui5/project/build/helpers/DefinitionWatcher": {default: DefinitionWatcher},
+		"@ui5/project/graph/ProjectDefinitionWatcher": {default: ProjectDefinitionWatcher},
 		"../../../../lib/serve/stack.js": {default: buildApp},
 		"../../../../lib/serve/httpListener.js": {listen, addSsl, announceListening},
 		"../../../../lib/liveReload/server.js": {default: attachLiveReloadServer},
@@ -69,7 +69,7 @@ function createMocks({stacks, buildAppImpl, definitionWatcherCreate} = {}) {
 	return {
 		mocks, httpServer, listen, addSsl, announceListening,
 		attachLiveReloadServer, liveReloadHandle, buildApp, createdHandlers,
-		DefinitionWatcher, definitionWatchers,
+		ProjectDefinitionWatcher, definitionWatchers,
 	};
 }
 
@@ -335,11 +335,11 @@ test("reinitialize() warns and no-ops when no graphFactory was provided", async 
 
 test("definition watcher is created on create() only when a graphFactory is present", async (t) => {
 	const stack = createStack();
-	const {mocks, DefinitionWatcher} = createMocks({stacks: [stack]});
+	const {mocks, ProjectDefinitionWatcher} = createMocks({stacks: [stack]});
 	const {default: Supervisor} = await importSupervisor(mocks);
 
 	await Supervisor.create({}, baseConfig, undefined, {});
-	t.true(DefinitionWatcher.create.notCalled, "no watcher without a graphFactory");
+	t.true(ProjectDefinitionWatcher.create.notCalled, "no watcher without a graphFactory");
 });
 
 test("definition watcher is created with the threaded config params", async (t) => {
@@ -353,13 +353,13 @@ test("definition watcher is created with the threaded config params", async (t) 
 		dependencyDefinitionPath: "/app/deps.yaml",
 		cwd: "/app",
 	};
-	const {mocks, DefinitionWatcher} = createMocks({stacks: [stack]});
+	const {mocks, ProjectDefinitionWatcher} = createMocks({stacks: [stack]});
 	const {default: Supervisor} = await importSupervisor(mocks);
 
 	await Supervisor.create(graph, config, undefined, {graphFactory});
 
-	t.true(DefinitionWatcher.create.calledOnce);
-	const opts = DefinitionWatcher.create.firstCall.args[0];
+	t.true(ProjectDefinitionWatcher.create.calledOnce);
+	const opts = ProjectDefinitionWatcher.create.firstCall.args[0];
 	t.is(opts.graph, graph, "watcher gets the initial graph");
 	t.is(opts.rootConfigPath, "/app/custom.yaml");
 	t.is(opts.workspaceConfigPath, null);
@@ -386,7 +386,7 @@ test("a definitionChanged event triggers reinitialize()", async (t) => {
 	t.true(app2.calledOnceWithExactly("req", "res"), "definition change swapped in the new app");
 });
 
-test.serial("a definitionChanging event signals ui5.project-resolving (version-slot reset)", async (t) => {
+test.serial("a definitionChanging event signals ui5.project-resolve-started (version-slot reset)", async (t) => {
 	const stack1 = createStack();
 	const graphFactory = sinon.stub().resolves({});
 	const {mocks, definitionWatchers} = createMocks({stacks: [stack1]});
@@ -398,8 +398,8 @@ test.serial("a definitionChanging event signals ui5.project-resolving (version-s
 	// The watcher's leading-edge event: a re-resolve is coming, blank the version slot.
 	definitionWatchers[0].emit("definitionChanging", {eventType: "update", filePath: "/app/ui5.yaml"});
 
-	const resolving = emit.getCalls().find((c) => c.args[0] === "ui5.project-resolving");
-	t.truthy(resolving, "ui5.project-resolving was emitted to reset the version slot");
+	const resolving = emit.getCalls().find((c) => c.args[0] === "ui5.project-resolve-started");
+	t.truthy(resolving, "ui5.project-resolve-started was emitted to reset the version slot");
 });
 
 test.serial("a failed swap releases the version placeholder via ui5.project-resolve-failed", async (t) => {
@@ -431,17 +431,17 @@ test("watcher is re-targeted to the new graph after a swap (old destroyed, new c
 	const stack2 = createStack();
 	const newGraph = {name: "newGraph", getRoot: () => ({})};
 	const graphFactory = sinon.stub().resolves(newGraph);
-	const {mocks, DefinitionWatcher, definitionWatchers} = createMocks({stacks: [stack1, stack2]});
+	const {mocks, ProjectDefinitionWatcher, definitionWatchers} = createMocks({stacks: [stack1, stack2]});
 	const {default: Supervisor} = await importSupervisor(mocks);
 
 	const supervisor = await Supervisor.create({}, baseConfig, undefined, {graphFactory});
-	t.is(DefinitionWatcher.create.callCount, 1, "watcher created on init");
+	t.is(ProjectDefinitionWatcher.create.callCount, 1, "watcher created on init");
 	const firstWatcher = definitionWatchers[0];
 
 	await supervisor.reinitialize();
 
-	t.is(DefinitionWatcher.create.callCount, 2, "a fresh watcher created after the swap");
-	t.is(DefinitionWatcher.create.secondCall.args[0].graph, newGraph, "new watcher targets the new graph");
+	t.is(ProjectDefinitionWatcher.create.callCount, 2, "a fresh watcher created after the swap");
+	t.is(ProjectDefinitionWatcher.create.secondCall.args[0].graph, newGraph, "new watcher targets the new graph");
 	t.true(firstWatcher.destroy.calledOnce, "old watcher destroyed");
 });
 

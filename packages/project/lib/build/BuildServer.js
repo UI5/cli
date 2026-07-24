@@ -130,7 +130,7 @@ class BuildServer extends EventEmitter {
 	// Watcher recovery state. `#recoveringWatcher` guards against re-entrant recovery while a
 	// recovery pass is in flight (a dropped-events fault emits one error per subscribed path
 	// in a synchronous burst). `#watcherRecoveryBudget` caps recoveries within a sliding window
-	// (its own budget, independent of the DefinitionWatcher's).
+	// (its own budget, independent of the ProjectDefinitionWatcher's).
 	#recoveringWatcher = false;
 	#watcherRecoveryBudget = new RecoveryBudget();
 
