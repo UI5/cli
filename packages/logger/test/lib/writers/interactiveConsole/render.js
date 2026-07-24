@@ -22,7 +22,7 @@ import {
 } from "../../../../lib/writers/interactiveConsole/state/build.js";
 import {createHeaderState, setTool} from
 	"../../../../lib/writers/interactiveConsole/state/header.js";
-import {createProjectState, setProject, enableProjectPlaceholders} from
+import {createProjectState, setProject, setFramework, enableProjectPlaceholders} from
 	"../../../../lib/writers/interactiveConsole/state/project.js";
 import {createServerState, setListening, enableServerPlaceholders} from
 	"../../../../lib/writers/interactiveConsole/state/server.js";
@@ -83,8 +83,8 @@ test("renderProjectRegion: renders project, type, and version", (t) => {
 		name: "my.app",
 		type: "application",
 		version: "1.0.0",
-		framework: {name: "SAPUI5", version: "1.150.0"},
 	});
+	setFramework(state, {name: "SAPUI5", version: "1.150.0"});
 	const plain = renderProjectRegion(state).map(stripAnsi).join("\n");
 	t.regex(plain, /Project\s+my\.app\s+\(application\)\s+v1\.0\.0/);
 	t.regex(plain, /Framework\s+SAPUI5 1\.150\.0/);
@@ -96,8 +96,8 @@ test("renderProjectRegion: renders framework without a version when only the nam
 		name: "my.app",
 		type: "application",
 		version: "1.0.0",
-		framework: {name: "OpenUI5"},
 	});
+	setFramework(state, {name: "OpenUI5"});
 	const plain = renderProjectRegion(state).map(stripAnsi).join("\n");
 	t.regex(plain, /Framework\s+OpenUI5$/m);
 });
@@ -112,7 +112,6 @@ test("renderProjectRegion: omits the framework row when project has no framework
 		name: "my.app",
 		type: "application",
 		version: "1.0.0",
-		framework: null,
 	});
 	const rendered = renderProjectRegion(state);
 	t.is(rendered.length, 2, "two lines: separator + Project");

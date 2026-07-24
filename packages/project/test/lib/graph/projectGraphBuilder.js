@@ -983,6 +983,5 @@ test.serial("Emits ui5.project-resolved with the root project's shape", async (t
 	t.is(events[0].name, "root.project");
 	t.is(events[0].type, "library");
 	t.is(events[0].version, "1.0.0");
-	// The test's library.e fixture is not a framework project, so framework is null.
-	t.is(events[0].framework, null);
+	t.false(Object.hasOwn(events[0], "framework"), "Framework details are emitted separately");
 });
