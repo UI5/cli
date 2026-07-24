@@ -705,7 +705,6 @@ class ProjectGraph {
 	 *   Allows for a more sophisticated configuration for defining which dependencies should be
 	 *   part of the build result. If this is provided, the other mentioned parameters will be ignored.
 	 * @param {boolean} [parameters.selfContained=false] Flag to activate self contained build
-	 * @param {boolean} [parameters.cssVariables=false] Flag to activate CSS variables generation
 	 * @param {boolean} [parameters.jsdoc=false] Flag to activate JSDoc build
 	 * @param {boolean} [parameters.createBuildManifest=false]
 	 * 			Whether to create a build manifest file for the root project.
@@ -726,7 +725,7 @@ class ProjectGraph {
 		destPath, cleanDest = false,
 		includedDependencies = [], excludedDependencies = [],
 		dependencyIncludes,
-		selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
+		selfContained = false, jsdoc = false, createBuildManifest = false,
 		includedTasks = [], excludedTasks = [],
 		outputStyle = OutputStyleEnum.Default,
 		cache = Cache.Default,
@@ -746,7 +745,7 @@ class ProjectGraph {
 			graph: this,
 			taskRepository: await this._getTaskRepository(),
 			buildConfig: {
-				selfContained, cssVariables, jsdoc,
+				selfContained, jsdoc,
 				createBuildManifest,
 				includedTasks, excludedTasks, outputStyle,
 				cache
@@ -763,7 +762,7 @@ class ProjectGraph {
 	async serve({
 		initialBuildRootProject = false,
 		initialBuildIncludedDependencies = [], initialBuildExcludedDependencies = [],
-		selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
+		selfContained = false, jsdoc = false, createBuildManifest = false,
 		includedTasks = [], excludedTasks = [],
 		cache = Cache.Default,
 		ui5DataDir,
@@ -782,7 +781,7 @@ class ProjectGraph {
 			graph: this,
 			taskRepository: await this._getTaskRepository(),
 			buildConfig: {
-				selfContained, cssVariables, jsdoc,
+				selfContained, jsdoc,
 				createBuildManifest,
 				includedTasks, excludedTasks,
 				outputStyle: OutputStyleEnum.Default,

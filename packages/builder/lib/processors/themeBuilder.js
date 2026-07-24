@@ -36,12 +36,11 @@ export class ThemeBuilder {
 	 * @param {@ui5/fs/Resource[]} resources Library files
 	 * @param {object} [options] Build options
 	 * @param {boolean} [options.compress=false] Compress build output (CSS / JSON)
-	 * @param {boolean} [options.cssVariables=false] Generates the CSS variables
 	 *   (css-variables.css, css-variables.source.less) and the skeleton for a theme
 	 *   (library-skeleton.css, [library-skeleton-RTL.css])
 	 * @returns {Promise<@ui5/fs/Resource[]>} Resolving with array of created files
 	 */
-	build(resources, {compress = false, cssVariables = false} = {}) {
+	build(resources, {compress = false} = {}) {
 		const files = [];
 
 		const compile = (resource) => {
@@ -61,7 +60,6 @@ export class ThemeBuilder {
 				compiler: {
 					compress
 				},
-				cssVariables
 			}).then((result) => {
 				const themeDir = posixPath.dirname(resource.getPath());
 
@@ -81,27 +79,6 @@ export class ThemeBuilder {
 				});
 
 				files.push(libCss, libCssRtl, libParams);
-
-				if (cssVariables) {
-					const libCssVarsSource = new Resource({
-						path: themeDir + "/css_variables.source.less",
-						string: result.cssVariablesSource
-					});
-					const libCssVars = new Resource({
-						path: themeDir + "/css_variables.css",
-						string: result.cssVariables
-					});
-					const libCssSkel = new Resource({
-						path: themeDir + "/library_skeleton.css",
-						string: result.cssSkeleton
-					});
-					const libCssSkelRtl = new Resource({
-						path: themeDir + "/library_skeleton-RTL.css",
-						string: result.cssSkeletonRtl
-					});
-
-					files.push(libCssVarsSource, libCssVars, libCssSkel, libCssSkelRtl);
-				}
 			}, (err) => {
 				log.error(`Error while compiling ${resource.getPath()}: ${err.message}`);
 				throw err;
@@ -130,7 +107,6 @@ export class ThemeBuilder {
  * @public
  * @typedef {object} ThemeBuilderOptions
  * @property {boolean} [compress=false] Compress build output (CSS / JSON)
- * @property {boolean} [cssVariables=false] Generates the CSS variables
  * (css-variables.css, css-variables.source.less) and the skeleton for a theme
  * (library-skeleton.css, [library-skeleton-RTL.css])
  */
@@ -156,12 +132,11 @@ export default async function({
 	fs,
 	options = {}
 }) {
-	const {compress, cssVariables} =
+	const {compress} =
 	/** @type {module:@ui5/builder/processors/ThemeBuilder~ThemeBuilderOptions} */ (options);
 	const themeBuilder = new ThemeBuilder({fs});
 	return themeBuilder.build(resources, {
 		compress,
-		cssVariables
 	}).then((files) => {
 		themeBuilder.clearCache();
 		return files;

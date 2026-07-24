@@ -2,7 +2,7 @@ import {enhancePatternWithExcludes} from "./_utils.js";
 import {enhanceBundlesWithDefaults} from "../../validation/validator.js";
 
 /**
- * Get tasks and their configuration for a given application project
+ * Get tasks and their configuration for a given library project
  *
  * @private
  * @param {object} parameters
@@ -160,7 +160,6 @@ export default function({project, taskUtil, getTask}) {
 			librariesPattern: !taskUtil.isRootProject() ? "/resources/**/(*.library|library.js)" : undefined,
 			themesPattern: !taskUtil.isRootProject() ? "/resources/sap/ui/core/themes/*" : undefined,
 			inputPattern: `/resources/${project.getNamespace()}/themes/*/library.source.less`,
-			cssVariables: taskUtil.getBuildOption("cssVariables")
 		}
 	});
 

@@ -22,7 +22,6 @@ class ProjectBuilder {
 	 * @public
 	 * @typedef {object} @ui5/project/build/ProjectBuilder~BuildConfiguration
 	 * @property {boolean} [selfContained=false] Flag to activate self contained build
-	 * @property {boolean} [cssVariables=false] Flag to activate CSS variables generation
 	 * @property {boolean} [jsdoc=false] Flag to activate JSDoc build
 	 * @property {boolean} [createBuildManifest=false]
 	 *   Whether to create a build manifest file for the root project.

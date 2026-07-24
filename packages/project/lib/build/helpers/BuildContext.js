@@ -17,7 +17,6 @@ class BuildContext {
 
 	constructor(graph, taskRepository, { // buildConfig
 		selfContained = false,
-		cssVariables = false,
 		jsdoc = false,
 		createBuildManifest = false,
 		outputStyle = OutputStyleEnum.Default,
@@ -69,7 +68,6 @@ class BuildContext {
 		this._graph = graph;
 		this._buildConfig = {
 			selfContained,
-			cssVariables,
 			jsdoc,
 			createBuildManifest,
 			outputStyle,
@@ -83,19 +81,16 @@ class BuildContext {
 
 		this._taskRepository = taskRepository;
 
-		this._options = {
-			cssVariables: cssVariables
-		};
+		// TODO: check again if this is correct
+		// or if we really need the object
+
+
 		this._ui5DataDir = ui5DataDir;
 		this._projectBuildContexts = new Map();
 	}
 
 	getRootProject() {
 		return this._graph.getRoot();
-	}
-
-	getOption(key) {
-		return this._options[key];
 	}
 
 	getBuildConfig() {
