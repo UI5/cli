@@ -74,48 +74,56 @@ export async function buildServeRouter(graph, config, error) {
 		ui5DataDir,
 	});
 
-	const resources = {
-		rootProject: buildServer.getRootReader(),
-		dependencies: buildServer.getDependenciesReader(),
-		all: buildServer.getReader(),
-	};
+	// graph.serve() above already started the BuildServer, which holds a source watcher and a
+	// build-cache handle. If middleware assembly below throws, the caller gets neither the
+	// buildServer nor a close() handle, so destroy it here before rethrowing.
+	try {
+		const resources = {
+			rootProject: buildServer.getRootReader(),
+			dependencies: buildServer.getDependenciesReader(),
+			all: buildServer.getReader(),
+		};
 
-	buildServer.on("error", (err) => {
-		if (typeof error === "function") {
-			error(err);
-			return;
-		}
-		log.error(`BuildServer error: ${err?.message ?? err}`);
-		if (err?.stack) {
-			log.verbose(err.stack);
-		}
-	});
+		buildServer.on("error", (err) => {
+			if (typeof error === "function") {
+				error(err);
+				return;
+			}
+			log.error(`BuildServer error: ${err?.message ?? err}`);
+			if (err?.stack) {
+				log.verbose(err.stack);
+			}
+		});
 
-	const liveReloadOptions = {
-		active: liveReload,
-		token: webSocketToken
-	};
+		const liveReloadOptions = {
+			active: liveReload,
+			token: webSocketToken
+		};
 
-	const middlewareManager = new MiddlewareManager({
-		graph,
-		rootProject,
-		sources,
-		resources,
-		options: {
-			sendSAPTargetCSP,
-			serveCSPReports,
-			simpleIndex,
-			liveReload: liveReloadOptions,
-			// Consulted by the serveBuildError gate to divert HTML navigations while the
-			// build server is globally in ERROR.
-			getServeError: () => buildServer.getServeError()
-		}
-	});
+		const middlewareManager = new MiddlewareManager({
+			graph,
+			rootProject,
+			sources,
+			resources,
+			options: {
+				sendSAPTargetCSP,
+				serveCSPReports,
+				simpleIndex,
+				liveReload: liveReloadOptions,
+				// Consulted by the serveBuildError gate to divert HTML navigations while the
+				// build server is globally in ERROR.
+				getServeError: () => buildServer.getServeError()
+			}
+		});
 
-	// eslint-disable-next-line new-cap -- express.Router is a factory, not a constructor
-	const router = express.Router();
-	await middlewareManager.applyMiddleware(router);
-	return {router, buildServer, liveReloadOptions};
+		// eslint-disable-next-line new-cap -- express.Router is a factory, not a constructor
+		const router = express.Router();
+		await middlewareManager.applyMiddleware(router);
+		return {router, buildServer, liveReloadOptions};
+	} catch (err) {
+		await buildServer.destroy();
+		throw err;
+	}
 }
 
 /**
