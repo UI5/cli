@@ -195,7 +195,7 @@ export async function serve(graph, {
 		excludedTasks = [];
 	}
 	if (!excludedTasks.includes("generateVersionInfo")) {
-		excludedTasks.push("generateVersionInfo");
+		excludedTasks = [...excludedTasks, "generateVersionInfo"];
 	}
 
 	const buildServer = await graph.serve({
