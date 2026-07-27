@@ -551,7 +551,8 @@ test.serial("ui5 cache clean: pre-clean summary shows only Active Cache group", 
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes(ACTIVE_CACHE_HEADER), "Shows Active Cache group header");
-	t.false(allOutput.includes(STALE_CACHE_HEADER), "Does not show Stale Cache group header when no stale entries exist");
+	t.false(allOutput.includes(STALE_CACHE_HEADER),
+		"Does not show Stale Cache group header when no stale entries exist");
 });
 
 test.serial("ui5 cache clean: pre-clean summary shows only Stale Cache group", async (t) => {
@@ -571,7 +572,8 @@ test.serial("ui5 cache clean: pre-clean summary shows only Stale Cache group", a
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.false(allOutput.includes(ACTIVE_CACHE_HEADER), "Does not show Active Cache group header when no active entries exist");
+	t.false(allOutput.includes(ACTIVE_CACHE_HEADER),
+		"Does not show Active Cache group header when no active entries exist");
 	t.true(allOutput.includes(STALE_CACHE_HEADER), "Shows Stale Cache group header");
 });
 
