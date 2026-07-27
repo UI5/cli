@@ -27,6 +27,8 @@ const WARNING_TEXT =
 const WARNING_IMPACT_TEXT =
 	"Running ui5 cache clean while ui5 build or ui5 serve is in progress can break the running process " +
 	"and lead to failed or inconsistent results.";
+const ACTIVE_CACHE_HEADER = "Active Cache";
+const STALE_CACHE_HEADER = "Stale Cache";
 
 test.beforeEach(async (t) => {
 	t.context.argv = getDefaultArgv();
@@ -198,6 +200,8 @@ test.serial("ui5 cache clean: nothing to clean", async (t) => {
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes("Checking cache at"), "Prints checking line");
 	t.true(allOutput.includes("Nothing to clean"), "Prints nothing to clean");
+	t.false(allOutput.includes(ACTIVE_CACHE_HEADER), "Does not show Active Cache group when nothing can be cleaned");
+	t.false(allOutput.includes(STALE_CACHE_HEADER), "Does not show Stale Cache group when nothing can be cleaned");
 	t.is(frameworkCacheCleanCache.callCount, 0, "frameworkCache.cleanCache not called");
 	t.is(buildCacheCleanCache.callCount, 0, "buildCache.cleanCache not called");
 });
@@ -232,7 +236,7 @@ test.serial("ui5 cache clean: removes both entries and reports", async (t) => {
 	t.true(allOutput.includes("5 versions of 18 libraries"), "Shows library stats format");
 	t.true(allOutput.includes("8.0 MB"), "Shows pre-clean build cache size");
 	t.false(allOutput.includes("7.0 MB"), "Does not show VACUUM-freed size");
-	t.true(allOutput.includes("Cleaned UI5 Framework packages and Build cache"),
+	t.true(allOutput.includes("Cleaned Active Cache (Framework and Build)"),
 		"Shows success summary");
 	const warningCall = stderrWriteStub.getCalls().find((call) => {
 		return call.args[0].includes(WARNING_PREFIX);
@@ -323,9 +327,9 @@ test.serial("ui5 cache clean: build only", async (t) => {
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.false(allOutput.includes("UI5 Framework packages"), "Does not mention framework");
+	t.false(allOutput.includes("Framework cache"), "Does not mention framework");
 	t.true(allOutput.includes("50.0 KB"), "Shows build cache size");
-	t.true(allOutput.includes("Cleaned Build cache"), "Success mentions build cache only");
+	t.true(allOutput.includes("Cleaned Active Cache (Build)"), "Success mentions active build group");
 });
 
 test.serial("ui5 cache clean: formats byte sizes correctly (< 1 KB)", async (t) => {
@@ -413,7 +417,8 @@ test.serial("ui5 cache clean: shows stale framework data in pre-confirmation sum
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes("Stale UI5 Framework packages"), "Shows stale header in pre-confirm summary");
+	t.true(allOutput.includes("Stale Cache"), "Shows stale cache group in pre-confirm summary");
+	t.true(allOutput.includes("Framework"), "Shows framework subgroup in pre-confirm summary");
 	t.true(allOutput.includes("_framework_to_delete_abcd"), "Shows orphaned dir path indented");
 	t.true(allOutput.includes("2 versions of 5 libraries"), "Shows orphaned dir stats");
 });
@@ -439,9 +444,17 @@ test.serial("ui5 cache clean: shows stale framework data in post-clean summary",
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes("Removed Stale UI5 Framework packages"), "Shows stale header in result");
+	t.true(allOutput.includes("Cleanup result:"), "Shows cleanup result heading");
+	t.true(allOutput.includes("Stale Cache"), "Shows stale cache group in result");
+	t.true(allOutput.includes("Framework"), "Shows framework subgroup in result");
 	t.true(allOutput.includes("_framework_to_delete_ab12"), "Shows first orphaned dir path indented");
 	t.true(allOutput.includes("_framework_to_delete_cd34"), "Shows second orphaned dir path indented");
+	const summaryLine = allOutput.split("\n").find((line) => line.includes("Success:"));
+	t.truthy(summaryLine, "Output includes success summary line");
+	t.true(summaryLine.includes("Active Cache (Framework) and Stale Cache (Framework)"),
+		"Summary line distinguishes active and stale framework groups");
+	t.false(summaryLine.includes("Stale Cache (Framework and Framework)"),
+		"Summary line does not duplicate framework subgroup within stale section");
 });
 
 test.serial("ui5 cache clean: shows stale-only success summary when no active framework", async (t) => {
@@ -463,8 +476,10 @@ test.serial("ui5 cache clean: shows stale-only success summary when no active fr
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes("Stale UI5 Framework packages"), "Shows stale header");
-	t.true(allOutput.includes("Cleaned Stale UI5 Framework packages"), "Success summary mentions stale label");
+	t.true(allOutput.includes("Stale Cache"), "Shows stale cache group");
+	t.true(allOutput.includes("Framework"), "Shows framework subgroup");
+	t.true(allOutput.includes("Cleaned Stale Cache (Framework)"),
+		"Success summary mentions stale framework group");
 	t.false(allOutput.includes("Removed UI5 Framework packages"),
 		"Does not show main framework removed line when absent");
 });
@@ -488,12 +503,13 @@ test.serial("ui5 cache clean: shows stale build cache in pre-confirm and post-cl
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes("Stale build cache"), "Shows stale build cache header");
+	t.true(allOutput.includes("Stale Cache"), "Shows stale cache group");
+	t.true(allOutput.includes("Build"), "Shows build subgroup");
 	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "buildCache/v0_7")),
 		"Shows orphaned build cache path indented");
-	t.true(allOutput.includes("Removed Stale build cache"), "Post-clean result shows stale build label");
+	t.true(allOutput.includes("Removed"), "Post-clean result shows removed entries");
 	t.true(allOutput.includes("freed 40.0 MB"), "Shows freed size in post-clean result");
-	t.true(allOutput.includes("Cleaned Stale build cache"), "Success summary mentions stale build cache");
+	t.true(allOutput.includes("Cleaned Stale Cache (Build)"), "Success summary mentions stale build group");
 });
 
 test.serial("ui5 cache clean: build cache and stale build cache with size 0 omit size detail", async (t) => {
@@ -516,7 +532,66 @@ test.serial("ui5 cache clean: build cache and stale build cache with size 0 omit
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.false(allOutput.includes("0 B"), "Does not show zero size");
-	t.true(allOutput.includes("Removed Build cache"), "Shows build cache result line");
-	t.true(allOutput.includes("Removed Stale build cache"), "Shows stale build cache result line");
+	t.true(allOutput.includes("Build"), "Shows build subgroup");
+	t.true(allOutput.includes("Removed"), "Shows removed result lines");
 	t.false(allOutput.includes("freed"), "Does not show freed label when size is 0");
+});
+
+test.serial("ui5 cache clean: pre-clean summary shows only Active Cache group", async (t) => {
+	const {cache, argv, stderrWriteStub, yesnoStub} = t.context;
+
+	t.context.frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
+	t.context.buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 2 * 1024 * 1024});
+	t.context.frameworkCacheGetAdditionalCacheInfo.resolves([]);
+	t.context.buildCacheGetAdditionalCacheInfo.resolves([]);
+	yesnoStub.resolves(false);
+
+	argv["_"] = ["cache", "clean"];
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes(ACTIVE_CACHE_HEADER), "Shows Active Cache group header");
+	t.false(allOutput.includes(STALE_CACHE_HEADER), "Does not show Stale Cache group header when no stale entries exist");
+});
+
+test.serial("ui5 cache clean: pre-clean summary shows only Stale Cache group", async (t) => {
+	const {cache, argv, stderrWriteStub, yesnoStub} = t.context;
+
+	t.context.frameworkCacheGetCacheInfo.resolves(null);
+	t.context.buildCacheGetCacheInfo.resolves(null);
+	t.context.frameworkCacheGetAdditionalCacheInfo.resolves([
+		{path: "_framework_to_delete_abcd", libraryCount: 4, versionCount: 2},
+	]);
+	t.context.buildCacheGetAdditionalCacheInfo.resolves([
+		{path: "buildCache/v0_7", size: 5 * 1024 * 1024},
+	]);
+	yesnoStub.resolves(false);
+
+	argv["_"] = ["cache", "clean"];
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.false(allOutput.includes(ACTIVE_CACHE_HEADER), "Does not show Active Cache group header when no active entries exist");
+	t.true(allOutput.includes(STALE_CACHE_HEADER), "Shows Stale Cache group header");
+});
+
+test.serial("ui5 cache clean: pre-clean summary shows both groups when active and stale entries exist", async (t) => {
+	const {cache, argv, stderrWriteStub, yesnoStub} = t.context;
+
+	t.context.frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
+	t.context.buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 6 * 1024 * 1024});
+	t.context.frameworkCacheGetAdditionalCacheInfo.resolves([
+		{path: "_framework_to_delete_xy12", libraryCount: 3, versionCount: 1},
+	]);
+	t.context.buildCacheGetAdditionalCacheInfo.resolves([
+		{path: "buildCache/v0_6", size: 1 * 1024 * 1024},
+	]);
+	yesnoStub.resolves(false);
+
+	argv["_"] = ["cache", "clean"];
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes(ACTIVE_CACHE_HEADER), "Shows Active Cache group header");
+	t.true(allOutput.includes(STALE_CACHE_HEADER), "Shows Stale Cache group header");
 });
