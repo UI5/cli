@@ -294,7 +294,7 @@ When `ui5 serve` is started in an interactive terminal, it now renders a live st
 See [Live Status Banner](../pages/Server.md#live-status-banner) for details on what is shown and when the banner is active.
 
 ::: tip Parsing `ui5 serve` output
-The banner is automatically disabled in non-TTY contexts (pipes, redirects, CI logs). The plain output — `Server started` followed by `URL: <url>` on `stdout` — is unchanged from previous versions, so scripts that parse the URL from a non-interactive `ui5 serve` continue to work. To force plain output inside an interactive terminal, pass `--verbose` or pipe the output (e.g. `ui5 serve | cat`).
+The banner is automatically disabled in non-TTY contexts. The plain output — `Server started` followed by `URL: <url>` on `stdout` — is unchanged from previous versions, so scripts that parse the URL from a non-interactive `ui5 serve` continue to work. To force plain output inside an interactive terminal, set `UI5_CLI_NO_INTERACTIVE=1`.
 :::
 
 ## Removal of Standard Server Middleware

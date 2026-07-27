@@ -187,9 +187,29 @@ test.serial("Interactive writer: skipped when stderr is not a TTY", async (t) =>
 	t.is(consoleInitStub.callCount, 1, "Plain ConsoleWriter.init called instead");
 });
 
-test.serial("Interactive writer: skipped for non-interactive log level (verbose)", async (t) => {
+test.serial("Interactive writer: enabled for log level verbose", async (t) => {
 	const {logger, consoleInitStub, interactiveInitStub, getLogLevelStub} = t.context;
 	getLogLevelStub.returns("verbose");
+	await withInteractiveEnv({isTTY: true, noInteractive: undefined}, () =>
+		logger.initLogger({_: ["serve"]})
+	);
+	t.is(interactiveInitStub.callCount, 1, "InteractiveConsole.init called");
+	t.is(consoleInitStub.callCount, 0, "Plain ConsoleWriter.init not called");
+});
+
+test.serial("Interactive writer: enabled for log level perf", async (t) => {
+	const {logger, consoleInitStub, interactiveInitStub, getLogLevelStub} = t.context;
+	getLogLevelStub.returns("perf");
+	await withInteractiveEnv({isTTY: true, noInteractive: undefined}, () =>
+		logger.initLogger({_: ["serve"]})
+	);
+	t.is(interactiveInitStub.callCount, 1, "InteractiveConsole.init called");
+	t.is(consoleInitStub.callCount, 0, "Plain ConsoleWriter.init not called");
+});
+
+test.serial("Interactive writer: skipped for non-interactive log level (silly)", async (t) => {
+	const {logger, consoleInitStub, interactiveInitStub, getLogLevelStub} = t.context;
+	getLogLevelStub.returns("silly");
 	await withInteractiveEnv({isTTY: true, noInteractive: undefined}, () =>
 		logger.initLogger({_: ["serve"]})
 	);

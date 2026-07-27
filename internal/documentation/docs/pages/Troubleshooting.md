@@ -75,6 +75,30 @@ The combination of the `UI5_LOG_LVL` environment variable with the `--log-level`
 
 :::
 
+### Disabling Interactive `ui5 serve` Output
+
+When `ui5 serve` runs in an interactive terminal, it can render a live status banner instead of plain log output.
+
+#### Resolution
+
+Set the `UI5_CLI_NO_INTERACTIVE` environment variable to any value to force plain output.
+
+Unix:
+```sh
+UI5_CLI_NO_INTERACTIVE=1 ui5 serve
+```
+
+Windows:
+```sh
+set UI5_CLI_NO_INTERACTIVE=1 ui5 serve
+```
+
+Cross Environment via [cross-env](https://www.npmjs.com/package/cross-env):
+
+```sh
+cross-env UI5_CLI_NO_INTERACTIVE=1 ui5 serve
+```
+
 ### Changing UI5 CLI's Data Directory
 
 UI5 CLI's data directory is by default at `~/.ui5`. It's the place where the framework artifacts are stored.
