@@ -8,7 +8,7 @@ import figures from "figures";
 export const REMOTE_CONNECTIONS_WARNING_LINES = Object.freeze([
 	chalk.bold.yellow(
 		`${figures.warning} This server is accepting connections from all hosts on your network`),
-	chalk.dim.underline("Please Note:"),
+	chalk.dim.underline("Warning:"),
 	chalk.dim(`${figures.pointerSmall} `) +
 		chalk.dim.bold("This server is intended for development purposes only. Do not use it in production."),
 	chalk.dim(`${figures.pointerSmall} ` +
