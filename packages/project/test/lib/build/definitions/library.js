@@ -118,7 +118,6 @@ test("Standard build", async (t) => {
 				librariesPattern: undefined,
 				themesPattern: undefined,
 				inputPattern: "/resources/project/b/themes/*/library.source.less",
-				cssVariables: undefined
 			}
 		},
 		generateBundle: {
@@ -160,10 +159,6 @@ test("Standard build", async (t) => {
 			],
 		}
 	}, "generateBundle task got called with correct arguments");
-
-	t.is(taskUtil.getBuildOption.callCount, 1, "taskUtil#getBuildOption got called once");
-	t.is(taskUtil.getBuildOption.getCall(0).args[0], "cssVariables",
-		"taskUtil#getBuildOption got called with correct argument");
 });
 
 test("Standard build (framework project)", (t) => {
@@ -260,7 +255,6 @@ test("Standard build with legacy spec version", (t) => {
 				librariesPattern: undefined,
 				themesPattern: undefined,
 				inputPattern: "/resources/project/b/themes/*/library.source.less",
-				cssVariables: undefined
 			}
 		},
 		generateBundle: {
@@ -399,7 +393,6 @@ test("Custom bundles", async (t) => {
 				librariesPattern: undefined,
 				themesPattern: undefined,
 				inputPattern: "/resources/project/b/themes/*/library.source.less",
-				cssVariables: undefined
 			}
 		},
 		generateComponentPreload: {
@@ -643,7 +636,6 @@ test("buildThemes: Project is not root", (t) => {
 			librariesPattern: "/resources/**/(*.library|library.js)",
 			themesPattern: "/resources/sap/ui/core/themes/*",
 			inputPattern: "/resources/project/b/themes/*/library.source.less",
-			cssVariables: undefined
 		}
 	}, "Correct buildThemes task definition");
 });
@@ -663,13 +655,8 @@ test("buildThemes: CSS Variables enabled", (t) => {
 			librariesPattern: undefined,
 			themesPattern: undefined,
 			inputPattern: "/resources/project/b/themes/*/library.source.less",
-			cssVariables: true
 		}
 	}, "Correct buildThemes task definition");
-
-	t.is(taskUtil.getBuildOption.callCount, 1, "taskUtil#getBuildOption got called once");
-	t.is(taskUtil.getBuildOption.getCall(0).args[0], "cssVariables",
-		"taskUtil#getBuildOption got called with correct argument");
 });
 
 test("Standard build: nulled taskFunction to skip tasks", (t) => {
@@ -743,7 +730,6 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 				librariesPattern: undefined,
 				themesPattern: undefined,
 				inputPattern: "/resources/project/b/themes/*/library.source.less",
-				cssVariables: undefined
 			}
 		},
 		generateBundle: {

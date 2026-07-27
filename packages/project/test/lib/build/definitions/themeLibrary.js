@@ -70,7 +70,6 @@ test("Standard build", (t) => {
 				librariesPattern: undefined,
 				themesPattern: undefined,
 				inputPattern: "/resources/**/themes/*/library.source.less",
-				cssVariables: undefined
 			}
 		},
 		generateResourcesJson: {
@@ -81,9 +80,6 @@ test("Standard build", (t) => {
 		}
 	}, "Correct task definitions");
 
-	t.is(taskUtil.getBuildOption.callCount, 1, "taskUtil#getBuildOption got called once");
-	t.is(taskUtil.getBuildOption.getCall(0).args[0], "cssVariables",
-		"taskUtil#getBuildOption got called with correct argument");
 
 	t.is(generateThemeDesignerResourcesTaskFunction.taskFunction, null, "taskFunction is explicitly set to null");
 });
@@ -133,7 +129,6 @@ test("Standard build for non root project", (t) => {
 				librariesPattern: "/resources/**/(*.library|library.js)",
 				themesPattern: "/resources/sap/ui/core/themes/*",
 				inputPattern: "/resources/**/themes/*/library.source.less",
-				cssVariables: undefined
 			}
 		},
 		generateResourcesJson: {
@@ -143,10 +138,6 @@ test("Standard build for non root project", (t) => {
 			taskFunction: null
 		}
 	}, "Correct task definitions");
-
-	t.is(taskUtil.getBuildOption.callCount, 1, "taskUtil#getBuildOption got called once");
-	t.is(taskUtil.getBuildOption.getCall(0).args[0], "cssVariables",
-		"taskUtil#getBuildOption got called with correct argument");
 });
 
 test("CSS variables enabled", (t) => {
@@ -165,11 +156,6 @@ test("CSS variables enabled", (t) => {
 			librariesPattern: undefined,
 			themesPattern: undefined,
 			inputPattern: "/resources/**/themes/*/library.source.less",
-			cssVariables: true
 		}
 	}, "Correct buildThemes task definition");
-
-	t.is(taskUtil.getBuildOption.callCount, 1, "taskUtil#getBuildOption got called once");
-	t.is(taskUtil.getBuildOption.getCall(0).args[0], "cssVariables",
-		"taskUtil#getBuildOption got called with correct argument");
 });

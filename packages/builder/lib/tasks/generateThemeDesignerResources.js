@@ -23,6 +23,7 @@ import fsInterface from "@ui5/fs/fsInterface";
  * @param {string} themeFolder Virtual path including /resources/
  * @returns {string} Relative path to root namespace
  */
+// eslint-disable-next-line no-unused-vars
 function getPathToRoot(themeFolder) {
 	// -2 for initial "/"" and "resources/"
 	return "../".repeat(themeFolder.split("/").length - 2);
@@ -34,6 +35,7 @@ function getPathToRoot(themeFolder) {
  * @param {string} filePath The path to the desired file
  * @returns {string} The less import statement
  */
+// eslint-disable-next-line no-unused-vars
 function lessImport(filePath) {
 	return `@import "${filePath}";\n`;
 }
@@ -53,7 +55,6 @@ function generateLibraryDotTheming({namespace, version, hasThemes}) {
 		dotTheming.aFiles = [
 			"library",
 			"global", // Additional entry compared to UI5 root .theming
-			"css_variables",
 		];
 	}
 	if (!hasThemes) {

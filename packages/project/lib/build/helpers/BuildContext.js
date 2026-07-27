@@ -81,9 +81,7 @@ class BuildContext {
 
 		this._taskRepository = taskRepository;
 
-		// TODO: check again if this is correct
-		// or if we really need the object
-
+		this._options = {};
 
 		this._ui5DataDir = ui5DataDir;
 		this._projectBuildContexts = new Map();
@@ -91,6 +89,10 @@ class BuildContext {
 
 	getRootProject() {
 		return this._graph.getRoot();
+	}
+
+	getOption(key) {
+		return this._options[key];
 	}
 
 	getBuildConfig() {

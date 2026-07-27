@@ -82,7 +82,6 @@ test("getBuildConfig: Default values", (t) => {
 	t.deepEqual(buildContext.getBuildConfig(), {
 		selfContained: false,
 		outputStyle: OutputStyleEnum.Default,
-		cssVariables: false,
 		jsdoc: false,
 		createBuildManifest: false,
 		includedTasks: [],
@@ -103,7 +102,6 @@ test("getBuildConfig: Custom values", (t) => {
 	}, "taskRepository", {
 		selfContained: true,
 		outputStyle: OutputStyleEnum.Namespace,
-		cssVariables: true,
 		jsdoc: true,
 		createBuildManifest: false,
 		includedTasks: ["included tasks"],
@@ -114,7 +112,6 @@ test("getBuildConfig: Custom values", (t) => {
 	t.deepEqual(buildContext.getBuildConfig(), {
 		selfContained: true,
 		outputStyle: OutputStyleEnum.Namespace,
-		cssVariables: true,
 		jsdoc: true,
 		createBuildManifest: false,
 		includedTasks: ["included tasks"],
@@ -179,23 +176,6 @@ test("createBuildManifest not supported for self-contained build", (t) => {
 	t.is(err.message,
 		"Build manifest creation is currently not supported for self-contained builds",
 		"Threw with expected error message");
-});
-
-test("createBuildManifest supported for css-variables build", (t) => {
-	const {BuildContext} = t.context;
-
-	t.notThrows(() => {
-		new BuildContext({
-			getRoot: () => {
-				return {
-					getType: () => "library"
-				};
-			}
-		}, "taskRepository", {
-			createBuildManifest: true,
-			cssVariables: true
-		});
-	});
 });
 
 test("createBuildManifest supported for jsdoc build", (t) => {
@@ -297,12 +277,8 @@ test("getOption", (t) => {
 	const graph = {
 		getRoot: () => ({getType: () => "library"}),
 	};
-	const buildContext = new BuildContext(graph, "taskRepository", {
-		cssVariables: "value",
-	});
+	const buildContext = new BuildContext(graph, "taskRepository", {});
 
-	t.is(buildContext.getOption("cssVariables"), "value",
-		"Returned correct value for build configuration 'cssVariables'");
 	t.is(buildContext.getOption("selfContained"), undefined,
 		"Returned undefined for build configuration 'selfContained' " +
 		"(not exposed as build option)");

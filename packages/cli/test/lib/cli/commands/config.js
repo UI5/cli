@@ -32,7 +32,6 @@ function getDefaultArgv() {
 		"clean-dest": false,
 		"cleanDest": false,
 		"experimental-css-variables": false,
-		"experimentalCssVariables": false,
 		"$0": "ui5"
 	};
 }

@@ -36,8 +36,6 @@ export class ThemeBuilder {
 	 * @param {@ui5/fs/Resource[]} resources Library files
 	 * @param {object} [options] Build options
 	 * @param {boolean} [options.compress=false] Compress build output (CSS / JSON)
-	 *   (css-variables.css, css-variables.source.less) and the skeleton for a theme
-	 *   (library-skeleton.css, [library-skeleton-RTL.css])
 	 * @returns {Promise<@ui5/fs/Resource[]>} Resolving with array of created files
 	 */
 	build(resources, {compress = false} = {}) {
@@ -107,8 +105,6 @@ export class ThemeBuilder {
  * @public
  * @typedef {object} ThemeBuilderOptions
  * @property {boolean} [compress=false] Compress build output (CSS / JSON)
- * (css-variables.css, css-variables.source.less) and the skeleton for a theme
- * (library-skeleton.css, [library-skeleton-RTL.css])
  */
 
 /**

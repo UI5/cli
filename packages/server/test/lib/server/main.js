@@ -18,12 +18,6 @@ test.before(async (t) => {
 		cwd: "./test/fixtures/application.a"
 	});
 
-	// Wrap graph.serve to enable CSS Variables for theme tests
-	const originalServe = graph.serve.bind(graph);
-	graph.serve = function(options) {
-		return originalServe({...options, cssVariables: true});
-	};
-
 	server = await serve(graph, {
 		port: 3333,
 		ui5DataDir: isolatedUi5DataDir(t),
@@ -312,68 +306,6 @@ async (t) => {
 	t.deepEqual(res.body, {
 		libraryAColor1: "#fafad2"
 	}, "Correct response");
-});
-
-test("Get css_variables.source.less (built by buildThemes task) " +
-	"(/resources/library/a/themes/base/css_variables.source.less)",
-async (t) => {
-	const res = await request.get(
-		"/resources/library/a/themes/base/css_variables.source.less");
-	if (res.error) {
-		throw new Error(res.error);
-	}
-	t.is(res.statusCode, 200, "Correct HTTP status code");
-	t.regex(res.headers["content-type"], /less/, "Correct content type");
-	t.is(res.text, `@libraryAColor1: #fafad2;
-
-:root {
---libraryAColor1: @libraryAColor1;
-}
-`, "Correct response");
-});
-
-test("Get css_variables.css (built by buildThemes task) " +
-	"(/resources/library/a/themes/base/css_variables.css)", async (t) => {
-	const res = await request.get(
-		"/resources/library/a/themes/base/css_variables.css");
-	if (res.error) {
-		throw new Error(res.error);
-	}
-	t.is(res.statusCode, 200, "Correct HTTP status code");
-	t.regex(res.headers["content-type"], /css/, "Correct content type");
-	// CSS is minified by default in buildThemes task
-	t.is(res.text, `:root{--libraryAColor1:#fafad2}
-/* Inline theming parameters */
-#sap-ui-theme-library\\.a{background-image:url('data:text/plain;utf-8,%7B%22libraryAColor1%22%3A%22%23fafad2%22%7D')}
-`, "Correct response");
-});
-
-test("Get library_skeleton.css (built by buildThemes task) " +
-	"(/resources/library/a/themes/base/library_skeleton.css)",
-async (t) => {
-	const res = await request.get(
-		"/resources/library/a/themes/base/library_skeleton.css");
-	if (res.error) {
-		throw new Error(res.error);
-	}
-	t.is(res.statusCode, 200, "Correct HTTP status code");
-	t.regex(res.headers["content-type"], /css/, "Correct content type");
-	// CSS is minified by default in buildThemes task
-	t.is(res.text, `.library-a-foo{color:var(--libraryAColor1);padding:1px 2px 3px 4px}`, "Correct response");
-});
-
-test("Get library_skeleton-RTL.css (built by buildThemes task) " +
-	"(/resources/library/a/themes/base/library_skeleton-RTL.css)",
-async (t) => {
-	const res = await request.get(
-		"/resources/library/a/themes/base/library_skeleton-RTL.css");
-	if (res.error) {
-		throw new Error(res.error);
-	}
-	t.is(res.statusCode, 200, "Correct HTTP status code");
-	t.regex(res.headers["content-type"], /css/, "Correct content type");
-	// CSS is minified by default in buildThemes task
-	t.is(res.text, `.library-a-foo{color:var(--libraryAColor1);padding:1px 4px 3px 2px}`, "Correct response");
 });
 
 test("Stop server", async (t) => {
