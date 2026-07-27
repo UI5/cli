@@ -8,9 +8,9 @@ import FrameworkCache from "@ui5/project/ui5Framework/cache";
 import CacheManager from "@ui5/project/build/cache/CacheManager";
 
 const LABEL_FRAMEWORK = "UI5 Framework packages";
-const LABEL_BUILD = "Build cache (Db)";
-const LABEL_ORPHANED_FRAMEWORK = "Orphaned UI5 Framework packages";
-const LABEL_ORPHANED_BUILD = "Orphaned build cache (Db)";
+const LABEL_BUILD = "Build cache";
+const LABEL_STALE_FRAMEWORK = "Stale UI5 Framework packages";
+const LABEL_STALE_BUILD = "Stale build cache";
 const CACHE_CLEAN_WARNING =
 	"Only run ui5 cache clean when no UI5 CLI process and no @ui5/* API consumer is actively running.";
 const CACHE_CLEAN_WARNING_IMPACT =
@@ -18,7 +18,7 @@ const CACHE_CLEAN_WARNING_IMPACT =
 	"and lead to failed or inconsistent results.";
 const CACHE_CLEAN_HELP_USAGE =
 	`WARNING: ${CACHE_CLEAN_WARNING}\n${CACHE_CLEAN_WARNING_IMPACT}\n\nUsage: ui5 cache clean [options]`;
-// Pad main labels to equal width for two-column alignment (orphaned labels are bold headers, not padded)
+// Pad main labels to equal width for two-column alignment (stale labels are bold headers, not padded)
 const LABEL_WIDTH = Math.max(LABEL_FRAMEWORK.length, LABEL_BUILD.length);
 
 const cacheCommand = {
@@ -102,7 +102,7 @@ function displayCacheCleanWarning() {
 /**
  * Display information about the cached data that will be removed,
  * including the absolute paths and details about the framework and build caches.
- * Orphaned entries (from previously interrupted cleans) are shown as separate
+ * Stale entries (from previously interrupted cleans) are shown as separate
  * items only when present.
  *
  * @param {object} data
@@ -111,7 +111,7 @@ function displayCacheCleanWarning() {
  * @param {string|null} data.frameworkAbsPath
  * @param {string|null} data.buildAbsPath
  * @param {number} data.buildPreSize
- * @param {Array<{absPath: string, libraryCount: number, versionCount: number}>} data.orphanedInfo
+ * @param {Array<{absPath: string, libraryCount: number, versionCount: number}>} data.staleInfo
  * @param {Array<{absPath: string, size: number}>} data.buildAdditionalInfo
  */
 async function displayCacheInfo({
@@ -120,7 +120,7 @@ async function displayCacheInfo({
 	frameworkAbsPath,
 	buildAbsPath,
 	buildPreSize,
-	orphanedInfo,
+	staleInfo,
 	buildAdditionalInfo,
 }) {
 	process.stderr.write(chalk.bold("\nThe following cached data will be removed:\n\n"));
@@ -136,18 +136,18 @@ async function displayCacheInfo({
 			`  ${chalk.yellow("•")} ${padLabel(LABEL_BUILD)}   ${buildAbsPath}${detail ? `   (${detail})` : ""}\n`
 		);
 	}
-	if (orphanedInfo?.length > 0) {
+	if (staleInfo?.length > 0) {
 		process.stderr.write(
-			`  ${chalk.yellow("•")} ${chalk.bold(LABEL_ORPHANED_FRAMEWORK)}\n`
+			`  ${chalk.yellow("•")} ${chalk.bold(LABEL_STALE_FRAMEWORK)}\n`
 		);
-		for (const orphan of orphanedInfo) {
+		for (const orphan of staleInfo) {
 			const detail = formatFrameworkStats(orphan.libraryCount, orphan.versionCount);
 			process.stderr.write(`      ${chalk.dim(orphan.absPath)}   (${detail})\n`);
 		}
 	}
 	if (buildAdditionalInfo?.length > 0) {
 		process.stderr.write(
-			`  ${chalk.yellow("•")} ${chalk.bold(LABEL_ORPHANED_BUILD)}\n`
+			`  ${chalk.yellow("•")} ${chalk.bold(LABEL_STALE_BUILD)}\n`
 		);
 		for (const entry of buildAdditionalInfo) {
 			const detail = entry.size > 0 ? formatSize(entry.size) : "";
@@ -159,7 +159,7 @@ async function displayCacheInfo({
 
 /**
  * Display the result of the cache cleanup operation.
- * Orphaned entries are shown as separate items only when present.
+ * Stale entries are shown as separate items only when present.
  *
  * @param {object} data
  * @param {{libraryCount: number, versionCount: number}|null} data.frameworkResult
@@ -167,7 +167,7 @@ async function displayCacheInfo({
  * @param {string|null} data.frameworkAbsPath
  * @param {string|null} data.buildAbsPath
  * @param {number} data.buildPreSize
- * @param {Array<{absPath: string, libraryCount: number, versionCount: number}>} data.orphanedInfoWithAbsPaths
+ * @param {Array<{absPath: string, libraryCount: number, versionCount: number}>} data.staleInfoWithAbsPaths
  * @param {Array<{absPath: string, size: number}>} data.buildAdditionalResult
  */
 async function displayCleanupResult({
@@ -176,7 +176,7 @@ async function displayCleanupResult({
 	frameworkAbsPath,
 	buildAbsPath,
 	buildPreSize,
-	orphanedInfoWithAbsPaths,
+	staleInfoWithAbsPaths,
 	buildAdditionalResult,
 }) {
 	process.stderr.write("\n");
@@ -194,15 +194,15 @@ async function displayCleanupResult({
 			`   (${buildAbsPath}${detail ? ` · ${detail}` : ""})\n`
 		);
 	}
-	if (orphanedInfoWithAbsPaths?.length > 0) {
-		process.stderr.write(`${chalk.green("✓")} Removed ${chalk.bold(LABEL_ORPHANED_FRAMEWORK)}\n`);
-		for (const orphan of orphanedInfoWithAbsPaths) {
+	if (staleInfoWithAbsPaths?.length > 0) {
+		process.stderr.write(`${chalk.green("✓")} Removed ${chalk.bold(LABEL_STALE_FRAMEWORK)}\n`);
+		for (const orphan of staleInfoWithAbsPaths) {
 			const detail = formatFrameworkStats(orphan.libraryCount, orphan.versionCount);
 			process.stderr.write(`    ${chalk.dim(orphan.absPath)}   (${detail})\n`);
 		}
 	}
 	if (buildAdditionalResult?.length > 0) {
-		process.stderr.write(`${chalk.green("✓")} Removed ${chalk.bold(LABEL_ORPHANED_BUILD)}\n`);
+		process.stderr.write(`${chalk.green("✓")} Removed ${chalk.bold(LABEL_STALE_BUILD)}\n`);
 		for (const entry of buildAdditionalResult) {
 			const detail = entry.size > 0 ? formatSize(entry.size) : "";
 			process.stderr.write(`    ${chalk.dim(entry.absPath)}${detail ? `   (freed ${detail})` : ""}\n`);
@@ -217,11 +217,11 @@ async function displayCleanupResult({
 	if (buildResult) {
 		cleaned.push(LABEL_BUILD);
 	}
-	if (orphanedInfoWithAbsPaths?.length > 0) {
-		cleaned.push(LABEL_ORPHANED_FRAMEWORK);
+	if (staleInfoWithAbsPaths?.length > 0) {
+		cleaned.push(LABEL_STALE_FRAMEWORK);
 	}
 	if (buildAdditionalResult?.length > 0) {
-		cleaned.push(LABEL_ORPHANED_BUILD);
+		cleaned.push(LABEL_STALE_BUILD);
 	}
 	process.stderr.write(`\n${chalk.green("Success:")} Cleaned ${cleaned.join(" and ")}\n`);
 }
@@ -263,14 +263,14 @@ async function handleCache(argv) {
 
 	process.stderr.write(`Checking cache at ${chalk.bold(ui5DataDir)} …\n`);
 
-	const [frameworkInfo, orphanedInfo, buildInfo, buildAdditionalInfo] = await Promise.all([
+	const [frameworkInfo, staleInfo, buildInfo, buildAdditionalInfo] = await Promise.all([
 		FrameworkCache.getCacheInfo(ui5DataDir),
 		FrameworkCache.getAdditionalCacheInfo(ui5DataDir),
 		CacheManager.getCacheInfo(ui5DataDir),
 		CacheManager.getAdditionalCacheInfo(ui5DataDir),
 	]);
 
-	if (!frameworkInfo && !buildInfo && orphanedInfo.length === 0 && buildAdditionalInfo.length === 0) {
+	if (!frameworkInfo && !buildInfo && staleInfo.length === 0 && buildAdditionalInfo.length === 0) {
 		process.stderr.write("Nothing to clean\n");
 		return;
 	}
@@ -279,7 +279,7 @@ async function handleCache(argv) {
 	const frameworkAbsPath = frameworkInfo ? path.join(ui5DataDir, frameworkInfo.path) : null;
 	const buildAbsPath = buildInfo ? path.join(ui5DataDir, buildInfo.path) : null;
 	const buildPreSize = buildInfo?.size ?? 0;
-	const preCleanOrphanedInfo = orphanedInfo.map(
+	const preCleanStaleInfo = staleInfo.map(
 		(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
 	);
 	const preCleanBuildAdditionalInfo = buildAdditionalInfo.map(
@@ -292,7 +292,7 @@ async function handleCache(argv) {
 		frameworkAbsPath,
 		buildAbsPath,
 		buildPreSize,
-		orphanedInfo: preCleanOrphanedInfo,
+		staleInfo: preCleanStaleInfo,
 		buildAdditionalInfo: preCleanBuildAdditionalInfo,
 	});
 
@@ -311,7 +311,7 @@ async function handleCache(argv) {
 		FrameworkCache.cleanAdditional(ui5DataDir),
 		CacheManager.cleanAdditional(ui5DataDir),
 	]);
-	const orphanedInfoWithAbsPaths = additionalFrameworkResult.map(
+	const staleInfoWithAbsPaths = additionalFrameworkResult.map(
 		(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
 	);
 	const buildAdditionalResult = preCleanBuildAdditionalInfo.length > 0 ?
@@ -324,7 +324,7 @@ async function handleCache(argv) {
 		frameworkAbsPath,
 		buildAbsPath,
 		buildPreSize,
-		orphanedInfoWithAbsPaths,
+		staleInfoWithAbsPaths,
 		buildAdditionalResult,
 	});
 }

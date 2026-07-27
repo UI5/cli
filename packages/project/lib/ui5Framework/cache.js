@@ -48,7 +48,7 @@ export default class FrameworkCache {
 	/**
 	 * Get additional framework cache info.
 	 *
-	 * Scans ui5DataDir for orphaned staging directories left behind by previously
+	 * Scans ui5DataDir for stale staging directories left behind by previously
 	 * interrupted clean operations (i.e. process killed after rename but before deletion).
 	 * Returns stats per orphan without deleting anything.
 	 *
@@ -89,10 +89,10 @@ export default class FrameworkCache {
 	}
 
 	/**
-	 * Scans ui5DataDir for orphaned staging directories left behind by previously
+	 * Scans ui5DataDir for stale staging directories left behind by previously
 	 * interrupted clean operations (i.e. process killed after rename but before deletion).
 	 *
-	 * Returns an array of result objects — one per orphaned directory found — each
+	 * Returns an array of result objects — one per stale directory found — each
 	 * containing the path, library count and version count so the caller can include
 	 * them in the cleanup summary.
 	 *

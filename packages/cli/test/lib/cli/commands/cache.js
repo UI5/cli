@@ -232,7 +232,7 @@ test.serial("ui5 cache clean: removes both entries and reports", async (t) => {
 	t.true(allOutput.includes("5 versions of 18 libraries"), "Shows library stats format");
 	t.true(allOutput.includes("8.0 MB"), "Shows pre-clean build cache size");
 	t.false(allOutput.includes("7.0 MB"), "Does not show VACUUM-freed size");
-	t.true(allOutput.includes("Cleaned UI5 Framework packages and Build cache (Db)"),
+	t.true(allOutput.includes("Cleaned UI5 Framework packages and Build cache"),
 		"Shows success summary");
 	const warningCall = stderrWriteStub.getCalls().find((call) => {
 		return call.args[0].includes(WARNING_PREFIX);
@@ -276,7 +276,7 @@ test.serial("ui5 cache clean: framework only — formats library stats correctly
 
 	let allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes("5 versions of 18 libraries"), "Shows plural format");
-	t.false(allOutput.includes("Build cache (Db)"), "Does not mention build cache");
+	t.false(allOutput.includes("Build cache"), "Does not mention build cache");
 
 	// Singular
 	stderrWriteStub.resetHistory();
@@ -325,7 +325,7 @@ test.serial("ui5 cache clean: build only", async (t) => {
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.false(allOutput.includes("UI5 Framework packages"), "Does not mention framework");
 	t.true(allOutput.includes("50.0 KB"), "Shows build cache size");
-	t.true(allOutput.includes("Cleaned Build cache (Db)"), "Success mentions build cache only");
+	t.true(allOutput.includes("Cleaned Build cache"), "Success mentions build cache only");
 });
 
 test.serial("ui5 cache clean: formats byte sizes correctly (< 1 KB)", async (t) => {
@@ -396,7 +396,7 @@ test.serial("ui5 cache clean --yes: skips confirmation prompt", async (t) => {
 	t.false(allOutput.includes(WARNING_PREFIX), "Does not show warning when --yes is used");
 });
 
-test.serial("ui5 cache clean: shows orphaned framework data in pre-confirmation summary", async (t) => {
+test.serial("ui5 cache clean: shows stale framework data in pre-confirmation summary", async (t) => {
 	const {cache, argv, stderrWriteStub, yesnoStub,
 		frameworkCacheCleanCache, frameworkCacheGetAdditionalCacheInfo} = t.context;
 
@@ -413,12 +413,12 @@ test.serial("ui5 cache clean: shows orphaned framework data in pre-confirmation 
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes("Orphaned UI5 Framework packages"), "Shows orphaned header in pre-confirm summary");
+	t.true(allOutput.includes("Stale UI5 Framework packages"), "Shows stale header in pre-confirm summary");
 	t.true(allOutput.includes("_framework_to_delete_abcd"), "Shows orphaned dir path indented");
 	t.true(allOutput.includes("2 versions of 5 libraries"), "Shows orphaned dir stats");
 });
 
-test.serial("ui5 cache clean: shows orphaned framework data in post-clean summary", async (t) => {
+test.serial("ui5 cache clean: shows stale framework data in post-clean summary", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheGetAdditionalCacheInfo,
 		frameworkCacheCleanCache, frameworkCacheCleanAdditional} = t.context;
 
@@ -439,12 +439,12 @@ test.serial("ui5 cache clean: shows orphaned framework data in post-clean summar
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes("Removed Orphaned UI5 Framework packages"), "Shows orphaned header in result");
+	t.true(allOutput.includes("Removed Stale UI5 Framework packages"), "Shows stale header in result");
 	t.true(allOutput.includes("_framework_to_delete_ab12"), "Shows first orphaned dir path indented");
 	t.true(allOutput.includes("_framework_to_delete_cd34"), "Shows second orphaned dir path indented");
 });
 
-test.serial("ui5 cache clean: shows orphaned-only success summary when no active framework", async (t) => {
+test.serial("ui5 cache clean: shows stale-only success summary when no active framework", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheGetAdditionalCacheInfo,
 		frameworkCacheCleanCache, frameworkCacheCleanAdditional} = t.context;
 
@@ -463,13 +463,13 @@ test.serial("ui5 cache clean: shows orphaned-only success summary when no active
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes("Orphaned UI5 Framework packages"), "Shows orphaned header");
-	t.true(allOutput.includes("Cleaned Orphaned UI5 Framework packages"), "Success summary mentions orphaned label");
+	t.true(allOutput.includes("Stale UI5 Framework packages"), "Shows stale header");
+	t.true(allOutput.includes("Cleaned Stale UI5 Framework packages"), "Success summary mentions stale label");
 	t.false(allOutput.includes("Removed UI5 Framework packages"),
 		"Does not show main framework removed line when absent");
 });
 
-test.serial("ui5 cache clean: shows orphaned build cache in pre-confirm and post-clean summary", async (t) => {
+test.serial("ui5 cache clean: shows stale build cache in pre-confirm and post-clean summary", async (t) => {
 	const {cache, argv, stderrWriteStub, buildCacheGetAdditionalCacheInfo,
 		buildCacheCleanCache, buildCacheCleanAdditional} = t.context;
 
@@ -488,15 +488,15 @@ test.serial("ui5 cache clean: shows orphaned build cache in pre-confirm and post
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes("Orphaned build cache (Db)"), "Shows orphaned build cache header");
+	t.true(allOutput.includes("Stale build cache"), "Shows stale build cache header");
 	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "buildCache/v0_7")),
 		"Shows orphaned build cache path indented");
-	t.true(allOutput.includes("Removed Orphaned build cache (Db)"), "Post-clean result shows orphaned build label");
+	t.true(allOutput.includes("Removed Stale build cache"), "Post-clean result shows stale build label");
 	t.true(allOutput.includes("freed 40.0 MB"), "Shows freed size in post-clean result");
-	t.true(allOutput.includes("Cleaned Orphaned build cache (Db)"), "Success summary mentions orphaned build cache");
+	t.true(allOutput.includes("Cleaned Stale build cache"), "Success summary mentions stale build cache");
 });
 
-test.serial("ui5 cache clean: build cache and orphaned build cache with size 0 omit size detail", async (t) => {
+test.serial("ui5 cache clean: build cache and stale build cache with size 0 omit size detail", async (t) => {
 	const {cache, argv, stderrWriteStub, buildCacheGetAdditionalCacheInfo,
 		buildCacheCleanCache, buildCacheCleanAdditional, buildCacheGetCacheInfo} = t.context;
 
@@ -516,7 +516,7 @@ test.serial("ui5 cache clean: build cache and orphaned build cache with size 0 o
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.false(allOutput.includes("0 B"), "Does not show zero size");
-	t.true(allOutput.includes("Removed Build cache (Db)"), "Shows build cache result line");
-	t.true(allOutput.includes("Removed Orphaned build cache (Db)"), "Shows orphaned build cache result line");
+	t.true(allOutput.includes("Removed Build cache"), "Shows build cache result line");
+	t.true(allOutput.includes("Removed Stale build cache"), "Shows stale build cache result line");
 	t.false(allOutput.includes("freed"), "Does not show freed label when size is 0");
 });

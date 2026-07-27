@@ -55,11 +55,11 @@ class ResourceCollector {
 	}
 
 	/**
-	 * Comma separated list of components to which orphaned resources should be added.
+	 * Comma separated list of components to which stale resources should be added.
 	 *
 	 * A component and a separated list of resource patterns of orphans that should be added
 	 * to the preceding component.
-	 * If no such list is given, any orphaned resource will be added to the component.
+	 * If no such list is given, any stale resource will be added to the component.
 	 * The evaluation logic for the filter list is the same as for the <code>filters</code>
 	 * parameters: excludes can be denoted with a leading '-' or '!' and order is significant.
 	 * Later filters can override the result of earlier ones.
