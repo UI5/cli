@@ -6,11 +6,11 @@ import {getRandomValues} from "node:crypto";
 const FRAMEWORK_DIR_NAME = "framework";
 
 /**
- * Prefix used for staging directories created during an atomic framework cache clean.
+ * Prefix used for directories created during an atomic framework cache clean.
  * The directory is renamed to this prefix + a random hex suffix before deletion so that
  * the original path is immediately removed and the deletion can proceed outside the rename.
  */
-const STAGING_DIR_PREFIX = "_framework_to_delete_";
+const PENDING_REMOVAL_DIR_PREFIX = "_framework_to_delete_";
 
 /**
  * Provides static utilities for inspecting and cleaning the UI5 framework cache.
@@ -44,7 +44,7 @@ export default class FrameworkCache {
 	/**
 	 * Get additional framework cache info.
 	 *
-	 * Scans ui5DataDir for stale staging directories left behind by previously
+	 * Scans ui5DataDir for stale removal directories left behind by previously
 	 * interrupted clean operations (i.e. process killed after rename but before deletion).
 	 * Returns stats per orphan without deleting anything.
 	 *
@@ -61,7 +61,7 @@ export default class FrameworkCache {
 		}
 
 		const staleDirs = entries.filter(
-			(e) => e.isDirectory() && e.name.startsWith(STAGING_DIR_PREFIX)
+			(e) => e.isDirectory() && e.name.startsWith(PENDING_REMOVAL_DIR_PREFIX)
 		);
 
 		if (staleDirs.length === 0) {
@@ -85,7 +85,7 @@ export default class FrameworkCache {
 	}
 
 	/**
-	 * Scans ui5DataDir for stale staging directories left behind by previously
+	 * Scans ui5DataDir for stale removal directories left behind by previously
 	 * interrupted clean operations (i.e. process killed after rename but before deletion).
 	 *
 	 * Returns an array of result objects — one per stale directory found — each
@@ -126,10 +126,10 @@ export default class FrameworkCache {
 	 * filesystem operation:
 	 *
 	 *  1. Clear cacache's in-process memoization (no path needed — global operation).
-	 *  2. Atomically rename <code>framework/</code> to a staging dir.
+	 *  2. Atomically rename <code>framework/</code> to a temporary removal dir.
 	 *     After this point the original path no longer exists.
 	 *     If ENOENT is raised (concurrent deletion), returns null.
-	 *  3. Delete the staging dir recursively. Its contents are now fully private
+	 *  3. Delete the temporary removal dir recursively. Its contents are now fully private
 	 *     to this operation.
 	 *
 	 * @public
@@ -154,15 +154,15 @@ export default class FrameworkCache {
 			// cacache not available — no-op
 		}
 
-		// Atomically rename framework/ to a staging directory.
+		// Atomically rename framework/ to a temporary removal directory.
 		// fs.rename is a single syscall and completes in microseconds.
 		// After this line the original path no longer exists.
-		const stagingDir = path.join(
+		const removalDir = path.join(
 			ui5DataDir,
-			`${STAGING_DIR_PREFIX}${Buffer.from(getRandomValues(new Uint8Array(2))).toString("hex")}`
+			`${PENDING_REMOVAL_DIR_PREFIX}${Buffer.from(getRandomValues(new Uint8Array(2))).toString("hex")}`
 		);
 		try {
-			await fs.rename(frameworkDir, stagingDir);
+			await fs.rename(frameworkDir, removalDir);
 		} catch (err) {
 			if (/** @type {NodeJS.ErrnoException} */ (err).code === "ENOENT") {
 				// Directory was removed by another process after our check — already clean.
@@ -171,7 +171,7 @@ export default class FrameworkCache {
 			throw err;
 		}
 
-		await fs.rm(stagingDir, {recursive: true, force: true});
+		await fs.rm(removalDir, {recursive: true, force: true});
 
 		return {
 			path: FRAMEWORK_DIR_NAME,
