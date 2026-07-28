@@ -132,9 +132,9 @@ async function handleCache(argv) {
 	const staleInfoWithAbsPaths = additionalFrameworkResult.map(
 		(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
 	);
-	const buildAdditionalResult = preCleanBuildAdditionalInfo.length > 0 ?
-		additionalBuildResult.map((o) => ({...o, absPath: path.join(ui5DataDir, o.path)})) :
-		[];
+	const buildAdditionalResult = additionalBuildResult.map(
+		(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
+	);
 
 	await displayCleanupResult({
 		frameworkResult,
