@@ -32,6 +32,8 @@ const CACHE_VERSION = "v0_7";
  * - Configurable cache location via UI5_DATA_DIR or configuration
  * - SQLite-backed storage for fast read/write operations
  *
+ * @ignore Do not expose this class in the public API documentation.
+ * It is only used internally by the CLI.
  * @class
  */
 export default class CacheManager {

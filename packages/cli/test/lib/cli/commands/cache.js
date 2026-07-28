@@ -59,7 +59,7 @@ test.beforeEach(async (t) => {
 				fromFile: t.context.configurationFromFileStub,
 			},
 		},
-		"@ui5/project/ui5Framework/cache": {
+		"@ui5/project/internal/ui5Framework/cache": {
 			default: class {
 				static getCacheInfo = t.context.frameworkCacheGetCacheInfo;
 				static cleanCache = t.context.frameworkCacheCleanCache;
@@ -67,7 +67,7 @@ test.beforeEach(async (t) => {
 				static getAdditionalCacheInfo = t.context.frameworkCacheGetAdditionalCacheInfo;
 			}
 		},
-		"@ui5/project/build/cache/CacheManager": {
+		"@ui5/project/internal/cache/CacheManager": {
 			default: class {
 				static getCacheInfo = t.context.buildCacheGetCacheInfo;
 				static cleanCache = t.context.buildCacheCleanCache;

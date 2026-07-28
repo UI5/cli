@@ -2,12 +2,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import {getRandomValues} from "node:crypto";
 
-/**
- * Utilities for cleaning the UI5 framework cache.
- *
- * @public
- * @module @ui5/project/ui5Framework/cache
- */
 
 const FRAMEWORK_DIR_NAME = "framework";
 
@@ -21,7 +15,9 @@ const STAGING_DIR_PREFIX = "_framework_to_delete_";
 /**
  * Provides static utilities for inspecting and cleaning the UI5 framework cache.
  *
- * @public
+ * @ignore Do not expose this class in the public API documentation.
+ * It is only used internally by the CLI.
+ * @class
  */
 export default class FrameworkCache {
 	/**
