@@ -3,10 +3,11 @@ import {setLogLevel, isLogLevelEnabled, getLogger, getLogLevel} from "@ui5/logge
 import ConsoleWriter from "@ui5/logger/writers/Console";
 import {getVersion, getVersionWithLocation} from "../version.js";
 
-// Log levels that the interactive writer cannot represent (firehose verbose
-// logging, or user-requested silence). Fall back to the plain Console writer
-// in those cases.
-const NON_INTERACTIVE_LEVELS = new Set(["perf", "verbose", "silly", "silent"]);
+// Log levels at which the interactive banner is counterproductive, so we fall
+// back to the plain Console writer:
+//   - silent: the user asked for minimal or no output, so we honor that intent
+//   - silly: high-volume tracing where a pinned status region hinders debugging
+const NON_INTERACTIVE_LEVELS = new Set(["silly", "silent"]);
 
 /**
  * Logger middleware to enable logging capabilities
