@@ -7,7 +7,7 @@ updates:
   commit-message:
     prefix: "ci(github-actions)"
   cooldown:
-    default-days: 2
+    default-days: 7
 - package-ecosystem: npm
   directory: "/"
   schedule:
@@ -16,7 +16,7 @@ updates:
     time: "10:00"
     timezone: Etc/UCT
   cooldown:
-    default-days: 2
+    default-days: 7
   versioning-strategy: increase
   commit-message:
     prefix: "deps"
