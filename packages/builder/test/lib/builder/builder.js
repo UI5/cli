@@ -66,22 +66,20 @@ async function checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, 
 		const currentFileContentPromise = readFile(destFile, "utf8");
 		const expectedFileContentPromise = readFile(expectedFile, "utf8");
 		const assertContents = ([currentContent, expectedContent]) => {
-			if (expectedFile.endsWith("sap-ui-cachebuster-info.json")) {
-				currentContent = JSON.parse(currentContent.replace(/(:\s+)(\d+)/g, ": 0"));
-				expectedContent = JSON.parse(expectedContent.replace(/(:\s+)(\d+)/g, ": 0"));
-				t.deepEqual(currentContent, expectedContent);
-			} else if (expectedFile.endsWith(".json")) {
-				try {
-					const currentJson = JSON.parse(currentContent);
-					const expectedJson = JSON.parse(expectedContent);
+			if (expectedFile.endsWith(".json")) {
+				const currentJson = JSON.parse(currentContent);
+				const expectedJson = JSON.parse(expectedContent);
+				if (relativeFile === path.join("resources", "sap-ui-version.json")) {
 					// Check if file is "sap-ui-version.json" and ignore the buildTimestamp property for comparison:
-					if (expectedFile.endsWith("sap-ui-version.json")) {
+					try {
 						delete currentJson.buildTimestamp;
 						delete expectedJson.buildTimestamp;
+						t.deepEqual(currentJson, expectedJson, expectedFile);
+					} catch (e) {
+						t.falsy(e, expectedFile);
 					}
+				} else {
 					t.deepEqual(currentJson, expectedJson, expectedFile);
-				} catch (e) {
-					t.falsy(e, expectedFile);
 				}
 			} else {
 				t.is(currentContent.replace(newLineRegexp, "\n"),
