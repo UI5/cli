@@ -9,6 +9,9 @@ const log = getLogger("build:cache:BuildCacheStorage");
 const METADATA_COMPRESSION_THRESHOLD = 4096;
 const CONTENT_COMPRESSION_THRESHOLD = 128;
 
+/** All live data table names */
+const DATA_TABLES = ["content", "index_cache", "stage_metadata", "task_metadata", "result_metadata"];
+
 /**
  * Unified SQLite-backed storage for the build cache
  *
@@ -522,8 +525,7 @@ export default class BuildCacheStorage {
 	 * @returns {boolean} True if there are any records
 	 */
 	hasRecords() {
-		const tables = ["content", "index_cache", "stage_metadata", "task_metadata", "result_metadata"];
-		for (const table of tables) {
+		for (const table of DATA_TABLES) {
 			const {is_populated: isPopulated} =
 				this.#db.prepare(`SELECT EXISTS(SELECT 1 FROM ${table} LIMIT 1) as is_populated`).get();
 			if (isPopulated) {
@@ -545,12 +547,11 @@ export default class BuildCacheStorage {
 	 * @returns {number} Database size in bytes before the drop (pending reclamation after vacuum)
 	 */
 	dropAllRecords() {
-		const tables = ["content", "index_cache", "stage_metadata", "task_metadata", "result_metadata"];
 		const bytesBefore = this.getDatabaseSize();
 
 		this.#db.exec("BEGIN");
 		try {
-			for (const table of tables) {
+			for (const table of DATA_TABLES) {
 				this.#db.exec(`DROP TABLE ${table}`);
 			}
 			this.#createTables();
