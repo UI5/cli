@@ -98,7 +98,9 @@ function createMiddleware(sCspUrlParameterName, oConfig) {
 			const cspReportObject = req.body["csp-report"];
 			if (cspReportObject) {
 				// extract the csp-report and add it to the cspReportEntries list
-				cspReportEntries.push(cspReportObject);
+				if (cspReportEntries.length < 1000) {
+					cspReportEntries.push(cspReportObject);
+				}
 			}
 			res.end();
 		} else {
