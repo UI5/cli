@@ -139,10 +139,10 @@ test("cleanCache: renames then removes framework directory and returns stats", a
 	// framework/ is gone — getCacheInfo returns null
 	t.is(await FrameworkCache.getCacheInfo(t.context.testDir), null);
 
-	// No staging dirs remain after a successful clean
+	// No stale removal dirs remain after a successful clean
 	const entries = await fs.readdir(t.context.testDir);
 	t.false(entries.some((e) => e.startsWith("_framework_to_delete_")),
-		"no staging dirs remain after successful clean");
+		"no stale removal dirs remain after successful clean");
 
 	// packages/ is gone
 	await t.throwsAsync(fs.access(path.join(frameworkDir, "packages")));
@@ -161,62 +161,62 @@ test("cleanCache: removes directory with multiple scopes", async (t) => {
 	t.is(await FrameworkCache.getCacheInfo(t.context.testDir), null);
 });
 
-test("cleanCache: does not include orphaned field in result", async (t) => {
+test("cleanCache: does not include stale field in result", async (t) => {
 	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.m", "1.120.0");
 
 	const result = await FrameworkCache.cleanCache(t.context.testDir);
 
 	t.truthy(result);
-	t.false(Object.prototype.hasOwnProperty.call(result, "orphaned"),
-		"cleanCache result does not include orphaned — use cleanAdditional for that");
+	t.false(Object.prototype.hasOwnProperty.call(result, "stale"),
+		"cleanCache result does not include stale — use cleanAdditional for that");
 });
 
-test("cleanCache: does not remove orphaned staging dirs — that is cleanAdditional's job", async (t) => {
+test("cleanCache: does not remove stale removal dirs — that is cleanAdditional's job", async (t) => {
 	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.m", "1.120.0");
 
-	const orphanDir = path.join(t.context.testDir, "_framework_to_delete_abcd");
-	await mkPackageIn(orphanDir, "@openui5", "sap.ui.core", "1.100.0");
+	const staleDir = path.join(t.context.testDir, "_framework_to_delete_abcd");
+	await mkPackageIn(staleDir, "@openui5", "sap.ui.core", "1.100.0");
 
 	await FrameworkCache.cleanCache(t.context.testDir);
 
-	// Orphan is still present after cleanCache — cleanAdditional handles it
-	await t.notThrowsAsync(fs.access(orphanDir), "orphaned dir is not touched by cleanCache");
+	// Stale removal dir is still present after cleanCache — cleanAdditional handles it
+	await t.notThrowsAsync(fs.access(staleDir), "stale removal dir is not touched by cleanCache");
 });
 
 // ─── cleanAdditional ──────────────────────────────────────────────────────────
 
-test("cleanAdditional: returns empty array when no orphaned staging dirs exist", async (t) => {
+test("cleanAdditional: returns empty array when no stale removal dirs exist", async (t) => {
 	const result = await FrameworkCache.cleanAdditional(t.context.testDir);
 	t.deepEqual(result, []);
 });
 
-test("cleanAdditional: detects and removes orphaned staging dirs, reports them", async (t) => {
-	const orphanDir = path.join(t.context.testDir, "_framework_to_delete_abcd");
-	await mkPackageIn(orphanDir, "@openui5", "sap.ui.core", "1.100.0");
-	await mkPackageIn(orphanDir, "@openui5", "sap.ui.core", "1.110.0");
+test("cleanAdditional: detects and removes stale removal dirs, reports them", async (t) => {
+	const staleDir = path.join(t.context.testDir, "_framework_to_delete_abcd");
+	await mkPackageIn(staleDir, "@openui5", "sap.ui.core", "1.100.0");
+	await mkPackageIn(staleDir, "@openui5", "sap.ui.core", "1.110.0");
 
 	const result = await FrameworkCache.cleanAdditional(t.context.testDir);
 
-	t.is(result.length, 1, "one orphaned dir reported");
-	const orphanResult = result[0];
-	t.true(orphanResult.path.startsWith("_framework_to_delete_"), "orphan path has staging prefix");
-	t.is(orphanResult.libraryCount, 1);
-	t.is(orphanResult.versionCount, 2);
+	t.is(result.length, 1, "one stale removal dir reported");
+	const staleResult = result[0];
+	t.true(staleResult.path.startsWith("_framework_to_delete_"), "stale path has pending-removal prefix");
+	t.is(staleResult.libraryCount, 1);
+	t.is(staleResult.versionCount, 2);
 
-	await t.throwsAsync(fs.access(orphanDir), {code: "ENOENT"}, "orphaned staging dir removed");
+	await t.throwsAsync(fs.access(staleDir), {code: "ENOENT"}, "stale removal dir removed");
 });
 
-test("cleanAdditional: removes multiple orphaned staging dirs and reports each", async (t) => {
-	const orphan1 = path.join(t.context.testDir, "_framework_to_delete_1111");
-	const orphan2 = path.join(t.context.testDir, "_framework_to_delete_2222");
+test("cleanAdditional: removes multiple stale removal dirs and reports each", async (t) => {
+	const stale1 = path.join(t.context.testDir, "_framework_to_delete_1111");
+	const stale2 = path.join(t.context.testDir, "_framework_to_delete_2222");
 
-	await mkPackageIn(orphan1, "@openui5", "sap.m", "1.90.0");
-	await mkPackageIn(orphan2, "@openui5", "sap.ui.core", "1.91.0");
-	await mkPackageIn(orphan2, "@openui5", "sap.ui.core", "1.92.0");
+	await mkPackageIn(stale1, "@openui5", "sap.m", "1.90.0");
+	await mkPackageIn(stale2, "@openui5", "sap.ui.core", "1.91.0");
+	await mkPackageIn(stale2, "@openui5", "sap.ui.core", "1.92.0");
 
 	const result = await FrameworkCache.cleanAdditional(t.context.testDir);
 
-	t.is(result.length, 2, "two orphaned dirs reported");
+	t.is(result.length, 2, "two stale removal dirs reported");
 
 	const sorted = [...result].sort((a, b) => a.path.localeCompare(b.path));
 	t.is(sorted[0].libraryCount, 1);
@@ -224,16 +224,16 @@ test("cleanAdditional: removes multiple orphaned staging dirs and reports each",
 	t.is(sorted[1].libraryCount, 1);
 	t.is(sorted[1].versionCount, 2);
 
-	await t.throwsAsync(fs.access(orphan1), {code: "ENOENT"});
-	await t.throwsAsync(fs.access(orphan2), {code: "ENOENT"});
+	await t.throwsAsync(fs.access(stale1), {code: "ENOENT"});
+	await t.throwsAsync(fs.access(stale2), {code: "ENOENT"});
 });
 
-test("cleanAdditional: orphaned dir deletion failure is non-fatal", async (t) => {
-	const orphanDir = path.join(t.context.testDir, "_framework_to_delete_fail");
-	await mkPackageIn(orphanDir, "@openui5", "sap.m", "1.80.0");
+test("cleanAdditional: stale removal dir deletion failure is non-fatal", async (t) => {
+	const staleDir = path.join(t.context.testDir, "_framework_to_delete_fail");
+	await mkPackageIn(staleDir, "@openui5", "sap.m", "1.80.0");
 
 	const rmStub = sinon.stub().callsFake(async (p, opts) => {
-		if (p === orphanDir) {
+		if (p === staleDir) {
 			throw new Error("simulated deletion failure");
 		}
 		return fs.rm(p, opts);
@@ -247,21 +247,21 @@ test("cleanAdditional: orphaned dir deletion failure is non-fatal", async (t) =>
 	try {
 		const result = await FrameworkCacheMocked.cleanAdditional(t.context.testDir);
 		t.deepEqual(result, [], "failed deletion is excluded from the returned list");
-		await t.notThrowsAsync(fs.access(orphanDir), "failed orphan deletion keeps directory on disk");
+		await t.notThrowsAsync(fs.access(staleDir), "failed stale removal dir deletion keeps directory on disk");
 	} finally {
 		esmock.purge(FrameworkCacheMocked);
-		await fs.rm(orphanDir, {recursive: true, force: true}).catch(() => {});
+		await fs.rm(staleDir, {recursive: true, force: true}).catch(() => {});
 	}
 });
 
-test("cleanAdditional: returns only successfully removed orphaned dirs", async (t) => {
-	const orphanOk = path.join(t.context.testDir, "_framework_to_delete_ok");
-	const orphanFail = path.join(t.context.testDir, "_framework_to_delete_fail");
-	await mkPackageIn(orphanOk, "@openui5", "sap.m", "1.80.0");
-	await mkPackageIn(orphanFail, "@openui5", "sap.ui.core", "1.81.0");
+test("cleanAdditional: returns only successfully removed stale removal dirs", async (t) => {
+	const staleOk = path.join(t.context.testDir, "_framework_to_delete_ok");
+	const staleFail = path.join(t.context.testDir, "_framework_to_delete_fail");
+	await mkPackageIn(staleOk, "@openui5", "sap.m", "1.80.0");
+	await mkPackageIn(staleFail, "@openui5", "sap.ui.core", "1.81.0");
 
 	const rmStub = sinon.stub().callsFake(async (p, opts) => {
-		if (p === orphanFail) {
+		if (p === staleFail) {
 			throw new Error("simulated deletion failure");
 		}
 		return fs.rm(p, opts);
@@ -277,11 +277,11 @@ test("cleanAdditional: returns only successfully removed orphaned dirs", async (
 		t.is(result.length, 1);
 		t.is(result[0].path, "_framework_to_delete_ok");
 
-		await t.throwsAsync(fs.access(orphanOk), {code: "ENOENT"});
-		await t.notThrowsAsync(fs.access(orphanFail));
+		await t.throwsAsync(fs.access(staleOk), {code: "ENOENT"});
+		await t.notThrowsAsync(fs.access(staleFail));
 	} finally {
 		esmock.purge(FrameworkCacheMocked);
-		await fs.rm(orphanFail, {recursive: true, force: true}).catch(() => {});
+		await fs.rm(staleFail, {recursive: true, force: true}).catch(() => {});
 	}
 });
 

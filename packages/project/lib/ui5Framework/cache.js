@@ -46,7 +46,7 @@ export default class FrameworkCache {
 	 *
 	 * Scans ui5DataDir for stale removal directories left behind by previously
 	 * interrupted clean operations (i.e. process killed after rename but before deletion).
-	 * Returns stats per orphan without deleting anything.
+	 * Returns stats per stale directory without deleting anything.
 	 *
 	 * @public
 	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory

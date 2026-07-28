@@ -419,8 +419,8 @@ test.serial("ui5 cache clean: shows stale framework data in pre-confirmation sum
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes("Stale Cache"), "Shows stale cache group in pre-confirm summary");
 	t.true(allOutput.includes("Framework"), "Shows framework subgroup in pre-confirm summary");
-	t.true(allOutput.includes("_framework_to_delete_abcd"), "Shows orphaned dir path indented");
-	t.true(allOutput.includes("2 versions of 5 libraries"), "Shows orphaned dir stats");
+	t.true(allOutput.includes("_framework_to_delete_abcd"), "Shows stale removal dir path indented");
+	t.true(allOutput.includes("2 versions of 5 libraries"), "Shows stale removal dir stats");
 });
 
 test.serial("ui5 cache clean: shows stale framework data in post-clean summary", async (t) => {
@@ -447,8 +447,8 @@ test.serial("ui5 cache clean: shows stale framework data in post-clean summary",
 	t.true(allOutput.includes("Cleanup result:"), "Shows cleanup result heading");
 	t.true(allOutput.includes("Stale Cache"), "Shows stale cache group in result");
 	t.true(allOutput.includes("Framework"), "Shows framework subgroup in result");
-	t.true(allOutput.includes("_framework_to_delete_ab12"), "Shows first orphaned dir path indented");
-	t.true(allOutput.includes("_framework_to_delete_cd34"), "Shows second orphaned dir path indented");
+	t.true(allOutput.includes("_framework_to_delete_ab12"), "Shows first stale removal dir path indented");
+	t.true(allOutput.includes("_framework_to_delete_cd34"), "Shows second stale removal dir path indented");
 	const summaryLine = allOutput.split("\n").find((line) => line.includes("Success:"));
 	t.truthy(summaryLine, "Output includes success summary line");
 	t.true(summaryLine.includes("Active Cache (Framework) and Stale Cache (Framework)"),
@@ -506,7 +506,7 @@ test.serial("ui5 cache clean: shows stale build cache in pre-confirm and post-cl
 	t.true(allOutput.includes("Stale Cache"), "Shows stale cache group");
 	t.true(allOutput.includes("Build"), "Shows build subgroup");
 	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "buildCache/v0_7")),
-		"Shows orphaned build cache path indented");
+		"Shows stale build cache path indented");
 	t.true(allOutput.includes("Removed"), "Post-clean result shows removed entries");
 	t.true(allOutput.includes("freed 40.0 MB"), "Shows freed size in post-clean result");
 	t.true(allOutput.includes("Cleaned Stale Cache (Build)"), "Success summary mentions stale build group");
