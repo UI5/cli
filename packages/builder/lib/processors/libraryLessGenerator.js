@@ -7,6 +7,7 @@ import Resource from "@ui5/fs/Resource";
 
 const IMPORT_PATTERN = /@import .*"(.*)";/g;
 const BASE_LESS_PATTERN = /^\/resources\/sap\/ui\/core\/themes\/([^/]+)\/base\.less$/;
+const SVG_LESS_PATTERN = /^\/resources\/sap\/ui\/core\/themes\/([^/]+)\/svg\.less$/;
 const GLOBAL_LESS_PATTERN = /^\/resources\/sap\/ui\/core\/themes\/([^/]+)\/global\.less$/;
 
 class LibraryLessGenerator {
@@ -53,18 +54,33 @@ class LibraryLessGenerator {
 		}
 		return array.join("");
 	}
-	async resolveLessImport(originalFilePath, resolvedFilePath, baseDir) {
-		// Rewrite base.less imports
-		const baseLessMatch = BASE_LESS_PATTERN.exec(resolvedFilePath);
-		if (baseLessMatch) {
-			let baseLessThemeName = baseLessMatch[1];
-			if (baseLessThemeName === "base") {
-				baseLessThemeName = "baseTheme";
+	static rewriteThemeDesignerImport({pattern, resolvedFilePath, baseDir, baseFolder, fileName, originalFilePath}) {
+		const match = pattern.exec(resolvedFilePath);
+		if (match) {
+			let themeName = match[1];
+			if (themeName === "base") {
+				themeName = "baseTheme";
 			}
 
-			const baseLessPath = LibraryLessGenerator.getPathToRoot(baseDir) +
-				"Base/baseLib/" + baseLessThemeName + "/base.less";
-			return "@import \"" + baseLessPath + "\"; /* ORIGINAL IMPORT PATH: \"" + originalFilePath + "\" */\n";
+			const rewrittenPath = LibraryLessGenerator.getPathToRoot(baseDir) +
+				"Base/" + baseFolder + "/" + themeName + "/" + fileName;
+			return "@import \"" + rewrittenPath + "\"; /* ORIGINAL IMPORT PATH: \"" + originalFilePath + "\" */\n";
+		}
+		return null;
+	}
+	async resolveLessImport(originalFilePath, resolvedFilePath, baseDir) {
+		// Rewrite Theme Designer imports (base.less, svg.less)
+		const themeDesignerRewrites = [
+			{pattern: BASE_LESS_PATTERN, baseFolder: "baseLib", fileName: "base.less"},
+			{pattern: SVG_LESS_PATTERN, baseFolder: "icons", fileName: "svg.less"},
+		];
+		for (const rewrite of themeDesignerRewrites) {
+			const result = LibraryLessGenerator.rewriteThemeDesignerImport({
+				...rewrite, resolvedFilePath, baseDir, originalFilePath
+			});
+			if (result) {
+				return result;
+			}
 		}
 
 		// Rewrite library imports to correct file name
