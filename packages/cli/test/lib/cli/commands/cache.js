@@ -3,6 +3,7 @@ import path from "node:path";
 import os from "node:os";
 import sinon from "sinon";
 import esmock from "esmock";
+import {setLogLevel} from "@ui5/logger";
 
 function getDefaultArgv() {
 	return {
@@ -31,6 +32,7 @@ const ACTIVE_CACHE_HEADER = "Active Cache";
 const STALE_CACHE_HEADER = "Stale Cache";
 
 test.beforeEach(async (t) => {
+	setLogLevel("info");
 	t.context.argv = getDefaultArgv();
 	t.context.stderrWriteStub = sinon.stub(process.stderr, "write");
 
@@ -82,6 +84,7 @@ test.beforeEach(async (t) => {
 });
 
 test.afterEach.always((t) => {
+	setLogLevel("info");
 	sinon.restore();
 	esmock.purge(t.context.cache);
 	process.exitCode = undefined;
@@ -136,6 +139,7 @@ test.serial("ui5 cache clean: uses resolved path from configuration", async (t) 
 	buildCacheGetCacheInfo.resolves(null);
 
 	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
 	await cache.handler(argv);
 
 	t.is(configurationFromFileStub.callCount, 1, "Configuration.fromFile called exactly once");
@@ -176,6 +180,7 @@ test.serial("ui5 cache clean: falls back to ~/.ui5 when configuration has no val
 	buildCacheGetCacheInfo.resolves(null);
 
 	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
 	await cache.handler(argv);
 
 	t.is(frameworkCacheGetCacheInfo.firstCall.args[0], fallbackUi5DataDir,
@@ -195,6 +200,7 @@ test.serial("ui5 cache clean: nothing to clean", async (t) => {
 	buildCacheGetCacheInfo.resolves(null);
 
 	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
@@ -219,6 +225,7 @@ test.serial("ui5 cache clean: removes both entries and reports", async (t) => {
 	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 7 * 1024 * 1024});
 
 	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
 	await cache.handler(argv);
 
 	t.is(yesnoStub.callCount, 1, "Should ask for confirmation");
@@ -246,6 +253,114 @@ test.serial("ui5 cache clean: removes both entries and reports", async (t) => {
 		"Warning is displayed before the confirmation prompt is shown");
 });
 
+test.serial("ui5 cache clean: non-verbose mode suppresses detailed summaries", async (t) => {
+	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
+		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
+
+	frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
+	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 8 * 1024 * 1024});
+	yesnoStub.resolves(true);
+	frameworkCacheCleanCache.resolves(FRAMEWORK_STUB);
+	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 7 * 1024 * 1024});
+
+	argv["_"] = ["cache", "clean"];
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes(WARNING_PREFIX), "Shows warning in non-verbose mode before confirmation");
+	t.true(allOutput.includes(WARNING_IMPACT_TEXT), "Shows warning impact in non-verbose mode");
+	t.false(allOutput.includes("Checking cache at"), "Does not show checking line in non-verbose mode");
+	t.false(allOutput.includes("The following cached data will be removed:"),
+		"Does not show pre-clean detailed section without --verbose");
+	t.false(allOutput.includes("Cleanup result:"),
+		"Does not show post-clean detailed section without --verbose");
+	t.false(allOutput.includes("Success:"), "Does not show success message in non-verbose mode");
+	t.false(allOutput.includes("Cancelled"), "Does not show cancelled message in non-verbose mode");
+});
+
+test.serial("ui5 cache clean: non-verbose mode with active cache skips additional info lookup", async (t) => {
+	const {cache, argv, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
+		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub,
+		frameworkCacheGetAdditionalCacheInfo, buildCacheGetAdditionalCacheInfo} = t.context;
+
+	frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
+	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 8 * 1024 * 1024});
+	frameworkCacheCleanCache.resolves(FRAMEWORK_STUB);
+	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 7 * 1024 * 1024});
+	yesnoStub.resolves(true);
+
+	argv["_"] = ["cache", "clean"];
+	await cache.handler(argv);
+
+	t.is(frameworkCacheGetAdditionalCacheInfo.callCount, 0,
+		"Does not fetch additional framework cache info in non-verbose mode when active cache exists");
+	t.is(buildCacheGetAdditionalCacheInfo.callCount, 0,
+		"Does not fetch additional build cache info in non-verbose mode when active cache exists");
+});
+
+test.serial("ui5 cache clean: non-verbose mode with stale cache only stays quiet except warning/prompt", async (t) => {
+	const {cache, argv, stderrWriteStub, yesnoStub,
+		frameworkCacheGetCacheInfo, buildCacheGetCacheInfo,
+		frameworkCacheGetAdditionalCacheInfo, buildCacheGetAdditionalCacheInfo,
+		frameworkCacheCleanAdditional, buildCacheCleanAdditional,
+		frameworkCacheCleanCache, buildCacheCleanCache} = t.context;
+
+	frameworkCacheGetCacheInfo.resolves(null);
+	buildCacheGetCacheInfo.resolves(null);
+	frameworkCacheGetAdditionalCacheInfo.resolves([
+		{path: "_framework_to_delete_abcd", libraryCount: 5, versionCount: 2},
+	]);
+	buildCacheGetAdditionalCacheInfo.resolves([]);
+	frameworkCacheCleanCache.resolves(null);
+	buildCacheCleanCache.resolves(null);
+	frameworkCacheCleanAdditional.resolves([
+		{path: "_framework_to_delete_abcd", libraryCount: 5, versionCount: 2},
+	]);
+	buildCacheCleanAdditional.resolves([]);
+	yesnoStub.resolves(true);
+
+	argv["_"] = ["cache", "clean"];
+	await cache.handler(argv);
+
+	t.is(yesnoStub.callCount, 1, "Prompts for confirmation in non-verbose mode when stale cache is found");
+	t.is(frameworkCacheGetAdditionalCacheInfo.callCount, 1,
+		"Fetches stale framework info when no active cache exists");
+	t.is(buildCacheGetAdditionalCacheInfo.callCount, 1,
+		"Fetches stale build info when no active cache exists");
+	t.is(frameworkCacheCleanCache.callCount, 1, "Still executes framework cache cleanup flow");
+	t.is(buildCacheCleanCache.callCount, 1, "Still executes build cache cleanup flow");
+	t.is(frameworkCacheCleanAdditional.callCount, 1, "Cleans stale framework cache entries");
+	t.is(buildCacheCleanAdditional.callCount, 1, "Cleans stale build cache entries");
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes(WARNING_PREFIX), "Shows warning in non-verbose mode");
+	t.true(allOutput.includes(WARNING_IMPACT_TEXT), "Shows warning impact in non-verbose mode");
+	t.false(allOutput.includes("Checking cache at"), "Does not show checking line in non-verbose mode");
+	t.false(allOutput.includes("The following cached data will be removed:"),
+		"Does not show detailed pre-clean summary in non-verbose mode");
+	t.false(allOutput.includes("Cleanup result:"),
+		"Does not show detailed cleanup summary in non-verbose mode");
+	t.false(allOutput.includes("Success:"), "Does not show success message in non-verbose mode");
+	t.false(allOutput.includes("Cancelled"), "Does not show cancelled message in non-verbose mode");
+});
+
+test.serial("ui5 cache clean: non-verbose --force mode is completely silent", async (t) => {
+	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
+		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
+
+	frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
+	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 8 * 1024 * 1024});
+	frameworkCacheCleanCache.resolves(FRAMEWORK_STUB);
+	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 7 * 1024 * 1024});
+
+	argv["_"] = ["cache", "clean"];
+	argv["force"] = true;
+	await cache.handler(argv);
+
+	t.is(yesnoStub.callCount, 0, "Does not prompt for confirmation when --force is used");
+	t.is(stderrWriteStub.callCount, 0, "Does not write any output in non-verbose --force mode");
+});
+
 test.serial("ui5 cache clean: user cancels", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
 		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
@@ -262,7 +377,8 @@ test.serial("ui5 cache clean: user cancels", async (t) => {
 	t.is(buildCacheCleanCache.callCount, 0, "buildCache.cleanCache not called when user cancels");
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes("Cancelled"), "Shows cancelled message");
+	t.true(allOutput.includes(WARNING_PREFIX), "Shows warning before confirmation");
+	t.false(allOutput.includes("Cancelled"), "Does not show cancelled message in non-verbose mode");
 	t.false(allOutput.includes("Success"), "Does not show success message");
 });
 
@@ -276,6 +392,7 @@ test.serial("ui5 cache clean: framework only — formats library stats correctly
 	frameworkCacheCleanCache.resolves(FRAMEWORK_STUB);
 
 	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
 	await cache.handler(argv);
 
 	let allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
@@ -308,6 +425,7 @@ test.serial("ui5 cache clean: thousands separator in library stats", async (t) =
 	frameworkCacheCleanCache.resolves(largeStub);
 
 	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
@@ -324,6 +442,7 @@ test.serial("ui5 cache clean: build only", async (t) => {
 	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 50 * 1024});
 
 	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
@@ -341,6 +460,7 @@ test.serial("ui5 cache clean: formats byte sizes correctly (< 1 KB)", async (t) 
 	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 500});
 
 	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
@@ -356,6 +476,7 @@ test.serial("ui5 cache clean: formats KB sizes correctly", async (t) => {
 	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 50 * 1024});
 
 	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
@@ -371,6 +492,7 @@ test.serial("ui5 cache clean: formats GB sizes correctly", async (t) => {
 	buildCacheCleanCache.resolves({path: "large", size: 2.5 * 1024 * 1024 * 1024});
 
 	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
 	argv["force"] = true;
 	await cache.handler(argv);
 
@@ -388,6 +510,7 @@ test.serial("ui5 cache clean --force: skips confirmation prompt", async (t) => {
 	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 5 * 1024 * 1024});
 
 	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
 	argv["force"] = true;
 	await cache.handler(argv);
 
@@ -414,6 +537,7 @@ test.serial("ui5 cache clean: shows stale framework data in pre-confirmation sum
 	yesnoStub.resolves(true);
 
 	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
@@ -440,6 +564,7 @@ test.serial("ui5 cache clean: shows stale framework data in post-clean summary",
 	]);
 
 	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
 	argv["force"] = true;
 	await cache.handler(argv);
 
@@ -472,6 +597,7 @@ test.serial("ui5 cache clean: shows stale-only success summary when no active fr
 	]);
 
 	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
 	argv["force"] = true;
 	await cache.handler(argv);
 
@@ -499,6 +625,7 @@ test.serial("ui5 cache clean: shows stale build cache in pre-confirm and post-cl
 	]);
 
 	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
 	argv["force"] = true;
 	await cache.handler(argv);
 
@@ -527,6 +654,7 @@ test.serial("ui5 cache clean: build cache and stale build cache with size 0 omit
 	]);
 
 	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
 	argv["force"] = true;
 	await cache.handler(argv);
 
@@ -547,6 +675,7 @@ test.serial("ui5 cache clean: pre-clean summary shows only Active Cache group", 
 	yesnoStub.resolves(false);
 
 	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
@@ -569,6 +698,7 @@ test.serial("ui5 cache clean: pre-clean summary shows only Stale Cache group", a
 	yesnoStub.resolves(false);
 
 	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
@@ -591,6 +721,7 @@ test.serial("ui5 cache clean: pre-clean summary shows both groups when active an
 	yesnoStub.resolves(false);
 
 	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");

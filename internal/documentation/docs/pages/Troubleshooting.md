@@ -28,7 +28,14 @@ Use the dedicated cache clean command, which removes all cached data:
 ui5 cache clean
 ```
 
-This displays the cache location, the amount of data that gets removed, and asks for confirmation before proceeding. To skip the confirmation prompt (for example in CI environments), use the `--force` flag:
+For a detailed preview and grouped cleanup summary, use the `--verbose` flag:
+
+```sh
+ui5 cache clean --verbose
+```
+
+To skip the confirmation prompt (for example in CI environments), use the `--force` flag.
+In non-verbose mode with `--force`, the command runs completely silent:
 
 ```sh
 ui5 cache clean --force

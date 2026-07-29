@@ -2,6 +2,7 @@ import chalk from "chalk";
 import path from "node:path";
 import os from "node:os";
 import process from "node:process";
+import {isLogLevelEnabled} from "@ui5/logger";
 import baseMiddleware from "../middlewares/base.js";
 import Configuration from "@ui5/project/config/Configuration";
 import FrameworkCache from "@ui5/project/internal/ui5Framework/cache";
@@ -76,47 +77,63 @@ async function resolveCacheUi5DataDir() {
 	return path.join(os.homedir(), ".ui5");
 }
 
+function withAbsPath(entries, ui5DataDir) {
+	return entries.map((entry) => {
+		return {...entry, absPath: path.join(ui5DataDir, entry.path)};
+	});
+}
+
 async function handleCache(argv) {
 	const ui5DataDir = await resolveCacheUi5DataDir();
+	const isVerbose = isLogLevelEnabled("verbose");
 
-	process.stderr.write(`Checking cache at ${chalk.bold(ui5DataDir)} …\n`);
+	if (isVerbose) {
+		// logger.verbose pollutes output with framework initialization noise.
+		process.stderr.write(`Checking cache at ${chalk.bold(ui5DataDir)} …\n`);
+	}
 
-	const [frameworkInfo, staleInfo, buildInfo, buildAdditionalInfo] = await Promise.all([
+	const [frameworkInfo, buildInfo] = await Promise.all([
 		FrameworkCache.getCacheInfo(ui5DataDir),
-		FrameworkCache.getAdditionalCacheInfo(ui5DataDir),
 		CacheManager.getCacheInfo(ui5DataDir),
-		CacheManager.getAdditionalCacheInfo(ui5DataDir),
 	]);
 
-	if (!frameworkInfo && !buildInfo && staleInfo.length === 0 && buildAdditionalInfo.length === 0) {
-		process.stderr.write("Nothing to clean\n");
+	const hasActiveCache = Boolean(frameworkInfo || buildInfo);
+	let staleInfo = [];
+	let buildStaleInfo = [];
+
+	if (isVerbose || !hasActiveCache) {
+		[staleInfo, buildStaleInfo] = await Promise.all([
+			FrameworkCache.getAdditionalCacheInfo(ui5DataDir),
+			CacheManager.getAdditionalCacheInfo(ui5DataDir),
+		]);
+	}
+
+	const hasStaleCache = staleInfo.length > 0 || buildStaleInfo.length > 0;
+
+	if (!hasActiveCache && !hasStaleCache) {
+		if (isVerbose) {
+			process.stderr.write("Nothing to clean\n");
+		}
 		return;
 	}
 
-	// Compute absolute paths once — producers return relative sub-path segments
-	const frameworkAbsPath = frameworkInfo ? path.join(ui5DataDir, frameworkInfo.path) : null;
-	const buildAbsPath = buildInfo ? path.join(ui5DataDir, buildInfo.path) : null;
-	const buildPreSize = buildInfo?.size ?? 0;
-	const preCleanStaleInfo = staleInfo.map(
-		(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
-	);
-	const preCleanBuildAdditionalInfo = buildAdditionalInfo.map(
-		(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
-	);
-
-	await displayCacheInfo({
-		frameworkInfo,
-		buildInfo,
-		frameworkAbsPath,
-		buildAbsPath,
-		buildPreSize,
-		staleInfo: preCleanStaleInfo,
-		buildAdditionalInfo: preCleanBuildAdditionalInfo,
-	});
+	if (isVerbose) {
+		await displayCacheInfo({
+			frameworkInfo,
+			buildInfo,
+			frameworkAbsPath: frameworkInfo ? path.join(ui5DataDir, frameworkInfo.path) : null,
+			buildAbsPath: buildInfo ? path.join(ui5DataDir, buildInfo.path) : null,
+			buildPreSize: buildInfo?.size ?? 0,
+			staleInfo: withAbsPath(staleInfo, ui5DataDir),
+			buildAdditionalInfo: withAbsPath(buildStaleInfo, ui5DataDir),
+		});
+	}
 
 	const confirmed = await getConfirmation(argv);
 	if (!confirmed) {
-		process.stderr.write("Cancelled\n");
+		if (isVerbose) {
+			process.stderr.write("Cancelled\n");
+		}
 		return;
 	}
 
@@ -129,22 +146,18 @@ async function handleCache(argv) {
 		FrameworkCache.cleanAdditional(ui5DataDir),
 		CacheManager.cleanAdditional(ui5DataDir),
 	]);
-	const staleInfoWithAbsPaths = additionalFrameworkResult.map(
-		(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
-	);
-	const buildAdditionalResult = additionalBuildResult.map(
-		(o) => ({...o, absPath: path.join(ui5DataDir, o.path)})
-	);
 
-	await displayCleanupResult({
-		frameworkResult,
-		buildResult,
-		frameworkAbsPath,
-		buildAbsPath,
-		buildPreSize,
-		staleInfoWithAbsPaths,
-		buildAdditionalResult,
-	});
+	if (isVerbose) {
+		await displayCleanupResult({
+			frameworkResult,
+			buildResult,
+			frameworkAbsPath: frameworkInfo ? path.join(ui5DataDir, frameworkInfo.path) : null,
+			buildAbsPath: buildInfo ? path.join(ui5DataDir, buildInfo.path) : null,
+			buildPreSize: buildInfo?.size ?? 0,
+			staleInfoWithAbsPaths: withAbsPath(additionalFrameworkResult, ui5DataDir),
+			buildAdditionalResult: withAbsPath(additionalBuildResult, ui5DataDir),
+		});
+	}
 }
 
 export default cacheCommand;
