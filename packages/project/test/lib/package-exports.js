@@ -20,7 +20,7 @@ test("check number of exports", (t) => {
 [
 	"config/Configuration",
 	"build/cache/Cache",
-	{exportedSpecifier: "internal/cache/CacheManager", mappedModule: "../../lib/build/cache/CacheManager.js"},
+	{exportedSpecifier: "internal/build/cache/CacheManager", mappedModule: "../../lib/build/cache/CacheManager.js"},
 	"specifications/Specification",
 	"specifications/SpecificationVersion",
 	"ui5Framework/Openui5Resolver",

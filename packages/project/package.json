@@ -18,7 +18,7 @@
 	],
 	"type": "module",
 	"exports": {
-		"./internal/cache/CacheManager": "./lib/build/cache/CacheManager.js",
+		"./internal/build/cache/CacheManager": "./lib/build/cache/CacheManager.js",
 		"./internal/ui5Framework/cache": "./lib/ui5Framework/cache.js",
 		"./config/Configuration": "./lib/config/Configuration.js",
 		"./build/cache/Cache": "./lib/build/cache/Cache.js",

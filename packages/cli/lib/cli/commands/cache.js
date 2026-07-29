@@ -5,7 +5,7 @@ import process from "node:process";
 import baseMiddleware from "../middlewares/base.js";
 import Configuration from "@ui5/project/config/Configuration";
 import FrameworkCache from "@ui5/project/internal/ui5Framework/cache";
-import CacheManager from "@ui5/project/internal/cache/CacheManager";
+import CacheManager from "@ui5/project/internal/build/cache/CacheManager";
 import {
 	CACHE_CLEAN_HELP_USAGE,
 	displayCacheCleanWarning,
