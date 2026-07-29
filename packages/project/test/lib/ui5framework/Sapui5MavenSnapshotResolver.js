@@ -394,7 +394,7 @@ test.serial("Sapui5MavenSnapshotResolver: Static fetchAllVersions", async (t) =>
 	t.deepEqual(t.context.InstallerStub.getCall(0).args, [{
 		cwd: path.resolve("/cwd"),
 		snapshotEndpointUrlCb: "snapshotEndpointUrlCallback",
-		ui5DataDir: path.resolve("/ui5DataDir")
+		ui5DataDir: "/ui5DataDir"
 	}], "Installer should be called with expected arguments");
 });
 

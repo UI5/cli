@@ -109,7 +109,7 @@ test("AbstractResolver: Set absolute 'ui5DataDir'", (t) => {
 		version: "1.75.0",
 		ui5DataDir: "/my-ui5DataDir"
 	});
-	t.is(resolver._ui5DataDir, path.resolve("/my-ui5DataDir"), "Should be resolved 'ui5DataDir'");
+	t.is(resolver._ui5DataDir, "/my-ui5DataDir", "Should keep provided absolute 'ui5DataDir'");
 });
 
 test("AbstractResolver: Set relative 'ui5DataDir' should throw", (t) => {

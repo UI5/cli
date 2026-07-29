@@ -157,7 +157,7 @@ test.serial("Openui5Resolver: Static _getInstaller", (t) => {
 	t.is(installer, t.context.InstallerStub.getCall(0).returnValue, "Installer instance is returned");
 	t.deepEqual(t.context.InstallerStub.getCall(0).args, [{
 		cwd: path.resolve("/cwd"),
-		ui5DataDir: path.resolve("/ui5DataDir")
+		ui5DataDir: "/ui5DataDir"
 	}], "Installer should be called with expected arguments");
 });
 
