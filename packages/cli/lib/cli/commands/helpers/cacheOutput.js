@@ -11,6 +11,7 @@ const CACHE_CLEAN_WARNING =
 const CACHE_CLEAN_WARNING_IMPACT =
 	"Running ui5 cache clean while ui5 build or ui5 serve is in progress can break the running process " +
 	"and lead to failed or inconsistent results.";
+const PARALLEL_CLEANUP_NOTICE = "Nothing left to clean. A parallel cleanup might have happened.";
 
 export const CACHE_CLEAN_HELP_USAGE =
 	`WARNING: ${CACHE_CLEAN_WARNING}\n${CACHE_CLEAN_WARNING_IMPACT}\n\nUsage: ui5 cache clean [options]`;
@@ -173,8 +174,6 @@ export function displayCleanupResult({
 	staleInfoWithAbsPaths,
 	buildAdditionalResult,
 }) {
-	process.stderr.write(`\n${chalk.bold("Cleanup result:")}\n`);
-
 	const sections = [];
 
 	if (frameworkResult || buildResult) {
@@ -186,14 +185,16 @@ export function displayCleanupResult({
 				items: [{absPath: frameworkAbsPath, detail}],
 			});
 		}
-		if (buildResult) {
+		if (buildResult && buildAbsPath) {
 			const detail = buildPreSize > 0 ? formatSize(buildPreSize) : "";
 			activeCategories.push({
 				title: GROUP_BUILD,
 				items: [{absPath: buildAbsPath, detail}],
 			});
 		}
-		sections.push({title: SECTION_ACTIVE_CACHE, categories: activeCategories});
+		if (activeCategories.length > 0) {
+			sections.push({title: SECTION_ACTIVE_CACHE, categories: activeCategories});
+		}
 	}
 
 	if (staleInfoWithAbsPaths?.length > 0 || buildAdditionalResult?.length > 0) {
@@ -216,6 +217,13 @@ export function displayCleanupResult({
 		}
 		sections.push({title: SECTION_STALE_CACHE, categories: staleCategories});
 	}
+
+	if (sections.length === 0) {
+		process.stderr.write(`\n${chalk.italic(PARALLEL_CLEANUP_NOTICE)}\n\n`);
+		return;
+	}
+
+	process.stderr.write(`\n${chalk.bold("Cleanup result:")}\n`);
 
 	process.stderr.write("\n");
 	writeGroupedSections(sections, ({absPath, detail}) => {

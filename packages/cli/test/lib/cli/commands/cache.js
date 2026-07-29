@@ -28,6 +28,7 @@ const WARNING_TEXT =
 const WARNING_IMPACT_TEXT =
 	"Running ui5 cache clean while ui5 build or ui5 serve is in progress can break the running process " +
 	"and lead to failed or inconsistent results.";
+const PARALLEL_CLEANUP_NOTICE = "Nothing left to clean. A parallel cleanup might have happened.";
 const ACTIVE_CACHE_HEADER = "Active Cache";
 const STALE_CACHE_HEADER = "Stale Cache";
 
@@ -254,6 +255,52 @@ test.serial("ui5 cache clean: removes both entries and reports", async (t) => {
 		"Warning is displayed before the confirmation prompt is shown");
 });
 
+test.serial("ui5 cache clean: cleanup result uses fresh active cache paths after confirmation", async (t) => {
+	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
+		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
+
+	frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
+	buildCacheGetCacheInfo.resolves(null);
+	yesnoStub.resolves(true);
+
+	frameworkCacheCleanCache.resolves(FRAMEWORK_STUB);
+	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 2 * 1024 * 1024});
+
+	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.false(allOutput.includes("Removed null"), "Does not print null cache path in cleanup result");
+	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "buildCache/v0_7")),
+		"Shows absolute build cache path in cleanup result when build cache appears after confirmation");
+	t.true(allOutput.includes("Cleaned Active Cache (Framework and Build)"),
+		"Success summary includes both active framework and build cache");
+});
+
+test.serial("ui5 cache clean: reports parallel cleanup in verbose mode", async (t) => {
+	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
+		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
+
+	frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
+	buildCacheGetCacheInfo.resolves(null);
+	yesnoStub.resolves(true);
+	frameworkCacheCleanCache.resolves(null);
+	buildCacheCleanCache.resolves(null);
+
+	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("The following cached data will be removed:"),
+		"Keeps pre-confirmation preview output");
+	t.true(allOutput.includes(PARALLEL_CLEANUP_NOTICE),
+		"Reports that cleanup was already performed in parallel");
+	t.false(allOutput.includes("Cleanup result:"), "Does not print cleanup result table for no-op cleanup");
+	t.false(allOutput.includes("Success:"), "Does not print success summary for no-op cleanup");
+});
+
 test.serial("ui5 cache clean: non-verbose mode suppresses detailed summaries", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
 		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
@@ -277,6 +324,30 @@ test.serial("ui5 cache clean: non-verbose mode suppresses detailed summaries", a
 		"Does not show post-clean detailed section without --verbose");
 	t.false(allOutput.includes("Success:"), "Does not show success message in non-verbose mode");
 	t.false(allOutput.includes("Cancelled"), "Does not show cancelled message in non-verbose mode");
+});
+
+test.serial("ui5 cache clean: does not report parallel cleanup in non-verbose mode", async (t) => {
+	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
+		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
+
+	frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
+	buildCacheGetCacheInfo.resolves(null);
+	yesnoStub.resolves(true);
+	frameworkCacheCleanCache.resolves(null);
+	buildCacheCleanCache.resolves(null);
+
+	argv["_"] = ["cache", "clean"];
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes(WARNING_PREFIX),
+		"Shows warning in non-verbose mode before confirmation");
+	t.true(allOutput.includes(WARNING_IMPACT_TEXT),
+		"Shows warning impact in non-verbose mode before confirmation");
+	t.false(allOutput.includes(PARALLEL_CLEANUP_NOTICE),
+		"Does not print parallel cleanup notice in non-verbose mode");
+	t.false(allOutput.includes("Cleanup result:"), "Does not print cleanup result table for no-op cleanup");
+	t.false(allOutput.includes("Success:"), "Does not print success summary for no-op cleanup");
 });
 
 test.serial("ui5 cache clean: non-verbose mode with active cache skips additional info lookup", async (t) => {

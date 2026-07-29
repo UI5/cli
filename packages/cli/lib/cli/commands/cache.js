@@ -79,8 +79,15 @@ async function resolveCacheUi5DataDir() {
 
 function withAbsPath(entries, ui5DataDir) {
 	return entries.map((entry) => {
-		return {...entry, absPath: path.join(ui5DataDir, entry.path)};
+		return {...entry, absPath: getAbsPath(ui5DataDir, entry)};
 	});
+}
+
+function getAbsPath(ui5DataDir, cacheEntry) {
+	if (!cacheEntry?.path) {
+		return null;
+	}
+	return path.join(ui5DataDir, cacheEntry.path);
 }
 
 async function handleCache(argv) {
@@ -112,7 +119,7 @@ async function handleCache(argv) {
 
 	if (!hasActiveCache && !hasStaleCache) {
 		if (isVerbose) {
-			process.stderr.write("Nothing to clean\n");
+			process.stderr.write(`\n${chalk.italic("Nothing to clean")}\n\n`);
 		}
 		return;
 	}
@@ -121,8 +128,8 @@ async function handleCache(argv) {
 		await displayCacheInfo({
 			frameworkInfo,
 			buildInfo,
-			frameworkAbsPath: frameworkInfo ? path.join(ui5DataDir, frameworkInfo.path) : null,
-			buildAbsPath: buildInfo ? path.join(ui5DataDir, buildInfo.path) : null,
+			frameworkAbsPath: getAbsPath(ui5DataDir, frameworkInfo),
+			buildAbsPath: getAbsPath(ui5DataDir, buildInfo),
 			buildPreSize: buildInfo?.size ?? 0,
 			staleInfo: withAbsPath(staleInfo, ui5DataDir),
 			buildAdditionalInfo: withAbsPath(buildStaleInfo, ui5DataDir),
@@ -132,7 +139,7 @@ async function handleCache(argv) {
 	const confirmed = await getConfirmation(argv);
 	if (!confirmed) {
 		if (isVerbose) {
-			process.stderr.write("Cancelled\n");
+			process.stderr.write(`\n${chalk.italic("Cancelled")}\n\n`);
 		}
 		return;
 	}
@@ -150,12 +157,14 @@ async function handleCache(argv) {
 	if (isVerbose) {
 		const cleanedStaleFramework = staleInfo.length > 0 ? withAbsPath(additionalFrameworkResult, ui5DataDir) : [];
 		const cleanedStaleBuild = buildStaleInfo.length > 0 ? withAbsPath(additionalBuildResult, ui5DataDir) : [];
+		const frameworkResultAbsPath = getAbsPath(ui5DataDir, frameworkResult) || getAbsPath(ui5DataDir, frameworkInfo);
+		const buildResultAbsPath = getAbsPath(ui5DataDir, buildResult) || getAbsPath(ui5DataDir, buildInfo);
 		await displayCleanupResult({
 			frameworkResult,
 			buildResult,
-			frameworkAbsPath: frameworkInfo ? path.join(ui5DataDir, frameworkInfo.path) : null,
-			buildAbsPath: buildInfo ? path.join(ui5DataDir, buildInfo.path) : null,
-			buildPreSize: buildInfo?.size ?? 0,
+			frameworkAbsPath: frameworkResultAbsPath,
+			buildAbsPath: buildResultAbsPath,
+			buildPreSize: buildInfo?.size ?? buildResult?.size ?? 0,
 			staleInfoWithAbsPaths: cleanedStaleFramework,
 			buildAdditionalResult: cleanedStaleBuild,
 		});
