@@ -28,15 +28,15 @@ cacheCommand.builder = function(cli) {
 			builder: function(yargs) {
 				return yargs
 					.usage(CACHE_CLEAN_HELP_USAGE)
-					.option("yes", {
-						alias: "y",
+					.option("force", {
+						alias: "f",
 						describe: "Skip the confirmation prompt, e.g. for use in CI pipelines",
 						default: false,
 						type: "boolean",
 					})
 					.example("$0 cache clean",
 						"Remove all cached UI5 data after confirmation")
-					.example("$0 cache clean --yes",
+					.example("$0 cache clean --force",
 						"Remove all cached UI5 data without confirmation (e.g. in CI scenarios)")
 					.example("UI5_DATA_DIR=/custom/path $0 cache clean",
 						"Remove cached data from a non-default UI5 data directory");
@@ -51,7 +51,7 @@ cacheCommand.builder = function(cli) {
  * @returns {Promise<boolean>} Confirmation result
  */
 async function getConfirmation(argv) {
-	if (argv.yes) {
+	if (argv.force) {
 		return true;
 	}
 	displayCacheCleanWarning();

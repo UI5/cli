@@ -114,7 +114,7 @@ test("Command builder", async (t) => {
 	t.is(yargsStub.usage.callCount, 1, "usage called once for warning help banner");
 	t.true(yargsStub.usage.firstCall.args[0].startsWith("WARNING:"),
 		"usage banner starts with warning");
-	t.is(yargsStub.option.callCount, 1, "option called for --yes flag");
+	t.is(yargsStub.option.callCount, 1, "option called for --force flag");
 	t.is(yargsStub.example.callCount, 3, "example called 3 times");
 });
 
@@ -290,7 +290,7 @@ test.serial("ui5 cache clean: framework only — formats library stats correctly
 	frameworkCacheGetCacheInfo.resolves(singleStub);
 	frameworkCacheCleanCache.resolves(singleStub);
 
-	argv["yes"] = true;
+	argv["force"] = true;
 	await cache.handler(argv);
 
 	allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
@@ -371,14 +371,14 @@ test.serial("ui5 cache clean: formats GB sizes correctly", async (t) => {
 	buildCacheCleanCache.resolves({path: "large", size: 2.5 * 1024 * 1024 * 1024});
 
 	argv["_"] = ["cache", "clean"];
-	argv["yes"] = true;
+	argv["force"] = true;
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes("2.5 GB"), "Shows GB format");
 });
 
-test.serial("ui5 cache clean --yes: skips confirmation prompt", async (t) => {
+test.serial("ui5 cache clean --force: skips confirmation prompt", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheCleanCache, frameworkCacheGetCacheInfo,
 		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
@@ -388,16 +388,16 @@ test.serial("ui5 cache clean --yes: skips confirmation prompt", async (t) => {
 	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 5 * 1024 * 1024});
 
 	argv["_"] = ["cache", "clean"];
-	argv["yes"] = true;
+	argv["force"] = true;
 	await cache.handler(argv);
 
-	t.is(yesnoStub.callCount, 0, "Should not ask for confirmation with --yes");
+	t.is(yesnoStub.callCount, 0, "Should not ask for confirmation with --force");
 	t.is(frameworkCacheCleanCache.callCount, 1, "frameworkCache.cleanCache called");
 	t.is(buildCacheCleanCache.callCount, 1, "buildCache.cleanCache called");
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes("Success"), "Shows success message");
-	t.false(allOutput.includes(WARNING_PREFIX), "Does not show warning when --yes is used");
+	t.false(allOutput.includes(WARNING_PREFIX), "Does not show warning when --force is used");
 });
 
 test.serial("ui5 cache clean: shows stale framework data in pre-confirmation summary", async (t) => {
@@ -440,7 +440,7 @@ test.serial("ui5 cache clean: shows stale framework data in post-clean summary",
 	]);
 
 	argv["_"] = ["cache", "clean"];
-	argv["yes"] = true;
+	argv["force"] = true;
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
@@ -472,7 +472,7 @@ test.serial("ui5 cache clean: shows stale-only success summary when no active fr
 	]);
 
 	argv["_"] = ["cache", "clean"];
-	argv["yes"] = true;
+	argv["force"] = true;
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
@@ -499,7 +499,7 @@ test.serial("ui5 cache clean: shows stale build cache in pre-confirm and post-cl
 	]);
 
 	argv["_"] = ["cache", "clean"];
-	argv["yes"] = true;
+	argv["force"] = true;
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
@@ -527,7 +527,7 @@ test.serial("ui5 cache clean: build cache and stale build cache with size 0 omit
 	]);
 
 	argv["_"] = ["cache", "clean"];
-	argv["yes"] = true;
+	argv["force"] = true;
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
