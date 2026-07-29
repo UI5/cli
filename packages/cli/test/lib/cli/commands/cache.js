@@ -242,6 +242,7 @@ test.serial("ui5 cache clean: removes both entries and reports", async (t) => {
 	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "buildCache/v0_7")), "Shows absolute build path");
 	t.true(allOutput.includes("5 versions of 18 libraries"), "Shows library stats format");
 	t.true(allOutput.includes("8.0 MB"), "Shows pre-clean build cache size");
+	t.false(allOutput.includes("Stale Cache"), "Does not report stale cache section when only active cache existed");
 	t.false(allOutput.includes("7.0 MB"), "Does not show VACUUM-freed size");
 	t.true(allOutput.includes("Cleaned Active Cache (Framework and Build)"),
 		"Shows success summary");

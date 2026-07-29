@@ -148,14 +148,16 @@ async function handleCache(argv) {
 	]);
 
 	if (isVerbose) {
+		const cleanedStaleFramework = staleInfo.length > 0 ? withAbsPath(additionalFrameworkResult, ui5DataDir) : [];
+		const cleanedStaleBuild = buildStaleInfo.length > 0 ? withAbsPath(additionalBuildResult, ui5DataDir) : [];
 		await displayCleanupResult({
 			frameworkResult,
 			buildResult,
 			frameworkAbsPath: frameworkInfo ? path.join(ui5DataDir, frameworkInfo.path) : null,
 			buildAbsPath: buildInfo ? path.join(ui5DataDir, buildInfo.path) : null,
 			buildPreSize: buildInfo?.size ?? 0,
-			staleInfoWithAbsPaths: withAbsPath(additionalFrameworkResult, ui5DataDir),
-			buildAdditionalResult: withAbsPath(additionalBuildResult, ui5DataDir),
+			staleInfoWithAbsPaths: cleanedStaleFramework,
+			buildAdditionalResult: cleanedStaleBuild,
 		});
 	}
 }
