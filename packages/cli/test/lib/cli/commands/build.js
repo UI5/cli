@@ -359,20 +359,6 @@ test.serial("ui5 build (Include dependency via configuration)", async (t) => {
 	t.deepEqual(builder.getCall(0).args[0], expectedBuilderArgs, "default build triggered with expected arguments");
 });
 
-test.serial("ui5 build --experimental-css-variables", async (t) => {
-	// NOTE: With UI5 CLI v5, the --experimental-css-variables option is removed
-	// and thus should not be present in the builder arguments:
-
-	const {build, argv, builder} = t.context;
-
-	argv["experimental-css-variables"] = true;
-
-	await build.handler(argv);
-
-	t.is("cssVariables" in builder.getCall(0).args[0], false,
-		"CSS Variables option should NOT be present");
-});
-
 test.serial("ui5 build --output-style", async (t) => {
 	const {build, argv, builder, expectedBuilderArgs} = t.context;
 

@@ -324,9 +324,9 @@ Update your `ui5.yaml` configuration to reference an existing middleware instead
 
 ## Removal of `--experimental-css-variables`
 
-The SAP Theme Designer can create custom themes based on CSS variables instead of LESS variables. To establish a consistent and standardized approach to theme customization, this feature is no longer supported in UI5 CLI.
+The SAP Theme Designer can create custom themes based on CSS variables instead of LESS variables. To establish a consistent and standardized approach to theme customization, this feature will no longer be supported in UI5 CLI.
 
-With UI5 CLI v5, the `--experimental-css-variables` option has therefore been removed for both the `ui5 build` and `ui5 serve` commands. For custom theme creation with CSS variables, please check out the **SAP Theme Designer**.
+With UI5 CLI v5, the `--experimental-css-variables` option has therefore been removed for the `ui5 build` command. For custom theme creation with CSS variables, please check out the **SAP Theme Designer**.
 
 
 ## Learn More

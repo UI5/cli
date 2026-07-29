@@ -7,39 +7,6 @@ import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
 import Resource from "@ui5/fs/Resource";
 import fsInterface from "@ui5/fs/fsInterface";
 
-/**
- * Returns a relative path from the given themeFolder to the root namespace.
- *
- * When combining the given themeFolder with the returned relative path it
- * resolves to "/resources/". However the "/resources/" part is not important
- * here as it doesn't exist within the theming engine environment where the
- * UI5 resources are part of a "UI5" folder (e.g. "UI5/sap/ui/core/") that
- * is next to a "Base" folder.
- *
- * @example
- * getPathToRoot("/resources/sap/ui/foo/themes/base")
- * > "../../../../../"
- *
- * @param {string} themeFolder Virtual path including /resources/
- * @returns {string} Relative path to root namespace
- */
-// eslint-disable-next-line no-unused-vars
-function getPathToRoot(themeFolder) {
-	// -2 for initial "/"" and "resources/"
-	return "../".repeat(themeFolder.split("/").length - 2);
-}
-
-/**
- * Generates an less import statement for the given <code>filePath</code>
- *
- * @param {string} filePath The path to the desired file
- * @returns {string} The less import statement
- */
-// eslint-disable-next-line no-unused-vars
-function lessImport(filePath) {
-	return `@import "${filePath}";\n`;
-}
-
 function generateLibraryDotTheming({namespace, version, hasThemes}) {
 	const dotTheming = {
 		sEntity: "Library",
