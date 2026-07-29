@@ -67,7 +67,7 @@ test.beforeEach(async (t) => {
 				static getAdditionalCacheInfo = t.context.frameworkCacheGetAdditionalCacheInfo;
 			}
 		},
-			"@ui5/project/internal/build/cache/CacheManager": {
+		"@ui5/project/internal/build/cache/CacheManager": {
 			default: class {
 				static getCacheInfo = t.context.buildCacheGetCacheInfo;
 				static cleanCache = t.context.buildCacheCleanCache;
