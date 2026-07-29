@@ -1446,11 +1446,10 @@ class FixtureTester {
 			if (!expected.executedTasks) {
 				continue; // no executedTasks specified -> skip the check
 			}
-			const expectedExecuted = expected.executedTasks || [];
+			const expectedArray = expected.executedTasks.sort();
 			const actualExecuted = (tasksByProject[projectName]?.executed || []).sort();
-			const expectedArray = expectedExecuted.sort();
 			this._t.deepEqual(actualExecuted, expectedArray,
-				"All executed tasks of all projects should match expected");
+				"Executed tasks for project " + projectName + " do not match expected");
 		}
 
 		// Assert skipped tasks per project

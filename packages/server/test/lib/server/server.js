@@ -139,3 +139,88 @@ test("close() still calls server.close when buildServer.destroy() rejects", asyn
 	});
 	t.true(mockServer.close.calledOnce, "server.close was called despite destroy rejection");
 });
+
+test("excludedTasks contains generateVersionInfo when undefined", async (t) => {
+	// This test verifies that the excludedTasks option
+	// is passed to graph.serve() and that "generateVersionInfo"
+	// is always included in the excluded tasks
+	// (WITHOUT an additional excluded task specified):
+
+	const mockServer = createMockServer();
+	const mockBuildServer = createMockBuildServer();
+	const mocks = createMocks(mockServer);
+	const {serve} = await esmock("../../../lib/server.js", mocks);
+	const serveStub = sinon.stub().resolves(mockBuildServer);
+	const graph = createMockGraph(mockBuildServer);
+	graph.serve = serveStub;
+
+	await serve(graph, {
+		port: 3000,
+		excludedTasks: undefined // Exclude no other tasks (default value)
+	});
+
+	t.true(serveStub.calledOnce);
+	const callArgs = serveStub.firstCall.args[0];
+	// Verify "excludedTasks" is transformed to an array and "generateVersionInfo" is added:
+	t.deepEqual(callArgs.excludedTasks, ["generateVersionInfo"]);
+});
+
+test("excludedTasks contains generateVersionInfo even when other tasks are excluded", async (t) => {
+	// This test verifies that the excludedTasks option
+	// is passed to graph.serve() and that "generateVersionInfo"
+	// is always included in the excluded tasks
+	// (WITH additional excluded tasks specified):
+
+	const mockServer = createMockServer();
+	const mockBuildServer = createMockBuildServer();
+	const mocks = createMocks(mockServer);
+	const {serve} = await esmock("../../../lib/server.js", mocks);
+	const serveStub = sinon.stub().resolves(mockBuildServer);
+	const graph = createMockGraph(mockBuildServer);
+	graph.serve = serveStub;
+
+	const originalExcludedTasks = ["anotherTask", "anotherTask2"];
+	await serve(graph, {
+		port: 3000,
+		excludedTasks: originalExcludedTasks
+	});
+
+	t.true(serveStub.calledOnce);
+	const callArgs = serveStub.firstCall.args[0];
+	// "generateVersionInfo" is added to the "excludedTasks" array:
+	t.deepEqual(callArgs.excludedTasks, ["anotherTask", "anotherTask2", "generateVersionInfo"]);
+
+	// Verify the original array wasn't mutated:
+	t.deepEqual(originalExcludedTasks, ["anotherTask", "anotherTask2"],
+		"Original excludedTasks array should not be mutated");
+});
+
+test("excludedTasks contains generateVersionInfo already", async (t) => {
+	// This test verifies that the excludedTasks option
+	// is passed to graph.serve() and that "generateVersionInfo"
+	// is always contained in the excluded tasks
+	// (EVEN WHEN it's already included):
+
+	const mockServer = createMockServer();
+	const mockBuildServer = createMockBuildServer();
+	const mocks = createMocks(mockServer);
+	const {serve} = await esmock("../../../lib/server.js", mocks);
+	const serveStub = sinon.stub().resolves(mockBuildServer);
+	const graph = createMockGraph(mockBuildServer);
+	graph.serve = serveStub;
+
+	const originalExcludedTasks = ["anotherTask", "generateVersionInfo", "anotherTask2"];
+	await serve(graph, {
+		port: 3000,
+		excludedTasks: originalExcludedTasks
+	});
+
+	t.true(serveStub.calledOnce);
+	const callArgs = serveStub.firstCall.args[0];
+	// "generateVersionInfo" is still contained in the "excludedTasks" array:
+	t.deepEqual(callArgs.excludedTasks, ["anotherTask", "generateVersionInfo", "anotherTask2"]);
+
+	// Verify the original array wasn't mutated:
+	t.deepEqual(originalExcludedTasks, ["anotherTask", "generateVersionInfo", "anotherTask2"],
+		"Original excludedTasks array should not be mutated");
+});
