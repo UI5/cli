@@ -58,7 +58,7 @@ async function getConfirmation(argv) {
 	displayCacheCleanWarning();
 	const {default: yesno} = await import("yesno");
 	return yesno({
-		question: "Do you want to continue? (y/N)",
+		question: "Proceed with cache cleanup? (y/N)",
 		defaultValue: false
 	});
 }
@@ -88,7 +88,7 @@ async function handleCache(argv) {
 	const isVerbose = isLogLevelEnabled("verbose");
 
 	if (isVerbose) {
-		// logger.verbose pollutes output with framework initialization noise.
+		// logger.verbose pollutes output with framework noise.
 		process.stderr.write(`Checking cache at ${chalk.bold(ui5DataDir)} …\n`);
 	}
 
