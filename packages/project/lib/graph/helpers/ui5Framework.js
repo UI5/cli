@@ -282,8 +282,8 @@ export default {
 	 *   version
 	 * @param {module:@ui5/project/ui5Framework/maven/SnapshotCache} [options.snapshotCache]
  	 *   Snapshot cache mode to use when consuming SNAPSHOT versions of a framework
-	 * @param {string} options.ui5DataDir Resolved UI5 data directory to use for framework
-	 *   metadata and package resolution.
+	 * @param {string} options.ui5DataDir Absolute path to the UI5 data directory used for
+	 *   framework metadata and package resolution.
 	 * @param {@ui5/project/graph/Workspace} [options.workspace]
 	 *   Optional workspace instance to use for overriding node resolutions
 	 * @returns {Promise<@ui5/project/graph/ProjectGraph>}

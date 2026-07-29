@@ -2,6 +2,7 @@ import path from "node:path";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("ui5Framework:AbstractResolver");
 import semver from "semver";
+import {validateUi5DataDir} from "../utils/dataDir.js";
 
 // Reduced Semantic Versioning pattern
 // Matches MAJOR or MAJOR.MINOR as a simple version range to be resolved to the latest minor/patch
@@ -25,8 +26,8 @@ class AbstractResolver {
 	 * @param {boolean} [options.sources=false] Whether to install framework libraries as sources or
 	 * 					pre-built (with build manifest)
 	 * @param {string} [options.cwd=process.cwd()] Current working directory
-	 * @param {string} options.ui5DataDir Resolved UI5 home directory location. This is used to store
-	 * metadata and packages used by the resolvers and must be resolved by the caller.
+	 * @param {string} options.ui5DataDir Absolute path to the UI5 data directory.
+	 * Used for framework metadata and package resolution and must be resolved by the caller.
 	 * @param {object.<string, @ui5/project/ui5Framework/AbstractResolver~LibraryMetadataEntry>} [options.providedLibraryMetadata]
 	 * Resolver skips installing listed libraries and uses the dependency information to resolve their dependencies.
 	 * <code>version</code> can be omitted in case all libraries can be resolved via the <code>providedLibraryMetadata</code>.
@@ -37,12 +38,10 @@ class AbstractResolver {
 		if (new.target === AbstractResolver) {
 			throw new TypeError("Class 'AbstractResolver' is abstract");
 		}
-		if (!ui5DataDir) {
-			const resolverName = new.target?.name || "AbstractResolver";
-			throw new Error(`${resolverName}: Missing parameter "ui5DataDir"`);
-		}
+		const resolverName = new.target?.name || "AbstractResolver";
+		validateUi5DataDir(ui5DataDir, resolverName);
 
-		this._ui5DataDir = path.resolve(ui5DataDir);
+		this._ui5DataDir = ui5DataDir;
 		this._cwd = cwd ? path.resolve(cwd) : process.cwd();
 		this._version = version;
 
@@ -216,7 +215,8 @@ class AbstractResolver {
 	 * @public
 	 * @static
 	 * @param {string} version Framework version or semver range to resolve
-	 * @param {string} ui5DataDir Resolved UI5 home directory location used for framework metadata and packages
+	 * @param {string} ui5DataDir Absolute path to the UI5 data directory.
+	 * Used for framework metadata and package resolution.
 	 * @param {object} [options] Additional options
 	 * @param {string} [options.cwd=process.cwd()] Current working directory
 	 * @returns {Promise<string>} Promise resolving to the resolved framework version
@@ -229,10 +229,7 @@ class AbstractResolver {
 			throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
 		}
 
-		if (!ui5DataDir) {
-			throw new Error(`${this.name}: Missing parameter "ui5DataDir"`);
-		}
-		ui5DataDir = path.resolve(ui5DataDir);
+		validateUi5DataDir(ui5DataDir, this.name);
 
 		const spec = await this._getVersionSpec(version, ui5DataDir, {cwd});
 

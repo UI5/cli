@@ -15,10 +15,11 @@ test.beforeEach(async (t) => {
 		})
 	};
 
-	const {resolveUi5DataDir} = await esmock("../../../lib/utils/dataDir.js", {
+	const {resolveUi5DataDir, validateUi5DataDir} = await esmock("../../../lib/utils/dataDir.js", {
 		"../../../lib/config/Configuration.js": t.context.ConfigurationStub
 	});
 	t.context.resolveUi5DataDir = resolveUi5DataDir;
+	t.context.validateUi5DataDir = validateUi5DataDir;
 });
 
 test.afterEach.always((t) => {
@@ -127,4 +128,27 @@ test.serial("resolveUi5DataDir: uses process.cwd() when projectRootPath is not p
 	t.context.configGetUi5DataDirStub.returns("relative/data");
 	const result = await resolveUi5DataDir();
 	t.is(result, path.resolve(process.cwd(), "relative/data"));
+});
+
+test("validateUi5DataDir: throws when ui5DataDir is missing", (t) => {
+	const {validateUi5DataDir} = t.context;
+	const err = t.throws(() => {
+		validateUi5DataDir(undefined, "TestApi");
+	});
+	t.is(err.message, "TestApi: Missing parameter \"ui5DataDir\"");
+});
+
+test("validateUi5DataDir: throws when ui5DataDir is relative", (t) => {
+	const {validateUi5DataDir} = t.context;
+	const err = t.throws(() => {
+		validateUi5DataDir("./relative/path", "TestApi");
+	});
+	t.is(err.message, "TestApi: Parameter \"ui5DataDir\" must be an absolute path");
+});
+
+test("validateUi5DataDir: accepts absolute ui5DataDir", (t) => {
+	const {validateUi5DataDir} = t.context;
+	t.notThrows(() => {
+		validateUi5DataDir(path.resolve("absolute/path"), "TestApi");
+	});
 });

@@ -149,3 +149,19 @@ test("close() still calls server.close when buildServer.destroy() rejects", asyn
 	});
 	t.true(mockServer.close.calledOnce, "server.close was called despite destroy rejection");
 });
+
+test("serve rejects relative ui5DataDir", async (t) => {
+	const mockServer = createMockServer();
+	const mockBuildServer = createMockBuildServer();
+	const mocks = createMocks(mockServer);
+
+	const {serve} = await esmock("../../../lib/server.js", mocks);
+	const graph = createMockGraph(mockBuildServer);
+
+	const err = await t.throwsAsync(serve(graph, {
+		ui5DataDir: "./relative-ui5-data-dir",
+		port: 3000
+	}));
+
+	t.is(err.message, "server.serve: Parameter \"ui5DataDir\" must be an absolute path");
+});

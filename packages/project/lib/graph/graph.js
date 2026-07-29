@@ -3,6 +3,7 @@ import projectGraphBuilder from "./projectGraphBuilder.js";
 import ui5Framework from "./helpers/ui5Framework.js";
 import createWorkspace from "./helpers/createWorkspace.js";
 import {getLogger} from "@ui5/logger";
+import {validateUi5DataDir} from "../utils/dataDir.js";
 const log = getLogger("generateProjectGraph");
 
 /**
@@ -34,7 +35,7 @@ const log = getLogger("generateProjectGraph");
  * @param {module:@ui5/project/ui5Framework/maven/SnapshotCache} [options.snapshotCache]
  *      Snapshot cache mode to use when consuming SNAPSHOT versions of a framework
  * @param {string} options.ui5DataDir
- * 		Resolved UI5 data directory to use for framework metadata and package resolution.
+	 * 		Absolute path to the UI5 data directory used for framework metadata and package resolution.
  * @param {string} [options.workspaceConfigPath=ui5-workspace.yaml]
  * 		Workspace configuration file to use if no object has been provided
  * @param {@ui5/project/graph/Workspace~Configuration} [options.workspaceConfiguration]
@@ -49,9 +50,7 @@ export async function graphFromPackageDependencies({
 	workspaceConfiguration, workspaceConfigPath = "ui5-workspace.yaml",
 	ui5DataDir
 }) {
-	if (!ui5DataDir) {
-		throw new Error("graphFromPackageDependencies: Missing parameter \"ui5DataDir\"");
-	}
+	validateUi5DataDir(ui5DataDir, "graphFromPackageDependencies");
 	log.verbose(`Creating project graph using npm provider...`);
 	const {
 		default: NpmProvider
@@ -107,7 +106,7 @@ export async function graphFromPackageDependencies({
  * @param {module:@ui5/project/ui5Framework/maven/SnapshotCache} [options.snapshotCache]
  *      Snapshot cache mode to use when consuming SNAPSHOT versions of a framework
  * @param {string} options.ui5DataDir
- * 		Resolved UI5 data directory to use for framework metadata and package resolution.
+	 * 		Absolute path to the UI5 data directory used for framework metadata and package resolution.
  * @param {string} [options.resolveFrameworkDependencies=true]
  *		Whether framework dependencies should be added to the graph
  * @returns {Promise<@ui5/project/graph/ProjectGraph>} Promise resolving to a Project Graph instance
@@ -118,9 +117,7 @@ export async function graphFromStaticFile({
 	versionOverride, snapshotCache, resolveFrameworkDependencies = true,
 	ui5DataDir
 }) {
-	if (!ui5DataDir) {
-		throw new Error("graphFromStaticFile: Missing parameter \"ui5DataDir\"");
-	}
+	validateUi5DataDir(ui5DataDir, "graphFromStaticFile");
 	log.verbose(`Creating project graph using static file...`);
 	const {
 		default: DependencyTreeProvider
@@ -165,7 +162,7 @@ export async function graphFromStaticFile({
  * @param {module:@ui5/project/ui5Framework/maven/SnapshotCache} [options.snapshotCache]
  *      Snapshot cache mode to use when consuming SNAPSHOT versions of a framework
  * @param {string} options.ui5DataDir
- * 		Resolved UI5 data directory to use for framework metadata and package resolution.
+	 * 		Absolute path to the UI5 data directory used for framework metadata and package resolution.
  * @param {string} [options.resolveFrameworkDependencies=true]
  *		Whether framework dependencies should be added to the graph
  * @returns {Promise<@ui5/project/graph/ProjectGraph>} Promise resolving to a Project Graph instance
@@ -176,9 +173,7 @@ export async function graphFromObject({
 	versionOverride, snapshotCache, resolveFrameworkDependencies = true,
 	ui5DataDir
 }) {
-	if (!ui5DataDir) {
-		throw new Error("graphFromObject: Missing parameter \"ui5DataDir\"");
-	}
+	validateUi5DataDir(ui5DataDir, "graphFromObject");
 	log.verbose(`Creating project graph using object...`);
 	const {
 		default: DependencyTreeProvider

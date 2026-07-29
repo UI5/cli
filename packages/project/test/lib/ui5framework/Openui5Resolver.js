@@ -171,6 +171,16 @@ test.serial("Openui5Resolver: Static _getInstaller without options", (t) => {
 	t.is(t.context.InstallerStub.callCount, 0, "Installer should not be called");
 });
 
+test.serial("Openui5Resolver: Static _getInstaller with relative ui5DataDir", (t) => {
+	const {Openui5Resolver} = t.context;
+
+	const err = t.throws(() => {
+		Openui5Resolver._getInstaller("./ui5DataDir", {cwd: "/cwd"});
+	});
+	t.is(err.message, "Openui5Resolver: Parameter \"ui5DataDir\" must be an absolute path");
+	t.is(t.context.InstallerStub.callCount, 0, "Installer should not be called");
+});
+
 test.serial("Openui5Resolver: Static fetchAllVersions", async (t) => {
 	const {Openui5Resolver} = t.context;
 

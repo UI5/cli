@@ -3,6 +3,7 @@ import semver from "semver";
 import AbstractResolver from "./AbstractResolver.js";
 import Installer from "./npm/Installer.js";
 import {getLogger} from "@ui5/logger";
+import {validateUi5DataDir} from "../utils/dataDir.js";
 const log = getLogger("ui5Framework:Sapui5Resolver");
 
 const DIST_PKG_NAME = "@sapui5/distribution-metadata";
@@ -20,8 +21,8 @@ class Sapui5Resolver extends AbstractResolver {
 	 * @param {*} options options
 	 * @param {string} options.version SAPUI5 version to use
 	 * @param {string} [options.cwd=process.cwd()] Working directory to resolve configurations like .npmrc
-	 * @param {string} options.ui5DataDir Resolved UI5 home directory location. This is used to
-	 * store metadata and packages used by the resolvers.
+	 * @param {string} options.ui5DataDir Absolute path to the UI5 data directory.
+	 * Used for framework metadata and package resolution.
 	 * @param {string} [options.cacheDir] Where to store temp/cached packages.
 	 * @param {string} [options.packagesDir] Where to install packages
 	 * @param {string} [options.stagingDir] The staging directory for packages
@@ -116,12 +117,10 @@ class Sapui5Resolver extends AbstractResolver {
 	}
 
 	static _getInstaller(ui5DataDir, {cwd} = {}) {
-		if (!ui5DataDir) {
-			throw new Error(`${this.name}: Missing parameter "ui5DataDir"`);
-		}
+		validateUi5DataDir(ui5DataDir, this.name);
 		return new Installer({
 			cwd: cwd ? path.resolve(cwd) : process.cwd(),
-			ui5DataDir: path.resolve(ui5DataDir)
+			ui5DataDir
 		});
 	}
 }

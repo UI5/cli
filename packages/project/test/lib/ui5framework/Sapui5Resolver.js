@@ -157,6 +157,16 @@ test.serial("Sapui5Resolver: Static _getInstaller without options", (t) => {
 	t.is(t.context.InstallerStub.callCount, 0, "Installer should not be called");
 });
 
+test.serial("Sapui5Resolver: Static _getInstaller with relative ui5DataDir", (t) => {
+	const {Sapui5Resolver} = t.context;
+
+	const err = t.throws(() => {
+		Sapui5Resolver._getInstaller("./ui5DataDir", {cwd: "/cwd"});
+	});
+	t.is(err.message, "Sapui5Resolver: Parameter \"ui5DataDir\" must be an absolute path");
+	t.is(t.context.InstallerStub.callCount, 0, "Installer should not be called");
+});
+
 test.serial("Sapui5Resolver: Static fetchAllVersions", async (t) => {
 	const {Sapui5Resolver} = t.context;
 

@@ -119,12 +119,20 @@ This affects `Openui5Resolver`, `Sapui5Resolver`, and `Sapui5MavenSnapshotResolv
 The same requirement now applies to static resolver APIs (for example `resolveVersion`, `fetchAllVersions`, and
 `fetchAllTags`). Calls without `ui5DataDir` now throw and no longer fall back to implicit default paths.
 
+In addition, every Node.js API parameter named `ui5DataDir` now expects an **absolute path**.
+Passing a relative path now throws an error.
+
 Previously, `ui5DataDir` was optional and resolver constructors implicitly resolved a fallback from
 environment/configuration. In UI5 CLI v5, callers must resolve the UI5 data directory before constructing a
 resolver and pass it explicitly. This change improves API clarity by making the dependency explicit.
 
 Use [`resolveUi5DataDir`](../api/module-@ui5_project_utils_dataDir.md) to resolve the path once at your async
-entry boundary and forward the resolved value to all APIs that need it.
+entry boundary and forward the resolved value unchanged to all APIs that need it.
+
+Besides framework resolvers, this applies to other public APIs that take `ui5DataDir`, including:
+- `graphFromPackageDependencies`, `graphFromStaticFile`, and `graphFromObject` from `@ui5/project/graph`
+- `ProjectGraph#build` and `ProjectGraph#serve`
+- `serve` from `@ui5/server`
 
 ::: code-group
 ```js [Before]

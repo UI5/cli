@@ -103,6 +103,18 @@ test("Missing graph parameters", (t) => {
 		"Threw with expected error message");
 });
 
+test("ProjectBuilder: relative ui5DataDir should throw", (t) => {
+	const {ProjectBuilder, graph, taskRepository} = t.context;
+	const err = t.throws(() => {
+		new ProjectBuilder({
+			graph,
+			taskRepository,
+			ui5DataDir: "./ui5DataDir"
+		});
+	});
+	t.is(err.message, "ProjectBuilder: Parameter \"ui5DataDir\" must be an absolute path");
+});
+
 test("build", async (t) => {
 	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
 

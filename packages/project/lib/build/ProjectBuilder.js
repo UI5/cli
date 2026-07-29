@@ -6,6 +6,7 @@ import BuildContext from "./helpers/BuildContext.js";
 import prettyHrtime from "pretty-hrtime";
 import OutputStyleEnum from "./helpers/ProjectBuilderOutputStyle.js";
 import {isAbortError} from "./helpers/abort.js";
+import {validateUi5DataDir} from "../utils/dataDir.js";
 
 /**
  * @public
@@ -106,7 +107,7 @@ class ProjectBuilder {
 	 * @param {@ui5/project/build/ProjectBuilder~BuildConfiguration} [parameters.buildConfig] Build configuration
 	 * @param {@ui5/builder/tasks/taskRepository} parameters.taskRepository Task Repository module to use
 	 * @param {string} parameters.ui5DataDir
-	 *   Explicit UI5 data directory to use for the build cache.
+	 *   Absolute path to the UI5 data directory used for the build cache.
 	 */
 	constructor({graph, buildConfig, taskRepository, ui5DataDir}) {
 		if (!graph) {
@@ -119,9 +120,7 @@ class ProjectBuilder {
 			throw new Error(
 				`Can not build project graph with root node ${graph.getRoot().getName()}: Graph is not sealed`);
 		}
-		if (!ui5DataDir) {
-			throw new Error("ProjectBuilder: Missing parameter 'ui5DataDir'");
-		}
+		validateUi5DataDir(ui5DataDir, "ProjectBuilder");
 
 		this._graph = graph;
 		this._buildContext = new BuildContext(graph, taskRepository, ui5DataDir, buildConfig);

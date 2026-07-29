@@ -40,3 +40,24 @@ export async function resolveUi5DataDir({projectRootPath} = {}) {
 	}
 	return path.resolve(os.homedir(), ".ui5");
 }
+
+/**
+ * Validates the <code>ui5DataDir</code> parameter for public API boundaries.
+ *
+ * We enforce this centrally so every boundary reports the same contract:
+ * callers must pass an explicit absolute path. Accepting relative values would
+ * make behavior depend on the current working directory of the process entry
+ * point and can therefore differ across platforms and invocation contexts.
+ *
+ * @public
+ * @param {string} ui5DataDir Absolute path to validate
+ * @param {string} parameterOwner Name of the API validating the path
+ */
+export function validateUi5DataDir(ui5DataDir, parameterOwner) {
+	if (!ui5DataDir) {
+		throw new Error(`${parameterOwner}: Missing parameter "ui5DataDir"`);
+	}
+	if (!path.isAbsolute(ui5DataDir)) {
+		throw new Error(`${parameterOwner}: Parameter "ui5DataDir" must be an absolute path`);
+	}
+}

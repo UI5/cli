@@ -90,6 +90,15 @@ test.serial("graphFromPackageDependencies", async (t) => {
 	}, "enrichProjectGraph got called with correct options");
 });
 
+test.serial("graphFromPackageDependencies rejects relative ui5DataDir", async (t) => {
+	const {graphFromPackageDependencies} = t.context.graph;
+
+	const err = await t.throwsAsync(graphFromPackageDependencies({
+		ui5DataDir: "./relative-ui5-data-dir"
+	}));
+	t.is(err.message, "graphFromPackageDependencies: Parameter \"ui5DataDir\" must be an absolute path");
+});
+
 test.serial("graphFromPackageDependencies with workspace name", async (t) => {
 	const {
 		createWorkspaceStub, npmProviderConstructorStub,
@@ -361,6 +370,15 @@ test.serial("graphFromStaticFile", async (t) => {
 	}, "enrichProjectGraph got called with correct options");
 });
 
+test.serial("graphFromStaticFile rejects relative ui5DataDir", async (t) => {
+	const {graphFromStaticFile} = t.context.graph;
+
+	const err = await t.throwsAsync(graphFromStaticFile({
+		ui5DataDir: "./relative-ui5-data-dir"
+	}));
+	t.is(err.message, "graphFromStaticFile: Parameter \"ui5DataDir\" must be an absolute path");
+});
+
 test.serial("graphFromStaticFile: Do not resolve framework dependencies", async (t) => {
 	const {enrichProjectGraphStub} = t.context;
 	const {graphFromStaticFile} = t.context.graph;
@@ -419,6 +437,16 @@ test.serial("usingObject", async (t) => {
 		snapshotCache: "Off",
 		ui5DataDir: "/path/to/ui5-data-dir"
 	}, "enrichProjectGraph got called with correct options");
+});
+
+test.serial("usingObject rejects relative ui5DataDir", async (t) => {
+	const {graphFromObject} = t.context.graph;
+
+	const err = await t.throwsAsync(graphFromObject({
+		ui5DataDir: "./relative-ui5-data-dir",
+		dependencyTree: "dependencyTree"
+	}));
+	t.is(err.message, "graphFromObject: Parameter \"ui5DataDir\" must be an absolute path");
 });
 
 test.serial("usingObject: Do not resolve framework dependencies", async (t) => {

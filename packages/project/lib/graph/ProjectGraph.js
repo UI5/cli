@@ -2,6 +2,7 @@ import OutputStyleEnum from "../build/helpers/ProjectBuilderOutputStyle.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:ProjectGraph");
 import Cache from "../../../project/lib/build/cache/Cache.js";
+import {validateUi5DataDir} from "../utils/dataDir.js";
 
 
 /**
@@ -717,7 +718,7 @@ class ProjectGraph {
 	 * @param {module:@ui5/project/build/cache/Cache} [parameters.cache=Default]
 	 *   Cache mode to use for building UI5 projects
 	 * @param {string} parameters.ui5DataDir
-	 *   Resolved UI5 data directory to use for the build cache.
+	 *   Absolute path to the UI5 data directory used for the build cache.
 	 * @returns {Promise} Promise resolving to <code>undefined</code> once build has finished
 	 */
 	async build({
@@ -730,9 +731,7 @@ class ProjectGraph {
 		cache = Cache.Default,
 		ui5DataDir,
 	}) {
-		if (!ui5DataDir) {
-			throw new Error("ProjectGraph#build: Missing parameter \"ui5DataDir\"");
-		}
+		validateUi5DataDir(ui5DataDir, "ProjectGraph#build");
 		this.seal(); // Do not allow further changes to the graph
 		if (this._builtOrServed) {
 			throw new Error(
@@ -783,7 +782,7 @@ class ProjectGraph {
 	 * @param {module:@ui5/project/build/cache/Cache} [parameters.cache=Default]
 	 *   Cache mode to use for building UI5 projects
 	 * @param {string} parameters.ui5DataDir
-	 *   Resolved UI5 data directory to use for the build cache.
+	 *   Absolute path to the UI5 data directory used for the build cache.
 	 * @returns {Promise<BuildServer>} Promise resolving to a build server instance
 	 */
 
@@ -795,9 +794,7 @@ class ProjectGraph {
 		cache = Cache.Default,
 		ui5DataDir,
 	}) {
-		if (!ui5DataDir) {
-			throw new Error("ProjectGraph#serve: Missing parameter \"ui5DataDir\"");
-		}
+		validateUi5DataDir(ui5DataDir, "ProjectGraph#serve");
 		this.seal(); // Do not allow further changes to the graph
 		if (this._builtOrServed) {
 			throw new Error(

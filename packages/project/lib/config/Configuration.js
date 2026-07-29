@@ -26,7 +26,9 @@ class Configuration {
 	/**
 	 * @param {object} configuration
 	 * @param {string} [configuration.mavenSnapshotEndpointUrl]
-	 * @param {string} [configuration.ui5DataDir]
+	 * @param {string} [configuration.ui5DataDir] UI5 data directory path from configuration.
+	 * Can be absolute or relative. Relative values are resolved by
+	 * {@link module:@ui5/project/utils/dataDir.resolveUi5DataDir}.
 	 */
 	constructor(configuration) {
 		// Initialize map with undefined values for every option so that they are

@@ -1,4 +1,5 @@
 import {getRandomValues} from "node:crypto";
+import path from "node:path";
 import os from "node:os";
 import process from "node:process";
 import express from "express";
@@ -135,7 +136,7 @@ async function _addSsl({app, key, cert}) {
  * @param {boolean} [options.serveCSPReports=false] Enable CSP reports serving for request url
  * 										'/.ui5/csp/csp-reports.json'
  * @param {string} [options.cache="Default"] Cache mode to use for building UI5 projects.
- * @param {string} options.ui5DataDir Resolved UI5 data directory to use for the build cache.
+ * @param {string} options.ui5DataDir Absolute path to the UI5 data directory used for the build cache.
  * @param {string[]} [options.includedTasks] A list of tasks to be added to the default execution set.
  * 										Takes precedence over <code>excludedTasks</code>.
  * @param {string[]} [options.excludedTasks] A list of tasks to be excluded from the default task
@@ -154,6 +155,9 @@ export async function serve(graph, {
 }, error) {
 	if (!ui5DataDir) {
 		throw new Error("server.serve: Missing parameter \"ui5DataDir\"");
+	}
+	if (!path.isAbsolute(ui5DataDir)) {
+		throw new Error("server.serve: Parameter \"ui5DataDir\" must be an absolute path");
 	}
 	const rootProject = graph.getRoot();
 

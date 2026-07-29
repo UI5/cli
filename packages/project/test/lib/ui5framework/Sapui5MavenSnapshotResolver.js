@@ -406,6 +406,14 @@ test.serial("Sapui5MavenSnapshotResolver: Static fetchAllVersions without option
 	t.is(t.context.InstallerStub.callCount, 0, "Installer should not be called");
 });
 
+test.serial("Sapui5MavenSnapshotResolver: Static fetchAllVersions with relative ui5DataDir", async (t) => {
+	const {Sapui5MavenSnapshotResolver} = t.context;
+
+	const err = await t.throwsAsync(Sapui5MavenSnapshotResolver.fetchAllVersions("./ui5DataDir"));
+	t.is(err.message, "Sapui5MavenSnapshotResolver: Parameter \"ui5DataDir\" must be an absolute path");
+	t.is(t.context.InstallerStub.callCount, 0, "Installer should not be called");
+});
+
 test.serial("_createSnapshotEndpointUrlCallback: Environment variable", async (t) => {
 	const {Sapui5MavenSnapshotResolver} = t.context;
 	const createSnapshotEndpointUrlCallback = Sapui5MavenSnapshotResolver._createSnapshotEndpointUrlCallback;
