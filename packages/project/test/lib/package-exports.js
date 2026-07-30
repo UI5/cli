@@ -32,6 +32,8 @@ test("check number of exports", (t) => {
 	"validation/validator",
 	"validation/ValidationError",
 	"graph/ProjectGraph",
+	"graph/ProjectDefinitionWatcher",
+	"graph/projectGraphSettleWatcher",
 	"graph/projectGraphBuilder",
 	{exportedSpecifier: "graph", mappedModule: "../../lib/graph/graph.js"},
 ].forEach((v) => {
