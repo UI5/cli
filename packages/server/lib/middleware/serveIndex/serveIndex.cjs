@@ -1,10 +1,10 @@
 /*
  * serve-index
  *
- * Version: 1.9.1
+ * Version: 1.9.2
  *
  * Author: Douglas Christopher Wilson
- * Web: https://github.com/expressjs/serve-index/tree/20e83c893b701c3a117a0f6836be0f5a818bb925
+ * Web: https://github.com/expressjs/serve-index/tree/6f86a185446a37a99b2cd9694ce93df996aeba6f
  *
  * Licensed under
  *   MIT License, see "/LICENSES/MIT.txt"
@@ -150,7 +150,7 @@ function iconLookup(filename) {
 	// try by mime type
 	if (icons[mimetype]) {
 		return {
-			className: "icon-" + mimetype.replace("/", "-"),
+			className: "icon-" + mimetype.replace("/", "-").replace("+", "_"),
 			fileName: icons[mimetype]
 		};
 	}
@@ -305,6 +305,8 @@ const icons = {
 	"image/svg+xml": "page_white_vector.png",
 	"text/css": "page_white_code.png",
 	"text/html": "page_white_code.png",
+	// mime-types resolves ".js"/".mjs" to "text/javascript"; keep the JS-specific icon
+	"text/javascript": "page_white_code_red.png",
 	"text/less": "page_white_code.png",
 
 	// other, extension-specific icons

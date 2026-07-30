@@ -70,7 +70,7 @@ test("Get resource from application.a with replaced version placeholder (/versio
 		throw new Error(res.error);
 	}
 	t.is(res.statusCode, 200, "Correct HTTP status code");
-	t.regex(res.headers["content-type"], /application\/javascript/, "Correct content type");
+	t.regex(res.headers["content-type"], /text\/javascript/, "Correct content type");
 	// The 'minify' task rewrites the served file and appends a sourceMappingURL
 	t.is(res.text, "console.log(`1.0.0`);\n" + SOURCE_MAPPING_URL + "=versionTest.js.map", "Correct response");
 });
