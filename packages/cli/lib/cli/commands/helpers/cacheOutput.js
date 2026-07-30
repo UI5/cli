@@ -219,7 +219,7 @@ export function displayCleanupResult({
 	}
 
 	if (sections.length === 0) {
-		process.stderr.write(`\n${chalk.italic(PARALLEL_CLEANUP_NOTICE)}\n\n`);
+		process.stderr.write(`${chalk.italic(PARALLEL_CLEANUP_NOTICE)}\n`);
 		return;
 	}
 
