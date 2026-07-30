@@ -31,7 +31,6 @@ function getDefaultArgv() {
 		"dest": "./dist",
 		"clean-dest": false,
 		"cleanDest": false,
-		"experimental-css-variables": false,
 		"$0": "ui5"
 	};
 }

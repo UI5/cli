@@ -23,7 +23,6 @@ function getDefaultArgv() {
 		"clean-dest": false,
 		"cache": "Default",
 		"cleanDest": false,
-		"experimental-css-variables": false,
 		"cache-mode": "Default",
 		"cacheMode": "Default",
 		"snapshot-cache": "Default",
