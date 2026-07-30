@@ -50,6 +50,12 @@ export function createBuildState() {
 		// Ordered list of projects announced by build-metadata. Used to compute
 		// a stable 1-based `currentProjectIndex` when build-status events arrive.
 		projectOrder: [],
+		// True while the server is serving a last-good graph after a failed re-resolve (e.g. a
+		// branch switch to a config the tooling can't resolve). The status line reuses the ERROR
+		// rendering; this flag makes it sticky so the surviving BuildServer's `serve-ready` from
+		// source churn can't repaint "ready" over it. Set by `ui5.project-resolve-failed`, cleared
+		// by `ui5.project-resolve-succeeded`.
+		degraded: false,
 	};
 }
 
@@ -100,6 +106,17 @@ export function setStale(state, staleProjects) {
 export function setError(state, message) {
 	state.errorMessage = message || "";
 	transitionTo(state, STATES.ERROR);
+}
+
+// Marks the server degraded after a failed re-resolve. The caller pairs this with `setError` to
+// render the reason on the ERROR line; this flag keeps that line sticky against later `serve-ready`
+// events from the surviving BuildServer until a successful re-resolve calls `clearDegraded`.
+export function setDegraded(state) {
+	state.degraded = true;
+}
+
+export function clearDegraded(state) {
+	state.degraded = false;
 }
 
 // Advance the region into a "starting" placeholder state so the Status row is
