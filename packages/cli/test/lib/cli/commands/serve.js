@@ -42,7 +42,7 @@ test.beforeEach(async (t) => {
 	t.context.handlerReady = t.context.handlerReadyResolvers.promise;
 
 	t.context.server = {
-		serve: sinon.stub().callsFake((graph, config, errorCallback) => {
+		serve: sinon.stub().callsFake((graph, config, errorCallback, graphFactory) => {
 			t.context.serverErrorCallback = errorCallback;
 			t.context.handlerReadyResolvers.resolve();
 			return {
@@ -109,24 +109,35 @@ test.serial("ui5 serve: default", async (t) => {
 	}]);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
-		fakeGraph,
-		{
-			acceptRemoteConnections: false,
-			cache: undefined,
-			cert: undefined,
-			changePortIfInUse: true,
-			h2: false,
-			key: undefined,
-			port: 8080,
-			sendSAPTargetCSP: false,
-			serveCSPReports: false,
-			simpleIndex: false,
-			liveReload: true,
-			includedTasks: undefined,
-			excludedTasks: undefined,
-		}
-	]);
+	t.is(server.serve.getCall(0).args[0], fakeGraph);
+
+	// The last argument carries a graphFactory the server can call to re-resolve the graph on a
+	// project-definition change. It must produce the same graph via the same builder + args.
+	const graphFactory = server.serve.getCall(0).args[3];
+	t.is(typeof graphFactory, "function");
+	await graphFactory();
+	t.is(graph.graphFromPackageDependencies.callCount, 2, "graphFactory re-invokes the same builder");
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(1).args, graph.graphFromPackageDependencies.getCall(0).args,
+		"graphFactory re-resolves with identical parameters");
+
+	t.deepEqual(server.serve.getCall(0).args[1], {
+		acceptRemoteConnections: false,
+		cache: undefined,
+		cert: undefined,
+		changePortIfInUse: true,
+		h2: false,
+		key: undefined,
+		port: 8080,
+		sendSAPTargetCSP: false,
+		serveCSPReports: false,
+		simpleIndex: false,
+		liveReload: true,
+		includedTasks: undefined,
+		excludedTasks: undefined,
+		rootConfigPath: undefined,
+		workspaceConfigPath: null,
+		dependencyDefinitionPath: undefined,
+	});
 	t.is(typeof server.serve.getCall(0).args[2], "function");
 });
 
@@ -138,7 +149,7 @@ test.serial("ui5 serve --h2", async (t) => {
 		cert: "random-cert"
 	});
 
-	server.serve.callsFake((graph, config, errorCallback) => {
+	server.serve.callsFake((graph, config, errorCallback, graphFactory) => {
 		t.context.serverErrorCallback = errorCallback;
 		t.context.handlerReadyResolvers.resolve();
 		return {h2: true, port: 8443};
@@ -153,24 +164,25 @@ test.serial("ui5 serve --h2", async (t) => {
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
-		fakeGraph,
-		{
-			acceptRemoteConnections: false,
-			cache: undefined,
-			changePortIfInUse: true,
-			h2: true,
-			key: "random-key",
-			cert: "random-cert",
-			port: 8443,
-			sendSAPTargetCSP: false,
-			serveCSPReports: false,
-			simpleIndex: false,
-			liveReload: true,
-			includedTasks: undefined,
-			excludedTasks: undefined,
-		}
-	]);
+	t.is(server.serve.getCall(0).args[0], fakeGraph);
+	t.deepEqual(server.serve.getCall(0).args[1], {
+		acceptRemoteConnections: false,
+		cache: undefined,
+		changePortIfInUse: true,
+		h2: true,
+		key: "random-key",
+		cert: "random-cert",
+		port: 8443,
+		sendSAPTargetCSP: false,
+		serveCSPReports: false,
+		simpleIndex: false,
+		liveReload: true,
+		includedTasks: undefined,
+		excludedTasks: undefined,
+		rootConfigPath: undefined,
+		workspaceConfigPath: null,
+		dependencyDefinitionPath: undefined,
+	});
 
 	t.is(sslUtil.getSslCertificate.callCount, 1);
 	t.deepEqual(sslUtil.getSslCertificate.getCall(0).args, [
@@ -188,24 +200,25 @@ test.serial("ui5 serve --accept-remote-connections", async (t) => {
 	await t.context.handlerReady;
 
 	t.is(server.serve.callCount, 1);
-	t.deepEqual(server.serve.getCall(0).args.slice(0, 2), [
-		fakeGraph,
-		{
-			acceptRemoteConnections: true,
-			cache: undefined,
-			cert: undefined,
-			changePortIfInUse: true,
-			h2: false,
-			key: undefined,
-			port: 8080,
-			sendSAPTargetCSP: false,
-			serveCSPReports: false,
-			simpleIndex: false,
-			liveReload: true,
-			includedTasks: undefined,
-			excludedTasks: undefined,
-		}
-	]);
+	t.is(server.serve.getCall(0).args[0], fakeGraph);
+	t.deepEqual(server.serve.getCall(0).args[1], {
+		acceptRemoteConnections: true,
+		cache: undefined,
+		cert: undefined,
+		changePortIfInUse: true,
+		h2: false,
+		key: undefined,
+		port: 8080,
+		sendSAPTargetCSP: false,
+		serveCSPReports: false,
+		simpleIndex: false,
+		liveReload: true,
+		includedTasks: undefined,
+		excludedTasks: undefined,
+		rootConfigPath: undefined,
+		workspaceConfigPath: null,
+		dependencyDefinitionPath: undefined,
+	});
 });
 
 test.serial("ui5 serve --open", async (t) => {
@@ -480,7 +493,7 @@ test.serial("ui5 serve with ui5.yaml port setting", async (t) => {
 		httpPort: 3333
 	});
 
-	server.serve.callsFake((graph, config, errorCallback) => {
+	server.serve.callsFake((graph, config, errorCallback, graphFactory) => {
 		t.context.serverErrorCallback = errorCallback;
 		t.context.handlerReadyResolvers.resolve();
 		return {h2: false, port: 3333};
@@ -506,7 +519,7 @@ test.serial("ui5 serve --h2 with ui5.yaml port setting", async (t) => {
 		httpsPort: 4444
 	});
 
-	server.serve.callsFake((graph, config, errorCallback) => {
+	server.serve.callsFake((graph, config, errorCallback, graphFactory) => {
 		t.context.serverErrorCallback = errorCallback;
 		t.context.handlerReadyResolvers.resolve();
 		return {h2: true, port: 4444};
@@ -535,7 +548,7 @@ test.serial("ui5 serve --h2 with ui5.yaml port setting and port CLI argument", a
 		httpsPort: 4444
 	});
 
-	server.serve.callsFake((graph, config, errorCallback) => {
+	server.serve.callsFake((graph, config, errorCallback, graphFactory) => {
 		t.context.serverErrorCallback = errorCallback;
 		t.context.handlerReadyResolvers.resolve();
 		return {h2: true, port: 5555};
