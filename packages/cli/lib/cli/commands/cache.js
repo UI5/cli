@@ -119,7 +119,7 @@ async function handleCache(argv) {
 
 	if (!hasActiveCache && !hasStaleCache) {
 		if (isVerbose) {
-			process.stderr.write(`\n${chalk.italic("Nothing to clean")}\n\n`);
+			process.stderr.write(`${chalk.italic("Nothing to clean")}\n`);
 		}
 		return;
 	}
@@ -139,32 +139,40 @@ async function handleCache(argv) {
 	const confirmed = await getConfirmation(argv);
 	if (!confirmed) {
 		if (isVerbose) {
-			process.stderr.write(`\n${chalk.italic("Cancelled")}\n\n`);
+			process.stderr.write(`${chalk.italic("Cancelled")}\n`);
 		}
 		return;
 	}
 
-	const [frameworkResult, buildResult] = await Promise.all([
+	if (isVerbose) {
+		// Get fresh build stale info to distinguish
+		// between active and stale build cache after cleanup.
+		buildStaleInfo = await CacheManager.getAdditionalCacheInfo(ui5DataDir);
+	}
+
+	const [frameworkCleanupResult, buildCleanupResult] = await Promise.all([
 		FrameworkCache.cleanCache(ui5DataDir),
 		CacheManager.cleanCache(ui5DataDir),
 	]);
 
-	const [additionalFrameworkResult, additionalBuildResult] = await Promise.all([
+	const [additionalFrameworkCleanupResult, buildStaleCleanupResult] = await Promise.all([
 		FrameworkCache.cleanAdditional(ui5DataDir),
 		CacheManager.cleanAdditional(ui5DataDir),
 	]);
 
 	if (isVerbose) {
-		const cleanedStaleFramework = staleInfo.length > 0 ? withAbsPath(additionalFrameworkResult, ui5DataDir) : [];
-		const cleanedStaleBuild = buildStaleInfo.length > 0 ? withAbsPath(additionalBuildResult, ui5DataDir) : [];
-		const frameworkResultAbsPath = getAbsPath(ui5DataDir, frameworkResult) || getAbsPath(ui5DataDir, frameworkInfo);
-		const buildResultAbsPath = getAbsPath(ui5DataDir, buildResult) || getAbsPath(ui5DataDir, buildInfo);
+		const staleBuildCleanupResult = buildStaleInfo?.length > 0 ?
+			buildStaleCleanupResult : [];
+		const cleanedStaleFramework = withAbsPath(additionalFrameworkCleanupResult, ui5DataDir);
+		const cleanedStaleBuild = withAbsPath(staleBuildCleanupResult, ui5DataDir);
+		const frameworkResultAbsPath = getAbsPath(ui5DataDir, frameworkCleanupResult);
+		const buildResultAbsPath = getAbsPath(ui5DataDir, buildCleanupResult);
 		await displayCleanupResult({
-			frameworkResult,
-			buildResult,
+			frameworkResult: frameworkCleanupResult,
+			buildResult: buildCleanupResult,
 			frameworkAbsPath: frameworkResultAbsPath,
 			buildAbsPath: buildResultAbsPath,
-			buildPreSize: buildInfo?.size ?? buildResult?.size ?? 0,
+			buildSize: buildCleanupResult?.size ?? 0,
 			staleInfoWithAbsPaths: cleanedStaleFramework,
 			buildAdditionalResult: cleanedStaleBuild,
 		});

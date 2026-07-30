@@ -244,7 +244,6 @@ test.serial("ui5 cache clean: removes both entries and reports", async (t) => {
 	t.true(allOutput.includes("5 versions of 18 libraries"), "Shows library stats format");
 	t.true(allOutput.includes("8.0 MB"), "Shows pre-clean build cache size");
 	t.false(allOutput.includes("Stale Cache"), "Does not report stale cache section when only active cache existed");
-	t.false(allOutput.includes("7.0 MB"), "Does not show VACUUM-freed size");
 	t.true(allOutput.includes("Cleaned Active Cache (Framework and Build)"),
 		"Shows success summary");
 	const warningCall = stderrWriteStub.getCalls().find((call) => {
@@ -709,6 +708,85 @@ test.serial("ui5 cache clean: shows stale build cache in pre-confirm and post-cl
 	t.true(allOutput.includes("Removed"), "Post-clean result shows removed entries");
 	t.true(allOutput.includes("freed 40.0 MB"), "Shows freed size in post-clean result");
 	t.true(allOutput.includes("Cleaned Stale Cache (Build)"), "Success summary mentions stale build group");
+});
+
+test.serial("ui5 cache clean: post-clean summary does not duplicate active build cleanup as stale", async (t) => {
+	const {cache, argv, stderrWriteStub, buildCacheGetAdditionalCacheInfo,
+		buildCacheGetCacheInfo, buildCacheCleanCache, buildCacheCleanAdditional} = t.context;
+
+	t.context.frameworkCacheGetCacheInfo.resolves(null);
+	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 30 * 1024 * 1024});
+	buildCacheGetAdditionalCacheInfo.resolves([]);
+	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 30 * 1024 * 1024});
+	buildCacheCleanAdditional.resolves([
+		{path: "buildCache/v0_7", size: 30 * 1024 * 1024},
+	]);
+
+	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
+	argv["force"] = true;
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("30.0 MB"), "Shows active build cleanup size in post-clean output");
+	t.true(allOutput.includes("Cleaned Active Cache (Build)"),
+		"Success summary reports active build cleanup");
+	t.false(allOutput.includes("Stale Cache"),
+		"Does not duplicate active build cleanup as stale build cleanup");
+	t.false(allOutput.includes("freed 30.0 MB"),
+		"Does not render stale build cleanup details when active build cleanup already covered it");
+});
+
+test.serial("ui5 cache clean: keeps stale build cleanup when stale existed pre-confirm", async (t) => {
+	const {cache, argv, stderrWriteStub, buildCacheGetAdditionalCacheInfo,
+		buildCacheGetCacheInfo, buildCacheCleanCache, buildCacheCleanAdditional} = t.context;
+
+	t.context.frameworkCacheGetCacheInfo.resolves(null);
+	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 30 * 1024 * 1024});
+	buildCacheGetAdditionalCacheInfo.resolves([
+		{path: "buildCache/v0_7", size: 12 * 1024 * 1024},
+	]);
+	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 30 * 1024 * 1024});
+	buildCacheCleanAdditional.resolves([
+		{path: "buildCache/v0_7", size: 30 * 1024 * 1024},
+	]);
+
+	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
+	argv["force"] = true;
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("Cleaned Active Cache (Build) and Stale Cache (Build)"),
+		"Keeps stale build section when stale build existed before confirmation");
+	t.true(allOutput.includes("freed 30.0 MB"),
+		"Shows stale build cleanup details when stale build existed before confirmation");
+});
+
+test.serial("ui5 cache clean: post-clean summary ignores stale preview when cleanup result is empty", async (t) => {
+	const {cache, argv, stderrWriteStub, buildCacheGetAdditionalCacheInfo,
+		buildCacheGetCacheInfo, buildCacheCleanCache, buildCacheCleanAdditional} = t.context;
+
+	t.context.frameworkCacheGetCacheInfo.resolves(null);
+	buildCacheGetCacheInfo.resolves(null);
+	buildCacheGetAdditionalCacheInfo.resolves([
+		{path: "buildCache/v0_7", size: 12 * 1024 * 1024},
+	]);
+	buildCacheCleanCache.resolves(null);
+	buildCacheCleanAdditional.resolves([]);
+
+	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
+	argv["force"] = true;
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "buildCache/v0_7")),
+		"Pre-confirm summary still shows stale build preview entry");
+	t.true(allOutput.includes(PARALLEL_CLEANUP_NOTICE),
+		"Post-clean summary reflects current cleanup state, not stale preview snapshot");
+	t.false(allOutput.includes("Cleaned Stale Cache (Build)"),
+		"Does not claim stale build cleanup without current cleanup result");
 });
 
 test.serial("ui5 cache clean: build cache and stale build cache with size 0 omit size detail", async (t) => {

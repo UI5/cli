@@ -81,6 +81,68 @@ export function displayCacheCleanWarning() {
 	process.stderr.write(`${chalk.italic(CACHE_CLEAN_WARNING_IMPACT)}\n\n`);
 }
 
+function createFrameworkItems(entries) {
+	const items = [];
+	for (const entry of entries) {
+		const detail = formatFrameworkStats(entry.libraryCount, entry.versionCount);
+		items.push({absPath: entry.absPath, detail});
+	}
+	return items;
+}
+
+function createBuildItems(entries, detailFormatter) {
+	const items = [];
+	for (const entry of entries) {
+		const detail = detailFormatter(entry.size);
+		items.push({absPath: entry.absPath, detail});
+	}
+	return items;
+}
+
+function createSections({
+	activeFramework,
+	activeBuild,
+	staleFrameworkEntries,
+	staleBuildEntries,
+	staleBuildDetailFormatter,
+}) {
+	const sections = [];
+
+	const activeCategories = [];
+	if (activeFramework) {
+		const detail = formatFrameworkStats(activeFramework.libraryCount, activeFramework.versionCount);
+		activeCategories.push({
+			title: GROUP_FRAMEWORK,
+			items: [{absPath: activeFramework.absPath, detail}],
+		});
+	}
+	if (activeBuild) {
+		const detail = activeBuild.size > 0 ? formatSize(activeBuild.size) : "";
+		activeCategories.push({
+			title: GROUP_BUILD,
+			items: [{absPath: activeBuild.absPath, detail}],
+		});
+	}
+	if (activeCategories.length > 0) {
+		sections.push({title: SECTION_ACTIVE_CACHE, categories: activeCategories});
+	}
+
+	const staleCategories = [];
+	const staleFrameworkItems = createFrameworkItems(staleFrameworkEntries);
+	if (staleFrameworkItems.length > 0) {
+		staleCategories.push({title: GROUP_FRAMEWORK, items: staleFrameworkItems});
+	}
+	const staleBuildItems = createBuildItems(staleBuildEntries, staleBuildDetailFormatter);
+	if (staleBuildItems.length > 0) {
+		staleCategories.push({title: GROUP_BUILD, items: staleBuildItems});
+	}
+	if (staleCategories.length > 0) {
+		sections.push({title: SECTION_STALE_CACHE, categories: staleCategories});
+	}
+
+	return sections;
+}
+
 /**
  * Display information about the cached data that will be removed.
  * Entries are grouped by active and stale cache data.
@@ -103,47 +165,20 @@ export function displayCacheInfo({
 	staleInfo,
 	buildAdditionalInfo,
 }) {
-	const sections = [];
-
-	if (frameworkInfo || buildInfo) {
-		const activeCategories = [];
-		if (frameworkInfo) {
-			const detail = formatFrameworkStats(frameworkInfo.libraryCount, frameworkInfo.versionCount);
-			activeCategories.push({
-				title: GROUP_FRAMEWORK,
-				items: [{absPath: frameworkAbsPath, detail}],
-			});
-		}
-		if (buildInfo) {
-			const detail = buildPreSize > 0 ? formatSize(buildPreSize) : "";
-			activeCategories.push({
-				title: GROUP_BUILD,
-				items: [{absPath: buildAbsPath, detail}],
-			});
-		}
-		sections.push({title: SECTION_ACTIVE_CACHE, categories: activeCategories});
-	}
-
-	if (staleInfo?.length > 0 || buildAdditionalInfo?.length > 0) {
-		const staleCategories = [];
-		if (staleInfo.length > 0) {
-			const items = [];
-			for (const staleEntry of staleInfo) {
-				const detail = formatFrameworkStats(staleEntry.libraryCount, staleEntry.versionCount);
-				items.push({absPath: staleEntry.absPath, detail});
-			}
-			staleCategories.push({title: GROUP_FRAMEWORK, items});
-		}
-		if (buildAdditionalInfo.length > 0) {
-			const items = [];
-			for (const buildEntry of buildAdditionalInfo) {
-				const detail = buildEntry.size > 0 ? formatSize(buildEntry.size) : "";
-				items.push({absPath: buildEntry.absPath, detail});
-			}
-			staleCategories.push({title: GROUP_BUILD, items});
-		}
-		sections.push({title: SECTION_STALE_CACHE, categories: staleCategories});
-	}
+	const sections = createSections({
+		activeFramework: frameworkInfo ? {
+			absPath: frameworkAbsPath,
+			libraryCount: frameworkInfo.libraryCount,
+			versionCount: frameworkInfo.versionCount,
+		} : null,
+		activeBuild: buildInfo ? {
+			absPath: buildAbsPath,
+			size: buildPreSize,
+		} : null,
+		staleFrameworkEntries: staleInfo,
+		staleBuildEntries: buildAdditionalInfo,
+		staleBuildDetailFormatter: (size) => size > 0 ? formatSize(size) : "",
+	});
 
 	process.stderr.write(`\n${chalk.bold("The following cached data will be removed:")}\n`);
 	process.stderr.write("\n");
@@ -161,7 +196,7 @@ export function displayCacheInfo({
  * @param {object|null} data.buildResult
  * @param {string|null} data.frameworkAbsPath
  * @param {string|null} data.buildAbsPath
- * @param {number} data.buildPreSize
+ * @param {number} data.buildSize
  * @param {Array<{absPath: string, libraryCount: number, versionCount: number}>} data.staleInfoWithAbsPaths
  * @param {Array<{absPath: string, size: number}>} data.buildAdditionalResult
  */
@@ -170,53 +205,24 @@ export function displayCleanupResult({
 	buildResult,
 	frameworkAbsPath,
 	buildAbsPath,
-	buildPreSize,
+	buildSize,
 	staleInfoWithAbsPaths,
 	buildAdditionalResult,
 }) {
-	const sections = [];
-
-	if (frameworkResult || buildResult) {
-		const activeCategories = [];
-		if (frameworkResult && frameworkAbsPath) {
-			const detail = formatFrameworkStats(frameworkResult.libraryCount, frameworkResult.versionCount);
-			activeCategories.push({
-				title: GROUP_FRAMEWORK,
-				items: [{absPath: frameworkAbsPath, detail}],
-			});
-		}
-		if (buildResult && buildAbsPath) {
-			const detail = buildPreSize > 0 ? formatSize(buildPreSize) : "";
-			activeCategories.push({
-				title: GROUP_BUILD,
-				items: [{absPath: buildAbsPath, detail}],
-			});
-		}
-		if (activeCategories.length > 0) {
-			sections.push({title: SECTION_ACTIVE_CACHE, categories: activeCategories});
-		}
-	}
-
-	if (staleInfoWithAbsPaths?.length > 0 || buildAdditionalResult?.length > 0) {
-		const staleCategories = [];
-		if (staleInfoWithAbsPaths.length > 0) {
-			const items = [];
-			for (const staleEntry of staleInfoWithAbsPaths) {
-				const detail = formatFrameworkStats(staleEntry.libraryCount, staleEntry.versionCount);
-				items.push({absPath: staleEntry.absPath, detail});
-			}
-			staleCategories.push({title: GROUP_FRAMEWORK, items});
-		}
-		if (buildAdditionalResult.length > 0) {
-			const items = [];
-			for (const buildEntry of buildAdditionalResult) {
-				const detail = buildEntry.size > 0 ? `freed ${formatSize(buildEntry.size)}` : "";
-				items.push({absPath: buildEntry.absPath, detail});
-			}
-			staleCategories.push({title: GROUP_BUILD, items});
-		}
-		sections.push({title: SECTION_STALE_CACHE, categories: staleCategories});
-	}
+	const sections = createSections({
+		activeFramework: frameworkResult && frameworkAbsPath ? {
+			absPath: frameworkAbsPath,
+			libraryCount: frameworkResult.libraryCount,
+			versionCount: frameworkResult.versionCount,
+		} : null,
+		activeBuild: buildResult && buildAbsPath ? {
+			absPath: buildAbsPath,
+			size: buildSize,
+		} : null,
+		staleFrameworkEntries: staleInfoWithAbsPaths,
+		staleBuildEntries: buildAdditionalResult,
+		staleBuildDetailFormatter: (size) => size > 0 ? `freed ${formatSize(size)}` : "",
+	});
 
 	if (sections.length === 0) {
 		process.stderr.write(`${chalk.italic(PARALLEL_CLEANUP_NOTICE)}\n`);
