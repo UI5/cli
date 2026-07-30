@@ -1283,36 +1283,35 @@ export default class ProjectBuildCache {
 	 * <code>#cachedFrozenSourceMetadata</code> (re-read from the persisted cache during
 	 * <code>#initSourceIndex</code>).
 	 *
-	 * No-op in {@link @ui5/project/build/cache/Cache}.Off mode, where no index or result
-	 * cache exists to reset.
-	 *
 	 * @public
 	 */
 	discardIncrementalState() {
 		if (this.#cacheMode === Cache.Off) {
 			return;
 		}
+		// Makes the next build re-run initSourceIndex (before validateCache), which re-globs the
+		// source tree from scratch. See the initSourceIndex guard.
 		this.#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
-		this.#sourceIndex = null;
 		this.#taskCache.clear();
-		// Reset the result cache state: a prior validateCache may have moved it to
-		// NO_CACHE or FRESH_AND_IN_USE. The next build's validateCache asserts
-		// PENDING_VALIDATION after the dependency-index restore step, so any other
-		// value would trip that assertion.
+		// Reset the result cache state. A prior validateCache may have left it at NO_CACHE or
+		// FRESH_AND_IN_USE, but the next build asserts PENDING_VALIDATION after restoring the
+		// dependency index.
 		this.#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
-		this.#changedProjectSourcePaths = [];
+		// initSourceIndex does not touch this one, so reset it here.
 		this.#changedDependencyResourcePaths = [];
-		// Derived per-build state a discarded (failed) build must not leave behind.
+		// Clear per-build state so a failed build does not leak into the next one.
 		// #currentResultSignature drives the #findResultCache early return; #currentStageSignatures
-		// drives the isInitialImport/setStage guards in #importStages; #writtenResultResourcePaths
-		// is normally emptied by allTasksCompleted, which a thrown build never reaches.
+		// drives the isInitialImport/setStage guards in #importStages.
 		this.#currentResultSignature = undefined;
-		this.#cachedResultSignature = undefined;
 		this.#currentStageSignatures = new Map();
-		this.#writtenResultResourcePaths = [];
 		// Reset the stage pipeline so #importStages re-initializes stages and re-imports
 		// cached results instead of reusing the failed build's partial writers.
 		this.#project.getProjectResources().reset();
+
+		// Both get overwritten before they are read on the next build (#sourceIndex by
+		// #initSourceIndex, #cachedResultSignature by #findResultCache). Reset only for completeness.
+		this.#sourceIndex = null;
+		this.#cachedResultSignature = undefined;
 	}
 
 	/**
