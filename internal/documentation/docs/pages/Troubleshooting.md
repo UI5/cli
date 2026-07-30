@@ -45,7 +45,7 @@ The command removes the following cached data:
 - **UI5 Framework packages** — downloaded UI5 library files (`~/.ui5/framework/`)
 - **Build cache** — build data (`~/.ui5/buildCache/`)
 
-If a previous `ui5 cache clean` was interrupted (e.g. process killed or system crash), the command also detects and removes any leftover data from that interrupted operation, listed as separate entries:
+If a previous `ui5 cache clean` was interrupted (for example, because the process was killed or the system crashed), the command also detects and removes any leftover data from that interrupted operation. This data is listed as separate entries:
 - **Stale UI5 Framework packages** — incomplete framework directories left over from a previously interrupted cleanup (`~/.ui5/_framework_to_delete_*/`)
 - **Stale build cache** — freed database pages not yet reclaimed during a previously interrupted cleanup
 
