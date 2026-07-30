@@ -3,6 +3,8 @@ import {createReaderCollectionPrioritized} from "@ui5/fs/resourceFactory";
 import BuildReader from "./BuildReader.js";
 import WatchHandler from "./helpers/WatchHandler.js";
 import {isAbortError} from "./helpers/abort.js";
+import {WATCHER_BURST_SETTLE_MS} from "./helpers/watchUtil.js";
+import RecoveryBudget, {WATCHER_RECOVERY_MAX_ATTEMPTS, WATCHER_RECOVERY_WINDOW_MS} from "./helpers/RecoveryBudget.js";
 import {getLogger} from "@ui5/logger";
 import ServeLogger from "@ui5/logger/internal/loggers/Serve";
 const log = getLogger("build:BuildServer");
@@ -13,14 +15,8 @@ const log = getLogger("build:BuildServer");
 // well under 100 ms on small projects, where a trailing debounce would dominate edit-to-reload
 // latency. The emit is therefore leading-edge (the first change of a quiet period fires
 // immediately), followed by this window that coalesces the rest of a burst into one trailing emit.
-//
-// The value is tied to @parcel/watcher's MAX_WAIT_TIME (500 ms): the watcher caps its own
-// coalescing there, so a continuous operation (e.g. `git checkout`) arrives as batches up to
-// 500 ms apart rather than one quiet-terminated batch. A window below the cap would see quiet
-// between batches and emit per batch; above it, each batch resets the window so the whole
-// operation collapses to one leading + one trailing emit. Do not lower below 500 ms without
-// revisiting that relationship.
-const SOURCES_CHANGED_SETTLE_MS = 550;
+// Sized to WATCHER_BURST_SETTLE_MS so a multi-batch operation collapses (see that constant).
+const SOURCES_CHANGED_SETTLE_MS = WATCHER_BURST_SETTLE_MS;
 
 // Debounce for the request queue. A reader request enqueues a build and triggers the queue after
 // this short delay so near-simultaneous requests build together. Serving a request must not wait,
@@ -41,20 +37,12 @@ const FIRST_BUILD_SETTLE_MS = 100;
 
 // Settle window for restarting a build that a source change aborted. When a change lands mid-build
 // the running build is aborted at once, but the restart is held until changes have been quiet for
-// this long (each further change resets it). During a burst (a `git checkout`, a save-all, a bundler
-// writing many files) @parcel/watcher delivers batches up to its MAX_WAIT_TIME (500 ms) apart;
-// restarting on BUILD_REQUEST_DEBOUNCE_MS would spawn a build per batch, each aborted by the next.
-// Holding the restart above the watcher's cap collapses the burst into a single build against the
-// settled tree. Reader-request-driven builds keep the short debounce, so this delay only applies to
-// the speculative post-abort restart, not to serving a request.
-const ABORTED_BUILD_RESTART_SETTLE_MS = 550;
-
-// Loop protection for watcher recovery, so a persistently failing watcher (e.g. a watched path
-// that keeps erroring on re-subscribe, or an FS that keeps dropping events) does not cycle
-// error -> recover -> error forever. More than WATCHER_RECOVERY_MAX_ATTEMPTS recoveries within
-// WATCHER_RECOVERY_WINDOW_MS is treated as unrecoverable and escalates to the terminal ERROR state.
-const WATCHER_RECOVERY_MAX_ATTEMPTS = 5;
-const WATCHER_RECOVERY_WINDOW_MS = 60000;
+// this long (each further change resets it). Sized to WATCHER_BURST_SETTLE_MS so a burst (a `git
+// checkout`, a save-all, a bundler writing many files) collapses into one build against the settled
+// tree instead of one aborted build per watcher batch. Reader-request-driven builds keep the short
+// debounce, so this delay applies only to the speculative post-abort restart, not to serving a
+// request.
+const ABORTED_BUILD_RESTART_SETTLE_MS = WATCHER_BURST_SETTLE_MS;
 
 // The server's ACTIVITY state: what the server is doing right now. Mutated exclusively through
 // #setState. Orthogonal to project staleness (which projects are up-to-date), which is reported
@@ -134,17 +122,21 @@ class BuildServer extends EventEmitter {
 	// regardless of which resource was requested. Cleared on every non-ERROR transition
 	// (see #setState).
 	#serveError = null;
+	// Error that parked and incoming reader requests are rejected with while suspendReaders() is
+	// engaged (a project-definition change is being re-resolved). Supplied by the caller so the
+	// HTTP-facing wording lives in the server layer. Null when not suspended.
+	#suspendError = null;
 	// Background cache validation state. `#activeValidation` is the promise of the
 	// currently running validation pass (or null when idle); `#validationAbort`
 	// is its controller, used to preempt validation when a real build is requested.
 	#activeValidation = null;
 	#validationAbort = null;
 	// Watcher recovery state. `#recoveringWatcher` guards against re-entrant recovery while a
-	// recovery pass is in flight (a dropped-events fault emits one error per subscribed path
-	// in a synchronous burst). `#watcherRecoveryTimestamps` holds the completion times of
-	// recent recoveries for the loop-protection window.
+	// recovery pass is in flight (a dropped-events fault emits one error per subscribed path in a
+	// synchronous burst). `#watcherRecoveryBudget` caps recoveries within a sliding window, on its
+	// own budget separate from the ProjectDefinitionWatcher's.
 	#recoveringWatcher = false;
-	#watcherRecoveryTimestamps = [];
+	#watcherRecoveryBudget = new RecoveryBudget();
 
 	/**
 	 * Creates a new BuildServer instance
@@ -296,10 +288,7 @@ class BuildServer extends EventEmitter {
 		// Loop protection: a persistently failing watcher would otherwise cycle forever, since
 		// dropped-events faults arrive via the subscription callback (not a watch() rejection)
 		// and so never trip the reject-based fallback below.
-		const now = Date.now();
-		this.#watcherRecoveryTimestamps = this.#watcherRecoveryTimestamps
-			.filter((ts) => now - ts < WATCHER_RECOVERY_WINDOW_MS);
-		if (this.#watcherRecoveryTimestamps.length >= WATCHER_RECOVERY_MAX_ATTEMPTS) {
+		if (!this.#watcherRecoveryBudget.withinBudget()) {
 			this.#recoveringWatcher = false;
 			log.error(`File watcher failed to recover after ${WATCHER_RECOVERY_MAX_ATTEMPTS} attempts ` +
 				`within ${WATCHER_RECOVERY_WINDOW_MS} ms. Giving up.`);
@@ -348,7 +337,7 @@ class BuildServer extends EventEmitter {
 				status.invalidate({reason: "File watcher recovery", fileAddedOrRemoved: true});
 			}
 
-			this.#watcherRecoveryTimestamps.push(Date.now());
+			this.#watcherRecoveryBudget.recordRecovery();
 			log.info(`File watcher recovered. Re-scanning all project sources.`);
 
 			// Every project is now non-fresh. The build was quiesced above, so the server is at rest:
@@ -427,6 +416,49 @@ class BuildServer extends EventEmitter {
 	}
 
 	/**
+	 * Suspends reader serving while the project definition is being re-resolved.
+	 *
+	 * Rejects every parked reader request and makes new ones fail fast (no build is enqueued) until
+	 * {@link BuildServer#resumeReaders}. Called by the dev server on the leading edge of a
+	 * definition-file change (e.g. a <code>git checkout</code>), so requests don't hang waiting out
+	 * the source burst it produces. Already-built resources keep serving; only requests that would
+	 * otherwise park are affected. A no-op once the server is destroyed.
+	 *
+	 * The <code>error</code> is thrown at the reader gate and rethrown through serveResources to the
+	 * middleware error handler, so its <code>message</code> (and <code>stack</code>, under verbose
+	 * logging) reaches the caller. It must be a real <code>Error</code>: the gate engages on
+	 * truthiness, so a falsy value would reject parked requests yet leave new ones unsuspended. The
+	 * caller owns the HTTP-facing wording and any <code>code</code> it sets; this class just forwards
+	 * the instance.
+	 *
+	 * @public
+	 * @param {Error} error Rejection reason surfaced to held and incoming reader requests. Must be an
+	 *   <code>Error</code> instance.
+	 * @throws {TypeError} If <code>error</code> is not an <code>Error</code> instance
+	 */
+	suspendReaders(error) {
+		if (!(error instanceof Error)) {
+			throw new TypeError("suspendReaders requires an Error instance");
+		}
+		if (this.#destroyed) {
+			return;
+		}
+		this.#suspendError = error;
+		for (const projectBuildStatus of this.#projectBuildStatus.values()) {
+			projectBuildStatus.rejectQueuedReaders(error);
+		}
+	}
+
+	/**
+	 * Resumes reader serving after a {@link BuildServer#suspendReaders}. Idempotent.
+	 *
+	 * @public
+	 */
+	resumeReaders() {
+		this.#suspendError = null;
+	}
+
+	/**
 	 * Gets a reader for the root project only
 	 *
 	 * Returns a reader that provides access to built resources from only the root project,
@@ -482,6 +514,14 @@ class BuildServer extends EventEmitter {
 		const lastError = projectBuildStatus.getError();
 		if (lastError) {
 			throw lastError;
+		}
+
+		// Fail fast while a project-definition change is being re-resolved. A parked request would
+		// otherwise hang out the whole `git checkout`, waiting on a build the concurrent source burst
+		// keeps aborting. Placed after the isFresh() short-circuit so already-built resources keep
+		// serving. The throw surfaces via serveResources -> errorHandler.
+		if (this.#suspendError) {
+			throw this.#suspendError;
 		}
 
 		const {promise, resolve, reject} = Promise.withResolvers();
@@ -654,14 +694,21 @@ class BuildServer extends EventEmitter {
 	}
 
 	/**
-	 * Enqueues a project for building and triggers the request queue at the short debounce.
+	 * Enqueues a project for building and triggers the request queue.
 	 *
-	 * Serving a request must not wait, so this always (re-)arms the queue at
-	 * <code>BUILD_REQUEST_DEBOUNCE_MS</code> - even when the project is already queued. A reader
-	 * request thereby supersedes a deferred settle window (the post-abort/transient restart at
-	 * <code>ABORTED_BUILD_RESTART_SETTLE_MS</code>, or the first-build window at
-	 * <code>FIRST_BUILD_SETTLE_MS</code>): the parked build is pulled forward to the short debounce
-	 * rather than left waiting out the longer window.
+	 * Serving a request must not wait, so this normally (re-)schedules the queue at
+	 * <code>BUILD_REQUEST_DEBOUNCE_MS</code>, even when the project is already queued. A reader
+	 * request thus supersedes the first-build settle window (<code>FIRST_BUILD_SETTLE_MS</code>):
+	 * the parked build is pulled forward to the short debounce.
+	 *
+	 * The exception is a source-change-aborted or transiently-failed build waiting out its restart
+	 * window (<code>#pendingDeferredRestart</code>). That window collapses a burst delivered as many
+	 * watcher batches (a <code>git checkout</code>, a save-all) into one rebuild against the settled
+	 * tree. A reader request arriving mid-burst (as a browser's live-reload does) must neither pull
+	 * the restart forward (firing a build into a still-arriving burst) nor reset the window (a stream
+	 * of live-reload requests would defer the rebuild forever). So while a restart is deferred, leave
+	 * its timer alone: the request stays queued on the status and resolves when the deferred rebuild
+	 * runs. Only further source changes reset the window (see {@link #_projectResourceChanged}).
 	 *
 	 * @param {string} projectName Name of the project to enqueue
 	 */
@@ -670,9 +717,14 @@ class BuildServer extends EventEmitter {
 			log.verbose(`Enqueuing project '${projectName}' for build`);
 			this.#pendingBuildRequest.add(projectName);
 		}
-		// Always re-arm at the default debounce: an explicit reader request supersedes any longer
-		// settle window an earlier source change may have armed.
-		this.#triggerRequestQueue();
+		if (this.#pendingDeferredRestart) {
+			// A deferred post-abort/transient restart owns the scheduled timer. Don't disturb it: the
+			// project is queued above and the restart will build it against the settled tree.
+			log.verbose(`Reader request for project '${projectName}' queued behind deferred restart`);
+			return;
+		}
+		// Re-schedule at the default debounce: a reader request supersedes the short first-build window.
+		this.#triggerRequestQueue(BUILD_REQUEST_DEBOUNCE_MS);
 	}
 
 	#triggerRequestQueue(delay = BUILD_REQUEST_DEBOUNCE_MS) {
@@ -1398,6 +1450,19 @@ class ProjectBuildStatus {
 		// would just re-produce the same failure.
 		this.#state = PROJECT_STATES.ERRORED;
 		this.#lastError = error;
+		for (const {reject} of this.#readerQueue) {
+			reject(error);
+		}
+		this.#readerQueue = [];
+	}
+
+	// Rejects every queued reader request now, so requests don't hang waiting out a `git checkout`'s
+	// source burst while the definition is re-resolved. New requests then fast-reject at the
+	// #suspendError gate (see #getReaderForProject) until resumeReaders(). Unlike
+	// rejectReaderRequests(), leaves #state, #lastError, and #reader untouched: this is not a build
+	// failure, the project is fine, only its definition is being re-resolved. A clean #state lets the
+	// server rebuild normally once resumed, with no ERRORED gate to lift.
+	rejectQueuedReaders(error) {
 		for (const {reject} of this.#readerQueue) {
 			reject(error);
 		}
