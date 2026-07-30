@@ -255,14 +255,18 @@ class MiddlewareManager {
 		await this.addMiddleware("discovery", {
 			mountPath: "/discovery"
 		});
-		// Diverts document navigations to the terminal error handler while the build server
-		// is globally in ERROR. Placed before serveResources so it can preempt an otherwise-
-		// successful 200; after liveReloadClient so the client script is still served during
-		// ERROR and the error page can auto-reload once the source is fixed.
+		// Diverts requests to the terminal error handler. While a project is globally in ERROR,
+		// only document navigations are diverted (a failing subresource keeps its per-project 500).
+		// While the stack is degraded after a failed re-resolve, every request is diverted, since
+		// the surviving BuildServer would otherwise block reads until the source burst settles.
+		// Placed before serveResources so it can preempt an otherwise-successful 200; after
+		// liveReloadClient so the client script is still served and the error page can auto-reload
+		// once the source is fixed.
 		await this.addMiddleware("serveBuildError", {
 			wrapperCallback: ({middleware}) =>
 				() => middleware({
-					getServeError: this.options.getServeError
+					getServeError: this.options.getServeError,
+					getDegradedError: this.options.getDegradedError
 				})
 		});
 		await this.addMiddleware("serveResources", {

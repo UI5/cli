@@ -77,3 +77,60 @@ test("Passes everything through when no accessor is supplied", (t) => {
 
 	t.is(nextArg, undefined, "Without getServeError the gate is inert");
 });
+
+test("Degraded: diverts a document navigation, a subresource, and an XHR alike", (t) => {
+	// A degraded error means the whole graph is unresolvable; the surviving BuildServer would
+	// block any read. So every request type is diverted, unlike the per-project ERROR gate.
+	const degradedError = new Error("Cannot read ui5.yaml: no such file");
+	const middleware = createMiddleware({getDegradedError: () => degradedError});
+
+	for (const [label, headers] of [
+		["document navigation", DOC_NAV],
+		["subresource", {"sec-fetch-dest": "script", "accept": "*/*"}],
+		["XHR/fetch", {"sec-fetch-dest": "empty", "accept": "*/*"}],
+	]) {
+		let nextArg = "unset";
+		middleware(mockReq(headers), {}, (arg) => {
+			nextArg = arg;
+		});
+		t.is(nextArg, degradedError, `${label} is diverted while degraded`);
+	}
+});
+
+test("Degraded takes precedence over a per-project ERROR on a subresource", (t) => {
+	// With both set, the degraded gate wins and diverts even a subresource, which the ERROR
+	// gate alone would pass through.
+	const degradedError = new Error("invalid ui5.yaml");
+	const serveError = new Error("build broke");
+	const middleware = createMiddleware({
+		getServeError: () => serveError,
+		getDegradedError: () => degradedError,
+	});
+
+	let nextArg = "unset";
+	middleware(mockReq({"sec-fetch-dest": "script", "accept": "*/*"}), {}, (arg) => {
+		nextArg = arg;
+	});
+	t.is(nextArg, degradedError, "the degraded error is forwarded, not the per-project error");
+});
+
+test("Not degraded: falls back to the per-project ERROR gate", (t) => {
+	// getDegradedError returning falsy leaves the per-project behavior intact.
+	const serveError = new Error("build broke");
+	const middleware = createMiddleware({
+		getServeError: () => serveError,
+		getDegradedError: () => null,
+	});
+
+	let docNavArg = "unset";
+	middleware(mockReq(DOC_NAV), {}, (arg) => {
+		docNavArg = arg;
+	});
+	t.is(docNavArg, serveError, "a document navigation is diverted by the per-project gate");
+
+	let subresourceArg = "unset";
+	middleware(mockReq({"sec-fetch-dest": "script", "accept": "*/*"}), {}, (arg) => {
+		subresourceArg = arg;
+	});
+	t.is(subresourceArg, undefined, "a subresource still passes through when only globally errored");
+});
