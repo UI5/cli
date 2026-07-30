@@ -8,6 +8,8 @@ import {
 	transitionTo,
 	setError,
 	setStale,
+	setDegraded,
+	clearDegraded,
 	enableBuildPlaceholders,
 	STATES,
 } from "../../../../../lib/writers/interactiveConsole/state/build.js";
@@ -23,6 +25,7 @@ test("createBuildState: starts in INITIAL with empty counters", (t) => {
 	t.is(state.spinFrame, 0);
 	t.is(state.errorMessage, "");
 	t.is(state.lastBuildHrtime, null);
+	t.is(state.degraded, false);
 });
 
 test("beginBuild: sets projectOrder, totalProjects, and projectNameWidth", (t) => {
@@ -128,6 +131,18 @@ test("enableBuildPlaceholders: promotes INITIAL to STARTING", (t) => {
 	const state = createBuildState();
 	enableBuildPlaceholders(state);
 	t.is(state.state, STATES.STARTING);
+});
+
+test("setDegraded / clearDegraded: toggle the degraded flag without touching the activity state", (t) => {
+	const state = createBuildState();
+	transitionTo(state, STATES.READY);
+	state.spinFrame = 4;
+	setDegraded(state);
+	t.is(state.degraded, true);
+	t.is(state.state, STATES.READY, "the flag is orthogonal to the activity state");
+	t.is(state.spinFrame, 4, "spinner frame is not reset");
+	clearDegraded(state);
+	t.is(state.degraded, false);
 });
 
 test("enableBuildPlaceholders: leaves non-INITIAL states alone", (t) => {

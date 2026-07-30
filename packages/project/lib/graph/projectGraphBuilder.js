@@ -143,7 +143,7 @@ async function projectGraphBuilder(nodeProvider, workspace) {
 	// traversal. Consumed by @ui5/logger writers to populate their header /
 	// scrollback lines. Framework information is emitted separately once a
 	// caller actually resolves framework usage for the current run.
-	process.emit("ui5.project-resolved", {
+	process.emit("ui5.project-resolve-succeeded", {
 		name: rootProject.getName(),
 		type: rootProject.getType(),
 		version: rootProject.getVersion(),

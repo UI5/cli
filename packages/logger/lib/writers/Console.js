@@ -113,7 +113,7 @@ class Console {
 		process.on("ui5.project-build-metadata", this._handleProjectBuildMetadataEvent);
 		process.on("ui5.build-status", this._handleBuildStatusEvent);
 		process.on("ui5.project-build-status", this._handleProjectBuildStatusEvent);
-		process.on("ui5.project-resolved", this._handleProjectResolvedEvent);
+		process.on("ui5.project-resolve-succeeded", this._handleProjectResolvedEvent);
 		process.on("ui5.server-listening", this._handleServerListeningEvent);
 		process.on("ui5.log.stop-console", this._handleStop);
 	}
@@ -129,7 +129,7 @@ class Console {
 		process.off("ui5.project-build-metadata", this._handleProjectBuildMetadataEvent);
 		process.off("ui5.build-status", this._handleBuildStatusEvent);
 		process.off("ui5.project-build-status", this._handleProjectBuildStatusEvent);
-		process.off("ui5.project-resolved", this._handleProjectResolvedEvent);
+		process.off("ui5.project-resolve-succeeded", this._handleProjectResolvedEvent);
 		process.off("ui5.server-listening", this._handleServerListeningEvent);
 		process.off("ui5.log.stop-console", this._handleStop);
 		if (this.#progressBarContainer) {
