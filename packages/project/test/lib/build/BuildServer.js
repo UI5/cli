@@ -85,9 +85,19 @@ test.beforeEach(async (t) => {
 		}
 	}
 
+	// BuildReader is constructed in the BuildServer constructor. Most tests don't exercise it,
+	// but the reader-request path (#getReaderForProject -> #enqueueBuild) is only reachable through
+	// the buildServerInterface handed to it. Capture that interface so tests can drive reader
+	// requests directly, mirroring what BuildReader.byPath does for a resource lookup.
+	t.context.capturedInterfaces = [];
+	class BuildReader {
+		constructor(_name, _projects, buildServerInterface) {
+			t.context.capturedInterfaces.push(buildServerInterface);
+		}
+	}
+
 	const BuildServer = (await esmock("../../../lib/build/BuildServer.js", {
-		// BuildReader is constructed in the BuildServer constructor but not exercised here.
-		"../../../lib/build/BuildReader.js": class BuildReader {},
+		"../../../lib/build/BuildReader.js": BuildReader,
 		"../../../lib/build/helpers/WatchHandler.js": FakeWatchHandler,
 	})).default;
 	t.context.BuildServer = BuildServer;
@@ -363,6 +373,69 @@ test.serial(
 		t.is(projectBuilder.build.callCount, 2, "burst collapsed to a single restarted build");
 		t.is(statusEvents[statusEvents.length - 1].status, "serve-building",
 			"SETTLING → BUILDING once the window closes and the restart fires");
+
+		// Settle the restarted build so no promise is left dangling.
+		resolvers[1]?.();
+		await clock.tickAsync(0);
+	});
+
+test.serial(
+	"abort-restart: a reader request mid-window must not pull the deferred restart forward",
+	async (t) => {
+		const {BuildServer, graph, projectBuilder, rootProject, sinon, clock, capturedInterfaces} =
+			t.context;
+		const {ABORTED_BUILD_RESTART_SETTLE_MS, BUILD_REQUEST_DEBOUNCE_MS} =
+			BuildServer.__internals__;
+		const statusEvents = makeStatusRecorder(t);
+
+		const resolvers = [];
+		projectBuilder.build = sinon.stub().callsFake((opts, cb) => new Promise((resolve, reject) => {
+			resolvers.push(() => {
+				if (opts.signal?.aborted) {
+					const err = new Error("Build aborted");
+					err.name = "AbortError";
+					reject(err);
+					return;
+				}
+				cb("root.project", {getReader: () => ({fakeReader: true})});
+				resolve(["root.project"]);
+			});
+		}));
+
+		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+		t.context.buildServer = buildServer;
+		// The interface handed to this server's BuildReaders carries #getReaderForProject, the same
+		// entry point BuildReader.byPath uses to request a project's built resources. The three
+		// readers all receive the same interface object, so any of the three just-pushed entries
+		// works; take the last one to skip the entries recorded for the beforeEach server.
+		const {getReaderForProject} = capturedInterfaces[capturedInterfaces.length - 1];
+		await clock.tickAsync(BUILD_REQUEST_DEBOUNCE_MS);
+		t.is(projectBuilder.build.callCount, 1, "initial build started");
+
+		// A source change aborts the running build; the restart is deferred to the settle window.
+		buildServer._projectResourceChanged(rootProject, "/a.js", false);
+		resolvers[0]();
+		await clock.tickAsync(0);
+		t.is(projectBuilder.build.callCount, 1, "no restart yet — the settle window is open");
+		t.is(statusEvents[statusEvents.length - 1].status, "serve-settling",
+			"state is settling while the restart is deferred");
+
+		// A browser/live-reload request for the (now invalidated) project lands mid-window. It must
+		// wait for the settled rebuild, not provoke a build into the still-arriving burst. The
+		// request is parked; a rejection here would be an unhandled rejection, so swallow it.
+		getReaderForProject("root.project").catch(() => {});
+
+		// The burst is still in flight: the settle window has NOT elapsed. Advance past the short
+		// request debounce (well below the settle window). No build must start.
+		await clock.tickAsync(BUILD_REQUEST_DEBOUNCE_MS);
+		t.is(projectBuilder.build.callCount, 1,
+			"a reader request must not fire a build before the deferred-restart window elapses");
+		t.is(statusEvents[statusEvents.length - 1].status, "serve-settling",
+			"still settling — the reader request did not flip the server out of the settle window");
+
+		// Only once the window fully elapses does the single deferred rebuild fire.
+		await clock.tickAsync(ABORTED_BUILD_RESTART_SETTLE_MS);
+		t.is(projectBuilder.build.callCount, 2, "single deferred rebuild after the window elapsed");
 
 		// Settle the restarted build so no promise is left dangling.
 		resolvers[1]?.();
@@ -1706,6 +1779,12 @@ function makeRescanBuilder(sinon) {
 const droppedEventsError = () =>
 	new Error("Events were dropped by the FSEvents client. File system must be re-scanned.");
 
+// Recovery outcome hinges on whether the fresh WatchHandler's watch() resolves or rejects. A
+// branch switch that removed a watched source dir is absorbed inside WatchHandler itself: the
+// vanished path is skipped, so watch() resolves and recovery settles on STALE (the "recreates
+// watcher and forces a full re-scan" test below). A watch() that genuinely rejects (a present-path
+// subscribe fault, faked here via failWatchFrom) still escalates to fatal ERROR ("failure to
+// re-subscribe" below), and the loop-protection budget still trips on a persistent fault.
 test.serial(
 	"watcher-recovery: dropped-events error recreates watcher and forces a full re-scan", async (t) => {
 		const {sinon, clock, SOURCES_CHANGED_SETTLE_MS} = t.context;
@@ -1815,3 +1894,144 @@ test.serial(
 		t.is(errorEvents.length, 1, "a fatal error event was emitted");
 		t.is(errorEvents[0].message, "watch() rejected", "the re-subscription failure is surfaced");
 	});
+
+// ---- Reader suspend/resume (project-definition-change bridge) -------------------------------
+//
+// While a definition change is being re-resolved, the supervisor suspends the current
+// BuildServer's readers so requests fail fast instead of parking on a build the checkout's
+// source burst keeps aborting. These tests drive the reader-request path directly via the
+// captured buildServerInterface, mirroring what BuildReader.byPath does.
+
+// Builds a BuildServer with no initial build (starts IDLE) and returns it plus the captured
+// interface, so a test can enqueue reader requests. projectBuilder.build is a controllable stub.
+async function makeSuspendableBuildServer(t) {
+	const {graph, projectBuilder, sinon} = t.context;
+	const resolvers = [];
+	projectBuilder.build = sinon.stub().callsFake((_opts, cb) => new Promise((resolve, reject) => {
+		resolvers.push({resolve, reject, cb});
+	}));
+
+	let capturedInterface;
+	class CapturingBuildReader {
+		constructor(_name, _projects, buildServerInterface) {
+			capturedInterface = buildServerInterface;
+		}
+	}
+	class FakeWatchHandler {
+		constructor() {
+			this.destroy = sinon.stub().resolves();
+			this.on = sinon.stub();
+			this.watch = sinon.stub().resolves();
+		}
+	}
+	const CapturingBuildServer = (await esmock("../../../lib/build/BuildServer.js", {
+		"../../../lib/build/BuildReader.js": CapturingBuildReader,
+		"../../../lib/build/helpers/WatchHandler.js": FakeWatchHandler,
+	})).default;
+	const buildServer = await CapturingBuildServer.create(graph, projectBuilder, false, [], []);
+	t.teardown(() => buildServer.destroy());
+	return {buildServer, capturedInterface: () => capturedInterface, resolvers, projectBuilder};
+}
+
+test.serial("suspendReaders: rejects a currently-parked reader request immediately", async (t) => {
+	const {buildServer, capturedInterface} = await makeSuspendableBuildServer(t);
+
+	// Park a reader request (not fresh -> enqueues a build and awaits it). Do NOT advance the
+	// clock, so the enqueued build never starts: the request is purely parked on the queue.
+	const readerPromise = capturedInterface().getReaderForProject("root.project");
+
+	const suspendError = new Error("definition changing");
+	buildServer.suspendReaders(suspendError);
+
+	// The parked request rejects now, without advancing any settle/build window.
+	const err = await t.throwsAsync(readerPromise);
+	t.is(err, suspendError, "the parked request rejects with the supplied suspend error");
+
+	// No build had to complete to release it.
+	t.is(t.context.projectBuilder.build.callCount, 0, "no build was awaited to release the parked request");
+});
+
+test.serial("suspendReaders: new reader requests fast-reject without enqueuing a build", async (t) => {
+	const {clock} = t.context;
+	const {buildServer, capturedInterface, projectBuilder} = await makeSuspendableBuildServer(t);
+
+	const suspendError = new Error("definition changing");
+	buildServer.suspendReaders(suspendError);
+
+	const err = await t.throwsAsync(capturedInterface().getReaderForProject("root.project"));
+	t.is(err, suspendError, "a new request while suspended rejects with the suspend error");
+
+	// Fast-fail path: no build is enqueued, so the debounce firing produces no build.
+	await clock.tickAsync(1000);
+	t.is(projectBuilder.build.callCount, 0, "no build is enqueued while suspended");
+});
+
+test.serial("resumeReaders: re-enables normal build-backed reader requests", async (t) => {
+	const {clock} = t.context;
+	const {buildServer, capturedInterface, resolvers, projectBuilder} = await makeSuspendableBuildServer(t);
+
+	buildServer.suspendReaders(new Error("definition changing"));
+	await t.throwsAsync(capturedInterface().getReaderForProject("root.project"));
+
+	buildServer.resumeReaders();
+
+	// A request after resume parks and drives a build as normal.
+	const readerPromise = capturedInterface().getReaderForProject("root.project");
+	readerPromise.catch(() => {});
+	await clock.tickAsync(1000);
+	t.true(projectBuilder.build.called, "a build is enqueued again after resume");
+
+	// Complete the build so the request resolves.
+	resolvers[0].cb("root.project", {getReader: () => ({fakeReader: true})});
+	resolvers[0].resolve(["root.project"]);
+	await readerPromise;
+	t.pass();
+});
+
+test.serial("resumeReaders: is idempotent when not suspended", async (t) => {
+	const {buildServer} = await makeSuspendableBuildServer(t);
+	// A resume with no prior suspend is a harmless no-op.
+	t.notThrows(() => buildServer.resumeReaders());
+	t.notThrows(() => buildServer.resumeReaders());
+});
+
+test.serial("suspendReaders: is a no-op after destroy()", async (t) => {
+	const {buildServer, projectBuilder} = await makeSuspendableBuildServer(t);
+	await buildServer.destroy();
+
+	buildServer.suspendReaders(new Error("definition changing"));
+
+	// After destroy the status map is untouched by suspend; nothing throws and no state changes
+	// that would affect a (already torn-down) server.
+	t.is(projectBuilder.build.callCount, 0);
+	t.pass();
+});
+
+test.serial("suspendReaders: rejects a non-Error rejection reason", async (t) => {
+	const {buildServer} = await makeSuspendableBuildServer(t);
+	// The gate engages on the suspend error's truthiness, so a non-Error (or falsy) reason would
+	// reject parked requests yet leave new ones unsuspended. Reject it up front as a caller error.
+	const err = t.throws(() => buildServer.suspendReaders("definition changing"), {
+		instanceOf: TypeError,
+	});
+	t.is(err.message, "suspendReaders requires an Error instance");
+	t.throws(() => buildServer.suspendReaders(null), {instanceOf: TypeError});
+});
+
+test.serial("suspend holds across a concurrent source change (invalidate does not clear it)", async (t) => {
+	const {clock, rootProject} = t.context;
+	const {buildServer, capturedInterface, projectBuilder} = await makeSuspendableBuildServer(t);
+
+	const suspendError = new Error("definition changing");
+	buildServer.suspendReaders(suspendError);
+
+	// A branch switch fires source events concurrently: _projectResourceChanged -> invalidate().
+	// invalidate() must NOT lift the suspend (it is orthogonal to project #state), so requests keep
+	// fast-rejecting rather than falling back into the parking/build path.
+	buildServer._projectResourceChanged(rootProject, "/a.js", false);
+
+	const err = await t.throwsAsync(capturedInterface().getReaderForProject("root.project"));
+	t.is(err, suspendError, "still suspended after a concurrent source change");
+	await clock.tickAsync(1000);
+	t.is(projectBuilder.build.callCount, 0, "no build enqueued while suspend holds through the churn");
+});
