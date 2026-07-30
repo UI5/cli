@@ -32,6 +32,8 @@
 		"./validation/validator": "./lib/validation/validator.js",
 		"./validation/ValidationError": "./lib/validation/ValidationError.js",
 		"./graph/ProjectGraph": "./lib/graph/ProjectGraph.js",
+		"./graph/ProjectDefinitionWatcher": "./lib/graph/ProjectDefinitionWatcher.js",
+		"./graph/projectGraphSettleWatcher": "./lib/graph/projectGraphSettleWatcher.js",
 		"./graph/projectGraphBuilder": "./lib/graph/projectGraphBuilder.js",
 		"./graph": "./lib/graph/graph.js",
 		"./package.json": "./package.json"
