@@ -143,11 +143,19 @@ class BuildContext {
 			}
 		}
 
-		// Phase 2: Initialize all source indices in parallel
+		// Phase 2: Initialize all source indices in parallel. allSettled (not all) so the
+		// reported error is chosen by iteration order, not init timing: under cache=Force
+		// every uncached project rejects with an equivalent "no cache found" message, and
+		// projectBuildContexts lists the requested projects first (Phase 1), so the first
+		// rejection names what the caller asked to build, not a transitive dependency.
 		const initStart = performance.now();
-		await Promise.all(
+		const initResults = await Promise.allSettled(
 			Array.from(projectBuildContexts.values()).map((ctx) => ctx.initSourceIndex())
 		);
+		const firstError = initResults.find((result) => result.status === "rejected");
+		if (firstError) {
+			throw firstError.reason;
+		}
 		if (log.isLevelEnabled("perf")) {
 			log.perf(
 				`Parallel source index initialization completed in ` +
