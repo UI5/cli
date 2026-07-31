@@ -21,7 +21,6 @@ test("check number of exports", (t) => {
 	"config/Configuration",
 	"build/cache/Cache",
 	{exportedSpecifier: "internal/build/cache/CacheManager", mappedModule: "../../lib/build/cache/CacheManager.js"},
-	"build/helpers/RecoveryBudget",
 	"specifications/Specification",
 	"specifications/SpecificationVersion",
 	"ui5Framework/Openui5Resolver",
@@ -32,10 +31,13 @@ test("check number of exports", (t) => {
 	"validation/validator",
 	"validation/ValidationError",
 	"graph/ProjectGraph",
-	"graph/ProjectDefinitionWatcher",
-	"graph/projectGraphSettleWatcher",
 	"graph/projectGraphBuilder",
 	{exportedSpecifier: "graph", mappedModule: "../../lib/graph/graph.js"},
+	// Internal modules (only to be used by @ui5/* / SAP owned packages)
+	{
+		exportedSpecifier: "internal/graph/ProjectDefinitionWatcher",
+		mappedModule: "../../lib/graph/ProjectDefinitionWatcher.js",
+	},
 ].forEach((v) => {
 	let exportedSpecifier; let mappedModule;
 	if (typeof v === "string") {
@@ -53,4 +55,12 @@ test("check number of exports", (t) => {
 		const expected = await import(mappedModule);
 		t.is(actual, expected, "Correct module exported");
 	});
+});
+
+test("internal/graph/ProjectDefinitionWatcher re-exports", async (t) => {
+	const mod = await import("@ui5/project/internal/graph/ProjectDefinitionWatcher");
+	t.is(typeof mod.default, "function", "ProjectDefinitionWatcher is the default export");
+	t.is(typeof mod.DEFINITION_CHANGED_SETTLE_MS, "number", "DEFINITION_CHANGED_SETTLE_MS is exported");
+	t.is(typeof mod.waitForProjectGraphSettled, "function", "waitForProjectGraphSettled is re-exported");
+	t.is(typeof mod.RecoveryBudget, "function", "RecoveryBudget is re-exported");
 });

@@ -2,6 +2,9 @@ import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
 import {EventEmitter} from "node:events";
+// Real RecoveryBudget, fed into the mocked ProjectDefinitionWatcher module below so the Supervisor's
+// `new RecoveryBudget()` keeps its real behaviour.
+import {RecoveryBudget} from "@ui5/project/internal/graph/ProjectDefinitionWatcher";
 
 // A fake BuildServer: EventEmitter plus the reader/error/destroy surface the supervisor uses.
 function createBuildServer() {
@@ -63,11 +66,12 @@ function createMocks({stacks, buildAppImpl, definitionWatcherCreate} = {}) {
 
 	const mocks = {
 		"node:http": httpMock,
-		"@ui5/project/graph/ProjectDefinitionWatcher": {
+		"@ui5/project/internal/graph/ProjectDefinitionWatcher": {
 			default: ProjectDefinitionWatcher,
 			DEFINITION_CHANGED_SETTLE_MS: 550,
+			waitForProjectGraphSettled,
+			RecoveryBudget,
 		},
-		"@ui5/project/graph/projectGraphSettleWatcher": {waitForProjectGraphSettled},
 		"../../../../lib/serve/stack.js": {default: buildApp},
 		"../../../../lib/serve/httpListener.js": {listen, addSsl, announceListening},
 		"../../../../lib/liveReload/server.js": {default: attachLiveReloadServer},

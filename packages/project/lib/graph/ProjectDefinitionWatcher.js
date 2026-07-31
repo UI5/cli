@@ -278,3 +278,9 @@ class ProjectDefinitionWatcher extends EventEmitter {
 }
 
 export default ProjectDefinitionWatcher;
+
+// One internal entry point for @ui5/server's live re-resolution support: the definition watcher plus
+// the two helpers the Supervisor drives alongside it, the graph-settle acceptance gate and the
+// recovery budget.
+export {waitForProjectGraphSettled} from "./projectGraphSettleWatcher.js";
+export {default as RecoveryBudget} from "../build/helpers/RecoveryBudget.js";

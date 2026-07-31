@@ -3,9 +3,11 @@ import path from "node:path";
 import process from "node:process";
 import {EventEmitter} from "node:events";
 import {getLogger} from "@ui5/logger";
-import ProjectDefinitionWatcher, {DEFINITION_CHANGED_SETTLE_MS} from "@ui5/project/graph/ProjectDefinitionWatcher";
-import {waitForProjectGraphSettled} from "@ui5/project/graph/projectGraphSettleWatcher";
-import RecoveryBudget from "@ui5/project/build/helpers/RecoveryBudget";
+import ProjectDefinitionWatcher, {
+	DEFINITION_CHANGED_SETTLE_MS,
+	waitForProjectGraphSettled,
+	RecoveryBudget,
+} from "@ui5/project/internal/graph/ProjectDefinitionWatcher";
 import buildApp from "./stack.js";
 import attachLiveReloadServer from "../liveReload/server.js";
 import {listen, addSsl, announceListening} from "./httpListener.js";
