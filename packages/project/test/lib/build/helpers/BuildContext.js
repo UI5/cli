@@ -324,6 +324,89 @@ test("getProjectContext", async (t) => {
 	t.is(projectBuildContext, projectBuildContext2);
 });
 
+test("getRequiredProjectContexts: initializes all required contexts in parallel", async (t) => {
+	const {BuildContext} = t.context;
+
+	const contexts = {
+		app: {
+			getRequiredDependencies: async () => ["lib"],
+			initSourceIndex: sinon.stub().resolves(),
+		},
+		lib: {
+			getRequiredDependencies: async () => [],
+			initSourceIndex: sinon.stub().resolves(),
+		},
+	};
+	t.context.ProjectBuildContextCreateStub.callsFake(async (buildContext, project) => contexts[project.name]);
+	const graph = {
+		getRoot: () => ({getType: () => "application", getRootPath: () => ""}),
+		getProject: (name) => ({name}),
+	};
+
+	const buildContext = new BuildContext(graph, "taskRepository");
+	const result = await buildContext.getRequiredProjectContexts(["app"]);
+
+	t.deepEqual(Array.from(result.keys()), ["app", "lib"],
+		"Discovers the requested project and its transitive dependency");
+	t.is(contexts.app.initSourceIndex.callCount, 1);
+	t.is(contexts.lib.initSourceIndex.callCount, 1);
+});
+
+test("getRequiredProjectContexts: deterministically reports the requested project's init error",
+	async (t) => {
+		const {BuildContext} = t.context;
+
+		// The dependency rejects immediately, the requested project only after a timer; the
+		// requested project's error must still be the one surfaced.
+		const contexts = {
+			app: {
+				getRequiredDependencies: async () => ["lib"],
+				initSourceIndex: () => new Promise((resolve, reject) =>
+					setTimeout(() => reject(new Error("no cache found for project app")), 20)),
+			},
+			lib: {
+				getRequiredDependencies: async () => [],
+				initSourceIndex: () => Promise.reject(new Error("no cache found for project lib")),
+			},
+		};
+		t.context.ProjectBuildContextCreateStub.callsFake(async (buildContext, project) => contexts[project.name]);
+		const graph = {
+			getRoot: () => ({getType: () => "application", getRootPath: () => ""}),
+			getProject: (name) => ({name}),
+		};
+
+		const buildContext = new BuildContext(graph, "taskRepository");
+		const err = await t.throwsAsync(buildContext.getRequiredProjectContexts(["app"]));
+		t.is(err.message, "no cache found for project app",
+			"Surfaces the requested project's error even though the dependency rejected first");
+	});
+
+test("getRequiredProjectContexts: surfaces a dependency error when the requested project succeeds",
+	async (t) => {
+		const {BuildContext} = t.context;
+
+		const contexts = {
+			app: {
+				getRequiredDependencies: async () => ["lib"],
+				initSourceIndex: () => Promise.resolve(),
+			},
+			lib: {
+				getRequiredDependencies: async () => [],
+				initSourceIndex: () => Promise.reject(new Error("no cache found for project lib")),
+			},
+		};
+		t.context.ProjectBuildContextCreateStub.callsFake(async (buildContext, project) => contexts[project.name]);
+		const graph = {
+			getRoot: () => ({getType: () => "application", getRootPath: () => ""}),
+			getProject: (name) => ({name}),
+		};
+
+		const buildContext = new BuildContext(graph, "taskRepository");
+		const err = await t.throwsAsync(buildContext.getRequiredProjectContexts(["app"]));
+		t.is(err.message, "no cache found for project lib",
+			"Falls back to the dependency's error when the requested project initializes cleanly");
+	});
+
 test("getCacheManager: Returns null when cache mode is 'Off'", async (t) => {
 	const {BuildContext} = t.context;
 
