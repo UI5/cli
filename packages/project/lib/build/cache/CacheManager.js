@@ -1,6 +1,7 @@
 import path from "node:path";
 import os from "node:os";
 import Configuration from "../../config/Configuration.js";
+import {access} from "node:fs/promises";
 import {getLogger} from "@ui5/logger";
 import BuildCacheStorage from "./BuildCacheStorage.js";
 
@@ -31,6 +32,8 @@ const CACHE_VERSION = "v0_7";
  * - Configurable cache location via UI5_DATA_DIR or configuration
  * - SQLite-backed storage for fast read/write operations
  *
+ * @ignore Do not expose this class in the public API documentation.
+ * It is only used internally by the CLI.
  * @class
  */
 export default class CacheManager {
@@ -336,5 +339,114 @@ export default class CacheManager {
 			this.#storage.close();
 			cacheManagerInstances.delete(this.#cacheDir);
 		}
+	}
+
+	/**
+	 * Checks if the cache database exists and is accessible for the given directory.
+	 *
+	 * @param {string} dbDir Path to DB
+	 * @returns {Promise<boolean>} True if the cache database exists and is accessible
+	 */
+	static async #isCacheDbAvailable(dbDir) {
+		const dbPath = path.join(dbDir, "cache.db");
+		try {
+			await access(dbPath);
+		} catch {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Opens a BuildCacheStorage for the versioned build cache directory.
+	 *
+	 * @param {string} ui5DataDir
+	 * @param {*} defaultValue Value to return when the database is not available
+	 * @param {Function} fn Operation to run against the open storage
+	 * @returns {Promise<*>}
+	 */
+	static async #withStorage(ui5DataDir, defaultValue, fn) {
+		const dbDir = path.join(ui5DataDir, "buildCache", CACHE_VERSION);
+		if (!await CacheManager.#isCacheDbAvailable(dbDir)) {
+			return defaultValue;
+		}
+		const storage = new BuildCacheStorage(dbDir);
+		try {
+			return fn(storage);
+		} finally {
+			storage.close();
+		}
+	}
+
+	/**
+	 * Get build cache info for the current version.
+	 *
+	 * @public
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<{path: string, size: number}|null>} Build cache info or null
+	 */
+	static getCacheInfo(ui5DataDir) {
+		return CacheManager.#withStorage(ui5DataDir, null, (storage) => {
+			if (!storage.hasRecords()) {
+				return null;
+			}
+			return {path: `buildCache/${CACHE_VERSION}`, size: storage.getDatabaseSize()};
+		});
+	}
+
+	/**
+	 * Clean build cache by atomically dropping all live tables and recreating fresh
+	 * empty ones. The drop is O(1) and completes in milliseconds.
+	 * Actual disk reclamation (VACUUM) is deferred to {@link cleanAdditional}.
+	 *
+	 * @public
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<{path: string, size: number}|null>} Removal result (size = bytes pending reclamation) or null
+	 */
+	static cleanCache(ui5DataDir) {
+		return CacheManager.#withStorage(ui5DataDir, null, (storage) => {
+			if (!storage.hasRecords()) {
+				return null;
+			}
+			return {path: `buildCache/${CACHE_VERSION}`, size: storage.dropAllRecords()};
+		});
+	}
+
+	/**
+	 * Runs VACUUM to reclaim disk space from a previous {@link cleanCache} call.
+	 * Only runs if the database has freelist pages (i.e. cleanup was deferred).
+	 *
+	 * @public
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<Array<{path: string, size: number}>>} Cleaned entries, or empty array if nothing to reclaim
+	 */
+	static cleanAdditional(ui5DataDir) {
+		return CacheManager.#withStorage(ui5DataDir, [], (storage) => {
+			if (!storage.hasVacuumPending()) {
+				return [];
+			}
+			return [{path: `buildCache/${CACHE_VERSION}`, size: storage.vacuum()}];
+		});
+	}
+
+	/**
+	 * Returns info about pending disk reclamation — i.e. a previous {@link cleanCache}
+	 * whose VACUUM has not yet been run by {@link cleanAdditional}.
+	 *
+	 * @public
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<Array<{path: string, size: number}>>} Pending entries, or empty array if none
+	 */
+	static getAdditionalCacheInfo(ui5DataDir) {
+		return CacheManager.#withStorage(ui5DataDir, [], (storage) => {
+			if (!storage.hasVacuumPending()) {
+				return [];
+			}
+			return [{path: `buildCache/${CACHE_VERSION}`, size: storage.getDatabaseSize()}];
+		});
 	}
 }
