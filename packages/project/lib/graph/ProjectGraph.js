@@ -1,29 +1,47 @@
+import path from "node:path";
+import {getRandomValues} from "node:crypto";
 import OutputStyleEnum from "../build/helpers/ProjectBuilderOutputStyle.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:ProjectGraph");
 import Cache from "../../../project/lib/build/cache/Cache.js";
+import {CLEANUP_LOCK_NAME, hasActiveLocks, getLockDir, acquireLock} from "../utils/lock.js";
 
 
 /**
  * A rooted, directed graph representing a UI5 project, its dependencies and available extensions.
- * <br><br>
- * While it allows defining cyclic dependencies, both traversal functions will throw an error if they encounter cycles.
+ *
+ * When constructed with a <code>ui5DataDir</code>, the graph acquires a process-coordination
+ * lock during {@link @ui5/project/graph/helpers/ui5Framework~enrichProjectGraph enrichProjectGraph}
+ * to prevent concurrent <code>ui5 cache clean</code>
+ * operations. If a cache clean is already running, the lock acquisition waits for it to finish
+ * before proceeding. Call {@link destroy} to release the lock explicitly when the graph is no
+ * longer needed. Even without an explicit call, the <code>lockfile</code> package ensures the
+ * lock is released on process exit or unexpected termination.
  *
  * @public
  * @class
  * @alias @ui5/project/graph/ProjectGraph
  */
 class ProjectGraph {
+	#lockRelease = null;
+
 	/**
 	 * @public
 	 * @param {object} parameters Parameters
 	 * @param {string} parameters.rootProjectName Root project name
+	 * @param {string} parameters.ui5DataDir Explicit UI5 data directory to use for the build cache & locks.
+	 *   Overrides the <code>UI5_DATA_DIR</code> environment variable, the UI5 configuration file,
+	 *   and the default of <code>~/.ui5</code>.
 	 */
-	constructor({rootProjectName}) {
+	constructor({rootProjectName, ui5DataDir}) {
 		if (!rootProjectName) {
 			throw new Error(`Could not create ProjectGraph: Missing or empty parameter 'rootProjectName'`);
 		}
+		if (!ui5DataDir) {
+			throw new Error(`Could not create ProjectGraph: Missing or empty parameter 'ui5DataDir'`);
+		}
 		this._rootProjectName = rootProjectName;
+		this._ui5DataDir = ui5DataDir;
 
 		this._projects = new Map(); // maps project name to instance (= nodes)
 		this._adjList = new Map(); // maps project name to dependencies (= edges)
@@ -689,6 +707,52 @@ class ProjectGraph {
 	}
 
 	/**
+	 * Acquires a process-coordination lock scoped to this graph instance to prevent
+	 * concurrent <code>ui5 cache clean</code> operations from running while framework
+	 * packages are being downloaded, or while those packages are actively referenced
+	 * within the graph during the build/serve lifecycle.
+	 *
+	 * This is necessary because the graph holds references to framework package paths
+	 * throughout its lifetime — not just during downloads. A cache clean after the download
+	 * completes, but before the build/serve finishes, would delete files the graph is using.
+	 *
+	 * If a cache clean is already in progress, polls until it finishes (up to 10 s)
+	 * before acquiring the graph lock. The double-check after acquiring guards the
+	 * narrow window between the poll and the lock acquisition. Throws if a cache
+	 * clean is still active after that window.
+	 */
+	async _preventCacheClean() {
+		// If already locked (e.g. enrichProjectGraph already called this), reuse the existing lock.
+		if (this.#lockRelease) {
+			return;
+		}
+
+		const lockDir = getLockDir(this._ui5DataDir);
+		// Acquire our lock first, so any cache clean that starts concurrently will detect us and abort.
+		// Only then check whether a cache clean is already in progress — this order closes the race window.
+		const lockId = Buffer.from(getRandomValues(new Uint8Array(4))).toString("hex");
+		const lockPath = path.join(lockDir, `graph-${process.pid}-${lockId}.lock`);
+		this.#lockRelease = await acquireLock(lockPath);
+
+		// Poll until any in-progress cache clean releases its lock, or we time out.
+		const POLL_INTERVAL_MS = 200;
+		const TIMEOUT_MS = 10000;
+		const deadline = Date.now() + TIMEOUT_MS;
+		while (await hasActiveLocks(this._ui5DataDir, {include: CLEANUP_LOCK_NAME})) {
+			if (Date.now() >= deadline) {
+				this.#lockRelease?.();
+				this.#lockRelease = null;
+
+				throw new Error(
+					"UI5 data directory is currently being cleaned. " +
+					"Please wait for the cache clean operation to finish and try again."
+				);
+			}
+			await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+		}
+	}
+
+	/**
 	 * Executes a build on the graph
 	 *
 	 * @public
@@ -716,10 +780,6 @@ class ProjectGraph {
 	 *   Processes build results into a specific directory structure.
 	 * @param {module:@ui5/project/build/cache/Cache} [parameters.cache=Default]
 	 *   Cache mode to use for building UI5 projects
-	 * @param {string} [parameters.ui5DataDir]
-	 *   Explicit UI5 data directory to use for the build cache. Overrides the
-	 *   <code>UI5_DATA_DIR</code> environment variable, the UI5 configuration file,
-	 *   and the default of <code>~/.ui5</code>.
 	 * @returns {Promise} Promise resolving to <code>undefined</code> once build has finished
 	 */
 	async build({
@@ -729,8 +789,7 @@ class ProjectGraph {
 		selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
 		includedTasks = [], excludedTasks = [],
 		outputStyle = OutputStyleEnum.Default,
-		cache = Cache.Default,
-		ui5DataDir,
+		cache = Cache.Default
 	}) {
 		this.seal(); // Do not allow further changes to the graph
 		if (this._builtOrServed) {
@@ -739,6 +798,7 @@ class ProjectGraph {
 				`Each graph can only be built or served once`);
 		}
 		this._builtOrServed = true;
+		await this._preventCacheClean();
 		const {
 			default: ProjectBuilder
 		} = await import("../build/ProjectBuilder.js");
@@ -751,13 +811,19 @@ class ProjectGraph {
 				includedTasks, excludedTasks, outputStyle,
 				cache
 			},
-			ui5DataDir,
+			ui5DataDir: this._ui5DataDir,
 		});
-		return await builder.buildToTarget({
+
+		const result = await builder.buildToTarget({
 			destPath, cleanDest,
 			includedDependencies, excludedDependencies,
 			dependencyIncludes,
 		});
+
+		// Explicitly release the process-coordination lock now that the build has finished
+		this.destroy();
+
+		return result;
 	}
 
 	async serve({
@@ -765,8 +831,7 @@ class ProjectGraph {
 		initialBuildIncludedDependencies = [], initialBuildExcludedDependencies = [],
 		selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
 		includedTasks = [], excludedTasks = [],
-		cache = Cache.Default,
-		ui5DataDir,
+		cache = Cache.Default
 	}) {
 		this.seal(); // Do not allow further changes to the graph
 		if (this._builtOrServed) {
@@ -775,6 +840,7 @@ class ProjectGraph {
 				`Each graph can only be built or served once`);
 		}
 		this._builtOrServed = true;
+		await this._preventCacheClean();
 		const {
 			default: ProjectBuilder
 		} = await import("../build/ProjectBuilder.js");
@@ -788,7 +854,7 @@ class ProjectGraph {
 				outputStyle: OutputStyleEnum.Default,
 				cache
 			},
-			ui5DataDir,
+			ui5DataDir: this._ui5DataDir,
 		});
 		const {
 			default: BuildServer
@@ -816,6 +882,24 @@ class ProjectGraph {
 	 */
 	isSealed() {
 		return this._sealed;
+	}
+
+	/**
+	 * Releases the process-coordination lock held by this graph.
+	 * Call this when the graph is no longer needed to unblock <code>ui5 cache clean</code>.
+	 *
+	 * If not called explicitly, the <code>lockfile</code> package's <code>signal-exit</code>
+	 * handler releases the lock on normal process exit or signal termination. The lock file
+	 * will also be ignored by <code>ui5 cache clean</code> once it ages past the staleness
+	 * threshold (<code>LOCK_STALE_MS</code>).
+	 *
+	 * @public
+	 */
+	destroy() {
+		if (this.#lockRelease) {
+			this.#lockRelease();
+			this.#lockRelease = null;
+		}
 	}
 
 	/**

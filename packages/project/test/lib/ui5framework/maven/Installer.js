@@ -36,13 +36,11 @@ test.beforeEach(async (t) => {
 	});
 
 	t.context.AbstractInstaller = await esmock.p("../../../../lib/ui5Framework/AbstractInstaller.js", {
-		"../../../../lib/utils/fs.js": {
-			mkdirp: t.context.mkdirpStub,
-			rmrf: t.context.rmrfStub
-		},
-		"lockfile": {
-			lock: t.context.lockStub,
-			unlock: t.context.unlockStub
+		"../../../../lib/utils/lock.js": {
+			getLockDir: sinon.stub().callsFake((dir) => path.join(dir, "locks")),
+			CLEANUP_LOCK_NAME: "cache-cleanup.lock",
+			hasActiveLocks: sinon.stub().resolves(false),
+			acquireLock: sinon.stub().callsFake(async () => () => {})
 		}
 	});
 
@@ -80,7 +78,7 @@ test.serial("constructor", (t) => {
 	t.is(installer._packagesDir, path.join("/ui5Data/", "framework", "packages"));
 	t.is(installer._stagingDir, path.join("/ui5Data/", "framework", "staging"));
 	t.is(installer._metadataDir, path.join("/ui5Data/", "framework", "metadata"));
-	t.is(installer._lockDir, path.join("/ui5Data/", "framework", "locks"));
+	t.is(installer._lockDir, path.join("/ui5Data/", "locks"));
 });
 
 test.serial("constructor requires 'ui5DataDir'", (t) => {
@@ -203,7 +201,7 @@ test.serial("_getLockPath", (t) => {
 
 	const lockPath = installer._getLockPath("package-@openui5/sap.ui.lib1@1.2.3-SNAPSHOT");
 
-	t.is(lockPath, path.join("/ui5Data/", "framework", "locks", "package-@openui5-sap.ui.lib1@1.2.3-SNAPSHOT.lock"));
+	t.is(lockPath, path.join("/ui5Data/", "locks", "package-@openui5-sap.ui.lib1@1.2.3-SNAPSHOT.lock"));
 });
 
 test.serial("readJson", async (t) => {

@@ -123,13 +123,10 @@ test.serial("hasResourceForStage throws without integrity", async (t) => {
 
 test.serial("create() returns singleton per cache directory", async (t) => {
 	const testDir = getUniqueTestDir();
-	process.env.UI5_DATA_DIR = testDir;
 
 	const CacheManager = await esmock("../../../../lib/build/cache/CacheManager.js", {
-		"../../../../lib/config/Configuration.js": {
-			default: {
-				fromFile: sinon.stub().resolves({getUi5DataDir: () => null})
-			}
+		"../../../../lib/utils/dataDir.js": {
+			resolveUi5DataDir: sinon.stub().resolves(testDir)
 		}
 	});
 
@@ -202,4 +199,80 @@ test.serial("transaction: throwing rolls back metadata and content writes", asyn
 	t.is(cm.readIndexCache("proj-rollback", "sig", "source"), null,
 		"Metadata should not exist after rollback");
 	cm.close();
+});
+
+test.serial("getCacheInfo: returns null for non-existent cache", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager} = await import("../../../../lib/build/cache/CacheManager.js");
+	const result = await CacheManager.getCacheInfo(testDir);
+	t.is(result, null);
+});
+
+test.serial("getCacheInfo: returns null for empty cache", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager} = await import("../../../../lib/build/cache/CacheManager.js");
+	// Create empty cache
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.close();
+
+	const result = await CacheManager.getCacheInfo(testDir);
+	t.is(result, null);
+});
+
+test.serial("getCacheInfo: returns info for cache with records", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager} = await import("../../../../lib/build/cache/CacheManager.js");
+	// Create cache with data
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	await cm.writeIndexCache("proj", "sig", "source", {data: true});
+	cm.close();
+
+	const result = await CacheManager.getCacheInfo(testDir);
+	t.truthy(result);
+	t.true(result.path.includes("buildCache"));
+	t.true(result.path.includes("v0_7"));
+
+	t.true(result.size > 0);
+});
+
+test.serial("cleanCache: returns null for non-existent cache", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager} = await import("../../../../lib/build/cache/CacheManager.js");
+	const result = await CacheManager.cleanCache(testDir);
+	t.is(result, null);
+});
+
+test.serial("cleanCache: returns null for empty cache", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager} = await import("../../../../lib/build/cache/CacheManager.js");
+	// Create empty cache
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.close();
+
+	const result = await CacheManager.cleanCache(testDir);
+	t.is(result, null);
+});
+
+test.serial("cleanCache: clears cache and returns result", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager} = await import("../../../../lib/build/cache/CacheManager.js");
+	// Create cache with data
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	await cm.writeIndexCache("proj", "sig", "source", {data: true});
+	cm.putContent("sha256-test", Buffer.from("content"));
+	cm.close();
+
+	const result = await CacheManager.cleanCache(testDir);
+	t.truthy(result);
+	t.true(result.path.includes("buildCache"));
+	t.true(result.path.includes("v0_7"));
+
+	t.true(result.size >= 0);
+
+	// Verify cache is empty
+	const cm2 = new CacheManager(path.join(testDir, "buildCache"));
+	const check = await cm2.readIndexCache("proj", "sig", "source");
+	t.is(check, null);
+	t.false(cm2.hasContent("sha256-test"));
+	cm2.close();
 });

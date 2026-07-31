@@ -1244,13 +1244,18 @@ class FixtureTester {
 	}
 
 	async serveProject({graphConfig = {}, config = {}, expectBuildErrors = false} = {}) {
+		// Point resolveUi5DataDir() to the fixture-isolated data dir so the graph
+		// constructor and the build cache use the same isolated path.
+		const olDataDir = process.env.UI5_DATA_DIR;
+		process.env.UI5_DATA_DIR = this.ui5DataDir;
 		const graph = this.graph = await graphFromPackageDependencies({
 			...graphConfig,
 			cwd: this.fixturePath,
 		});
+		process.env.UI5_DATA_DIR = olDataDir;
 
 		// Execute the build
-		this.buildServer = await graph.serve({...config, ui5DataDir: this.ui5DataDir});
+		this.buildServer = await graph.serve({...config});
 		this.buildServer.on("error", (err) => {
 			if (!expectBuildErrors) {
 				this._t.fail(`Build server error: ${err.message}`);
