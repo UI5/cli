@@ -64,6 +64,7 @@ function getDefaultBuilderArgs() {
 test.beforeEach(async (t) => {
 	t.context.argv = getDefaultArgv();
 	t.context.expectedBuilderArgs = getDefaultBuilderArgs();
+	t.context.ui5DataDir = "/resolved/ui5-data-dir";
 
 	t.context.builder = sinon.stub().resolves();
 	t.context.getBuilderSettings = sinon.stub().returns(undefined);
@@ -75,14 +76,19 @@ test.beforeEach(async (t) => {
 		build: t.context.builder
 	};
 	t.context.expectedBuilderArgs.graph = fakeGraph;
+	t.context.expectedBuilderArgs.ui5DataDir = t.context.ui5DataDir;
 	t.context.ProjectGraphStub = sinon.stub().resolves(fakeGraph);
 	t.context.graphFromPackageDependenciesStub = sinon.stub().resolves(fakeGraph);
 	t.context.graphFromStaticFileStub = sinon.stub().resolves(fakeGraph);
+	t.context.resolveUi5DataDirStub = sinon.stub().resolves(t.context.ui5DataDir);
 
 	t.context.build = await esmock.p("../../../../lib/cli/commands/build.js", {
 		"@ui5/project/graph": {
 			graphFromPackageDependencies: t.context.graphFromPackageDependenciesStub,
 			graphFromStaticFile: t.context.graphFromStaticFileStub
+		},
+		"@ui5/project/utils/dataDir": {
+			resolveUi5DataDir: t.context.resolveUi5DataDirStub
 		},
 		"@ui5/project/graph/ProjectGraph": t.context.ProjectGraphStub
 	});
@@ -138,6 +144,7 @@ test.serial("ui5 build --framework-version", async (t) => {
 			workspaceConfigPath: undefined,
 			workspaceName: undefined,
 			snapshotCache: "Default",
+			ui5DataDir: "/resolved/ui5-data-dir",
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
@@ -157,6 +164,7 @@ test.serial("ui5 build --snapshot-cache", async (t) => {
 			workspaceConfigPath: undefined,
 			workspaceName: undefined,
 			snapshotCache: "Off",
+			ui5DataDir: "/resolved/ui5-data-dir",
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
@@ -176,6 +184,7 @@ test.serial("ui5 build --config", async (t) => {
 			workspaceConfigPath: undefined,
 			workspaceName: undefined,
 			snapshotCache: "Default",
+			ui5DataDir: "/resolved/ui5-data-dir",
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
@@ -195,6 +204,7 @@ test.serial("ui5 build --workspace", async (t) => {
 			workspaceConfigPath: undefined,
 			workspaceName: "dolphin",
 			snapshotCache: "Default",
+			ui5DataDir: "/resolved/ui5-data-dir",
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
@@ -214,6 +224,7 @@ test.serial("ui5 build --no-workspace", async (t) => {
 			workspaceConfigPath: undefined,
 			workspaceName: null,
 			snapshotCache: "Default",
+			ui5DataDir: "/resolved/ui5-data-dir",
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
@@ -234,6 +245,7 @@ test.serial("ui5 build --workspace-config", async (t) => {
 			workspaceConfigPath: fakePath,
 			workspaceName: undefined,
 			snapshotCache: "Default",
+			ui5DataDir: "/resolved/ui5-data-dir",
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
@@ -252,6 +264,7 @@ test.serial("ui5 build --dependency-definition", async (t) => {
 			rootConfigPath: undefined,
 			versionOverride: undefined,
 			snapshotCache: "Default",
+			ui5DataDir: "/resolved/ui5-data-dir",
 		}, "generateProjectGraph.graphFromStaticFile got called with expected arguments"
 	);
 });
@@ -271,6 +284,7 @@ test.serial("ui5 build --dependency-definition --config", async (t) => {
 			rootConfigPath: "ui5-test.yaml",
 			versionOverride: undefined,
 			snapshotCache: "Default",
+			ui5DataDir: "/resolved/ui5-data-dir",
 		}, "generateProjectGraph.graphFromStaticFile got called with expected arguments"
 	);
 });
@@ -291,6 +305,7 @@ test.serial("ui5 build --dependency-definition --config --framework-version", as
 			rootConfigPath: "ui5-test.yaml",
 			versionOverride: "1.99.0",
 			snapshotCache: "Default",
+			ui5DataDir: "/resolved/ui5-data-dir",
 		}, "generateProjectGraph.graphFromStaticFile got called with expected arguments"
 	);
 });

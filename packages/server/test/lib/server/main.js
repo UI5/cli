@@ -14,7 +14,9 @@ const SOURCE_MAPPING_URL = "//" + "# sourceMappingURL";
 
 // Start server before running tests
 test.before(async (t) => {
+	const ui5DataDir = isolatedUi5DataDir(t);
 	const graph = await graphFromPackageDependencies({
+		ui5DataDir,
 		cwd: "./test/fixtures/application.a"
 	});
 
@@ -25,8 +27,8 @@ test.before(async (t) => {
 	};
 
 	server = await serve(graph, {
+		ui5DataDir,
 		port: 3333,
-		ui5DataDir: isolatedUi5DataDir(t),
 	});
 	request = supertest("http://localhost:3333");
 });
@@ -379,14 +381,16 @@ async (t) => {
 test("Stop server", async (t) => {
 	const port = 3351;
 	const request = supertest(`http://localhost:${port}`);
+	const ui5DataDir = isolatedUi5DataDir(t);
 
 	const graph = await graphFromPackageDependencies({
+		ui5DataDir,
 		cwd: "./test/fixtures/application.a"
 	});
 
 	const serveResult = await serve(graph, {
+		ui5DataDir,
 		port: port,
-		ui5DataDir: isolatedUi5DataDir(t),
 	});
 
 	const res = await request.get("/resources/library/a/.library");
@@ -510,16 +514,18 @@ test("CSP (defaults)", async (t) => {
 test("CSP (sap policies)", async (t) => {
 	const port = 3400;
 	const request = supertest(`http://localhost:${port}`);
+	const ui5DataDir = isolatedUi5DataDir(t);
 
 	const graph = await graphFromPackageDependencies({
+		ui5DataDir,
 		cwd: "./test/fixtures/application.a"
 	});
 
 	const serveResult = await serve(graph, {
+		ui5DataDir,
 		port,
 		sendSAPTargetCSP: true,
 		simpleIndex: false,
-		ui5DataDir: isolatedUi5DataDir(t),
 	});
 
 	const [
@@ -625,16 +631,18 @@ test("CSP (sap policies)", async (t) => {
 test("CSP serveCSPReports", async (t) => {
 	const port = 3450;
 	const request = supertest(`http://localhost:${port}`);
+	const ui5DataDir = isolatedUi5DataDir(t);
 
 	const graph = await graphFromPackageDependencies({
+		ui5DataDir,
 		cwd: "./test/fixtures/application.a"
 	});
 
 	const serveResult = await serve(graph, {
+		ui5DataDir,
 		port,
 		serveCSPReports: true,
 		simpleIndex: false,
-		ui5DataDir: isolatedUi5DataDir(t),
 	});
 
 	const cspReport = {
@@ -680,17 +688,19 @@ test("CSP serveCSPReports", async (t) => {
 test("CSP with ignore paths", async (t) => {
 	const port = 3500;
 	const request = supertest(`http://localhost:${port}`);
+	const ui5DataDir = isolatedUi5DataDir(t);
 
 	const graph = await graphFromPackageDependencies({
+		ui5DataDir,
 		cwd: "./test/fixtures/application.a"
 	});
 
 	const serveResult = await serve(graph, {
+		ui5DataDir,
 		port,
 		serveCSPReports: true,
 		sendSAPTargetCSP: true,
 		simpleIndex: false,
-		ui5DataDir: isolatedUi5DataDir(t),
 	});
 	const testrunnerRequest1 = request.get("/test-resources/sap/ui/qunit/testrunner.html");
 	const testrunnerRequest2 = request.get("/index.html")

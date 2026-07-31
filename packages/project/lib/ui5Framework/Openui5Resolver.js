@@ -1,7 +1,7 @@
 import path from "node:path";
-import os from "node:os";
 import AbstractResolver from "./AbstractResolver.js";
 import Installer from "./npm/Installer.js";
+import {validateUi5DataDir} from "../utils/dataDir.js";
 
 const OPENUI5_CORE_PACKAGE = "@openui5/sap.ui.core";
 
@@ -18,8 +18,8 @@ class Openui5Resolver extends AbstractResolver {
 	 * @param {*} options options
 	 * @param {string} options.version OpenUI5 version to use
 	 * @param {string} [options.cwd=process.cwd()] Working directory to resolve configurations like .npmrc
-	 * @param {string} [options.ui5DataDir="~/.ui5"] UI5 home directory location. This will be used to store packages,
-	 * metadata and configuration used by the resolvers. Relative to `process.cwd()`
+	 * @param {string} options.ui5DataDir Absolute path to the UI5 data directory.
+	 * Used for framework metadata and package resolution.
 	 * @param {string} [options.cacheDir] Where to store temp/cached packages.
 	 * @param {string} [options.packagesDir] Where to install packages
 	 * @param {string} [options.stagingDir] The staging directory for the packages
@@ -84,22 +84,21 @@ class Openui5Resolver extends AbstractResolver {
 			})
 		};
 	}
-	static async fetchAllVersions(options) {
-		const installer = this._getInstaller(options);
+	static async fetchAllVersions(ui5DataDir, {cwd} = {}) {
+		const installer = this._getInstaller(ui5DataDir, {cwd});
 		return await installer.fetchPackageVersions({pkgName: OPENUI5_CORE_PACKAGE});
 	}
 
-	static async fetchAllTags(options) {
-		const installer = this._getInstaller(options);
+	static async fetchAllTags(ui5DataDir, {cwd} = {}) {
+		const installer = this._getInstaller(ui5DataDir, {cwd});
 		return installer.fetchPackageDistTags({pkgName: OPENUI5_CORE_PACKAGE});
 	}
 
-	static _getInstaller({ui5DataDir, cwd} = {}) {
+	static _getInstaller(ui5DataDir, {cwd} = {}) {
+		validateUi5DataDir(ui5DataDir, this.name);
 		return new Installer({
 			cwd: cwd ? path.resolve(cwd) : process.cwd(),
-			ui5DataDir:
-				ui5DataDir ? path.resolve(ui5DataDir) :
-					path.join(os.homedir(), ".ui5")
+			ui5DataDir
 		});
 	}
 }

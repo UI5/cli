@@ -1,5 +1,6 @@
 import baseMiddleware from "../middlewares/base.js";
 import {applyProjectConfigOptions, applyWorkspaceOptions, applyBuildOptions, dedupeArray} from "../options.js";
+import {resolveUi5DataDir} from "@ui5/project/utils/dataDir";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("cli:commands:build");
 
@@ -184,6 +185,7 @@ build.builder = function(cli) {
 
 async function handleBuild(argv) {
 	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
+	const ui5DataDir = await resolveUi5DataDir({projectRootPath: process.cwd()});
 
 	const command = argv._[argv._.length - 1];
 
@@ -194,6 +196,7 @@ async function handleBuild(argv) {
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
 			snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
+			ui5DataDir,
 		});
 	} else {
 		graph = await graphFromPackageDependencies({
@@ -202,6 +205,7 @@ async function handleBuild(argv) {
 			snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
 			workspaceConfigPath: argv.workspaceConfig,
 			workspaceName: argv.workspace === false ? null : argv.workspace,
+			ui5DataDir,
 		});
 	}
 	const buildSettings = graph.getRoot().getBuilderSettings() || {};
@@ -229,6 +233,7 @@ async function handleBuild(argv) {
 		cssVariables: argv["experimental-css-variables"],
 		outputStyle: argv["output-style"],
 		cache: argv["cache"],
+		ui5DataDir,
 	});
 }
 

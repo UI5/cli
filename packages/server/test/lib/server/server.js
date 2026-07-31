@@ -6,7 +6,8 @@ import {EventEmitter} from "node:events";
 function createMockGraph(mockBuildServer) {
 	const mockProject = {
 		getName: sinon.stub().returns("test.project"),
-		getSourceReader: sinon.stub().returns({})
+		getSourceReader: sinon.stub().returns({}),
+		getRootPath: sinon.stub().returns("/test/project")
 	};
 	return {
 		getRoot: sinon.stub().returns(mockProject),
@@ -99,7 +100,10 @@ test("server.on('error') rejects the serve promise", async (t) => {
 
 	const {serve} = await esmock("../../../lib/server.js", mocks);
 	const graph = createMockGraph(mockBuildServer);
-	const error = await t.throwsAsync(serve(graph, {port: 3000}));
+	const error = await t.throwsAsync(serve(graph, {
+		ui5DataDir: "/path/to/ui5-data-dir",
+		port: 3000
+	}));
 	t.is(error, testError);
 });
 
@@ -114,7 +118,10 @@ test("buildServer 'error' event is forwarded to error callback", async (t) => {
 	const graph = createMockGraph(mockBuildServer);
 
 	const errorReceived = new Promise((resolve) => {
-		serve(graph, {port: 3000}, resolve).then(() => {
+		serve(graph, {
+			ui5DataDir: "/path/to/ui5-data-dir",
+			port: 3000
+		}, resolve).then(() => {
 			mockBuildServer.emit("error", testError);
 		});
 	});
@@ -132,10 +139,29 @@ test("close() still calls server.close when buildServer.destroy() rejects", asyn
 
 	const {serve} = await esmock("../../../lib/server.js", mocks);
 	const graph = createMockGraph(mockBuildServer);
-	const result = await serve(graph, {port: 3000});
+	const result = await serve(graph, {
+		ui5DataDir: "/path/to/ui5-data-dir",
+		port: 3000
+	});
 
 	await new Promise((resolve) => {
 		result.close(resolve);
 	});
 	t.true(mockServer.close.calledOnce, "server.close was called despite destroy rejection");
+});
+
+test("serve rejects relative ui5DataDir", async (t) => {
+	const mockServer = createMockServer();
+	const mockBuildServer = createMockBuildServer();
+	const mocks = createMocks(mockServer);
+
+	const {serve} = await esmock("../../../lib/server.js", mocks);
+	const graph = createMockGraph(mockBuildServer);
+
+	const err = await t.throwsAsync(serve(graph, {
+		ui5DataDir: "./relative-ui5-data-dir",
+		port: 3000
+	}));
+
+	t.is(err.message, "server.serve: Parameter \"ui5DataDir\" must be an absolute path");
 });

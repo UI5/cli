@@ -15,7 +15,7 @@ import Cache from "../cache/Cache.js";
 class BuildContext {
 	#cacheManager;
 
-	constructor(graph, taskRepository, { // buildConfig
+	constructor(graph, taskRepository, ui5DataDir, { // buildConfig
 		selfContained = false,
 		cssVariables = false,
 		jsdoc = false,
@@ -23,7 +23,7 @@ class BuildContext {
 		outputStyle = OutputStyleEnum.Default,
 		includedTasks = [], excludedTasks = [],
 		cache = Cache.Default,
-	} = {}, {ui5DataDir} = {}) {
+	} = {}) {
 		if (!graph) {
 			throw new Error(`Missing parameter 'graph'`);
 		}
@@ -170,9 +170,7 @@ class BuildContext {
 		if (this.#cacheManager) {
 			return this.#cacheManager;
 		}
-		this.#cacheManager = await CacheManager.create(this._graph.getRoot().getRootPath(), {
-			ui5DataDir: this._ui5DataDir,
-		});
+		this.#cacheManager = await CacheManager.create(this._ui5DataDir);
 		return this.#cacheManager;
 	}
 

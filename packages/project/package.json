@@ -27,6 +27,7 @@
 		"./ui5Framework/Sapui5Resolver": "./lib/ui5Framework/Sapui5Resolver.js",
 		"./ui5Framework/maven/SnapshotCache": "./lib/ui5Framework/maven/SnapshotCache.js",
 		"./validation/validator": "./lib/validation/validator.js",
+		"./utils/dataDir": "./lib/utils/dataDir.js",
 		"./validation/ValidationError": "./lib/validation/ValidationError.js",
 		"./graph/ProjectGraph": "./lib/graph/ProjectGraph.js",
 		"./graph/projectGraphBuilder": "./lib/graph/projectGraphBuilder.js",

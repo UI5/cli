@@ -2719,6 +2719,7 @@ class FixtureTester {
 		this._sinon.resetHistory();
 
 		const graph = await graphFromPackageDependencies({
+			ui5DataDir: "/path/to/ui5-data-dir",
 			...graphConfig,
 			cwd: this.fixturePath,
 		});

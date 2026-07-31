@@ -15,8 +15,8 @@ class Installer extends AbstractInstaller {
 	/**
 	 * @param {object} parameters Parameters
 	 * @param {string} parameters.cwd Current working directory
-	 * @param {string} parameters.ui5DataDir UI5 home directory location. This will be used to store packages,
-	 * metadata and configuration used by the resolvers.
+	 * @param {string} parameters.ui5DataDir Absolute path to the UI5 data directory.
+	 * Used to store framework packages, metadata, and configuration.
 	 * @param {string} [parameters.packagesDir="${ui5DataDir}/framework/packages"] Where to install packages
 	 * @param {string} [parameters.stagingDir="${ui5DataDir}/framework/staging"] The staging directory for the packages
 	 * @param {string} [parameters.cacheDir="${ui5DataDir}/framework/cacache"] Where to store temp/cached packages.

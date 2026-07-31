@@ -93,6 +93,9 @@ test.afterEach.always((t) => {
 
 test.serial("resolveVersion", async (t) => {
 	const {Sapui5MavenSnapshotResolver, makeFetchHappen, logStub, sinon} = t.context;
+	const options = {
+		ui5DataDir: path.join(fakeBaseDir, "homedir", ".ui5")
+	};
 
 	makeFetchHappen.withArgs("_SNAPSHOT_URL_/com/sap/ui5/dist/sapui5-sdk-dist/maven-metadata.xml")
 		.resolves({
@@ -117,37 +120,52 @@ test.serial("resolveVersion", async (t) => {
 
 
 	// Exact SNAPSHOT versions
-	t.is(await Sapui5MavenSnapshotResolver.resolveVersion("1.123.4-SNAPSHOT"), "1.123.4-SNAPSHOT");
-	t.is(await Sapui5MavenSnapshotResolver.resolveVersion("2.0.1-SNAPSHOT"), "2.0.1-SNAPSHOT");
+	t.is(
+		await Sapui5MavenSnapshotResolver.resolveVersion("1.123.4-SNAPSHOT", options.ui5DataDir, options),
+		"1.123.4-SNAPSHOT"
+	);
+	t.is(
+		await Sapui5MavenSnapshotResolver.resolveVersion("2.0.1-SNAPSHOT", options.ui5DataDir, options),
+		"2.0.1-SNAPSHOT"
+	);
 
 	// latest-snapshot
-	t.is(await Sapui5MavenSnapshotResolver.resolveVersion("latest-snapshot"), "2.1.2-SNAPSHOT");
+	t.is(
+		await Sapui5MavenSnapshotResolver.resolveVersion("latest-snapshot", options.ui5DataDir, options),
+		"2.1.2-SNAPSHOT"
+	);
 
 	// SNAPSHOT ranges
-	t.is(await Sapui5MavenSnapshotResolver.resolveVersion("1-SNAPSHOT"), "1.123.4-SNAPSHOT");
-	t.is(await Sapui5MavenSnapshotResolver.resolveVersion("2-SNAPSHOT"), "2.1.2-SNAPSHOT");
-	t.is(await Sapui5MavenSnapshotResolver.resolveVersion("1.123-SNAPSHOT"), "1.123.4-SNAPSHOT");
+	t.is(
+		await Sapui5MavenSnapshotResolver.resolveVersion("1-SNAPSHOT", options.ui5DataDir, options),
+		"1.123.4-SNAPSHOT"
+	);
+	t.is(await Sapui5MavenSnapshotResolver.resolveVersion("2-SNAPSHOT", options.ui5DataDir, options), "2.1.2-SNAPSHOT");
+	t.is(
+		await Sapui5MavenSnapshotResolver.resolveVersion("1.123-SNAPSHOT", options.ui5DataDir, options),
+		"1.123.4-SNAPSHOT"
+	);
 
 	// Error cases
-	await t.throwsAsync(Sapui5MavenSnapshotResolver.resolveVersion(""), {
+	await t.throwsAsync(Sapui5MavenSnapshotResolver.resolveVersion("", options.ui5DataDir, options), {
 		message: `Framework version specifier "" is incorrect or not supported`
 	});
-	await t.throwsAsync(Sapui5MavenSnapshotResolver.resolveVersion("tag-does-not-exist"), {
+	await t.throwsAsync(Sapui5MavenSnapshotResolver.resolveVersion("tag-does-not-exist", options.ui5DataDir, options), {
 		message: `Framework version specifier "tag-does-not-exist" is incorrect or not supported`
 	});
-	await t.throwsAsync(Sapui5MavenSnapshotResolver.resolveVersion("invalid-tag-%20"), {
+	await t.throwsAsync(Sapui5MavenSnapshotResolver.resolveVersion("invalid-tag-%20", options.ui5DataDir, options), {
 		message: `Framework version specifier "invalid-tag-%20" is incorrect or not supported`
 	});
 
-	await t.throwsAsync(Sapui5MavenSnapshotResolver.resolveVersion("1.999.9"), {
+	await t.throwsAsync(Sapui5MavenSnapshotResolver.resolveVersion("1.999.9", options.ui5DataDir, options), {
 		message: `Could not resolve framework version 1.999.9. ` +
 			`Make sure the version is valid and available in the configured registry.`
 	});
-	await t.throwsAsync(Sapui5MavenSnapshotResolver.resolveVersion("1.0.0-SNAPSHOT"), {
+	await t.throwsAsync(Sapui5MavenSnapshotResolver.resolveVersion("1.0.0-SNAPSHOT", options.ui5DataDir, options), {
 		message: `Could not resolve framework version 1.0.0-SNAPSHOT. ` +
 			`Make sure the version is valid and available in the configured registry.`
 	});
-	await t.throwsAsync(Sapui5MavenSnapshotResolver.resolveVersion("3-SNAPSHOT"), {
+	await t.throwsAsync(Sapui5MavenSnapshotResolver.resolveVersion("3-SNAPSHOT", options.ui5DataDir, options), {
 		message: `Could not resolve framework version 3-SNAPSHOT. ` +
 			`Make sure the version is valid and available in the configured registry.`
 	});

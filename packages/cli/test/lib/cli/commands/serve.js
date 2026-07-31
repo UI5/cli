@@ -34,6 +34,7 @@ function getDefaultArgv() {
 
 test.beforeEach(async (t) => {
 	t.context.argv = getDefaultArgv();
+	t.context.ui5DataDir = "/resolved/ui5-data-dir";
 
 	// server.serve is the CLI-facing synchronization point now that the handler
 	// no longer writes "Server started" to stdout. Test cases await `serverServed`
@@ -68,6 +69,7 @@ test.beforeEach(async (t) => {
 		graphFromStaticFile: sinon.stub().resolves(t.context.fakeGraph),
 		graphFromPackageDependencies: sinon.stub().resolves(t.context.fakeGraph)
 	};
+	t.context.resolveUi5DataDirStub = sinon.stub().resolves(t.context.ui5DataDir);
 
 	// Capture stray writes to stderr/stdout so failing assertions surface the
 	// actual output instead of ava's timeout diagnostics.
@@ -85,6 +87,9 @@ test.beforeEach(async (t) => {
 		"@ui5/server": t.context.server,
 		"@ui5/server/internal/sslUtil": t.context.sslUtil,
 		"@ui5/project/graph": t.context.graph,
+		"@ui5/project/utils/dataDir": {
+			resolveUi5DataDir: t.context.resolveUi5DataDirStub
+		},
 		"open": t.context.open
 	});
 });
@@ -106,6 +111,7 @@ test.serial("ui5 serve: default", async (t) => {
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
 		snapshotCache: "Default",
+		ui5DataDir: "/resolved/ui5-data-dir",
 	}]);
 
 	t.is(server.serve.callCount, 1);
@@ -125,6 +131,7 @@ test.serial("ui5 serve: default", async (t) => {
 			liveReload: true,
 			includedTasks: undefined,
 			excludedTasks: undefined,
+			ui5DataDir: "/resolved/ui5-data-dir",
 		}
 	]);
 	t.is(typeof server.serve.getCall(0).args[2], "function");
@@ -169,6 +176,7 @@ test.serial("ui5 serve --h2", async (t) => {
 			liveReload: true,
 			includedTasks: undefined,
 			excludedTasks: undefined,
+			ui5DataDir: "/resolved/ui5-data-dir",
 		}
 	]);
 
@@ -204,6 +212,7 @@ test.serial("ui5 serve --accept-remote-connections", async (t) => {
 			liveReload: true,
 			includedTasks: undefined,
 			excludedTasks: undefined,
+			ui5DataDir: "/resolved/ui5-data-dir",
 		}
 	]);
 });
@@ -257,6 +266,7 @@ test.serial("ui5 serve --config", async (t) => {
 		rootConfigPath: fakePath, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
 		snapshotCache: "Default",
+		ui5DataDir: "/resolved/ui5-data-dir",
 	}]);
 });
 
@@ -273,7 +283,7 @@ test.serial("ui5 serve --dependency-definition", async (t) => {
 	t.is(graph.graphFromStaticFile.callCount, 1);
 	t.deepEqual(graph.graphFromStaticFile.getCall(0).args, [{
 		filePath: fakePath, versionOverride: undefined,
-		snapshotCache: "Default", rootConfigPath: undefined
+		snapshotCache: "Default", ui5DataDir: "/resolved/ui5-data-dir", rootConfigPath: undefined
 	}]);
 });
 
@@ -292,7 +302,7 @@ test.serial("ui5 serve --dependency-definition / --config", async (t) => {
 	t.is(graph.graphFromStaticFile.callCount, 1);
 	t.deepEqual(graph.graphFromStaticFile.getCall(0).args, [{
 		filePath: fakeDependenciesPath, versionOverride: undefined,
-		snapshotCache: "Default", rootConfigPath: fakeConfigPath
+		snapshotCache: "Default", ui5DataDir: "/resolved/ui5-data-dir", rootConfigPath: fakeConfigPath
 	}]);
 });
 
@@ -308,6 +318,7 @@ test.serial("ui5 serve --framework-version", async (t) => {
 		rootConfigPath: undefined, versionOverride: "1.234.5",
 		workspaceConfigPath: undefined, workspaceName: undefined,
 		snapshotCache: "Default",
+		ui5DataDir: "/resolved/ui5-data-dir",
 	}]);
 });
 
@@ -323,6 +334,7 @@ test.serial("ui5 serve --snapshotCache", async (t) => {
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: undefined,
 		snapshotCache: "Force",
+		ui5DataDir: "/resolved/ui5-data-dir",
 	}]);
 });
 
@@ -338,6 +350,7 @@ test.serial("ui5 serve --workspace", async (t) => {
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: "dolphin",
 		snapshotCache: "Default",
+		ui5DataDir: "/resolved/ui5-data-dir",
 	}]);
 });
 
@@ -353,6 +366,7 @@ test.serial("ui5 serve --no-workspace", async (t) => {
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: undefined, workspaceName: null,
 		snapshotCache: "Default",
+		ui5DataDir: "/resolved/ui5-data-dir",
 	}]);
 });
 
@@ -369,6 +383,7 @@ test.serial("ui5 serve --workspace-config", async (t) => {
 		rootConfigPath: undefined, versionOverride: undefined,
 		workspaceConfigPath: fakePath, workspaceName: undefined,
 		snapshotCache: "Default",
+		ui5DataDir: "/resolved/ui5-data-dir",
 	}]);
 });
 

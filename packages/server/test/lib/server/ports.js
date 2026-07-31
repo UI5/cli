@@ -18,6 +18,7 @@ test.afterEach.always((t) => {
 test.serial("Start server - Port is already taken and an error occurs", async (t) => {
 	t.plan(6);
 	const port = 3360;
+	const ui5DataDir = isolatedUi5DataDir(t);
 	const nodeServer = http.createServer((req, res) => {
 		res.end();
 	});
@@ -30,12 +31,13 @@ test.serial("Start server - Port is already taken and an error occurs", async (t
 	});
 
 	const graph = await graphFromPackageDependencies({
+		ui5DataDir,
 		cwd: "./test/fixtures/application.a"
 	});
 
 	const startServer = serve(graph, {
+		ui5DataDir,
 		port,
-		ui5DataDir: isolatedUi5DataDir(t),
 	});
 
 	const error = await t.throwsAsync(startServer);
@@ -72,6 +74,7 @@ test.serial("Start server together with node server - Port is already taken and 
 	t.plan(2);
 	const port = 3370;
 	const nextFoundPort = 3371;
+	const ui5DataDir = isolatedUi5DataDir(t);
 	const nodeServer = http.createServer((req, res) => {
 		res.end();
 	});
@@ -83,12 +86,13 @@ test.serial("Start server together with node server - Port is already taken and 
 	});
 
 	const graph = await graphFromPackageDependencies({
+		ui5DataDir,
 		cwd: "./test/fixtures/application.a"
 	});
 	const server = await serve(graph, {
+		ui5DataDir,
 		port,
 		changePortIfInUse: true,
-		ui5DataDir: isolatedUi5DataDir(t),
 	});
 
 	t.deepEqual(server.port, nextFoundPort, "Resolves with correct port");
@@ -106,6 +110,7 @@ test.serial("Start server - Port can not be determined and an error occurs", asy
 	const {sinon} = t.context;
 
 	t.plan(2);
+	const ui5DataDir = isolatedUi5DataDir(t);
 	const portscannerFake = function(port, portMax, host, callback) {
 		return new Promise((resolve) => {
 			callback(new Error("testError"), false);
@@ -115,12 +120,13 @@ test.serial("Start server - Port can not be determined and an error occurs", asy
 	const portScannerStub = sinon.stub(portscanner, "findAPortNotInUse").callsFake(portscannerFake);
 
 	const graph = await graphFromPackageDependencies({
+		ui5DataDir,
 		cwd: "./test/fixtures/application.a"
 	});
 	const startServer = serve(graph, {
+		ui5DataDir,
 		port: 3990,
 		changePortIfInUse: true,
-		ui5DataDir: isolatedUi5DataDir(t),
 	});
 
 	const error = await t.throwsAsync(startServer);
@@ -136,6 +142,7 @@ test.serial(
 		t.plan(6);
 		const portStart = 4000;
 		const portRange = 31;
+		const ui5DataDir = isolatedUi5DataDir(t);
 		const servers = [];
 		const serversStart = [];
 		let port;
@@ -156,13 +163,14 @@ test.serial(
 
 		await Promise.all(serversStart);
 		const graph = await graphFromPackageDependencies({
+			ui5DataDir,
 			cwd: "./test/fixtures/application.a"
 		});
 
 		const startServer = serve(graph, {
+			ui5DataDir,
 			port: portStart,
 			changePortIfInUse: true,
-			ui5DataDir: isolatedUi5DataDir(t),
 		});
 
 		const error = await t.throwsAsync(startServer);
@@ -202,6 +210,7 @@ test.serial("Start server twice - Port is already taken and the next one is used
 	const nextFoundPort = 3381;
 	const ui5DataDir = isolatedUi5DataDir(t);
 	const graph1 = await graphFromPackageDependencies({
+		ui5DataDir,
 		cwd: "./test/fixtures/application.a"
 	});
 	const serveResult1 = await serve(graph1, {
@@ -212,6 +221,7 @@ test.serial("Start server twice - Port is already taken and the next one is used
 	t.deepEqual(serveResult1.port, port, "Resolves with correct port");
 
 	const graph2 = await graphFromPackageDependencies({
+		ui5DataDir,
 		cwd: "./test/fixtures/application.a"
 	});
 	const serveResult2 = await serve(graph2, {

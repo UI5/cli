@@ -1,6 +1,7 @@
 // Tree
 import baseMiddleware from "../middlewares/base.js";
 import {applyProjectConfigOptions, applyWorkspaceOptions, dedupeArray} from "../options.js";
+import {resolveUi5DataDir} from "@ui5/project/utils/dataDir";
 import chalk from "chalk";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("cli:commands:tree");
@@ -70,6 +71,7 @@ tree.handler = async function(argv) {
 		startTime = process.hrtime();
 	}
 	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
+	const ui5DataDir = await resolveUi5DataDir({projectRootPath: process.cwd()});
 	let graph;
 	if (argv.dependencyDefinition) {
 		graph = await graphFromStaticFile({
@@ -77,6 +79,7 @@ tree.handler = async function(argv) {
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
 			snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
+			ui5DataDir,
 		});
 	} else {
 		graph = await graphFromPackageDependencies({
@@ -85,6 +88,7 @@ tree.handler = async function(argv) {
 			snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
 			workspaceConfigPath: argv.workspaceConfig,
 			workspaceName: argv.workspace === false ? null : argv.workspace,
+			ui5DataDir,
 		});
 	}
 

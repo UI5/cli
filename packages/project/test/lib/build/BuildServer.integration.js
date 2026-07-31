@@ -1245,6 +1245,7 @@ class FixtureTester {
 
 	async serveProject({graphConfig = {}, config = {}, expectBuildErrors = false} = {}) {
 		const graph = this.graph = await graphFromPackageDependencies({
+			ui5DataDir: "/path/to/ui5-data-dir",
 			...graphConfig,
 			cwd: this.fixturePath,
 		});

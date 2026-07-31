@@ -76,6 +76,17 @@ test.serial("Installer: constructor requires 'ui5DataDir'", (t) => {
 	}, {message: `Installer: Missing parameter "ui5DataDir"`});
 });
 
+test.serial("Installer: constructor requires absolute 'ui5DataDir'", (t) => {
+	const {Installer} = t.context;
+
+	t.throws(() => {
+		new Installer({
+			cwd: "/cwd/",
+			ui5DataDir: "./ui5Data"
+		});
+	}, {message: `Installer: Parameter "ui5DataDir" must be an absolute path`});
+});
+
 test.serial("Installer: fetchPackageVersions", async (t) => {
 	const {Installer} = t.context;
 

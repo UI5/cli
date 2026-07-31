@@ -3,6 +3,7 @@ import os from "node:os";
 import process from "node:process";
 import baseMiddleware from "../middlewares/base.js";
 import {applyProjectConfigOptions, applyWorkspaceOptions, applyBuildOptions, dedupeArray} from "../options.js";
+import {resolveUi5DataDir} from "@ui5/project/utils/dataDir";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("cli:commands:serve");
 
@@ -146,6 +147,7 @@ serve.handler = async function(argv) {
 	});
 
 	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
+	const ui5DataDir = await resolveUi5DataDir({projectRootPath: process.cwd()});
 
 	let graph;
 	if (argv.dependencyDefinition) {
@@ -154,6 +156,7 @@ serve.handler = async function(argv) {
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
 			snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
+			ui5DataDir,
 		});
 	} else {
 		graph = await graphFromPackageDependencies({
@@ -162,6 +165,7 @@ serve.handler = async function(argv) {
 			snapshotCache: argv.snapshotCache ?? argv.cacheMode ?? "Default", // Use cacheMode as fallback
 			workspaceConfigPath: argv.workspaceConfig,
 			workspaceName: argv.workspace === false ? null : argv.workspace,
+			ui5DataDir,
 		});
 	}
 
@@ -210,6 +214,7 @@ serve.handler = async function(argv) {
 		cache: argv.cache,
 		includedTasks: argv["include-task"],
 		excludedTasks: argv["exclude-task"],
+		ui5DataDir,
 	};
 
 	if (serverConfig.h2) {

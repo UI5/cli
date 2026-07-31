@@ -13,6 +13,14 @@ const applicationAPath = path.join(__dirname, "..", "..", "..", "fixtures", "app
 const libraryDPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d");
 const libraryEPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.e");
 const libraryFPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.f");
+const defaultUi5DataDir = path.resolve("fake-ui5-data-dir");
+
+function withUi5DataDir(options = {}) {
+	return {
+		ui5DataDir: defaultUi5DataDir,
+		...options
+	};
+}
 
 test.beforeEach(async (t) => {
 	// Tests either rely on not having UI5_DATA_DIR defined, or explicitly define it
@@ -54,7 +62,7 @@ test.beforeEach(async (t) => {
 	t.context.Sapui5MavenSnapshotResolverResolveVersionStub = sinon.stub();
 	t.context.Sapui5MavenSnapshotResolverStub.resolveVersion = t.context.Sapui5MavenSnapshotResolverResolveVersionStub;
 
-	t.context.getUi5DataDirStub = sinon.stub().returns(undefined);
+	t.context.getUi5DataDirStub = sinon.stub().returns(path.resolve("fake-ui5-data-dir"));
 
 	t.context.ConfigurationStub = {
 		fromFile: sinon.stub().resolves({
@@ -66,6 +74,7 @@ test.beforeEach(async (t) => {
 		"@ui5/logger": ui5Logger,
 		"../../../../lib/ui5Framework/Sapui5Resolver.js": t.context.Sapui5ResolverStub,
 		"../../../../lib/ui5Framework/Sapui5MavenSnapshotResolver.js": t.context.Sapui5MavenSnapshotResolverStub,
+	}, {
 		"../../../../lib/config/Configuration.js": t.context.ConfigurationStub,
 	});
 	t.context.utils = t.context.ui5Framework._utils;
@@ -126,7 +135,7 @@ test.serial("enrichProjectGraph", async (t) => {
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	await ui5Framework.enrichProjectGraph(projectGraph);
+	await ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir());
 
 	t.is(getFrameworkLibrariesFromGraphStub.callCount, 1, "getFrameworkLibrariesFromGraph should be called once");
 
@@ -135,7 +144,7 @@ test.serial("enrichProjectGraph", async (t) => {
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: dependencyTree.configuration.framework.version,
-		ui5DataDir: undefined,
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 
@@ -201,7 +210,7 @@ test.serial("enrichProjectGraph: without framework configuration", async (t) => 
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	await ui5Framework.enrichProjectGraph(projectGraph);
+	await ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir());
 	t.is(projectGraph.getSize(), 1, "Project graph should remain unchanged");
 	t.is(log.verbose.callCount, 1);
 	t.deepEqual(log.verbose.getCall(0).args, [
@@ -249,9 +258,9 @@ test.serial("enrichProjectGraph SNAPSHOT", async (t) => {
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	await ui5Framework.enrichProjectGraph(projectGraph, {
+	await ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir({
 		snapshotCache: SnapshotCache.Force
-	});
+	}));
 
 	t.is(getFrameworkLibrariesFromGraphStub.callCount, 1, "getFrameworkLibrariesFromGraph should be called once");
 
@@ -346,20 +355,21 @@ test.serial("enrichProjectGraph: With versionOverride", async (t) => {
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride: "1.99"});
+	await ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir({versionOverride: "1.99"}));
 
 	t.is(Sapui5ResolverResolveVersionStub.callCount, 1);
-	t.deepEqual(Sapui5ResolverResolveVersionStub.getCall(0).args, ["1.99", {
-		cwd: dependencyTree.path,
-		ui5DataDir: undefined,
-	}]);
+	t.deepEqual(Sapui5ResolverResolveVersionStub.getCall(0).args, [
+		"1.99",
+		path.resolve("fake-ui5-data-dir"),
+		{cwd: dependencyTree.path},
+	]);
 
 	t.is(Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
 	t.deepEqual(Sapui5ResolverStub.getCall(0).args, [{
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: "1.99.9",
-		ui5DataDir: undefined,
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 	t.deepEqual(frameworkEvents, [{
@@ -414,13 +424,14 @@ test.serial("enrichProjectGraph: With versionOverride containing snapshot versio
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride: "1.99-SNAPSHOT"});
+	await ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir({versionOverride: "1.99-SNAPSHOT"}));
 
 	t.is(Sapui5MavenSnapshotResolverResolveVersionStub.callCount, 1);
-	t.deepEqual(Sapui5MavenSnapshotResolverResolveVersionStub.getCall(0).args, ["1.99-SNAPSHOT", {
-		cwd: dependencyTree.path,
-		ui5DataDir: undefined,
-	}]);
+	t.deepEqual(Sapui5MavenSnapshotResolverResolveVersionStub.getCall(0).args, [
+		"1.99-SNAPSHOT",
+		path.resolve("fake-ui5-data-dir"),
+		{cwd: dependencyTree.path},
+	]);
 
 	t.is(Sapui5MavenSnapshotResolverStub.callCount, 1,
 		"Sapui5MavenSnapshotResolverStub#constructor should be called once");
@@ -428,7 +439,7 @@ test.serial("enrichProjectGraph: With versionOverride containing snapshot versio
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: "1.99.9-SNAPSHOT",
-		ui5DataDir: undefined,
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
@@ -477,13 +488,14 @@ test.serial("enrichProjectGraph: With versionOverride containing latest-snapshot
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride: "latest-snapshot"});
+	await ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir({versionOverride: "latest-snapshot"}));
 
 	t.is(Sapui5MavenSnapshotResolverResolveVersionStub.callCount, 1);
-	t.deepEqual(Sapui5MavenSnapshotResolverResolveVersionStub.getCall(0).args, ["latest-snapshot", {
-		cwd: dependencyTree.path,
-		ui5DataDir: undefined,
-	}]);
+	t.deepEqual(Sapui5MavenSnapshotResolverResolveVersionStub.getCall(0).args, [
+		"latest-snapshot",
+		path.resolve("fake-ui5-data-dir"),
+		{cwd: dependencyTree.path},
+	]);
 
 	t.is(Sapui5MavenSnapshotResolverStub.callCount, 1,
 		"Sapui5MavenSnapshotResolverStub#constructor should be called once");
@@ -491,7 +503,7 @@ test.serial("enrichProjectGraph: With versionOverride containing latest-snapshot
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: "1.99.9-SNAPSHOT",
-		ui5DataDir: undefined,
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
@@ -523,9 +535,9 @@ test.serial("enrichProjectGraph shouldn't throw when no framework version and no
 	const projectGraph = await projectGraphBuilder(provider);
 
 	// Framework override is fine, even if no framework version is configured
-	await ui5Framework.enrichProjectGraph(projectGraph, {
+	await ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir({
 		versionOverride: "1.75.0"
-	});
+	}));
 
 	t.is(Sapui5ResolverResolveVersionStub.callCount, 0,
 		"resolveVersion should not be called when no libraries are provided");
@@ -559,7 +571,7 @@ test.serial("enrichProjectGraph should skip framework project without version", 
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	await ui5Framework.enrichProjectGraph(projectGraph);
+	await ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir());
 	t.is(projectGraph.getSize(), 1, "Project graph should remain unchanged");
 });
 
@@ -647,7 +659,7 @@ test.serial("enrichProjectGraph should resolve framework project with version an
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	await ui5Framework.enrichProjectGraph(projectGraph);
+	await ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir());
 	t.is(projectGraph.getSize(), 3, "Project graph should remain unchanged");
 
 	t.is(getFrameworkLibrariesFromGraphStub.callCount, 1, "getFrameworkLibrariesFromGrap should be called once");
@@ -656,7 +668,7 @@ test.serial("enrichProjectGraph should resolve framework project with version an
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: "1.2.3",
-		ui5DataDir: undefined,
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
@@ -746,14 +758,15 @@ test.serial("enrichProjectGraph should resolve framework project " +
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride: "3.4.5"});
+	await ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir({versionOverride: "3.4.5"}));
 	t.is(projectGraph.getSize(), 3, "Project graph should remain unchanged");
 
 	t.is(Sapui5ResolverResolveVersionStub.callCount, 1);
-	t.deepEqual(Sapui5ResolverResolveVersionStub.getCall(0).args, ["3.4.5", {
-		cwd: dependencyTree.path,
-		ui5DataDir: undefined,
-	}]);
+	t.deepEqual(Sapui5ResolverResolveVersionStub.getCall(0).args, [
+		"3.4.5",
+		path.resolve("fake-ui5-data-dir"),
+		{cwd: dependencyTree.path},
+	]);
 
 	t.is(Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
 	t.is(getFrameworkLibrariesFromGraphStub.callCount, 1, "getFrameworkLibrariesFromGraph should be called once");
@@ -761,7 +774,7 @@ test.serial("enrichProjectGraph should resolve framework project " +
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: "1.99.9",
-		ui5DataDir: undefined,
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
@@ -802,7 +815,7 @@ test.serial("enrichProjectGraph should skip framework project when all dependenc
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	await ui5Framework.enrichProjectGraph(projectGraph);
+	await ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir());
 	t.is(projectGraph.getSize(), 2, "Project graph should remain unchanged");
 });
 
@@ -836,7 +849,7 @@ test.serial("enrichProjectGraph should throw for framework project with dependen
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	const err = await t.throwsAsync(ui5Framework.enrichProjectGraph(projectGraph));
+	const err = await t.throwsAsync(ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir()));
 	t.is(err.message, installError.message);
 });
 
@@ -869,7 +882,7 @@ test.serial("enrichProjectGraph should throw for incorrect framework name", asyn
 	const projectGraph = await projectGraphBuilder(provider);
 
 	sinon.stub(projectGraph.getRoot(), "getFrameworkName").returns("Pony5");
-	const err = await t.throwsAsync(ui5Framework.enrichProjectGraph(projectGraph));
+	const err = await t.throwsAsync(ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir()));
 	t.is(err.message, `Unknown framework.name "Pony5" for project application.a. Must be "OpenUI5" or "SAPUI5"`,
 		"Threw with expected error message");
 });
@@ -891,7 +904,7 @@ test.serial("enrichProjectGraph should ignore root project without framework con
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	await ui5Framework.enrichProjectGraph(projectGraph);
+	await ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir());
 	t.is(projectGraph.getSize(), 1, "Project graph should remain unchanged");
 });
 
@@ -966,7 +979,7 @@ test.serial("enrichProjectGraph should throw error when projectGraph contains a 
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	await t.throwsAsync(ui5Framework.enrichProjectGraph(projectGraph), {
+	await t.throwsAsync(ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir()), {
 		message: `Duplicate framework dependency definition(s) found for project application.a: sap.ui.core.\n` +
 			`Framework libraries should only be referenced via ui5.yaml configuration. Neither the root project, ` +
 			`nor any of its dependencies should include them as direct dependencies (e.g. via package.json).`
@@ -1019,14 +1032,14 @@ test.serial("enrichProjectGraph should use framework library metadata from works
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider, {workspace});
 
-	await ui5Framework.enrichProjectGraph(projectGraph, {workspace});
+	await ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir({workspace}));
 
 	t.is(Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
 	t.deepEqual(Sapui5ResolverStub.getCall(0).args, [{
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
 		version: "1.111.1",
-		ui5DataDir: undefined,
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 		providedLibraryMetadata: workspaceFrameworkLibraryMetadata
 	}], "Sapui5Resolver#constructor should be called with expected args");
 	t.is(Sapui5ResolverStub.getCall(0).args[0].providedLibraryMetadata, workspaceFrameworkLibraryMetadata);
@@ -1083,13 +1096,13 @@ test.serial("enrichProjectGraph should allow omitting framework version in case 
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider, {workspace});
 
-	await ui5Framework.enrichProjectGraph(projectGraph, {workspace});
+	await ui5Framework.enrichProjectGraph(projectGraph, withUi5DataDir({workspace}));
 
 	t.is(Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
 	t.deepEqual(Sapui5ResolverStub.getCall(0).args, [{
 		snapshotCache: undefined,
 		cwd: dependencyTree.path,
-		ui5DataDir: undefined,
+		ui5DataDir: path.resolve("fake-ui5-data-dir"),
 		version: undefined,
 		providedLibraryMetadata: workspaceFrameworkLibraryMetadata
 	}], "Sapui5Resolver#constructor should be called with expected args");
@@ -1140,7 +1153,9 @@ test.serial("enrichProjectGraph should use UI5 data dir from env var", async (t)
 
 	const expectedUi5DataDir = path.resolve(dependencyTree.path, "./ui5-data-dir-from-env-var");
 
-	await ui5Framework.enrichProjectGraph(projectGraph);
+	await ui5Framework.enrichProjectGraph(projectGraph, {
+		ui5DataDir: expectedUi5DataDir
+	});
 
 	t.is(t.context.Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
 	t.deepEqual(t.context.Sapui5ResolverStub.getCall(0).args, [{
@@ -1196,7 +1211,9 @@ test.serial("enrichProjectGraph should use UI5 data dir from configuration", asy
 
 	const expectedUi5DataDir = path.resolve(dependencyTree.path, "./ui5-data-dir-from-config");
 
-	await ui5Framework.enrichProjectGraph(projectGraph);
+	await ui5Framework.enrichProjectGraph(projectGraph, {
+		ui5DataDir: expectedUi5DataDir
+	});
 
 	t.is(t.context.Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
 	t.deepEqual(t.context.Sapui5ResolverStub.getCall(0).args, [{
@@ -1252,7 +1269,9 @@ test.serial("enrichProjectGraph should use absolute UI5 data dir from configurat
 
 	const expectedUi5DataDir = path.resolve("/absolute-ui5-data-dir-from-config");
 
-	await ui5Framework.enrichProjectGraph(projectGraph);
+	await ui5Framework.enrichProjectGraph(projectGraph, {
+		ui5DataDir: expectedUi5DataDir
+	});
 
 	t.is(t.context.Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
 	t.deepEqual(t.context.Sapui5ResolverStub.getCall(0).args, [{

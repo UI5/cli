@@ -103,10 +103,22 @@ test("Missing graph parameters", (t) => {
 		"Threw with expected error message");
 });
 
+test("ProjectBuilder: relative ui5DataDir should throw", (t) => {
+	const {ProjectBuilder, graph, taskRepository} = t.context;
+	const err = t.throws(() => {
+		new ProjectBuilder({
+			graph,
+			taskRepository,
+			ui5DataDir: "./ui5DataDir"
+		});
+	});
+	t.is(err.message, "ProjectBuilder: Parameter \"ui5DataDir\" must be an absolute path");
+});
+
 test("build", async (t) => {
 	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
 
-	const builder = new ProjectBuilder({graph, taskRepository});
+	const builder = new ProjectBuilder({graph, taskRepository, ui5DataDir: "/ui5DataDir"});
 
 	const filterProjectStub = sinon.stub().returns(true);
 	sinon.stub(builder, "_createProjectFilter").returns(filterProjectStub);
@@ -167,7 +179,7 @@ test("build", async (t) => {
 test("build: Conflicting dependency parameters", async (t) => {
 	const {graph, taskRepository, ProjectBuilder} = t.context;
 
-	const builder = new ProjectBuilder({graph, taskRepository});
+	const builder = new ProjectBuilder({graph, taskRepository, ui5DataDir: "/ui5DataDir"});
 
 	const err = await t.throwsAsync(builder.buildToTarget({
 		destPath: "dest/path",
@@ -185,7 +197,7 @@ test("build: Conflicting dependency parameters", async (t) => {
 test("build: Too many dependency parameters", async (t) => {
 	const {graph, taskRepository, ProjectBuilder} = t.context;
 
-	const builder = new ProjectBuilder({graph, taskRepository});
+	const builder = new ProjectBuilder({graph, taskRepository, ui5DataDir: "/ui5DataDir"});
 
 	const err = await t.throwsAsync(builder.buildToTarget({
 		includedDependencies: ["dep a"],
@@ -199,6 +211,7 @@ test("build: createBuildManifest in conjunction with dependencies", async (t) =>
 	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
 	t.context.getRootTypeStub = sinon.stub().returns("library");
 	const builder = new ProjectBuilder({graph, taskRepository,
+		ui5DataDir: "/ui5DataDir",
 		buildConfig: {
 			createBuildManifest: true
 		}
@@ -220,7 +233,7 @@ test("build: createBuildManifest in conjunction with dependencies", async (t) =>
 test("build: Failure", async (t) => {
 	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
 
-	const builder = new ProjectBuilder({graph, taskRepository});
+	const builder = new ProjectBuilder({graph, taskRepository, ui5DataDir: "/ui5DataDir"});
 
 	const filterProjectStub = sinon.stub().returns(true);
 	sinon.stub(builder, "_createProjectFilter").returns(filterProjectStub);
@@ -265,7 +278,7 @@ test("build: Failure", async (t) => {
 test("build: Abort does not reset the project", async (t) => {
 	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
 
-	const builder = new ProjectBuilder({graph, taskRepository});
+	const builder = new ProjectBuilder({graph, taskRepository, ui5DataDir: "/ui5DataDir"});
 
 	const filterProjectStub = sinon.stub().returns(true);
 	sinon.stub(builder, "_createProjectFilter").returns(filterProjectStub);
@@ -327,7 +340,7 @@ test.serial("build: Multiple projects", async (t) => {
 		"@ui5/logger/internal/loggers/Build": CreateBuildLoggerMock
 	});
 
-	const builder = new ProjectBuilder({graph, taskRepository});
+	const builder = new ProjectBuilder({graph, taskRepository, ui5DataDir: "/ui5DataDir"});
 
 	const filterProjectStub = sinon.stub().returns(true).onFirstCall().returns(false);
 	sinon.stub(builder, "_createProjectFilter").returns(filterProjectStub);
@@ -443,7 +456,7 @@ test.serial("_createProjectFilter with dependencyIncludes", async (t) => {
 		"../../../lib/build/helpers/composeProjectList.js": composeProjectListStub
 	});
 
-	const builder = new ProjectBuilder({graph, taskRepository});
+	const builder = new ProjectBuilder({graph, taskRepository, ui5DataDir: "/ui5DataDir"});
 
 	const filterProject = builder._createProjectFilter({
 		dependencyIncludes: "dependencyIncludes",
@@ -474,7 +487,7 @@ test.serial("_createProjectFilter with explicit include/exclude", async (t) => {
 		"../../../lib/build/helpers/composeProjectList.js": composeProjectListStub
 	});
 
-	const builder = new ProjectBuilder({graph, taskRepository});
+	const builder = new ProjectBuilder({graph, taskRepository, ui5DataDir: "/ui5DataDir"});
 
 	const filterProject = builder._createProjectFilter({
 		explicitIncludes: "explicitIncludes",
@@ -502,6 +515,7 @@ test("_writeResults", async (t) => {
 	const {graph, taskRepository} = t.context;
 	const builder = new ProjectBuilder({
 		graph, taskRepository,
+		ui5DataDir: "/ui5DataDir",
 		buildConfig: {
 			createBuildManifest: false,
 			otherBuildConfig: "yes"
@@ -583,6 +597,7 @@ test.serial("_writeResults: Create build manifest", async (t) => {
 
 	const builder = new ProjectBuilder({
 		graph, taskRepository,
+		ui5DataDir: "/ui5DataDir",
 		buildConfig: {
 			createBuildManifest: true,
 			otherBuildConfig: "yes"
@@ -685,6 +700,7 @@ test.serial("_writeResults: Flat build output", async (t) => {
 
 	const builder = new ProjectBuilder({
 		graph, taskRepository,
+		ui5DataDir: "/ui5DataDir",
 		buildConfig: {
 			outputStyle: OutputStyleEnum.Flat,
 			otherBuildConfig: "yes"
@@ -753,7 +769,7 @@ test.serial("_writeResults: Flat build output", async (t) => {
 
 test("_executeCleanupTasks", async (t) => {
 	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
-	const builder = new ProjectBuilder({graph, taskRepository});
+	const builder = new ProjectBuilder({graph, taskRepository, ui5DataDir: "/ui5DataDir"});
 
 	const executeCleanupTasksStub = sinon.stub(builder._buildContext, "executeCleanupTasks");
 	await builder._executeCleanupTasks();
@@ -782,8 +798,8 @@ test("instantiate new logger for every ProjectBuilder", async (t) => {
 		"@ui5/logger/internal/loggers/Build": createBuildLoggerMockSpy
 	});
 
-	new ProjectBuilder({graph, taskRepository});
-	new ProjectBuilder({graph, taskRepository});
+	new ProjectBuilder({graph, taskRepository, ui5DataDir: "/ui5DataDir"});
+	new ProjectBuilder({graph, taskRepository, ui5DataDir: "/ui5DataDir"});
 
 	t.is(createBuildLoggerMockSpy.callCount, 2, "BuildLogger is instantiated for every ProjectBuilder instance");
 });
@@ -798,7 +814,7 @@ test("_registerCleanupSigHooks/_deregisterCleanupSigHooks", (t) => {
 	const listenersBefore = getProcessListenerCount();
 
 	const {graph, taskRepository, ProjectBuilder} = t.context;
-	const builder = new ProjectBuilder({graph, taskRepository});
+	const builder = new ProjectBuilder({graph, taskRepository, ui5DataDir: "/ui5DataDir"});
 
 	const signals = builder._registerCleanupSigHooks();
 
@@ -816,7 +832,7 @@ test("_registerCleanupSigHooks/_deregisterCleanupSigHooks", (t) => {
 
 test("_getElapsedTime", (t) => {
 	const {graph, taskRepository, ProjectBuilder} = t.context;
-	const builder = new ProjectBuilder({graph, taskRepository});
+	const builder = new ProjectBuilder({graph, taskRepository, ui5DataDir: "/ui5DataDir"});
 
 	const res = builder._getElapsedTime(process.hrtime());
 	t.truthy(res, "Returned a value");
@@ -825,7 +841,7 @@ test("_getElapsedTime", (t) => {
 test("validateCaches: initializes contexts via getRequiredProjectContexts and invokes callback per project",
 	async (t) => {
 		const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
-		const builder = new ProjectBuilder({graph, taskRepository});
+		const builder = new ProjectBuilder({graph, taskRepository, ui5DataDir: "/ui5DataDir"});
 
 		// Background validation must be able to initialize contexts for never-built projects
 		// itself, otherwise the post-(initial-)build pass over dependencies skipped by the
@@ -871,7 +887,7 @@ test("validateCaches: initializes contexts via getRequiredProjectContexts and in
 
 test("validateCaches: aborts on signal", async (t) => {
 	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
-	const builder = new ProjectBuilder({graph, taskRepository});
+	const builder = new ProjectBuilder({graph, taskRepository, ui5DataDir: "/ui5DataDir"});
 
 	const controller = new AbortController();
 	const validateCacheB = sinon.stub().callsFake(() => {
@@ -906,7 +922,7 @@ test("validateCaches: aborts on signal", async (t) => {
 
 test("validateCaches: rejects re-entry while a build is running", async (t) => {
 	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
-	const builder = new ProjectBuilder({graph, taskRepository});
+	const builder = new ProjectBuilder({graph, taskRepository, ui5DataDir: "/ui5DataDir"});
 
 	// Simulate an in-flight build by manually flipping the private flag via a build call.
 	// Easiest: kick off two validateCaches in parallel and assert the second rejects.
@@ -935,7 +951,7 @@ test("validateCaches: rejects re-entry while a build is running", async (t) => {
 
 test("validateCaches: willValidate fires before each project's validateCache call", async (t) => {
 	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
-	const builder = new ProjectBuilder({graph, taskRepository});
+	const builder = new ProjectBuilder({graph, taskRepository, ui5DataDir: "/ui5DataDir"});
 
 	const events = [];
 	const ctxB = {

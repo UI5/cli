@@ -1,9 +1,9 @@
 import path from "node:path";
-import os from "node:os";
 import semver from "semver";
 import AbstractResolver from "./AbstractResolver.js";
 import Installer from "./npm/Installer.js";
 import {getLogger} from "@ui5/logger";
+import {validateUi5DataDir} from "../utils/dataDir.js";
 const log = getLogger("ui5Framework:Sapui5Resolver");
 
 const DIST_PKG_NAME = "@sapui5/distribution-metadata";
@@ -21,8 +21,8 @@ class Sapui5Resolver extends AbstractResolver {
 	 * @param {*} options options
 	 * @param {string} options.version SAPUI5 version to use
 	 * @param {string} [options.cwd=process.cwd()] Working directory to resolve configurations like .npmrc
-	 * @param {string} [options.ui5DataDir="~/.ui5"] UI5 home directory location. This will be used to store packages,
-	 * metadata and configuration used by the resolvers. Relative to `process.cwd()`
+	 * @param {string} options.ui5DataDir Absolute path to the UI5 data directory.
+	 * Used for framework metadata and package resolution.
 	 * @param {string} [options.cacheDir] Where to store temp/cached packages.
 	 * @param {string} [options.packagesDir] Where to install packages
 	 * @param {string} [options.stagingDir] The staging directory for packages
@@ -75,7 +75,8 @@ class Sapui5Resolver extends AbstractResolver {
 			const {default: Openui5Resolver} = await import("./Openui5Resolver.js");
 			const openui5Resolver = new Openui5Resolver({
 				cwd: this._cwd,
-				version: metadata.version
+				version: metadata.version,
+				ui5DataDir: this._ui5DataDir
 			});
 			const openui5Metadata = await openui5Resolver.getLibraryMetadata(libraryName);
 			return {
@@ -105,22 +106,21 @@ class Sapui5Resolver extends AbstractResolver {
 			})
 		};
 	}
-	static async fetchAllVersions(options) {
-		const installer = this._getInstaller(options);
+	static async fetchAllVersions(ui5DataDir, {cwd} = {}) {
+		const installer = this._getInstaller(ui5DataDir, {cwd});
 		return await installer.fetchPackageVersions({pkgName: DIST_PKG_NAME});
 	}
 
-	static async fetchAllTags(options) {
-		const installer = this._getInstaller(options);
+	static async fetchAllTags(ui5DataDir, {cwd} = {}) {
+		const installer = this._getInstaller(ui5DataDir, {cwd});
 		return installer.fetchPackageDistTags({pkgName: DIST_PKG_NAME});
 	}
 
-	static _getInstaller({ui5DataDir, cwd} = {}) {
+	static _getInstaller(ui5DataDir, {cwd} = {}) {
+		validateUi5DataDir(ui5DataDir, this.name);
 		return new Installer({
 			cwd: cwd ? path.resolve(cwd) : process.cwd(),
-			ui5DataDir:
-				ui5DataDir ? path.resolve(ui5DataDir) :
-					path.join(os.homedir(), ".ui5")
+			ui5DataDir
 		});
 	}
 }
