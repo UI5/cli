@@ -395,6 +395,64 @@ test.serial("LibraryLessGenerator: Rewrite for sap.ui.core base.less (from diffe
 	t.is(loggerStub.error.callCount, 0);
 });
 
+test.serial("LibraryLessGenerator: Rewrite for sap.ui.core svg.less", async (t) => {
+	const {LibraryLessGenerator, loggerStub} = t.context;
+
+	const input = `@import "../base/svg.less";\n` +
+		`@import "svg.less";`;
+	const expectedOutput = `${FILE_HEADER}\n\n` +
+	`@import "../../../../../../Base/icons/baseTheme/svg.less"; ` +
+		`/* ORIGINAL IMPORT PATH: "../base/svg.less" */\n\n` +
+	`@import "../../../../../../Base/icons/sap_horizon/svg.less"; ` +
+		`/* ORIGINAL IMPORT PATH: "svg.less" */\n`;
+
+	const fs = {
+		readFile: sinon.stub().callsFake((filePath, options, cb) => {
+			const err = new Error("ENOENT: no such file or directory, open " + filePath);
+			err.code = "ENOENT";
+			cb(err);
+		})
+	};
+
+	const output = await (new LibraryLessGenerator({fs})).generate({
+		filePath: "/resources/sap/ui/core/themes/sap_horizon/library.source.less",
+		fileContent: input
+	});
+
+	t.is(output, expectedOutput);
+	t.is(fs.readFile.callCount, 0, "fs.readFile should not be called");
+	t.is(loggerStub.error.callCount, 0);
+});
+
+test.serial("LibraryLessGenerator: Rewrite for sap.ui.core svg.less (from different library)", async (t) => {
+	const {LibraryLessGenerator, loggerStub} = t.context;
+
+	const input = `@import "../../../../sap/ui/core/themes/base/svg.less";\n` +
+		`@import "../../../../sap/ui/core/themes/sap_fiori_3/svg.less";`;
+	const expectedOutput = `${FILE_HEADER}\n\n` +
+	`@import "../../../../../Base/icons/baseTheme/svg.less"; ` +
+		`/* ORIGINAL IMPORT PATH: "../../../../sap/ui/core/themes/base/svg.less" */\n\n` +
+	`@import "../../../../../Base/icons/sap_fiori_3/svg.less"; ` +
+		`/* ORIGINAL IMPORT PATH: "../../../../sap/ui/core/themes/sap_fiori_3/svg.less" */\n`;
+
+	const fs = {
+		readFile: sinon.stub().callsFake((filePath, options, cb) => {
+			const err = new Error("ENOENT: no such file or directory, open " + filePath);
+			err.code = "ENOENT";
+			cb(err);
+		})
+	};
+
+	const output = await (new LibraryLessGenerator({fs})).generate({
+		filePath: "/resources/sap/f/themes/sap_fiori_3/library.source.less",
+		fileContent: input
+	});
+
+	t.is(output, expectedOutput);
+	t.is(fs.readFile.callCount, 0, "fs.readFile should not be called");
+	t.is(loggerStub.error.callCount, 0);
+});
+
 test.serial("LibraryLessGenerator: Rewrite for library.source.less", async (t) => {
 	const {LibraryLessGenerator, loggerStub} = t.context;
 
