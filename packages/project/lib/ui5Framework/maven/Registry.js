@@ -15,6 +15,16 @@ class Registry {
 		if (!endpointUrl) {
 			throw new Error(`Registry: Missing parameter "endpointUrl"`);
 		}
+		let parsedUrl;
+		try {
+			parsedUrl = new URL(endpointUrl);
+		} catch (e) {
+			throw new Error(`Registry: Invalid "endpointUrl": ${e.message}`);
+		}
+		if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+			throw new Error(
+				`Registry: Invalid protocol in "endpointUrl": Only http and https protocols are allowed`);
+		}
 		this._endpointUrl = endpointUrl;
 		if (!this._endpointUrl.endsWith("/")) {
 			this._endpointUrl += "/";
