@@ -333,6 +333,30 @@ test("a queued reinitialize() does not re-resolve early; the trailing pass owns 
 		t.is(buildCalls, 3, "one initial build + first swap + trailing-pass swap");
 	});
 
+test("create() tears down the bound socket and BuildServer when the definition watcher fails to arm",
+	async (t) => {
+		const stack = createStack();
+		const graphFactory = sinon.stub().resolves({});
+		const watcherError = new Error("@parcel/watcher subscribe failed");
+		const {mocks, httpServer, liveReloadHandle} = createMocks({
+			stacks: [stack],
+			definitionWatcherCreate: async () => {
+				throw watcherError;
+			},
+		});
+		const {default: Supervisor} = await importSupervisor(mocks);
+
+		await t.throwsAsync(Supervisor.create({}, baseConfig, undefined, graphFactory), {
+			is: watcherError,
+		}, "the watcher-arm failure propagates to the caller");
+
+		// A post-bind failure must not leak the socket, live-reload handle, relay, or BuildServer.
+		t.true(httpServer.close.calledOnce, "the bound socket is closed");
+		t.true(liveReloadHandle.close.calledOnce, "the live-reload handle is closed");
+		t.true(stack.buildServer.destroy.calledOnce, "the BuildServer is destroyed");
+		t.is(stack.buildServer.listenerCount("sourcesChanged"), 0, "the relay subscription is detached");
+	});
+
 test("destroy() closes live-reload, the socket, and the BuildServer; reinitialize() is then a no-op", async (t) => {
 	const stack = createStack();
 	const graphFactory = sinon.stub().resolves({});

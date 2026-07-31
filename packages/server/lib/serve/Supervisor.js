@@ -209,37 +209,40 @@ class Supervisor extends EventEmitter {
 		// transparently without touching the bound socket.
 		const dispatcher = (req, res) => this.#stack.app(req, res);
 
-		let port; let server;
+		// A post-bind step can reject (#startDefinitionWatcher when @parcel/watcher fails to
+		// subscribe), which would leak the bound socket, live-reload handle, relay subscription, and
+		// BuildServer. destroy() tears those down in order and tolerates a half-built instance, so
+		// delegate to it before rethrowing. create() rethrows without handing the instance out, so
+		// the move to DESTROYED is not observable.
 		try {
 			const listenTarget = h2 ?
 				await addSsl({app: dispatcher, key, cert}) :
 				http.createServer(dispatcher);
-			({port, server} = await listen(listenTarget, requestedPort, changePortIfInUse, acceptRemoteConnections));
+			const {port, server} =
+				await listen(listenTarget, requestedPort, changePortIfInUse, acceptRemoteConnections);
+			this.#httpServer = server;
+			this.#port = port;
+
+			if (liveReload) {
+				// Attach once to the stable http server, subscribed to the relay rather than the
+				// BuildServer directly, so connected clients persist across swaps.
+				this.#liveReloadHandle = attachLiveReloadServer({
+					httpServer: server,
+					buildServer: this.#sourcesChangedRelay,
+					token: this.#config.webSocketToken,
+				});
+			}
+			this.#relayFrom(this.#stack.buildServer);
+
+			// Arm the definition watcher over the initial graph, after the port is bound and the first
+			// stack is live. Only meaningful with a graphFactory (no factory means reinitialize is a no-op).
+			await this.#startDefinitionWatcher(graph);
+
+			announceListening({port, h2, acceptRemoteConnections});
 		} catch (err) {
-			// Release the BuildServer (source watcher + cache handle) before rethrowing so a
-			// failed bind does not leak a running build server.
-			await this.#stack.buildServer.destroy();
+			await this.destroy();
 			throw err;
 		}
-		this.#httpServer = server;
-		this.#port = port;
-
-		if (liveReload) {
-			// Attach once to the stable http server, subscribed to the relay rather than the
-			// BuildServer directly, so connected clients persist across swaps.
-			this.#liveReloadHandle = attachLiveReloadServer({
-				httpServer: server,
-				buildServer: this.#sourcesChangedRelay,
-				token: this.#config.webSocketToken,
-			});
-		}
-		this.#relayFrom(this.#stack.buildServer);
-
-		// Arm the definition watcher over the initial graph, after the port is bound and the first
-		// stack is live. Only meaningful with a graphFactory (no factory means reinitialize is a no-op).
-		await this.#startDefinitionWatcher(graph);
-
-		announceListening({port, h2, acceptRemoteConnections});
 	}
 
 	// Creates a definition watcher over the given graph and wires it to reinitialize(). A no-op
