@@ -4,6 +4,11 @@ import os from "node:os";
 import sinon from "sinon";
 import esmock from "esmock";
 import {setLogLevel} from "@ui5/logger";
+import {CACHE_VERSION} from "@ui5/project/internal/build/cache/CacheManager";
+
+// Versioned build cache path, derived from CacheManager's CACHE_VERSION so it
+// stays in sync when the version is bumped instead of being hardcoded here.
+const BUILD_CACHE_PATH = `buildCache/${CACHE_VERSION}`;
 
 function getDefaultArgv() {
 	return {
@@ -218,12 +223,12 @@ test.serial("ui5 cache clean: removes both entries and reports", async (t) => {
 		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
 	frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
-	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 8 * 1024 * 1024});
+	buildCacheGetCacheInfo.resolves({path: BUILD_CACHE_PATH, size: 8 * 1024 * 1024});
 
 	yesnoStub.resolves(true);
 
 	frameworkCacheCleanCache.resolves(FRAMEWORK_STUB);
-	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 7 * 1024 * 1024});
+	buildCacheCleanCache.resolves({path: BUILD_CACHE_PATH, size: 7 * 1024 * 1024});
 
 	argv["_"] = ["cache", "clean"];
 	setLogLevel("verbose");
@@ -240,7 +245,7 @@ test.serial("ui5 cache clean: removes both entries and reports", async (t) => {
 	t.true(allOutput.includes(WARNING_TEXT), "Shows safety warning details");
 	t.true(allOutput.includes(WARNING_IMPACT_TEXT), "Shows warning impact details");
 	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "framework")), "Shows absolute framework path");
-	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "buildCache/v0_7")), "Shows absolute build path");
+	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, BUILD_CACHE_PATH)), "Shows absolute build path");
 	t.true(allOutput.includes("5 versions of 18 libraries"), "Shows library stats format");
 	t.true(allOutput.includes("8.0 MB"), "Shows pre-clean build cache size");
 	t.false(allOutput.includes("Stale Cache"), "Does not report stale cache section when only active cache existed");
@@ -263,7 +268,7 @@ test.serial("ui5 cache clean: cleanup result uses fresh active cache paths after
 	yesnoStub.resolves(true);
 
 	frameworkCacheCleanCache.resolves(FRAMEWORK_STUB);
-	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 2 * 1024 * 1024});
+	buildCacheCleanCache.resolves({path: BUILD_CACHE_PATH, size: 2 * 1024 * 1024});
 
 	argv["_"] = ["cache", "clean"];
 	setLogLevel("verbose");
@@ -271,7 +276,7 @@ test.serial("ui5 cache clean: cleanup result uses fresh active cache paths after
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.false(allOutput.includes("Removed null"), "Does not print null cache path in cleanup result");
-	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "buildCache/v0_7")),
+	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, BUILD_CACHE_PATH)),
 		"Shows absolute build cache path in cleanup result when build cache appears after confirmation");
 	t.true(allOutput.includes("Cleaned Active Cache (Framework and Build)"),
 		"Success summary includes both active framework and build cache");
@@ -305,10 +310,10 @@ test.serial("ui5 cache clean: non-verbose mode suppresses detailed summaries", a
 		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
 	frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
-	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 8 * 1024 * 1024});
+	buildCacheGetCacheInfo.resolves({path: BUILD_CACHE_PATH, size: 8 * 1024 * 1024});
 	yesnoStub.resolves(true);
 	frameworkCacheCleanCache.resolves(FRAMEWORK_STUB);
-	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 7 * 1024 * 1024});
+	buildCacheCleanCache.resolves({path: BUILD_CACHE_PATH, size: 7 * 1024 * 1024});
 
 	argv["_"] = ["cache", "clean"];
 	await cache.handler(argv);
@@ -355,9 +360,9 @@ test.serial("ui5 cache clean: non-verbose mode with active cache skips additiona
 		frameworkCacheGetAdditionalCacheInfo, buildCacheGetAdditionalCacheInfo} = t.context;
 
 	frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
-	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 8 * 1024 * 1024});
+	buildCacheGetCacheInfo.resolves({path: BUILD_CACHE_PATH, size: 8 * 1024 * 1024});
 	frameworkCacheCleanCache.resolves(FRAMEWORK_STUB);
-	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 7 * 1024 * 1024});
+	buildCacheCleanCache.resolves({path: BUILD_CACHE_PATH, size: 7 * 1024 * 1024});
 	yesnoStub.resolves(true);
 
 	argv["_"] = ["cache", "clean"];
@@ -420,9 +425,9 @@ test.serial("ui5 cache clean: non-verbose --force mode is completely silent", as
 		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
 	frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
-	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 8 * 1024 * 1024});
+	buildCacheGetCacheInfo.resolves({path: BUILD_CACHE_PATH, size: 8 * 1024 * 1024});
 	frameworkCacheCleanCache.resolves(FRAMEWORK_STUB);
-	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 7 * 1024 * 1024});
+	buildCacheCleanCache.resolves({path: BUILD_CACHE_PATH, size: 7 * 1024 * 1024});
 
 	argv["_"] = ["cache", "clean"];
 	argv["force"] = true;
@@ -508,9 +513,9 @@ test.serial("ui5 cache clean: build only", async (t) => {
 	const {cache, argv, stderrWriteStub, buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
 	t.context.frameworkCacheGetCacheInfo.resolves(null);
-	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 50 * 1024});
+	buildCacheGetCacheInfo.resolves({path: BUILD_CACHE_PATH, size: 50 * 1024});
 	yesnoStub.resolves(true);
-	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 50 * 1024});
+	buildCacheCleanCache.resolves({path: BUILD_CACHE_PATH, size: 50 * 1024});
 
 	argv["_"] = ["cache", "clean"];
 	setLogLevel("verbose");
@@ -526,9 +531,9 @@ test.serial("ui5 cache clean: formats byte sizes correctly (< 1 KB)", async (t) 
 	const {cache, argv, stderrWriteStub, buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
 	t.context.frameworkCacheGetCacheInfo.resolves(null);
-	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 500});
+	buildCacheGetCacheInfo.resolves({path: BUILD_CACHE_PATH, size: 500});
 	yesnoStub.resolves(true);
-	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 500});
+	buildCacheCleanCache.resolves({path: BUILD_CACHE_PATH, size: 500});
 
 	argv["_"] = ["cache", "clean"];
 	setLogLevel("verbose");
@@ -542,9 +547,9 @@ test.serial("ui5 cache clean: formats KB sizes correctly", async (t) => {
 	const {cache, argv, stderrWriteStub, buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
 	t.context.frameworkCacheGetCacheInfo.resolves(null);
-	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 50 * 1024});
+	buildCacheGetCacheInfo.resolves({path: BUILD_CACHE_PATH, size: 50 * 1024});
 	yesnoStub.resolves(true);
-	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 50 * 1024});
+	buildCacheCleanCache.resolves({path: BUILD_CACHE_PATH, size: 50 * 1024});
 
 	argv["_"] = ["cache", "clean"];
 	setLogLevel("verbose");
@@ -576,9 +581,9 @@ test.serial("ui5 cache clean --force: skips confirmation prompt", async (t) => {
 		buildCacheCleanCache, buildCacheGetCacheInfo, yesnoStub} = t.context;
 
 	frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
-	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 5 * 1024 * 1024});
+	buildCacheGetCacheInfo.resolves({path: BUILD_CACHE_PATH, size: 5 * 1024 * 1024});
 	frameworkCacheCleanCache.resolves(FRAMEWORK_STUB);
-	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 5 * 1024 * 1024});
+	buildCacheCleanCache.resolves({path: BUILD_CACHE_PATH, size: 5 * 1024 * 1024});
 
 	argv["_"] = ["cache", "clean"];
 	setLogLevel("verbose");
@@ -688,11 +693,11 @@ test.serial("ui5 cache clean: shows stale build cache in pre-confirm and post-cl
 	t.context.frameworkCacheGetCacheInfo.resolves(null);
 	t.context.buildCacheGetCacheInfo.resolves(null);
 	buildCacheGetAdditionalCacheInfo.resolves([
-		{path: "buildCache/v0_7", size: 40 * 1024 * 1024},
+		{path: BUILD_CACHE_PATH, size: 40 * 1024 * 1024},
 	]);
 	buildCacheCleanCache.resolves(null);
 	buildCacheCleanAdditional.resolves([
-		{path: "buildCache/v0_7", size: 40 * 1024 * 1024},
+		{path: BUILD_CACHE_PATH, size: 40 * 1024 * 1024},
 	]);
 
 	argv["_"] = ["cache", "clean"];
@@ -703,7 +708,7 @@ test.serial("ui5 cache clean: shows stale build cache in pre-confirm and post-cl
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes("Stale Cache"), "Shows stale cache group");
 	t.true(allOutput.includes("Build"), "Shows build subgroup");
-	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "buildCache/v0_7")),
+	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, BUILD_CACHE_PATH)),
 		"Shows stale build cache path indented");
 	t.true(allOutput.includes("Removed"), "Post-clean result shows removed entries");
 	t.true(allOutput.includes("freed 40.0 MB"), "Shows freed size in post-clean result");
@@ -715,11 +720,11 @@ test.serial("ui5 cache clean: post-clean summary does not duplicate active build
 		buildCacheGetCacheInfo, buildCacheCleanCache, buildCacheCleanAdditional} = t.context;
 
 	t.context.frameworkCacheGetCacheInfo.resolves(null);
-	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 30 * 1024 * 1024});
+	buildCacheGetCacheInfo.resolves({path: BUILD_CACHE_PATH, size: 30 * 1024 * 1024});
 	buildCacheGetAdditionalCacheInfo.resolves([]);
-	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 30 * 1024 * 1024});
+	buildCacheCleanCache.resolves({path: BUILD_CACHE_PATH, size: 30 * 1024 * 1024});
 	buildCacheCleanAdditional.resolves([
-		{path: "buildCache/v0_7", size: 30 * 1024 * 1024},
+		{path: BUILD_CACHE_PATH, size: 30 * 1024 * 1024},
 	]);
 
 	argv["_"] = ["cache", "clean"];
@@ -742,13 +747,13 @@ test.serial("ui5 cache clean: keeps stale build cleanup when stale existed pre-c
 		buildCacheGetCacheInfo, buildCacheCleanCache, buildCacheCleanAdditional} = t.context;
 
 	t.context.frameworkCacheGetCacheInfo.resolves(null);
-	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 30 * 1024 * 1024});
+	buildCacheGetCacheInfo.resolves({path: BUILD_CACHE_PATH, size: 30 * 1024 * 1024});
 	buildCacheGetAdditionalCacheInfo.resolves([
-		{path: "buildCache/v0_7", size: 12 * 1024 * 1024},
+		{path: BUILD_CACHE_PATH, size: 12 * 1024 * 1024},
 	]);
-	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 30 * 1024 * 1024});
+	buildCacheCleanCache.resolves({path: BUILD_CACHE_PATH, size: 30 * 1024 * 1024});
 	buildCacheCleanAdditional.resolves([
-		{path: "buildCache/v0_7", size: 30 * 1024 * 1024},
+		{path: BUILD_CACHE_PATH, size: 30 * 1024 * 1024},
 	]);
 
 	argv["_"] = ["cache", "clean"];
@@ -770,7 +775,7 @@ test.serial("ui5 cache clean: post-clean summary ignores stale preview when clea
 	t.context.frameworkCacheGetCacheInfo.resolves(null);
 	buildCacheGetCacheInfo.resolves(null);
 	buildCacheGetAdditionalCacheInfo.resolves([
-		{path: "buildCache/v0_7", size: 12 * 1024 * 1024},
+		{path: BUILD_CACHE_PATH, size: 12 * 1024 * 1024},
 	]);
 	buildCacheCleanCache.resolves(null);
 	buildCacheCleanAdditional.resolves([]);
@@ -781,7 +786,7 @@ test.serial("ui5 cache clean: post-clean summary ignores stale preview when clea
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "buildCache/v0_7")),
+	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, BUILD_CACHE_PATH)),
 		"Pre-confirm summary still shows stale build preview entry");
 	t.true(allOutput.includes(PARALLEL_CLEANUP_NOTICE),
 		"Post-clean summary reflects current cleanup state, not stale preview snapshot");
@@ -794,13 +799,13 @@ test.serial("ui5 cache clean: build cache and stale build cache with size 0 omit
 		buildCacheCleanCache, buildCacheCleanAdditional, buildCacheGetCacheInfo} = t.context;
 
 	t.context.frameworkCacheGetCacheInfo.resolves(null);
-	buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 0});
+	buildCacheGetCacheInfo.resolves({path: BUILD_CACHE_PATH, size: 0});
 	buildCacheGetAdditionalCacheInfo.resolves([
-		{path: "buildCache/v0_7", size: 0},
+		{path: BUILD_CACHE_PATH, size: 0},
 	]);
-	buildCacheCleanCache.resolves({path: "buildCache/v0_7", size: 0});
+	buildCacheCleanCache.resolves({path: BUILD_CACHE_PATH, size: 0});
 	buildCacheCleanAdditional.resolves([
-		{path: "buildCache/v0_7", size: 0},
+		{path: BUILD_CACHE_PATH, size: 0},
 	]);
 
 	argv["_"] = ["cache", "clean"];
@@ -819,7 +824,7 @@ test.serial("ui5 cache clean: pre-clean summary shows only Active Cache group", 
 	const {cache, argv, stderrWriteStub, yesnoStub} = t.context;
 
 	t.context.frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
-	t.context.buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 2 * 1024 * 1024});
+	t.context.buildCacheGetCacheInfo.resolves({path: BUILD_CACHE_PATH, size: 2 * 1024 * 1024});
 	t.context.frameworkCacheGetAdditionalCacheInfo.resolves([]);
 	t.context.buildCacheGetAdditionalCacheInfo.resolves([]);
 	yesnoStub.resolves(false);
@@ -843,7 +848,7 @@ test.serial("ui5 cache clean: pre-clean summary shows only Stale Cache group", a
 		{path: "_framework_to_delete_abcd", libraryCount: 4, versionCount: 2},
 	]);
 	t.context.buildCacheGetAdditionalCacheInfo.resolves([
-		{path: "buildCache/v0_7", size: 5 * 1024 * 1024},
+		{path: BUILD_CACHE_PATH, size: 5 * 1024 * 1024},
 	]);
 	yesnoStub.resolves(false);
 
@@ -861,7 +866,7 @@ test.serial("ui5 cache clean: pre-clean summary shows both groups when active an
 	const {cache, argv, stderrWriteStub, yesnoStub} = t.context;
 
 	t.context.frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
-	t.context.buildCacheGetCacheInfo.resolves({path: "buildCache/v0_7", size: 6 * 1024 * 1024});
+	t.context.buildCacheGetCacheInfo.resolves({path: BUILD_CACHE_PATH, size: 6 * 1024 * 1024});
 	t.context.frameworkCacheGetAdditionalCacheInfo.resolves([
 		{path: "_framework_to_delete_xy12", libraryCount: 3, versionCount: 1},
 	]);
