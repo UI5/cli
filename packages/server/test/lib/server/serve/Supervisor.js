@@ -13,6 +13,7 @@ function createBuildServer() {
 	buildServer.destroy = sinon.stub().resolves();
 	buildServer.suspendReaders = sinon.stub();
 	buildServer.resumeReaders = sinon.stub();
+	buildServer.suspendBuilds = sinon.stub();
 	return buildServer;
 }
 
@@ -614,6 +615,10 @@ test("a definitionChanging event suspends the current BuildServer's readers", as
 	const err = stack1.buildServer.suspendReaders.firstCall.args[0];
 	t.is(err?.code, "UI5_DEFINITION_CHANGING", "suspended with a well-formed definition-change error");
 	t.is(typeof err?.message, "string");
+
+	// The build loop is stopped on the same leading edge, so the outgoing stack stops aborting and
+	// re-arming builds while the new stack is built against the shared cache.
+	t.true(stack1.buildServer.suspendBuilds.calledOnce, "the current BuildServer's build loop is stopped");
 });
 
 test("definitionChanging suspends the new BuildServer after a swap (re-targeted)", async (t) => {
@@ -657,6 +662,36 @@ test("a failed swap resumes the surviving BuildServer's readers (degraded gate t
 
 	t.true(stack1.buildServer.resumeReaders.called,
 		"the surviving BuildServer's readers are resumed once the degraded gate is active");
+});
+
+test("a failed swap does not restart the surviving BuildServer's build loop", async (t) => {
+	// Stopping the build loop is one-way: unlike the reader suspend (lifted so the degraded stack can
+	// serve already-built resources), it must stay engaged so the surviving stack never rebuilds off
+	// the wrong branch's sources while degraded. There is no resumeBuilds to call.
+	const stack1 = createStack();
+	let calls = 0;
+	const graphFactory = sinon.stub().resolves({});
+	const {mocks, definitionWatchers} = createMocks({
+		buildAppImpl: async () => {
+			calls++;
+			if (calls === 1) {
+				return stack1; // initial build
+			}
+			throw new Error("invalid ui5.yaml"); // re-init fails -> degraded
+		}
+	});
+	const {default: Supervisor} = await importSupervisor(mocks);
+
+	const supervisor = await Supervisor.create({}, baseConfig, undefined, graphFactory);
+	t.teardown(() => supervisor.destroy());
+
+	// Leading edge stops the build loop; the trailing swap then fails and leaves stack1 degraded.
+	definitionWatchers[0].emit("definitionChanging", {eventType: "update", filePath: "/app/ui5.yaml"});
+	await supervisor.reinitialize();
+
+	t.true(stack1.buildServer.suspendBuilds.calledOnce, "the build loop was stopped on the leading edge");
+	t.false("resumeBuilds" in stack1.buildServer,
+		"no resumeBuilds counterpart exists; the build loop stays stopped until destroy");
 });
 
 test.serial("a persistently failing swap is auto-retried up to the recovery budget, then stops", async (t) => {
