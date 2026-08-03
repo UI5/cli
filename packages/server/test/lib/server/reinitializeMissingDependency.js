@@ -7,20 +7,20 @@ import {serve} from "../../../lib/server.js";
 import {graphFromPackageDependencies} from "@ui5/project/graph";
 import {isolatedUi5DataDir} from "../../utils/buildCacheIsolation.js";
 
-// TDD placeholder for the desired recovery: a newly-declared but missing dependency drives the
-// server DEGRADED (500 on every request); once it is installed at its node_modules path the server
-// should recover on its own, without a further definition edit. Today it does not, so it is marked
-// test.failing: green while it throws, a hard error once it passes (the cue to drop the marker).
+// A newly-declared but missing dependency drives the server DEGRADED (500 on every request). Once it
+// is installed at its node_modules path, the server recovers on its own via the Supervisor's
+// slow-phase recovery poll, without a further definition edit.
 //
-// The Supervisor retries a failed re-resolve on a bounded budget (5 attempts, ~550 ms apart). An
-// install while attempts remain would recover today, so the test drains the budget (waits for
-// ui5.project-resolve-failed to go quiet) before installing.
+// Recovery is two-phase: a fast burst (5 attempts, ~550 ms apart) bounded by RecoveryBudget, then an
+// indefinite slow poll. To exercise the slow poll, the install must land after the fast budget is
+// spent, so the test drains it (waits for ui5.project-resolve-failed to go quiet) before installing.
 
-test.failing(
-	"a late-installed missing dependency should let the server recover without a further edit",
+test(
+	"a late-installed missing dependency lets the server recover without a further edit",
 	async (t) => {
-		// Budget drain (~4 s) plus recovery dead-time (~5 s) exceed AVA's 10 s default.
-		t.timeout(30000);
+		// Fast-burst drain (~3 s) plus the real 30 s slow-poll interval before recovery. The slow
+		// interval is not injectable (it is not a shipped option), so the test waits it out.
+		t.timeout(60000);
 
 		const ui5DataDir = isolatedUi5DataDir(t);
 		const tmpProject = path.join("./test/tmp", `reinit-missingdep-${process.pid}`);
@@ -46,7 +46,7 @@ test.failing(
 		const request = supertest(`http://127.0.0.1:${server.port}`);
 		t.is((await request.get("/index.html")).statusCode, 200, "serves before the missing dependency");
 
-		// Timestamp each failed re-resolve so the drain loop can tell when the budget is spent.
+		// Timestamp each failed re-resolve so the drain loop can tell when the fast budget is spent.
 		let lastResolveFailure = 0;
 		const onResolveFailed = () => {
 			lastResolveFailure = Date.now();
@@ -61,7 +61,7 @@ test.failing(
 		pkg.dependencies["library.e"] = "file:../library.e";
 		await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
 
-		// Precondition (current behavior): the server goes DEGRADED and serves 500.
+		// The server goes DEGRADED and serves 500.
 		const degradedDeadline = Date.now() + 10000;
 		let degraded = false;
 		while (Date.now() < degradedDeadline) {
@@ -73,9 +73,9 @@ test.failing(
 		}
 		t.true(degraded, "the missing dependency drives the server into a degraded (500) state");
 
-		// Drain the recovery budget: wait for a ~1.2 s quiet window (over the ~550 ms retry cadence, so
-		// a pending retry would have fired). Installing before this drains would recover today and make
-		// the test unexpectedly pass.
+		// Drain the fast recovery budget: wait for a ~1.2 s quiet window (over the ~550 ms fast cadence,
+		// under the slow interval, so the burst has ended and the next slow poll has not yet fired).
+		// Installing before this drains would recover in the fast phase, not exercising the slow poll.
 		const quietWindow = 1200;
 		const drainDeadline = Date.now() + 15000;
 		while (Date.now() < drainDeadline) {
@@ -85,13 +85,13 @@ test.failing(
 			await new Promise((resolve) => setTimeout(resolve, 100));
 		}
 
-		// Install the dependency at its node_modules path, after the budget is spent.
+		// Install the dependency at its node_modules path, after the fast budget is spent.
 		await fs.cp("./test/fixtures/library.e",
 			path.join(tmpProject, "node_modules", "library.e"), {recursive: true});
 
-		// Desired: the server detects the install and re-resolves to 200. It never recovers today, so
-		// bound the dead time.
-		const recoverDeadline = Date.now() + 5000;
+		// The slow poll detects the install and re-resolves to 200, without a further definition edit.
+		// Allow one full slow interval (30 s) plus margin for the re-resolve and build.
+		const recoverDeadline = Date.now() + 35000;
 		let status = 500;
 		while (Date.now() < recoverDeadline) {
 			status = (await request.get("/index.html")).statusCode;

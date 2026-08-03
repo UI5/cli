@@ -19,12 +19,15 @@ const log = getLogger("server:Supervisor");
 // resolved project set keeps growing. RecoveryBudget bounds the number of recovery swaps themselves.
 const RECOVERY_MAX_ITERATIONS = 10;
 
+// Slow-phase recovery interval, used once the fast RecoveryBudget is spent.
+const SLOW_RECOVERY_INTERVAL_MS = 30000;
+
 // Swap lifecycle states. The state decides reentrancy, terminal status, and which transitions are
 // legal; it is mutated only through #setState against the table below.
 // HEALTHY   - serving a stack whose graph matches disk; no swap running.
 // RESOLVING - a swap is running, entered from HEALTHY (single-resolve strategy).
 // DEGRADED  - last-good stack still serving after a failed re-resolve; graph no longer matches disk;
-//             no swap running (a recovery timer may be pending, or the budget exhausted).
+//             no swap running (a recovery timer is pending).
 // RECOVERING - a swap is running, entered from DEGRADED (convergence strategy).
 // DESTROYED - terminal.
 //
@@ -107,11 +110,10 @@ class Supervisor extends EventEmitter {
 	// do-while re-check.
 	#reinitInProgress = false;
 	#reinitQueued = false;
-	// Loop protection for self-scheduled recovery swaps. Records an attempt when a recovery is
-	// scheduled (not when one succeeds), so a persistently broken branch that never resolves still
-	// exhausts the budget and stops auto-retrying instead of cycling forever. Reset on each
-	// definitionChanging so a fresh user action starts with a full allowance, and on each successful
-	// swap so a later failure starts its own allowance.
+	// Loop protection for the fast phase of self-scheduled recovery swaps. Records an attempt when a
+	// fast recovery is scheduled (not when one succeeds), so a persistently broken branch drains the
+	// fast allowance and drops to the slow phase. Reset on each definitionChanging so a fresh user
+	// action starts with a full allowance, and on each successful swap so a later failure starts its own.
 	#recoveryBudget = new RecoveryBudget();
 	// Delayed retry timer for a self-scheduled recovery after a failed swap. Cleared by any explicit
 	// reinitialize() so a real definitionChanged event supersedes the timer.
@@ -344,21 +346,27 @@ class Supervisor extends EventEmitter {
 		}
 	}
 
-	// Schedules one delayed recovery swap after a failed re-resolve left the stack degraded. Called
-	// unconditionally from the #swap catch: a transient checkout race and a deterministic bad branch
-	// look identical here (the resolve either threw or produced a graph pointing at sources still
-	// landing), so recovery is attempted for both and bounded by RecoveryBudget. The attempt is
-	// recorded now, not on success, so a branch that never resolves still exhausts the budget and
-	// stops retrying (staying degraded until the next definitionChanging opens a fresh allowance).
+	// Schedules the next delayed recovery swap after a failed re-resolve left the stack degraded.
+	// Two-phase, keyed off the fast RecoveryBudget: DEFINITION_CHANGED_SETTLE_MS within budget, then
+	// SLOW_RECOVERY_INTERVAL_MS re-armed indefinitely. The slow phase must be timer-driven, not
+	// watcher-driven: the watcher only watches projects in the last resolved graph, so a dependency
+	// installed after the failed swap (a brand-new node_modules/<dep>) never fires a file event.
+	// Stopped by any path that clears #recoveryTimer: a successful swap, destroy(), definitionChanging.
 	#scheduleDegradedRecovery() {
-		if (this.#state === STATE.DESTROYED || !this.#recoveryBudget.withinBudget()) {
+		if (this.#state === STATE.DESTROYED) {
 			return;
 		}
-		this.#recoveryBudget.recordRecovery();
+		let delay;
+		if (this.#recoveryBudget.withinBudget()) {
+			this.#recoveryBudget.recordRecovery();
+			delay = DEFINITION_CHANGED_SETTLE_MS;
+		} else {
+			delay = SLOW_RECOVERY_INTERVAL_MS;
+		}
 		this.#recoveryTimer = setTimeout(() => {
 			this.#recoveryTimer = null;
 			this.reinitialize();
-		}, DEFINITION_CHANGED_SETTLE_MS);
+		}, delay);
 	}
 
 	// Collects the resolved graph's project root paths as an absolute-path set, for the convergence
@@ -443,7 +451,14 @@ class Supervisor extends EventEmitter {
 			}
 			// Keep the last-good stack serving. A subsequent valid edit will swap cleanly.
 			this.#setState(STATE.DEGRADED);
-			log.error(`Failed to re-initialize server: ${err?.message ?? err}`);
+			// Log the first failure of an episode at error, repeats at verbose, so the indefinite slow
+			// poll does not print an error stack every interval. `recovering` is whether the stack was
+			// already degraded before this swap.
+			if (recovering) {
+				log.verbose(`Failed to re-initialize server (still degraded): ${err?.message ?? err}`);
+			} else {
+				log.error(`Failed to re-initialize server: ${err?.message ?? err}`);
+			}
 			if (err?.stack) {
 				log.verbose(err.stack);
 			}
@@ -463,8 +478,9 @@ class Supervisor extends EventEmitter {
 			// where the resolve already repainted the slot. The message drives the interactive
 			// console's degraded status line.
 			process.emit("ui5.project-resolve-failed", {message: err?.message ?? String(err)});
-			// Schedule one bounded recovery attempt. A transient checkout race recovers on the retry;
-			// a persistently broken branch exhausts the budget and stays degraded until the next change.
+			// Schedule the next recovery (fast within budget, then an indefinite slow poll); see
+			// #scheduleDegradedRecovery. A transient checkout race recovers on a fast retry; a
+			// persistently broken branch drops to the slow poll until it resolves or a definition change.
 			this.#scheduleDegradedRecovery();
 			return;
 		}
