@@ -38,7 +38,6 @@ const libraryOPath = path.join(__dirname, "..", "..", "fixtures", "library.o");
 const libraryCore = path.join(__dirname, "..", "..", "fixtures", "sap.ui.core-evo");
 const libraryCoreBuildtime = path.join(__dirname, "..", "..", "fixtures", "sap.ui.core-buildtime");
 const themeJPath = path.join(__dirname, "..", "..", "fixtures", "theme.j");
-const themeLibraryEPath = path.join(__dirname, "..", "..", "fixtures", "theme.library.e");
 const newLineRegexp = /\r?\n|\r/g;
 
 function clone(obj) {
@@ -1206,96 +1205,6 @@ test.serial("Build library.coreBuildtime: replaceBuildtime", async (t) => {
 	t.pass();
 });
 
-test.serial("Build library with theme configured for CSS variables", async (t) => {
-	const destPath = "./test/tmp/build/theme.j/dest-css-variables";
-	const expectedPath = "./test/expected/build/theme.j/dest-css-variables";
-
-	const graph = await graphFromObject({
-		dependencyTree: themeJTree
-	});
-	graph.setTaskRepository(taskRepository);
-	await graph.build({
-		ui5DataDir: isolatedUi5DataDir(t),
-		destPath,
-		cssVariables: true,
-	});
-
-	const expectedFiles = await findFiles(expectedPath);
-	// Check for all directories and files
-	await directoryDeepEqual(t, destPath, expectedPath);
-	// Check for all file contents
-	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
-	t.pass();
-});
-
-test.serial("Build library with theme configured for CSS variables and theme designer resources", async (t) => {
-	const destPath = "./test/tmp/build/theme.j/dest-css-variables-theme-designer-resources";
-	const expectedPath = "./test/expected/build/theme.j/dest-css-variables-theme-designer-resources";
-
-	const graph = await graphFromObject({
-		dependencyTree: themeJTree
-	});
-	graph.setTaskRepository(taskRepository);
-	await graph.build({
-		ui5DataDir: isolatedUi5DataDir(t),
-		destPath,
-		cssVariables: true,
-		includedTasks: ["generateThemeDesignerResources"]
-	});
-
-	const expectedFiles = await findFiles(expectedPath);
-	// Check for all directories and files
-	await directoryDeepEqual(t, destPath, expectedPath);
-	// Check for all file contents
-	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
-	t.pass();
-});
-
-test.serial("Build theme-library with CSS variables", async (t) => {
-	const destPath = "./test/tmp/build/theme.library.e/dest-css-variables";
-	const expectedPath = "./test/expected/build/theme.library.e/dest-css-variables";
-
-	const graph = await graphFromObject({
-		dependencyTree: themeLibraryETree
-	});
-	graph.setTaskRepository(taskRepository);
-	await graph.build({
-		ui5DataDir: isolatedUi5DataDir(t),
-		destPath,
-		cssVariables: true
-	});
-
-	const expectedFiles = await findFiles(expectedPath);
-	// Check for all directories and files
-	await directoryDeepEqual(t, destPath, expectedPath);
-	// Check for all file contents
-	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
-	t.pass();
-});
-
-test.serial("Build theme-library with CSS variables and theme designer resources", async (t) => {
-	const destPath = "./test/tmp/build/theme.library.e/dest-css-variables-theme-designer-resources";
-	const expectedPath = "./test/expected/build/theme.library.e/dest-css-variables-theme-designer-resources";
-
-	const graph = await graphFromObject({
-		dependencyTree: themeLibraryETree
-	});
-	graph.setTaskRepository(taskRepository);
-	await graph.build({
-		ui5DataDir: isolatedUi5DataDir(t),
-		destPath,
-		cssVariables: true,
-		includedTasks: ["generateThemeDesignerResources"]
-	});
-
-	const expectedFiles = await findFiles(expectedPath);
-	// Check for all directories and files
-	await directoryDeepEqual(t, destPath, expectedPath);
-	// Check for all file contents
-	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
-	t.pass();
-});
-
 test.serial("Build library.o with terminologies and supportedLocales", async (t) => {
 	const destPath = path.join("test", "tmp", "build", "library.o", "dest");
 	const expectedPath = path.join("test", "expected", "build", "library.o", "dest");
@@ -2244,30 +2153,6 @@ const themeJTree = {
 					"test": "main/test"
 				},
 				"propertiesFileSourceEncoding": "ISO-8859-1"
-			}
-		}
-	}
-};
-
-const themeLibraryETree = {
-	// Using @openui5/ prefix to enable execution of generateThemeDesignerResources task
-	"id": "@openui5/theme.library.e.id",
-	"version": "1.0.0",
-	"path": themeLibraryEPath,
-	"dependencies": [],
-	"configuration": {
-		"specVersion": "2.0",
-		"type": "theme-library",
-		"metadata": {
-			"name": "theme.library.e",
-			"copyright": "Some fancy copyright"
-		},
-		"resources": {
-			"configuration": {
-				"paths": {
-					"src": "src",
-					"test": "test"
-				}
 			}
 		}
 	}

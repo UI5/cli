@@ -642,7 +642,6 @@ test.serial("_writeResults: Create build manifest", async (t) => {
 	t.deepEqual(createBuildManifestStub.getCall(0).args[1], {
 		createBuildManifest: true,
 		outputStyle: OutputStyleEnum.Default,
-		cssVariables: false,
 		excludedTasks: [],
 		includedTasks: [],
 		jsdoc: false,

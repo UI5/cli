@@ -53,7 +53,7 @@ The remote-connections warning (when `--accept-remote-connections` is used) is w
 ## Standard Middleware
 
 ::: info Removed Middleware
-The `serveThemes` middleware has been removed in UI5 CLI v5. Theme compilation is now handled by the `buildThemes` build task, which pre-compiles all theme CSS files. The resulting CSS files (including `library.css`, `library-RTL.css`, `library-parameters.json`, and CSS Variables resources) are served via the `serveResources` middleware, providing the same functionality with better performance through build-time compilation and caching.
+The `serveThemes` middleware has been removed in UI5 CLI v5. Theme compilation is now handled by the `buildThemes` build task, which pre-compiles all theme CSS files. The resulting CSS files (including `library.css`, `library-RTL.css`, `library-parameters.json`) are served via the `serveResources` middleware, providing the same functionality with better performance through build-time compilation and caching.
 
 The `testRunner` middleware has also been removed in UI5 CLI v5. The QUnit TestRunner (`testrunner.html`, `testrunner.css`, `TestRunner.js`) is now provided by the UI5 framework (`sap.ui.core`) and is served via the `serveResources` middleware.
 

@@ -84,14 +84,12 @@ async function buildThemeInWorker(taskUtil, options, transferList) {
  * @param {string} [parameters.options.librariesPattern] Search pattern for .library files
  * @param {string} [parameters.options.themesPattern] Search pattern for sap.ui.core theme folders
  * @param {boolean} [parameters.options.compress=true]
- * @param {boolean} [parameters.options.cssVariables=false]
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 export default async function({
 	workspace, dependencies, taskUtil,
 	options: {
 		projectName, inputPattern, librariesPattern, themesPattern, compress,
-		cssVariables
 	}
 }) {
 	const combo = new ReaderCollectionPrioritized({
@@ -205,7 +203,6 @@ export default async function({
 				themeResources: await serializeResources([themeRes]),
 				options: {
 					compress,
-					cssVariables: !!cssVariables,
 				},
 			}, [port2]);
 
@@ -226,7 +223,6 @@ export default async function({
 			fs: fsInterface(combo),
 			options: {
 				compress,
-				cssVariables: !!cssVariables,
 			}
 		});
 	}

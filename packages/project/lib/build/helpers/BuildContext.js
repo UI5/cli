@@ -17,7 +17,6 @@ class BuildContext {
 
 	constructor(graph, taskRepository, { // buildConfig
 		selfContained = false,
-		cssVariables = false,
 		jsdoc = false,
 		createBuildManifest = false,
 		outputStyle = OutputStyleEnum.Default,
@@ -69,7 +68,6 @@ class BuildContext {
 		this._graph = graph;
 		this._buildConfig = {
 			selfContained,
-			cssVariables,
 			jsdoc,
 			createBuildManifest,
 			outputStyle,
@@ -83,9 +81,8 @@ class BuildContext {
 
 		this._taskRepository = taskRepository;
 
-		this._options = {
-			cssVariables: cssVariables
-		};
+		this._options = {};
+
 		this._ui5DataDir = ui5DataDir;
 		this._projectBuildContexts = new Map();
 	}
