@@ -126,6 +126,10 @@ class BuildServer extends EventEmitter {
 	// engaged (a project-definition change is being re-resolved). Supplied by the caller so the
 	// HTTP-facing wording lives in the server layer. Null when not suspended.
 	#suspendError = null;
+	// One-way flag that stops the build loop while the definition is re-resolved. Where #suspendError
+	// gates reader requests, this stops builds from starting or restarting. Set by suspendBuilds(),
+	// cleared only by destroy() (#destroyed supersedes it in every scheduling guard).
+	#buildLoopSuspended = false;
 	// Background cache validation state. `#activeValidation` is the promise of the
 	// currently running validation pass (or null when idle); `#validationAbort`
 	// is its controller, used to preempt validation when a real build is requested.
@@ -459,6 +463,41 @@ class BuildServer extends EventEmitter {
 	}
 
 	/**
+	 * Stops the build loop while the project definition is being re-resolved.
+	 *
+	 * Aborts the in-flight build, cancels the pending and deferred restarts, and stops background
+	 * validation, then sets #buildLoopSuspended so nothing restarts. Called by the dev server on a
+	 * definition-file change (e.g. a <code>git checkout</code>), alongside {@link BuildServer#suspendReaders},
+	 * so the outgoing stack stops re-arming builds while the incoming stack builds against the same cache.
+	 *
+	 * One-way, no resume: the flag clears only on {@link BuildServer#destroy}. Unlike a source-change
+	 * invalidate, it leaves per-project state and cached readers intact, so already-built resources
+	 * keep serving. A no-op once destroyed.
+	 *
+	 * @public
+	 * @param {string} reason Reason forwarded to the abort of the in-flight build and validation pass,
+	 *   surfaced under verbose logging.
+	 */
+	suspendBuilds(reason) {
+		if (this.#destroyed) {
+			return;
+		}
+		// Set synchronously before any await so every scheduling guard sees the flag.
+		this.#buildLoopSuspended = true;
+		// Cancel a pending or deferred build, as destroy() does.
+		clearTimeout(this.#processBuildRequestsTimeout);
+		this.#pendingDeferredRestart = false;
+		// Abort the in-flight build so it stops writing to the shared cache. Its abort catch tries to
+		// re-arm via #triggerRequestQueue, which the flag now no-ops. abortBuild (unlike invalidate)
+		// leaves state and cached readers intact.
+		for (const status of this.#projectBuildStatus.values()) {
+			status.abortBuild(new AbortBuildError(reason));
+		}
+		// Cancel any background validation pass; it aborts and settles on its own.
+		this.#stopActiveValidation(reason);
+	}
+
+	/**
 	 * Gets a reader for the root project only
 	 *
 	 * Returns a reader that provides access to built resources from only the root project,
@@ -728,10 +767,11 @@ class BuildServer extends EventEmitter {
 	}
 
 	#triggerRequestQueue(delay = BUILD_REQUEST_DEBOUNCE_MS) {
-		if (this.#destroyed || this.#activeBuild || this.#recoveringWatcher) {
+		if (this.#destroyed || this.#buildLoopSuspended || this.#activeBuild || this.#recoveringWatcher) {
 			// While recovering the watcher, suppress builds so ProjectBuilder.forceFullRescan()
 			// can claim the builder without racing a build the abort/re-queue path may start.
 			// #recoverWatcher re-triggers the queue once recovery completes.
+			// #buildLoopSuspended stays set through a definition change, cleared only by destroy().
 			return;
 		}
 		// If no build is active, trigger queue processing debounced
@@ -1081,10 +1121,12 @@ class BuildServer extends EventEmitter {
 	 *   When false, the reconciler settles the server on IDLE and reports the stale set itself.
 	 */
 	#scheduleBackgroundValidation({hrtime} = {}) {
-		if (this.#destroyed || this.#activeValidation || this.#activeBuild || this.#recoveringWatcher) {
+		if (this.#destroyed || this.#buildLoopSuspended ||
+				this.#activeValidation || this.#activeBuild || this.#recoveringWatcher) {
 			// While recovering the watcher, a validation pass would claim the builder's
 			// buildIsRunning lock and make forceFullRescan() throw. Recovery re-triggers the
 			// queue on completion, which drives the next validation/build.
+			// #buildLoopSuspended blocks validation too: a re-resolving stack must not touch the cache.
 			return false;
 		}
 		const projectsToValidate = [];

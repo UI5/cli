@@ -2035,3 +2035,95 @@ test.serial("suspend holds across a concurrent source change (invalidate does no
 	await clock.tickAsync(1000);
 	t.is(projectBuilder.build.callCount, 0, "no build enqueued while suspend holds through the churn");
 });
+
+// ---- Stopping the build loop (suspendBuilds) -------------------------------------------------
+//
+// On a definition change the supervisor stops the build loop via suspendBuilds, so the outgoing
+// stack stops re-arming builds while the incoming stack builds against the same cache. Unlike
+// suspendReaders it stops building, not request serving, and is one-way (cleared only by destroy()).
+
+// Builds a BuildServer with an initial root build (so a build is in flight) and a controllable
+// build stub that rejects with an AbortError when its signal is aborted, mirroring ProjectBuilder.
+async function makeBuildStoppableServer(t) {
+	const {BuildServer, graph, projectBuilder, sinon} = t.context;
+	const resolvers = [];
+	projectBuilder.build = sinon.stub().callsFake((opts, cb) => new Promise((resolve, reject) => {
+		resolvers.push(() => {
+			if (opts.signal?.aborted) {
+				const err = new Error("Build aborted");
+				err.name = "AbortError";
+				reject(err);
+				return;
+			}
+			cb("root.project", {getReader: () => ({fakeReader: true})});
+			resolve(["root.project"]);
+		});
+	}));
+	const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+	t.context.buildServer = buildServer;
+	return {buildServer, resolvers, projectBuilder};
+}
+
+test.serial("suspendBuilds: aborts the in-flight build and schedules no restart", async (t) => {
+	const {clock, BuildServer} = t.context;
+	const {ABORTED_BUILD_RESTART_SETTLE_MS, BUILD_REQUEST_DEBOUNCE_MS} = BuildServer.__internals__;
+	const {buildServer, resolvers, projectBuilder} = await makeBuildStoppableServer(t);
+
+	await clock.tickAsync(BUILD_REQUEST_DEBOUNCE_MS);
+	t.is(projectBuilder.build.callCount, 1, "initial build started");
+
+	// Stop the loop mid-build: the in-flight build's signal must be aborted, and its abort catch must
+	// not re-arm a restart (#buildLoopSuspended no-ops #triggerRequestQueue).
+	buildServer.suspendBuilds("definition changing");
+	resolvers[0]();
+	await clock.tickAsync(0);
+
+	// Well past the restart settle window: no second build.
+	await clock.tickAsync(ABORTED_BUILD_RESTART_SETTLE_MS + BUILD_REQUEST_DEBOUNCE_MS);
+	t.is(projectBuilder.build.callCount, 1, "no restart is scheduled while the build loop is stopped");
+});
+
+test.serial("suspendBuilds: a source change does not re-arm the build loop", async (t) => {
+	const {clock, rootProject, BuildServer} = t.context;
+	const {ABORTED_BUILD_RESTART_SETTLE_MS, BUILD_REQUEST_DEBOUNCE_MS} = BuildServer.__internals__;
+	const {buildServer, resolvers, projectBuilder} = await makeBuildStoppableServer(t);
+
+	await clock.tickAsync(BUILD_REQUEST_DEBOUNCE_MS);
+	buildServer.suspendBuilds("definition changing");
+	resolvers[0]();
+	await clock.tickAsync(0);
+
+	// A branch-switch source burst lands after the loop is stopped. invalidate() still runs, but the
+	// only build-scheduling paths funnel through #triggerRequestQueue, which #buildLoopSuspended blocks.
+	buildServer._projectResourceChanged(rootProject, "/a.js", false);
+	buildServer._projectResourceChanged(rootProject, "/b.js", false);
+	await clock.tickAsync(ABORTED_BUILD_RESTART_SETTLE_MS + BUILD_REQUEST_DEBOUNCE_MS);
+	t.is(projectBuilder.build.callCount, 1, "source changes do not restart a stopped build loop");
+});
+
+test.serial("suspendBuilds: already-built resources keep serving", async (t) => {
+	const {clock, BuildServer} = t.context;
+	const {BUILD_REQUEST_DEBOUNCE_MS} = BuildServer.__internals__;
+	const {buildServer, resolvers, projectBuilder} = await makeBuildStoppableServer(t);
+	const {getReaderForProject} = t.context.capturedInterfaces[t.context.capturedInterfaces.length - 1];
+
+	// Complete the initial build so the root project is FRESH with a cached reader.
+	await clock.tickAsync(BUILD_REQUEST_DEBOUNCE_MS);
+	resolvers[0]();
+	await clock.tickAsync(0);
+
+	buildServer.suspendBuilds("definition changing");
+
+	// Unlike suspendReaders, stopping the build loop leaves the FRESH reader serving: the request
+	// resolves from cache without enqueuing a build.
+	const reader = await getReaderForProject("root.project");
+	t.truthy(reader, "a FRESH project's cached reader still resolves while builds are stopped");
+	t.is(projectBuilder.build.callCount, 1, "no new build was enqueued to serve the cached reader");
+});
+
+test.serial("suspendBuilds: is a no-op after destroy()", async (t) => {
+	const {buildServer, projectBuilder} = await makeSuspendableBuildServer(t);
+	await buildServer.destroy();
+	t.notThrows(() => buildServer.suspendBuilds("definition changing"));
+	t.is(projectBuilder.build.callCount, 0);
+});
