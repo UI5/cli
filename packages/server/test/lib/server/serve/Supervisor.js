@@ -123,6 +123,25 @@ async function waitFor(predicate, attempts = 50) {
 	}
 }
 
+// Drains the microtask queue. A degraded recovery swap awaits several times per convergence iteration
+// before it reschedules the next timer, so one Promise.resolve() after a clock tick is not enough.
+async function flushMicrotasks(rounds = 20) {
+	for (let i = 0; i < rounds; i++) {
+		await Promise.resolve();
+	}
+}
+
+// Drives the fast recovery burst to exhaustion: the manual reinitialize plus the five budgeted
+// retries, each fired one 550 ms settle window apart. Leaves the Supervisor degraded with the slow
+// timer armed.
+async function drainFastBudget(supervisor, clock) {
+	await supervisor.reinitialize();
+	for (let i = 0; i < 5; i++) {
+		await clock.tickAsync(550);
+		await flushMicrotasks();
+	}
+}
+
 const baseConfig = {port: 3000, liveReload: true, webSocketToken: "tok"};
 
 test.afterEach.always(() => {
@@ -694,10 +713,9 @@ test("a failed swap does not restart the surviving BuildServer's build loop", as
 		"no resumeBuilds counterpart exists; the build loop stays stopped until destroy");
 });
 
-test.serial("a persistently failing swap is auto-retried up to the recovery budget, then stops", async (t) => {
-	// A failed swap now self-schedules a bounded recovery (no dependence on a second definition event
-	// or on a string-matched error). RecoveryBudget caps the auto-retries so a deterministically broken
-	// branch stops cycling: 5 attempts within the window, then it stays degraded until the next change.
+test.serial("a persistently failing swap retries fast up to the budget, then keeps slow-polling", async (t) => {
+	// Two-phase recovery: a fast burst bounded by RecoveryBudget (5 attempts), then an indefinite slow
+	// heartbeat (SLOW_RECOVERY_INTERVAL_MS, 30 s). This test proves the slow phase does not give up.
 	const stack1 = createStack();
 	let buildCalls = 0;
 	const graphFactory = sinon.stub().resolves(createGraph());
@@ -719,21 +737,142 @@ test.serial("a persistently failing swap is auto-retried up to the recovery budg
 		return supervisor.destroy();
 	});
 
-	// First failure flags degraded and schedules the first recovery (budget attempt 1).
+	// First failure flags degraded and schedules the first fast recovery (budget attempt 1).
 	await supervisor.reinitialize();
 	t.is(buildCalls, 2, "the first reinitialize attempt failed and left the stack degraded");
 	t.truthy(getDegradedError(), "degraded after the failed swap");
 
-	// Drive the self-scheduled recoveries. Each fires after one settle window, fails again, and
-	// schedules the next until the budget (5 attempts) is spent. The 6th tick finds it exhausted.
-	for (let i = 0; i < 6; i++) {
+	// Drive the fast burst: each 550 ms tick fires a recovery that fails and schedules the next, until
+	// the budget (5 attempts) is spent. The fifth fast fire finds it exhausted and arms the slow timer.
+	for (let i = 0; i < 5; i++) {
 		await clock.tickAsync(550);
-		await Promise.resolve();
+		await flushMicrotasks();
 	}
+	t.is(buildCalls, 7, "initial + failed manual reinit + 5 fast budgeted recovery swaps");
 
-	// Initial build + failed manual reinit + 5 budgeted recovery swaps (all failing).
-	t.is(buildCalls, 7, "auto-retries stop once the recovery budget is exhausted");
-	t.truthy(getDegradedError(), "the stack stays degraded after the budget is spent");
+	// The fast budget is spent, so no further fast tick fires anything.
+	await clock.tickAsync(550);
+	t.is(buildCalls, 7, "no fast retry fires once the budget is exhausted");
+
+	// The slow heartbeat keeps re-resolving indefinitely. Assert monotonic growth, not an exact total:
+	// the slow timer is not tick-aligned, so a fire can land anywhere within a ticked window.
+	const afterFast = buildCalls;
+	await clock.tickAsync(30000);
+	await flushMicrotasks();
+	t.true(buildCalls > afterFast, "the slow phase re-resolves past the fast budget");
+
+	const afterFirstSlow = buildCalls;
+	await clock.tickAsync(30000);
+	await flushMicrotasks();
+	t.true(buildCalls > afterFirstSlow, "the slow phase keeps polling indefinitely");
+	t.truthy(getDegradedError(), "the stack stays degraded while the branch is broken");
+});
+
+test.serial("the slow recovery poll recovers the server once the branch resolves, then stops polling", async (t) => {
+	const stack1 = createStack();
+	const stack2 = createStack();
+	let buildCalls = 0;
+	const graphFactory = sinon.stub().resolves(createGraph());
+	const {mocks, buildApp} = createMocks({
+		buildAppImpl: async () => {
+			buildCalls++;
+			if (buildCalls === 1) {
+				return stack1; // initial build
+			}
+			if (buildCalls < 8) {
+				throw new Error("invalid ui5.yaml"); // manual + 5 fast recoveries fail
+			}
+			return stack2; // the first slow poll succeeds
+		}
+	});
+	const {default: Supervisor} = await importSupervisor(mocks);
+	const supervisor = await Supervisor.create(createGraph(), baseConfig, undefined, graphFactory);
+	const getDegradedError = buildApp.firstCall.args[3];
+	const clock = sinon.useFakeTimers();
+	t.teardown(() => {
+		clock.restore();
+		return supervisor.destroy();
+	});
+
+	await drainFastBudget(supervisor, clock);
+	t.is(buildCalls, 7, "the fast burst is spent and the stack is still degraded");
+	t.truthy(getDegradedError(), "degraded before the branch is fixed");
+
+	// The branch is fixed; the next slow poll re-resolves cleanly and swaps in a healthy stack.
+	await clock.tickAsync(30000);
+	await flushMicrotasks();
+	t.is(buildCalls, 8, "the slow poll built the recovered stack");
+	t.is(getDegradedError(), null, "the clean slow-poll swap lifted the degraded flag");
+
+	// HEALTHY re-arms nothing: a further tick drives no more polling.
+	await clock.tickAsync(30000);
+	await clock.tickAsync(30000);
+	await flushMicrotasks();
+	t.is(buildCalls, 8, "polling stops once the server is healthy again");
+});
+
+test.serial("a definitionChanging clears the slow timer and restores a full fast budget", async (t) => {
+	const stack1 = createStack();
+	let buildCalls = 0;
+	const graphFactory = sinon.stub().resolves(createGraph());
+	const {mocks, definitionWatchers} = createMocks({
+		buildAppImpl: async () => {
+			buildCalls++;
+			if (buildCalls === 1) {
+				return stack1; // initial build
+			}
+			throw new Error("invalid ui5.yaml"); // every re-init fails
+		}
+	});
+	const {default: Supervisor} = await importSupervisor(mocks);
+	const supervisor = await Supervisor.create(createGraph(), baseConfig, undefined, graphFactory);
+	const clock = sinon.useFakeTimers();
+	t.teardown(() => {
+		clock.restore();
+		return supervisor.destroy();
+	});
+
+	// Drain the fast budget into the slow phase.
+	await drainFastBudget(supervisor, clock);
+	t.is(buildCalls, 7, "the fast budget is spent; the slow timer is armed");
+
+	// A real definition change supersedes the slow poll and restores a full fast allowance.
+	definitionWatchers[0].emit("definitionChanging", {eventType: "update", filePath: "/app/ui5.yaml"});
+
+	// The budget was reset, so the next failed swap schedules a fast 550 ms retry, not the slow poll.
+	await supervisor.reinitialize();
+	t.is(buildCalls, 8, "the post-change swap failed");
+	await clock.tickAsync(550);
+	await flushMicrotasks();
+	t.is(buildCalls, 9, "the restored fast budget schedules a 550 ms retry, not the slow poll");
+});
+
+test.serial("destroy() mid-poll clears the recovery timer and adopts nothing", async (t) => {
+	const stack1 = createStack();
+	let buildCalls = 0;
+	const graphFactory = sinon.stub().resolves(createGraph());
+	const {mocks} = createMocks({
+		buildAppImpl: async () => {
+			buildCalls++;
+			if (buildCalls === 1) {
+				return stack1; // initial build
+			}
+			throw new Error("invalid ui5.yaml"); // the re-init fails -> degraded, timer armed
+		}
+	});
+	const {default: Supervisor} = await importSupervisor(mocks);
+	const supervisor = await Supervisor.create(createGraph(), baseConfig, undefined, graphFactory);
+	const clock = sinon.useFakeTimers();
+	t.teardown(() => clock.restore());
+
+	await supervisor.reinitialize();
+	t.is(buildCalls, 2, "a failed swap armed a pending recovery timer");
+
+	// Tearing down mid-poll clears the timer: no scheduled recovery fires afterwards.
+	await supervisor.destroy();
+	await clock.tickAsync(550);
+	await clock.tickAsync(30000);
+	t.is(buildCalls, 2, "no recovery swap runs after destroy()");
 });
 
 test.serial("degraded recovery re-resolves and settles until the root set converges", async (t) => {
