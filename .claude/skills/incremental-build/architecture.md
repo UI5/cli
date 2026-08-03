@@ -162,6 +162,12 @@ Abort errors and errors during concurrent source changes are treated as transien
 
 Unlike the ERRORED gate, this leaves `#state`, `#lastError`, and the cached reader untouched: the project is fine, its definition is just being re-resolved, so the server rebuilds normally once resumed without an ERRORED gate to lift. `invalidate()` from a concurrent source change does not clear it. The `error` must be an `Error` (the gate engages on its truthiness and the value is thrown to the middleware error handler); the Supervisor owns the HTTP-facing wording. `resumeReaders()` is idempotent and is lifted on both swap outcomes (see `@ui5/server`'s `Supervisor`).
 
+### Build suspend
+
+`suspendBuilds(reason)` stops the build loop, a separate gate the Supervisor engages next to `suspendReaders` on the `definitionChanging` leading edge. `suspendReaders` alone does not stop building: the checkout's concurrent source burst keeps aborting and re-arming builds on the outgoing BuildServer via the `#pendingDeferredRestart` -> `#triggerRequestQueue` self-loop, so the outgoing builder runs at the same time as the incoming stack's initial build against the same refcounted `CacheManager`. That contention corrupts the shared cache (a read fails once the outgoing stack's `destroy()` finalizes the SQLite handle the incoming stack is still reading) and interleaves both builders' build-progress events on the shared `process` feed.
+
+`suspendBuilds` sets the one-way `#buildLoopSuspended` flag (checked in the `#triggerRequestQueue` and `#scheduleBackgroundValidation` guards), aborts the in-flight build via `ProjectBuildStatus.abortBuild` (which, unlike `invalidate()`, does not rotate the abort controller, change per-project state, or drop cached readers), cancels the queue timer and `#pendingDeferredRestart`, and stops any background validation pass. Already-built resources keep serving. The flag has no resume: `destroy()` is the only thing that clears it (`#destroyed` supersedes it in every scheduling guard). This is deliberate: a clean swap destroys the outgoing stack, and a failed re-resolve keeps it serving already-built resources while degraded without rebuilding off the wrong branch's sources, so the loop must stay off until teardown either way.
+
 ### Server lifecycle state
 
 BuildServer also maintains an outer state machine over all projects, mutated exclusively through `#setState` and emitted to the `ServeLogger`:
