@@ -275,7 +275,11 @@ class Supervisor extends EventEmitter {
 			this.#clearRecoveryTimer();
 			this.#recoveryBudget = new RecoveryBudget();
 			process.emit("ui5.project-resolve-started");
+			// Stop the outgoing build loop too. The reader suspend alone leaves it running, and the
+			// checkout's source burst keeps it aborting and re-arming builds against the shared cache
+			// while the new stack builds. One-way: no resume, cleared when this stack is destroyed.
 			this.#stack.buildServer.suspendReaders(this.#buildSuspendedError());
+			this.#stack.buildServer.suspendBuilds("Project definition changed - re-resolving");
 		});
 		watcher.on("error", (err) => log.warn(`Definition watcher error: ${err?.message ?? err}`));
 		this.#definitionWatcher = watcher;
