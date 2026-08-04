@@ -1,4 +1,3 @@
-import Cache from "@ui5/project/build/cache/Cache";
 import {buildRouter} from "./serve/stack.js";
 
 /**
@@ -57,7 +56,7 @@ import {buildRouter} from "./serve/stack.js";
  * 							<code>close</code> function releasing the BuildServer's watcher and cache.
  */
 export default async function serveMiddleware(graph, {
-	sendSAPTargetCSP = false, simpleIndex = false, serveCSPReports = false, cache = Cache.Default,
+	sendSAPTargetCSP = false, simpleIndex = false, serveCSPReports = false, cache,
 	ui5DataDir, includedTasks, excludedTasks,
 } = {}, error) {
 	const config = {
