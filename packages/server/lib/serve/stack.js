@@ -4,7 +4,6 @@ import createErrorHandler from "../middleware/errorHandler.js";
 import {createReaderCollection} from "@ui5/fs/resourceFactory";
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
 import {getLogger} from "@ui5/logger";
-import Cache from "@ui5/project/build/cache/Cache";
 
 const log = getLogger("server");
 
@@ -35,7 +34,7 @@ const log = getLogger("server");
 export async function buildRouter(graph, config, error, getDegradedError) {
 	const {
 		sendSAPTargetCSP = false, simpleIndex = false, liveReload = false, serveCSPReports = false,
-		cache = Cache.Default, ui5DataDir, includedTasks, webSocketToken = null,
+		cache, ui5DataDir, includedTasks, webSocketToken = null,
 	} = config;
 	let {excludedTasks} = config;
 	const rootProject = graph.getRoot();
