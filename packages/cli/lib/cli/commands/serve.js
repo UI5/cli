@@ -239,11 +239,14 @@ serve.handler = async function(argv) {
 
 	const {promise: pOnError, reject} = Promise.withResolvers();
 	const {serve: serverServe} = await import("@ui5/server");
+	// The server does not depend on @ui5/project; inject the definition-watcher namespace it needs for
+	// re-resolution. The CLI owns @ui5/project.
+	const projectWatcher = await import("@ui5/project/internal/graph/ProjectDefinitionWatcher");
 	// Pass buildGraph as the graphFactory so the server can re-resolve the graph and re-create
 	// the serving stack when its definition watcher observes a project-definition change.
 	const {h2, port: actualPort} = await serverServe(graph, serverConfig, function(err) {
 		reject(err);
-	}, buildGraph);
+	}, buildGraph, projectWatcher);
 
 	if (argv.open !== undefined) {
 		const protocol = h2 ? "https" : "http";

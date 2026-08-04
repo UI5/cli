@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import {serve} from "../../../lib/server.js";
 import {graphFromPackageDependencies} from "@ui5/project/graph";
+import * as projectWatcher from "@ui5/project/internal/graph/ProjectDefinitionWatcher";
 import {isolatedUi5DataDir} from "../../utils/buildCacheIsolation.js";
 
 // Integration coverage for the Supervisor swap against a real graph + BuildServer: the port
@@ -25,7 +26,7 @@ test.serial("reinitialize() keeps the port bound and continues serving", async (
 		changePortIfInUse: true,
 		liveReload: false,
 		ui5DataDir,
-	}, undefined, buildGraph);
+	}, undefined, buildGraph, projectWatcher);
 
 	const port = server.port;
 	const request = supertest(`http://127.0.0.1:${port}`);
@@ -68,7 +69,7 @@ test.serial("editing ui5.yaml triggers a re-init and keeps serving on the same p
 		liveReload: false,
 		ui5DataDir,
 		cwd: tmpProject,
-	}, undefined, graphFactory);
+	}, undefined, graphFactory, projectWatcher);
 
 	const port = server.port;
 	const request = supertest(`http://127.0.0.1:${port}`);
@@ -104,7 +105,7 @@ test.serial("reinitialize() without a graphFactory is a no-op and keeps serving"
 		changePortIfInUse: true,
 		liveReload: false,
 		ui5DataDir,
-	});
+	}, undefined, undefined, projectWatcher);
 
 	const request = supertest(`http://127.0.0.1:${server.port}`);
 	await server.reinitialize(); // warns + no-ops

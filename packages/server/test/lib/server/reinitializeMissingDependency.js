@@ -5,6 +5,7 @@ import path from "node:path";
 import process from "node:process";
 import {serve} from "../../../lib/server.js";
 import {graphFromPackageDependencies} from "@ui5/project/graph";
+import * as projectWatcher from "@ui5/project/internal/graph/ProjectDefinitionWatcher";
 import {isolatedUi5DataDir} from "../../utils/buildCacheIsolation.js";
 
 // A newly-declared but missing dependency drives the server DEGRADED (500 on every request). Once it
@@ -36,7 +37,7 @@ test(
 			liveReload: false,
 			ui5DataDir,
 			cwd: tmpProject,
-		}, undefined, graphFactory);
+		}, undefined, graphFactory, projectWatcher);
 
 		t.teardown(async () => {
 			await new Promise((resolve) => server.close(resolve));

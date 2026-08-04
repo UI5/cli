@@ -69,6 +69,9 @@ test.beforeEach(async (t) => {
 		graphFromPackageDependencies: sinon.stub().resolves(t.context.fakeGraph)
 	};
 
+	// Definition-watcher namespace the handler injects into server.serve().
+	t.context.projectWatcher = {default: {create: sinon.stub()}};
+
 	// Capture stray writes to stderr/stdout so failing assertions surface the
 	// actual output instead of ava's timeout diagnostics.
 	t.context.consoleOutput = "";
@@ -85,6 +88,7 @@ test.beforeEach(async (t) => {
 		"@ui5/server": t.context.server,
 		"@ui5/server/internal/sslUtil": t.context.sslUtil,
 		"@ui5/project/graph": t.context.graph,
+		"@ui5/project/internal/graph/ProjectDefinitionWatcher": t.context.projectWatcher,
 		"open": t.context.open
 	});
 });
@@ -119,6 +123,11 @@ test.serial("ui5 serve: default", async (t) => {
 	t.is(graph.graphFromPackageDependencies.callCount, 2, "graphFactory re-invokes the same builder");
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(1).args, graph.graphFromPackageDependencies.getCall(0).args,
 		"graphFactory re-resolves with identical parameters");
+
+	// esmock merges the partial mock over the real module, so assert on the threaded default rather than
+	// object identity.
+	t.is(server.serve.getCall(0).args[4].default, t.context.projectWatcher.default,
+		"the ProjectDefinitionWatcher module namespace is injected into server.serve()");
 
 	t.deepEqual(server.serve.getCall(0).args[1], {
 		acceptRemoteConnections: false,

@@ -5,6 +5,7 @@ import path from "node:path";
 import process from "node:process";
 import {serve} from "../../../lib/server.js";
 import {graphFromPackageDependencies} from "@ui5/project/graph";
+import * as projectWatcher from "@ui5/project/internal/graph/ProjectDefinitionWatcher";
 import {isolatedUi5DataDir} from "../../utils/buildCacheIsolation.js";
 
 // Integration coverage for stopping the build loop on a project-definition change. Before this fix,
@@ -82,7 +83,7 @@ test.serial(
 			liveReload: false,
 			ui5DataDir,
 			cwd: tmpProject,
-		}, onError, graphFactory);
+		}, onError, graphFactory, projectWatcher);
 
 		t.teardown(async () => {
 			stop();
