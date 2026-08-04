@@ -145,6 +145,10 @@ In case a directory has been requested, this middleware renders an HTML with a l
 ## Standard Tasks
 As with the UI5 Builder, a set of standard tasks is being executed during a server build. Individual tasks can be included or excluded using the respective CLI options `--include-task` and `--exclude-task`.
 
+::: info Exception
+For the server, the [`generateVersionInfo`](../api/module-@ui5_builder_tasks_generateVersionInfo.md) task is not executed, because the corresponding [`versionInfo`](#versioninfo) middleware creates an identical `sap-ui-version.json` output file.
+:::
+
 ::: info
 See [Builder Standard Tasks](./Builder.md#standard-tasks) for more explanation about each task.
 :::
