@@ -3,11 +3,6 @@ import path from "node:path";
 import process from "node:process";
 import {EventEmitter} from "node:events";
 import {getLogger} from "@ui5/logger";
-import ProjectDefinitionWatcher, {
-	DEFINITION_CHANGED_SETTLE_MS,
-	waitForProjectGraphSettled,
-	RecoveryBudget,
-} from "@ui5/project/internal/graph/ProjectDefinitionWatcher";
 import buildApp from "./stack.js";
 import attachLiveReloadServer from "../liveReload/server.js";
 import {listen, addSsl, announceListening} from "./httpListener.js";
@@ -71,6 +66,13 @@ class Supervisor extends EventEmitter {
 	#graphFactory;
 	#error;
 
+	// Live re-resolution capability, injected by the owner rather than imported: the server does not
+	// declare @ui5/project as a dependency. Assigned in the constructor from the passed-in namespace.
+	#ProjectDefinitionWatcher;
+	#waitForProjectGraphSettled;
+	#RecoveryBudget;
+	#definitionChangedSettleMs;
+
 	// Error payload of the last failed re-resolve, kept while the last-good stack keeps serving a
 	// graph that no longer matches the definition on disk. Read live by every stack's serveBuildError
 	// gate via #getDegradedError, so a stack built before the failed swap still diverts HTML
@@ -114,7 +116,8 @@ class Supervisor extends EventEmitter {
 	// fast recovery is scheduled (not when one succeeds), so a persistently broken branch drains the
 	// fast allowance and drops to the slow phase. Reset on each definitionChanging so a fresh user
 	// action starts with a full allowance, and on each successful swap so a later failure starts its own.
-	#recoveryBudget = new RecoveryBudget();
+	// Assigned in the constructor once #RecoveryBudget is injected.
+	#recoveryBudget = null;
 	// Delayed retry timer for a self-scheduled recovery after a failed swap. Cleared by any explicit
 	// reinitialize() so a real definitionChanged event supersedes the timer.
 	#recoveryTimer = null;
@@ -164,11 +167,20 @@ class Supervisor extends EventEmitter {
 		buildServer.resumeReaders();
 	}
 
-	constructor(config, error, graphFactory) {
+	constructor(config, error, graphFactory, projectWatcher) {
 		super();
 		this.#config = config;
 		this.#error = error;
 		this.#graphFactory = graphFactory;
+		// Unpack the injected namespace. Guarded because it tracks graphFactory: a static serve passes
+		// neither, so nothing here is used and the owner need not thread it in.
+		if (projectWatcher) {
+			this.#ProjectDefinitionWatcher = projectWatcher.default;
+			this.#waitForProjectGraphSettled = projectWatcher.waitForProjectGraphSettled;
+			this.#RecoveryBudget = projectWatcher.RecoveryBudget;
+			this.#definitionChangedSettleMs = projectWatcher.DEFINITION_CHANGED_SETTLE_MS;
+			this.#recoveryBudget = new this.#RecoveryBudget();
+		}
 	}
 
 	/**
@@ -180,10 +192,14 @@ class Supervisor extends EventEmitter {
 	 * @param {Function} [error] Error callback for out-of-band BuildServer errors
 	 * @param {Function} [graphFactory] Async factory returning a fresh ProjectGraph;
 	 *   required for {@link Supervisor#reinitialize} to do anything
+	 * @param {object} [projectWatcher] Injected <code>@ui5/project/internal/graph/ProjectDefinitionWatcher</code>
+	 *   module namespace (<code>{default, DEFINITION_CHANGED_SETTLE_MS, waitForProjectGraphSettled,
+	 *   RecoveryBudget}</code>). Provided by the owner, since the server does not depend on @ui5/project.
+	 *   Required alongside <code>graphFactory</code> for re-resolution; omit both for a static serve.
 	 * @returns {Promise<Supervisor>} The listening supervisor
 	 */
-	static async create(graph, config, error, graphFactory) {
-		const supervisor = new Supervisor(config, error, graphFactory);
+	static async create(graph, config, error, graphFactory, projectWatcher) {
+		const supervisor = new Supervisor(config, error, graphFactory, projectWatcher);
 		await supervisor.#init(graph);
 		return supervisor;
 	}
@@ -254,7 +270,7 @@ class Supervisor extends EventEmitter {
 			return;
 		}
 		const {rootConfigPath, workspaceConfigPath, dependencyDefinitionPath, cwd} = this.#config;
-		const watcher = await ProjectDefinitionWatcher.create({
+		const watcher = await this.#ProjectDefinitionWatcher.create({
 			graph, rootConfigPath, workspaceConfigPath, dependencyDefinitionPath, cwd,
 		});
 		watcher.on("definitionChanged", () => this.reinitialize());
@@ -275,7 +291,7 @@ class Supervisor extends EventEmitter {
 			// full recovery budget: the user just acted, so the next attempt should not be denied by an
 			// allowance spent on the previous branch.
 			this.#clearRecoveryTimer();
-			this.#recoveryBudget = new RecoveryBudget();
+			this.#recoveryBudget = new this.#RecoveryBudget();
 			process.emit("ui5.project-resolve-started");
 			// Stop the outgoing build loop too. The reader suspend alone leaves it running, and the
 			// checkout's source burst keeps it aborting and re-arming builds against the shared cache
@@ -359,7 +375,7 @@ class Supervisor extends EventEmitter {
 		let delay;
 		if (this.#recoveryBudget.withinBudget()) {
 			this.#recoveryBudget.recordRecovery();
-			delay = DEFINITION_CHANGED_SETTLE_MS;
+			delay = this.#definitionChangedSettleMs;
 		} else {
 			delay = SLOW_RECOVERY_INTERVAL_MS;
 		}
@@ -413,8 +429,8 @@ class Supervisor extends EventEmitter {
 			}
 			prevRoots = roots;
 			try {
-				await waitForProjectGraphSettled([resolved, this.#currentGraph], {
-					settleMs: DEFINITION_CHANGED_SETTLE_MS,
+				await this.#waitForProjectGraphSettled([resolved, this.#currentGraph], {
+					settleMs: this.#definitionChangedSettleMs,
 					signal: this.#destroyAbortController.signal,
 				});
 			} catch (err) {
@@ -498,7 +514,7 @@ class Supervisor extends EventEmitter {
 		// recovery budget too: a clean swap means the branch is no longer broken, so a later failure
 		// should start its own recovery allowance rather than inherit this episode's spent attempts.
 		this.#degradedError = null;
-		this.#recoveryBudget = new RecoveryBudget();
+		this.#recoveryBudget = new this.#RecoveryBudget();
 		this.#relayFrom(newStack.buildServer);
 		this.#sourcesChangedRelay.emit("sourcesChanged");
 		// Re-target the definition watcher to the new graph: the project set or their roots may

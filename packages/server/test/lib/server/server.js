@@ -37,13 +37,16 @@ test("serve() delegates to Supervisor.create and returns port/h2/close/reinitial
 	const {serve} = await importServe(Supervisor);
 	const graph = {};
 	const graphFactory = sinon.stub();
+	const projectWatcher = {default: {}, RecoveryBudget: class {}};
 
-	const result = await serve(graph, {port: 3000, h2: false, liveReload: true}, undefined, graphFactory);
+	const result = await serve(graph, {port: 3000, h2: false, liveReload: true}, undefined, graphFactory,
+		projectWatcher);
 
 	t.true(Supervisor.create.calledOnce);
-	const [passedGraph, config, , passedFactory] = Supervisor.create.firstCall.args;
+	const [passedGraph, config, , passedFactory, passedWatcher] = Supervisor.create.firstCall.args;
 	t.is(passedGraph, graph);
 	t.is(passedFactory, graphFactory, "graphFactory is threaded through to the supervisor");
+	t.is(passedWatcher, projectWatcher, "the injected ProjectDefinitionWatcher namespace is threaded through");
 	t.is(typeof config.webSocketToken, "string", "a token is generated when liveReload is active");
 	t.is(config.webSocketToken.length, 12, "the token is 72 bits base64url-encoded to 12 characters");
 	t.is(result.port, 3000);

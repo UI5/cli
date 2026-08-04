@@ -62,6 +62,11 @@ const log = getLogger("server");
  * 										same parameters used to build the initial <code>graph</code>. When provided,
  * 										the returned <code>reinitialize</code> re-creates the serving stack on a
  * 										project-definition change. Omitted, <code>reinitialize</code> is a no-op.
+ * @param {object} [projectWatcher] Injected <code>@ui5/project/internal/graph/ProjectDefinitionWatcher</code>
+ * 										module namespace. The server operates on the project graph as an opaque
+ * 										interface and does not depend on @ui5/project, so the owner (the UI5 CLI)
+ * 										threads this in to provide the live re-resolution capability. Required
+ * 										alongside <code>graphFactory</code>; omit both for a static serve.
  * @returns {Promise<object>} Promise resolving once the server is listening.
  * 							It resolves with an object containing the <code>port</code>,
  * 							<code>h2</code>-flag, a <code>close</code> function to stop the server,
@@ -73,7 +78,7 @@ export async function serve(graph, {
 	simpleIndex = false, liveReload = false, serveCSPReports = false, cache = "Default",
 	ui5DataDir, includedTasks, excludedTasks,
 	rootConfigPath, workspaceConfigPath, dependencyDefinitionPath, cwd,
-}, error, graphFactory) {
+}, error, graphFactory, projectWatcher) {
 	// The live-reload token is generated once and shared with every serving stack the supervisor
 	// builds, so connected clients keep authenticating across a re-initialization.
 	// Random 72 bits (9 * 8 bits), base64url-encoded to a 12-character string. OWASP recommends
@@ -93,7 +98,7 @@ export async function serve(graph, {
 
 	let supervisor;
 	try {
-		supervisor = await Supervisor.create(graph, config, error, graphFactory);
+		supervisor = await Supervisor.create(graph, config, error, graphFactory, projectWatcher);
 	} catch (err) {
 		log.verbose(`Failed to start server: ${err?.message ?? err}`);
 		throw err;
