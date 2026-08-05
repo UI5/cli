@@ -1,10 +1,10 @@
 import path from "node:path";
 import Workspace from "../Workspace.js";
 import {validateWorkspace} from "../../validation/validator.js";
+import {DEFAULT_WORKSPACE_CONFIG_PATH} from "./workspaceConstants.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("generateProjectGraph");
 
-const DEFAULT_WORKSPACE_CONFIG_PATH = "ui5-workspace.yaml";
 const DEFAULT_WORKSPACE_NAME = "default";
 
 export default async function createWorkspace({
