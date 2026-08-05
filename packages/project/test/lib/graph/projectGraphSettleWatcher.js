@@ -16,10 +16,8 @@ test.before(async () => {
 		"../../../lib/utils/fsHelper.js": {
 			findExistingDir: findExistingDirStub
 		},
-		"@parcel/watcher": {
-			default: {
-				subscribe: subscribeStub
-			}
+		"../../../lib/build/helpers/fileWatcher.js": {
+			subscribe: subscribeStub
 		}
 	}));
 });

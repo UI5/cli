@@ -114,6 +114,18 @@ Cross Environment via [cross-env](https://www.npmjs.com/package/cross-env):
 cross-env UI5_CLI_NO_INTERACTIVE=1 ui5 serve
 ```
 
+### File Changes Not Picked up in a Container
+
+When `ui5 serve` runs a build internally, it watches the project's files and rebuilds on change. On a bind-mounted volume inside a container, file system events are often only reported for the container's own writes, but not for writes made to the same volume from outside the container. If you edit files on the host and no rebuild or live reload happens inside the container (commonly observed with Podman), the "native" file watcher of the UI5 CLI is not receiving those events.
+
+For this reason, UI5 CLI attempts to detect a container environment and automatically switch to a "polling" file watcher. That detection is a heuristic and can be wrong in some environments.
+
+If you encounter this problem in your container-based development setup, try setting the `UI5_WATCH_MODE` environment variable to `polling` to force the polling watcher, or to `native` to force the native watcher.
+
+::: info
+Polling reads the watched files on an interval, so it reports changes regardless of where they originate, at the cost of more CPU than the event-based native watcher. Use it only when the native watcher fails to detect your file changes.
+:::
+
 ### Changing UI5 CLI's Data Directory
 
 UI5 CLI's data directory is by default at `~/.ui5`. It's the place where the framework artifacts are stored.
