@@ -1035,6 +1035,9 @@ test("addCustomMiddleware", async (t) => {
 		getSpecVersion: () => mockSpecificationVersion,
 		getMiddleware: () => middlewareModuleStub
 	});
+	const middlewareConfiguration = {
+		"🦊": "🐰"
+	};
 	const graph = {
 		getRoot: () => {
 			return {
@@ -1042,9 +1045,7 @@ test("addCustomMiddleware", async (t) => {
 				getCustomMiddleware: () => [{
 					name: "my custom middleware A",
 					beforeMiddleware: "cors",
-					configuration: {
-						"🦊": "🐰"
-					}
+					configuration: middlewareConfiguration
 				}]
 			};
 		},
@@ -1082,7 +1083,8 @@ test("addCustomMiddleware", async (t) => {
 	t.is(middlewareUtil.getInterface.getCall(0).args[0], mockSpecificationVersion,
 		"middlewareUtil.getInterface got called with correct arguments");
 	t.is(middlewareModuleStub.callCount, 1, "Middleware module got called once");
-	t.deepEqual(middlewareModuleStub.getCall(0).args[0], {
+	const params = middlewareModuleStub.getCall(0).args[0];
+	t.deepEqual(params, {
 		resources: "resources",
 		options: {
 			configuration: {
@@ -1091,6 +1093,8 @@ test("addCustomMiddleware", async (t) => {
 		},
 		middlewareUtil: "interfacedMiddlewareUtil"
 	}, "Middleware module got called with correct arguments");
+	t.not(params.options.configuration, middlewareConfiguration,
+		"Configuration is a clone and not a reference to the project configuration");
 });
 
 test("addCustomMiddleware with specVersion 3.0", async (t) => {
