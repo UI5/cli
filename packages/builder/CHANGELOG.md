@@ -4,6 +4,27 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v4.0.11...HEAD).
 
+## [5.0.0-alpha.7](https://github.com/UI5/cli/compare/builder-v5.0.0-alpha.6...builder-v5.0.0-alpha.7) (2026-08-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* Remove --experimental-css-variables option ([#1484](https://github.com/UI5/cli/issues/1484))
+
+### Features
+
+* Remove --experimental-css-variables option ([#1484](https://github.com/UI5/cli/issues/1484)) ([94b57a9](https://github.com/UI5/cli/commit/94b57a93d869dc5286e07e79b9d1690916b55b49))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/fs bumped from ^5.0.0-alpha.6 to ^5.0.0-alpha.7
+    * @ui5/logger bumped from ^5.0.0-alpha.6 to ^5.0.0-alpha.7
+  * devDependencies
+    * @ui5/project bumped from ^5.0.0-alpha.6 to ^5.0.0-alpha.7
+
 ## [5.0.0-alpha.6](https://github.com/UI5/cli/compare/builder-v5.0.0-alpha.5...builder-v5.0.0-alpha.6) (2026-07-10)
 
 

@@ -4,6 +4,34 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v4.0.26...HEAD).
 
+## [5.0.0-alpha.7](https://github.com/UI5/cli/compare/cli-v5.0.0-alpha.6...cli-v5.0.0-alpha.7) (2026-08-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* Remove --experimental-css-variables option ([#1484](https://github.com/UI5/cli/issues/1484))
+
+### Features
+
+* **cli:** Add ui5 cache clean command ([#1455](https://github.com/UI5/cli/issues/1455)) ([cf1bd9d](https://github.com/UI5/cli/commit/cf1bd9d054c1e74506ccfbd6cc2b2f51847d5a4d))
+* Remove --experimental-css-variables option ([#1484](https://github.com/UI5/cli/issues/1484)) ([94b57a9](https://github.com/UI5/cli/commit/94b57a93d869dc5286e07e79b9d1690916b55b49))
+
+
+### Bug Fixes
+
+* Refine interactive serve logging and warning messaging ([#1483](https://github.com/UI5/cli/issues/1483)) ([acd707b](https://github.com/UI5/cli/commit/acd707b18ec7c8453b9210307574e837a19cca4d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.6 to ^5.0.0-alpha.7
+    * @ui5/fs bumped from ^5.0.0-alpha.6 to ^5.0.0-alpha.7
+    * @ui5/logger bumped from ^5.0.0-alpha.6 to ^5.0.0-alpha.7
+    * @ui5/project bumped from ^5.0.0-alpha.6 to ^5.0.0-alpha.7
+    * @ui5/server bumped from ^5.0.0-alpha.6 to ^5.0.0-alpha.7
+
 ## [5.0.0-alpha.6](https://github.com/UI5/cli/compare/cli-v5.0.0-alpha.5...cli-v5.0.0-alpha.6) (2026-07-10)
 
 

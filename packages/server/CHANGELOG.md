@@ -4,6 +4,33 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v4.0.7...HEAD).
 
+## [5.0.0-alpha.7](https://github.com/UI5/cli/compare/server-v5.0.0-alpha.6...server-v5.0.0-alpha.7) (2026-08-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* Remove --experimental-css-variables option ([#1484](https://github.com/UI5/cli/issues/1484))
+
+### Features
+
+* Remove --experimental-css-variables option ([#1484](https://github.com/UI5/cli/issues/1484)) ([94b57a9](https://github.com/UI5/cli/commit/94b57a93d869dc5286e07e79b9d1690916b55b49))
+
+
+### Bug Fixes
+
+* **server:** Remove import of @ui5/project build cache enum ([5889980](https://github.com/UI5/cli/commit/588998011e5cb609126a36ff43fc72962a50619a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.6 to ^5.0.0-alpha.7
+    * @ui5/fs bumped from ^5.0.0-alpha.6 to ^5.0.0-alpha.7
+    * @ui5/logger bumped from ^5.0.0-alpha.6 to ^5.0.0-alpha.7
+  * devDependencies
+    * @ui5/project bumped from ^5.0.0-alpha.6 to ^5.0.0-alpha.7
+
 ## [5.0.0-alpha.6](https://github.com/UI5/cli/compare/server-v5.0.0-alpha.5...server-v5.0.0-alpha.6) (2026-07-10)
 
 
