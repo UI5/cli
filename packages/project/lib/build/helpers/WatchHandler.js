@@ -1,6 +1,6 @@
 import EventEmitter from "node:events";
-import parcelWatcher from "@parcel/watcher";
 import {getLogger} from "@ui5/logger";
+import {subscribe as watchSubscribe} from "./fileWatcher.js";
 import {drainSubscriptions} from "./watchUtil.js";
 import {exists} from "../../utils/fsHelper.js";
 const log = getLogger("build:helpers:WatchHandler");
@@ -33,7 +33,7 @@ class WatchHandler extends EventEmitter {
 		await Promise.all(paths.map(async (path) => {
 			let subscription;
 			try {
-				subscription = await parcelWatcher.subscribe(path, (err, events) => {
+				subscription = await watchSubscribe(path, (err, events) => {
 					if (err) {
 						this.emit("error", err);
 						return;

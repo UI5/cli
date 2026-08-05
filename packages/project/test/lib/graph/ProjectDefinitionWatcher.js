@@ -12,10 +12,8 @@ const fixtureFile = (root, ...segments) => path.join(fixturePath(root), ...segme
 test.before(async () => {
 	subscribeStub = sinon.stub();
 	ProjectDefinitionWatcher = await esmock("../../../lib/graph/ProjectDefinitionWatcher.js", {
-		"@parcel/watcher": {
-			default: {
-				subscribe: subscribeStub
-			}
+		"../../../lib/build/helpers/fileWatcher.js": {
+			subscribe: subscribeStub
 		}
 	});
 });

@@ -12,6 +12,11 @@ import Cache from "../../../lib/build/cache/Cache.js";
 // Ensures that all logging code paths are tested
 setLogLevel("silly");
 
+// Force the native watcher backend so fileWatcher delegates verbatim to the @parcel/watcher mock
+// below (esmock.p intercepts it throughout the import tree, including inside fileWatcher.js).
+// Without this, the module would default to polling whenever the tests run inside a container.
+process.env.UI5_WATCH_MODE = "native";
+
 // Mock @parcel/watcher for the entire import tree reachable from graph.js so the build server's
 // WatchHandler does not try to subscribe to real FSEvents/inotify/ReadDirectoryChangesW handles.
 // Tests fire watcher events deterministically via FixtureTester#fireWatcherEvent instead of

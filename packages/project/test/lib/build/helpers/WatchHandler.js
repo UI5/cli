@@ -10,10 +10,8 @@ test.before(async () => {
 	subscribeStub = sinon.stub();
 	existsStub = sinon.stub();
 	WatchHandler = await esmock("../../../../lib/build/helpers/WatchHandler.js", {
-		"@parcel/watcher": {
-			default: {
-				subscribe: subscribeStub
-			}
+		"../../../../lib/build/helpers/fileWatcher.js": {
+			subscribe: subscribeStub
 		},
 		"../../../../lib/utils/fsHelper.js": {
 			exists: existsStub

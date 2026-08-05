@@ -1,7 +1,7 @@
 import EventEmitter from "node:events";
 import path from "node:path";
-import parcelWatcher from "@parcel/watcher";
 import {getLogger} from "@ui5/logger";
+import {subscribe as watchSubscribe} from "../build/helpers/fileWatcher.js";
 import {drainSubscriptions, WATCHER_BURST_SETTLE_MS} from "../build/helpers/watchUtil.js";
 import RecoveryBudget, {
 	WATCHER_RECOVERY_MAX_ATTEMPTS, WATCHER_RECOVERY_WINDOW_MS,
@@ -32,7 +32,7 @@ export const DEFINITION_CHANGED_SETTLE_MS = WATCHER_BURST_SETTLE_MS;
  *
  * Separate from the source {@link WatchHandler}: source events drive incremental rebuilds inside
  * the BuildServer, definition events drive a full re-init of the serving stack above it. The watch
- * model is include-based: @parcel/watcher subscribes to each distinct definition-file directory, and
+ * model is include-based: the watcher subscribes to each distinct definition-file directory, and
  * only resolved definition-file paths can start a burst. Once started, non-definition events from
  * those subscriptions extend the burst's quiet window. The
  * <code>node_modules</code>/<code>.git</code> ignore globs only reduce OS-level watch load;
@@ -146,7 +146,7 @@ class ProjectDefinitionWatcher extends EventEmitter {
 	}
 
 	async #subscribeDir(dir) {
-		const subscription = await parcelWatcher.subscribe(dir, (err, events) => {
+		const subscription = await watchSubscribe(dir, (err, events) => {
 			if (err) {
 				this.#recoverWatcher(err);
 				return;
