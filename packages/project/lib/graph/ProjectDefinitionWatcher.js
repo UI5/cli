@@ -6,10 +6,8 @@ import {drainSubscriptions, WATCHER_BURST_SETTLE_MS} from "../build/helpers/watc
 import RecoveryBudget, {
 	WATCHER_RECOVERY_MAX_ATTEMPTS, WATCHER_RECOVERY_WINDOW_MS,
 } from "../build/helpers/RecoveryBudget.js";
+import {DEFAULT_WORKSPACE_CONFIG_PATH} from "./helpers/workspaceConstants.js";
 const log = getLogger("graph:ProjectDefinitionWatcher");
-
-// Default filename of the workspace configuration, resolved against cwd.
-const WORKSPACE_CONFIG_DEFAULT = "ui5-workspace.yaml";
 
 // Settle window for the `definitionChanged` event, in milliseconds.
 //
@@ -119,7 +117,7 @@ class ProjectDefinitionWatcher extends EventEmitter {
 		// The workspace config lives at cwd. It may not exist yet, but a create event on it still
 		// matters (it can introduce workspace resolution on the next re-init).
 		if (workspaceConfigPath !== undefined) {
-			add(resolve(workspaceConfigPath || WORKSPACE_CONFIG_DEFAULT));
+			add(resolve(workspaceConfigPath || DEFAULT_WORKSPACE_CONFIG_PATH));
 		}
 
 		// Static-graph mode: the dependency-definition file is a topology definition, so editing it

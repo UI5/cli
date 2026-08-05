@@ -2,6 +2,7 @@ import path from "node:path";
 import projectGraphBuilder from "./projectGraphBuilder.js";
 import ui5Framework from "./helpers/ui5Framework.js";
 import createWorkspace from "./helpers/createWorkspace.js";
+import {DEFAULT_WORKSPACE_CONFIG_PATH} from "./helpers/workspaceConstants.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("generateProjectGraph");
 
@@ -44,7 +45,7 @@ export async function graphFromPackageDependencies({
 	cwd, rootConfiguration, rootConfigPath,
 	versionOverride, snapshotCache, resolveFrameworkDependencies = true,
 	workspaceName="default",
-	workspaceConfiguration, workspaceConfigPath = "ui5-workspace.yaml"
+	workspaceConfiguration, workspaceConfigPath = DEFAULT_WORKSPACE_CONFIG_PATH
 }) {
 	log.verbose(`Creating project graph using npm provider...`);
 	const {
