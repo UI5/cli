@@ -349,7 +349,7 @@ class MiddlewareManager {
 					const params = {
 						resources,
 						options: {
-							configuration: middlewareDef.configuration
+							configuration: structuredClone(middlewareDef.configuration)
 						}
 					};
 
