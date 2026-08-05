@@ -455,6 +455,46 @@ test("getDatabaseSize: Returns positive database size", (t) => {
 	t.true(size > 0);
 });
 
+// ===== Signature manifest =====
+
+test("listSignatureManifests: Returns empty array when none stored", (t) => {
+	t.deepEqual(t.context.storage.listSignatureManifests("project-a"), []);
+});
+
+test("Signature manifest: Round-trip write and list", (t) => {
+	const manifest = {manifestVersion: 1, buildConfig: {excludedTasks: []}, projectId: "project-a:1.0.0"};
+	t.context.storage.writeSignatureManifest("project-a", "sig-1", manifest);
+	t.deepEqual(t.context.storage.listSignatureManifests("project-a"), [
+		{buildSignature: "sig-1", manifest}
+	]);
+});
+
+test("Signature manifest: Lists all signatures for a project, scoped by project", (t) => {
+	t.context.storage.writeSignatureManifest("project-a", "sig-1", {manifestVersion: 1, v: 1});
+	t.context.storage.writeSignatureManifest("project-a", "sig-2", {manifestVersion: 1, v: 2});
+	t.context.storage.writeSignatureManifest("project-b", "sig-3", {manifestVersion: 1, v: 3});
+
+	const result = t.context.storage.listSignatureManifests("project-a");
+	t.is(result.length, 2);
+	t.deepEqual(
+		result.map((e) => e.buildSignature).sort(),
+		["sig-1", "sig-2"]
+	);
+});
+
+test("Signature manifest: Overwrite replaces data for the same signature", (t) => {
+	t.context.storage.writeSignatureManifest("project-a", "sig-1", {manifestVersion: 1, v: 1});
+	t.context.storage.writeSignatureManifest("project-a", "sig-1", {manifestVersion: 1, v: 2});
+	t.deepEqual(t.context.storage.listSignatureManifests("project-a"), [
+		{buildSignature: "sig-1", manifest: {manifestVersion: 1, v: 2}}
+	]);
+});
+
+test("hasRecords: Returns true when signature manifest table has records", (t) => {
+	t.context.storage.writeSignatureManifest("project-a", "sig-1", {manifestVersion: 1});
+	t.true(t.context.storage.hasRecords());
+});
+
 // ===== Pre-compressed content =====
 
 test("putCompressedContent: Stores pre-compressed data retrievable via readContent", (t) => {

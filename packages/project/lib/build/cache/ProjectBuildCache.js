@@ -36,6 +36,85 @@ export const RESULT_CACHE_STATES = Object.freeze({
 });
 
 /**
+ * Sentinel marking a key that is present on only one side of a diff, so an added/removed key is
+ * distinguishable from a key whose value is an explicit `undefined` or `null`.
+ *
+ * @private
+ */
+const ABSENT = Symbol("absent");
+
+/**
+ * Recursively collects the leaf-level differences between two values into `differences`, keyed by a
+ * dotted/bracketed path (e.g. `server.customMiddleware[1].configuration.prependPath`). Objects and
+ * arrays are descended into; any other value (or a type mismatch between the two sides) is reported
+ * as a single leaf. This keeps a diagnosis actionable: instead of dumping two large config blobs, it
+ * pinpoints the exact field that changed.
+ *
+ * @private
+ * @param {string} path Dotted path to the current position (empty at the root)
+ * @param {*} cached Value from the previously stored manifest (or {@link ABSENT})
+ * @param {*} current Value from the current manifest (or {@link ABSENT})
+ * @param {Array<{field: string, cached: *, current: *}>} differences Accumulator, mutated in place
+ */
+function collectLeafDifferences(path, cached, current, differences) {
+	if (JSON.stringify(cached) === JSON.stringify(current)) {
+		return;
+	}
+	const bothPlainObjects =
+		cached && current && typeof cached === "object" && typeof current === "object" &&
+		Array.isArray(cached) === Array.isArray(current);
+	if (!bothPlainObjects) {
+		differences.push({
+			field: path || "(root)",
+			cached: cached === ABSENT ? "<absent>" : cached,
+			current: current === ABSENT ? "<absent>" : current,
+		});
+		return;
+	}
+
+	const keys = Array.isArray(cached) ?
+		new Set([...cached.keys(), ...current.keys()]) :
+		new Set([...Object.keys(cached), ...Object.keys(current)]);
+	for (const key of keys) {
+		const childPath = Array.isArray(cached) ?
+			`${path}[${key}]` :
+			(path ? `${path}.${key}` : key);
+		const cachedChild = key in Object(cached) ? cached[key] : ABSENT;
+		const currentChild = key in Object(current) ? current[key] : ABSENT;
+		collectLeafDifferences(childPath, cachedChild, currentChild, differences);
+	}
+}
+
+/**
+ * Computes a leaf-level diff between two signature manifests (see
+ * {@link @ui5/project/build/helpers/getBuildSignature.getSignatureManifest}). The manifests are
+ * descended recursively so that a change buried inside a nested config (e.g. a single middleware
+ * option) surfaces as one precise path rather than a dump of the whole enclosing object. Returns
+ * null when the manifests have incompatible structure versions, signaling to the caller that a
+ * meaningful diff cannot be produced.
+ *
+ * @private
+ * @param {object} cached The manifest stored by a previous build
+ * @param {object} current The manifest of the current build
+ * @returns {Array<{field: string, cached: *, current: *}>|null} Differing leaf paths, or null if the
+ *   manifests are structurally incompatible
+ */
+export function diffSignatureManifests(cached, current) {
+	if (!cached || !current || cached.manifestVersion !== current.manifestVersion) {
+		return null;
+	}
+	const differences = [];
+	const fields = new Set([...Object.keys(cached), ...Object.keys(current)]);
+	fields.delete("manifestVersion");
+	for (const field of fields) {
+		const cachedChild = field in cached ? cached[field] : ABSENT;
+		const currentChild = field in current ? current[field] : ABSENT;
+		collectLeafDifferences(field, cachedChild, currentChild, differences);
+	}
+	return differences;
+}
+
+/**
  * @typedef {object} StageMetadata
  * @property {Object<string, @ui5/project/build/cache/index/HashTree~ResourceMetadata>} resourceMetadata
  *   Resource metadata indexed by resource path
@@ -59,6 +138,7 @@ export default class ProjectBuildCache {
 
 	#project;
 	#buildSignature;
+	#signatureManifest;
 	#cacheManager;
 	#cacheMode;
 	#currentProjectReader;
@@ -103,14 +183,19 @@ export default class ProjectBuildCache {
 	 * @param {string} buildSignature Build signature for the current build
 	 * @param {object} cacheManager Cache manager instance for reading/writing cache data
 	 * @param {string} cacheMode Cache mode to use for building UI5 projects
+	 * @param {object} [signatureManifest] Structured, diffable manifest of the named inputs that
+	 *   produced the build signature. Persisted on a successful build and used to diagnose why a
+	 *   later build's cache could not be reused. Optional so callers that don't need diagnostics
+	 *   (e.g. tests) can omit it.
 	 */
-	constructor(project, buildSignature, cacheManager, cacheMode) {
+	constructor(project, buildSignature, cacheManager, cacheMode, signatureManifest) {
 		log.verbose(
 			`ProjectBuildCache for project ${project.getName()} uses build signature ${buildSignature}`);
 		this.#project = project;
 		this.#buildSignature = buildSignature;
 		this.#cacheManager = cacheManager;
 		this.#cacheMode = cacheMode;
+		this.#signatureManifest = signatureManifest;
 	}
 
 	/**
@@ -124,10 +209,11 @@ export default class ProjectBuildCache {
 	 * @param {string} buildSignature Build signature for the current build
 	 * @param {object|null} cacheManager Cache manager instance
 	 * @param {string} cacheMode Cache mode to use for building UI5 projects
+	 * @param {object} [signatureManifest] Structured manifest of the signature's named inputs
 	 * @returns {Promise<@ui5/project/build/cache/ProjectBuildCache>} Initialized cache instance
 	 */
-	static async create(project, buildSignature, cacheManager, cacheMode) {
-		return new ProjectBuildCache(project, buildSignature, cacheManager, cacheMode);
+	static async create(project, buildSignature, cacheManager, cacheMode, signatureManifest) {
+		return new ProjectBuildCache(project, buildSignature, cacheManager, cacheMode, signatureManifest);
 	}
 
 	/**
@@ -1488,9 +1574,11 @@ export default class ProjectBuildCache {
 			this.#combinedIndexState = INDEX_STATES.RESTORING_DEPENDENCY_INDICES;
 		} else {
 			if (this.#cacheMode === Cache.Force) {
-				throw new Error(`Cache is in "Force" mode but no cache found for project ${this.#project.getName()}. ` +
-					`Use "Default", "ReadOnly" or "Off" to rebuild.`);
+				throw new Error(`Cache is in "Force" mode but no cache found for project ` +
+					`${this.#project.getName()}. Use "Default", "ReadOnly" or "Off" to rebuild.` +
+					this.#reportCacheMiss(true));
 			}
+			this.#reportCacheMiss(false);
 			// No index cache found, create new index
 			this.#sourceIndex = await ResourceIndex.create(resources, Date.now());
 			this.#combinedIndexState = INDEX_STATES.INITIAL;
@@ -1498,6 +1586,73 @@ export default class ProjectBuildCache {
 		log.verbose(
 			`Initialized source index for project ${this.#project.getName()} ` +
 			`with signature ${this.#sourceIndex.getSignature()}`);
+	}
+
+	/**
+	 * Diagnoses why no cache exists for the current build signature by diffing the current signature
+	 * manifest against the manifests stored by previous builds of the same project. A different build
+	 * signature is not a source-file change — it means a signature *input* diverged (e.g. `ui5 serve`
+	 * excludes the `generateVersionInfo` task, so its signature differs from `ui5 build`'s and the
+	 * build's cache is never even looked up). The opaque hash cannot reveal this; the manifest can.
+	 *
+	 * @returns {string|null} A human-readable, field-level explanation of the closest mismatch, or
+	 *   null when no diagnosis is possible (no current manifest, no stored manifests, or the closest
+	 *   stored manifest has an incompatible structure).
+	 */
+	#diagnoseSignatureMismatch() {
+		if (!this.#signatureManifest) {
+			return null;
+		}
+		let stored;
+		try {
+			stored = this.#cacheManager.listSignatureManifests(this.#project.getId());
+		} catch (err) {
+			log.verbose(`Could not read signature manifests for cache-miss diagnosis: ${err.message}`);
+			return null;
+		}
+		const candidates = stored.filter((entry) => entry.buildSignature !== this.#buildSignature);
+		if (!candidates.length) {
+			return null;
+		}
+
+		let best = null;
+		for (const {manifest} of candidates) {
+			const differences = diffSignatureManifests(manifest, this.#signatureManifest);
+			if (!differences) {
+				continue; // Incompatible manifest structure, skip
+			}
+			if (!best || differences.length < best.length) {
+				best = differences;
+			}
+		}
+		if (!best || !best.length) {
+			return null;
+		}
+		return best.map(({field, cached, current}) =>
+			`  ${field}:\n    cached:  ${JSON.stringify(cached)}\n    current: ${JSON.stringify(current)}`).join("\n");
+	}
+
+	/**
+	 * Logs the closest-manifest diagnosis for a cache miss, if one is available. In "Force" mode the
+	 * miss is fatal and the reason is returned so the caller can append it to the thrown error; in
+	 * other modes it is logged at verbose level (the miss is handled by a silent rebuild).
+	 *
+	 * @param {boolean} forFatalError Whether the caller is about to throw a Force-mode error
+	 * @returns {string} A trailing explanation to append to an error message, or "" when none
+	 */
+	#reportCacheMiss(forFatalError) {
+		const diagnosis = this.#diagnoseSignatureMismatch();
+		if (!diagnosis) {
+			return "";
+		}
+		const message =
+			`The cache from a previous build of project ${this.#project.getName()} was not reused ` +
+			`because the build signature inputs differ:\n${diagnosis}`;
+		if (forFatalError) {
+			return ` ${message}`;
+		}
+		log.verbose(message);
+		return "";
 	}
 
 	/**
@@ -1605,6 +1760,12 @@ export default class ProjectBuildCache {
 				this.#cacheManager.writeIndexCache(
 					sourceIndexPrepared.projectId, sourceIndexPrepared.buildSignature,
 					sourceIndexPrepared.kind, sourceIndexPrepared.index);
+			}
+			// Persist the diagnostic manifest of the named signature inputs. INSERT OR REPLACE keeps
+			// it in sync with this build signature; a later mismatching build diffs against it.
+			if (this.#signatureManifest) {
+				this.#cacheManager.writeSignatureManifest(
+					this.#project.getId(), this.#buildSignature, this.#signatureManifest);
 			}
 		});
 

@@ -208,6 +208,29 @@ export default class CacheManager {
 	}
 
 	/**
+	 * Writes the diagnostic signature manifest for a build signature
+	 *
+	 * @public
+	 * @param {string} projectId Project identifier
+	 * @param {string} buildSignature Build signature hash
+	 * @param {object} manifest Structured manifest of the signature's named inputs
+	 */
+	writeSignatureManifest(projectId, buildSignature, manifest) {
+		this.#storage.writeSignatureManifest(projectId, buildSignature, manifest);
+	}
+
+	/**
+	 * Lists all stored signature manifests for a project across its build signatures
+	 *
+	 * @public
+	 * @param {string} projectId Project identifier
+	 * @returns {Array<{buildSignature: string, manifest: object}>} Stored manifests (may be empty)
+	 */
+	listSignatureManifests(projectId) {
+		return this.#storage.listSignatureManifests(projectId);
+	}
+
+	/**
 	 * Batch-checks which stage signatures exist in the database
 	 *
 	 * @public

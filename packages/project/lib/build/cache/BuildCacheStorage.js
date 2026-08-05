@@ -10,7 +10,9 @@ const METADATA_COMPRESSION_THRESHOLD = 4096;
 const CONTENT_COMPRESSION_THRESHOLD = 128;
 
 /** All live data table names */
-const DATA_TABLES = ["content", "index_cache", "stage_metadata", "task_metadata", "result_metadata"];
+const DATA_TABLES = [
+	"content", "index_cache", "stage_metadata", "task_metadata", "result_metadata", "signature_manifest"
+];
 
 /**
  * Unified SQLite-backed storage for the build cache
@@ -87,6 +89,13 @@ export default class BuildCacheStorage {
 				PRIMARY KEY (project_id, build_signature, stage_signature)
 			) WITHOUT ROWID;
 
+			CREATE TABLE IF NOT EXISTS signature_manifest (
+				project_id TEXT NOT NULL,
+				build_signature TEXT NOT NULL,
+				data BLOB NOT NULL,
+				PRIMARY KEY (project_id, build_signature)
+			) WITHOUT ROWID;
+
 			CREATE TABLE IF NOT EXISTS _vacuum_pending (
 				pending INTEGER NOT NULL DEFAULT 0
 			);
@@ -144,6 +153,15 @@ export default class BuildCacheStorage {
 			writeResultMetadata: this.#db.prepare(
 				`INSERT OR REPLACE INTO result_metadata
 				(project_id, build_signature, stage_signature, data) VALUES (?, ?, ?, ?)`
+			),
+
+			// Signature manifest (diagnostic side-channel: named inputs behind each build signature)
+			writeSignatureManifest: this.#db.prepare(
+				`INSERT OR REPLACE INTO signature_manifest (project_id, build_signature, data)
+				VALUES (?, ?, ?)`
+			),
+			listSignatureManifests: this.#db.prepare(
+				"SELECT build_signature, data FROM signature_manifest WHERE project_id = ?"
 			),
 		};
 	}
@@ -400,6 +418,41 @@ export default class BuildCacheStorage {
 		this.#stmts.writeResultMetadata.run(
 			projectId, buildSignature, stageSignature, this.#serializeMetadata(metadata)
 		);
+	}
+
+	/**
+	 * Writes the diagnostic signature manifest for a build signature
+	 *
+	 * @param {string} projectId Project identifier
+	 * @param {string} buildSignature Build signature hash
+	 * @param {object} manifest Structured manifest of the signature's named inputs
+	 */
+	writeSignatureManifest(projectId, buildSignature, manifest) {
+		this.#stmts.writeSignatureManifest.run(
+			projectId, buildSignature, this.#serializeMetadata(manifest)
+		);
+	}
+
+	/**
+	 * Lists all stored signature manifests for a project across all its build signatures. Used to
+	 * diagnose a cache miss by diffing the current build's inputs against previously stored ones.
+	 *
+	 * @param {string} projectId Project identifier
+	 * @returns {Array<{buildSignature: string, manifest: object}>} Stored manifests (may be empty)
+	 */
+	listSignatureManifests(projectId) {
+		try {
+			const rows = this.#stmts.listSignatureManifests.all(projectId);
+			return rows.map((row) => ({
+				buildSignature: row.build_signature,
+				manifest: this.#deserializeMetadata(row.data),
+			}));
+		} catch (err) {
+			throw new Error(
+				`Failed to list signature manifests for ${projectId}: ${err.message}`,
+				{cause: err}
+			);
+		}
 	}
 
 	// ===== Transactions =====
