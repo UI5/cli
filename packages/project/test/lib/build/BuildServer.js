@@ -948,6 +948,59 @@ test.serial(
 			`No stale report after a failed validation; got: ${seq.join(", ")}`);
 	});
 
+// A validation pass reads source files, so a `git checkout` moving paths under it can make a read
+// fail with ENOENT. That is the checkout race, not a genuine cache fault: it must be treated as
+// transient (no emitted "error", no serve-error), mirroring the build classifier. Regression guard
+// for the isFileNotFoundError branch in the validation catch, the path that otherwise crashed the
+// server process via the yargs fail-handler.
+test.serial(
+	"serve-status: ENOENT during validation is transient, no serve-error", async (t) => {
+		const {BuildServer, sinon, clock} = t.context;
+
+		const rootProject = {getName: () => "root.project"};
+		const libProject = {getName: () => "library.x"};
+		const graph = {
+			getRoot: () => rootProject,
+			getProjects: () => [rootProject, libProject],
+			getTransitiveDependencies: () => ["library.x"],
+			getProject: (name) => name === "root.project" ? rootProject : libProject,
+			traverseDependents: function* () {
+				yield {project: rootProject};
+				yield {project: libProject};
+			},
+		};
+
+		const enoentError = new Error("ENOENT: no such file or directory, open '/gone.properties'");
+		enoentError.code = "ENOENT";
+		const projectBuilder = {
+			closeCacheManager: sinon.stub(),
+			resourcesChanged: sinon.stub(),
+			validateCaches: sinon.stub().rejects(enoentError),
+			build: sinon.stub().callsFake((_opts, perProjectCb) => {
+				perProjectCb("root.project", {getReader: () => ({fakeReader: true})});
+				return Promise.resolve(["root.project"]);
+			}),
+		};
+		const statusEvents = makeStatusRecorder(t);
+
+		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+		t.teardown(() => buildServer.destroy());
+
+		const errorEvents = [];
+		buildServer.on("error", (err) => errorEvents.push(err));
+
+		await clock.tickAsync(10);
+		// The validation pass rejects; drain until it has released library.x back to a stale report.
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-stale");
+
+		t.is(errorEvents.length, 0, "ENOENT during validation emits no fatal error event");
+		const seq = statusEvents.map((e) => e.status);
+		t.false(seq.includes("serve-error"),
+			`ENOENT during validation must not surface serve-error; got: ${seq.join(", ")}`);
+		t.true(seq.includes("serve-validating"),
+			`validating emitted before the transient failure; got: ${seq.join(", ")}`);
+	});
+
 // A reader request issued while a project is in VALIDATING must NOT enqueue a build
 // of its own — that would fire #triggerRequestQueue's 10 ms timer, abort the running
 // validation pass, and flicker VALIDATING → BUILDING → VALIDATING for no reason.
