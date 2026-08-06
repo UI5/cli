@@ -514,6 +514,53 @@ test.serial(
 	});
 
 test.serial(
+	"serve-status: ENOENT failure with no queued change is treated as transient, not error", async (t) => {
+		const {BuildServer, graph, projectBuilder, sinon, clock} = t.context;
+		const {ABORTED_BUILD_RESTART_SETTLE_MS, BUILD_REQUEST_DEBOUNCE_MS} =
+			BuildServer.__internals__;
+		const statusEvents = makeStatusRecorder(t);
+
+		// A source file vanished mid-`git checkout`: the build reads it and fails with ENOENT before
+		// the watcher's delete event lands, so #resourceChangeQueue is still empty and the signal is
+		// not aborted. The timing predicate alone would classify this as a genuine failure; the
+		// error's ENOENT code routes it through the transient path instead. Regression guard for the
+		// isFileNotFoundError branch.
+		const resolvers = [];
+		projectBuilder.build = sinon.stub().callsFake((_opts, cb) => new Promise((resolve, reject) => {
+			resolvers.push({resolve, reject, cb});
+		}));
+
+		const buildServer = await BuildServer.create(graph, projectBuilder, true, [], []);
+		t.context.buildServer = buildServer;
+		await clock.tickAsync(BUILD_REQUEST_DEBOUNCE_MS);
+		t.is(projectBuilder.build.callCount, 1, "initial build started");
+
+		// No _projectResourceChanged call: the queue stays empty, mirroring the pre-delete-event race.
+		const enoentError = new Error("ENOENT: no such file or directory, open '/gone.js'");
+		enoentError.code = "ENOENT";
+		resolvers[0].reject(enoentError);
+		await clock.tickAsync(0);
+
+		const midSeq = statusEvents.map((e) => e.status);
+		t.false(midSeq.includes("serve-error"),
+			`ENOENT failure must not surface serve-error; got: ${midSeq.join(", ")}`);
+		t.is(statusEvents[statusEvents.length - 1].status, "serve-settling",
+			`ENOENT failure reports settling; got: ${midSeq.join(", ")}`);
+		t.is(projectBuilder.build.callCount, 1, "retry held until the settle window elapses");
+
+		// Once quiet, a single rebuild fires and succeeds.
+		await clock.tickAsync(ABORTED_BUILD_RESTART_SETTLE_MS);
+		t.is(projectBuilder.build.callCount, 2, "single deferred rebuild after the tree settled");
+		resolvers[1].cb("root.project", {getReader: () => ({fakeReader: true})});
+		resolvers[1].resolve(["root.project"]);
+		await drainUntil(clock, statusEvents, (e) => e.status === "serve-ready");
+
+		const seq = statusEvents.map((e) => e.status);
+		t.false(seq.includes("serve-error"),
+			`No serve-error anywhere in the ENOENT cycle; got: ${seq.join(", ")}`);
+	});
+
+test.serial(
 	"serve-status: a pending build re-times to the first-build window on a source change", async (t) => {
 		const {BuildServer, graph, projectBuilder, rootProject, sinon, clock} = t.context;
 		const {FIRST_BUILD_SETTLE_MS, BUILD_REQUEST_DEBOUNCE_MS} = BuildServer.__internals__;
