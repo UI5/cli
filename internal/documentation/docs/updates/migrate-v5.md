@@ -271,7 +271,33 @@ Update the test suite configuration to remove obsolete path mappings:
 
 Delete the custom `test/Test.qunit.html` file from your test directory. This file is no longer needed. The framework-provided test page can now be used directly.
 
-#### 7. Update Additional Paths
+#### 7. Update Custom Task Configuration
+
+The component type does **not** include the following standard tasks that are available in the projects of type application:
+
+| Task | Description |
+| ---- | ----------- |
+| `generateStandaloneAppBundle` | Creates a standalone bundle including the UI5 bootstrap |
+| `transformBootstrapHtml` | Transforms the HTML bootstrap file to reference the standalone bundle |
+| `generateVersionInfo` | Generates `sap-ui-version.json` with version information |
+| `generateApiIndex` | Generates the API index for SDK documentation |
+
+If your `ui5.yaml` defines custom tasks that reference any of these tasks via `beforeTask` or `afterTask`, you need to update or remove them:
+
+```diff
+  builder:
+    customTasks:
+-     - name: my-custom-task
+-       afterTask: generateStandaloneAppBundle
++     - name: my-custom-task
++       afterTask: generateComponentPreload
+```
+
+::: tip
+To see which standard tasks are available for the component type, check out the [Standard Tasks](../pages/Builder#standard-tasks) table in the UI5 Builder page.
+:::
+
+#### 8. Update Additional Paths
 
 Depending on your project setup, you might need to update additional paths in configuration files or test runners to reflect the new structure.
 The test suite is now served under the standard `/test-resources/` path with the component's full namespace (e.g. `/test-resources/sap/ui/demo/todo/testsuite.qunit.html`).
