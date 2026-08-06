@@ -1162,6 +1162,18 @@ class BuildServer extends EventEmitter {
 					log.verbose(`Background cache validation aborted: ${err?.message ?? err}`);
 					return;
 				}
+				if (signal.aborted || this.#resourceChangeQueue.size > 0 ||
+						isFileNotFoundError(err)) {
+					// Validation reads source files, so a `git checkout` moving paths under it can
+					// make a read fail with ENOENT (or land while a source change is queued). This
+					// mirrors the build classifier: the failure is a symptom of the tree moving, not a
+					// genuine cache fault. Leave the projects INITIAL (the finally clause releases any
+					// VALIDATING claim) so the next reader request re-validates or rebuilds against the
+					// settled tree, and do not surface a fatal error.
+					log.warn(`Background cache validation failed during concurrent source change, ` +
+						`treating as transient: ${err?.message ?? err}`);
+					return;
+				}
 				// Non-abort failure: mirror the build error path so consumers (the banner,
 				// integration tests, the yargs fail-handler) can react. The ERROR transition
 				// here doubles as the signal to the finally clause to skip its post-pass
