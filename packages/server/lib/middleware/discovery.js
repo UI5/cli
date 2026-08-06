@@ -14,7 +14,8 @@ const urlPattern = /\/(app_pages|all_libs|all_tests)(?:[?#].*)?$/;
  *
  * @module @ui5/server/middleware/discovery
  * @param {object} parameters Parameters
- * @param {@ui5/server/internal/MiddlewareManager.middlewareResources} parameters.resources Parameters
+ * @param {@ui5/server/internal/MiddlewareManager.middlewareResources} parameters.resources Readers for
+ *   accessing the sources of the root project and its dependencies
  * @returns {Function} Returns a server middleware closure.
  */
 function createMiddleware({resources}) {

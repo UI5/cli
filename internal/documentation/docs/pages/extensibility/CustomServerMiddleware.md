@@ -118,6 +118,15 @@ A custom middleware implementation needs to return a function with the following
  *      Reader to access resources of the root project
  * @param {module:@ui5/fs.AbstractReader} parameters.resources.dependencies
  *      Reader to access resources of the project's dependencies.
+ * @param {object} parameters.builtResources Readers for accessing the incremental build output.
+ *      This parameter is only provided to custom middleware extensions
+ *      defining Specification Version 5.0 and later
+ * @param {module:@ui5/fs.AbstractReader} parameters.builtResources.all
+ *      Reader to access the build output of the root project and its dependencies
+ * @param {module:@ui5/fs.AbstractReader} parameters.builtResources.rootProject
+ *      Reader to access the build output of the root project
+ * @param {module:@ui5/fs.AbstractReader} parameters.builtResources.dependencies
+ *      Reader to access the build output of the project's dependencies.
  * @returns {function} Middleware function to use
  */
 export default function({log, middlewareUtil, options, resources}) {
@@ -154,6 +163,15 @@ export default function({log, middlewareUtil, options, resources}) {
  *      Reader to access resources of the root project
  * @param {module:@ui5/fs.AbstractReader} parameters.resources.dependencies
  *      Reader to access resources of the project's dependencies.
+ * @param {object} parameters.builtResources Readers for accessing the incremental build output.
+ *      This parameter is only provided to custom middleware extensions
+ *      defining Specification Version 5.0 and later
+ * @param {module:@ui5/fs.AbstractReader} parameters.builtResources.all
+ *      Reader to access the build output of the root project and its dependencies
+ * @param {module:@ui5/fs.AbstractReader} parameters.builtResources.rootProject
+ *      Reader to access the build output of the root project
+ * @param {module:@ui5/fs.AbstractReader} parameters.builtResources.dependencies
+ *      Reader to access the build output of the project's dependencies.
  * @returns {function} Middleware function to use
  */
 module.exports = function({log, middlewareUtil, options, resources}) {
