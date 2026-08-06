@@ -37,8 +37,7 @@
       "desktop": true,
       "tablet": true,
       "phone": true
-    },
-    "supportedThemes": []
+    }
   },
   "sap.ui5": {
     "dependencies": {

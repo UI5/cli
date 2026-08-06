@@ -77,7 +77,6 @@ test("integration: Library without i18n bundle file", async (t) => {
 			type: "library",
 		},
 		"sap.ui": {
-			supportedThemes: [],
 			technology: "UI5",
 		},
 		"sap.ui5": {
@@ -134,7 +133,6 @@ test("integration: Library with i18n bundle file (messagebundle.properties)", as
 			type: "library",
 		},
 		"sap.ui": {
-			supportedThemes: [],
 			technology: "UI5",
 		},
 		"sap.ui5": {
@@ -204,7 +202,6 @@ test("integration: Library with i18n=true declared in .library", async (t) => {
 			type: "library",
 		},
 		"sap.ui": {
-			supportedThemes: [],
 			technology: "UI5",
 		},
 		"sap.ui5": {
@@ -280,7 +277,6 @@ test("integration: Library with i18n=true declared in .library and multiple loca
 			type: "library",
 		},
 		"sap.ui": {
-			supportedThemes: [],
 			technology: "UI5",
 		},
 		"sap.ui5": {
@@ -350,7 +346,6 @@ test("integration: Library with i18n=true declared in .library and single locale
 			type: "library",
 		},
 		"sap.ui": {
-			supportedThemes: [],
 			technology: "UI5",
 		},
 		"sap.ui5": {
@@ -416,7 +411,6 @@ test("integration: Library with i18n=false declared in .library", async (t) => {
 			type: "library",
 		},
 		"sap.ui": {
-			supportedThemes: [],
 			technology: "UI5",
 		},
 		"sap.ui5": {
@@ -482,7 +476,6 @@ test("integration: Library with i18n=foo.properties declared in .library", async
 			type: "library",
 		},
 		"sap.ui": {
-			supportedThemes: [],
 			technology: "UI5",
 		},
 		"sap.ui5": {
@@ -548,7 +541,6 @@ test("integration: Library with css=true declared in .library", async (t) => {
 			type: "library",
 		},
 		"sap.ui": {
-			supportedThemes: [],
 			technology: "UI5",
 		},
 		"sap.ui5": {
@@ -610,7 +602,6 @@ test("integration: Library with css=false declared in .library", async (t) => {
 			type: "library",
 		},
 		"sap.ui": {
-			supportedThemes: [],
 			technology: "UI5",
 		},
 		"sap.ui5": {
