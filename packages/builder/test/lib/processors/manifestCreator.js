@@ -68,8 +68,7 @@ const expectedManifestContentObject = () => {
 			"offline": true
 		},
 		"sap.ui": {
-			"technology": "UI5",
-			"supportedThemes": []
+			"technology": "UI5"
 		},
 		"sap.ui5": {
 			"dependencies": {
@@ -385,8 +384,7 @@ test.serial("manifest creation omitMinVersions=true", async (t) => {
 			"offline": true
 		},
 		"sap.ui": {
-			"technology": "UI5",
-			"supportedThemes": []
+			"technology": "UI5"
 		},
 		"sap.ui5": {
 			"dependencies": {
@@ -520,8 +518,8 @@ test.serial("default manifest creation with special characters very small app de
 	t.is(errorLogStub.callCount, 0);
 });
 
-test.serial("manifest creation with themes", async (t) => {
-	const {manifestCreator, errorLogStub, verboseLogStub, getProjectVersion} = t.context;
+test.serial("manifest creation does not emit supportedThemes for theme resources", async (t) => {
+	const {manifestCreator, errorLogStub, getProjectVersion} = t.context;
 
 	const prefix = "/resources/sap/ui/test/";
 
@@ -539,10 +537,7 @@ test.serial("manifest creation with themes", async (t) => {
 			"offline": true
 		},
 		"sap.ui": {
-			"technology": "UI5",
-			"supportedThemes": [
-				"base", "sap_foo"
-			]
+			"technology": "UI5"
 		},
 		"sap.ui5": {
 			"dependencies": {
@@ -595,9 +590,6 @@ test.serial("manifest creation with themes", async (t) => {
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
 
 	t.is(errorLogStub.callCount, 0);
-	t.is(verboseLogStub.callCount, 7);
-	t.is(verboseLogStub.getCall(4).args[0],
-		"  sap.ui/supportedThemes determined from resources: 'base, sap_foo'");
 });
 
 test.serial("manifest creation for sap/apf", async (t) => {
@@ -637,7 +629,7 @@ test.serial("manifest creation for sap/apf", async (t) => {
 
 	t.is(errorLogStub.callCount, 0);
 
-	t.is(verboseLogStub.callCount, 10);
+	t.is(verboseLogStub.callCount, 9);
 	t.is(verboseLogStub.getCall(0).args[0], "sap.app/i18n taken from .library appData: 'i18n/i18n.properties'");
 	t.is(verboseLogStub.getCall(1).args[0],
 		"Checking component at /resources/sap/apf");
@@ -663,8 +655,7 @@ test.serial("manifest creation for sap/ui/core", async (t) => {
 			"offline": true
 		},
 		"sap.ui": {
-			"technology": "UI5",
-			"supportedThemes": []
+			"technology": "UI5"
 		},
 		"sap.ui5": {
 			"dependencies": {
@@ -705,7 +696,7 @@ test.serial("manifest creation for sap/ui/core", async (t) => {
 
 	t.is(errorLogStub.callCount, 0);
 
-	t.is(verboseLogStub.callCount, 8);
+	t.is(verboseLogStub.callCount, 7);
 	t.is(verboseLogStub.getCall(1).args[0],
 		"  sap.app/id taken from .library: 'sap.ui.core'");
 });
@@ -727,8 +718,7 @@ test.serial("manifest creation with .library / Component.js at same namespace", 
 			"offline": true
 		},
 		"sap.ui": {
-			"technology": "UI5",
-			"supportedThemes": []
+			"technology": "UI5"
 		},
 		"sap.ui5": {
 			"dependencies": {
@@ -773,7 +763,7 @@ test.serial("manifest creation with .library / Component.js at same namespace", 
 		"This is not supported by manifests, therefore the component won't be " +
 		"listed in the library's manifest.");
 
-	t.is(verboseLogStub.callCount, 8);
+	t.is(verboseLogStub.callCount, 7);
 	t.is(verboseLogStub.getCall(1).args[0],
 		"  sap.app/id taken from .library: 'sap.lib1'");
 });
@@ -797,8 +787,7 @@ test.serial("manifest creation with embedded component", async (t) => {
 			"offline": true
 		},
 		"sap.ui": {
-			"technology": "UI5",
-			"supportedThemes": []
+			"technology": "UI5"
 		},
 		"sap.ui5": {
 			"dependencies": {
@@ -879,8 +868,7 @@ test.serial("manifest creation with embedded component (Missing 'embeddedBy')", 
 			"offline": true
 		},
 		"sap.ui": {
-			"technology": "UI5",
-			"supportedThemes": []
+			"technology": "UI5"
 		},
 		"sap.ui5": {
 			"dependencies": {
@@ -957,8 +945,7 @@ test.serial("manifest creation with embedded component ('embeddedBy' doesn't poi
 			"offline": true
 		},
 		"sap.ui": {
-			"technology": "UI5",
-			"supportedThemes": []
+			"technology": "UI5"
 		},
 		"sap.ui5": {
 			"dependencies": {
@@ -1039,8 +1026,7 @@ test.serial("manifest creation with embedded component ('embeddedBy' absolute pa
 			"offline": true
 		},
 		"sap.ui": {
-			"technology": "UI5",
-			"supportedThemes": []
+			"technology": "UI5"
 		},
 		"sap.ui5": {
 			"dependencies": {
@@ -1121,8 +1107,7 @@ test.serial("manifest creation with embedded component ('embeddedBy' empty strin
 			"offline": true
 		},
 		"sap.ui": {
-			"technology": "UI5",
-			"supportedThemes": []
+			"technology": "UI5"
 		},
 		"sap.ui5": {
 			"dependencies": {
@@ -1197,8 +1182,7 @@ test.serial("manifest creation with embedded component ('embeddedBy' object)", a
 			"offline": true
 		},
 		"sap.ui": {
-			"technology": "UI5",
-			"supportedThemes": []
+			"technology": "UI5"
 		},
 		"sap.ui5": {
 			"dependencies": {
@@ -1273,8 +1257,7 @@ test.serial("manifest creation with embedded component (no manifest.json)", asyn
 			"offline": true
 		},
 		"sap.ui": {
-			"technology": "UI5",
-			"supportedThemes": []
+			"technology": "UI5"
 		},
 		"sap.ui5": {
 			"dependencies": {
@@ -1342,8 +1325,7 @@ test.serial("manifest creation with embedded component (invalid manifest.json)",
 			"offline": true
 		},
 		"sap.ui": {
-			"technology": "UI5",
-			"supportedThemes": []
+			"technology": "UI5"
 		},
 		"sap.ui5": {
 			"dependencies": {

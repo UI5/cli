@@ -53,9 +53,7 @@ test("Generate library manifest", async (t) => {
 		},
 		"sap.ui":
 		{
-			"technology": "UI5",
-			"supportedThemes":
-			[]
+			"technology": "UI5"
 		},
 		"sap.ui5":
 		{

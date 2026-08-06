@@ -13,8 +13,7 @@
     "offline": true
   },
   "sap.ui": {
-    "technology": "UI5",
-    "supportedThemes": []
+    "technology": "UI5"
   },
   "sap.ui5": {
     "dependencies": {
