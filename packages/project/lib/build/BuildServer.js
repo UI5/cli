@@ -2,7 +2,7 @@ import EventEmitter from "node:events";
 import {createReaderCollectionPrioritized} from "@ui5/fs/resourceFactory";
 import BuildReader from "./BuildReader.js";
 import WatchHandler from "./helpers/WatchHandler.js";
-import {isAbortError} from "./helpers/abort.js";
+import {isAbortError, isFileNotFoundError} from "./helpers/abort.js";
 import {WATCHER_BURST_SETTLE_MS} from "./helpers/watchUtil.js";
 import RecoveryBudget, {WATCHER_RECOVERY_MAX_ATTEMPTS, WATCHER_RECOVERY_WINDOW_MS} from "./helpers/RecoveryBudget.js";
 import {getLogger} from "@ui5/logger";
@@ -883,7 +883,8 @@ class BuildServer extends EventEmitter {
 							this.#pendingBuildRequest.add(projectName);
 						}
 					}
-				} else if (signal.aborted || this.#resourceChangeQueue.size > 0) {
+				} else if (signal.aborted || this.#resourceChangeQueue.size > 0 ||
+						isFileNotFoundError(err)) {
 					// Task threw while sources were changing (e.g. mid-`git checkout`). The build
 					// state is untrustworthy, but the error itself is very likely spurious: a fresh
 					// build against the settled tree will typically succeed. Re-queue affected
@@ -891,6 +892,14 @@ class BuildServer extends EventEmitter {
 					// the retry, then route through the same defer-and-report path as an abort (see
 					// below): the doomed build must not park the server on `building`/`error`; it
 					// reports SETTLING and retries once the tree is quiet.
+					//
+					// The `signal.aborted || #resourceChangeQueue.size > 0` predicate catches the
+					// case where the watcher event has already landed. A file-not-found error
+					// (ENOENT) is treated as transient even before it does: during a checkout the
+					// file can be gone on disk before its delete event is delivered, so the queue is
+					// still empty at the catch site. The error nature identifies the race that the
+					// timing predicate misses; the deferred retry against the settled tree resolves
+					// it (see isFileNotFoundError).
 					log.warn(
 						`Build failed during concurrent source change — treating as transient: ${err.message}`);
 					transientFailure = true;
