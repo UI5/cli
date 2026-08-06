@@ -631,3 +631,76 @@ test("byGlob with a larger number of results", async (t) => {
 		"Resource should have correct path"
 	);
 });
+
+test("byGlob drops a match that vanished between glob and stat (ENOENT)", async (t) => {
+	// A file matched by the glob walk can be removed before the per-match stat runs, e.g. a
+	// concurrent 'git checkout' moving source paths. The stat then fails with ENOENT. byGlob must
+	// drop the vanished match rather than rejecting the whole call.
+	const globbyStub = sinon.stub().callsFake(async () => {
+		return ["/present.js", "/vanished.js"];
+	});
+
+	const fakeStat = {
+		isFile: () => true,
+		isDirectory: () => false
+	};
+
+	const FileSystem = await esmock("../../../lib/adapters/FileSystem.js", {
+		"globby": {
+			globby: globbyStub,
+			isGitIgnored: async () => false
+		},
+		"graceful-fs": {
+			stat: ((filePath, cb) => {
+				if (filePath.endsWith("vanished.js")) {
+					cb({code: "ENOENT"});
+				} else {
+					cb(null, fakeStat);
+				}
+			})
+		}
+	});
+
+	const fsBasePath = fileURLToPath(new URL("../../tmp/virtual/vanish-project/", import.meta.url));
+	const reader = new FileSystem({
+		fsBasePath,
+		virBasePath: "/"
+	});
+
+	const resources = await reader.byGlob("/**/*.js");
+
+	t.is(resources.length, 1, "Only the surviving match is returned");
+	t.is(resources[0].getPath(), "/present.js", "Surviving match has correct path");
+});
+
+test("byGlob rejects on a non-ENOENT stat error", async (t) => {
+	// Only a missing file is tolerated. Any other stat failure (e.g. EACCES) is a genuine error and
+	// must still propagate.
+	const globbyStub = sinon.stub().callsFake(async () => {
+		return ["/present.js"];
+	});
+
+	const FileSystem = await esmock("../../../lib/adapters/FileSystem.js", {
+		"globby": {
+			globby: globbyStub,
+			isGitIgnored: async () => false
+		},
+		"graceful-fs": {
+			stat: ((_filePath, cb) => {
+				const err = new Error("permission denied");
+				err.code = "EACCES";
+				cb(err);
+			})
+		}
+	});
+
+	const fsBasePath = fileURLToPath(new URL("../../tmp/virtual/eacces-project/", import.meta.url));
+	const reader = new FileSystem({
+		fsBasePath,
+		virBasePath: "/"
+	});
+
+	await t.throwsAsync(reader.byGlob("/**/*.js"), {
+		code: "EACCES"
+	}, "Non-ENOENT stat error propagates");
+});
