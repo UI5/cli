@@ -22,16 +22,15 @@ const log = getLogger("server:MiddlewareManager");
  * @alias @ui5/server/internal/MiddlewareManager
  */
 class MiddlewareManager {
-	constructor({graph, rootProject, sources, resources, buildReader, options = {}}) {
-		if (!graph || !rootProject || !resources || !resources.all ||
-			!resources.rootProject || !resources.dependencies) {
+	constructor({graph, rootProject, resources, builtResources, options = {}}) {
+		if (!graph || !rootProject || !builtResources || !builtResources.all ||
+			!builtResources.rootProject || !builtResources.dependencies) {
 			throw new Error("[MiddlewareManager]: One or more mandatory parameters not provided");
 		}
 		this.graph = graph;
 		this.rootProject = rootProject;
-		this.sources = sources;
 		this.resources = resources;
-		this.buildReader = buildReader;
+		this.builtResources = builtResources;
 		this.options = {
 			sendSAPTargetCSP: false,
 			serveCSPReports: false,
@@ -151,6 +150,7 @@ class MiddlewareManager {
 		this.middleware[middlewareName] = {
 			middleware: await Promise.resolve(middlewareCallback({
 				resources: this.resources,
+				builtResources: this.builtResources,
 				middlewareUtil: this.middlewareUtil
 			})),
 			mountPath
@@ -271,8 +271,8 @@ class MiddlewareManager {
 		});
 		await this.addMiddleware("serveResources", {
 			wrapperCallback: ({middleware}) => {
-				return ({resources, middlewareUtil}) => middleware({
-					resources,
+				return ({builtResources, middlewareUtil}) => middleware({
+					builtResources,
 					middlewareUtil,
 					injectLiveReloadClient: this.options.liveReload.active
 				});
@@ -288,8 +288,8 @@ class MiddlewareManager {
 		await this.addMiddleware("nonReadRequests");
 		await this.addMiddleware("serveIndex", {
 			wrapperCallback: ({middleware}) => {
-				return ({resources, middlewareUtil}) => middleware({
-					resources,
+				return ({builtResources, middlewareUtil}) => middleware({
+					builtResources,
 					middlewareUtil,
 					simpleIndex: this.options.simpleIndex
 				});
@@ -345,7 +345,7 @@ class MiddlewareManager {
 			}
 
 			await this.addMiddleware(middlewareName, {
-				customMiddleware: async ({resources, middlewareUtil}) => {
+				customMiddleware: async ({resources, builtResources, middlewareUtil}) => {
 					const params = {
 						resources,
 						options: {
@@ -357,6 +357,9 @@ class MiddlewareManager {
 					if (specVersion.gte("3.0")) {
 						params.options.middlewareName = middlewareName;
 						params.log = getLogger(`server:custom-middleware:${middlewareDef.name}`);
+					}
+					if (specVersion.gte("5.0")) {
+						params.builtResources = builtResources;
 					}
 					const middlewareUtilInterface = middlewareUtil.getInterface(specVersion);
 					if (middlewareUtilInterface) {

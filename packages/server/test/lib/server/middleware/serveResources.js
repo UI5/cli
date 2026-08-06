@@ -34,10 +34,10 @@ test.serial("Serves resource with correct Content-Type and ETag", async (t) => {
 	const buffer = Buffer.from("hello world");
 	const resource = createMockResource({path: "/app/script.js", buffer, integrity: "sha256-xyz"});
 
-	const resources = {all: {byPath: sinon.stub().resolves(resource)}};
+	const builtResources = {all: {byPath: sinon.stub().resolves(resource)}};
 	const middleware = serveResourcesMiddleware({
 		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
-		resources
+		builtResources
 	});
 
 	const req = {url: "/app/script.js", headers: {}};
@@ -63,10 +63,10 @@ test.serial("Injects liveReload tag into HTML right after <head>", async (t) => 
 	const integrity = "sha256-xyz";
 	const resource = createMockResource({path: "/app/index.html", buffer, integrity});
 
-	const resources = {all: {byPath: sinon.stub().resolves(resource)}};
+	const builtResources = {all: {byPath: sinon.stub().resolves(resource)}};
 	const middleware = serveResourcesMiddleware({
 		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
-		resources,
+		builtResources,
 		injectLiveReloadClient: true
 	});
 
@@ -91,10 +91,10 @@ test.serial("Injects liveReload tag after <head> with attributes", async (t) => 
 	const buffer = Buffer.from(html);
 	const resource = createMockResource({path: "/index.html", buffer, integrity: "sha256-xyz"});
 
-	const resources = {all: {byPath: sinon.stub().resolves(resource)}};
+	const builtResources = {all: {byPath: sinon.stub().resolves(resource)}};
 	const middleware = serveResourcesMiddleware({
 		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
-		resources,
+		builtResources,
 		injectLiveReloadClient: true
 	});
 
@@ -113,10 +113,10 @@ test.serial("Injects liveReload tag after <html> when <head> is missing", async 
 	const buffer = Buffer.from(html);
 	const resource = createMockResource({path: "/page.html", buffer, integrity: "sha256-xyz"});
 
-	const resources = {all: {byPath: sinon.stub().resolves(resource)}};
+	const builtResources = {all: {byPath: sinon.stub().resolves(resource)}};
 	const middleware = serveResourcesMiddleware({
 		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
-		resources,
+		builtResources,
 		injectLiveReloadClient: true
 	});
 
@@ -135,10 +135,10 @@ test.serial("Prepends liveReload tag to HTML without <head> or <html>", async (t
 	const buffer = Buffer.from(html);
 	const resource = createMockResource({path: "/page.html", buffer, integrity: "sha256-xyz"});
 
-	const resources = {all: {byPath: sinon.stub().resolves(resource)}};
+	const builtResources = {all: {byPath: sinon.stub().resolves(resource)}};
 	const middleware = serveResourcesMiddleware({
 		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
-		resources,
+		builtResources,
 		injectLiveReloadClient: true
 	});
 
@@ -153,10 +153,10 @@ test.serial("Prepends liveReload tag to HTML without <head> or <html>", async (t
 });
 
 test.serial("Calls next() when resource is not found", async (t) => {
-	const resources = {all: {byPath: sinon.stub().resolves(null)}};
+	const builtResources = {all: {byPath: sinon.stub().resolves(null)}};
 	const middleware = serveResourcesMiddleware({
 		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
-		resources
+		builtResources
 	});
 
 	const req = {url: "/not-found.js", headers: {}};
@@ -175,10 +175,10 @@ test.serial("Returns 304 Not Modified when client cache is fresh", async (t) => 
 	const etagValue = etag(integrity);
 	const resource = createMockResource({integrity});
 
-	const resources = {all: {byPath: sinon.stub().resolves(resource)}};
+	const builtResources = {all: {byPath: sinon.stub().resolves(resource)}};
 	const middleware = serveResourcesMiddleware({
 		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
-		resources
+		builtResources
 	});
 
 	const req = {url: "/foo.js", headers: {"if-none-match": etagValue}};
@@ -195,10 +195,10 @@ test.serial("Returns 304 Not Modified when client cache is fresh", async (t) => 
 
 test.serial("Passes errors to next()", async (t) => {
 	const error = new Error("read failure");
-	const resources = {all: {byPath: sinon.stub().rejects(error)}};
+	const builtResources = {all: {byPath: sinon.stub().rejects(error)}};
 	const middleware = serveResourcesMiddleware({
 		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
-		resources
+		builtResources
 	});
 
 	const req = {url: "/foo.js", headers: {}};
@@ -213,10 +213,10 @@ test.serial("Passes errors to next()", async (t) => {
 
 test.serial("Does not override existing Content-Type header", async (t) => {
 	const resource = createMockResource({path: "/data.json"});
-	const resources = {all: {byPath: sinon.stub().resolves(resource)}};
+	const builtResources = {all: {byPath: sinon.stub().resolves(resource)}};
 	const middleware = serveResourcesMiddleware({
 		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
-		resources
+		builtResources
 	});
 
 	const req = {url: "/data.json", headers: {}};
@@ -233,10 +233,10 @@ test.serial("Does not override existing Content-Type header", async (t) => {
 test.serial("Uses resource integrity for ETag generation", async (t) => {
 	const integrity = "sha512-uniqueHash";
 	const resource = createMockResource({integrity});
-	const resources = {all: {byPath: sinon.stub().resolves(resource)}};
+	const builtResources = {all: {byPath: sinon.stub().resolves(resource)}};
 	const middleware = serveResourcesMiddleware({
 		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
-		resources
+		builtResources
 	});
 
 	const req = {url: "/foo.js", headers: {}};
@@ -256,10 +256,10 @@ test.serial("HTML: 304 when ETag matches injected ETag", async (t) => {
 	const html = "<html><body></body></html>";
 	const resource = createMockResource({path: "/index.html", buffer: Buffer.from(html), integrity});
 
-	const resources = {all: {byPath: sinon.stub().resolves(resource)}};
+	const builtResources = {all: {byPath: sinon.stub().resolves(resource)}};
 	const middleware = serveResourcesMiddleware({
 		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
-		resources,
+		builtResources,
 		injectLiveReloadClient: true
 	});
 
@@ -284,10 +284,10 @@ test.serial("HTML: 200 when INJECT_SCRIPT_TAG changes invalidates client ETag", 
 	});
 
 	const resource = createMockResource({path: "/index.html", buffer: Buffer.from(html), integrity});
-	const resources = {all: {byPath: sinon.stub().resolves(resource)}};
+	const builtResources = {all: {byPath: sinon.stub().resolves(resource)}};
 	const middleware = mockedMiddleware({
 		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
-		resources,
+		builtResources,
 		injectLiveReloadClient: true
 	});
 

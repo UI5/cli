@@ -8,7 +8,8 @@ const MANIFEST_JSON = "manifest.json";
  *
  * @module @ui5/server/middleware/versionInfo
  * @param {object} parameters Parameters
- * @param {@ui5/server/internal/MiddlewareManager.middlewareResources} parameters.resources Parameters
+ * @param {@ui5/server/internal/MiddlewareManager.middlewareResources} parameters.resources Readers for
+ *   accessing the sources of the root project and its dependencies
  * @param {object} parameters.middlewareUtil [MiddlewareUtil]{@link @ui5/server/middleware/MiddlewareUtil} instance
  * @returns {Function} Returns a server middleware closure.
  */

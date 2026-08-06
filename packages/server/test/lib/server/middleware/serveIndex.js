@@ -27,7 +27,7 @@ test.serial("serveIndex default", async (t) => {
 	]);
 	const middleware = serveIndexMiddleware({
 		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
-		resources: {
+		builtResources: {
 			all: readerWriter
 		}
 	});
@@ -93,7 +93,7 @@ test.serial("serveIndex no hidden", async (t) => {
 	]);
 	const middleware = serveIndexMiddleware({
 		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
-		resources: {
+		builtResources: {
 			all: readerWriter
 		},
 		simpleIndex: false,
@@ -148,7 +148,7 @@ test.serial("serveIndex error handling", async (t) => {
 	};
 	const middleware = serveIndexMiddleware({
 		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
-		resources: {
+		builtResources: {
 			all: readerStub
 		}
 	});
@@ -190,7 +190,7 @@ test.serial("serveIndex no details", async (t) => {
 	]);
 	const middleware = serveIndexMiddleware({
 		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
-		resources: {
+		builtResources: {
 			all: readerWriter
 		},
 		simpleIndex: true,
