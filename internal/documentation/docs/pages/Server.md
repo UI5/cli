@@ -71,8 +71,8 @@ A project can also add custom middleware to the server by using the [Custom Serv
 | `cors` | Standard [Express cors middleware](http://expressjs.com/en/resources/middleware/cors.html) |
 | `liveReloadClient` | See chapter [liveReload](#livereload) |
 | `discovery` |  See chapter [discovery](#discovery) |
-| `serveResources` | See chapter [serveResources](#serveresources) |
 | `versionInfo` | See chapter [versionInfo](#versioninfo)  |
+| `serveResources` | See chapter [serveResources](#serveresources) |
 | `nonReadRequests` | See chapter [nonReadRequests](#nonreadrequests)  |
 | `serveIndex` | See chapter [serveIndex](#serveindex)  |
 
@@ -125,6 +125,9 @@ To prevent intermediate proxies from idle-closing the WebSocket, the client send
 
 When the WebSocket connection is lost (e.g. because the server was restarted), the client polls the WebSocket endpoint every second and reloads the page once the server accepts connections again. While the browser tab is hidden, polling pauses until it becomes visible again.
 
+### versionInfo
+Generates and serves the version info file `/resources/sap-ui-version.json`, which is required for several framework functionalities.
+
 ### serveResources
 This middleware resolves requests using the [ui5-fs](https://github.com/SAP/ui5-fs)-file system abstraction.
 
@@ -132,9 +135,6 @@ The following file content transformations are executed:
 
 - Escaping non-ASCII characters in `.properties` translation files based on a project's [configuration](./Configuration.md#encoding-of-properties-files)
 - Enhancing the `manifest.json` with supported locales determined by available `.properties` [translation files](./Builder.md#generation-of-supported-locales)
-
-### versionInfo
-Generates and serves the version info file `/resources/sap-ui-version.json`, which is required for several framework functionalities.
 
 ### nonReadRequests
 Answers all non-read requests (POST, PUT, DELETE, etc.) that have not been answered by any other middleware with the 404 "Not Found" status code . This signals the client that these operations are not supported by the server.
