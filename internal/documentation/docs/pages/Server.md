@@ -176,13 +176,19 @@ By default, build caches created by `ui5 build` and `ui5 serve` are **separate a
 
 ### Watch Mode Behavior
 
-Once started with `ui5 serve`, the server automatically monitors changes to the source files throughout the session. When a request arrives, it checks for cached results first and only triggers a rebuild of the respective resources and tasks if no cache is available.
+Once started with `ui5 serve`, the server monitors your project sources throughout the session. When a request arrives, it checks for cached results first and only rebuilds the affected resources and tasks if no cache is available. Saving multiple files at once triggers a single rebuild, not one per file.
 
-- **Monitored files**: All files in your project's source directories (`src/`, `webapp/`, `test/`, etc.)
-- **Not monitored**: Configuration files (`ui5.yaml`, `package.json`), custom task implementations, and dependency files
+- **Monitored**: All files in your project's source directories (`src/`, `webapp/`, `test/`, etc.)
+- **Not monitored**: Custom task and middleware implementation code
+
+### Project Definition Changes
+
+The server also watches the project definition files: `ui5.yaml`, `package.json`, the workspace configuration, and any file passed via `--config` or `--dependency-definition`. When one of these changes, the server re-resolves the project graph and re-creates itself behind the same URL and port. Connected browsers stay connected and reload once the server is ready.
+
+This covers configuration changes (for example adding a framework library or changing the project type) as well as switching branches with `git checkout`. While the graph is being re-resolved, requests are held with a page that reloads automatically once the server is ready.
 
 ::: info
-Changes to configuration files or custom tasks require a server restart to take effect.
+Changes to custom task or middleware implementation code still require a server restart to take effect.
 :::
 
 ## SSL Certificates
