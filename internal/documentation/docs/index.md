@@ -142,3 +142,97 @@ async function buildApp(projectPath, destinationPath) {
 }
 ```
 :::
+
+#### Starting a Server
+
+`@ui5/server` starts a development server for a project graph. It binds a port, serves the built resources, watches the sources, and rebuilds on demand.
+
+::: code-group
+```js [ESM]
+import {graphFromPackageDependencies} from "@ui5/project/graph";
+import {serve} from "@ui5/server";
+
+async function startServer(projectPath) {
+    const graph = await graphFromPackageDependencies({
+        cwd: projectPath
+    });
+    const {port, close} = await serve(graph, {
+        port: 8080,
+        changePortIfInUse: true
+    });
+    console.log(`Server started on port ${port}`);
+
+    // Later, to stop the server:
+    // await new Promise((resolve) => close(resolve));
+}
+```
+
+```js [CommonJS]
+async function startServer(projectPath) {
+    const {graphFromPackageDependencies} =
+        await import("@ui5/project/graph");
+    const {serve} = await import("@ui5/server");
+    const graph = await graphFromPackageDependencies({
+        cwd: projectPath
+    });
+    const {port, close} = await serve(graph, {
+        port: 8080,
+        changePortIfInUse: true
+    });
+    console.log(`Server started on port ${port}`);
+
+    // Later, to stop the server:
+    // await new Promise((resolve) => close(resolve));
+}
+```
+:::
+
+#### Embedding the Middleware
+
+`serveMiddleware` assembles the UI5 middleware as a single connect/Express handler, for mounting into an HTTP server you own instead of starting one. It does not bind a port or attach the Live Reload WebSocket server.
+
+Call `close` on teardown to release the server's source watcher and build-cache handle. A project graph can be served only once, so do not call both `serveMiddleware` and `serve` for the same graph.
+
+::: code-group
+```js [ESM]
+import express from "express";
+import {graphFromPackageDependencies} from "@ui5/project/graph";
+import {serveMiddleware} from "@ui5/server";
+
+async function mountUI5(projectPath) {
+    const graph = await graphFromPackageDependencies({
+        cwd: projectPath
+    });
+    const {middleware, close} = await serveMiddleware(graph);
+
+    const app = express();
+    app.use(middleware);
+    const listener = app.listen(8080);
+
+    // On teardown:
+    // listener.close();
+    // await close();
+}
+```
+
+```js [CommonJS]
+async function mountUI5(projectPath) {
+    const {default: express} = await import("express");
+    const {graphFromPackageDependencies} =
+        await import("@ui5/project/graph");
+    const {serveMiddleware} = await import("@ui5/server");
+    const graph = await graphFromPackageDependencies({
+        cwd: projectPath
+    });
+    const {middleware, close} = await serveMiddleware(graph);
+
+    const app = express();
+    app.use(middleware);
+    const listener = app.listen(8080);
+
+    // On teardown:
+    // listener.close();
+    // await close();
+}
+```
+:::
