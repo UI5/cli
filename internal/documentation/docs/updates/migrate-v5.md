@@ -365,6 +365,10 @@ To see which standard tasks are executed for each project type, check out the [S
 When running `ui5 serve`, [`generateVersionInfo`](../api/module-@ui5_builder_tasks_generateVersionInfo) continues to 
 not run by default. The [`versionInfo`](../pages/Server.md#versioninfo) middleware creates an identical `sap-ui-version.json` output file.
 
+::: info versionInfo middleware order
+The [`versionInfo`](../pages/Server.md#versioninfo) middleware now runs before [`serveResources`](../pages/Server.md#serveresources) rather than after it. Both match a request for `/resources/sap-ui-version.json`, but only `versionInfo` produces that file. Serving it first terminates the request directly and avoids `serveResources` triggering an unnecessary build of all dependencies while trying to locate the missing resource.
+:::
+
 ## Learn More
 
 - [Project: Type `component`](../pages/Project#component)
