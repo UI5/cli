@@ -20,6 +20,36 @@ const log = getLogger("server");
  * @property {string[]} [ignorePaths=["test-resources/sap/ui/qunit/testrunner.html"]]
  */
 
+/**
+ * Stops a running server.
+ *
+ * Can be awaited or used with a callback. Called without arguments, it returns a
+ * <code>Promise</code> that resolves once teardown completes and rejects if teardown threw.
+ * Called with a callback, it returns <code>undefined</code> and invokes the callback once
+ * teardown completes, with no arguments on success or with the error as its first argument
+ * if teardown threw.
+ *
+ * @public
+ * @callback module:@ui5/server~closeServer
+ * @param {Function} [callback] Invoked once teardown completes. Receives the teardown error as
+ * 						its first argument if teardown threw, otherwise no arguments.
+ * @returns {Promise<void>|undefined} A <code>Promise</code> that resolves once teardown completes
+ * 						when called without a callback, otherwise <code>undefined</code>.
+ */
+
+/**
+ * Handle of a running server instance.
+ *
+ * @public
+ * @typedef {object} module:@ui5/server~ServerInstance
+ * @property {number} port Port the server is listening on
+ * @property {boolean} h2 Whether HTTP/2 is used
+ * @property {module:@ui5/server~closeServer} close Stops the server
+ * @property {Function} reinitialize Re-creates the serving stack. Returns a <code>Promise</code>
+ * 						that resolves once the new stack is in place. A no-op when no
+ * 						<code>graphFactory</code> was provided to {@link module:@ui5/server.serve}.
+ */
+
 
 /**
  * Start a server for the given project (sub-)tree.
@@ -67,10 +97,7 @@ const log = getLogger("server");
  * 										interface and does not depend on @ui5/project, so the owner (the UI5 CLI)
  * 										threads this in to provide the live re-resolution capability. Required
  * 										alongside <code>graphFactory</code>; omit both for a static serve.
- * @returns {Promise<object>} Promise resolving once the server is listening.
- * 							It resolves with an object containing the <code>port</code>,
- * 							<code>h2</code>-flag, a <code>close</code> function to stop the server,
- * 							and a <code>reinitialize</code> function to re-create the serving stack.
+ * @returns {Promise<module:@ui5/server~ServerInstance>} Promise resolving once the server is listening
  */
 export async function serve(graph, {
 	port, changePortIfInUse = false, h2 = false, key, cert,
@@ -108,7 +135,12 @@ export async function serve(graph, {
 		h2,
 		port: supervisor.getPort(),
 		close: function(callback) {
-			supervisor.destroy(callback);
+			const p = supervisor.destroy();
+			if (callback) {
+				p.then(callback, callback);
+			} else {
+				return p;
+			}
 		},
 		reinitialize: function() {
 			return supervisor.reinitialize();

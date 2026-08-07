@@ -546,10 +546,9 @@ class Supervisor extends EventEmitter {
 	 * Stops the server: closes live-reload, the HTTP socket, and the current BuildServer. Teardown
 	 * is tolerant: the socket is closed even if the BuildServer's destroy rejects.
 	 *
-	 * @param {Function} [callback] Invoked once the HTTP server has closed
 	 * @returns {Promise<void>} Resolves once teardown completes
 	 */
-	async destroy(callback) {
+	async destroy() {
 		// Move to the terminal state synchronously, before the first await, so an in-flight #swap or a
 		// late definitionChanged sees DESTROYED at its next guard and adopts nothing.
 		this.#setState(STATE.DESTROYED);
@@ -560,8 +559,14 @@ class Supervisor extends EventEmitter {
 		this.#definitionWatcher = null;
 		this.#liveReloadHandle?.close();
 		this.#detachRelay();
-		this.#httpServer?.close(callback);
 		this.#clearRecoveryTimer();
+		const httpClosed = new Promise((resolve) => {
+			if (!this.#httpServer) {
+				resolve();
+				return;
+			}
+			this.#httpServer.close(() => resolve());
+		});
 		try {
 			await definitionWatcher?.destroy();
 		} catch (err) {
@@ -572,6 +577,7 @@ class Supervisor extends EventEmitter {
 		} catch (err) {
 			log.verbose(`Error while destroying BuildServer: ${err?.message ?? err}`);
 		}
+		await httpClosed;
 	}
 }
 
