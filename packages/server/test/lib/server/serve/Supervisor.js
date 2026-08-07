@@ -397,7 +397,7 @@ test("destroy() closes live-reload, the socket, and the BuildServer; reinitializ
 
 	const supervisor = await Supervisor.create({}, baseConfig, undefined, graphFactory);
 
-	await new Promise((resolve) => supervisor.destroy(resolve));
+	await supervisor.destroy();
 
 	t.true(liveReloadHandle.close.calledOnce);
 	t.true(httpServer.close.calledOnce);
@@ -415,7 +415,7 @@ test("destroy() closes the socket even when BuildServer.destroy() rejects", asyn
 
 	const supervisor = await Supervisor.create({}, baseConfig, undefined, undefined);
 
-	await new Promise((resolve) => supervisor.destroy(resolve));
+	await supervisor.destroy();
 	t.true(httpServer.close.calledOnce, "socket is closed despite the BuildServer destroy rejection");
 });
 
@@ -1063,6 +1063,6 @@ test("destroy() tears the definition watcher down", async (t) => {
 
 	const supervisor = await Supervisor.create({}, baseConfig, undefined, graphFactory);
 
-	await new Promise((resolve) => supervisor.destroy(resolve));
+	await supervisor.destroy();
 	t.true(definitionWatchers[0].destroy.calledOnce, "watcher destroyed on teardown");
 });

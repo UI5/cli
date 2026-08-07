@@ -10,7 +10,7 @@ import esmock from "esmock";
 function createSupervisorMock({port = 3000, createRejects = null} = {}) {
 	const supervisor = {
 		getPort: sinon.stub().returns(port),
-		destroy: sinon.stub().callsFake((cb) => cb && cb()),
+		destroy: sinon.stub().resolves(),
 		reinitialize: sinon.stub().resolves(),
 	};
 	const create = createRejects ?
@@ -76,6 +76,40 @@ test("serve() close() forwards to supervisor.destroy()", async (t) => {
 	await new Promise((resolve) => result.close(resolve));
 
 	t.true(supervisor.destroy.calledOnce);
+});
+
+test("serve() close() passes the error to the callback when destroy rejects", async (t) => {
+	const {supervisor, Supervisor} = createSupervisorMock();
+	const destroyError = new Error("teardown failed");
+	supervisor.destroy = sinon.stub().rejects(destroyError);
+	const {serve} = await importServe(Supervisor);
+
+	const result = await serve({}, {port: 3000}, undefined);
+	const err = await new Promise((resolve) => result.close(resolve));
+
+	t.is(err, destroyError, "the destroy rejection is forwarded to the close callback");
+});
+
+test("serve() close() returns the destroy promise when no callback is passed", async (t) => {
+	const {supervisor, Supervisor} = createSupervisorMock();
+	const {serve} = await importServe(Supervisor);
+
+	const result = await serve({}, {port: 3000}, undefined);
+	await result.close();
+
+	t.true(supervisor.destroy.calledOnce);
+});
+
+test("serve() close() rejects the returned promise when destroy rejects", async (t) => {
+	const {supervisor, Supervisor} = createSupervisorMock();
+	const destroyError = new Error("teardown failed");
+	supervisor.destroy = sinon.stub().rejects(destroyError);
+	const {serve} = await importServe(Supervisor);
+
+	const result = await serve({}, {port: 3000}, undefined);
+	const err = await t.throwsAsync(result.close());
+
+	t.is(err, destroyError, "the destroy rejection surfaces on the returned promise");
 });
 
 test("serve() rejects when Supervisor.create rejects", async (t) => {
