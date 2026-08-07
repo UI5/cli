@@ -269,6 +269,9 @@ class MiddlewareManager {
 					getDegradedError: this.options.getDegradedError
 				})
 		});
+		await this.addMiddleware("versionInfo", {
+			mountPath: "/resources/sap-ui-version.json"
+		});
 		await this.addMiddleware("serveResources", {
 			wrapperCallback: ({middleware}) => {
 				return ({builtResources, middlewareUtil}) => middleware({
@@ -280,9 +283,6 @@ class MiddlewareManager {
 		});
 		this.#addLegacyMiddlewarePlaceholder("testRunner");
 		this.#addLegacyMiddlewarePlaceholder("serveThemes");
-		await this.addMiddleware("versionInfo", {
-			mountPath: "/resources/sap-ui-version.json"
-		});
 		// Handle anything but read operations *before* the serveIndex middleware
 		//	as it will reject them with a 405 (Method not allowed) instead of 404 like our old tooling
 		await this.addMiddleware("nonReadRequests");

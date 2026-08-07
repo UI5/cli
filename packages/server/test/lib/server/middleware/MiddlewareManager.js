@@ -743,14 +743,14 @@ test("addStandardMiddleware: Adds standard middleware in correct order", async (
 		"liveReloadClient",
 		"discovery",
 		"serveBuildError",
-		"serveResources",
 		"versionInfo",
+		"serveResources",
 		"nonReadRequests",
 		"serveIndex"
 	], "Correct order of standard middlewares");
 
 	// Legacy placeholders for removed standard middlewares are inserted directly into the
-	// execution order (not via addMiddleware) between serveResources and versionInfo so that
+	// execution order (not via addMiddleware) between serveResources and nonReadRequests so that
 	// custom middlewares referencing them keep their original slot.
 	t.deepEqual(middlewareManager.middlewareExecutionOrder, [
 		"csp",
@@ -759,13 +759,13 @@ test("addStandardMiddleware: Adds standard middleware in correct order", async (
 		"liveReloadClient",
 		"discovery",
 		"serveBuildError",
+		"versionInfo",
 		"serveResources",
 		"testRunner",
 		"serveThemes",
-		"versionInfo",
 		"nonReadRequests",
 		"serveIndex"
-	], "Legacy placeholders are inserted between serveResources and versionInfo");
+	], "Legacy placeholders are inserted between serveResources and nonReadRequests");
 });
 
 test("addCustomMiddleware: No custom middleware defined", async (t) => {
