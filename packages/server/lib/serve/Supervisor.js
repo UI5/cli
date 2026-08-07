@@ -560,8 +560,19 @@ class Supervisor extends EventEmitter {
 		this.#definitionWatcher = null;
 		this.#liveReloadHandle?.close();
 		this.#detachRelay();
-		this.#httpServer?.close(callback);
 		this.#clearRecoveryTimer();
+		// The callback fires only after every native handle is closed, not on socket close. The
+		// BuildServer's teardown closes the @parcel/watcher subscriptions and the node:sqlite handle
+		// (which maps a 256 MB region of the database into memory); a caller resuming while SQLite is
+		// mid-close raises an access violation on Windows (0xC0000005). So start the socket close here
+		// but await it last.
+		const httpClosed = new Promise((resolve) => {
+			if (!this.#httpServer) {
+				resolve();
+				return;
+			}
+			this.#httpServer.close(() => resolve());
+		});
 		try {
 			await definitionWatcher?.destroy();
 		} catch (err) {
@@ -572,6 +583,8 @@ class Supervisor extends EventEmitter {
 		} catch (err) {
 			log.verbose(`Error while destroying BuildServer: ${err?.message ?? err}`);
 		}
+		await httpClosed;
+		callback?.();
 	}
 }
 
