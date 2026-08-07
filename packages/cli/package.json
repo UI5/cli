@@ -59,7 +59,7 @@
 		"chalk": "^5.6.2",
 		"data-with-position": "^0.5.0",
 		"import-local": "^3.2.0",
-		"js-yaml": "^4.3.0",
+		"js-yaml": "^4.3.1",
 		"open": "^11.0.0",
 		"pretty-hrtime": "^1.0.3",
 		"semver": "^7.8.5",
