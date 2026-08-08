@@ -1,0 +1,17 @@
+{
+	"compilerOptions": {
+		"checkJs": false,
+		"module": "nodenext",
+		"target": "esnext"
+	},
+	"include": [
+		"packages/*/lib/**/*.js",
+		"packages/*/bin/**/*.js",
+		"internal/*/lib/**/*.js"
+	],
+	"exclude": [
+		"node_modules",
+		"**/test/**",
+		"**/coverage/**"
+	]
+}
