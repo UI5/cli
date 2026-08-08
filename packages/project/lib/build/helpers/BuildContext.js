@@ -77,6 +77,7 @@ class BuildContext {
 		};
 		// eslint-disable-next-line no-unused-vars
 		const {cache: _ignoreMe, ...signatureConfig} = this._buildConfig; // Clones buildConfig omitting the cache mode
+		this._signatureConfig = signatureConfig;
 		this._buildSignatureBase = getBaseSignature(signatureConfig);
 
 		this._taskRepository = taskRepository;
@@ -97,6 +98,17 @@ class BuildContext {
 
 	getBuildConfig() {
 		return this._buildConfig;
+	}
+
+	/**
+	 * The signature-relevant subset of the build configuration (i.e. the build config with the
+	 * cache mode omitted, since the cache mode must not influence the signature). Used both to
+	 * compute the base signature and, verbatim, as an input to the diagnostic signature manifest.
+	 *
+	 * @returns {object} Signature configuration
+	 */
+	getSignatureConfig() {
+		return this._signatureConfig;
 	}
 
 	getTaskRepository() {
