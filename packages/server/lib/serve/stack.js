@@ -60,7 +60,7 @@ export async function buildRouter(graph, config, error, getDegradedError) {
 		name: "Server: Reader for sources of all projects",
 		readers: [rootReader, dependencies]
 	});
-	const sources = {
+	const resources = {
 		rootProject: rootReader,
 		dependencies: dependencies,
 		all: combo
@@ -93,7 +93,7 @@ export async function buildRouter(graph, config, error, getDegradedError) {
 	// build-cache handle. If middleware assembly below throws, the caller gets neither the
 	// buildServer nor a close() handle, so destroy it here before rethrowing.
 	try {
-		const resources = {
+		const builtResources = {
 			rootProject: buildServer.getRootReader(),
 			dependencies: buildServer.getDependenciesReader(),
 			all: buildServer.getReader(),
@@ -118,8 +118,8 @@ export async function buildRouter(graph, config, error, getDegradedError) {
 		const middlewareManager = new MiddlewareManager({
 			graph,
 			rootProject,
-			sources,
 			resources,
+			builtResources,
 			options: {
 				sendSAPTargetCSP,
 				serveCSPReports,

@@ -25,8 +25,8 @@ test("Missing parameters", (t) => {
 		new MiddlewareManager({
 			graph: {},
 			rootProject: "root project",
-			sources: "sources",
-			resources: {}
+			resources: "sources",
+			builtResources: {}
 		});
 	});
 	t.is(err.message, "[MiddlewareManager]: One or more mandatory parameters not provided",
@@ -38,8 +38,8 @@ test("Correct parameters", (t) => {
 		new MiddlewareManager({
 			graph: {},
 			rootProject: "root project",
-			sources: "sources",
-			resources: {
+			resources: "sources",
+			builtResources: {
 				all: "I",
 				rootProject: "like",
 				dependencies: "ponies"
@@ -52,8 +52,8 @@ test("liveReload option defaults to inactive when no options are passed", (t) =>
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -67,8 +67,8 @@ test("All option defaults are applied when no options are passed", (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -86,8 +86,8 @@ test("liveReload option defaults to inactive when options are passed without liv
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -109,8 +109,8 @@ test("liveReload option is used as passed", (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -127,8 +127,8 @@ test("liveReload option defaults are applied when an empty liveReload object is 
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -145,8 +145,8 @@ test("liveReload option: individual properties are defaulted when partially prov
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -164,8 +164,8 @@ test("applyMiddleware", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "love",
 			dependencies: "ponies"
@@ -197,8 +197,8 @@ test("addMiddleware: Adding already added middleware", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -219,8 +219,8 @@ test("addMiddleware: Adding middleware already added to middlewareExecutionOrder
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -241,8 +241,8 @@ test("addMiddleware: Add middleware", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -266,8 +266,8 @@ test("addMiddleware: Add middleware with beforeMiddleware and mountPath paramete
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -299,8 +299,8 @@ test("addMiddleware: Add middleware with beforeMiddleware=connectUi5Proxy", asyn
 	const middlewareManager = new StubbedMiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -331,7 +331,7 @@ test("addMiddleware: Add middleware with afterMiddleware referencing removed mid
 	const middlewareManager = new StubbedMiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		resources: {
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -369,7 +369,7 @@ test("addMiddleware: Add middleware with beforeMiddleware referencing removed mi
 	const middlewareManager = new StubbedMiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		resources: {
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -406,7 +406,7 @@ test("addMiddleware: Multiple custom middlewares referencing removed middleware"
 	const middlewareManager = new StubbedMiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		resources: {
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -447,7 +447,7 @@ test("addMiddleware: Add middleware with afterMiddleware referencing removed tes
 	const middlewareManager = new StubbedMiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		resources: {
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -485,7 +485,7 @@ test("addMiddleware: Add middleware with beforeMiddleware referencing removed te
 	const middlewareManager = new StubbedMiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		resources: {
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -522,7 +522,7 @@ test("addMiddleware: Order between customs referencing different removed middlew
 	const middlewareManager = new StubbedMiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		resources: {
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -564,7 +564,7 @@ test("applyMiddleware: Legacy placeholders are not mounted on the app", async (t
 			})
 		},
 		rootProject: "root project",
-		resources: {
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -596,8 +596,8 @@ test("addMiddleware: Add middleware with afterMiddleware parameter", async (t) =
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -624,8 +624,8 @@ test("addMiddleware: Add middleware with invalid afterMiddleware parameter", asy
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -651,8 +651,8 @@ test("addMiddleware: Add middleware with wrapperCallback parameter", async (t) =
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -669,7 +669,9 @@ test("addMiddleware: Add middleware with wrapperCallback parameter", async (t) =
 	t.deepEqual(wrapperCallbackStub.getCall(0).args[0], serveIndexMiddlewareInfo,
 		"Wrapper callback got called with correct module");
 	t.is(moduleStub.callCount, 1, "Wrapper callback got called once");
-	t.deepEqual(moduleStub.getCall(0).args[0].resources, {
+	t.is(moduleStub.getCall(0).args[0].resources, "sources",
+		"Wrapper callback got called with the source readers as resources");
+	t.deepEqual(moduleStub.getCall(0).args[0].builtResources, {
 		all: "I",
 		rootProject: "like",
 		dependencies: "ponies"
@@ -691,8 +693,8 @@ test("addMiddleware: Add middleware with async wrapperCallback", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -714,8 +716,8 @@ test("addStandardMiddleware: Adds standard middleware in correct order", async (
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -741,14 +743,14 @@ test("addStandardMiddleware: Adds standard middleware in correct order", async (
 		"liveReloadClient",
 		"discovery",
 		"serveBuildError",
-		"serveResources",
 		"versionInfo",
+		"serveResources",
 		"nonReadRequests",
 		"serveIndex"
 	], "Correct order of standard middlewares");
 
 	// Legacy placeholders for removed standard middlewares are inserted directly into the
-	// execution order (not via addMiddleware) between serveResources and versionInfo so that
+	// execution order (not via addMiddleware) between serveResources and nonReadRequests so that
 	// custom middlewares referencing them keep their original slot.
 	t.deepEqual(middlewareManager.middlewareExecutionOrder, [
 		"csp",
@@ -757,13 +759,13 @@ test("addStandardMiddleware: Adds standard middleware in correct order", async (
 		"liveReloadClient",
 		"discovery",
 		"serveBuildError",
+		"versionInfo",
 		"serveResources",
 		"testRunner",
 		"serveThemes",
-		"versionInfo",
 		"nonReadRequests",
 		"serveIndex"
-	], "Legacy placeholders are inserted between serveResources and versionInfo");
+	], "Legacy placeholders are inserted between serveResources and nonReadRequests");
 });
 
 test("addCustomMiddleware: No custom middleware defined", async (t) => {
@@ -780,8 +782,8 @@ test("addCustomMiddleware: No custom middleware defined", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -811,8 +813,8 @@ test("addCustomMiddleware: Unknown custom middleware", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -850,8 +852,8 @@ test("addCustomMiddleware: Custom middleware got added", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -905,8 +907,8 @@ test("addCustomMiddleware: Custom middleware with duplicate name", async (t) => 
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -942,8 +944,8 @@ test("addCustomMiddleware: Missing name configuration", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -975,8 +977,8 @@ test("addCustomMiddleware: Both before- and afterMiddleware configuration", asyn
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -1007,8 +1009,8 @@ test("addCustomMiddleware: Missing before- or afterMiddleware configuration", as
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -1054,8 +1056,8 @@ test("addCustomMiddleware", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -1072,12 +1074,15 @@ test("addCustomMiddleware", async (t) => {
 	};
 	const res = await customMiddleware({
 		resources: "resources",
+		builtResources: "builtResources",
 		middlewareUtil
 	});
 
 	t.is(res, "ok", "Wrapper callback returned expected value");
-	t.is(specVersionGteStub.callCount, 1, "SpecificationVersion#gte got called once");
+	t.is(specVersionGteStub.callCount, 2, "SpecificationVersion#gte got called twice");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments");
+	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
 		"SpecificationVersion#gte got called with correct arguments");
 	t.is(middlewareUtil.getInterface.callCount, 1, "middlewareUtil.getInterface got called once");
 	t.is(middlewareUtil.getInterface.getCall(0).args[0], mockSpecificationVersion,
@@ -1093,6 +1098,8 @@ test("addCustomMiddleware", async (t) => {
 		},
 		middlewareUtil: "interfacedMiddlewareUtil"
 	}, "Middleware module got called with correct arguments");
+	t.false("builtResources" in params,
+		"builtResources is not provided to custom middleware below specVersion 5.0");
 	t.not(params.options.configuration, middlewareConfiguration,
 		"Configuration is a clone and not a reference to the project configuration");
 });
@@ -1100,7 +1107,7 @@ test("addCustomMiddleware", async (t) => {
 test("addCustomMiddleware with specVersion 3.0", async (t) => {
 	const {sinon, MiddlewareManager} = t.context;
 	const middlewareModuleStub = sinon.stub().returns("ok");
-	const specVersionGteStub = sinon.stub().returns(true);
+	const specVersionGteStub = sinon.stub().callsFake((version) => version === "3.0");
 	const mockSpecificationVersion = {
 		toString: () => "3.0",
 		gte: specVersionGteStub
@@ -1127,8 +1134,8 @@ test("addCustomMiddleware with specVersion 3.0", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -1148,18 +1155,22 @@ test("addCustomMiddleware with specVersion 3.0", async (t) => {
 	};
 	const res = await customMiddleware({
 		resources: "resources",
+		builtResources: "builtResources",
 		middlewareUtil
 	});
 
 	t.is(res, "ok", "Wrapper callback returned expected value");
-	t.is(specVersionGteStub.callCount, 1, "SpecificationVersion#gte got called once");
+	t.is(specVersionGteStub.callCount, 2, "SpecificationVersion#gte got called twice");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments");
+	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
 		"SpecificationVersion#gte got called with correct arguments");
 	t.is(middlewareUtil.getInterface.callCount, 1, "middlewareUtil.getInterface got called once");
 	t.is(middlewareUtil.getInterface.getCall(0).args[0], mockSpecificationVersion,
 		"middlewareUtil.getInterface got called with correct arguments");
 	t.is(middlewareModuleStub.callCount, 1, "Middleware module got called once");
-	t.deepEqual(middlewareModuleStub.getCall(0).args[0], {
+	const params = middlewareModuleStub.getCall(0).args[0];
+	t.deepEqual(params, {
 		resources: "resources",
 		options: {
 			configuration: {
@@ -1170,6 +1181,79 @@ test("addCustomMiddleware with specVersion 3.0", async (t) => {
 		middlewareUtil: "interfacedMiddlewareUtil",
 		log: "group logger"
 	}, "Middleware module got called with correct arguments");
+	t.false("builtResources" in params,
+		"builtResources is not provided to custom middleware below specVersion 5.0");
+});
+
+test("addCustomMiddleware with specVersion 5.0", async (t) => {
+	const {sinon, MiddlewareManager} = t.context;
+	const middlewareModuleStub = sinon.stub().returns("ok");
+	const specVersionGteStub = sinon.stub().returns(true);
+	const mockSpecificationVersion = {
+		toString: () => "5.0",
+		gte: specVersionGteStub
+	};
+	const getExtensionStub = sinon.stub().returns({
+		getSpecVersion: () => mockSpecificationVersion,
+		getMiddleware: () => middlewareModuleStub
+	});
+	const graph = {
+		getRoot: () => {
+			return {
+				getName: () => "my project",
+				getCustomMiddleware: () => [{
+					name: "my custom middleware",
+					beforeMiddleware: "cors",
+					configuration: {
+						"🦊": "🐰"
+					}
+				}]
+			};
+		},
+		getExtension: getExtensionStub
+	};
+	const middlewareManager = new MiddlewareManager({
+		graph,
+		rootProject: "root project",
+		resources: "sources",
+		builtResources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		}
+	});
+	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
+	await middlewareManager.addCustomMiddleware();
+
+	t.is(addMiddlewareStub.callCount, 1, "addMiddleware was called once");
+
+	const customMiddleware = addMiddlewareStub.getCall(0).args[1].customMiddleware;
+	const middlewareUtil = {
+		getInterface: sinon.stub().returns("interfacedMiddlewareUtil")
+	};
+	const res = await customMiddleware({
+		resources: "resources",
+		builtResources: "builtResources",
+		middlewareUtil
+	});
+
+	t.is(res, "ok", "Wrapper callback returned expected value");
+	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
+		"SpecificationVersion#gte got called with correct arguments");
+	t.is(middlewareModuleStub.callCount, 1, "Middleware module got called once");
+	const params = middlewareModuleStub.getCall(0).args[0];
+	t.deepEqual(params, {
+		resources: "resources",
+		options: {
+			configuration: {
+				"🦊": "🐰"
+			},
+			middlewareName: "my custom middleware"
+		},
+		middlewareUtil: "interfacedMiddlewareUtil",
+		log: "group logger",
+		builtResources: "builtResources"
+	}, "Middleware module got called with correct arguments including builtResources");
 });
 
 test("addStandardMiddleware: CSP middleware configured correctly (default)", async (t) => {
@@ -1177,8 +1261,8 @@ test("addStandardMiddleware: CSP middleware configured correctly (default)", asy
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -1226,8 +1310,8 @@ test("addStandardMiddleware: CSP middleware configured correctly (enabled)", asy
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -1287,8 +1371,8 @@ test("addStandardMiddleware: CSP middleware configured correctly (custom)", asyn
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -1353,8 +1437,8 @@ test("addStandardMiddleware: liveReloadClient middleware configured correctly (d
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -1382,8 +1466,8 @@ test("addStandardMiddleware: liveReloadClient middleware configured correctly (e
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
-		sources: "sources",
-		resources: {
+		resources: "sources",
+		builtResources: {
 			all: "I",
 			rootProject: "like",
 			dependencies: "ponies"
@@ -1415,8 +1499,8 @@ test("addStandardMiddleware: liveReloadClient middleware configured correctly (e
 		const middlewareManager = new MiddlewareManager({
 			graph: {},
 			rootProject: "root project",
-			sources: "sources",
-			resources: {
+			resources: "sources",
+			builtResources: {
 				all: "I",
 				rootProject: "like",
 				dependencies: "ponies"
@@ -1447,8 +1531,8 @@ test("addStandardMiddleware: serveResources middleware injectLiveReloadClient re
 		const middlewareManager = new MiddlewareManager({
 			graph: {},
 			rootProject: "root project",
-			sources: "sources",
-			resources: {
+			resources: "sources",
+			builtResources: {
 				all: "I",
 				rootProject: "like",
 				dependencies: "ponies"
@@ -1462,7 +1546,7 @@ test("addStandardMiddleware: serveResources middleware injectLiveReloadClient re
 
 		const middlewareModuleStub = sinon.stub().returns("ok");
 		const middlewareWrapper = serveResourcesCall.args[1].wrapperCallback({middleware: middlewareModuleStub});
-		middlewareWrapper({resources: "resources", middlewareUtil: "util"});
+		middlewareWrapper({builtResources: "builtResources", middlewareUtil: "util"});
 		t.is(middlewareModuleStub.getCall(0).args[0].injectLiveReloadClient, false,
 			"injectLiveReloadClient defaults to false");
 	});
@@ -1473,8 +1557,8 @@ test("addStandardMiddleware: serveResources middleware injectLiveReloadClient re
 		const middlewareManager = new MiddlewareManager({
 			graph: {},
 			rootProject: "root project",
-			sources: "sources",
-			resources: {
+			resources: "sources",
+			builtResources: {
 				all: "I",
 				rootProject: "like",
 				dependencies: "ponies"
@@ -1491,7 +1575,7 @@ test("addStandardMiddleware: serveResources middleware injectLiveReloadClient re
 
 		const middlewareModuleStub = sinon.stub().returns("ok");
 		const middlewareWrapper = serveResourcesCall.args[1].wrapperCallback({middleware: middlewareModuleStub});
-		middlewareWrapper({resources: "resources", middlewareUtil: "util"});
+		middlewareWrapper({builtResources: "builtResources", middlewareUtil: "util"});
 		t.is(middlewareModuleStub.getCall(0).args[0].injectLiveReloadClient, true,
 			"injectLiveReloadClient reflects active liveReload option");
 	});

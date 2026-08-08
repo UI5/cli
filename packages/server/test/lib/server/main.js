@@ -211,42 +211,42 @@ test("Get sap-ui-version.json from versionInfo middleware (/resources/sap-ui-ver
 		"libraries": [
 			{
 				name: "library.a",
+				version: "1.0.0",
+				buildTimestamp,
+				scmRevision: "",
 				manifestHints: {
 					dependencies: {
 						libs: {
 							"library.d": {}
 						}
 					}
-				},
-				version: "1.0.0",
-				buildTimestamp,
-				scmRevision: ""
+				}
 			},
 			{
 				name: "library.b",
+				version: "1.0.0",
+				buildTimestamp,
+				scmRevision: "",
 				manifestHints: {
 					dependencies: {
 						libs: {
 							"library.d": {}
 						}
 					}
-				},
-				version: "1.0.0",
-				buildTimestamp,
-				scmRevision: ""
+				}
 			},
 			{
 				name: "library.c",
+				version: "1.0.0",
+				buildTimestamp,
+				scmRevision: "",
 				manifestHints: {
 					dependencies: {
 						libs: {
 							"library.d": {}
 						}
 					}
-				},
-				version: "1.0.0",
-				buildTimestamp,
-				scmRevision: ""
+				}
 			},
 			{
 				name: "library.d",

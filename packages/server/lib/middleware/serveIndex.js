@@ -86,20 +86,21 @@ function createResourceInfos(resources) {
  *
  * @module @ui5/server/middleware/serveIndex
  * @param {object} parameters Parameters
- * @param {object} parameters.resources Contains the resource reader or collection to access project related files
- * @param {@ui5/fs/AbstractReader} parameters.resources.all Resource collection which contains the workspace
+ * @param {object} parameters.builtResources Contains the resource reader or collection to access
+ * the incremental build output
+ * @param {@ui5/fs/AbstractReader} parameters.builtResources.all Resource collection which contains the workspace
  * and the project dependencies
  * @param {boolean} [parameters.simpleIndex=false] Use a simplified view for the server directory listing
  * @param {boolean} [parameters.showHidden=true] Show hidden files in the server directory listing
  * @returns {Function} Returns a server middleware closure.
  */
 
-function createMiddleware({resources, middlewareUtil, simpleIndex = false, showHidden = true}) {
+function createMiddleware({builtResources, middlewareUtil, simpleIndex = false, showHidden = true}) {
 	return function(req, res, next) {
 		const pathname = middlewareUtil.getPathname(req);
 		log.verbose("\n Listing index of " + pathname);
 		const glob = pathname + (pathname.endsWith("/") ? "*" : "/*");
-		resources.all.byGlob(glob, {nodir: false}).then((resources) => {
+		builtResources.all.byGlob(glob, {nodir: false}).then((resources) => {
 			if (!resources || resources.length === 0) { // Not found
 				next();
 				return;

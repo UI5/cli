@@ -8,17 +8,18 @@ import isFresh from "./helper/isFresh.js";
  *
  * @module @ui5/server/middleware/serveResources
  * @param {object} parameters Parameters
- * @param {@ui5/server/internal/MiddlewareManager.middlewareResources} parameters.resources Parameters
+ * @param {@ui5/server/internal/MiddlewareManager.middlewareResources} parameters.builtResources Readers for
+ *   accessing the incremental build output of the root project and its dependencies
  * @param {object} parameters.middlewareUtil [MiddlewareUtil]{@link @ui5/server/middleware/MiddlewareUtil} instance
  * @param {boolean} [parameters.injectLiveReloadClient=false] Whether to inject the live reload client into HTML
  *   responses
  * @returns {Function} Returns a server middleware closure.
  */
-function createMiddleware({resources, middlewareUtil, injectLiveReloadClient = false}) {
+function createMiddleware({builtResources, middlewareUtil, injectLiveReloadClient = false}) {
 	return async function serveResources(req, res, next) {
 		try {
 			const pathname = middlewareUtil.getPathname(req);
-			const resource = await resources.all.byPath(pathname);
+			const resource = await builtResources.all.byPath(pathname);
 			if (!resource) {
 				// Not found
 				next();
