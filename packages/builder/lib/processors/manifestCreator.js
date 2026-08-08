@@ -352,41 +352,11 @@ async function createManifest(
 			}
 		}
 
-		function collectThemes() {
-			const themes = Object.create(null);
-
-			// find theme resources and determine theme names from their paths
-			libBundle.getResources(/(?:[^/]+\/)*themes\//).forEach((res) => {
-				if ( !res.getPath().startsWith(libraryPathPrefix + "themes/") ) {
-					// only consider themes within direct "themes" sub-directory
-					return;
-				}
-				const match = /\/themes\/([^/]+)\//.exec(res.getPath());
-				if ( match ) {
-					themes[match[1]] = true;
-				}
-			});
-
-			// merge with supportedTheme info from .library file
-			const elems = findChildren(manifestAppData, "supportedTheme");
-			if ( elems ) {
-				elems.forEach((elem) => {
-					if ( elem._ ) {
-						themes[elem._];
-					}
-				});
-			}
-			return Object.keys(themes).sort();
-		}
-
 		const sapUi = {
 			_version: sectionVersion(APP_DESCRIPTOR_V3_OTHER_SECTIONS),
 			technology: "UI5",
-			deviceTypes: deviceTypes(),
-			supportedThemes: collectThemes()
+			deviceTypes: deviceTypes()
 		};
-
-		log.verbose(`  sap.ui/supportedThemes determined from resources: '${sapUi.supportedThemes.join(", ")}'`);
 
 		return sapUi;
 	}
