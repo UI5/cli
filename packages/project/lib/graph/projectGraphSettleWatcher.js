@@ -1,6 +1,6 @@
 import path from "node:path";
-import parcelWatcher from "@parcel/watcher";
 import {getLogger} from "@ui5/logger";
+import {subscribe as watchSubscribe} from "../build/helpers/pollingWatcher.js";
 import {drainSubscriptions, WATCHER_BURST_SETTLE_MS} from "../build/helpers/watchUtil.js";
 import {findExistingDir} from "../utils/fsHelper.js";
 
@@ -135,7 +135,7 @@ export async function waitForProjectGraphSettled(graphs, {
 		}
 
 		await Promise.all(dirs.map(async (dir) => {
-			const subscription = await parcelWatcher.subscribe(dir, (err, events) => {
+			const subscription = await watchSubscribe(dir, (err, events) => {
 				if (err) {
 					finish(err);
 					return;
