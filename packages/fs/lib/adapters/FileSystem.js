@@ -75,7 +75,13 @@ class FileSystem extends AbstractAdapter {
 			promises.push(new Promise((resolve, reject) => {
 				fs.stat(this._fsBasePath, (err, stat) => {
 					if (err) {
-						reject(err);
+						if (err.code === "ENOENT") {
+							// The base directory was removed concurrently (e.g. mid-'git checkout').
+							// Drop it from the results rather than failing the whole byGlob.
+							resolve(null);
+						} else {
+							reject(err);
+						}
 					} else {
 						resolve(this._createResource({
 							project: this._project,
@@ -119,7 +125,14 @@ class FileSystem extends AbstractAdapter {
 					// Workaround for not getting the stat from the glob
 					fs.stat(fsPath, (err, stat) => {
 						if (err) {
-							reject(err);
+							if (err.code === "ENOENT") {
+								// The file was removed between the glob walk and this stat (e.g. a
+								// concurrent 'git checkout' moving source paths). Drop it from the
+								// results rather than failing the whole byGlob, matching _byPath.
+								resolve(null);
+							} else {
+								reject(err);
+							}
 						} else {
 							resolve(this._createResource({
 								project: this._project,
