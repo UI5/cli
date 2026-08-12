@@ -25,6 +25,7 @@
 		"start": "vitepress dev --open",
 		"lint": "eslint .",
 		"dev": "vitepress dev",
+		"build": "npm run jsdoc-generate && npm run generate-cli-doc && npm run build:vitepress && npm run build:assets",
 		"build:vitepress": "vitepress build",
 		"build:assets": "sh -c 'DEST_DIR=${1:-./dist}; cp -r ./docs/images \"$DEST_DIR/images\"' --",
 		"preview": "vitepress preview --port 8080",
