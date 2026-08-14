@@ -109,6 +109,7 @@
 		"@istanbuljs/esm-loader-hook": "^0.3.0",
 		"@ui5/project": "^5.0.0-alpha.7",
 		"ava": "^8.0.1",
+		"connect": "^3.7.0",
 		"cross-env": "^10.1.0",
 		"eslint": "^10.7.0",
 		"esmock": "^2.7.6",
