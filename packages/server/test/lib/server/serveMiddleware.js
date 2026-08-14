@@ -2,18 +2,29 @@ import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
 import express from "express";
+import connect from "connect";
 import supertest from "supertest";
 import {graphFromPackageDependencies} from "@ui5/project/graph";
 import serveMiddleware from "../../../lib/serveMiddleware.js";
 import {INJECT_SCRIPT_TAG} from "../../../lib/liveReload/constants.js";
 import {isolatedUi5DataDir} from "../../utils/buildCacheIsolation.js";
 
-// Integration: mount the returned middleware on a caller-owned express app and serve real
-// requests through supertest, without binding a port or starting a UI5-owned HTTP server.
+// Integration: mount the returned middleware on caller-owned HTTP frameworks and serve real
+// requests through supertest, without binding a port or starting a UI5-owned HTTP server. The
+// same middleware is mounted on both an Express app and a Connect app to prove it is a plain
+// connect/Express-compatible handler and to satisfy the "multiple express and connect versions"
+// acceptance criterion. A project graph can be served only once, so a single serveMiddleware
+// result is shared across both hosts (mounting one handler on two apps is fine — it holds no
+// per-app state).
 
-let app;
 let close;
-let request;
+// Host frameworks the embedding middleware is expected to work with. supertest accepts either
+// app instance (both are request-listener functions), so the request assertions are identical.
+const hosts = [
+	{name: "express", mount: (mw) => express().use(mw)},
+	{name: "connect", mount: (mw) => connect().use(mw)},
+];
+const requests = {};
 
 test.before(async (t) => {
 	const graph = await graphFromPackageDependencies({
@@ -25,41 +36,43 @@ test.before(async (t) => {
 	});
 	close = result.close;
 
-	app = express();
-	app.use(result.middleware);
-	request = supertest(app);
+	for (const host of hosts) {
+		requests[host.name] = supertest(host.mount(result.middleware));
+	}
 });
 
 test.after.always(async () => {
-	await close();
+	await close?.();
 });
 
-async function get(path) {
+async function get(request, path) {
 	const res = await request.get(path);
 	if (res.error) {
-		throw new Error(res.error);
+		throw res.error;
 	}
 	return res;
 }
 
-test("Serves index.html through a caller-owned express app", async (t) => {
-	const res = await get("/index.html");
-	t.is(res.statusCode, 200, "Correct HTTP status code");
-	t.regex(res.headers["content-type"], /html/, "Correct content type");
-	t.regex(res.text, /<title>Application A<\/title>/, "Correct response");
-});
+for (const host of hosts) {
+	test(`Serves index.html through a caller-owned ${host.name} app`, async (t) => {
+		const res = await get(requests[host.name], "/index.html");
+		t.is(res.statusCode, 200, "Correct HTTP status code");
+		t.regex(res.headers["content-type"], /html/, "Correct content type");
+		t.regex(res.text, /<title>Application A<\/title>/, "Correct response");
+	});
 
-test("Serves the UI5 version info", async (t) => {
-	const res = await get("/resources/sap-ui-version.json");
-	t.is(res.statusCode, 200, "Correct HTTP status code");
-	t.regex(res.headers["content-type"], /json/, "Correct content type");
-});
+	test(`Serves the UI5 version info through a caller-owned ${host.name} app`, async (t) => {
+		const res = await get(requests[host.name], "/resources/sap-ui-version.json");
+		t.is(res.statusCode, 200, "Correct HTTP status code");
+		t.regex(res.headers["content-type"], /json/, "Correct content type");
+	});
 
-test("Does not inject the live-reload client script", async (t) => {
-	const res = await get("/index.html");
-	t.false(res.text.includes(INJECT_SCRIPT_TAG),
-		"The live-reload client script is not injected in the embedding API");
-});
+	test(`Does not inject the live-reload client script (${host.name})`, async (t) => {
+		const res = await get(requests[host.name], "/index.html");
+		t.false(res.text.includes(INJECT_SCRIPT_TAG),
+			"The live-reload client script is not injected in the embedding API");
+	});
+}
 
 // Unit: the module contract independent of a real graph. The returned middleware is the router
 // from the shared core, close() releases the BuildServer once and is idempotent, and the

@@ -191,6 +191,42 @@ This covers configuration changes (for example adding a framework library or cha
 Changes to custom task or middleware implementation code still require a server restart to take effect.
 :::
 
+## Integrating into an Existing Node.js Server
+
+Beyond starting its own HTTP server via [`serve`](../api/module-@ui5_server.html#.serve), `@ui5/server` exposes a [`serveMiddleware`](../api/module-@ui5_server.html#.serveMiddleware) API for integrating UI5 Server functionality into an **existing** Express or Connect application. This is the supported entry point for tools that embed a UI5 Server — for example test runners or framework plugins — instead of running `ui5 serve` as a standalone process.
+
+[`serveMiddleware`](../api/module-@ui5_server.html#.serveMiddleware)`(graph[, options][, error])` takes a [project graph](./Project.md) and resolves with:
+
+- `middleware` — a single Connect/Express-compatible request handler; mount it on your own app with `app.use(middleware)`.
+- `close()` — an async teardown function that releases the `BuildServer`'s source watcher and build-cache handle. Call it when shutting down.
+
+Unlike `serve`, `serveMiddleware` does **not** bind a port, attach the live reload WebSocket server, or install the terminal HTML error handler — those remain the responsibility of the HTTP server you own. Error handling and the listener are yours to provide.
+
+```js
+import express from "express";
+import {graphFromPackageDependencies} from "@ui5/project/graph";
+import {serveMiddleware} from "@ui5/server";
+
+const graph = await graphFromPackageDependencies({cwd: process.cwd()});
+const {middleware, close} = await serveMiddleware(graph);
+
+const app = express();
+app.use(middleware);
+const listener = app.listen(8080);
+
+// On teardown, stop the listener and release the BuildServer's watcher and cache handle:
+listener.close();
+await close();
+```
+
+Connect works the same way — `connect().use(middleware)`.
+
+`options` accepts the serving-related subset of [`serve`](../api/module-@ui5_server.html#.serve)'s options. See the [API Reference](../api/module-@ui5_server.html#.serveMiddleware) for the full signature.
+
+::: warning Serve a graph only once
+A project graph can be served only once. Do not call both `serveMiddleware` and `serve` for the same graph.
+:::
+
 ## SSL Certificates
 When starting the UI5 Server in HTTPS- or HTTP/2 mode, for example by using UI5 CLI parameter `--h2`, you will be prompted for the automatic generation of a local SSL certificate if necessary.
 

@@ -52,8 +52,8 @@ import {buildRouter} from "./serve/stack.js";
  * 										outside of request handling.
  * @returns {Promise<object>} Promise resolving with an object containing the
  * 							<code>middleware</code> (a connect/Express-compatible handler to be
- * 							mounted via <code>app.use()</code>), the <code>buildServer</code>, and a
- * 							<code>close</code> function releasing the BuildServer's watcher and cache.
+ * 							mounted via <code>app.use()</code>) and a <code>close</code> function
+ * 							releasing the BuildServer's watcher and cache.
  */
 export default async function serveMiddleware(graph, {
 	sendSAPTargetCSP = false, simpleIndex = false, serveCSPReports = false, cache,
@@ -74,7 +74,6 @@ export default async function serveMiddleware(graph, {
 	let destroyed = false;
 	return {
 		middleware: router,
-		buildServer,
 		close: async function close() {
 			if (destroyed) {
 				return;

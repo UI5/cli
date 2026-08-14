@@ -759,6 +759,27 @@ class ProjectGraph {
 		});
 	}
 
+	/**
+	 * Creates a {@link @ui5/project/build/BuildServer} for this graph and returns it.
+	 * Called by <code>@ui5/server</code> to back the request-serving middleware stack.
+	 *
+	 * Kept private because the API surface is not yet stable enough for general use,
+	 * but must remain compatible with the server package's internal usage.
+	 *
+	 * @private
+	 * @param {object} parameters Parameters
+	 * @param {boolean} [parameters.initialBuildRootProject=false]
+	 * @param {string[]} [parameters.initialBuildIncludedDependencies=[]]
+	 * @param {string[]} [parameters.initialBuildExcludedDependencies=[]]
+	 * @param {boolean} [parameters.selfContained=false]
+	 * @param {boolean} [parameters.jsdoc=false]
+	 * @param {boolean} [parameters.createBuildManifest=false]
+	 * @param {string[]} [parameters.includedTasks=[]]
+	 * @param {string[]} [parameters.excludedTasks=[]]
+	 * @param {module:@ui5/project/build/cache/Cache} [parameters.cache=Default]
+	 * @param {string} [parameters.ui5DataDir]
+	 * @returns {Promise<@ui5/project/build/BuildServer>}
+	 */
 	async serve({
 		initialBuildRootProject = false,
 		initialBuildIncludedDependencies = [], initialBuildExcludedDependencies = [],
