@@ -4,6 +4,35 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v4.0.7...HEAD).
 
+## [5.0.0-alpha.8](https://github.com/UI5/cli/compare/server-v5.0.0-alpha.7...server-v5.0.0-alpha.8) (2026-08-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* Require Node.js ^22.22.2 || ^24.15.0 || >=26.0.0 ([#1522](https://github.com/UI5/cli/issues/1522))
+
+### Features
+
+* **server:** Add serveMiddleware API for Node.js server integration ([93f52eb](https://github.com/UI5/cli/commit/93f52ebb1a8ad70fadc88bc80fbc5ac3b9087ba9))
+
+
+### Bug Fixes
+
+* **server:** Clone custom middleware configuration before passing it ([98d9830](https://github.com/UI5/cli/commit/98d98309e26a72de4afde577494309742a434273))
+* **server:** Sequence destroy() after native teardown ([88899b0](https://github.com/UI5/cli/commit/88899b074cb2fccf29cccf6001c4a6f396a553cd))
+
+
+### Dependencies
+
+* Require Node.js ^22.22.2 || ^24.15.0 || &gt;=26.0.0 ([#1522](https://github.com/UI5/cli/issues/1522)) ([f02105e](https://github.com/UI5/cli/commit/f02105e9a75a6c82526343dc47c4aaf9bccdc6ae))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.7 to ^5.0.0-alpha.8
+    * @ui5/fs bumped from ^5.0.0-alpha.7 to ^5.0.0-alpha.8
+    * @ui5/logger bumped from ^5.0.0-alpha.7 to ^5.0.0-alpha.8
+  * devDependencies
+    * @ui5/project bumped from ^5.0.0-alpha.7 to ^5.0.0-alpha.8
+
 ## [5.0.0-alpha.7](https://github.com/UI5/cli/compare/server-v5.0.0-alpha.6...server-v5.0.0-alpha.7) (2026-08-05)
 
 
