@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import {serve} from "../../../lib/server.js";
+import {__internals__} from "../../../lib/serve/Supervisor.js";
 import {graphFromPackageDependencies} from "@ui5/project/graph";
 import * as projectWatcher from "@ui5/project/internal/graph/ProjectDefinitionWatcher";
 import {isolatedUi5DataDir} from "../../utils/buildCacheIsolation.js";
@@ -14,14 +15,24 @@ import {isolatedUi5DataDir} from "../../utils/buildCacheIsolation.js";
 //
 // Recovery is two-phase: a fast burst (5 attempts, ~550 ms apart) bounded by RecoveryBudget, then an
 // indefinite slow poll. To exercise the slow poll, the install must land after the fast budget is
-// spent, so the test drains it (waits for ui5.project-resolve-failed to go quiet) before installing.
+// spent, so the test drains it (counts re-resolve failures) before installing.
+//
+// The slow-poll interval defaults to 30 s; the test shortens it via the Supervisor's test-only
+// __internals__ handle so it need not wait out the real interval, while still driving the genuine
+// end-to-end path (real HTTP server, real graph resolution, a real node_modules install no file
+// watcher observes).
+
+const SLOW_RECOVERY_INTERVAL = 500;
 
 test(
 	"a late-installed missing dependency lets the server recover without a further edit",
 	async (t) => {
-		// Fast-burst drain (~3 s) plus the real 30 s slow-poll interval before recovery. The slow
-		// interval is not injectable (it is not a shipped option), so the test waits it out.
-		t.timeout(60000);
+		// Fast-burst drain (~3 s) plus a shortened slow-poll interval before recovery.
+		t.timeout(20000);
+
+		const originalSlowRecoveryInterval = __internals__.getSlowRecoveryInterval();
+		__internals__.setSlowRecoveryInterval(SLOW_RECOVERY_INTERVAL);
+		t.teardown(() => __internals__.setSlowRecoveryInterval(originalSlowRecoveryInterval));
 
 		const ui5DataDir = isolatedUi5DataDir(t);
 		const tmpProject = path.join("./test/tmp", `reinit-missingdep-${process.pid}`);
@@ -47,10 +58,10 @@ test(
 		const request = supertest(`http://127.0.0.1:${server.port}`);
 		t.is((await request.get("/index.html")).statusCode, 200, "serves before the missing dependency");
 
-		// Timestamp each failed re-resolve so the drain loop can tell when the fast budget is spent.
-		let lastResolveFailure = 0;
+		// Count each failed re-resolve so the drain loop can tell when the fast budget is spent.
+		let resolveFailures = 0;
 		const onResolveFailed = () => {
-			lastResolveFailure = Date.now();
+			resolveFailures++;
 		};
 		process.on("ui5.project-resolve-failed", onResolveFailed);
 		t.teardown(() => process.off("ui5.project-resolve-failed", onResolveFailed));
@@ -74,25 +85,27 @@ test(
 		}
 		t.true(degraded, "the missing dependency drives the server into a degraded (500) state");
 
-		// Drain the fast recovery budget: wait for a ~1.2 s quiet window (over the ~550 ms fast cadence,
-		// under the slow interval, so the burst has ended and the next slow poll has not yet fired).
-		// Installing before this drains would recover in the fast phase, not exercising the slow poll.
-		const quietWindow = 1200;
+		// Drain the fast recovery budget before installing, so recovery happens via the slow poll (the
+		// path this test exists to exercise) rather than the fast burst. The budget is 5 attempts, so the
+		// failed manual re-resolve plus 5 fast recoveries yield 6 failures; waiting for a 7th means at
+		// least one slow poll has already fired. (With the fast cadence ~550 ms > the shortened slow
+		// interval, cadence no longer distinguishes the phases, so the test counts failures instead.)
 		const drainDeadline = Date.now() + 15000;
 		while (Date.now() < drainDeadline) {
-			if (lastResolveFailure !== 0 && Date.now() - lastResolveFailure > quietWindow) {
+			if (resolveFailures >= 7) {
 				break;
 			}
-			await new Promise((resolve) => setTimeout(resolve, 100));
+			await new Promise((resolve) => setTimeout(resolve, 50));
 		}
+		t.true(resolveFailures >= 7, "the fast recovery budget is spent and the slow poll has fired");
 
 		// Install the dependency at its node_modules path, after the fast budget is spent.
 		await fs.cp("./test/fixtures/library.e",
 			path.join(tmpProject, "node_modules", "library.e"), {recursive: true});
 
 		// The slow poll detects the install and re-resolves to 200, without a further definition edit.
-		// Allow one full slow interval (30 s) plus margin for the re-resolve and build.
-		const recoverDeadline = Date.now() + 35000;
+		// Allow a generous margin over the shortened slow interval for the re-resolve and build.
+		const recoverDeadline = Date.now() + 10000;
 		let status = 500;
 		while (Date.now() < recoverDeadline) {
 			status = (await request.get("/index.html")).statusCode;

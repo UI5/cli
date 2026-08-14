@@ -14,8 +14,10 @@ const log = getLogger("server:Supervisor");
 // resolved project set keeps growing. RecoveryBudget bounds the number of recovery swaps themselves.
 const RECOVERY_MAX_ITERATIONS = 10;
 
-// Slow-phase recovery interval, used once the fast RecoveryBudget is spent.
-const SLOW_RECOVERY_INTERVAL_MS = 30000;
+// Slow-phase recovery interval, used once the fast RecoveryBudget is spent. Not a const: the
+// test-only __internals__ export below lets integration tests shorten it so they need not wait out
+// the real 30 s slow poll. Production code never mutates it.
+let slowRecoveryIntervalMs = 30000;
 
 // Swap lifecycle states. The state decides reentrancy, terminal status, and which transitions are
 // legal; it is mutated only through #setState against the table below.
@@ -377,7 +379,7 @@ class Supervisor extends EventEmitter {
 			this.#recoveryBudget.recordRecovery();
 			delay = this.#definitionChangedSettleMs;
 		} else {
-			delay = SLOW_RECOVERY_INTERVAL_MS;
+			delay = slowRecoveryIntervalMs;
 		}
 		this.#recoveryTimer = setTimeout(() => {
 			this.#recoveryTimer = null;
@@ -582,3 +584,13 @@ class Supervisor extends EventEmitter {
 }
 
 export default Supervisor;
+
+// Test-only handle to the slow-phase recovery interval, so integration tests can shorten the poll
+// instead of waiting out the real 30 s. Undefined outside NODE_ENV=test so production code cannot
+// reach it. The getter lets a test capture and restore the original value in teardown.
+export const __internals__ = (process.env.NODE_ENV === "test") ? {
+	getSlowRecoveryInterval: () => slowRecoveryIntervalMs,
+	setSlowRecoveryInterval: (ms) => {
+		slowRecoveryIntervalMs = ms;
+	},
+} : undefined;
