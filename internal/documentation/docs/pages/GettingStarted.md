@@ -2,7 +2,7 @@
 ## Installing the UI5 CLI
 ### Requirements
 
-- [Node.js](https://nodejs.org/) version v20.11.0 and higher or v22.0.0 and higher (v21 is not supported)
+- [Node.js](https://nodejs.org/) version v22.22.2 and higher, v24.15.0 and higher or v26.0.0 and higher (v23 and v25 are not supported)
 - [npm](https://www.npmjs.com/) version v8.0.0 or higher
 
 ### Installation

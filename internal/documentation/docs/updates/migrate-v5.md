@@ -11,7 +11,7 @@ Or update your global install via: `npm i --global @ui5/cli@next`
 
 ## Breaking Changes
 
-- **All UI5 CLI Modules require Node.js ^22.20.0 || >=24.0.0**
+- **All UI5 CLI Modules require Node.js ^22.22.2 || ^24.15.0 || >=26.0.0**
 
 - **@ui5/cli: `ui5 init` defaults to Specification Version 5.0**
 
@@ -32,7 +32,7 @@ Or update your global install via: `npm i --global @ui5/cli@next`
 
 ## Node.js and npm Version Support
 
-This release requires **Node.js version v22.20.0 and higher or v24.0.0 and higher (v23 is not supported)** as well as npm v8 or higher.
+This release requires **Node.js version v22.22.2 and higher, v24.15.0 and higher or v26.0.0 and higher (v23 and v25 are not supported)** as well as npm v8 or higher.
 Support for older Node.js releases has been dropped; their use will cause an error.
 
 ## Specification Versions Support
