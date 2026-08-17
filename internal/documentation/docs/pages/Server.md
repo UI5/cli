@@ -7,7 +7,7 @@ import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vu
 </script>
 
 ::: tip
-Browse the API reference for each Server API by navigating in the sidebar menu to **📚 API -> @ui5/server**.
+Browse the API reference for each Server API by navigating in the sidebar menu to **API -> @ui5/server**.
 :::
 
 ::: warning Development Use Only

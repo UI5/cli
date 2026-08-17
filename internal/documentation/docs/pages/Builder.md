@@ -11,7 +11,7 @@ Based on a project's type, the UI5 Builder defines a series of build steps to ex
 For every type there is a set of default tasks. You can disable single tasks using the `--exclude-task` [CLI parameter](./CLI.md#ui5-build), and you can include tasks using the `--include-task` parameter.
 
 ::: tip
-Browse the API reference for each Builder API by navigating in the sidebar menu to **📚 API -> @ui5/builder**.
+Browse the API reference for each Builder API by navigating in the sidebar menu to **API -> @ui5/builder**.
 :::
 
 ## Tasks
@@ -23,7 +23,7 @@ A project can add custom tasks to the build by using the [Custom Tasks Extensibi
 
 ### Standard Tasks
 
-All available standard tasks are documented under **📚 API -> @ui5/builder -> tasks**. Use the sidebar menu to access the respective pages. The list below offers the actual order of their execution:
+All available standard tasks are documented under **API -> @ui5/builder -> tasks**. Use the sidebar menu to access the respective pages. The list below offers the actual order of their execution:
 
 | Task                                                                                                  |   Type `application`    |    Type `component`     |     Type `library`      |  Type `theme-library`   |
 |-------------------------------------------------------------------------------------------------------|:-----------------------:|:-----------------------:|:-----------------------:|:-----------------------:|
@@ -158,7 +158,7 @@ Processors work with provided resources. They contain the actual build step logi
 Processors can be implemented generically. The string replacer is an example for that.
 Since string replacement is a common build step, it can be useful in different contexts, e.g. code, version, date, and copyright replacement. A concrete replacement operation could be achieved by passing a custom configuration to the processor. This way, multiple tasks can make use of the same processor to achieve their build step.
 
-To get a list of all available processors, use the sidebar menu and navigate to **📚 API -> @ui5/builder -> processors**.
+To get a list of all available processors, use the sidebar menu and navigate to **API -> @ui5/builder -> processors**.
 
 ## Legacy Bundle Tooling (lbt)
 JavaScript port of the "legacy" Maven/Java based bundle tooling.

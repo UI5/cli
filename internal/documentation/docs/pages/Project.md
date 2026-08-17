@@ -92,7 +92,7 @@ In the table below you can find the available combinations of project type & out
 ³ Modules have explicit path mappings configured and no namespace concept.  
 
 ::: tip
-Browse the API reference for each Project API by navigating in the sidebar menu to **📚 API -> @ui5/project**.
+Browse the API reference for each Project API by navigating in the sidebar menu to **API -> @ui5/project**.
 :::
 
 <style>
