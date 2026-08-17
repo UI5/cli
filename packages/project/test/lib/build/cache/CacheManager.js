@@ -71,6 +71,17 @@ test.serial("Result metadata: round-trip via CacheManager", async (t) => {
 	cm.close();
 });
 
+test.serial("Signature manifest: round-trip via CacheManager", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+
+	const manifest = {manifestVersion: 1, buildConfig: {excludedTasks: ["generateVersionInfo"]}};
+	cm.writeSignatureManifest("project-x", "build-sig", manifest);
+	t.deepEqual(cm.listSignatureManifests("project-x"), [{buildSignature: "build-sig", manifest}]);
+	cm.close();
+});
+
 test.serial("Cache miss returns null for all metadata types", async (t) => {
 	const testDir = getUniqueTestDir();
 	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;

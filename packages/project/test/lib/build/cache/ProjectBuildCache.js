@@ -1,6 +1,6 @@
 import test from "ava";
 import sinon from "sinon";
-import ProjectBuildCache from "../../../../lib/build/cache/ProjectBuildCache.js";
+import ProjectBuildCache, {diffSignatureManifests} from "../../../../lib/build/cache/ProjectBuildCache.js";
 import ResourceRequestManager from "../../../../lib/build/cache/ResourceRequestManager.js";
 import Cache from "../../../../lib/build/cache/Cache.js";
 
@@ -87,6 +87,8 @@ function createMockCacheManager() {
 		findExistingStageSignatures: sinon.stub().callsFake((projectId, buildSig, stageId, sigs) => sigs),
 		findExistingResultSignatures: sinon.stub().callsFake((projectId, buildSig, sigs) => sigs),
 		findExistingContentIntegrities: sinon.stub().returns(new Set()),
+		writeSignatureManifest: sinon.stub(),
+		listSignatureManifests: sinon.stub().returns([]),
 	};
 }
 
@@ -2376,3 +2378,109 @@ test("validateCache: dependency-set change is general, not specific to the build
 		t.is(cache.getTaskCache(taskName).getDependencyIndexSignatures()[0], expectedDepSignature,
 			"dependency index must refresh for any dependency-globbing task, not just buildThemes");
 	});
+
+// ===== SIGNATURE MANIFEST DIFF (cache-miss diagnosis) =====
+
+test("diffSignatureManifests: Returns empty array for identical manifests", (t) => {
+	const manifest = {manifestVersion: 1, buildConfig: {excludedTasks: []}, projectId: "p"};
+	t.deepEqual(diffSignatureManifests(manifest, {...manifest}), []);
+});
+
+test("diffSignatureManifests: Identifies a scalar leaf change with its dotted path", (t) => {
+	const cached = {manifestVersion: 1, taskSignatures: "aaa"};
+	const current = {manifestVersion: 1, taskSignatures: "bbb"};
+	t.deepEqual(diffSignatureManifests(cached, current), [{
+		field: "taskSignatures",
+		cached: "aaa",
+		current: "bbb",
+	}]);
+});
+
+test("diffSignatureManifests: Drills into nested objects and reports the leaf path", (t) => {
+	// Mirrors the real scenario: a single middleware option added deep inside projectConfig.
+	const cached = {manifestVersion: 1, projectConfig: {server: {customMiddleware: [
+		{name: "proxy", configuration: {secure: false}},
+	]}}};
+	const current = {manifestVersion: 1, projectConfig: {server: {customMiddleware: [
+		{name: "proxy", configuration: {secure: false, prependPath: true}},
+	]}}};
+	t.deepEqual(diffSignatureManifests(cached, current), [{
+		field: "projectConfig.server.customMiddleware[0].configuration.prependPath",
+		cached: "<absent>",
+		current: true,
+	}]);
+});
+
+test("diffSignatureManifests: Reports an added array element by index", (t) => {
+	const cached = {manifestVersion: 1, deps: ["a", "b"]};
+	const current = {manifestVersion: 1, deps: ["a", "b", "c"]};
+	t.deepEqual(diffSignatureManifests(cached, current), [{
+		field: "deps[2]",
+		cached: "<absent>",
+		current: "c",
+	}]);
+});
+
+test("diffSignatureManifests: Distinguishes an absent key from an explicit null/undefined", (t) => {
+	const cached = {manifestVersion: 1, cfg: {}};
+	const current = {manifestVersion: 1, cfg: {opt: null}};
+	t.deepEqual(diffSignatureManifests(cached, current), [{
+		field: "cfg.opt",
+		cached: "<absent>",
+		current: null,
+	}]);
+});
+
+test("diffSignatureManifests: Ignores manifestVersion field in the diff", (t) => {
+	const cached = {manifestVersion: 1, projectId: "p"};
+	const current = {manifestVersion: 1, projectId: "p"};
+	t.deepEqual(diffSignatureManifests(cached, current), []);
+});
+
+test("diffSignatureManifests: Returns null for incompatible manifest versions", (t) => {
+	t.is(diffSignatureManifests({manifestVersion: 1}, {manifestVersion: 2}), null);
+});
+
+test("diffSignatureManifests: Returns null when a manifest is missing", (t) => {
+	t.is(diffSignatureManifests(null, {manifestVersion: 1}), null);
+	t.is(diffSignatureManifests({manifestVersion: 1}, undefined), null);
+});
+
+test("Force mode: 'no cache' error is enriched with the signature-input diff", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	// No index cache for the current signature (the build-vs-serve situation), but a manifest from a
+	// previous build with different excludedTasks exists for the same project.
+	cacheManager.readIndexCache.returns(null);
+	cacheManager.listSignatureManifests.returns([{
+		buildSignature: "previous-sig",
+		manifest: {manifestVersion: 1, buildConfig: {excludedTasks: []}},
+	}]);
+
+	const currentManifest = {manifestVersion: 1, buildConfig: {excludedTasks: ["generateVersionInfo"]}};
+	const cache = await ProjectBuildCache.create(
+		project, "current-sig", cacheManager, Cache.Force, currentManifest);
+
+	const err = await t.throwsAsync(() => cache.initSourceIndex());
+	t.regex(err.message, /Force.*mode.*no cache found/i, "keeps the original Force-mode message");
+	t.regex(err.message, /build signature inputs differ/i, "explains a signature-input mismatch");
+	t.regex(err.message, /buildConfig\.excludedTasks\[0\]/, "names the exact differing leaf path");
+	t.true(cacheManager.listSignatureManifests.calledWith("test-project-id"),
+		"queried stored manifests for the project");
+});
+
+test("Force mode: 'no cache' error is not enriched when no prior manifest exists", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	cacheManager.readIndexCache.returns(null);
+	cacheManager.listSignatureManifests.returns([]);
+
+	const cache = await ProjectBuildCache.create(
+		project, "current-sig", cacheManager, Cache.Force,
+		{manifestVersion: 1, buildConfig: {excludedTasks: []}});
+
+	const err = await t.throwsAsync(() => cache.initSourceIndex());
+	t.regex(err.message, /Force.*mode.*no cache found/i);
+	t.notRegex(err.message, /build signature inputs differ/i,
+		"degrades to the plain message when there is nothing to diff against");
+});

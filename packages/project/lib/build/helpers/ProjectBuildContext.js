@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import TaskUtil from "./TaskUtil.js";
 import TaskRunner from "../TaskRunner.js";
 import TaskDefinitions from "../TaskDefinitions.js";
-import {getProjectSignature} from "./getBuildSignature.js";
+import {getProjectSignature, getSignatureManifest} from "./getBuildSignature.js";
 import ProjectBuildCache from "../cache/ProjectBuildCache.js";
 
 /**
@@ -81,8 +81,14 @@ class ProjectBuildContext {
 		ctx._buildSignature = getProjectSignature(
 			baseSignature, taskSignatures, project, buildContext.getGraph(), buildContext.getTaskRepository());
 
+		// Diagnostic side-channel: the named inputs that produced ctx._buildSignature, persisted so a
+		// later build can diff its inputs against these and explain a cache miss (see getSignatureManifest).
+		const signatureManifest = getSignatureManifest(
+			buildContext.getSignatureConfig(), taskSignatures, project, buildContext.getTaskRepository());
+
 		const cacheMode = buildContext.getBuildConfig().cache;
-		ctx._buildCache = new ProjectBuildCache(project, ctx._buildSignature, cacheManager, cacheMode);
+		ctx._buildCache = new ProjectBuildCache(
+			project, ctx._buildSignature, cacheManager, cacheMode, signatureManifest);
 		return ctx;
 	}
 
