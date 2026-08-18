@@ -1,6 +1,6 @@
 # Custom UI5 Server Middleware
 
-The UI5 Server Extensibility enables you to enhance the functionality of the UI5 Server. You may want to handle requests differently. For example add various headers to a response or parse data of a POST request in a specific way. For this you can plug custom middleware implementations into the internal [express](https://expressjs.com/) server of the UI5 Server module.
+The UI5 Server Extensibility enables you to enhance the functionality of the UI5 Server. You may want to handle requests differently. For example add various headers to a response or parse data of a POST request in a specific way. For this you can plug custom middleware implementations into the internal [Express 5](https://expressjs.com/) server of the UI5 Server module.
 
 The UI5 community already created many custom middleware packages which you can integrate into your project. They are often prefixed by `ui5-middleware-` to make them easily searchable in the [npm registry](https://www.npmjs.com/search?q=ui5-middleware-).
 
@@ -32,7 +32,7 @@ In the above example the middleware `compression` is already included as a stand
 
 There can be optional configuration parameters which are passed directly to the custom middleware implementation (see below).
 
-An optional mountPath for which the middleware function is invoked can be provided. It will be passed to the `app.use` call (see [express API reference](https://expressjs.com/en/4x/api.html#app.use)).
+An optional mountPath for which the middleware function is invoked can be provided. It will be passed to the `app.use` call (see [express API reference](https://expressjs.com/en/5x/api.html#app.use)).
 
 ### Execution order
 
