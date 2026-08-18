@@ -1,10 +1,10 @@
 /*
  * serve-index
  *
- * Version: 1.9.1
+ * Version: 1.9.2
  *
  * Author: Douglas Christopher Wilson
- * Web: https://github.com/expressjs/serve-index/tree/20e83c893b701c3a117a0f6836be0f5a818bb925
+ * Web: https://github.com/expressjs/serve-index/tree/6f86a185446a37a99b2cd9694ce93df996aeba6f
  *
  * Licensed under
  *   MIT License, see "/LICENSES/MIT.txt"
@@ -150,7 +150,7 @@ function iconLookup(filename) {
 	// try by mime type
 	if (icons[mimetype]) {
 		return {
-			className: "icon-" + mimetype.replace("/", "-"),
+			className: "icon-" + mimetype.replace("/", "-").replace("+", "_"),
 			fileName: icons[mimetype]
 		};
 	}
