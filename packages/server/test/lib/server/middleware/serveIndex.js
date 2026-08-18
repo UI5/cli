@@ -47,7 +47,7 @@ test.serial("serveIndex default", async (t) => {
 							"1.00 KB</span>"));
 				t.regex(content,
 					RegExp(
-						"<li><a href=\"/myFile2.js\" class=\"icon icon icon-js icon-application-javascript\" " +
+						"<li><a href=\"/myFile2.js\" class=\"icon icon icon-js icon-text-javascript\" " +
 							"title=\"myFile2.js\"><span class=\"name\">myFile2.js</span><span class=\"size\">" +
 							"1.00 MB</span>"));
 				t.regex(content,
@@ -115,7 +115,7 @@ test.serial("serveIndex no hidden", async (t) => {
 							"<span class=\"size\">1.00 KB</span>"));
 				t.regex(content,
 					RegExp(
-						"<li><a href=\"/myFile2.js\" class=\"icon icon icon-js icon-application-javascript\" " +
+						"<li><a href=\"/myFile2.js\" class=\"icon icon icon-js icon-text-javascript\" " +
 							"title=\"myFile2.js\"><span class=\"name\">myFile2.js</span>" +
 							"<span class=\"size\">1.00 MB</span>"));
 				t.regex(content,
@@ -210,7 +210,7 @@ test.serial("serveIndex no details", async (t) => {
 						"title=\"myFile1.meh\"><span class=\"name\">myFile1.meh</span>" +
 						"<span class=\"size\">1.00 KB</span>"));
 				t.regex(content, RegExp(
-					"<li><a href=\"/myFile2.js\" class=\"icon icon icon-js icon-application-javascript\" " +
+					"<li><a href=\"/myFile2.js\" class=\"icon icon icon-js icon-text-javascript\" " +
 						"title=\"myFile2.js\"><span class=\"name\">myFile2.js</span>" +
 						"<span class=\"size\">1.00 MB</span>"));
 				t.regex(content, RegExp(
