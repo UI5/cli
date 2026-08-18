@@ -305,6 +305,8 @@ const icons = {
 	"image/svg+xml": "page_white_vector.png",
 	"text/css": "page_white_code.png",
 	"text/html": "page_white_code.png",
+	// mime-types resolves ".js"/".mjs" to "text/javascript"; keep the JS-specific icon
+	"text/javascript": "page_white_code_red.png",
 	"text/less": "page_white_code.png",
 
 	// other, extension-specific icons
