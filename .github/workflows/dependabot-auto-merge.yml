@@ -15,11 +15,16 @@ jobs:
     steps:
       - name: Dependabot metadata
         id: metadata
+        # A force-pushed (e.g. amended) commit is no longer signed by Dependabot, which makes this
+        # step fail signature verification. Tolerate that failure and skip the merge step below,
+        # just as we skip the whole job for PRs that aren't from Dependabot.
+        continue-on-error: true
         uses: dependabot/fetch-metadata@v3
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
       - name: Approve and auto-merge PRs for minor/patch updates of github-actions
         if: |
+          steps.metadata.outcome == 'success' &&
           steps.metadata.outputs.package-ecosystem == 'github_actions' &&
           contains(fromJSON('["version-update:semver-minor", "version-update:semver-patch"]'), steps.metadata.outputs.update-type)
         run: gh pr review --approve "$PR_URL" && gh pr merge --auto --rebase "$PR_URL"
