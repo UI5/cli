@@ -29,6 +29,8 @@ Or update your global install via: `npm i --global @ui5/cli@next`
 
 - **@ui5/cli: Option `--experimental-css-variables` has been removed**
 
+- **@ui5/server: The internal Express server has been upgraded from Express 4 to Express 5**
+
 
 ## Node.js and npm Version Support
 
@@ -368,6 +370,14 @@ not run by default. The [`versionInfo`](../pages/Server.md#versioninfo) middlewa
 ::: info versionInfo middleware order
 The [`versionInfo`](../pages/Server.md#versioninfo) middleware now runs before [`serveResources`](../pages/Server.md#serveresources) rather than after it. Both match a request for `/resources/sap-ui-version.json`, but only `versionInfo` produces that file. Serving it first terminates the request directly and avoids `serveResources` triggering an unnecessary build of all dependencies while trying to locate the missing resource.
 :::
+
+## Express 5 Upgrade
+
+The UI5 Server uses [Express](https://expressjs.com/) internally to serve your project. With UI5 CLI v5, this internal Express server has been upgraded from Express 4 to Express 5.
+
+The standard middleware shipped with UI5 CLI is unaffected by this change. **However, if your project uses [custom server middleware](../pages/extensibility/CustomServerMiddleware.md), it might rely on Express APIs that changed with Express 5** (for example, changes to route path matching, `req.query` parsing, or removed methods).
+
+Review your custom middleware against the [Express 5 migration guide](https://expressjs.com/en/guide/migrating-5/) and adjust it if necessary.
 
 ## Learn More
 
