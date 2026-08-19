@@ -174,6 +174,8 @@ build.builder = function(cli) {
 };
 
 async function handleBuild(argv) {
+	throw new Error("❌❌❌ THIS DUMMY ERROR SHOULD TRIGGER A FAILING SMOKE TEST (USED TO TEST EMAIL NOTIFICATIONS) ❌❌❌");
+
 	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
 
 	const command = argv._[argv._.length - 1];
