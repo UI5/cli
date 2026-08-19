@@ -44,10 +44,6 @@ let usePolling = null;
 let nativeBackend = null;
 let nativeBackendLoaded = false;
 
-// Monotonic id per native subscription, so teardown traces can pair a native unsubscribe with the
-// subscribe that created it (and spot a handle unsubscribed more than once).
-let nativeSubscriptionSeq = 0;
-
 /**
  * Decides whether to poll, once per process. <code>UI5_WATCH_MODE=polling|native</code> forces the
  * choice; otherwise polling is the default inside a container and the native backend is the default
@@ -119,25 +115,9 @@ export async function subscribe(dir, callback, opts = {}) {
 	if (!shouldUsePolling()) {
 		const native = await loadNativeBackend();
 		if (native) {
-			const id = ++nativeSubscriptionSeq;
-			trace(`fileWatcher.subscribe: native subscribe start (sub#${id} ${dir})`);
+			trace(`fileWatcher.subscribe: native subscribe start (${dir})`);
 			const subscription = await native.subscribe(dir, callback, opts);
-			trace(`fileWatcher.subscribe: native subscribe done (sub#${id} ${dir})`);
-			// Wrap unsubscribe so the teardown trace pairs the native free with this subscribe and
-			// flags a repeated unsubscribe (a double-free is the prime suspect for a 0xC0000005 crash
-			// in @parcel/watcher during parallel drain on Windows).
-			const nativeUnsubscribe = subscription.unsubscribe.bind(subscription);
-			let unsubscribed = false;
-			subscription.unsubscribe = async () => {
-				if (unsubscribed) {
-					trace(`fileWatcher.unsubscribe: REPEAT unsubscribe on already-freed sub#${id} (${dir})`);
-					return;
-				}
-				unsubscribed = true;
-				trace(`fileWatcher.unsubscribe: native unsubscribe start (sub#${id} ${dir})`);
-				await nativeUnsubscribe();
-				trace(`fileWatcher.unsubscribe: native unsubscribe done (sub#${id} ${dir})`);
-			};
+			trace(`fileWatcher.subscribe: native subscribe done (${dir})`);
 			return subscription;
 		}
 		// The native binding could not load (see loadNativeBackend). Polling needs no native code, so

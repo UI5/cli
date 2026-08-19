@@ -1,3 +1,5 @@
+// Forces the pure-JS polling watcher; see the helper for why. Must precede any watcher subscribe.
+import "../../utils/forcePollingWatcher.js";
 import test from "ava";
 import supertest from "supertest";
 import fs from "node:fs/promises";
