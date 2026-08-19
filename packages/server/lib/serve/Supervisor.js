@@ -6,6 +6,7 @@ import {getLogger} from "@ui5/logger";
 import buildApp from "./stack.js";
 import attachLiveReloadServer from "../liveReload/server.js";
 import {listen, addSsl, announceListening} from "./httpListener.js";
+import {pinBackend, unpinBackend} from "@ui5/project/internal/build/helpers/fileWatcher";
 import {trace} from "./teardownTrace.js";
 
 const log = getLogger("server:Supervisor");
@@ -99,6 +100,10 @@ class Supervisor extends EventEmitter {
 	#sourcesChangedRelay = new EventEmitter();
 	#relayUnsubscribe = null;
 	#liveReloadHandle = null;
+
+	// Whether this supervisor holds a native-watcher backend pin (see pinBackend). Guards destroy()
+	// against releasing a pin that #init never acquired (e.g. a construction failure before pinning).
+	#backendPinned = false;
 
 	// Watches the project-definition files and drives reinitialize() on a change. Owned by the
 	// supervisor (not the BuildServer) so it outlives each swapped-out stack, and re-targeted to
@@ -231,6 +236,12 @@ class Supervisor extends EventEmitter {
 			port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
 			acceptRemoteConnections = false, liveReload = false,
 		} = this.#config;
+
+		// Pin the native watcher backend for the whole serving session before any watcher subscribes,
+		// so its shared registry never empties across a reinitialize() swap (parcel-bundler/watcher#259).
+		// Released in destroy(). Never throws: a failed pin degrades to the unprotected behavior.
+		await pinBackend();
+		this.#backendPinned = true;
 
 		if (h2) {
 			const nodeVersion = parseInt(process.versions.node.split(".")[0], 10);
@@ -622,6 +633,14 @@ class Supervisor extends EventEmitter {
 		});
 		trace("Supervisor.destroy: awaiting httpClosed");
 		await httpClosed;
+		// Release the backend pin last: every watcher this session owns is now unsubscribed, so the
+		// shared registry can empty without a concurrent subscribe to race, and dropping the keep-alive
+		// lets the native handle stop holding the event loop open.
+		if (this.#backendPinned) {
+			this.#backendPinned = false;
+			trace("Supervisor.destroy: unpinBackend");
+			await unpinBackend();
+		}
 		trace("Supervisor.destroy: exit");
 	}
 }

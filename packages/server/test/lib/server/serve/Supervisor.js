@@ -74,17 +74,22 @@ function createMocks({stacks, buildAppImpl, definitionWatcherCreate} = {}) {
 		}
 	};
 
+	const pinBackend = sinon.stub().resolves();
+	const unpinBackend = sinon.stub().resolves();
+
 	const mocks = {
 		"node:http": httpMock,
 		"../../../../lib/serve/stack.js": {default: buildApp},
 		"../../../../lib/serve/httpListener.js": {listen, addSsl, announceListening},
 		"../../../../lib/liveReload/server.js": {default: attachLiveReloadServer},
+		"@ui5/project/internal/build/helpers/fileWatcher": {pinBackend, unpinBackend},
 	};
 
 	return {
 		mocks, projectWatcher, httpServer, listen, addSsl, announceListening,
 		attachLiveReloadServer, liveReloadHandle, buildApp, createdHandlers,
 		ProjectDefinitionWatcher, definitionWatchers, waitForProjectGraphSettled,
+		pinBackend, unpinBackend,
 	};
 }
 
@@ -392,16 +397,21 @@ test("create() tears down the bound socket and BuildServer when the definition w
 test("destroy() closes live-reload, the socket, and the BuildServer; reinitialize() is then a no-op", async (t) => {
 	const stack = createStack();
 	const graphFactory = sinon.stub().resolves({});
-	const {mocks, projectWatcher, httpServer, liveReloadHandle} = createMocks({stacks: [stack]});
+	const {mocks, projectWatcher, httpServer, liveReloadHandle, pinBackend, unpinBackend} =
+		createMocks({stacks: [stack]});
 	const {default: Supervisor} = await importSupervisor(mocks, projectWatcher);
 
 	const supervisor = await Supervisor.create({}, baseConfig, undefined, graphFactory);
+	// The session pins the native watcher backend on create so its registry never empties across a
+	// swap (parcel-bundler/watcher#259).
+	t.true(pinBackend.calledOnce, "the backend is pinned for the session");
 
 	await supervisor.destroy();
 
 	t.true(liveReloadHandle.close.calledOnce);
 	t.true(httpServer.close.calledOnce);
 	t.true(stack.buildServer.destroy.calledOnce);
+	t.true(unpinBackend.calledOnce, "the backend pin is released on destroy so the process can exit");
 
 	await supervisor.reinitialize();
 	t.true(graphFactory.notCalled, "reinitialize after destroy does nothing");
