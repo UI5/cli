@@ -75,18 +75,23 @@ synchronous tracer wired into every teardown step:
 Each line is written with `fs.writeSync(2, …)` so it survives a hard segfault (unbuffered),
 and is stamped with `process.hrtime.bigint()` + pid to order interleaved teardown.
 
-Run the flaky test in a loop with tracing on until it crashes, capturing stderr:
+Run the flaky test in a loop with tracing on until it crashes, capturing stderr. AVA
+wraps the worker's native crash and reports its own exit code (non-zero, not the raw
+`0xC0000005`), so stop the loop on **any** non-zero exit:
 
 ```
-# PowerShell (repeat until it dies)
+# PowerShell (repeat until AVA fails)
 $env:UI5_TEARDOWN_TRACE = "1"
 for ($i=0; $i -lt 50; $i++) {
+  "===== iteration $i =====" | Tee-Object -Append trace.log
   npx ava test/lib/server/reinitialize.js --serial 2>&1 | Tee-Object -Append trace.log
-  if ($LASTEXITCODE -eq -1073741819) { "CRASHED on iteration $i"; break }  # -1073741819 = 0xC0000005
+  if ($LASTEXITCODE -ne 0) { "FAILED on iteration $i (exit $LASTEXITCODE)"; break }
 }
 ```
 
-Then look at the **last `[teardown …]` line** in `trace.log`: an operation with a
+The worker's exit code (the actual `3221225477` = `0xC0000005`) is usually printed by AVA
+in its failure output as part of the "exited with a non-zero exit code" line, so it lands
+in `trace.log` too. Then look at the **last `[teardown …]` line** in `trace.log`: an operation with a
 `start` but no matching `done` is the one that segfaulted (e.g. `db.close() start` with no
 `db.close() done`, or `unsubscribe #1 start` with no `unsubscribe #1 done`). That names the
 exact native call to harden.
