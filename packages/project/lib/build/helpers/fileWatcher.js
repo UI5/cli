@@ -44,6 +44,28 @@ let usePolling = null;
 let nativeBackend = null;
 let nativeBackendLoaded = false;
 
+// Serialization chain for native subscribe/unsubscribe. @parcel/watcher mutates a process-global
+// backend registry from both the JS thread (subscribe: find/emplace/rehash) and a libuv worker
+// thread (unsubscribe of the last subscriber: erase/rehash), with no lock guarding that static map
+// (parcel-bundler/watcher#259). Overlapping a subscribe with an in-flight unsubscribe — the exact
+// shape of a reinitialize() swap tearing down the old watcher while subscribing the new one — races
+// that registry and access-violates (0xC0000005) on Windows. Funneling every native subscribe and
+// unsubscribe through one promise chain means the process never has two registry mutations in
+// flight at once: each waits for the previous to fully settle (the unsubscribe promise resolves
+// only after the native teardown, including the worker-thread erase, has completed). The chain is
+// process-wide because the registry it protects is process-global; it only orders watcher lifecycle
+// calls (rare, at startup/teardown), so it costs nothing on the hot path.
+let nativeWatcherChain = Promise.resolve();
+
+// Runs fn after every previously-chained native watcher operation has settled, and extends the chain
+// so the next one waits for fn. Rejections are isolated so one failed operation does not wedge the
+// chain, while the returned promise still rejects for its own caller.
+function serializeNativeWatcherOp(fn) {
+	const result = nativeWatcherChain.then(fn, fn);
+	nativeWatcherChain = result.then(() => undefined, () => undefined);
+	return result;
+}
+
 /**
  * Decides whether to poll, once per process. <code>UI5_WATCH_MODE=polling|native</code> forces the
  * choice; otherwise polling is the default inside a container and the native backend is the default
@@ -115,10 +137,17 @@ export async function subscribe(dir, callback, opts = {}) {
 	if (!shouldUsePolling()) {
 		const native = await loadNativeBackend();
 		if (native) {
-			trace(`fileWatcher.subscribe: native subscribe start (${dir})`);
-			const subscription = await native.subscribe(dir, callback, opts);
+			// Serialize against every other native subscribe/unsubscribe: see nativeWatcherChain.
+			const subscription = await serializeNativeWatcherOp(() => {
+				trace(`fileWatcher.subscribe: native subscribe start (${dir})`);
+				return native.subscribe(dir, callback, opts);
+			});
 			trace(`fileWatcher.subscribe: native subscribe done (${dir})`);
-			return subscription;
+			// Route unsubscribe through the same chain so a teardown never overlaps a subscribe (or
+			// another unsubscribe) on the shared registry.
+			return {
+				unsubscribe: () => serializeNativeWatcherOp(() => subscription.unsubscribe()),
+			};
 		}
 		// The native binding could not load (see loadNativeBackend). Polling needs no native code, so
 		// fall through to it rather than failing the watch.
