@@ -57,6 +57,12 @@ export async function subscribe(dir, callback, opts = {}) {
 			return;
 		}
 		timer = setTimeout(poll, intervalMs);
+		// The inter-poll wait must not, on its own, keep the process alive: a consumer that has
+		// finished (its server closed, all real handles gone) should exit even if unsubscribe() has
+		// not yet run. Referenced, this timer would pin the event loop for up to one interval and can
+		// make a process "fail to exit" on teardown. Real change detection is unaffected — the poll
+		// still fires while any other handle keeps the loop running.
+		timer.unref?.();
 	};
 
 	const poll = async () => {
