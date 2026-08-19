@@ -7,11 +7,11 @@
 //
 // Run from packages/project:  node ../server/test/tmp/probe-sqlite.mjs
 import path from "node:path";
-import {fileURLToPath} from "node:url";
+import {fileURLToPath, pathToFileURL} from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const {default: BuildCacheStorage} =
-	await import(path.resolve(here, "../../../project/lib/build/cache/BuildCacheStorage.js"));
+	await import(pathToFileURL(path.resolve(here, "../../../project/lib/build/cache/BuildCacheStorage.js")));
 
 const dbDir = path.resolve(here, `probe-sqlite-${process.pid}`);
 console.log(`[probe-sqlite] opening ${dbDir}`);

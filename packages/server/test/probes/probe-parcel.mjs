@@ -8,10 +8,11 @@
 // Run from packages/project:  node ../server/test/tmp/probe-parcel.mjs
 import path from "node:path";
 import fs from "node:fs/promises";
-import {fileURLToPath} from "node:url";
+import {fileURLToPath, pathToFileURL} from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const {subscribe} = await import(path.resolve(here, "../../../project/lib/build/helpers/fileWatcher.js"));
+const {subscribe} = await import(
+	pathToFileURL(path.resolve(here, "../../../project/lib/build/helpers/fileWatcher.js")));
 
 const dir = path.resolve(here, `probe-parcel-${process.pid}`);
 await fs.mkdir(dir, {recursive: true});

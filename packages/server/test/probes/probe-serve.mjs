@@ -15,14 +15,14 @@
 //
 // Run from packages/server:  node test/probes/probe-serve.mjs
 import path from "node:path";
-import {fileURLToPath} from "node:url";
+import {fileURLToPath, pathToFileURL} from "node:url";
 
 process.env.NODE_ENV = "test";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const serverRoot = path.resolve(here, "..", "..");
 process.chdir(serverRoot); // so ./test/fixtures/application.a resolves like the test
 
-const {serve} = await import(path.resolve(serverRoot, "lib/server.js"));
+const {serve} = await import(pathToFileURL(path.resolve(serverRoot, "lib/server.js")));
 const {graphFromPackageDependencies} = await import("@ui5/project/graph");
 const projectWatcher = await import("@ui5/project/internal/graph/ProjectDefinitionWatcher");
 
