@@ -6,6 +6,7 @@ import {getLogger} from "@ui5/logger";
 import buildApp from "./stack.js";
 import attachLiveReloadServer from "../liveReload/server.js";
 import {listen, addSsl, announceListening} from "./httpListener.js";
+import {trace} from "./teardownTrace.js";
 
 const log = getLogger("server:Supervisor");
 
@@ -551,6 +552,7 @@ class Supervisor extends EventEmitter {
 	 * @returns {Promise<void>} Resolves once teardown completes
 	 */
 	async destroy() {
+		trace("Supervisor.destroy: enter");
 		// Move to the terminal state synchronously, before the first await, so an in-flight #swap or a
 		// late definitionChanged sees DESTROYED at its next guard and adopts nothing.
 		this.#setState(STATE.DESTROYED);
@@ -562,24 +564,34 @@ class Supervisor extends EventEmitter {
 		this.#liveReloadHandle?.close();
 		this.#detachRelay();
 		this.#clearRecoveryTimer();
+		trace("Supervisor.destroy: httpServer.close start");
 		const httpClosed = new Promise((resolve) => {
 			if (!this.#httpServer) {
 				resolve();
 				return;
 			}
-			this.#httpServer.close(() => resolve());
+			this.#httpServer.close(() => {
+				trace("Supervisor.destroy: httpServer.close callback");
+				resolve();
+			});
 		});
 		try {
+			trace("Supervisor.destroy: definitionWatcher.destroy start");
 			await definitionWatcher?.destroy();
+			trace("Supervisor.destroy: definitionWatcher.destroy done");
 		} catch (err) {
 			log.verbose(`Error while destroying definition watcher: ${err?.message ?? err}`);
 		}
 		try {
+			trace("Supervisor.destroy: buildServer.destroy start");
 			await this.#stack?.buildServer.destroy();
+			trace("Supervisor.destroy: buildServer.destroy done");
 		} catch (err) {
 			log.verbose(`Error while destroying BuildServer: ${err?.message ?? err}`);
 		}
+		trace("Supervisor.destroy: awaiting httpClosed");
 		await httpClosed;
+		trace("Supervisor.destroy: exit");
 	}
 }
 

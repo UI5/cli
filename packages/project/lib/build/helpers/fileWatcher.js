@@ -1,5 +1,6 @@
 import {existsSync, readFileSync} from "node:fs";
 import {getLogger} from "@ui5/logger";
+import {trace} from "./teardownTrace.js";
 
 const log = getLogger("build:helpers:fileWatcher");
 
@@ -114,7 +115,10 @@ export async function subscribe(dir, callback, opts = {}) {
 	if (!shouldUsePolling()) {
 		const native = await loadNativeBackend();
 		if (native) {
-			return native.subscribe(dir, callback, opts);
+			trace(`fileWatcher.subscribe: native subscribe start (${dir})`);
+			const subscription = await native.subscribe(dir, callback, opts);
+			trace(`fileWatcher.subscribe: native subscribe done (${dir})`);
+			return subscription;
 		}
 		// The native binding could not load (see loadNativeBackend). Polling needs no native code, so
 		// fall through to it rather than failing the watch.

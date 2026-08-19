@@ -7,6 +7,7 @@ import RecoveryBudget, {
 	WATCHER_RECOVERY_MAX_ATTEMPTS, WATCHER_RECOVERY_WINDOW_MS,
 } from "../build/helpers/RecoveryBudget.js";
 import {DEFAULT_WORKSPACE_CONFIG_PATH} from "./helpers/workspaceConstants.js";
+import {trace} from "../build/helpers/teardownTrace.js";
 const log = getLogger("graph:ProjectDefinitionWatcher");
 
 // Settle window for the `definitionChanged` event, in milliseconds.
@@ -258,6 +259,7 @@ class ProjectDefinitionWatcher extends EventEmitter {
 	 * @returns {Promise<void>} Resolves once every subscription has been drained
 	 */
 	async destroy() {
+		trace("ProjectDefinitionWatcher.destroy: enter");
 		this.#destroyed = true;
 		if (this.#settleTimer) {
 			clearTimeout(this.#settleTimer);
@@ -268,10 +270,12 @@ class ProjectDefinitionWatcher extends EventEmitter {
 		const subscriptions = this.#subscriptions;
 		this.#subscriptions = [];
 		const failures = await drainSubscriptions(subscriptions);
+		trace("ProjectDefinitionWatcher.destroy: drained");
 		if (failures.length) {
 			const err = new AggregateError(failures, "Failed to unsubscribe one or more definition watchers");
 			this.emit("error", err);
 		}
+		trace("ProjectDefinitionWatcher.destroy: exit");
 	}
 }
 
