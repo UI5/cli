@@ -125,6 +125,15 @@ class Supervisor extends EventEmitter {
 	#recoveryTimer = null;
 	#destroyAbortController = new AbortController();
 
+	// Serializes the swap body against destroy()'s teardown so the two never run concurrently. Both
+	// #swap() (via reinitialize) and destroy()'s field teardown acquire it; each waits out the other.
+	// This is what lets #swap read/mutate #stack and #definitionWatcher across its awaits without a
+	// concurrent destroy() tearing them down mid-flight — the source of the orphaned native handles
+	// (a @parcel/watcher subscription, the node:sqlite database) that kept the process alive on Windows.
+	// Distinct from #reinitInProgress, which only collapses overlapping reinitialize() calls; destroy()
+	// acquires this lock directly, never through reinitialize(), so the #init error path cannot deadlock.
+	#lockTail = Promise.resolve();
+
 	// Stable reference handed to every stack buildApp() builds. Closes over the supervisor instance
 	// (not a per-stack value), so the surviving stack's serveBuildError reads the current
 	// #degradedError on each request even though it was assembled before the failed swap.
@@ -167,6 +176,16 @@ class Supervisor extends EventEmitter {
 	// surviving/outgoing stack relies on.
 	#liftSuspend(buildServer) {
 		buildServer.resumeReaders();
+	}
+
+	// Runs `fn` only after every previously-queued exclusive operation has settled, serializing the
+	// swap body against destroy teardown. The stored tail swallows the outcome so a rejected `fn` (a
+	// failed swap) cannot wedge the lock for the next waiter; the returned promise still surfaces `fn`'s
+	// real result or rejection to its own caller.
+	#runExclusive(fn) {
+		const run = this.#lockTail.then(fn, fn);
+		this.#lockTail = run.then(() => {}, () => {});
+		return run;
 	}
 
 	constructor(config, error, graphFactory, projectWatcher) {
@@ -289,6 +308,12 @@ class Supervisor extends EventEmitter {
 		// Suspending rejects those requests fast instead. Reads #stack.buildServer live, so it always
 		// targets the current stack; the suspend is lifted via #liftSuspend on both #swap outcomes.
 		watcher.on("definitionChanging", () => {
+			// A watcher can still emit between destroy()'s synchronous state flip and its teardown
+			// awaiting the watcher's own destroy(). Bail: teardown has nulled (or is about to null)
+			// #stack, and the suspend/budget work below is pointless on a server being torn down.
+			if (this.#state === STATE.DESTROYED) {
+				return;
+			}
 			// A real definition change supersedes any pending self-scheduled recovery and restores a
 			// full recovery budget: the user just acted, so the next attempt should not be denied by an
 			// allowance spent on the previous branch.
@@ -350,7 +375,7 @@ class Supervisor extends EventEmitter {
 		try {
 			do {
 				this.#reinitQueued = false;
-				await this.#swap();
+				await this.#runExclusive(() => this.#swap());
 			} while (this.#reinitQueued && this.#state !== STATE.DESTROYED);
 		} finally {
 			this.#reinitInProgress = false;
@@ -502,11 +527,6 @@ class Supervisor extends EventEmitter {
 			this.#scheduleDegradedRecovery();
 			return;
 		}
-		if (this.#state === STATE.DESTROYED) {
-			// Destroyed while building: discard the new stack instead of adopting it.
-			await newStack.buildServer.destroy();
-			return;
-		}
 		// Swap: retarget the dispatcher, move live-reload to the new BuildServer, notify clients.
 		this.#setState(STATE.HEALTHY);
 		this.#stack = newStack;
@@ -521,7 +541,9 @@ class Supervisor extends EventEmitter {
 		this.#sourcesChangedRelay.emit("sourcesChanged");
 		// Re-target the definition watcher to the new graph: the project set or their roots may
 		// have changed. A create failure here must not crash the swap: keep serving and log, so the
-		// old watcher keeps driving re-inits.
+		// old watcher keeps driving re-inits. destroy() cannot interleave here: it acquires the same
+		// exclusive lock this swap holds, so its teardown runs only after this swap returns and then
+		// tears down whatever this swap adopted as #stack / #definitionWatcher.
 		const oldWatcher = this.#definitionWatcher;
 		this.#definitionWatcher = null;
 		try {
@@ -551,17 +573,16 @@ class Supervisor extends EventEmitter {
 	 * @returns {Promise<void>} Resolves once teardown completes
 	 */
 	async destroy() {
-		// Move to the terminal state synchronously, before the first await, so an in-flight #swap or a
-		// late definitionChanged sees DESTROYED at its next guard and adopts nothing.
+		// Synchronous head: runs before any await and before the lock is acquired, so an in-flight
+		// #swap or a late definitionChanged/recovery-timer sees DESTROYED at its next guard, and the
+		// abort unblocks a recovery settle wait immediately rather than after its full window.
 		this.#setState(STATE.DESTROYED);
 		this.#destroyAbortController.abort();
-		// Stop the definition watcher early so a late event cannot start a re-init mid-teardown.
-		// The reinitialize() DESTROYED guard already no-ops such an event; this is defensive.
-		const definitionWatcher = this.#definitionWatcher;
-		this.#definitionWatcher = null;
+		this.#clearRecoveryTimer();
 		this.#liveReloadHandle?.close();
 		this.#detachRelay();
-		this.#clearRecoveryTimer();
+		// Stop accepting new requests now, before waiting out any in-flight swap. Awaited last so the
+		// returned promise resolves only once the socket is fully closed.
 		const httpClosed = new Promise((resolve) => {
 			if (!this.#httpServer) {
 				resolve();
@@ -569,16 +590,26 @@ class Supervisor extends EventEmitter {
 			}
 			this.#httpServer.close(() => resolve());
 		});
-		try {
-			await definitionWatcher?.destroy();
-		} catch (err) {
-			log.verbose(`Error while destroying definition watcher: ${err?.message ?? err}`);
-		}
-		try {
-			await this.#stack?.buildServer.destroy();
-		} catch (err) {
-			log.verbose(`Error while destroying BuildServer: ${err?.message ?? err}`);
-		}
+
+		// Teardown of the swappable fields runs under the same exclusive lock as #swap, so it never
+		// races a swap mid-flight. By the time it runs, any in-flight swap has settled and
+		// #definitionWatcher / #stack point at whatever that swap adopted — read once, torn down once.
+		await this.#runExclusive(async () => {
+			const definitionWatcher = this.#definitionWatcher;
+			this.#definitionWatcher = null;
+			const stack = this.#stack;
+			this.#stack = null;
+			try {
+				await definitionWatcher?.destroy();
+			} catch (err) {
+				log.verbose(`Error while destroying definition watcher: ${err?.message ?? err}`);
+			}
+			try {
+				await stack?.buildServer.destroy();
+			} catch (err) {
+				log.verbose(`Error while destroying BuildServer: ${err?.message ?? err}`);
+			}
+		});
 		await httpClosed;
 	}
 }
