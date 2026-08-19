@@ -74,17 +74,22 @@ function createMocks({stacks, buildAppImpl, definitionWatcherCreate} = {}) {
 		}
 	};
 
+	const pinBackend = sinon.stub().resolves();
+	const unpinBackend = sinon.stub().resolves();
+
 	const mocks = {
 		"node:http": httpMock,
 		"../../../../lib/serve/stack.js": {default: buildApp},
 		"../../../../lib/serve/httpListener.js": {listen, addSsl, announceListening},
 		"../../../../lib/liveReload/server.js": {default: attachLiveReloadServer},
+		"@ui5/project/internal/build/helpers/fileWatcher": {pinBackend, unpinBackend},
 	};
 
 	return {
 		mocks, projectWatcher, httpServer, listen, addSsl, announceListening,
 		attachLiveReloadServer, liveReloadHandle, buildApp, createdHandlers,
 		ProjectDefinitionWatcher, definitionWatchers, waitForProjectGraphSettled,
+		pinBackend, unpinBackend,
 	};
 }
 
@@ -392,16 +397,21 @@ test("create() tears down the bound socket and BuildServer when the definition w
 test("destroy() closes live-reload, the socket, and the BuildServer; reinitialize() is then a no-op", async (t) => {
 	const stack = createStack();
 	const graphFactory = sinon.stub().resolves({});
-	const {mocks, projectWatcher, httpServer, liveReloadHandle} = createMocks({stacks: [stack]});
+	const {mocks, projectWatcher, httpServer, liveReloadHandle, pinBackend, unpinBackend} =
+		createMocks({stacks: [stack]});
 	const {default: Supervisor} = await importSupervisor(mocks, projectWatcher);
 
 	const supervisor = await Supervisor.create({}, baseConfig, undefined, graphFactory);
+	// The session pins the native watcher backend on create so its registry never empties across a
+	// swap (parcel-bundler/watcher#259).
+	t.true(pinBackend.calledOnce, "the backend is pinned for the session");
 
 	await supervisor.destroy();
 
 	t.true(liveReloadHandle.close.calledOnce);
 	t.true(httpServer.close.calledOnce);
 	t.true(stack.buildServer.destroy.calledOnce);
+	t.true(unpinBackend.calledOnce, "the backend pin is released on destroy so the process can exit");
 
 	await supervisor.reinitialize();
 	t.true(graphFactory.notCalled, "reinitialize after destroy does nothing");
@@ -417,6 +427,91 @@ test("destroy() closes the socket even when BuildServer.destroy() rejects", asyn
 
 	await supervisor.destroy();
 	t.true(httpServer.close.calledOnce, "socket is closed despite the BuildServer destroy rejection");
+});
+
+test("destroy() during a swap serializes behind it and leaks no watcher or stack", async (t) => {
+	// Regression for the Windows `Failed to exit` leak: destroy() used to tear down #definitionWatcher
+	// and #stack while an in-flight #swap was still mutating them, orphaning a freshly-armed watcher
+	// (and the old stack's native handles). Serializing #swap and destroy teardown through one lock
+	// means teardown runs only after the swap settles, then owns whatever the swap adopted. Here
+	// destroy() is fired (not awaited) while the swap is parked mid-build, so its synchronous head runs
+	// during the swap and its teardown queues behind it.
+	const stack1 = createStack();
+	const stack2 = createStack();
+	const createdWatchers = [];
+	const buildGate = Promise.withResolvers();
+	const ref = {};
+	let buildCalls = 0;
+	const {mocks, projectWatcher} = createMocks({
+		buildAppImpl: async () => {
+			buildCalls++;
+			if (buildCalls === 1) {
+				return stack1; // initial build
+			}
+			// Park the swap's build so destroy() can land while the swap is in flight.
+			ref.destroyPromise = ref.supervisor.destroy();
+			await buildGate.promise;
+			return stack2;
+		},
+		definitionWatcherCreate: async () => {
+			const watcher = new EventEmitter();
+			watcher.destroy = sinon.stub().resolves();
+			createdWatchers.push(watcher);
+			return watcher;
+		},
+	});
+	const graphFactory = sinon.stub().resolves({});
+	const {default: Supervisor} = await importSupervisor(mocks, projectWatcher);
+
+	ref.supervisor = await Supervisor.create({}, baseConfig, undefined, graphFactory);
+	const reinit = ref.supervisor.reinitialize();
+	// Let the swap reach its parked build and fire destroy()'s synchronous head, then release it.
+	await waitFor(() => Boolean(ref.destroyPromise));
+	buildGate.resolve();
+	await reinit;
+	await ref.destroyPromise;
+
+	// The swap adopted stack2 + a re-targeted watcher; destroy's teardown then owned and released them,
+	// and the swap itself tore down the old stack + old watcher. Nothing is left live.
+	t.true(createdWatchers.every((w) => w.destroy.calledOnce), "every armed watcher is torn down, none leaked");
+	t.true(stack1.buildServer.destroy.calledOnce, "the old stack is torn down");
+	t.true(stack2.buildServer.destroy.calledOnce, "the stack adopted mid-swap is torn down, not leaked");
+});
+
+test("destroy() during a recovery settle aborts the wait instead of blocking on it", async (t) => {
+	// destroy()'s synchronous head aborts the shared AbortController before it acquires the teardown
+	// lock. A degraded recovery parked in #waitForProjectGraphSettled must observe that abort and
+	// reject promptly (code ABORT_ERR), so destroy() does not block for the full settle window.
+	const stack1 = createStack();
+	let buildCalls = 0;
+	const graph = createGraph(["/app"]);
+	const graphFactory = sinon.stub().resolves(graph);
+	const {mocks, projectWatcher, waitForProjectGraphSettled} = createMocks({
+		buildAppImpl: async () => {
+			buildCalls++;
+			if (buildCalls === 1) {
+				return stack1; // initial build
+			}
+			throw new Error("invalid ui5.yaml"); // first reinit fails -> degraded, recovery follows
+		},
+	});
+	// A settle that honors the signal: it resolves only when the signal aborts, and then rejects with
+	// ABORT_ERR, mirroring the real waitForProjectGraphSettled.
+	waitForProjectGraphSettled.callsFake((graphs, {signal}) => new Promise((resolve, reject) => {
+		signal.addEventListener("abort",
+			() => reject(Object.assign(new Error("aborted"), {code: "ABORT_ERR"})), {once: true});
+	}));
+	const {default: Supervisor} = await importSupervisor(mocks, projectWatcher);
+	const supervisor = await Supervisor.create(graph, baseConfig, undefined, graphFactory);
+
+	await supervisor.reinitialize();
+	t.is(buildCalls, 2, "the first reinitialize failed and left the stack degraded");
+
+	// Drive the recovery swap so it parks in the settle wait, then destroy() while it is parked.
+	const recovery = supervisor.reinitialize();
+	await waitFor(() => waitForProjectGraphSettled.called);
+	await t.notThrowsAsync(supervisor.destroy(), "destroy() resolves without waiting the settle window");
+	await recovery;
 });
 
 test("reinitialize() warns and no-ops when no graphFactory was provided", async (t) => {

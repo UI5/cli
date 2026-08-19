@@ -3,6 +3,7 @@ import path from "node:path";
 import {getLogger} from "@ui5/logger";
 import {subscribe as watchSubscribe} from "../build/helpers/fileWatcher.js";
 import {drainSubscriptions, WATCHER_BURST_SETTLE_MS} from "../build/helpers/watchUtil.js";
+import {trace} from "../build/helpers/teardownTrace.js";
 import RecoveryBudget, {
 	WATCHER_RECOVERY_MAX_ATTEMPTS, WATCHER_RECOVERY_WINDOW_MS,
 } from "../build/helpers/RecoveryBudget.js";
@@ -230,13 +231,13 @@ class ProjectDefinitionWatcher extends EventEmitter {
 		}
 
 		try {
+			this.#cancelSettleTimer();
+
 			// Tear down the current subscriptions and re-subscribe the same watch set. The include
 			// set (#watchedFiles / #watchDirs) is unchanged; only the OS-level handles are renewed.
 			// Teardown failures are ignored here: the handles are discarded either way, and the
 			// re-subscribe below is what decides whether recovery succeeded.
-			const subscriptions = this.#subscriptions;
-			this.#subscriptions = [];
-			await drainSubscriptions(subscriptions);
+			await this.#drainSubscriptions();
 			if (this.#destroyed) {
 				return;
 			}
@@ -258,20 +259,33 @@ class ProjectDefinitionWatcher extends EventEmitter {
 	 * @returns {Promise<void>} Resolves once every subscription has been drained
 	 */
 	async destroy() {
+		trace("ProjectDefinitionWatcher.destroy: enter");
 		this.#destroyed = true;
-		if (this.#settleTimer) {
-			clearTimeout(this.#settleTimer);
-			this.#settleTimer = null;
-		}
-		// Drain the subscriptions list first so a second destroy() is a no-op and a partial failure
-		// cannot leave stale handles to be unsubscribed twice.
-		const subscriptions = this.#subscriptions;
-		this.#subscriptions = [];
-		const failures = await drainSubscriptions(subscriptions);
+		this.#cancelSettleTimer();
+		const failures = await this.#drainSubscriptions();
+		trace("ProjectDefinitionWatcher.destroy: drained");
 		if (failures.length) {
 			const err = new AggregateError(failures, "Failed to unsubscribe one or more definition watchers");
 			this.emit("error", err);
 		}
+		trace("ProjectDefinitionWatcher.destroy: exit");
+	}
+
+	// Cancels a pending settle timer, if any. Safe to call when no timer is armed.
+	#cancelSettleTimer() {
+		if (this.#settleTimer) {
+			clearTimeout(this.#settleTimer);
+			this.#settleTimer = null;
+		}
+	}
+
+	// Snapshots and clears the subscriptions list before draining it, so a second drain (a second
+	// destroy(), or a destroy() racing recovery) is a no-op and a partial failure cannot leave stale
+	// handles to be unsubscribed twice. Returns the unsubscribe failures for callers that report them.
+	async #drainSubscriptions() {
+		const subscriptions = this.#subscriptions;
+		this.#subscriptions = [];
+		return drainSubscriptions(subscriptions);
 	}
 }
 
