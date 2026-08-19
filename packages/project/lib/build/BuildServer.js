@@ -4,6 +4,7 @@ import BuildReader from "./BuildReader.js";
 import WatchHandler from "./helpers/WatchHandler.js";
 import {isAbortError, isFileNotFoundError} from "./helpers/abort.js";
 import {WATCHER_BURST_SETTLE_MS} from "./helpers/watchUtil.js";
+import {trace} from "./helpers/teardownTrace.js";
 import RecoveryBudget, {WATCHER_RECOVERY_MAX_ATTEMPTS, WATCHER_RECOVERY_WINDOW_MS} from "./helpers/RecoveryBudget.js";
 import {getLogger} from "@ui5/logger";
 import ServeLogger from "@ui5/logger/internal/loggers/Serve";
@@ -368,25 +369,35 @@ class BuildServer extends EventEmitter {
 
 
 	async destroy() {
+		trace("BuildServer.destroy: enter");
 		this.#destroyed = true;
 		clearTimeout(this.#processBuildRequestsTimeout);
 		this.#pendingDeferredRestart = false;
 		clearTimeout(this.#sourcesChangedTimeout);
 		this.#pendingFinalSourcesChanged = false;
+		trace("BuildServer.destroy: watchHandler.destroy start");
 		await this.#watchHandler.destroy();
+		trace("BuildServer.destroy: watchHandler.destroy done");
 		try {
 			// Cancel any running background validation pass and wait for it to settle.
+			trace("BuildServer.destroy: stopActiveValidation start");
 			await this.#stopActiveValidation("Server destroyed");
+			trace("BuildServer.destroy: stopActiveValidation done");
 			if (this.#activeBuild) {
 				// Await active build to finish
+				trace("BuildServer.destroy: awaiting activeBuild");
 				await this.#activeBuild;
+				trace("BuildServer.destroy: activeBuild settled");
 			}
 		} finally {
 			// Always release the cache manager, even when the active build rejected
 			// (e.g. Force-mode stale-cache errors). Otherwise the SQLite handle leaks
 			// and subsequent fs.rm of the cache directory fails with EBUSY on Windows.
+			trace("BuildServer.destroy: closeCacheManager start");
 			this.#projectBuilder.closeCacheManager();
+			trace("BuildServer.destroy: closeCacheManager done");
 		}
+		trace("BuildServer.destroy: exit");
 	}
 
 	/**

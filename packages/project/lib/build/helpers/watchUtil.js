@@ -1,3 +1,5 @@
+import {trace} from "./teardownTrace.js";
+
 /**
  * Settle window (ms) for collapsing a burst of filesystem events into one trailing action. Shared
  * by every Parcel watcher in the build layer.
@@ -13,6 +15,7 @@
  */
 export const WATCHER_BURST_SETTLE_MS = 550;
 
+
 /**
  * Unsubscribes every subscription in parallel and returns the failures. Callers drain their list to
  * <code>[]</code> before calling, so a second drain is a no-op and a partial failure cannot leave
@@ -26,6 +29,17 @@ export const WATCHER_BURST_SETTLE_MS = 550;
  *   when all succeeded
  */
 export async function drainSubscriptions(subscriptions) {
-	const results = await Promise.allSettled(subscriptions.map((s) => s.unsubscribe()));
+	trace(`drainSubscriptions: draining ${subscriptions.length} subscription(s)`);
+	const results = await Promise.allSettled(subscriptions.map(async (s, i) => {
+		trace(`drainSubscriptions: unsubscribe #${i} start`);
+		try {
+			await s.unsubscribe();
+			trace(`drainSubscriptions: unsubscribe #${i} done`);
+		} catch (err) {
+			trace(`drainSubscriptions: unsubscribe #${i} threw: ${err?.message ?? err}`);
+			throw err;
+		}
+	}));
+	trace(`drainSubscriptions: all settled`);
 	return results.filter((r) => r.status === "rejected").map((r) => r.reason);
 }

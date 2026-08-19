@@ -57,6 +57,40 @@ npx ava test/lib/server/reinitialize.js -m "reinitialize() without a graphFactor
 
 Delete this directory once the origin is confirmed.
 
+## Tracing the real (flaky) test's teardown
+
+The crash is **flaky** — the test usually passes. So the probes (deterministic) won't
+reproduce it; the trigger is a timing-dependent race in native teardown/exit. To catch
+*which* native step is being torn down when it does crash, there is an env-gated
+synchronous tracer wired into every teardown step:
+
+- `Supervisor.destroy` (each phase: liveReload close, httpServer close, watcher destroy,
+  buildServer destroy, httpClosed)
+- `BuildServer.destroy` (watchHandler destroy, validation stop, active-build await, cache close)
+- `ProjectDefinitionWatcher.destroy` / `WatchHandler.destroy`
+- `drainSubscriptions` (each individual `@parcel/watcher` `unsubscribe()`)
+- `CacheManager.close` (refcount, last-ref) / `BuildCacheStorage.close`
+  (WAL checkpoint, then `db.close()`)
+
+Each line is written with `fs.writeSync(2, …)` so it survives a hard segfault (unbuffered),
+and is stamped with `process.hrtime.bigint()` + pid to order interleaved teardown.
+
+Run the flaky test in a loop with tracing on until it crashes, capturing stderr:
+
+```
+# PowerShell (repeat until it dies)
+$env:UI5_TEARDOWN_TRACE = "1"
+for ($i=0; $i -lt 50; $i++) {
+  npx ava test/lib/server/reinitialize.js --serial 2>&1 | Tee-Object -Append trace.log
+  if ($LASTEXITCODE -eq -1073741819) { "CRASHED on iteration $i"; break }  # -1073741819 = 0xC0000005
+}
+```
+
+Then look at the **last `[teardown …]` line** in `trace.log`: an operation with a
+`start` but no matching `done` is the one that segfaulted (e.g. `db.close() start` with no
+`db.close() done`, or `unsubscribe #1 start` with no `unsubscribe #1 done`). That names the
+exact native call to harden.
+
 ## Findings so far (Windows)
 
 All four component probes exit **clean** (exit 0), including `probe-serve` (the full
