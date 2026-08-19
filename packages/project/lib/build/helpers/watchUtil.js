@@ -29,6 +29,23 @@ export const WATCHER_BURST_SETTLE_MS = 550;
  */
 export async function drainSubscriptions(subscriptions) {
 	trace(`drainSubscriptions: draining ${subscriptions.length} subscription(s)`);
+	// UI5_WATCH_SERIAL_DRAIN=1 unsubscribes one at a time instead of in parallel, to test whether
+	// concurrent native @parcel/watcher unsubscribe() calls are what trigger the 0xC0000005 crash on
+	// Windows. Diagnostic only; the default stays parallel.
+	if (process.env.UI5_WATCH_SERIAL_DRAIN === "1") {
+		const failures = [];
+		for (let i = 0; i < subscriptions.length; i++) {
+			trace(`drainSubscriptions: serial unsubscribe ${i + 1}/${subscriptions.length} start`);
+			try {
+				await subscriptions[i].unsubscribe();
+			} catch (err) {
+				failures.push(err);
+			}
+			trace(`drainSubscriptions: serial unsubscribe ${i + 1}/${subscriptions.length} done`);
+		}
+		trace(`drainSubscriptions: all drained (serial)`);
+		return failures;
+	}
 	const results = await Promise.allSettled(subscriptions.map((s) => s.unsubscribe()));
 	trace(`drainSubscriptions: all drained`);
 	return results.filter((r) => r.status === "rejected").map((r) => r.reason);
