@@ -72,7 +72,7 @@ test.serial("subscribe: native delegation when UI5_WATCH_MODE=native", async (t)
 		const opts = {ignore: ["**/x/**"]};
 		const subscription = await watcher.subscribe("/some/dir", cb, opts);
 
-		t.true(parcelSubscribe.calledOnceWithExactly("/some/dir", cb, opts),
+		t.true(parcelSubscribe.calledWithExactly("/some/dir", cb, opts),
 			"delegates verbatim to the native backend");
 
 		// The returned subscription wraps the native one so unsubscribe is funneled through the
@@ -80,6 +80,31 @@ test.serial("subscribe: native delegation when UI5_WATCH_MODE=native", async (t)
 		// native unsubscribe verbatim.
 		await subscription.unsubscribe();
 		t.true(nativeSubscription.unsubscribe.calledOnce, "unsubscribe delegates to the native subscription");
+	} finally {
+		esmock.purge(watcher);
+	}
+});
+
+test.serial("subscribe: pins the shared backend with a keep-alive subscription", async (t) => {
+	// The destructive half of parcel-bundler/watcher#259 is the empty-transition rehash(0) when the
+	// backend registry drops to zero subscribers. fileWatcher must hold one never-unsubscribed
+	// keep-alive subscription so the registry never empties, established before the first real watch.
+	process.env.UI5_WATCH_MODE = "native";
+	const parcelSubscribe = sinon.stub().callsFake(async () => ({unsubscribe: sinon.stub().resolves()}));
+	const watcher = await importWatcherWithParcel({
+		default: {subscribe: parcelSubscribe}, subscribe: parcelSubscribe,
+	});
+	try {
+		await watcher.subscribe("/some/dir", () => {}, {});
+
+		// Two native subscribes: the keep-alive (ignore everything) plus the real one.
+		t.is(parcelSubscribe.callCount, 2, "one keep-alive subscribe plus the real subscribe");
+		const keepAliveCall = parcelSubscribe.getCall(0);
+		t.deepEqual(keepAliveCall.args[2], {ignore: ["**"]}, "the keep-alive ignores every event");
+
+		// A second subscribe reuses the same keep-alive rather than opening another.
+		await watcher.subscribe("/other/dir", () => {}, {});
+		t.is(parcelSubscribe.callCount, 3, "the keep-alive is established once, not per subscribe");
 	} finally {
 		esmock.purge(watcher);
 	}
@@ -107,7 +132,8 @@ test.serial("subscribe: native subscribe and unsubscribe never overlap", async (
 	});
 	try {
 		// Fire several subscribes concurrently, then unsubscribe them all concurrently. Without
-		// serialization the native calls would overlap (maxInFlight > 1).
+		// serialization the native calls would overlap (maxInFlight > 1). The keep-alive subscribe
+		// also runs through the chain, so it is covered by the same no-overlap guarantee.
 		const subs = await Promise.all([
 			watcher.subscribe("/a", () => {}, {}),
 			watcher.subscribe("/b", () => {}, {}),
