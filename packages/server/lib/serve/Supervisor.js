@@ -6,6 +6,7 @@ import {getLogger} from "@ui5/logger";
 import buildApp from "./stack.js";
 import attachLiveReloadServer from "../liveReload/server.js";
 import {listen, addSsl, announceListening} from "./httpListener.js";
+import {trace} from "./teardownTrace.js";
 
 const log = getLogger("server:Supervisor");
 
@@ -576,6 +577,7 @@ class Supervisor extends EventEmitter {
 		// Synchronous head: runs before any await and before the lock is acquired, so an in-flight
 		// #swap or a late definitionChanged/recovery-timer sees DESTROYED at its next guard, and the
 		// abort unblocks a recovery settle wait immediately rather than after its full window.
+		trace("Supervisor.destroy: enter");
 		this.#setState(STATE.DESTROYED);
 		this.#destroyAbortController.abort();
 		this.#clearRecoveryTimer();
@@ -583,12 +585,14 @@ class Supervisor extends EventEmitter {
 		this.#detachRelay();
 		// Stop accepting new requests now, before waiting out any in-flight swap. Awaited last so the
 		// returned promise resolves only once the socket is fully closed.
+		trace("Supervisor.destroy: httpServer.close start");
 		const httpClosed = new Promise((resolve) => {
 			if (!this.#httpServer) {
 				resolve();
 				return;
 			}
 			this.#httpServer.close(() => {
+				trace("Supervisor.destroy: httpServer.close callback");
 				resolve();
 			});
 		});
@@ -602,17 +606,23 @@ class Supervisor extends EventEmitter {
 			const stack = this.#stack;
 			this.#stack = null;
 			try {
+				trace("Supervisor.destroy: definitionWatcher.destroy start");
 				await definitionWatcher?.destroy();
+				trace("Supervisor.destroy: definitionWatcher.destroy done");
 			} catch (err) {
 				log.verbose(`Error while destroying definition watcher: ${err?.message ?? err}`);
 			}
 			try {
+				trace("Supervisor.destroy: buildServer.destroy start");
 				await stack?.buildServer.destroy();
+				trace("Supervisor.destroy: buildServer.destroy done");
 			} catch (err) {
 				log.verbose(`Error while destroying BuildServer: ${err?.message ?? err}`);
 			}
 		});
+		trace("Supervisor.destroy: awaiting httpClosed");
 		await httpClosed;
+		trace("Supervisor.destroy: exit");
 	}
 }
 
