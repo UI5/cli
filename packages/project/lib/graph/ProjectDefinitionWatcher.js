@@ -3,7 +3,6 @@ import path from "node:path";
 import {getLogger} from "@ui5/logger";
 import {subscribe as watchSubscribe} from "../build/helpers/fileWatcher.js";
 import {drainSubscriptions, WATCHER_BURST_SETTLE_MS} from "../build/helpers/watchUtil.js";
-import {trace} from "../build/helpers/teardownTrace.js";
 import RecoveryBudget, {
 	WATCHER_RECOVERY_MAX_ATTEMPTS, WATCHER_RECOVERY_WINDOW_MS,
 } from "../build/helpers/RecoveryBudget.js";
@@ -259,16 +258,13 @@ class ProjectDefinitionWatcher extends EventEmitter {
 	 * @returns {Promise<void>} Resolves once every subscription has been drained
 	 */
 	async destroy() {
-		trace("ProjectDefinitionWatcher.destroy: enter");
 		this.#destroyed = true;
 		this.#cancelSettleTimer();
 		const failures = await this.#drainSubscriptions();
-		trace("ProjectDefinitionWatcher.destroy: drained");
 		if (failures.length) {
 			const err = new AggregateError(failures, "Failed to unsubscribe one or more definition watchers");
 			this.emit("error", err);
 		}
-		trace("ProjectDefinitionWatcher.destroy: exit");
 	}
 
 	// Cancels a pending settle timer, if any. Safe to call when no timer is armed.

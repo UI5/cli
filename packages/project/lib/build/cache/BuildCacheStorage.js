@@ -3,7 +3,6 @@ import {mkdirSync, existsSync} from "node:fs";
 import path from "node:path";
 import {gzipSync, gunzipSync} from "node:zlib";
 import {getLogger} from "@ui5/logger";
-import {trace} from "../helpers/teardownTrace.js";
 
 const log = getLogger("build:cache:BuildCacheStorage");
 
@@ -604,7 +603,6 @@ export default class BuildCacheStorage {
 	 * Closes the database connection
 	 */
 	close() {
-		trace(`BuildCacheStorage.close: enter (${this.#dbPath})`);
 		if (this.#inTransaction) {
 			try {
 				this.#db.exec("ROLLBACK");
@@ -612,11 +610,8 @@ export default class BuildCacheStorage {
 				this.#inTransaction = false;
 			}
 		}
-		trace("BuildCacheStorage.close: wal_checkpoint(TRUNCATE) start");
 		this.#db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
-		trace("BuildCacheStorage.close: wal_checkpoint done, db.close() start");
 		this.#db.close();
-		trace("BuildCacheStorage.close: db.close() done");
 	}
 
 	/**
