@@ -1,10 +1,10 @@
 import os from "node:os";
+import https from "node:https";
 import portscanner from "portscanner";
 
 /**
- * HTTP-listener helpers shared between the single-shot {@link module:@ui5/server.serve}
- * wrapper and the {@link Supervisor}, which binds the port once and swaps the
- * request handler behind it.
+ * HTTP-listener helpers used by the {@link Supervisor}, which binds the port once and
+ * swaps the request handler behind it.
  *
  * @private
  * @module @ui5/server/serve/httpListener
@@ -13,7 +13,7 @@ import portscanner from "portscanner";
 /**
  * Binds an HTTP/HTTPS server to a free port and resolves once it is listening.
  *
- * @param {object} app The express application (or spdy server) to listen with
+ * @param {object} app The http/https server to listen with
  * @param {number} port Desired port to listen to
  * @param {boolean} changePortIfInUse If true and the port is already in use, an unused port is searched
  * @param {boolean} acceptRemoteConnections If true, listens to remote connections and not only to localhost
@@ -63,20 +63,17 @@ export function listen(app, port, changePortIfInUse, acceptRemoteConnections) {
 }
 
 /**
- * Adds SSL support to an express application.
+ * Wraps a request handler in an HTTPS server.
  *
  * @param {object} parameters
- * @param {object} parameters.app The original express application
+ * @param {Function} parameters.app The request handler to serve over HTTPS
  * @param {string} parameters.key Path to private key to be used for https
  * @param {string} parameters.cert Path to certificate to be used for for https
- * @returns {Promise<object>} The express application with SSL support
+ * @returns {object} The https server
  * @private
  */
-export async function addSsl({app, key, cert}) {
-	// Using spdy as http2 server as the native http2 implementation
-	// from Node v8.4.0 doesn't seem to work with express
-	const {default: spdy} = await import("spdy");
-	return spdy.createServer({cert, key}, app);
+export function addSsl({app, key, cert}) {
+	return https.createServer({key, cert}, app);
 }
 
 /**
@@ -87,12 +84,12 @@ export async function addSsl({app, key, cert}) {
  *
  * @param {object} parameters
  * @param {number} parameters.port The actual bound port
- * @param {boolean} parameters.h2 Whether HTTP/2 (https) is in use
+ * @param {boolean} parameters.https Whether HTTPS is in use
  * @param {boolean} parameters.acceptRemoteConnections Whether the server binds to all interfaces
  * @private
  */
-export function announceListening({port, h2, acceptRemoteConnections}) {
-	const protocol = h2 ? "https" : "http";
+export function announceListening({port, https, acceptRemoteConnections}) {
+	const protocol = https ? "https" : "http";
 	const urls = [{label: "Local", url: `${protocol}://localhost:${port}`}];
 	if (acceptRemoteConnections) {
 		for (const addr of findNetworkInterfaceAddresses()) {

@@ -25,7 +25,7 @@ function createMocks({stacks, buildAppImpl, definitionWatcherCreate} = {}) {
 
 	const createdHandlers = [];
 	const listen = sinon.stub().resolves({port: 3000, server: httpServer});
-	const addSsl = sinon.stub().callsFake(async ({app}) => app);
+	const addSsl = sinon.stub().callsFake(({app}) => app);
 	const announceListening = sinon.stub();
 
 	const liveReloadHandle = {close: sinon.stub()};

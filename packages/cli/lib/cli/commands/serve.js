@@ -19,7 +19,7 @@ serve.builder = function(cli) {
 	applyBuildOptions(cli);
 	return cli
 		.option("port", {
-			describe: "Port to bind on (default for HTTP: 8080, HTTP/2: 8443)",
+			describe: "Port to bind on (default for HTTP: 8080, HTTPS: 8443)",
 			alias: "p",
 			type: "number"
 		})
@@ -30,8 +30,8 @@ serve.builder = function(cli) {
 			alias: "o",
 			type: "string"
 		})
-		.option("h2", {
-			describe: "Shortcut for enabling the HTTP/2 protocol for the web server",
+		.option("https", {
+			describe: "Enable the HTTPS protocol for the web server",
 			default: false,
 			type: "boolean"
 		})
@@ -127,7 +127,7 @@ serve.builder = function(cli) {
 		})
 		.coerce(["framework-version", "open", "port", "key", "cert"], dedupeArray)
 		.example("ui5 serve", "Start a web server for the current project")
-		.example("ui5 serve --h2", "Enable the HTTP/2 protocol for the web server (requires SSL certificate)")
+		.example("ui5 serve --https", "Enable the HTTPS protocol for the web server (requires SSL certificate)")
 		.example("ui5 serve --config /path/to/ui5.yaml", "Use the project configuration from a custom path")
 		.example("ui5 serve --dependency-definition /path/to/projectDependencies.yaml",
 			"Use a static dependency definition file")
@@ -183,7 +183,7 @@ serve.handler = async function(argv) {
 
 	if (!port && graph.getRoot().getServerSettings()) {
 		const serverSettings = graph.getRoot().getServerSettings();
-		if (argv.h2) {
+		if (argv.https) {
 			port = serverSettings.httpsPort;
 		} else {
 			port = serverSettings.httpPort;
@@ -192,7 +192,7 @@ serve.handler = async function(argv) {
 
 	if (!port) {
 		changePortIfInUse = true; // only change if port isn't explicitly set
-		if (argv.h2) {
+		if (argv.https) {
 			port = 8443;
 		} else {
 			port = 8080;
@@ -212,12 +212,12 @@ serve.handler = async function(argv) {
 	const serverConfig = {
 		port,
 		changePortIfInUse,
-		h2: argv.h2,
+		https: argv.https,
 		simpleIndex: !!argv.simpleIndex,
 		liveReload: !!liveReload,
 		acceptRemoteConnections: !!argv.acceptRemoteConnections,
-		cert: argv.h2 ? argv.cert : undefined,
-		key: argv.h2 ? argv.key : undefined,
+		cert: argv.https ? argv.cert : undefined,
+		key: argv.https ? argv.key : undefined,
 		sendSAPTargetCSP: !!argv.sapCspPolicies,
 		serveCSPReports: !!argv.serveCspReports,
 		cache: argv.cache,
@@ -230,7 +230,7 @@ serve.handler = async function(argv) {
 		dependencyDefinitionPath: argv.dependencyDefinition,
 	};
 
-	if (serverConfig.h2) {
+	if (serverConfig.https) {
 		const {getSslCertificate} = await import("@ui5/server/internal/sslUtil");
 		const {key, cert} = await getSslCertificate(serverConfig.key, serverConfig.cert);
 		serverConfig.key = key;
@@ -244,12 +244,12 @@ serve.handler = async function(argv) {
 	const projectWatcher = await import("@ui5/project/internal/graph/ProjectDefinitionWatcher");
 	// Pass buildGraph as the graphFactory so the server can re-resolve the graph and re-create
 	// the serving stack when its definition watcher observes a project-definition change.
-	const {h2, port: actualPort} = await serverServe(graph, serverConfig, function(err) {
+	const {https, port: actualPort} = await serverServe(graph, serverConfig, function(err) {
 		reject(err);
 	}, buildGraph, projectWatcher);
 
 	if (argv.open !== undefined) {
-		const protocol = h2 ? "https" : "http";
+		const protocol = https ? "https" : "http";
 		let browserUrl = protocol + "://localhost:" + actualPort;
 		if (typeof argv.open === "string") {
 			let relPath = argv.open || "/";

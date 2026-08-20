@@ -208,18 +208,9 @@ class Supervisor extends EventEmitter {
 
 	async #init(graph) {
 		const {
-			port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
+			port: requestedPort, changePortIfInUse = false, https = false, key, cert,
 			acceptRemoteConnections = false, liveReload = false,
 		} = this.#config;
-
-		if (h2) {
-			const nodeVersion = parseInt(process.versions.node.split(".")[0], 10);
-			if (nodeVersion >= 24) {
-				log.error("ERROR: With Node v24, usage of HTTP/2 is no longer supported. " +
-					"Please check https://github.com/UI5/cli/issues/327 for updates.");
-				process.exit(1);
-			}
-		}
 
 		// Build the initial stack before binding so a construction failure surfaces to the caller.
 		this.#stack = await buildApp(graph, this.#config, this.#error, this.#getDegradedError);
@@ -235,8 +226,8 @@ class Supervisor extends EventEmitter {
 		// delegate to it before rethrowing. create() rethrows without handing the instance out, so
 		// the move to DESTROYED is not observable.
 		try {
-			const listenTarget = h2 ?
-				await addSsl({app: dispatcher, key, cert}) :
+			const listenTarget = https ?
+				addSsl({app: dispatcher, key, cert}) :
 				http.createServer(dispatcher);
 			const {port, server} =
 				await listen(listenTarget, requestedPort, changePortIfInUse, acceptRemoteConnections);
@@ -258,7 +249,7 @@ class Supervisor extends EventEmitter {
 			// stack is live. Only meaningful with a graphFactory (no factory means reinitialize is a no-op).
 			await this.#startDefinitionWatcher(graph);
 
-			announceListening({port, h2, acceptRemoteConnections});
+			announceListening({port, https, acceptRemoteConnections});
 		} catch (err) {
 			await this.destroy();
 			throw err;
