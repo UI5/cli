@@ -228,7 +228,7 @@ A project graph can be served only once. Do not call both `serveMiddleware` and 
 :::
 
 ## SSL Certificates
-When starting the UI5 Server in HTTPS- or HTTP/2 mode, for example by using UI5 CLI parameter `--h2`, you will be prompted for the automatic generation of a local SSL certificate if necessary.
+When starting the UI5 Server in HTTPS mode, for example by using UI5 CLI parameter `--https`, you will be prompted for the automatic generation of a local SSL certificate if necessary.
 
 Follow the given instructions and enter your password to install the generated certificate as trusted. You can find the generated certificate and corresponding private key under `.ui5/server` in your user's home directory.
 

@@ -13,7 +13,7 @@ function getDefaultArgv() {
 		"logLevel": "info",
 		"perf": false,
 		"silent": false,
-		"h2": false,
+		"https": false,
 		"simple-index": false,
 		"simpleIndex": false,
 		"accept-remote-connections": false,
@@ -46,7 +46,7 @@ test.beforeEach(async (t) => {
 			t.context.serverErrorCallback = errorCallback;
 			t.context.handlerReadyResolvers.resolve();
 			return {
-				h2: false,
+				https: false,
 				port: 8080
 			};
 		})
@@ -134,7 +134,7 @@ test.serial("ui5 serve: default", async (t) => {
 		cache: undefined,
 		cert: undefined,
 		changePortIfInUse: true,
-		h2: false,
+		https: false,
 		key: undefined,
 		port: 8080,
 		sendSAPTargetCSP: false,
@@ -150,7 +150,7 @@ test.serial("ui5 serve: default", async (t) => {
 	t.is(typeof server.serve.getCall(0).args[2], "function");
 });
 
-test.serial("ui5 serve --h2", async (t) => {
+test.serial("ui5 serve --https", async (t) => {
 	const {argv, serve, graph, server, fakeGraph, sslUtil} = t.context;
 
 	sslUtil.getSslCertificate.resolves({
@@ -161,10 +161,10 @@ test.serial("ui5 serve --h2", async (t) => {
 	server.serve.callsFake((graph, config, errorCallback, graphFactory) => {
 		t.context.serverErrorCallback = errorCallback;
 		t.context.handlerReadyResolvers.resolve();
-		return {h2: true, port: 8443};
+		return {https: true, port: 8443};
 	});
 
-	argv.h2 = true;
+	argv.https = true;
 
 	serve.handler(argv);
 	await t.context.handlerReady;
@@ -178,7 +178,7 @@ test.serial("ui5 serve --h2", async (t) => {
 		acceptRemoteConnections: false,
 		cache: undefined,
 		changePortIfInUse: true,
-		h2: true,
+		https: true,
 		key: "random-key",
 		cert: "random-cert",
 		port: 8443,
@@ -215,7 +215,7 @@ test.serial("ui5 serve --accept-remote-connections", async (t) => {
 		cache: undefined,
 		cert: undefined,
 		changePortIfInUse: true,
-		h2: false,
+		https: false,
 		key: undefined,
 		port: 8080,
 		sendSAPTargetCSP: false,
@@ -505,7 +505,7 @@ test.serial("ui5 serve with ui5.yaml port setting", async (t) => {
 	server.serve.callsFake((graph, config, errorCallback, graphFactory) => {
 		t.context.serverErrorCallback = errorCallback;
 		t.context.handlerReadyResolvers.resolve();
-		return {h2: false, port: 3333};
+		return {https: false, port: 3333};
 	});
 
 	serve.handler(argv);
@@ -516,7 +516,7 @@ test.serial("ui5 serve with ui5.yaml port setting", async (t) => {
 	t.is(server.serve.getCall(0).args[1].changePortIfInUse, false);
 });
 
-test.serial("ui5 serve --h2 with ui5.yaml port setting", async (t) => {
+test.serial("ui5 serve --https with ui5.yaml port setting", async (t) => {
 	const {argv, serve, server, sslUtil, getServerSettings} = t.context;
 
 	sslUtil.getSslCertificate.resolves({
@@ -531,10 +531,10 @@ test.serial("ui5 serve --h2 with ui5.yaml port setting", async (t) => {
 	server.serve.callsFake((graph, config, errorCallback, graphFactory) => {
 		t.context.serverErrorCallback = errorCallback;
 		t.context.handlerReadyResolvers.resolve();
-		return {h2: true, port: 4444};
+		return {https: true, port: 4444};
 	});
 
-	argv.h2 = true;
+	argv.https = true;
 
 	serve.handler(argv);
 	await t.context.handlerReady;
@@ -542,10 +542,10 @@ test.serial("ui5 serve --h2 with ui5.yaml port setting", async (t) => {
 	t.is(server.serve.callCount, 1);
 	t.is(server.serve.getCall(0).args[1].port, 4444);
 	t.is(server.serve.getCall(0).args[1].changePortIfInUse, false);
-	t.is(server.serve.getCall(0).args[1].h2, true);
+	t.is(server.serve.getCall(0).args[1].https, true);
 });
 
-test.serial("ui5 serve --h2 with ui5.yaml port setting and port CLI argument", async (t) => {
+test.serial("ui5 serve --https with ui5.yaml port setting and port CLI argument", async (t) => {
 	const {argv, serve, server, sslUtil, getServerSettings} = t.context;
 
 	sslUtil.getSslCertificate.resolves({
@@ -560,10 +560,10 @@ test.serial("ui5 serve --h2 with ui5.yaml port setting and port CLI argument", a
 	server.serve.callsFake((graph, config, errorCallback, graphFactory) => {
 		t.context.serverErrorCallback = errorCallback;
 		t.context.handlerReadyResolvers.resolve();
-		return {h2: true, port: 5555};
+		return {https: true, port: 5555};
 	});
 
-	argv.h2 = true;
+	argv.https = true;
 	argv.port = 5555;
 
 	serve.handler(argv);

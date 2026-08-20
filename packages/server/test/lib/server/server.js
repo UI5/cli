@@ -3,7 +3,7 @@ import sinon from "sinon";
 import esmock from "esmock";
 
 // server.js is now a thin wrapper over Supervisor: it generates the live-reload token, builds
-// the config, delegates to Supervisor.create(), and shapes the {h2, port, close, reinitialize}
+// the config, delegates to Supervisor.create(), and shapes the {https, port, close, reinitialize}
 // result. These tests exercise that wrapper; the swap/relay/dispatcher behavior lives in
 // serve/Supervisor.js and is covered there.
 
@@ -32,14 +32,14 @@ test.afterEach.always(() => {
 	sinon.restore();
 });
 
-test("serve() delegates to Supervisor.create and returns port/h2/close/reinitialize", async (t) => {
+test("serve() delegates to Supervisor.create and returns port/https/close/reinitialize", async (t) => {
 	const {supervisor, Supervisor} = createSupervisorMock({port: 3000});
 	const {serve} = await importServe(Supervisor);
 	const graph = {};
 	const graphFactory = sinon.stub();
 	const projectWatcher = {default: {}, RecoveryBudget: class {}};
 
-	const result = await serve(graph, {port: 3000, h2: false, liveReload: true}, undefined, graphFactory,
+	const result = await serve(graph, {port: 3000, https: false, liveReload: true}, undefined, graphFactory,
 		projectWatcher);
 
 	t.true(Supervisor.create.calledOnce);
@@ -50,7 +50,7 @@ test("serve() delegates to Supervisor.create and returns port/h2/close/reinitial
 	t.is(typeof config.webSocketToken, "string", "a token is generated when liveReload is active");
 	t.is(config.webSocketToken.length, 12, "the token is 72 bits base64url-encoded to 12 characters");
 	t.is(result.port, 3000);
-	t.is(result.h2, false);
+	t.is(result.https, false);
 	t.is(typeof result.close, "function");
 	t.is(typeof result.reinitialize, "function");
 
