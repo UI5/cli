@@ -17,7 +17,8 @@ function getMockProject() {
 		getSpecVersion: () => {
 			return {
 				toString: () => "2.6",
-				gte: () => true
+				gte: () => true,
+				lt: () => true
 			};
 		},
 		getMinificationExcludes: emptyarray,
@@ -187,7 +188,8 @@ test("Standard build with legacy spec version", (t) => {
 	project.getSpecVersion = () => {
 		return {
 			toString: () => "0.1",
-			gte: () => false
+			gte: () => false,
+			lt: () => true
 		};
 	};
 
@@ -507,7 +509,8 @@ test("Minification excludes not applied for legacy specVersion", (t) => {
 	project.getSpecVersion = () => {
 		return {
 			toString: () => "2.5",
-			gte: () => false
+			gte: () => false,
+			lt: () => true
 		};
 	};
 	project.getMinificationExcludes = () => ["**.html"];
@@ -639,6 +642,42 @@ test("buildThemes: Project is not root", (t) => {
 		}
 	}, "Correct buildThemes task definition");
 });
+test("generateLibraryManifest: specVersion 5.0, non-framework project", (t) => {
+	const {project, taskUtil, getTask} = t.context;
+
+	project.getSpecVersion = () => {
+		return {
+			toString: () => "5.0",
+			gte: () => true,
+			lt: () => false
+		};
+	};
+	project.isFrameworkProject = () => false;
+
+	const tasks = library({project, taskUtil, getTask});
+
+	t.deepEqual(tasks.get("generateLibraryManifest"), {taskFunction: null},
+		"generateLibraryManifest is skipped for non-framework libraries on specVersion 5.0");
+});
+
+test("generateLibraryManifest: specVersion 5.0, framework project", (t) => {
+	const {project, taskUtil, getTask} = t.context;
+
+	project.getSpecVersion = () => {
+		return {
+			toString: () => "5.0",
+			gte: () => true,
+			lt: () => false
+		};
+	};
+	project.isFrameworkProject = () => true;
+
+	const tasks = library({project, taskUtil, getTask});
+
+	t.deepEqual(tasks.get("generateLibraryManifest"), {},
+		"generateLibraryManifest runs for framework libraries on specVersion 5.0");
+});
+
 test("buildThemes: CSS Variables enabled", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 	taskUtil.getBuildOption.returns(true);
