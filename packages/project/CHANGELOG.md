@@ -4,6 +4,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v4.0.6...HEAD).
 
+## [5.0.0-alpha.9](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.8...project-v5.0.0-alpha.9) (2026-08-21)
+
+
+### Bug Fixes
+
+* **project:** Prevent npm config from reading UI5 CLI args ([3c62f0b](https://github.com/UI5/cli/commit/3c62f0b6236e86fdd9395b0b1d0b68f124c9e146))
+
+
+### Dependencies
+
+* Bump @npmcli/config from 10.12.0 to 11.0.1 ([#1494](https://github.com/UI5/cli/issues/1494)) ([9352f88](https://github.com/UI5/cli/commit/9352f88a6271d1698f48316db0cff3adb1882b59))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/fs bumped from ^5.0.0-alpha.8 to ^5.0.0-alpha.9
+    * @ui5/logger bumped from ^5.0.0-alpha.8 to ^5.0.0-alpha.9
+  * peerDependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.8 to ^5.0.0-alpha.9
+
 ## [5.0.0-alpha.8](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.7...project-v5.0.0-alpha.8) (2026-08-14)
 
 
