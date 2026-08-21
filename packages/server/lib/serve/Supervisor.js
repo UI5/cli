@@ -1,11 +1,10 @@
-import http from "node:http";
 import path from "node:path";
 import process from "node:process";
 import {EventEmitter} from "node:events";
 import {getLogger} from "@ui5/logger";
 import buildApp from "./stack.js";
 import attachLiveReloadServer from "../liveReload/server.js";
-import {listen, addSsl, announceListening} from "./httpListener.js";
+import {createServer, listen, announceListening} from "./httpListener.js";
 
 const log = getLogger("server:Supervisor");
 
@@ -226,11 +225,9 @@ class Supervisor extends EventEmitter {
 		// delegate to it before rethrowing. create() rethrows without handing the instance out, so
 		// the move to DESTROYED is not observable.
 		try {
-			const listenTarget = https ?
-				addSsl({app: dispatcher, key, cert}) :
-				http.createServer(dispatcher);
-			const {port, server} =
-				await listen(listenTarget, requestedPort, changePortIfInUse, acceptRemoteConnections);
+			const server = createServer({https, key, cert}, dispatcher);
+			const {port} =
+				await listen(server, requestedPort, changePortIfInUse, acceptRemoteConnections);
 			this.#httpServer = server;
 			this.#port = port;
 
