@@ -5,14 +5,13 @@ import {getSslCertificate} from "../../../lib/sslUtil.js";
 import {graphFromPackageDependencies} from "@ui5/project/graph";
 import {isolatedUi5DataDir} from "../../utils/buildCacheIsolation.js";
 import path from "node:path";
+import https from "node:https";
 
 let request;
 let server;
 
 // Start server before running tests
 test.before(async (t) => {
-	process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0";
-
 	const graph = await graphFromPackageDependencies({
 		cwd: "./test/fixtures/application.a"
 	});
@@ -28,7 +27,11 @@ test.before(async (t) => {
 		cert,
 		ui5DataDir: isolatedUi5DataDir(t),
 	});
-	request = supertest("https://localhost:3366");
+	const agent = new https.Agent({
+		ca: cert,
+		rejectUnauthorized: true,
+	});
+	request = supertest.agent("https://localhost:3366", {httpsAgent: agent});
 });
 
 test.after(() => {
