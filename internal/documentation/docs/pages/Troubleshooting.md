@@ -18,7 +18,7 @@ UI5 CLI stores several kinds of data under your user's home directory in `~/.ui5
 | ---- | ---- | ---- |
 | `~/.ui5/framework/` | Downloaded UI5 framework dependencies (one copy per version) | Yes — re-downloaded on next invocation |
 | `~/.ui5/buildCache/` | Build cache used by `ui5 build` and `ui5 serve` (see [Build Cache Control](./Builder.md#build-cache-control)) | Yes — rebuilt on next `ui5 build` / `ui5 serve` |
-| `~/.ui5/server/` | Locally generated SSL certificate and private key for HTTPS / HTTP/2 mode | Yes — regenerated on next HTTPS server start; the new certificate must be re-trusted |
+| `~/.ui5/server/` | Locally generated SSL certificate and private key for HTTPS mode | Yes — regenerated on next HTTPS server start; the new certificate must be re-trusted |
 
 #### Resolution
 

@@ -43,7 +43,7 @@ const log = getLogger("server");
  * @public
  * @typedef {object} module:@ui5/server~ServerInstance
  * @property {number} port Port the server is listening on
- * @property {boolean} h2 Whether HTTP/2 is used
+ * @property {boolean} https Whether HTTPS is used
  * @property {module:@ui5/server~closeServer} close Stops the server
  * @property {Function} reinitialize Re-creates the serving stack. Returns a <code>Promise</code>
  * 						that resolves once the new stack is in place. A no-op when no
@@ -59,7 +59,7 @@ const log = getLogger("server");
  * @param {object} options Options
  * @param {number} options.port Port to listen to
  * @param {boolean} [options.changePortIfInUse=false] If true, change the port if it is already in use
- * @param {boolean} [options.h2=false] Whether HTTP/2 should be used - defaults to <code>http</code>
+ * @param {boolean} [options.https=false] Whether HTTPS should be used - defaults to <code>http</code>
  * @param {string} [options.key] Path to private key to be used for https
  * @param {string} [options.cert] Path to certificate to be used for for https
  * @param {boolean} [options.simpleIndex=false] Use a simplified view for the server directory listing
@@ -100,7 +100,7 @@ const log = getLogger("server");
  * @returns {Promise<module:@ui5/server~ServerInstance>} Promise resolving once the server is listening
  */
 export async function serve(graph, {
-	port, changePortIfInUse = false, h2 = false, key, cert,
+	port, changePortIfInUse = false, https = false, key, cert,
 	acceptRemoteConnections = false, sendSAPTargetCSP = false,
 	simpleIndex = false, liveReload = false, serveCSPReports = false, cache = "Default",
 	ui5DataDir, includedTasks, excludedTasks,
@@ -116,7 +116,7 @@ export async function serve(graph, {
 		null;
 
 	const config = {
-		port, changePortIfInUse, h2, key, cert,
+		port, changePortIfInUse, https, key, cert,
 		acceptRemoteConnections, sendSAPTargetCSP,
 		simpleIndex, liveReload, serveCSPReports, cache,
 		ui5DataDir, includedTasks, excludedTasks, webSocketToken,
@@ -132,7 +132,7 @@ export async function serve(graph, {
 	}
 
 	return {
-		h2,
+		https,
 		port: supervisor.getPort(),
 		close: function(callback) {
 			const p = supervisor.destroy();

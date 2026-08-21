@@ -655,7 +655,7 @@ server:
 
 :::
 
-By default, UI5 CLI will serve applications using Port `8080`. When running in HTTP/2 or HTTPS mode, Port `8443` will be used.
+By default, UI5 CLI will serve applications using Port `8080`. When running in HTTPS mode, Port `8443` will be used.
 
 If the default port is already in use, the next highest free port will be used.
 
