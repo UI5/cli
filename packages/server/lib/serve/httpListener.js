@@ -1,4 +1,5 @@
 import os from "node:os";
+import http from "node:http";
 import https from "node:https";
 import portscanner from "portscanner";
 
@@ -11,16 +12,35 @@ import portscanner from "portscanner";
  */
 
 /**
+ * Creates the Node server for the given config, wiring the request handler in. HTTPS when a key/cert
+ * pair is configured, plain HTTP otherwise. The returned server is not yet bound; pass it to
+ * {@link listen}.
+ *
+ * @param {object} parameters
+ * @param {boolean} parameters.https Whether to create an HTTPS server
+ * @param {string} [parameters.key] Private key to be used for https
+ * @param {string} [parameters.cert] Certificate to be used for https
+ * @param {Function} requestHandler The request handler to serve
+ * @returns {object} The (unbound) http/https server
+ * @private
+ */
+export function createServer({https: useHttps, key, cert}, requestHandler) {
+	return useHttps ?
+		https.createServer({key, cert}, requestHandler) :
+		http.createServer(requestHandler);
+}
+
+/**
  * Binds an HTTP/HTTPS server to a free port and resolves once it is listening.
  *
- * @param {object} app The http/https server to listen with
+ * @param {object} server The http/https server to listen with
  * @param {number} port Desired port to listen to
  * @param {boolean} changePortIfInUse If true and the port is already in use, an unused port is searched
  * @param {boolean} acceptRemoteConnections If true, listens to remote connections and not only to localhost
  * @returns {Promise<object>} Resolves with the bound <code>port</code> and the <code>server</code> instance
  * @private
  */
-export function listen(app, port, changePortIfInUse, acceptRemoteConnections) {
+export function listen(server, port, changePortIfInUse, acceptRemoteConnections) {
 	return new Promise(function(resolve, reject) {
 		const options = {};
 
@@ -51,7 +71,7 @@ export function listen(app, port, changePortIfInUse, acceptRemoteConnections) {
 			}
 
 			options.port = foundPort;
-			const server = app.listen(options, function() {
+			server.listen(options, function() {
 				resolve({port: options.port, server});
 			});
 
@@ -60,20 +80,6 @@ export function listen(app, port, changePortIfInUse, acceptRemoteConnections) {
 			});
 		});
 	});
-}
-
-/**
- * Wraps a request handler in an HTTPS server.
- *
- * @param {object} parameters
- * @param {Function} parameters.app The request handler to serve over HTTPS
- * @param {string} parameters.key Path to private key to be used for https
- * @param {string} parameters.cert Path to certificate to be used for for https
- * @returns {object} The https server
- * @private
- */
-export function addSsl({app, key, cert}) {
-	return https.createServer({key, cert}, app);
 }
 
 /**

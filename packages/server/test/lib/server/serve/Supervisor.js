@@ -25,7 +25,10 @@ function createMocks({stacks, buildAppImpl, definitionWatcherCreate} = {}) {
 
 	const createdHandlers = [];
 	const listen = sinon.stub().resolves({port: 3000, server: httpServer});
-	const addSsl = sinon.stub().callsFake(({app}) => app);
+	const createServer = sinon.stub().callsFake((config, requestHandler) => {
+		createdHandlers.push(requestHandler);
+		return httpServer;
+	});
 	const announceListening = sinon.stub();
 
 	const liveReloadHandle = {close: sinon.stub()};
@@ -65,24 +68,14 @@ function createMocks({stacks, buildAppImpl, definitionWatcherCreate} = {}) {
 		return stackQueue.shift();
 	});
 
-	const httpMock = {
-		default: {
-			createServer: sinon.stub().callsFake((handler) => {
-				createdHandlers.push(handler);
-				return httpServer;
-			})
-		}
-	};
-
 	const mocks = {
-		"node:http": httpMock,
 		"../../../../lib/serve/stack.js": {default: buildApp},
-		"../../../../lib/serve/httpListener.js": {listen, addSsl, announceListening},
+		"../../../../lib/serve/httpListener.js": {createServer, listen, announceListening},
 		"../../../../lib/liveReload/server.js": {default: attachLiveReloadServer},
 	};
 
 	return {
-		mocks, projectWatcher, httpServer, listen, addSsl, announceListening,
+		mocks, projectWatcher, httpServer, createServer, listen, announceListening,
 		attachLiveReloadServer, liveReloadHandle, buildApp, createdHandlers,
 		ProjectDefinitionWatcher, definitionWatchers, waitForProjectGraphSettled,
 	};
@@ -188,7 +181,7 @@ test("request dispatcher retargets to the swapped app after reinitialize()", asy
 
 	const supervisor = await Supervisor.create({}, baseConfig, undefined, graphFactory);
 
-	// The stable request handler passed to http.createServer.
+	// The stable request handler passed to createServer.
 	const dispatcher = createdHandlers[0];
 	dispatcher("req", "res");
 	t.true(app1.calledOnceWithExactly("req", "res"), "routed to app1 before swap");
