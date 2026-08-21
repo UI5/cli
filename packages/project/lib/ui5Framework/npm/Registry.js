@@ -66,7 +66,8 @@ class Registry {
 			definitions,
 			flatten,
 			shorthands,
-			defaults
+			defaults,
+			argv: [], // Prevent reading args from process.argv, which contain our own UI5 CLI args, not npm args
 		});
 
 		await configuration.load(); // Reads through the configurations

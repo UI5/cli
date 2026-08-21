@@ -91,9 +91,38 @@ test.serial("_getPacoteOptions", async (t) => {
 		definitions: "definitions",
 		shorthands: "shorthands",
 		defaults: "defaults",
+		argv: [],
 	});
 
 	t.deepEqual(pacoteOptions, expectedPacoteOptions);
+});
+
+// This test uses the real @npmcli/config (not the mock from beforeEach) to verify that UI5 CLI args present in
+// process.argv do not leak into the resolved npm configuration. @npmcli/config reads process.argv by default and
+// parses recognized npm options from it (see loadCLI() in @npmcli/config); a UI5 CLI arg that happens to be a valid
+// npm option would otherwise override the actual npm config.
+test.serial("_getPacoteOptions does not read npm config from process.argv (real @npmcli/config)", async (t) => {
+	const RealRegistry = (await import("../../../../lib/ui5Framework/npm/Registry.js")).default;
+
+	const registry = new RealRegistry({
+		cwd: process.cwd(),
+		cacheDir: "cacheDir"
+	});
+
+	// --registry is a genuine npm config option. If @npmcli/config read process.argv, this would end up as the
+	// resolved registry instead of the npm default.
+	const spoofedRegistry = "https://___ui5-cli-arg___/";
+	const originalArgv = process.argv;
+	process.argv = [process.execPath, "ui5", "build", `--registry=${spoofedRegistry}`];
+	let pacoteOptions;
+	try {
+		pacoteOptions = await registry._getPacoteOptions();
+	} finally {
+		process.argv = originalArgv;
+	}
+
+	t.not(pacoteOptions.registry, spoofedRegistry,
+		"The registry from process.argv must not leak into the npm configuration");
 });
 
 test.serial("_getPacoteOptions (proxy config set)", async (t) => {
