@@ -95,7 +95,12 @@ export default function({project, taskUtil, getTask}) {
 		}
 	});
 
-	tasks.set("generateLibraryManifest", {});
+	// For specVersion 5.0+, only execute for framework libraries
+	if (project.getSpecVersion().lt("5.0") || project.isFrameworkProject()) {
+		tasks.set("generateLibraryManifest", {});
+	} else {
+		tasks.set("generateLibraryManifest", {taskFunction: null});
+	}
 
 	tasks.set("enhanceManifest", {});
 
