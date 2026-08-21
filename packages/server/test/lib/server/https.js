@@ -5,7 +5,6 @@ import {getSslCertificate} from "../../../lib/sslUtil.js";
 import {graphFromPackageDependencies} from "@ui5/project/graph";
 import {isolatedUi5DataDir} from "../../utils/buildCacheIsolation.js";
 import path from "node:path";
-import https from "node:https";
 
 let request;
 let server;
@@ -27,11 +26,8 @@ test.before(async (t) => {
 		cert,
 		ui5DataDir: isolatedUi5DataDir(t),
 	});
-	const agent = new https.Agent({
-		ca: cert,
-		rejectUnauthorized: true,
-	});
-	request = supertest.agent("https://localhost:3366", {httpsAgent: agent});
+	// Trust the server's self-signed certificate for all requests made through this agent
+	request = supertest.agent("https://localhost:3366").ca(cert);
 });
 
 test.after(() => {
