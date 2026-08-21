@@ -27,7 +27,8 @@ function getMockProject(type) {
 		getMinificationExcludes: emptyarray,
 		getSpecVersion: () => {
 			return {
-				gte: () => false
+				gte: () => false,
+				lt: () => true
 			};
 		},
 		getComponentPreloadPaths: () => [
