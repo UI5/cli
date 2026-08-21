@@ -4,6 +4,26 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v4.0.7...HEAD).
 
+## [5.0.0-alpha.9](https://github.com/UI5/cli/compare/server-v5.0.0-alpha.8...server-v5.0.0-alpha.9) (2026-08-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* The internal Express server has been upgraded from Express 4 to Express 5. Review your custom middleware against the Express 5 migration guide (https://expressjs.com/en/guide/migrating-5/) and adjust it if necessary.
+
+### Dependencies
+
+* Bump express from 4.22.2 to 5.2.1 ([87b2686](https://github.com/UI5/cli/commit/87b26860b83bcb27f910c470d2628c71bb2dd4b6))
+* Bump mime-types from 2.1.35 to 3.0.2 ([356df87](https://github.com/UI5/cli/commit/356df871173eca67c417c00161becf53d82ebc80))
+* Bump serve-index fork to 1.9.2 ([2995381](https://github.com/UI5/cli/commit/29953811d978aeb16c79e8c767236db027d8c648))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.8 to ^5.0.0-alpha.9
+    * @ui5/fs bumped from ^5.0.0-alpha.8 to ^5.0.0-alpha.9
+    * @ui5/logger bumped from ^5.0.0-alpha.8 to ^5.0.0-alpha.9
+  * devDependencies
+    * @ui5/project bumped from ^5.0.0-alpha.8 to ^5.0.0-alpha.9
+
 ## [5.0.0-alpha.8](https://github.com/UI5/cli/compare/server-v5.0.0-alpha.7...server-v5.0.0-alpha.8) (2026-08-14)
 
 
