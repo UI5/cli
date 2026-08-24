@@ -11,9 +11,6 @@ import manifestCreator from "../processors/manifestCreator.js";
 /**
  * Task for creating a library manifest.json from its .library file.
  *
- * **Note:** This task is not executed for projects using Specification Version 5.0 or higher.
- * Libraries must provide a <code>manifest.json</code> in their source directory.
- *
  * @public
  * @function default
  * @static
