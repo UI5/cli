@@ -56,7 +56,7 @@
 		"@ui5/logger": "^5.0.0-alpha.8",
 		"@ui5/project": "^5.0.0-alpha.8",
 		"@ui5/server": "^5.0.0-alpha.8",
-		"chalk": "^5.6.2",
+		"chalk": "^6.0.0",
 		"data-with-position": "^0.5.0",
 		"import-local": "^3.2.0",
 		"js-yaml": "^4.3.1",
