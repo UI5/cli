@@ -11,8 +11,6 @@ Or update your global install via: `npm i --global @ui5/cli@next`
 
 ## Breaking Changes
 
-- **@ui5/builder: `generateLibraryManifest` task is not executed for Specification Version 5.0**
-
 - **All UI5 CLI Modules require Node.js ^22.22.2 || ^24.15.0 || >=26.0.0**
 
 - **@ui5/cli: `ui5 init` defaults to Specification Version 5.0**
@@ -47,9 +45,11 @@ Projects using older **Specification Versions** are expected to be **fully compa
 
 ## generateLibraryManifest Task No Longer Executed
 
-With **Specification Version 5.0**, the [`generateLibraryManifest`](../api/module-@ui5_builder_tasks_generateLibraryManifest) build task is no longer executed. Libraries must provide a `manifest.json` directly in their source directory.
+::: info Specification Version 5.0 only
+This change only applies to library projects that upgrade their `specVersion` to `5.0` in `ui5.yaml`. Projects on **Specification Version 4.0 and lower are not affected**.
+:::
 
-For projects using **Specification Version 4.0 and lower**, the behavior is unchanged.
+With **Specification Version 5.0**, the [`generateLibraryManifest`](../api/module-@ui5_builder_tasks_generateLibraryManifest) build task is no longer executed. Libraries must provide a `manifest.json` directly in their source directory.
 
 **Action required** when upgrading a library project to Specification Version 5.0:
 

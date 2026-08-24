@@ -59,7 +59,7 @@ All available standard tasks are documented under **API -> @ui5/builder -> tasks
 <sup>4</sup> Enabled for projects defining a [bundle configuration](./Configuration.md#custom-bundling)  
 <sup>5</sup> Can be enabled for framework projects via the `includeTask` option. For other projects, this task is skipped  
 <sup>6</sup> Disabled for the server due to a corresponding middleware producing the same output  
-<sup>7</sup> Enabled for Specification Version 4.0 and lower. Not executed for Specification Version 5.0 and higher — libraries must provide a `manifest.json` in their source directory
+<sup>7</sup> Enabled for Specification Version 4.0 and lower, and for framework projects. For other projects using Specification Version 5.0 and higher, this task is skipped
 
 ### minify
 
