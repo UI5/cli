@@ -9,8 +9,10 @@ updates:
   cooldown:
     default-days: 3
   groups:
-    github-actions-all:
+    github-actions:
       applies-to: version-updates
+      patterns:
+      - "*"
 - package-ecosystem: npm
   directory: "/"
   schedule:
@@ -28,7 +30,7 @@ updates:
     prefix: "deps"
     prefix-development: "build(deps-dev)"
   groups:
-    npm-in-range:
+    in-range:
       applies-to: version-updates
       update-types:
       - minor
