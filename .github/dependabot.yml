@@ -7,7 +7,10 @@ updates:
   commit-message:
     prefix: "ci(github-actions)"
   cooldown:
-    default-days: 2
+    default-days: 3
+  groups:
+    github-actions-all:
+      applies-to: version-updates
 - package-ecosystem: npm
   directory: "/"
   schedule:
@@ -16,8 +19,17 @@ updates:
     time: "10:00"
     timezone: Etc/UCT
   cooldown:
-    default-days: 2
+    default-days: 3
+    exclude:
+    - "@ui5/*"
+    - "less-openui5"
   versioning-strategy: increase
   commit-message:
     prefix: "deps"
     prefix-development: "build(deps-dev)"
+  groups:
+    npm-in-range:
+      applies-to: version-updates
+      update-types:
+      - minor
+      - patch
