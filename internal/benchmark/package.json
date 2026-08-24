@@ -17,10 +17,8 @@
 		"coverage": "node --test --experimental-test-coverage 'test/e2e/**/*.js'",
 		"lint": "eslint ."
 	},
-	"dependencies": {
-		"js-yaml": "^4.3.1"
-	},
 	"devDependencies": {
-		"eslint": "^10.7.0"
+		"eslint": "^10.7.0",
+		"js-yaml": "^4.3.1"
 	}
 }

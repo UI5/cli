@@ -28,6 +28,7 @@
 		"lint:commit": "commitlint",
 		"unit": "npm run unit --workspaces --if-present",
 		"unit:summary": "node scripts/unit-summary.js",
+		"check-workspaces": "node scripts/check-workspaces.js",
 		"coverage": "npm run coverage --workspaces --if-present",
 		"knip": "knip --config knip.config.js",
 		"check-engine": "check-engine-light .",

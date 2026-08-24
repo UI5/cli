@@ -12,7 +12,7 @@
 		"test-watch": "node --test --watch 'test/**/*.js'",
 		"lint": "eslint ."
 	},
-	"dependencies": {
+	"devDependencies": {
 		"adm-zip": "^0.6.0",
 		"execa": "^9.6.1"
 	}

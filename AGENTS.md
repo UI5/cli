@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-UI5 CLI v5 — an open, modular toolchain for developing UI5 framework applications. This is a **monorepo** using npm workspaces containing 6 public packages and 2 internal packages. All code uses **ESM** (`"type": "module"`).
+UI5 CLI v5 — an open, modular toolchain for developing UI5 framework applications. This is a **monorepo** using npm workspaces containing 6 public packages and 4 internal packages. All code uses **ESM** (`"type": "module"`).
 
 **Node requirement**: `^22.20.0 || >=24.0.0`
 
@@ -64,6 +64,10 @@ npm run coverage --workspace=@ui5/server  # Single package
 Internal packages:
 - `internal/documentation` — VitePress docs + JSDoc + JSON schema generation
 - `internal/shrinkwrap-extractor` — npm shrinkwrap utilities
+
+### Internal package dependencies
+
+Packages under `internal/*` are private and never published. They MUST declare **all** dependencies as `devDependencies` — declaring a production `"dependencies"` entry is not allowed. Reason: Dependabot derives the commit-message type from prod vs. dev dependency updates (`deps` vs. `build(deps-dev)`) and does not treat internal packages differently, so a production dependency there yields a misleading `deps` commit. A CI check in `.github/workflows/github-ci.yml` ("Check internal packages declare no production dependencies") enforces this.
 
 ## Code Style
 

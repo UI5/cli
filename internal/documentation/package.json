@@ -35,21 +35,19 @@
 		"schema-generate-gh-pages": "node ./scripts/buildSchema.js gh-pages",
 		"download-packages": "./scripts/downloadPackages.sh"
 	},
-	"dependencies": {
+	"devDependencies": {
+		"@apidevtools/json-schema-ref-parser": "^14.2.1",
 		"@tailwindcss/vite": "^4.3.3",
 		"@types/node": "^25.2.2",
 		"autoprefixer": "^10.5.4",
 		"cssnano": "^7.1.9",
+		"handlebars": "^4.7.9",
+		"jsdoc": "^4.0.5",
 		"markdown-it-implicit-figures": "^0.12.0",
 		"postcss": "^8.5.23",
 		"tailwindcss": "^4.2.2",
+		"traverse": "^0.6.11",
 		"vitepress": "^1.6.4",
 		"vue": "^3.5.40"
-	},
-	"devDependencies": {
-		"@apidevtools/json-schema-ref-parser": "^14.2.1",
-		"handlebars": "^4.7.9",
-		"jsdoc": "^4.0.5",
-		"traverse": "^0.6.11"
 	}
 }
