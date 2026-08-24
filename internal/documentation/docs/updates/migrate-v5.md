@@ -375,9 +375,9 @@ With UI5 CLI v5, the `--experimental-css-variables` option has therefore been re
 
 ## Removal of HTTP/2 Support
 
-Support for the HTTP/2 protocol has been removed from the development server. The underlying `spdy` package is unmaintained and does not work with Node.js v24 and higher. HTTP/2 was rarely needed for local development, as browsers handle HTTP/1.1 well.
+The development server no longer supports the HTTP/2 protocol. The underlying `spdy` package is unmaintained and does not work with Node.js v24 and higher. You rarely need HTTP/2 for local development because browsers handle HTTP/1.1 well.
 
-The `--h2` option of the `ui5 serve` command has therefore been removed and replaced by the new `--https` option, which serves the project over HTTPS using Node.js' built-in HTTPS server:
+The `--h2` option for the `ui5 serve` command has therefore been removed. Use the new `--https` option to serve your project over HTTPS using the built-in Node.js HTTPS server:
 
 ```sh
 ui5 serve --https
@@ -385,7 +385,7 @@ ui5 serve --https
 
 Like the previous `--h2` option, `--https` requires an SSL certificate and guides you through the automatic generation process on first use. See the [UI5 Server documentation](../pages/Server.md#ssl-certificates) for details.
 
-If you genuinely need HTTP/2 for local development, put a reverse proxy (e.g. [nginx](https://nginx.org/)) in front of the UI5 Server and let it terminate HTTP/2 towards the browser (manual setup).
+If you need HTTP/2 for local development, manually set up a reverse proxy, for example, [nginx](https://nginx.org/), in front of the UI5 Server to handle the HTTP/2 connection with the browser.
 
 ## `sap-ui-version.json`
 
