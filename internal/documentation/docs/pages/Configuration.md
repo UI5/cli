@@ -814,7 +814,7 @@ Version | UI5 CLI Release
 
 **Breaking changes:**
 
-- The `generateLibraryManifest` build task is no longer executed by default for projects of type `library`. Libraries must provide a `manifest.json` directly in their source directory. See [Migrate to v5: generateLibraryManifest Task No Longer Executed](../updates/migrate-v5.md#generatelibrarymanifest-task-no-longer-executed) for details.
+- The `generateLibraryManifest` build task is no longer executed for projects of type `library`. SAPUI5 distribution libraries (framework projects) are not affected. Libraries must provide a `manifest.json` directly in their source directory. See [Migrate to v5: generateLibraryManifest Task No Longer Executed](../updates/migrate-v5.md#generatelibrarymanifest-task-no-longer-executed) for details.
 
 **Features:**
 
