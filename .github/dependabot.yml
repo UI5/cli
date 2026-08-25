@@ -30,8 +30,13 @@ updates:
     prefix: "deps"
     prefix-development: "build(deps-dev)"
   groups:
-    in-range:
-      applies-to: version-updates
+    npm:
+      dependency-type: production
+      update-types:
+      - minor
+      - patch
+    npm-dev:
+      dependency-type: development
       update-types:
       - minor
       - patch
