@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import {getPackageVersion} from "./createBuildManifest.js";
 
 // Increment signature version to invalidate all existing build signatures
 // (e.g. after making a change that impacts build contents)
@@ -21,11 +22,11 @@ export function getBaseSignature(buildConfig) {
  * @param {@ui5/project/lib/graph/ProjectGraph} graph The project graph
  * @param {@ui5/builder/tasks/taskRepository} taskRepository The task repository (used to determine the effective
  * versions of ui5-builder and ui5-fs)
+ * @returns {Promise<string>} The project build signature as a hexadecimal hash string
  */
-export function getProjectSignature(baseSignature, taskSignatures, project, graph, taskRepository) {
+export async function getProjectSignature(baseSignature, taskSignatures, project, graph, taskRepository) {
 	const key = baseSignature + taskSignatures + project.getId() + JSON.stringify(project.getConfig()) +
-		JSON.stringify(taskRepository.getVersions());
-	// TODO: Add signatures of relevant custom tasks
+		JSON.stringify(await taskRepository.getVersions()) + await getPackageVersion("@ui5/project");
 
 	// Create a hash for all metadata
 	const hash = crypto.createHash("sha256").update(key).digest("hex");
