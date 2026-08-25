@@ -53,8 +53,8 @@ With **Specification Version 5.0**, the [`generateLibraryManifest`](../api/modul
 
 **Action required** when upgrading a library project to Specification Version 5.0:
 
-- Ensure your library has a hand-crafted `manifest.json` in its source directory.
-- If no `manifest.json` is present, the build will no longer generate one automatically.
+- Ensure your library has a `manifest.json` in its source directory. A previously auto-generated one is fully compatible and can be reused as-is.
+- If no `manifest.json` is present, the build will no longer generate one automatically. The build will still succeed without an error — the absence of `manifest.json` will only become apparent at runtime, where it can cause issues such as missing library dependencies, broken i18n resource loading, incorrect theme support, etc.
 
 ::: tip
 To see which standard tasks are executed for each project type, check out the [Standard Tasks](../pages/Builder#standard-tasks) table in the UI5 Builder page.
