@@ -61,7 +61,7 @@
 	},
 	"dependencies": {
 		"@npmcli/config": "^11.0.1",
-		"@parcel/watcher": "^2.5.6",
+		"@parcel/watcher": "^2.6.0",
 		"@ui5/fs": "^5.0.0-alpha.8",
 		"@ui5/logger": "^5.0.0-alpha.8",
 		"ajv": "^8.20.0",
@@ -74,7 +74,7 @@
 		"lockfile": "^1.0.4",
 		"make-fetch-happen": "^15.0.6",
 		"micromatch": "^4.0.8",
-		"node-stream-zip": "^1.15.0",
+		"node-stream-zip": "^1.16.0",
 		"pacote": "^21.5.1",
 		"pretty-hrtime": "^1.0.3",
 		"read-package-up": "^12.0.0",
