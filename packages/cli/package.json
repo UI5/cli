@@ -60,11 +60,11 @@
 		"data-with-position": "^0.5.0",
 		"import-local": "^3.2.0",
 		"js-yaml": "^4.3.1",
-		"open": "^11.0.0",
+		"open": "^11.0.1",
 		"pretty-hrtime": "^1.0.3",
 		"semver": "^7.8.5",
 		"update-notifier": "^7.3.1",
-		"yargs": "^18.0.0",
+		"yargs": "^18.1.0",
 		"yesno": "^0.4.0"
 	},
 	"devDependencies": {
