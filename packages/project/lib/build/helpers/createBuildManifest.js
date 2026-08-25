@@ -3,7 +3,7 @@ import {createRequire} from "node:module";
 // Using CommonsJS require since JSON module imports are still experimental
 const require = createRequire(import.meta.url);
 
-async function getVersion(pkg) {
+export async function getPackageVersion(pkg) {
 	return require(`${pkg}/package.json`).version;
 }
 
@@ -77,8 +77,8 @@ async function createBuildManifest(project, buildConfig, taskRepository, signatu
 		signature,
 		versions: {
 			builderVersion: builderVersion,
-			projectVersion: await getVersion("@ui5/project"),
-			fsVersion: await getVersion("@ui5/fs"),
+			projectVersion: await getPackageVersion("@ui5/project"),
+			fsVersion: await getPackageVersion("@ui5/fs"),
 		},
 		buildConfig,
 		version: project.getVersion(),

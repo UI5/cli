@@ -78,7 +78,7 @@ class ProjectBuildContext {
 		const ctx = new ProjectBuildContext(buildContext, project);
 
 		const taskSignatures = await ctx._taskDefinitions.getBuildSignatures();
-		ctx._buildSignature = getProjectSignature(
+		ctx._buildSignature = await getProjectSignature(
 			baseSignature, taskSignatures, project, buildContext.getGraph(), buildContext.getTaskRepository());
 
 		const cacheMode = buildContext.getBuildConfig().cache;
