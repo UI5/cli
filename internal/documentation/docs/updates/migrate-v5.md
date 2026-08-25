@@ -46,15 +46,15 @@ Projects using older **Specification Versions** are expected to be **fully compa
 ## generateLibraryManifest Task No Longer Executed
 
 ::: info Specification Version 5.0 only
-This change only applies to library projects that upgrade their `specVersion` to `5.0` in `ui5.yaml`. Projects on **Specification Version 4.0 and lower are not affected**.
+This change only applies to library projects that upgrade their `specVersion` to `5.0` in `ui5.yaml`. Projects on **Specification Version 4.0 and lower are not affected**. **SAPUI5 distribution libraries (framework projects) are not affected**.
 :::
 
-With **Specification Version 5.0**, the [`generateLibraryManifest`](../api/module-@ui5_builder_tasks_generateLibraryManifest) build task is no longer executed. Libraries must provide a `manifest.json` directly in their source directory.
+With **Specification Version 5.0**, the [`generateLibraryManifest`](../api/module-@ui5_builder_tasks_generateLibraryManifest) build task is no longer executed for non-framework library projects. Libraries must provide a `manifest.json` directly in their source directory.
 
 **Action required** when upgrading a library project to Specification Version 5.0:
 
 - Ensure your library has a `manifest.json` in its source directory. A previously auto-generated one is fully compatible and can be reused as-is.
-- If no `manifest.json` is present, the build will no longer generate one automatically. The build will still succeed without an error — the absence of `manifest.json` will only become apparent at runtime, where it can cause issues such as missing library dependencies, broken i18n resource loading, incorrect theme support, etc.
+- If no `manifest.json` is present, any UI5 CLI command that resolves the project graph (such as `ui5 build`, `ui5 serve`, or `ui5 tree`) will fail with a descriptive error and a link to this migration guide.
 
 ::: tip
 To see which standard tasks are executed for each project type, check out the [Standard Tasks](../pages/Builder#standard-tasks) table in the UI5 Builder page.
