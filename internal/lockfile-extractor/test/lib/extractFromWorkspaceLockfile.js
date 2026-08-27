@@ -1,6 +1,6 @@
 import path from "node:path";
 import {readFile, mkdir, writeFile, unlink, symlink} from "node:fs/promises";
-import convertPackageLockToShrinkwrap from "../../lib/convertPackageLockToShrinkwrap.js";
+import extractFromWorkspaceLockfile from "../../lib/extractFromWorkspaceLockfile.js";
 import {test} from "node:test";
 import assert from "node:assert";
 import {mock} from "node:test";
@@ -32,7 +32,7 @@ async function setupFixtureSymlink(fixtureDir) {
 	return symlinkPath;
 }
 
-test("Convert package-lock.json to shrinkwrap", async (t) => {
+test("Convert package-lock.json to lockfile", async (t) => {
 	const __dirname = import.meta.dirname;
 
 	const cwd = path.join(__dirname, "..", "fixture", "project.a");
@@ -40,24 +40,24 @@ test("Convert package-lock.json to shrinkwrap", async (t) => {
 	t.after(async () => await unlink(symlinkPath).catch(() => {}));
 
 	const targetPackageName = "@ui5/cli";
-	const shrinkwrapJson = await convertPackageLockToShrinkwrap(cwd, targetPackageName);
+	const lockfileJson = await extractFromWorkspaceLockfile(cwd, targetPackageName);
 
 	// Basic structure validation
-	assert.equal(shrinkwrapJson.name, "@ui5/cli");
-	assert.equal(shrinkwrapJson.version, "4.0.34");
-	assert.equal(shrinkwrapJson.lockfileVersion, 3);
-	assert.equal(shrinkwrapJson.requires, true);
-	assert.ok(shrinkwrapJson.packages);
+	assert.equal(lockfileJson.name, "@ui5/cli");
+	assert.equal(lockfileJson.version, "4.0.34");
+	assert.equal(lockfileJson.lockfileVersion, 3);
+	assert.equal(lockfileJson.requires, true);
+	assert.ok(lockfileJson.packages);
 
 	// Verify root package entry
-	const rootPackage = shrinkwrapJson.packages[""];
+	const rootPackage = lockfileJson.packages[""];
 	assert.ok(rootPackage);
 	assert.equal(rootPackage.name, "@ui5/cli");
 	assert.equal(rootPackage.version, "4.0.34");
 	assert.ok(rootPackage.dependencies);
 
 	// Verify workspace packages are resolved to registry-like URLs
-	const builderDep = shrinkwrapJson.packages["node_modules/@ui5/builder"];
+	const builderDep = lockfileJson.packages["node_modules/@ui5/builder"];
 	assert.ok(builderDep?.resolved, "Builder dependency should have a resolved URL");
 	assert.equal(builderDep.version, "4.1.1");
 	assert.ok(builderDep.resolved.startsWith("https://registry.npmjs.org/"));
@@ -67,21 +67,21 @@ test("Convert package-lock.json to shrinkwrap", async (t) => {
 	assert.ok(builderDep.integrity, "Builder dependency should have integrity from registry");
 
 	// Verify regular dependencies have proper structure
-	const chalkDep = shrinkwrapJson.packages["node_modules/chalk"];
+	const chalkDep = lockfileJson.packages["node_modules/chalk"];
 	assert.ok(chalkDep);
 	assert.equal(chalkDep.version, "5.6.2");
-	const yargsDep = shrinkwrapJson.packages["node_modules/yargs"];
+	const yargsDep = lockfileJson.packages["node_modules/yargs"];
 	assert.ok(yargsDep);
 	assert.equal(yargsDep.version, "17.7.2");
 
 	// Verify only production dependencies are included (no devDependencies)
-	const packagePaths = Object.keys(shrinkwrapJson.packages);
+	const packagePaths = Object.keys(lockfileJson.packages);
 	assert.ok(packagePaths.includes("node_modules/@ui5/builder"));
 	assert.ok(packagePaths.includes("node_modules/chalk"));
 	assert.ok(packagePaths.includes("node_modules/semver"));
 	assert.ok(!packagePaths.includes("node_modules/@eslint/js"));
 
-	console.log(`Generated shrinkwrap with ${packagePaths.length - 1} dependencies`);
+	console.log(`Generated lockfile with ${packagePaths.length - 1} dependencies`);
 });
 
 test("Workspace paths should be normalized to node_modules format", async (t) => {
@@ -92,10 +92,10 @@ test("Workspace paths should be normalized to node_modules format", async (t) =>
 	t.after(async () => await unlink(symlinkPath).catch(() => {}));
 
 	const targetPackageName = "@ui5/cli";
-	const shrinkwrapJson = await convertPackageLockToShrinkwrap(cwd, targetPackageName);
+	const lockfileJson = await extractFromWorkspaceLockfile(cwd, targetPackageName);
 
 	// Verify that no package paths contain workspace prefixes like "packages/cli/node_modules/..."
-	const packagePaths = Object.keys(shrinkwrapJson.packages);
+	const packagePaths = Object.keys(lockfileJson.packages);
 
 	for (const packagePath of packagePaths) {
 		// Skip root package (empty string)
@@ -112,96 +112,96 @@ test("Workspace paths should be normalized to node_modules format", async (t) =>
 
 	// Specifically check a package that would have been under packages/cli/node_modules in the monorepo
 	// The "@npmcli/config" package is a direct dependency that exists in the CLI's node_modules
-	const npmCliConfigPackage = shrinkwrapJson.packages["node_modules/@npmcli/config"];
+	const npmCliConfigPackage = lockfileJson.packages["node_modules/@npmcli/config"];
 	assert.ok(npmCliConfigPackage, "The '@npmcli/config' package should be present at normalized path");
 	assert.equal(npmCliConfigPackage.version, "9.0.0", "@npmcli/config package should have correct version");
 
 	console.log(`✓ All ${packagePaths.length - 1} package paths correctly normalized`);
 });
 
-test("Compare generated shrinkwrap with expected result", async (t) => {
+test("Compare generated lockfile with expected result", async (t) => {
 	// Setup mock to prevent actual npm registry requests
 	const mockRestore = setupPacoteMock();
 	t.after(() => mockRestore());
 
 	const __dirname = import.meta.dirname;
-	const generatedShrinkwrapPath = path.join(__dirname, "..", "tmp", "package.a", "npm-shrinkwrap.generated.json");
+	const generatedLockfilePath = path.join(__dirname, "..", "tmp", "package.a", "package-lock.generated.json");
 	// Clean any existing generated file
-	await mkdir(path.dirname(generatedShrinkwrapPath), {recursive: true});
-	await unlink(generatedShrinkwrapPath).catch(() => {});
+	await mkdir(path.dirname(generatedLockfilePath), {recursive: true});
+	await unlink(generatedLockfilePath).catch(() => {});
 
-	// Generate shrinkwrap from fixture
+	// Generate lockfile from fixture
 	const cwd = path.join(__dirname, "..", "fixture", "project.a");
 	const symlinkPath = await setupFixtureSymlink(cwd);
 	t.after(async () => await unlink(symlinkPath).catch(() => {}));
 
 	const targetPackageName = "@ui5/cli";
-	const generatedShrinkwrap = await convertPackageLockToShrinkwrap(cwd, targetPackageName);
+	const generatedLockfile = await extractFromWorkspaceLockfile(cwd, targetPackageName);
 
-	// Load expected shrinkwrap
-	const expectedShrinkwrapPath = path.join(__dirname, "..", "expected", "package.a", "npm-shrinkwrap.json");
-	const expectedShrinkwrap = await readJson(expectedShrinkwrapPath);
+	// Load expected lockfile
+	const expectedLockfilePath = path.join(__dirname, "..", "expected", "package.a", "package-lock.json");
+	const expectedLockfile = await readJson(expectedLockfilePath);
 
-	// Write generated shrinkwrap to tmp dir for debugging purposes
-	await writeFile(generatedShrinkwrapPath, JSON.stringify(generatedShrinkwrap, null, "\t"), "utf-8");
+	// Write generated lockfile to tmp dir for debugging purposes
+	await writeFile(generatedLockfilePath, JSON.stringify(generatedLockfile, null, "\t"), "utf-8");
 
 	// Compare top-level properties
 	console.log("=== TOP-LEVEL COMPARISON ===");
-	console.log(`Generated name: ${generatedShrinkwrap.name}, Expected name: ${expectedShrinkwrap.name}`);
-	console.log(`Generated version: ${generatedShrinkwrap.version}, Expected version: ${expectedShrinkwrap.version}`);
-	console.log(`Generated lockfileVersion: ${generatedShrinkwrap.lockfileVersion},` +
-		` Expected lockfileVersion: ${expectedShrinkwrap.lockfileVersion}`);
-	console.log(`Generated requires: ${generatedShrinkwrap.requires}, ` +
-		`Expected requires: ${expectedShrinkwrap.requires}`);
+	console.log(`Generated name: ${generatedLockfile.name}, Expected name: ${expectedLockfile.name}`);
+	console.log(`Generated version: ${generatedLockfile.version}, Expected version: ${expectedLockfile.version}`);
+	console.log(`Generated lockfileVersion: ${generatedLockfile.lockfileVersion},` +
+		` Expected lockfileVersion: ${expectedLockfile.lockfileVersion}`);
+	console.log(`Generated requires: ${generatedLockfile.requires}, ` +
+		`Expected requires: ${expectedLockfile.requires}`);
 
 	// Compare root package entries
 	console.log("\n=== ROOT PACKAGE COMPARISON ===");
-	const generatedRoot = generatedShrinkwrap.packages[""];
-	const expectedRoot = expectedShrinkwrap.packages[""];
+	const generatedRoot = generatedLockfile.packages[""];
+	const expectedRoot = expectedLockfile.packages[""];
 	console.log(`Generated root keys: ${Object.keys(generatedRoot).sort().join(", ")}`);
 	console.log(`Expected root keys: ${Object.keys(expectedRoot).sort().join(", ")}`);
 
 	// Compare package counts
 	console.log("\n=== PACKAGE COUNT COMPARISON ===");
-	const generatedPackageKeys = Object.keys(generatedShrinkwrap.packages);
-	const expectedPackageKeys = Object.keys(expectedShrinkwrap.packages);
+	const generatedPackageKeys = Object.keys(generatedLockfile.packages);
+	const expectedPackageKeys = Object.keys(expectedLockfile.packages);
 	console.log(`Generated packages: ${generatedPackageKeys.length}`);
 	console.log(`Expected packages: ${expectedPackageKeys.length}`);
 
-	assert.deepEqual(generatedShrinkwrap.packages, expectedShrinkwrap.packages,
-		"Generated shrinkwrap packages should match expected");
+	assert.deepEqual(generatedLockfile.packages, expectedLockfile.packages,
+		"Generated lockfile packages should match expected");
 });
 
 
-test("Compare generated shrinkwrap with expected result", async (t) => {
+test("Compare generated lockfile with expected result", async (t) => {
 	// Setup mock to prevent actual npm registry requests
 	const mockRestore = setupPacoteMock();
 	t.after(() => mockRestore());
 
 	const __dirname = import.meta.dirname;
-	const generatedShrinkwrapPath = path.join(__dirname, "..", "tmp", "package.b", "npm-shrinkwrap.generated.json");
+	const generatedLockfilePath = path.join(__dirname, "..", "tmp", "package.b", "package-lock.generated.json");
 	// Clean any existing generated file
-	await mkdir(path.dirname(generatedShrinkwrapPath), {recursive: true});
-	await unlink(generatedShrinkwrapPath).catch(() => {});
+	await mkdir(path.dirname(generatedLockfilePath), {recursive: true});
+	await unlink(generatedLockfilePath).catch(() => {});
 
-	// Generate shrinkwrap from fixture
+	// Generate lockfile from fixture
 	const cwd = path.join(__dirname, "..", "fixture", "project.b");
 	const symlinkPath = await setupFixtureSymlink(cwd);
 	t.after(async () => await unlink(symlinkPath).catch(() => {}));
 
 	const targetPackageName = "@ui5/cli";
 
-	const generatedShrinkwrap = await convertPackageLockToShrinkwrap(cwd, targetPackageName);
+	const generatedLockfile = await extractFromWorkspaceLockfile(cwd, targetPackageName);
 
-	// Load expected shrinkwrap
-	const expectedShrinkwrapPath = path.join(__dirname, "..", "expected", "package.b", "npm-shrinkwrap.json");
-	const expectedShrinkwrap = await readJson(expectedShrinkwrapPath);
+	// Load expected lockfile
+	const expectedLockfilePath = path.join(__dirname, "..", "expected", "package.b", "package-lock.json");
+	const expectedLockfile = await readJson(expectedLockfilePath);
 
-	// Write generated shrinkwrap to tmp dir for debugging purposes
-	await writeFile(generatedShrinkwrapPath, JSON.stringify(generatedShrinkwrap, null, "\t"), "utf-8");
+	// Write generated lockfile to tmp dir for debugging purposes
+	await writeFile(generatedLockfilePath, JSON.stringify(generatedLockfile, null, "\t"), "utf-8");
 
-	assert.deepEqual(generatedShrinkwrap.packages, expectedShrinkwrap.packages,
-		"Generated shrinkwrap packages should match expected");
+	assert.deepEqual(generatedLockfile.packages, expectedLockfile.packages,
+		"Generated lockfile packages should match expected");
 });
 
 test("Optional peer dependencies with null edges should be excluded", async (t) => {
@@ -214,16 +214,16 @@ test("Optional peer dependencies with null edges should be excluded", async (t) 
 	const symlinkPath = await setupFixtureSymlink(cwd);
 	t.after(async () => await unlink(symlinkPath).catch(() => {}));
 
-	const shrinkwrapJson = await convertPackageLockToShrinkwrap(cwd, "@ui5/cli");
+	const lockfileJson = await extractFromWorkspaceLockfile(cwd, "@ui5/cli");
 
 	// ws itself must be present (it is a real production dep of @ui5/server)
-	assert.ok(shrinkwrapJson.packages["node_modules/ws"],
-		"ws should be included in the shrinkwrap");
+	assert.ok(lockfileJson.packages["node_modules/ws"],
+		"ws should be included in the lockfile");
 
 	// Its optional peer deps are not installed and must NOT appear
-	assert.equal(shrinkwrapJson.packages["node_modules/bufferutil"], undefined,
+	assert.equal(lockfileJson.packages["node_modules/bufferutil"], undefined,
 		"bufferutil (optional peerDep of ws) must not be included");
-	assert.equal(shrinkwrapJson.packages["node_modules/utf-8-validate"], undefined,
+	assert.equal(lockfileJson.packages["node_modules/utf-8-validate"], undefined,
 		"utf-8-validate (optional peerDep of ws) must not be included");
 });
 
@@ -235,17 +235,17 @@ test("Error handling - invalid target package name", async (t) => {
 	t.after(async () => await unlink(symlinkPath).catch(() => {}));
 
 	await assert.rejects(
-		convertPackageLockToShrinkwrap(validCwd, null),
+		extractFromWorkspaceLockfile(validCwd, null),
 		/Invalid target package name: must be a non-empty string/
 	);
 
 	await assert.rejects(
-		convertPackageLockToShrinkwrap(validCwd, ""),
+		extractFromWorkspaceLockfile(validCwd, ""),
 		/Invalid target package name: must be a non-empty string/
 	);
 
 	await assert.rejects(
-		convertPackageLockToShrinkwrap(validCwd, "   "),
+		extractFromWorkspaceLockfile(validCwd, "   "),
 		/Invalid target package name: must be a non-empty string/
 	);
 });
@@ -257,14 +257,14 @@ test("Error handling - target package not found", async (t) => {
 	t.after(async () => await unlink(symlinkPath).catch(() => {}));
 
 	await assert.rejects(
-		convertPackageLockToShrinkwrap(validCwd, "non-existent-package"),
+		extractFromWorkspaceLockfile(validCwd, "non-existent-package"),
 		/Target package "non-existent-package" not found in workspace/
 	);
 });
 
 test("Error handling - invalid workspace directory", async (t) => {
 	await assert.rejects(
-		convertPackageLockToShrinkwrap("/non/existent/path", "@ui5/cli"),
+		extractFromWorkspaceLockfile("/non/existent/path", "@ui5/cli"),
 		/ENOENT.*package-lock\.json/
 	);
 });
@@ -292,25 +292,25 @@ test("Error handling - invalid package-lock.json files", async (t) => {
 
 	// Test malformed JSON
 	await assert.rejects(
-		convertPackageLockToShrinkwrap(malformedDir, "@ui5/cli"),
+		extractFromWorkspaceLockfile(malformedDir, "@ui5/cli"),
 		/Unexpected token/
 	);
 
 	// Test missing packages field
 	await assert.rejects(
-		convertPackageLockToShrinkwrap(noPackagesDir, "@ui5/cli"),
+		extractFromWorkspaceLockfile(noPackagesDir, "@ui5/cli"),
 		/Invalid package-lock\.json: missing packages field/
 	);
 
 	// Test invalid packages field
 	await assert.rejects(
-		convertPackageLockToShrinkwrap(invalidPackagesDir, "@ui5/cli"),
+		extractFromWorkspaceLockfile(invalidPackagesDir, "@ui5/cli"),
 		/Invalid package-lock\.json: packages field must be an object/
 	);
 
 	// Test unsupported lockfile version
 	await assert.rejects(
-		convertPackageLockToShrinkwrap(v2Dir, "@ui5/cli"),
+		extractFromWorkspaceLockfile(v2Dir, "@ui5/cli"),
 		/Unsupported lockfile version: 2\. Only lockfile version 3 is supported/
 	);
 });

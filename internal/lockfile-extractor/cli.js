@@ -2,7 +2,7 @@
 
 import {readFile, writeFile} from "node:fs/promises";
 import {join} from "node:path";
-import convertPackageLockToShrinkwrap from "./lib/convertPackageLockToShrinkwrap.js";
+import extractFromWorkspaceLockfile from "./lib/extractFromWorkspaceLockfile.js";
 
 async function main() {
 	const args = process.argv.slice(2);
@@ -10,14 +10,14 @@ async function main() {
 	// Validate arguments
 	if (args.length !== 1) {
 		console.error("Error: Expected exactly 1 argument");
-		console.error("Usage: shrinkwrap-extractor <path-to-workspace-root>");
+		console.error("Usage: lockfile-extractor <path-to-workspace-root>");
 		process.exit(1);
 	}
 
 	const [workspaceRootPath] = args;
 
 	try {
-		console.log(`Generating shrinkwrap in: ${process.cwd()}`);
+		console.log(`Generating lockfile in: ${process.cwd()}`);
 		console.log(`Using workspace root: ${workspaceRootPath}`);
 
 		// Read and parse package.json
@@ -33,17 +33,17 @@ async function main() {
 
 		console.log(`Converting dependencies for package: ${packageName}`);
 
-		// Extract into shrinkwrap
-		const shrinkwrap = await convertPackageLockToShrinkwrap(workspaceRootPath, packageName);
+		// Extract into lockfile
+		const lockfile = await extractFromWorkspaceLockfile(workspaceRootPath, packageName);
 
-		// Write npm-shrinkwrap.json to current working directory
-		const outputPath = join(process.cwd(), "npm-shrinkwrap.json");
-		const shrinkwrapContent = JSON.stringify(shrinkwrap, null, "\t");
+		// Write package-lock.json to current working directory
+		const outputPath = join(process.cwd(), "package-lock.json");
+		const lockfileContent = JSON.stringify(lockfile, null, "\t");
 
-		await writeFile(outputPath, shrinkwrapContent, "utf-8");
+		await writeFile(outputPath, lockfileContent, "utf-8");
 
-		console.log(`Successfully generated npm-shrinkwrap.json with ` +
-			`${Object.keys(shrinkwrap.packages).length - 1} dependencies (excluding root)`);
+		console.log(`Successfully generated package-lock.json with ` +
+			`${Object.keys(lockfile.packages).length - 1} dependencies (excluding root)`);
 		console.log(`Output written to: ${outputPath}`);
 	} catch (error) {
 		console.error(`Unexpected error: ${error.message}`);

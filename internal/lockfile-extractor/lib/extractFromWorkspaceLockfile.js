@@ -11,7 +11,7 @@ async function readJson(filePath) {
 	return JSON.parse(jsonString);
 }
 
-export default async function convertPackageLockToShrinkwrap(workspaceRootDir, targetPackageName) {
+export default async function extractFromWorkspaceLockfile(workspaceRootDir, targetPackageName) {
 	const packageLockJson = await readJson(path.join(workspaceRootDir, "package-lock.json"));
 
 	// Input validation
@@ -92,8 +92,8 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 		sortedExtractedPackages[key] = extractedPackages[key];
 	}
 
-	// Generate npm-shrinkwrap.json
-	const shrinkwrap = {
+	// Generate package-lock.json
+	const lockfile = {
 		name: targetPackageName,
 		version: cliNode.version,
 		lockfileVersion: 3,
@@ -101,7 +101,7 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 		packages: sortedExtractedPackages
 	};
 
-	return shrinkwrap;
+	return lockfile;
 }
 
 /**
@@ -112,9 +112,9 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
  *
  * @param {string} location - Package location from arborist
  * @param {object} node - Package node from arborist
- * @param {string} targetPackageName - Target package name for shrinkwrap file
+ * @param {string} targetPackageName - Target package name for lockfile file
  * @param {string} rootPackageName - Root / workspace package name
- * @returns {string} - Normalized location for npm-shrinkwrap.json
+ * @returns {string} - Normalized location for package-lock.json
  */
 function normalizePackageLocation(location, node, targetPackageName, rootPackageName) {
 	const topPackageName = node.top.packageName;
