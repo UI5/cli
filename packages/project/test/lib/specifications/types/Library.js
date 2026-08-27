@@ -625,7 +625,6 @@ test.serial("_parseConfiguration: Missing manifest.json throws for specVersion 5
 		sinon.stub(Library.prototype, "isFrameworkProject").returns(false);
 		sinon.stub(Library.prototype, "_getManifest").rejects(
 			new Error("Could not find manifest.json file for project library.d"));
-		sinon.stub(Library.prototype, "_getNamespace").resolves("library/d");
 
 		const error = await t.throwsAsync(new Library().init(projectInput));
 

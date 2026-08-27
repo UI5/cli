@@ -194,23 +194,6 @@ class Library extends ComponentProject {
 	async _parseConfiguration(config, buildManifest) {
 		await super._parseConfiguration(config, buildManifest);
 
-		// For Specification Version 5.0+, non-framework libraries must provide a manifest.json
-		if (this.getSpecVersion().gte("5.0") && !this.isFrameworkProject()) {
-			try {
-				await this._getManifest();
-			} catch (err) {
-				throw new Error(
-					`Could not find required manifest.json for library project ${this.getName()}: ` +
-					`${err.message}\n\n` +
-					`Library projects using Specification Version 5.0 or higher must provide ` +
-					`a manifest.json directly in their source directory.\n` +
-					`For migration details, please refer to:\n` +
-					`https://ui5.github.io/cli/updates/migrate-v5/#generatelibrarymanifest-task-no-longer-executed`, {
-						cause: err
-					});
-			}
-		}
-
 		if (buildManifest) {
 			this._namespace = buildManifest.namespace;
 			return;
@@ -408,9 +391,22 @@ class Library extends ComponentProject {
 					`at ${filePath}`);
 			}
 		} catch (err) {
-			this._log.verbose(
-				`Namespace resolution from manifest.json failed for project ` +
-				`${this.getName()}: ${err.message}`);
+			// For Specification Version 5.0+, non-framework libraries must provide a manifest.json
+			if (this.getSpecVersion().gte("5.0") && !this.isFrameworkProject()) {
+				throw new Error(
+					`Could not find required manifest.json for library project ${this.getName()}: ` +
+					`${err.message}\n\n` +
+					`Library projects using Specification Version 5.0 or higher must provide ` +
+					`a manifest.json directly in their source directory.\n` +
+					`For migration details, please refer to:\n` +
+					`https://ui5.github.io/cli/updates/migrate-v5/#generatelibrarymanifest-task-no-longer-executed`, {
+						cause: err
+					});
+			} else {
+				this._log.verbose(
+					`Namespace resolution from manifest.json failed for project ` +
+					`${this.getName()}: ${err.message}`);
+			}
 		}
 		return {};
 	}
