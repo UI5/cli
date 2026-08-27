@@ -96,12 +96,14 @@ export default class ProjectBuildCache {
 
 	/**
 	 * Creates a new ProjectBuildCache instance
-	 * Use ProjectBuildCache.create() instead
+	 *
+	 * After construction, call {@link #initSourceIndex} before any cache operations that depend on
+	 * the source index.
 	 *
 	 * @public
 	 * @param {@ui5/project/specifications/Project} project Project instance
 	 * @param {string} buildSignature Build signature for the current build
-	 * @param {object} cacheManager Cache manager instance for reading/writing cache data
+	 * @param {object|null} cacheManager Cache manager instance for reading/writing cache data
 	 * @param {string} cacheMode Cache mode to use for building UI5 projects
 	 */
 	constructor(project, buildSignature, cacheManager, cacheMode) {
@@ -114,27 +116,11 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Factory method to create and initialize a ProjectBuildCache instance
-	 *
-	 * This is the recommended way to create a ProjectBuildCache as it ensures
-	 * proper asynchronous initialization of the resource index and cache loading.
-	 *
-	 * @public
-	 * @param {@ui5/project/specifications/Project} project Project instance
-	 * @param {string} buildSignature Build signature for the current build
-	 * @param {object|null} cacheManager Cache manager instance
-	 * @param {string} cacheMode Cache mode to use for building UI5 projects
-	 * @returns {Promise<@ui5/project/build/cache/ProjectBuildCache>} Initialized cache instance
-	 */
-	static async create(project, buildSignature, cacheManager, cacheMode) {
-		return new ProjectBuildCache(project, buildSignature, cacheManager, cacheMode);
-	}
-
-	/**
 	 * Initializes the source index for this project's build cache
 	 *
-	 * This must be called after create() and before any cache operations that depend on the source index.
-	 * Separated from create() to allow parallel initialization of multiple project caches.
+	 * This must be called after construction and before any cache operations that depend on the
+	 * source index. Separated from the constructor to allow parallel initialization of multiple
+	 * project caches.
 	 *
 	 * @public
 	 * @returns {Promise<void>}
