@@ -40,11 +40,11 @@
 	},
 	"files": [
 		"CHANGELOG.md",
-		"npm-shrinkwrap.json",
 		"bin/**",
 		"lib/**",
 		"LICENSES/**"
 	],
+	"bundleDependencies": true,
 	"repository": {
 		"type": "git",
 		"url": "git+ssh://git@github.com/UI5/cli.git",

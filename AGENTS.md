@@ -63,7 +63,7 @@ npm run coverage --workspace=@ui5/server  # Single package
 
 Internal packages:
 - `internal/documentation` — VitePress docs + JSDoc + JSON schema generation
-- `internal/shrinkwrap-extractor` — npm shrinkwrap utilities
+- `internal/lockfile-extractor` — generates a standalone package-lock.json for @ui5/cli from the monorepo workspace lock file
 
 ### Internal package dependencies
 
@@ -93,6 +93,6 @@ Conventional commits enforced via commitlint + husky. Subject must be sentence-c
 
 **Types**: `build`, `ci`, `deps`, `docs`, `feat`, `fix`, `perf`, `refactor`, `release`, `revert`, `style`, `test`
 
-**Scopes** are package names: `builder`, `cli`, `documentation`, `fs`, `logger`, `project`, `server`, `shrinkwrap-extractor`. Some types restrict which scopes are valid (e.g., `feat` and `fix` only allow public package scopes).
+**Scopes** are package names: `builder`, `cli`, `documentation`, `fs`, `logger`, `project`, `server`, `lockfile-extractor`. Some types restrict which scopes are valid (e.g., `feat` and `fix` only allow public package scopes).
 
 Examples: `feat(builder): Add CSS source map support`, `fix(server): Correct middleware ordering`

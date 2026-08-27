@@ -76,7 +76,7 @@ jobs:
     environment: npmjs:ui5-cli-mono
     strategy:
       # Sequential publishing ensures dependencies exist on NPM before dependents are published
-      # Order: logger → fs → builder → server → project (CLI handled separately for shrinkwrap generation)
+      # Order: logger → fs → builder → server → project (CLI handled separately for lockfile generation)
       max-parallel: 1
       matrix:
         package: [logger, fs, builder, server, project]
@@ -131,14 +131,34 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate npm-shrinkwrap.json
+      - name: Generate package-lock.json for bundling
         working-directory: packages/cli
         run: |
           set -e
-          node ../../internal/shrinkwrap-extractor/cli.js ../../
+          node ../../internal/lockfile-extractor/cli.js ../../
 
-      - name: Publish @ui5/cli package
-        working-directory: packages/cli
+      - name: Bundle and publish @ui5/cli
         run: |
-          echo "🚀 Publishing @ui5/cli"
+          set -e
+          TEMP_CLI_DIR=$(mktemp -d)
+
+          # Copy package (including generated package-lock.json) outside the workspace
+          cp -r packages/cli/. "$TEMP_CLI_DIR/"
+          echo "📦 Copied @ui5/cli to temporary directory: $TEMP_CLI_DIR"
+
+          cd "$TEMP_CLI_DIR"
+
+          # Strip devDependencies so npm ci only installs production deps matching the lock file
+          node -e "
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          delete pkg.devDependencies;
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, '\t'));
+          "
+
+          # Install exact versions from generated lock file (no workspace symlinks)
+          echo "📦 Installing production dependencies from package-lock.json"
+          npm ci
+
+          echo "🚀 Publishing @ui5/cli from temporary directory: $TEMP_CLI_DIR"
           npm publish --access public --tag next

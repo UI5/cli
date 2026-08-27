@@ -86,6 +86,6 @@ jobs:
         npm run build:vitepress
         npm run build:assets
 
-    - name: Check shrinkwrap integrity
-      working-directory: internal/shrinkwrap-extractor
+    - name: Check lockfile extractor integrity
+      working-directory: internal/lockfile-extractor
       run: npm run test
