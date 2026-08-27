@@ -1624,6 +1624,11 @@ test.serial("Build library.d (Custom Library preload configuration)", async (t) 
 	// This custom preload configuration generates a library-preload.js similar to a default one.
 	// However, it will omit a resource ("some.js") from the bundle.
 
+	// ui5-custom-preload-config.yaml uses specVersion 5.0, which requires a manifest.json
+	await fixtureTester._initialize();
+	await fs.writeFile(`${fixtureTester.fixturePath}/main/src/library/d/manifest.json`,
+		JSON.stringify({"sap.app": {"id": "library.d", "type": "library"}}, null, "\t"));
+
 	// #1 build (no cache, no changes)
 	await fixtureTester.buildProject({
 		graphConfig: {rootConfigPath: "ui5-custom-preload-config.yaml"},
@@ -3064,6 +3069,8 @@ sap.ui.define([
 	};
 	return thisLib;
 });`);
+		await fs.writeFile(`${this.fixturePath}/node_modules/library.z/src/library/z/manifest.json`,
+			JSON.stringify({"sap.app": {"id": "library.z", "type": "library"}}, null, "\t"));
 		await fs.writeFile(`${this.fixturePath}/node_modules/library.z/src/library/z/.library`,
 			`<?xml version="1.0" encoding="UTF-8" ?>
 <library xmlns="http://www.sap.com/sap.ui.library.xsd" >

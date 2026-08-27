@@ -812,6 +812,10 @@ Version | UI5 CLI Release
 
 ### Specification Version 5.0
 
+**Breaking changes:**
+
+- The `generateLibraryManifest` build task is no longer executed for projects of type `library`. SAPUI5 distribution libraries (framework projects) are not affected. Libraries must provide a `manifest.json` directly in their source directory. See [Migrate to v5: generateLibraryManifest Task No Longer Executed](../updates/migrate-v5.md#generatelibrarymanifest-task-no-longer-executed) for details.
+
 **Features:**
 
 - Adds support for the new [`component`](./Project.md#component) project type for developing UI5 components — including application, reusable UI, and faceless components — which, unlike `application`-type projects, are served under their own namespace so multiple can coexist in one environment

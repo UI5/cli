@@ -617,6 +617,48 @@ test.serial("_parseConfiguration: No preload exclude fallback for non-framework 
 	t.is(getPreloadExcludesFromDotLibraryStub.callCount, 0, "_getPreloadExcludesFromDotLibrary has not been called");
 });
 
+test.serial("_parseConfiguration: Missing manifest.json throws for specVersion 5.0 non-framework library",
+	async (t) => {
+		const {projectInput, sinon} = t.context;
+		projectInput.configuration.specVersion = "5.0";
+
+		sinon.stub(Library.prototype, "isFrameworkProject").returns(false);
+		sinon.stub(Library.prototype, "_getManifest").rejects(
+			new Error("Could not find manifest.json file for project library.d"));
+
+		const error = await t.throwsAsync(new Library().init(projectInput));
+
+		t.true(error.message.includes("Could not find required manifest.json for library project library.d"),
+			"Error message mentions missing manifest.json");
+		t.true(error.message.includes("migrate-v5"),
+			"Error message references the migration guide");
+	});
+
+test.serial("_parseConfiguration: Missing manifest.json is allowed for specVersion 5.0 framework library",
+	async (t) => {
+		const {projectInput, sinon} = t.context;
+		projectInput.configuration.specVersion = "5.0";
+
+		sinon.stub(Library.prototype, "isFrameworkProject").returns(true);
+		sinon.stub(Library.prototype, "_getManifest").rejects(
+			new Error("Could not find manifest.json file for project library.d"));
+
+		await t.notThrowsAsync(new Library().init(projectInput),
+			"No error thrown for framework library without manifest.json");
+	});
+
+test.serial("_parseConfiguration: Missing manifest.json is allowed for specVersion 4.0 library", async (t) => {
+	const {projectInput, sinon} = t.context;
+	projectInput.configuration.specVersion = "4.0";
+
+	sinon.stub(Library.prototype, "isFrameworkProject").returns(false);
+	sinon.stub(Library.prototype, "_getManifest").rejects(
+		new Error("Could not find manifest.json file for project library.d"));
+
+	await t.notThrowsAsync(new Library().init(projectInput),
+		"No error thrown for specVersion 4.0 library without manifest.json");
+});
+
 test("_getManifest: Reads correctly", async (t) => {
 	const {projectInput, sinon} = t.context;
 

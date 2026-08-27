@@ -35,7 +35,7 @@ All available standard tasks are documented under **API -> @ui5/builder -> tasks
 | [executeJsdocSdkTransformation](../api/module-@ui5_builder_tasks_jsdoc_executeJsdocSdkTransformation) |                         |                         | *disabled* <sup>1</sup> |                         |
 | [minify](../api/module-@ui5_builder_tasks_minify)                                                     |         enabled         |         enabled         |         enabled         |                         |
 | [generateFlexChangesBundle](../api/module-@ui5_builder_tasks_bundlers_generateFlexChangesBundle)      |         enabled         |         enabled         |         enabled         |                         |
-| [generateLibraryManifest](../api/module-@ui5_builder_tasks_generateLibraryManifest)                   |                         |                         |         enabled         |                         |
+| [generateLibraryManifest](../api/module-@ui5_builder_tasks_generateLibraryManifest)                   |                         |                         | *disabled* <sup>7</sup> |                         |
 | [enhanceManifest](../api/module-@ui5_builder_tasks_enhanceManifest)                                   |         enabled         |         enabled         |         enabled         |                         |
 | [generateComponentPreload](../api/module-@ui5_builder_tasks_bundlers_generateComponentPreload)        |         enabled         |         enabled         | *disabled* <sup>2</sup> |                         |
 | [generateLibraryPreload](../api/module-@ui5_builder_tasks_bundlers_generateLibraryPreload)            |                         |                         |         enabled         |                         |
@@ -58,7 +58,8 @@ All available standard tasks are documented under **API -> @ui5/builder -> tasks
 <sup>3</sup> Enabled in `self-contained` build, which disables `generateComponentPreload` and `generateLibraryPreload`  
 <sup>4</sup> Enabled for projects defining a [bundle configuration](./Configuration.md#custom-bundling)  
 <sup>5</sup> Can be enabled for framework projects via the `includeTask` option. For other projects, this task is skipped  
-<sup>6</sup> Disabled for the server due to a corresponding middleware producing the same output
+<sup>6</sup> Disabled for the server due to a corresponding middleware producing the same output  
+<sup>7</sup> Enabled for Specification Version 4.0 and lower, and for framework projects. For other projects using Specification Version 5.0 and higher, this task is skipped
 
 ### minify
 

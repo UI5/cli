@@ -43,6 +43,23 @@ UI5 CLI 5.x introduces **Specification Version 5.0**, which enables the new Comp
 
 Projects using older **Specification Versions** are expected to be **fully compatible with UI5 CLI v5**.
 
+## generateLibraryManifest Task No Longer Executed
+
+::: info Specification Version 5.0 only
+This change only applies to library projects that upgrade their `specVersion` to `5.0` in `ui5.yaml`. Projects on **Specification Version 4.0 and lower are not affected**. **SAPUI5 distribution libraries (framework projects) are not affected**.
+:::
+
+With **Specification Version 5.0**, the [`generateLibraryManifest`](../api/module-@ui5_builder_tasks_generateLibraryManifest) build task is no longer executed for non-framework library projects. Libraries must provide a `manifest.json` directly in their source directory.
+
+**Action required** when upgrading a library project to Specification Version 5.0:
+
+- Ensure your library has a `manifest.json` in its source directory. A previously auto-generated one is fully compatible and can be reused as-is.
+- If no `manifest.json` is present, any UI5 CLI command that resolves the project graph (such as `ui5 build`, `ui5 serve`, or `ui5 tree`) will fail with a descriptive error and a link to this migration guide.
+
+::: tip
+To see which standard tasks are executed for each project type, check out the [Standard Tasks](../pages/Builder#standard-tasks) table in the UI5 Builder page.
+:::
+
 ## Build Cache
 
 UI5 CLI v5 introduces **builds with caching** for both the `ui5 build` and `ui5 serve` commands. This fundamental architectural change significantly improves build performance by reusing cached results from previous builds. It also simplifies development with the server by making most custom middleware obsolete.
