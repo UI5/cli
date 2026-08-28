@@ -399,7 +399,7 @@ class Library extends ComponentProject {
 					`Library projects using Specification Version 5.0 or higher must provide ` +
 					`a manifest.json directly in their source directory.\n` +
 					`For migration details, please refer to:\n` +
-					`https://ui5.github.io/cli/updates/migrate-v5/#generatelibrarymanifest-task-no-longer-executed`, {
+					`https://ui5.github.io/cli/next/updates/migrate-v5#generatelibrarymanifest-task-no-longer-executed`, {
 						cause: err
 					});
 			} else {
