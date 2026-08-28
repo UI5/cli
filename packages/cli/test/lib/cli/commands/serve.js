@@ -4,6 +4,10 @@ import sinon from "sinon";
 import esmock from "esmock";
 import yargs from "yargs";
 
+const DEFAULT_UI5_DATA_DIR = path.join(path.resolve(path.sep), "home", ".ui5");
+const DEFAULT_SERVER_KEY_PATH = path.join(DEFAULT_UI5_DATA_DIR, "server", "server.key");
+const DEFAULT_SERVER_CERT_PATH = path.join(DEFAULT_UI5_DATA_DIR, "server", "server.crt");
+
 function getDefaultArgv() {
 	// This has been taken from the actual argv object yargs provides
 	return {
@@ -18,8 +22,10 @@ function getDefaultArgv() {
 		"simpleIndex": false,
 		"accept-remote-connections": false,
 		"acceptRemoteConnections": false,
-		"key": "/home/.ui5/server/server.key",
-		"cert": "/home/.ui5/server/server.crt",
+		// yargs leaves these undefined unless the user passes --key/--cert
+		// (the options declare only a defaultDescription, not a default value)
+		"key": undefined,
+		"cert": undefined,
 		"sap-csp-policies": false,
 		"sapCspPolicies": false,
 		"serve-csp-reports": false,
@@ -52,7 +58,16 @@ test.beforeEach(async (t) => {
 		})
 	};
 	t.context.sslUtil = {
-		getSslCertificate: sinon.stub().resolves()
+		getSslCertificate: sinon.stub().resolves(),
+		SslCertificateNotFoundError: class SslCertificateNotFoundError extends Error {
+			constructor(keyPath, certPath) {
+				super(`No SSL certificate found at ${keyPath} and ${certPath}`);
+				this.name = "SslCertificateNotFoundError";
+				this.code = "SSL_CERTIFICATE_NOT_FOUND";
+				this.keyPath = keyPath;
+				this.certPath = certPath;
+			}
+		}
 	};
 
 	t.context.getServerSettings = sinon.stub().returns({});
@@ -84,12 +99,18 @@ test.beforeEach(async (t) => {
 
 	t.context.open = sinon.stub();
 
+	t.context.getUi5DataDir = sinon.stub().resolves(DEFAULT_UI5_DATA_DIR);
+
 	t.context.serve = await esmock.p("../../../../lib/cli/commands/serve.js", {
 		"@ui5/server": t.context.server,
 		"@ui5/server/internal/sslUtil": t.context.sslUtil,
 		"@ui5/project/graph": t.context.graph,
 		"@ui5/project/internal/graph/ProjectDefinitionWatcher": t.context.projectWatcher,
 		"open": t.context.open
+	}, {
+		"../../../../lib/dataDir.js": {
+			getUi5DataDirOrDefault: t.context.getUi5DataDir
+		}
 	});
 });
 
@@ -195,9 +216,82 @@ test.serial("ui5 serve --https", async (t) => {
 
 	t.is(sslUtil.getSslCertificate.callCount, 1);
 	t.deepEqual(sslUtil.getSslCertificate.getCall(0).args, [
-		"/home/.ui5/server/server.key",
-		"/home/.ui5/server/server.crt"
+		DEFAULT_SERVER_KEY_PATH,
+		DEFAULT_SERVER_CERT_PATH
 	]);
+});
+
+test.serial("ui5 serve --https without existing certificate", async (t) => {
+	const {argv, serve, server, sslUtil} = t.context;
+
+	sslUtil.getSslCertificate.rejects(
+		new sslUtil.SslCertificateNotFoundError(
+			DEFAULT_SERVER_KEY_PATH,
+			DEFAULT_SERVER_CERT_PATH
+		)
+	);
+
+	argv.https = true;
+
+	const err = await t.throwsAsync(serve.handler(argv));
+	t.regex(err.message, /No SSL certificate found for HTTPS/);
+	t.regex(err.message, /Private key: .*server\.key \(default\)/);
+	t.regex(err.message, /Certificate: .*server\.crt \(default\)/);
+	t.regex(err.message, /ui5 certificate generate/);
+	t.regex(err.message, /--key and --cert/);
+
+	// The server must not be started when no certificate is available
+	t.is(server.serve.callCount, 0);
+});
+
+test.serial("ui5 serve --https without existing certificate at custom --key/--cert paths", async (t) => {
+	const {argv, serve, server, sslUtil} = t.context;
+
+	sslUtil.getSslCertificate.rejects(
+		new sslUtil.SslCertificateNotFoundError(
+			"/custom/my.key",
+			"/custom/my.crt"
+		)
+	);
+
+	argv.https = true;
+	argv.key = "/custom/my.key";
+	argv.cert = "/custom/my.crt";
+
+	const err = await t.throwsAsync(serve.handler(argv));
+	t.regex(err.message, /No SSL certificate found for HTTPS/);
+	t.regex(err.message, /Private key: \/custom\/my\.key \(--key\)/);
+	t.regex(err.message, /Certificate: \/custom\/my\.crt \(--cert\)/);
+	t.regex(err.message, /ui5 certificate generate/);
+
+	// A path the user did not specify must not be attributed to them
+	t.notRegex(err.message, /\(default\)/);
+
+	// The server must not be started when no certificate is available
+	t.is(server.serve.callCount, 0);
+});
+
+test.serial("ui5 serve --https without existing certificate at mixed custom/default paths", async (t) => {
+	const {argv, serve, server, sslUtil} = t.context;
+
+	sslUtil.getSslCertificate.rejects(
+		new sslUtil.SslCertificateNotFoundError(
+			"/custom/my.key",
+			DEFAULT_SERVER_CERT_PATH
+		)
+	);
+
+	argv.https = true;
+	argv.key = "/custom/my.key";
+
+	const err = await t.throwsAsync(serve.handler(argv));
+	// The user-supplied key is attributed to --key; the fallback cert path is marked as a default,
+	// never misattributed as something the user specified.
+	t.regex(err.message, /Private key: \/custom\/my\.key \(--key\)/);
+	t.regex(err.message, /Certificate: .*server\.crt \(default\)/);
+
+	// The server must not be started when no certificate is available
+	t.is(server.serve.callCount, 0);
 });
 
 test.serial("ui5 serve --accept-remote-connections", async (t) => {

@@ -37,6 +37,20 @@ export async function getUi5DataDirOrDefault({cwd}) {
 }
 
 /**
+ * Resolves the default paths of the server's private key and certificate within the given
+ * UI5 data directory.
+ *
+ * @param {string} ui5DataDir Absolute path to the UI5 data directory
+ * @returns {{keyPath: string, certPath: string}} Default private-key and certificate paths
+ */
+export function getServerCertificatePaths(ui5DataDir) {
+	return {
+		keyPath: path.join(ui5DataDir, "server", "server.key"),
+		certPath: path.join(ui5DataDir, "server", "server.crt"),
+	};
+}
+
+/**
  * Shortens an absolute path for display by replacing the user's home directory with
  * <code>~</code> (e.g. <code>~/.ui5</code>). Intended for console and
  * error output only — never for values used in actual filesystem operations.

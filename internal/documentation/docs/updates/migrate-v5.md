@@ -27,6 +27,8 @@ Or update your global install via: `npm i --global @ui5/cli@next`
 
 - **@ui5/cli: `ui5 serve` renders a status banner in interactive terminals**
 
+- **@ui5/cli: New `ui5 certificate generate` command; `ui5 serve --https` no longer generates a certificate on the fly**
+
 - **@ui5/cli: Option `--experimental-css-variables` has been removed**
 
 - **@ui5/server: The internal Express server has been upgraded from Express 4 to Express 5**
@@ -383,9 +385,19 @@ The `--h2` option for the `ui5 serve` command has therefore been removed. Use th
 ui5 serve --https
 ```
 
-Like the previous `--h2` option, `--https` requires an SSL certificate and guides you through the automatic generation process on first use. See the [UI5 Server documentation](../pages/Server.md#ssl-certificates) for details.
+Like the previous `--h2` option, `--https` requires an SSL certificate. See [SSL Certificate Generation](#ssl-certificate-generation) below to learn how to generate a certificate or provide an existing one.
 
 If you need HTTP/2 for local development, manually set up a reverse proxy, for example, [nginx](https://nginx.org/), in front of the UI5 Server to handle the HTTP/2 connection with the browser.
+
+## SSL Certificate Generation
+
+In previous versions, UI5 CLI generated and installed a self-signed SSL certificate automatically. In UI5 CLI v5, certificate generation is an explicit step:
+
+```sh
+ui5 certificate generate
+```
+
+For certificate locations, custom paths, and server behavior when no certificate is found, see [SSL Certificates](../pages/Server#ssl-certificates).
 
 ## `sap-ui-version.json`
 

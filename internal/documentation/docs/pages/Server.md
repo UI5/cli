@@ -228,9 +228,15 @@ A project graph can be served only once. Do not call both `serveMiddleware` and 
 :::
 
 ## SSL Certificates
-When starting the UI5 Server in HTTPS mode, for example by using UI5 CLI parameter `--https`, you will be prompted for the automatic generation of a local SSL certificate if necessary.
+Starting the UI5 Server in HTTPS mode, for example by using the UI5 CLI parameter `--https`, requires an SSL certificate. Generate and install a self-signed certificate with:
 
-Follow the given instructions and enter your password to install the generated certificate as trusted. You can find the generated certificate and corresponding private key under `.ui5/server` in your user's home directory.
+```sh
+ui5 certificate generate
+```
+
+Follow the given instructions and enter your password (or confirm the dialog on Windows) to install the generated certificate as trusted. By default the certificate and its private key are written to the UI5 data directory (resolved from `UI5_DATA_DIR`, your UI5 config, or `~/.ui5` by default). Use `--force` to overwrite an existing certificate, or `--key`/`--cert` to write to custom paths.
+
+`ui5 serve --https` picks up the certificate from the same default location. If no certificate is found, the server fails with guidance to run `ui5 certificate generate` or to provide existing files via `--key` and `--cert`.
 
 ::: tip
 If Chrome unintentionally redirects an HTTP-URL to HTTPS, you need to delete the HSTS mapping in [chrome://net-internals/#hsts](chrome://net-internals/#hsts) by entering the domain name (e.g. localhost) and pressing "delete".

@@ -1,8 +1,7 @@
-import path from "node:path";
-import os from "node:os";
 import process from "node:process";
 import baseMiddleware from "../middlewares/base.js";
 import {applyProjectConfigOptions, applyWorkspaceOptions, applyBuildOptions, dedupeArray} from "../options.js";
+import {getUi5DataDirOrDefault, getServerCertificatePaths, formatPath} from "../../dataDir.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("cli:commands:serve");
 
@@ -54,12 +53,12 @@ serve.builder = function(cli) {
 		})
 		.option("key", {
 			describe: "Path to the private key",
-			default: path.join(os.homedir(), ".ui5", "server", "server.key"),
+			defaultDescription: "<UI5 data dir>/server/server.key",
 			type: "string"
 		})
 		.option("cert", {
 			describe: "Path to the certificate",
-			default: path.join(os.homedir(), ".ui5", "server", "server.crt"),
+			defaultDescription: "<UI5 data dir>/server/server.crt",
 			type: "string"
 		})
 		.option("sap-csp-policies", {
@@ -231,10 +230,34 @@ serve.handler = async function(argv) {
 	};
 
 	if (serverConfig.https) {
-		const {getSslCertificate} = await import("@ui5/server/internal/sslUtil");
-		const {key, cert} = await getSslCertificate(serverConfig.key, serverConfig.cert);
-		serverConfig.key = key;
-		serverConfig.cert = cert;
+		// A default certificate path is only needed for HTTPS, so the UI5 data directory is
+		// resolved once here rather than for every serve invocation.
+		const ui5DataDir = await getUi5DataDirOrDefault({cwd: process.cwd()});
+		const defaults = getServerCertificatePaths(ui5DataDir);
+		const keyPath = serverConfig.key ?? defaults.keyPath;
+		const certPath = serverConfig.cert ?? defaults.certPath;
+
+		const {getSslCertificate, SslCertificateNotFoundError} = await import("@ui5/server/internal/sslUtil");
+		try {
+			const {key, cert} = await getSslCertificate(keyPath, certPath);
+			serverConfig.key = key;
+			serverConfig.cert = cert;
+		} catch (err) {
+			if (err instanceof SslCertificateNotFoundError) {
+				const keyOrigin = serverConfig.key ? "--key" : "default";
+				const certOrigin = serverConfig.cert ? "--cert" : "default";
+				throw new Error(
+					`No SSL certificate found for HTTPS.\n` +
+					`Looked for:\n` +
+					`  Private key: ${formatPath(keyPath)} (${keyOrigin})\n` +
+					`  Certificate: ${formatPath(certPath)} (${certOrigin})\n` +
+					`To fix this, either:\n` +
+					`  • Run "ui5 certificate generate" to create and install one (recommended), or\n` +
+					`  • Pass existing files with --key and --cert`
+				);
+			}
+			throw err;
+		}
 	}
 
 	const {promise: pOnError, reject} = Promise.withResolvers();
