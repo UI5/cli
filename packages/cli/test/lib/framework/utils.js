@@ -1,7 +1,6 @@
 import test from "ava";
 import sinonGlobal from "sinon";
 import esmock from "esmock";
-import path from "node:path";
 
 test.beforeEach(async (t) => {
 	// Tests either rely on not having UI5_DATA_DIR defined, or explicitly define it
@@ -249,49 +248,4 @@ test.serial("frameworkResolverResolveVersion", async (t) => {
 			ui5DataDir: undefined
 		}
 	]);
-});
-
-test.serial("getUi5DataDir: no value defined", async (t) => {
-	const {ConfigurationGetUi5DataDirStub} = t.context;
-	const {getUi5DataDir} = t.context._utils;
-
-	const result = await getUi5DataDir({
-		cwd: path.resolve("foo")
-	});
-
-	t.is(result, undefined);
-
-	t.is(ConfigurationGetUi5DataDirStub.callCount, 1);
-});
-
-test.serial("getUi5DataDir: from environment variable", async (t) => {
-	const {ConfigurationGetUi5DataDirStub} = t.context;
-	const {getUi5DataDir} = t.context._utils;
-
-	// Environment variable must be preferred over configuration value
-	ConfigurationGetUi5DataDirStub.returns(".ui5-data-dir-from-configuration");
-	process.env.UI5_DATA_DIR = ".ui5-data-dir-from-env-variable";
-
-	const result = await getUi5DataDir({
-		cwd: path.resolve("foo")
-	});
-
-	t.is(result, path.join(path.resolve("foo"), ".ui5-data-dir-from-env-variable"));
-
-	t.is(ConfigurationGetUi5DataDirStub.callCount, 0);
-});
-
-test.serial("getUi5DataDir: from Configuration", async (t) => {
-	const {ConfigurationGetUi5DataDirStub} = t.context;
-	const {getUi5DataDir} = t.context._utils;
-
-	ConfigurationGetUi5DataDirStub.returns(".ui5-data-dir-from-configuration");
-
-	const result = await getUi5DataDir({
-		cwd: path.resolve("foo")
-	});
-
-	t.is(result, path.join(path.resolve("foo"), ".ui5-data-dir-from-configuration"));
-
-	t.is(ConfigurationGetUi5DataDirStub.callCount, 1);
 });

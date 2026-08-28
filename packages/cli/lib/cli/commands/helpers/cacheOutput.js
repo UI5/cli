@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import process from "node:process";
+import {formatPath} from "../../../dataDir.js";
 
 const GROUP_FRAMEWORK = "Framework";
 const GROUP_BUILD = "Build";
@@ -47,14 +48,14 @@ function writeCategoryHeader(title) {
 
 function writePreviewItem(absPath, detail) {
 	process.stderr.write(
-		`      ${PREVIEW_MARKER} ${chalk.dim(absPath)}` +
+		`      ${PREVIEW_MARKER} ${chalk.dim(formatPath(absPath))}` +
 		`${detail ? ` ${ITEM_DIVIDER} ${detail}` : ""}\n`
 	);
 }
 
 function writeCleanupItem(absPath, detail) {
 	process.stderr.write(
-		`      ${SUCCESS_MARKER} Removed ${chalk.dim(absPath)}` +
+		`      ${SUCCESS_MARKER} Removed ${chalk.dim(formatPath(absPath))}` +
 		`${detail ? ` ${ITEM_DIVIDER} ${detail}` : ""}\n`
 	);
 }

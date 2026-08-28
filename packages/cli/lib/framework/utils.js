@@ -1,6 +1,5 @@
-import path from "node:path";
 import {graphFromStaticFile, graphFromPackageDependencies} from "@ui5/project/graph";
-import Configuration from "@ui5/project/config/Configuration";
+import {getUi5DataDir} from "../dataDir.js";
 
 export async function getRootProjectConfiguration(projectGraphOptions) {
 	let graph;
@@ -47,16 +46,6 @@ export async function frameworkResolverResolveVersion({frameworkName, frameworkV
 		cwd,
 		ui5DataDir: await utils.getUi5DataDir({cwd})
 	});
-}
-
-async function getUi5DataDir({cwd}) {
-	// ENV var should take precedence over the dataDir from the configuration.
-	let ui5DataDir = process.env.UI5_DATA_DIR;
-	if (!ui5DataDir) {
-		const config = await Configuration.fromFile();
-		ui5DataDir = config.getUi5DataDir();
-	}
-	return ui5DataDir ? path.resolve(cwd, ui5DataDir) : undefined;
 }
 
 const utils = {

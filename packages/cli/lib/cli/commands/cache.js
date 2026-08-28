@@ -1,12 +1,9 @@
 import chalk from "chalk";
 import path from "node:path";
-import os from "node:os";
 import process from "node:process";
 import {isLogLevelEnabled} from "@ui5/logger";
 import baseMiddleware from "../middlewares/base.js";
-import Configuration from "@ui5/project/config/Configuration";
-import FrameworkCache from "@ui5/project/internal/ui5Framework/cache";
-import CacheManager from "@ui5/project/internal/build/cache/CacheManager";
+import {getUi5DataDirOrDefault, formatPath} from "../../dataDir.js";
 import {
 	CACHE_CLEAN_HELP_USAGE,
 	displayCacheCleanWarning,
@@ -63,20 +60,6 @@ async function getConfirmation(argv) {
 	});
 }
 
-async function resolveCacheUi5DataDir() {
-	// TODO: Consolidate ui5DataDir resolution once PR #1456 follow-up cleanup is done.
-	// Keep behavior aligned with existing main-branch resolution order.
-	let ui5DataDir = process.env.UI5_DATA_DIR;
-	if (!ui5DataDir) {
-		const config = await Configuration.fromFile();
-		ui5DataDir = config.getUi5DataDir();
-	}
-	if (ui5DataDir) {
-		return path.resolve(process.cwd(), ui5DataDir);
-	}
-	return path.join(os.homedir(), ".ui5");
-}
-
 function withAbsPath(entries, ui5DataDir) {
 	return entries.map((entry) => {
 		return {...entry, absPath: getAbsPath(ui5DataDir, entry)};
@@ -91,12 +74,18 @@ function getAbsPath(ui5DataDir, cacheEntry) {
 }
 
 async function handleCache(argv) {
-	const ui5DataDir = await resolveCacheUi5DataDir();
+	// Lazy loading to prevent unnecessary imports when the command is not executed
+	const [{default: FrameworkCache}, {default: CacheManager}] = await Promise.all([
+		import("@ui5/project/internal/ui5Framework/cache"),
+		import("@ui5/project/internal/build/cache/CacheManager"),
+	]);
+
+	const ui5DataDir = await getUi5DataDirOrDefault({cwd: process.cwd()});
 	const isVerbose = isLogLevelEnabled("verbose");
 
 	if (isVerbose) {
 		// logger.verbose pollutes output with framework noise.
-		process.stderr.write(`Checking cache at ${chalk.bold(ui5DataDir)} …\n`);
+		process.stderr.write(`Checking cache at ${chalk.bold(formatPath(ui5DataDir))} …\n`);
 	}
 
 	const [frameworkInfo, buildInfo] = await Promise.all([

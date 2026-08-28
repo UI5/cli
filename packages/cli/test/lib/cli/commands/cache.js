@@ -22,8 +22,9 @@ function getDefaultArgv() {
 	};
 }
 
-// Stable absolute path used as the resolved ui5DataDir in most tests
-const TEST_UI5_DATA_DIR = path.resolve("test-ui5-home");
+// Stable absolute path used as the resolved ui5DataDir in most tests. Anchored outside the home
+// directory so path assertions are not affected by the ~ shortening applied to home-dir paths.
+const TEST_UI5_DATA_DIR = path.join(path.resolve(path.sep), "test-ui5-home");
 
 // Typical framework stub result shape: { path, libraryCount, versionCount }
 const FRAMEWORK_STUB = {path: "framework", libraryCount: 18, versionCount: 5};
@@ -45,10 +46,7 @@ test.beforeEach(async (t) => {
 	// Prevent real env var from leaking into tests
 	delete process.env.UI5_DATA_DIR;
 
-	t.context.configurationGetUi5DataDirStub = sinon.stub().returns(TEST_UI5_DATA_DIR);
-	t.context.configurationFromFileStub = sinon.stub().resolves({
-		getUi5DataDir: t.context.configurationGetUi5DataDirStub,
-	});
+	t.context.getUi5DataDirOrDefaultStub = sinon.stub().resolves(TEST_UI5_DATA_DIR);
 
 	t.context.frameworkCacheGetCacheInfo = sinon.stub();
 	t.context.frameworkCacheCleanCache = sinon.stub();
@@ -62,11 +60,6 @@ test.beforeEach(async (t) => {
 	t.context.yesnoStub = sinon.stub();
 
 	t.context.cache = await esmock.p("../../../../lib/cli/commands/cache.js", {
-		"@ui5/project/config/Configuration": {
-			default: {
-				fromFile: t.context.configurationFromFileStub,
-			},
-		},
 		"@ui5/project/internal/ui5Framework/cache": {
 			default: class {
 				static getCacheInfo = t.context.frameworkCacheGetCacheInfo;
@@ -86,6 +79,10 @@ test.beforeEach(async (t) => {
 		"yesno": {
 			default: t.context.yesnoStub,
 		},
+	}, {
+		"../../../../lib/dataDir.js": {
+			getUi5DataDirOrDefault: t.context.getUi5DataDirOrDefaultStub
+		}
 	});
 });
 
@@ -137,9 +134,9 @@ test.serial("Command definition is correct", (t) => {
 
 // ─── ui5DataDir resolution ──────────────────────────────────────────────────
 
-test.serial("ui5 cache clean: uses resolved path from configuration", async (t) => {
+test.serial("ui5 cache clean: uses resolved path from getUi5DataDirOrDefault", async (t) => {
 	const {cache, argv, frameworkCacheGetCacheInfo, buildCacheGetCacheInfo,
-		stderrWriteStub, configurationFromFileStub, configurationGetUi5DataDirStub} = t.context;
+		stderrWriteStub, getUi5DataDirOrDefaultStub} = t.context;
 
 	frameworkCacheGetCacheInfo.resolves(null);
 	buildCacheGetCacheInfo.resolves(null);
@@ -148,40 +145,21 @@ test.serial("ui5 cache clean: uses resolved path from configuration", async (t) 
 	setLogLevel("verbose");
 	await cache.handler(argv);
 
-	t.is(configurationFromFileStub.callCount, 1, "Configuration.fromFile called exactly once");
-	t.is(configurationGetUi5DataDirStub.callCount, 1, "Configuration#getUi5DataDir called exactly once");
+	t.is(getUi5DataDirOrDefaultStub.callCount, 1, "getUi5DataDirOrDefault called exactly once");
 
 	t.is(frameworkCacheGetCacheInfo.firstCall.args[0], TEST_UI5_DATA_DIR,
-		"getCacheInfo receives the path returned by configuration");
+		"getCacheInfo receives the resolved path");
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes(TEST_UI5_DATA_DIR), "Resolved ui5DataDir shown in checking line");
 });
 
-test.serial("ui5 cache clean: prefers UI5_DATA_DIR env var over configuration", async (t) => {
+test.serial("ui5 cache clean: uses ~/.ui5 fallback provided by getUi5DataDirOrDefault", async (t) => {
 	const {cache, argv, frameworkCacheGetCacheInfo, buildCacheGetCacheInfo,
-		configurationFromFileStub} = t.context;
-
-	const envUi5DataDir = path.resolve("env-ui5-home");
-	process.env.UI5_DATA_DIR = envUi5DataDir;
-	frameworkCacheGetCacheInfo.resolves(null);
-	buildCacheGetCacheInfo.resolves(null);
-
-	argv["_"] = ["cache", "clean"];
-	await cache.handler(argv);
-
-	t.is(configurationFromFileStub.callCount, 0,
-		"Configuration.fromFile must not be called when UI5_DATA_DIR is set");
-	t.is(frameworkCacheGetCacheInfo.firstCall.args[0], envUi5DataDir,
-		"getCacheInfo receives value from UI5_DATA_DIR");
-});
-
-test.serial("ui5 cache clean: falls back to ~/.ui5 when configuration has no value", async (t) => {
-	const {cache, argv, frameworkCacheGetCacheInfo, buildCacheGetCacheInfo,
-		stderrWriteStub, configurationGetUi5DataDirStub} = t.context;
+		stderrWriteStub, getUi5DataDirOrDefaultStub} = t.context;
 
 	const fallbackUi5DataDir = path.join(os.homedir(), ".ui5");
-	configurationGetUi5DataDirStub.returns(undefined);
+	getUi5DataDirOrDefaultStub.resolves(fallbackUi5DataDir);
 	frameworkCacheGetCacheInfo.resolves(null);
 	buildCacheGetCacheInfo.resolves(null);
 
@@ -193,7 +171,10 @@ test.serial("ui5 cache clean: falls back to ~/.ui5 when configuration has no val
 		"getCacheInfo receives default ~/.ui5 path when no configured value exists");
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes(fallbackUi5DataDir), "Fallback ui5DataDir shown in checking line");
+	const shortenedDataDir = "~" + path.sep + ".ui5";
+	t.true(allOutput.includes(shortenedDataDir),
+		"Fallback ui5DataDir shown with ~ in checking line");
+	t.false(allOutput.includes(os.homedir()), "Full home directory is not printed");
 });
 
 // ─── Basic flow ─────────────────────────────────────────────────────────────
