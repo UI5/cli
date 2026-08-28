@@ -4,6 +4,7 @@ import Configuration from "../../config/Configuration.js";
 import {access} from "node:fs/promises";
 import {getLogger} from "@ui5/logger";
 import BuildCacheStorage from "./BuildCacheStorage.js";
+import {trace} from "../helpers/teardownTrace.js";
 
 const log = getLogger("build:cache:CacheManager");
 
@@ -335,9 +336,12 @@ export default class CacheManager {
 	 * closed only when the last consumer releases its reference.
 	 */
 	close() {
+		trace(`CacheManager.close: refCount ${this.#refCount} -> ${this.#refCount - 1} (${this.#cacheDir})`);
 		if (--this.#refCount <= 0) {
+			trace("CacheManager.close: last ref, closing storage");
 			this.#storage.close();
 			cacheManagerInstances.delete(this.#cacheDir);
+			trace("CacheManager.close: storage closed, instance removed");
 		}
 	}
 

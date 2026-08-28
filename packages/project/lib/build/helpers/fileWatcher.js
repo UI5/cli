@@ -1,5 +1,7 @@
 import {existsSync, readFileSync} from "node:fs";
+import os from "node:os";
 import {getLogger} from "@ui5/logger";
+import {trace} from "./teardownTrace.js";
 
 const log = getLogger("build:helpers:fileWatcher");
 
@@ -42,6 +44,102 @@ let usePolling = null;
 // null result is not retried.
 let nativeBackend = null;
 let nativeBackendLoaded = false;
+
+// Serialization chain for native subscribe/unsubscribe. @parcel/watcher mutates a process-global
+// backend registry from both the JS thread (subscribe: find/emplace/rehash) and a libuv worker
+// thread (unsubscribe of the last subscriber: erase/rehash), with no lock guarding that static map
+// (parcel-bundler/watcher#259). Funneling every native subscribe and unsubscribe through one promise
+// chain means the process never issues two overlapping registry mutations from the JS thread. This
+// pairs with the keep-alive below: the keep-alive prevents the destructive empty-transition rehash,
+// and serializing removes the remaining same-thread overlap so subscribe fan-out and teardown drain
+// cannot interleave their native calls. The chain is process-wide because the registry it protects
+// is process-global; it only orders watcher-lifecycle calls (rare, at startup/teardown), so it costs
+// nothing on the hot path.
+let nativeWatcherChain = Promise.resolve();
+
+// Runs fn after every previously-chained native watcher operation has settled, and extends the chain
+// so the next one waits for fn. Rejections are isolated so one failed operation does not wedge the
+// chain, while the returned promise still rejects for its own caller.
+function serializeNativeWatcherOp(fn) {
+	const result = nativeWatcherChain.then(fn, fn);
+	nativeWatcherChain = result.then(() => undefined, () => undefined);
+	return result;
+}
+
+// Keep-alive subscription that pins @parcel/watcher's shared backend so its global registry never
+// empties while a serving session is active. The destructive half of parcel-bundler/watcher#259 is
+// the empty transition: when the last subscriber for a backend is removed, removeShared() runs
+// erase() + rehash(0) on a libuv worker thread, and that rehash(0) races a concurrent subscribe from
+// the JS thread — the exact shape of one reinitialize() swap fully tearing down its watchers before
+// the next stack subscribes. Serializing our own subscribe/unsubscribe calls cannot fence this,
+// because the worker-thread erase can run after our unsubscribe promise has already resolved.
+//
+// Holding one keep-alive subscription across the session keeps the registry size above zero, so
+// rehash(0) never fires during the churn. It is released only when the last session ends
+// (pinCount 0): by then nothing is serving, so no concurrent subscribe can race the final
+// registry-empty, and releasing it lets the process (and AVA's test worker) drain the native handle
+// and exit cleanly. The tmpdir target always exists and the "**" ignore drops every event, so the
+// keep-alive delivers nothing and does no work beyond existing.
+let keepAlivePromise = null;
+let backendPinCount = 0;
+
+/**
+ * Pins the native watcher backend alive for the duration of a serving session, so its shared
+ * registry never empties mid-session (see keepAlivePromise). Balanced by {@link unpinBackend}. A
+ * no-op under the polling backend, which has no such registry. Awaiting the returned promise ensures
+ * the keep-alive is in place before the first real subscribe of the session.
+ *
+ * @returns {Promise<void>} Resolves once the keep-alive is established (or skipped)
+ */
+export async function pinBackend() {
+	if (shouldUsePolling()) {
+		return;
+	}
+	const native = await loadNativeBackend();
+	if (!native) {
+		return;
+	}
+	backendPinCount++;
+	keepAlivePromise ??= serializeNativeWatcherOp(() => {
+		trace("fileWatcher: backend keep-alive subscribe start");
+		return native.subscribe(os.tmpdir(), () => {}, {ignore: ["**"]});
+	}).then((subscription) => {
+		trace("fileWatcher: backend keep-alive subscribe done");
+		return subscription;
+	}, (err) => {
+		// A failed keep-alive must not fail the session: it is an optimization, not a requirement.
+		// Without it we simply fall back to the empty-transition race being possible again, so log and
+		// carry on rather than rejecting the caller.
+		log.verbose(`Watcher backend keep-alive could not start: ${err?.message ?? err}`);
+		return null;
+	});
+	await keepAlivePromise;
+}
+
+/**
+ * Releases a {@link pinBackend} reference. When the last session ends, the keep-alive subscription is
+ * torn down so the native handle no longer holds the event loop open. Safe to over-call; a release
+ * without a matching pin is a no-op.
+ *
+ * @returns {Promise<void>} Resolves once the keep-alive has been released (or on the balancing call)
+ */
+export async function unpinBackend() {
+	if (backendPinCount === 0) {
+		return;
+	}
+	if (--backendPinCount > 0) {
+		return;
+	}
+	const pending = keepAlivePromise;
+	keepAlivePromise = null;
+	const subscription = await pending;
+	if (subscription) {
+		await serializeNativeWatcherOp(() => {
+			trace("fileWatcher: backend keep-alive unsubscribe");
+			return subscription.unsubscribe();
+		});
+	}
+}
 
 /**
  * Decides whether to poll, once per process. <code>UI5_WATCH_MODE=polling|native</code> forces the
@@ -114,7 +212,19 @@ export async function subscribe(dir, callback, opts = {}) {
 	if (!shouldUsePolling()) {
 		const native = await loadNativeBackend();
 		if (native) {
-			return native.subscribe(dir, callback, opts);
+			// Serialize against every other native subscribe/unsubscribe: see nativeWatcherChain. The
+			// shared backend is pinned for the session via pinBackend(), so the registry does not empty
+			// between this subscribe and a concurrent teardown.
+			const subscription = await serializeNativeWatcherOp(() => {
+				trace(`fileWatcher.subscribe: native subscribe start (${dir})`);
+				return native.subscribe(dir, callback, opts);
+			});
+			trace(`fileWatcher.subscribe: native subscribe done (${dir})`);
+			// Route unsubscribe through the same chain so a teardown never overlaps a subscribe (or
+			// another unsubscribe) on the shared registry.
+			return {
+				unsubscribe: () => serializeNativeWatcherOp(() => subscription.unsubscribe()),
+			};
 		}
 		// The native binding could not load (see loadNativeBackend). Polling needs no native code, so
 		// fall through to it rather than failing the watch.

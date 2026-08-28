@@ -2,6 +2,7 @@ import EventEmitter from "node:events";
 import {getLogger} from "@ui5/logger";
 import {subscribe as watchSubscribe} from "./fileWatcher.js";
 import {drainSubscriptions} from "./watchUtil.js";
+import {trace} from "./teardownTrace.js";
 import {exists} from "../../utils/fsHelper.js";
 const log = getLogger("build:helpers:WatchHandler");
 
@@ -63,15 +64,18 @@ class WatchHandler extends EventEmitter {
 	}
 
 	async destroy() {
+		trace("WatchHandler.destroy: enter");
 		// Drain the subscriptions list so a second destroy() is a no-op and a partial
 		// failure cannot leave stale handles behind to be unsubscribed twice.
 		const subscriptions = this.#subscriptions;
 		this.#subscriptions = [];
 		const failures = await drainSubscriptions(subscriptions);
+		trace("WatchHandler.destroy: drained");
 		if (failures.length) {
 			const err = new AggregateError(failures, "Failed to unsubscribe one or more file watchers");
 			this.emit("error", err);
 		}
+		trace("WatchHandler.destroy: exit");
 	}
 
 	#handleWatchEvents(eventType, filePath, project) {

@@ -6,6 +6,8 @@ import {getLogger} from "@ui5/logger";
 import buildApp from "./stack.js";
 import attachLiveReloadServer from "../liveReload/server.js";
 import {listen, addSsl, announceListening} from "./httpListener.js";
+import {pinBackend, unpinBackend} from "@ui5/project/internal/build/helpers/fileWatcher";
+import {trace} from "./teardownTrace.js";
 
 const log = getLogger("server:Supervisor");
 
@@ -99,6 +101,10 @@ class Supervisor extends EventEmitter {
 	#relayUnsubscribe = null;
 	#liveReloadHandle = null;
 
+	// Whether this supervisor holds a native-watcher backend pin (see pinBackend). Guards destroy()
+	// against releasing a pin that #init never acquired (e.g. a construction failure before pinning).
+	#backendPinned = false;
+
 	// Watches the project-definition files and drives reinitialize() on a change. Owned by the
 	// supervisor (not the BuildServer) so it outlives each swapped-out stack, and re-targeted to
 	// the new graph after every swap.
@@ -124,6 +130,15 @@ class Supervisor extends EventEmitter {
 	// reinitialize() so a real definitionChanged event supersedes the timer.
 	#recoveryTimer = null;
 	#destroyAbortController = new AbortController();
+
+	// Serializes the swap body against destroy()'s teardown so the two never run concurrently. Both
+	// #swap() (via reinitialize) and destroy()'s field teardown acquire it; each waits out the other.
+	// This is what lets #swap read/mutate #stack and #definitionWatcher across its awaits without a
+	// concurrent destroy() tearing them down mid-flight — the source of the orphaned native handles
+	// (a @parcel/watcher subscription, the node:sqlite database) that kept the process alive on Windows.
+	// Distinct from #reinitInProgress, which only collapses overlapping reinitialize() calls; destroy()
+	// acquires this lock directly, never through reinitialize(), so the #init error path cannot deadlock.
+	#lockTail = Promise.resolve();
 
 	// Stable reference handed to every stack buildApp() builds. Closes over the supervisor instance
 	// (not a per-stack value), so the surviving stack's serveBuildError reads the current
@@ -169,6 +184,16 @@ class Supervisor extends EventEmitter {
 		buildServer.resumeReaders();
 	}
 
+	// Runs `fn` only after every previously-queued exclusive operation has settled, serializing the
+	// swap body against destroy teardown. The stored tail swallows the outcome so a rejected `fn` (a
+	// failed swap) cannot wedge the lock for the next waiter; the returned promise still surfaces `fn`'s
+	// real result or rejection to its own caller.
+	#runExclusive(fn) {
+		const run = this.#lockTail.then(fn, fn);
+		this.#lockTail = run.then(() => {}, () => {});
+		return run;
+	}
+
 	constructor(config, error, graphFactory, projectWatcher) {
 		super();
 		this.#config = config;
@@ -211,6 +236,12 @@ class Supervisor extends EventEmitter {
 			port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
 			acceptRemoteConnections = false, liveReload = false,
 		} = this.#config;
+
+		// Pin the native watcher backend for the whole serving session before any watcher subscribes,
+		// so its shared registry never empties across a reinitialize() swap (parcel-bundler/watcher#259).
+		// Released in destroy(). Never throws: a failed pin degrades to the unprotected behavior.
+		await pinBackend();
+		this.#backendPinned = true;
 
 		if (h2) {
 			const nodeVersion = parseInt(process.versions.node.split(".")[0], 10);
@@ -289,6 +320,12 @@ class Supervisor extends EventEmitter {
 		// Suspending rejects those requests fast instead. Reads #stack.buildServer live, so it always
 		// targets the current stack; the suspend is lifted via #liftSuspend on both #swap outcomes.
 		watcher.on("definitionChanging", () => {
+			// A watcher can still emit between destroy()'s synchronous state flip and its teardown
+			// awaiting the watcher's own destroy(). Bail: teardown has nulled (or is about to null)
+			// #stack, and the suspend/budget work below is pointless on a server being torn down.
+			if (this.#state === STATE.DESTROYED) {
+				return;
+			}
 			// A real definition change supersedes any pending self-scheduled recovery and restores a
 			// full recovery budget: the user just acted, so the next attempt should not be denied by an
 			// allowance spent on the previous branch.
@@ -350,7 +387,7 @@ class Supervisor extends EventEmitter {
 		try {
 			do {
 				this.#reinitQueued = false;
-				await this.#swap();
+				await this.#runExclusive(() => this.#swap());
 			} while (this.#reinitQueued && this.#state !== STATE.DESTROYED);
 		} finally {
 			this.#reinitInProgress = false;
@@ -502,11 +539,6 @@ class Supervisor extends EventEmitter {
 			this.#scheduleDegradedRecovery();
 			return;
 		}
-		if (this.#state === STATE.DESTROYED) {
-			// Destroyed while building: discard the new stack instead of adopting it.
-			await newStack.buildServer.destroy();
-			return;
-		}
 		// Swap: retarget the dispatcher, move live-reload to the new BuildServer, notify clients.
 		this.#setState(STATE.HEALTHY);
 		this.#stack = newStack;
@@ -521,7 +553,9 @@ class Supervisor extends EventEmitter {
 		this.#sourcesChangedRelay.emit("sourcesChanged");
 		// Re-target the definition watcher to the new graph: the project set or their roots may
 		// have changed. A create failure here must not crash the swap: keep serving and log, so the
-		// old watcher keeps driving re-inits.
+		// old watcher keeps driving re-inits. destroy() cannot interleave here: it acquires the same
+		// exclusive lock this swap holds, so its teardown runs only after this swap returns and then
+		// tears down whatever this swap adopted as #stack / #definitionWatcher.
 		const oldWatcher = this.#definitionWatcher;
 		this.#definitionWatcher = null;
 		try {
@@ -551,35 +585,63 @@ class Supervisor extends EventEmitter {
 	 * @returns {Promise<void>} Resolves once teardown completes
 	 */
 	async destroy() {
-		// Move to the terminal state synchronously, before the first await, so an in-flight #swap or a
-		// late definitionChanged sees DESTROYED at its next guard and adopts nothing.
+		// Synchronous head: runs before any await and before the lock is acquired, so an in-flight
+		// #swap or a late definitionChanged/recovery-timer sees DESTROYED at its next guard, and the
+		// abort unblocks a recovery settle wait immediately rather than after its full window.
+		trace("Supervisor.destroy: enter");
 		this.#setState(STATE.DESTROYED);
 		this.#destroyAbortController.abort();
-		// Stop the definition watcher early so a late event cannot start a re-init mid-teardown.
-		// The reinitialize() DESTROYED guard already no-ops such an event; this is defensive.
-		const definitionWatcher = this.#definitionWatcher;
-		this.#definitionWatcher = null;
+		this.#clearRecoveryTimer();
 		this.#liveReloadHandle?.close();
 		this.#detachRelay();
-		this.#clearRecoveryTimer();
+		// Stop accepting new requests now, before waiting out any in-flight swap. Awaited last so the
+		// returned promise resolves only once the socket is fully closed.
+		trace("Supervisor.destroy: httpServer.close start");
 		const httpClosed = new Promise((resolve) => {
 			if (!this.#httpServer) {
 				resolve();
 				return;
 			}
-			this.#httpServer.close(() => resolve());
+			this.#httpServer.close(() => {
+				trace("Supervisor.destroy: httpServer.close callback");
+				resolve();
+			});
 		});
-		try {
-			await definitionWatcher?.destroy();
-		} catch (err) {
-			log.verbose(`Error while destroying definition watcher: ${err?.message ?? err}`);
-		}
-		try {
-			await this.#stack?.buildServer.destroy();
-		} catch (err) {
-			log.verbose(`Error while destroying BuildServer: ${err?.message ?? err}`);
-		}
+
+		// Teardown of the swappable fields runs under the same exclusive lock as #swap, so it never
+		// races a swap mid-flight. By the time it runs, any in-flight swap has settled and
+		// #definitionWatcher / #stack point at whatever that swap adopted — read once, torn down once.
+		await this.#runExclusive(async () => {
+			const definitionWatcher = this.#definitionWatcher;
+			this.#definitionWatcher = null;
+			const stack = this.#stack;
+			this.#stack = null;
+			try {
+				trace("Supervisor.destroy: definitionWatcher.destroy start");
+				await definitionWatcher?.destroy();
+				trace("Supervisor.destroy: definitionWatcher.destroy done");
+			} catch (err) {
+				log.verbose(`Error while destroying definition watcher: ${err?.message ?? err}`);
+			}
+			try {
+				trace("Supervisor.destroy: buildServer.destroy start");
+				await stack?.buildServer.destroy();
+				trace("Supervisor.destroy: buildServer.destroy done");
+			} catch (err) {
+				log.verbose(`Error while destroying BuildServer: ${err?.message ?? err}`);
+			}
+		});
+		trace("Supervisor.destroy: awaiting httpClosed");
 		await httpClosed;
+		// Release the backend pin last: every watcher this session owns is now unsubscribed, so the
+		// shared registry can empty without a concurrent subscribe to race, and dropping the keep-alive
+		// lets the native handle stop holding the event loop open.
+		if (this.#backendPinned) {
+			this.#backendPinned = false;
+			trace("Supervisor.destroy: unpinBackend");
+			await unpinBackend();
+		}
+		trace("Supervisor.destroy: exit");
 	}
 }
 

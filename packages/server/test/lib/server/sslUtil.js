@@ -17,6 +17,18 @@ function fileExists(filePath) {
 	});
 }
 
+// Certificate creation prints a "please enter your root password" prompt straight
+// to stderr (not via @ui5/logger). No test asserts on stderr, so silence it once for
+// the whole file. A file-level hook (rather than beforeEach) avoids concurrent tests
+// racing to stub the same global process.stderr.
+let stderrWriteStub;
+test.before(() => {
+	stderrWriteStub = sinon.stub(process.stderr, "write");
+});
+test.after.always(() => {
+	stderrWriteStub.restore();
+});
+
 test.beforeEach(async (t) => {
 	t.context.yesno = sinon.stub();
 	t.context.devcertSanscache = sinon.stub();

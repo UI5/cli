@@ -283,18 +283,23 @@ test.serial("watch: rejects when subscribe fails on an existing path", async (t)
 	await handler.destroy();
 });
 
-test.serial("destroy: unsubscribes subscriptions in parallel", async (t) => {
+test.serial("destroy: unsubscribes subscriptions sequentially, not concurrently", async (t) => {
 	const subA = createMockSubscription();
 	const subB = createMockSubscription();
-	// Make subA's unsubscribe block until subB's has at least started.
-	// If destroy() runs sequentially, subB.unsubscribe is never called while
-	// subA is still pending and the test deadlocks (caught by AVA timeout).
-	let resolveA;
-	subA.unsubscribe = sinon.stub().returns(new Promise((resolve) => {
-		resolveA = resolve;
-	}));
+	// @parcel/watcher races its shared-backend registry when unsubscribe calls overlap
+	// (parcel-bundler/watcher#259), which segfaults on Windows. destroy() must not start
+	// subB.unsubscribe while subA.unsubscribe is still pending.
+	let subAPending = false;
+	let overlapped = false;
+	subA.unsubscribe = sinon.stub().callsFake(async () => {
+		subAPending = true;
+		await new Promise((resolve) => setImmediate(resolve));
+		subAPending = false;
+	});
 	subB.unsubscribe = sinon.stub().callsFake(async () => {
-		resolveA();
+		if (subAPending) {
+			overlapped = true;
+		}
 	});
 	subscribeStub.onFirstCall().resolves(subA);
 	subscribeStub.onSecondCall().resolves(subB);
@@ -311,6 +316,7 @@ test.serial("destroy: unsubscribes subscriptions in parallel", async (t) => {
 
 	t.true(subA.unsubscribe.calledOnce);
 	t.true(subB.unsubscribe.calledOnce);
+	t.false(overlapped, "subB.unsubscribe did not start while subA.unsubscribe was still pending");
 });
 
 test.serial("destroy: continues unsubscribing when one subscription rejects", async (t) => {

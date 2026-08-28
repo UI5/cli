@@ -454,6 +454,44 @@ test.serial("recovery: a watcher error tears down and re-subscribes", async (t) 
 	await watcher.destroy();
 });
 
+test.serial("recovery: pending settle timer is cancelled before teardown", async (t) => {
+	const sub1 = createMockSubscription();
+	const sub2 = createMockSubscription();
+	let cb;
+	subscribeStub.onFirstCall().callsFake(async (_dir, callback) => {
+		cb = callback;
+		return sub1;
+	});
+	subscribeStub.onSecondCall().resolves(sub2);
+
+	const graph = createGraph({name: "root", rootPath: fixturePath("/app")});
+	const watcher = await ProjectDefinitionWatcher.create({graph});
+	const ui5YamlPath = fixtureFile("/app", "ui5.yaml");
+
+	const emitted = [];
+	watcher.on("definitionChanged", (e) => emitted.push(e));
+
+	const clock = sinon.useFakeTimers();
+	// Open a burst so the settle timer is armed.
+	cb(null, [{type: "update", path: ui5YamlPath}]);
+	clock.tick(100);
+
+	// Watcher error fires while the timer is still pending.
+	cb(new Error("Failed to read changes"));
+
+	// Restore real timers before awaiting recovery so async callbacks can proceed.
+	clock.restore();
+	await new Promise((resolve) => setImmediate(resolve));
+
+	// The old subscription is torn down and a new one created.
+	t.true(sub1.unsubscribe.calledOnce, "old subscription torn down");
+	t.is(subscribeStub.callCount, 2, "re-subscribed after recovery");
+
+	t.is(emitted.length, 0, "cancelled settle timer does not fire into the closed watcher handle");
+
+	await watcher.destroy();
+});
+
 test.serial("recovery: loop protection escalates to error after the max attempts", async (t) => {
 	const subs = [];
 	subscribeStub.callsFake(async () => {
