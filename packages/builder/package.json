@@ -112,7 +112,7 @@
 		"@ui5/project": "^5.0.0-alpha.8",
 		"ava": "^8.0.1",
 		"cross-env": "^10.1.0",
-		"eslint": "^10.9.0",
+		"eslint": "^10.9.1",
 		"esmock": "^2.7.6",
 		"line-column": "^1.0.2",
 		"nyc": "^18.0.0",
