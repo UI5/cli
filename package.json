@@ -33,8 +33,7 @@
 		"knip": "knip --config knip.config.js",
 		"check-engine": "check-engine-light .",
 		"check-licenses": "licensee --errors-only",
-		"schema-generate": "npm run schema-generate --workspace=@ui5/documentation",
-		"generate-cli-doc": "npm run generate-cli-doc --workspace=@ui5/documentation",
+		"docs:dev": "npm run jsdoc-generate --workspace=@ui5/documentation && npm run generate-cli-doc --workspace=@ui5/documentation && npm run dev --workspace=@ui5/documentation",
 		"audit": "audit-ci --config ./audit-ci.jsonc"
 	},
 	"repository": {
