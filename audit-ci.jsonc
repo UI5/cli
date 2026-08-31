@@ -9,6 +9,11 @@
         // reachable through our call sites, so neither advisory is exploitable via @ui5/project.
         "GHSA-jfc7-64v2-mr8c|@sigstore/sign>@sigstore/core",
         "GHSA-jfc7-64v2-mr8c|@sigstore/verify>@sigstore/core",
-        "GHSA-jfc7-64v2-mr8c|@ui5/cli>@ui5/project>pacote>sigstore>@sigstore/core"
+        "GHSA-jfc7-64v2-mr8c|@ui5/cli>@ui5/project>pacote>sigstore>@sigstore/core",
+        // GHSA-w4pp-8pjf-rmxw: ReDoS in pacote's addGitSha() function (pacote < 21.5.1).
+        // The vulnerable code path is only triggered when resolving git specs (git+https://, github:, etc.).
+        // @ui5/project passes only npm registry specs (pkgName@version) to packument/manifest/extract,
+        // so addGitSha() is never called and the advisory is not exploitable via @ui5/project.
+        "GHSA-w4pp-8pjf-rmxw|@ui5/cli>@ui5/project>pacote"
     ]
 }
