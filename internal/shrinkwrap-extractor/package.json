@@ -41,6 +41,6 @@
 		"@npmcli/arborist": "^9.9.0",
 		"@npmcli/config": "^11.0.1",
 		"eslint": "^10.9.1",
-		"pacote": "^21.5.1"
+		"pacote": "^22.0.0"
 	}
 }
