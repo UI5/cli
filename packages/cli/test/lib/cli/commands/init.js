@@ -38,7 +38,8 @@ test.serial("Writes ui5.yaml to fs", async (t) => {
 
 	t.is(fsWriteFileStub.getCall(0).args[0], ui5YamlPath, "Passes yaml path to write the yaml file to");
 	t.is(fsWriteFileStub.getCall(0).args[1], ui5Yaml, "Passes yaml content to write to fs");
-	t.deepEqual(jsyamlDumpStub.getCall(0).args[1], {quotingType: `"`}, "Enforce usage of double quotes in yaml files");
+	t.deepEqual(jsyamlDumpStub.getCall(0).args[1],
+		{quoteStyle: "double"}, "Enforce usage of double quotes in yaml files");
 });
 
 test.serial("Error: throws if ui5.yaml already exists", async (t) => {

@@ -12,7 +12,7 @@ initCommand.handler = async function() {
 	const {default: init} = await import("../../init/init.js");
 	const {default: path} = await import("node:path");
 	const {writeFile} = await import("node:fs/promises");
-	const {default: jsYaml} = await import("js-yaml");
+	const {dump: jsYamlDump} = await import("js-yaml");
 
 	const yamlPath = path.resolve("./ui5.yaml");
 	if (await exists(yamlPath)) {
@@ -20,7 +20,7 @@ initCommand.handler = async function() {
 	}
 
 	const projectConfig = await init();
-	const yaml = jsYaml.dump(projectConfig, {quotingType: `"`});
+	const yaml = jsYamlDump(projectConfig, {quoteStyle: "double"});
 
 	await writeFile(yamlPath, yaml);
 	process.stdout.write(`Wrote ui5.yaml to ${yamlPath}:`);

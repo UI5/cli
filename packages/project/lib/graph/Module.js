@@ -2,7 +2,7 @@ import fs from "graceful-fs";
 import path from "node:path";
 import {promisify} from "node:util";
 const readFile = promisify(fs.readFile);
-import jsyaml from "js-yaml";
+import {loadAll as jsyamlLoadAll, CORE_SCHEMA as jsyamlCoreSchema} from "js-yaml";
 import {createReader} from "@ui5/fs/resourceFactory";
 import Specification from "../specifications/Specification.js";
 import {validate} from "../validation/validator.js";
@@ -318,12 +318,10 @@ class Module {
 		let configs;
 
 		try {
-			// Using loadAll with DEFAULT_SAFE_SCHEMA instead of safeLoadAll to pass "filename".
-			// safeLoadAll doesn't handle its parameters properly.
-			// See https://github.com/nodeca/js-yaml/issues/456 and https://github.com/nodeca/js-yaml/pull/381
-			configs = jsyaml.loadAll(configFile, undefined, {
+			// Using loadAll with CORE_SCHEMA (equivalent of v4's DEFAULT_SAFE_SCHEMA) to pass "filename".
+			configs = jsyamlLoadAll(configFile, undefined, {
 				filename: configPath,
-				schema: jsyaml.DEFAULT_SAFE_SCHEMA
+				schema: jsyamlCoreSchema
 			});
 		} catch (err) {
 			if (err.name === "YAMLException") {
