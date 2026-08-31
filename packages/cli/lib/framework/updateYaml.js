@@ -1,6 +1,6 @@
 import path from "node:path";
 import {readFile, writeFile} from "node:fs/promises";
-import {loadAll, dump} from "js-yaml";
+import {loadAll, dump, CORE_SCHEMA} from "js-yaml";
 import {fromYaml, getPosition, getValue, getKind} from "data-with-position";
 import {getLogger} from "@ui5/logger";
 
@@ -149,7 +149,7 @@ function formatValue(value, indent) {
 		return string;
 	} else if (Array.isArray(value)) {
 		const indentString = " ".repeat(indent);
-		const string = dump(value);
+		const string = dump(value, {schema: CORE_SCHEMA});
 		const arr = string.split("\n");
 		arr.pop();
 		return "\n" + indentString + arr.join("\n" + indentString) + "\n";
