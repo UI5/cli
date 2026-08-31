@@ -112,11 +112,11 @@ By placing this file in the root directory of the `my.app` application project, 
 
 The structure of the dependency definition file follows that of the [`@ui5/project/graph/providers/DependencyTree~TreeNode`](../api/@ui5_project_graph_providers_DependencyTree.html#~TreeNode) type.
 
-## HTTP/2 Development Webserver
-The UI5 CLI contains a web server to serve the project via HTTP/2 protocol.
+## HTTPS Development Webserver
+The UI5 CLI contains a web server to serve the project via HTTPS protocol.
 
 ```sh
-ui5 serve --h2
+ui5 serve --https
 ```
 
 This requires an SSL certificate. You are guided through the automatic generation process. Also see the [UI5 Server documentation](./Server.md#ssl-certificates)
