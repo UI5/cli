@@ -245,10 +245,10 @@ serve.handler = async function(argv) {
 			serverConfig.cert = cert;
 		} catch (err) {
 			if (err instanceof SslCertificateNotFoundError) {
-				const keyOrigin = serverConfig.key ? "--key" : "default";
-				const certOrigin = serverConfig.cert ? "--cert" : "default";
+				const keyOrigin = serverConfig.key ? "--key" : "default location";
+				const certOrigin = serverConfig.cert ? "--cert" : "default location";
 				throw new Error(
-					`No SSL certificate found for HTTPS.\n` +
+					`Failed to find required SSL certificate for launching the HTTPS server.\n` +
 					`Looked for:\n` +
 					`  Private key: ${formatPath(keyPath)} (${keyOrigin})\n` +
 					`  Certificate: ${formatPath(certPath)} (${certOrigin})\n` +

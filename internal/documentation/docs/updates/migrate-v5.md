@@ -391,7 +391,7 @@ If you need HTTP/2 for local development, manually set up a reverse proxy, for e
 
 ## SSL Certificate Generation
 
-In previous versions, UI5 CLI generated and installed a self-signed SSL certificate automatically. In UI5 CLI v5, certificate generation is an explicit step:
+In previous versions, UI5 CLI generated and installed a self-signed SSL certificate proactively. In UI5 CLI v5, certificate generation is an explicit step:
 
 ```sh
 ui5 certificate generate
