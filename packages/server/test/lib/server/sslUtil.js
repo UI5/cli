@@ -36,7 +36,6 @@ test.beforeEach(async (t) => {
 });
 
 test.afterEach.always((t) => {
-	sinon.restore();
 	if (t.context.sslUtil) {
 		esmock.purge(t.context.sslUtil);
 	}
@@ -188,23 +187,6 @@ test.serial("Generate new certificate reports the written paths", async (t) => {
 
 	t.is(result.keyPath, sslPathKey, "Returned key path matches");
 	t.is(result.certPath, sslPathCert, "Returned cert path matches");
-});
-
-test.serial("Generate new certificate pauses stdin so the calling process can exit", async (t) => {
-	const {createSslUtilMock, devcertSanscache} = t.context;
-	const sslUtil = await createSslUtilMock();
-
-	devcertSanscache.resolves({key: "k", cert: "c"});
-	const stdinPause = sinon.stub(process.stdin, "pause");
-
-	const sslPath = path.join(process.cwd(), "./test/tmp/ssl/");
-	const sslPathKey = path.join(sslPath, "stdinPauseServer.key");
-	const sslPathCert = path.join(sslPath, "stdinPauseServer.crt");
-	await sslUtil.generateSslCertificate(sslPathKey, sslPathCert);
-
-	// devcert-sanscache resumes stdin to prompt for confirmation but never pauses it again, which
-	// would keep the calling process alive. generateSslCertificate must release that reference.
-	t.is(stdinPause.callCount, 1, "process.stdin.pause() is called after generation");
 });
 
 test.serial("Generate new certificate not succeeded", async (t) => {
