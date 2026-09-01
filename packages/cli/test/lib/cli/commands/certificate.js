@@ -32,7 +32,8 @@ test.beforeEach(async (t) => {
 		return true;
 	});
 
-	// Prevent real env var from leaking into tests
+	// Tests rely on not having UI5_DATA_DIR defined
+	t.context.originalUi5DataDirEnv = process.env.UI5_DATA_DIR;
 	delete process.env.UI5_DATA_DIR;
 
 	t.context.getUi5DataDirStub = sinon.stub().resolves(TEST_UI5_DATA_DIR);
@@ -62,7 +63,11 @@ test.beforeEach(async (t) => {
 test.afterEach.always((t) => {
 	sinon.restore();
 	esmock.purge(t.context.certificate);
-	delete process.env.UI5_DATA_DIR;
+	if (typeof t.context.originalUi5DataDirEnv === "undefined") {
+		delete process.env.UI5_DATA_DIR;
+	} else {
+		process.env.UI5_DATA_DIR = t.context.originalUi5DataDirEnv;
+	}
 });
 
 test.serial("certificate command structure", (t) => {

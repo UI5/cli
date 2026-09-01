@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import process from "node:process";
 import baseMiddleware from "../middlewares/base.js";
-import {getUi5DataDirOrDefault, getServerCertificatePaths, formatPath} from "../../dataDir.js";
+import {getUi5DataDirOrDefault, resolveServerCertificatePaths, formatPath} from "../../dataDir.js";
 import {exists} from "../../utils/fsHelper.js";
 
 const certificateCommand = {
@@ -19,12 +19,12 @@ certificateCommand.builder = function(cli) {
 				return yargs
 					.option("key", {
 						describe: "Path the private key is written to",
-						defaultDescription: "<UI5 data dir>/server/server.key",
+						defaultDescription: "~/.ui5/server/server.key",
 						type: "string"
 					})
 					.option("cert", {
 						describe: "Path the certificate is written to",
-						defaultDescription: "<UI5 data dir>/server/server.crt",
+						defaultDescription: "~/.ui5/server/server.crt",
 						type: "string"
 					})
 					.option("force", {
@@ -46,9 +46,10 @@ certificateCommand.builder = function(cli) {
 
 async function handleGenerate(argv) {
 	const ui5DataDir = await getUi5DataDirOrDefault({cwd: process.cwd()});
-	const defaults = getServerCertificatePaths(ui5DataDir);
-	const keyPath = argv.key ?? defaults.keyPath;
-	const certPath = argv.cert ?? defaults.certPath;
+	const {keyPath, certPath} = resolveServerCertificatePaths(ui5DataDir, {
+		keyPath: argv.key,
+		certPath: argv.cert,
+	});
 
 	if (!argv.force) {
 		let keyExists;

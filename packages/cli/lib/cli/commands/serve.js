@@ -1,7 +1,7 @@
 import process from "node:process";
 import baseMiddleware from "../middlewares/base.js";
 import {applyProjectConfigOptions, applyWorkspaceOptions, applyBuildOptions, dedupeArray} from "../options.js";
-import {getUi5DataDirOrDefault, getServerCertificatePaths, formatPath} from "../../dataDir.js";
+import {getUi5DataDirOrDefault, resolveServerCertificatePaths, formatPath} from "../../dataDir.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("cli:commands:serve");
 
@@ -53,12 +53,12 @@ serve.builder = function(cli) {
 		})
 		.option("key", {
 			describe: "Path to the private key",
-			defaultDescription: "<UI5 data dir>/server/server.key",
+			defaultDescription: "~/.ui5/server/server.key",
 			type: "string"
 		})
 		.option("cert", {
 			describe: "Path to the certificate",
-			defaultDescription: "<UI5 data dir>/server/server.crt",
+			defaultDescription: "~/.ui5/server/server.crt",
 			type: "string"
 		})
 		.option("sap-csp-policies", {
@@ -233,9 +233,10 @@ serve.handler = async function(argv) {
 		// A default certificate path is only needed for HTTPS, so the UI5 data directory is
 		// resolved once here rather than for every serve invocation.
 		const ui5DataDir = await getUi5DataDirOrDefault({cwd: process.cwd()});
-		const defaults = getServerCertificatePaths(ui5DataDir);
-		const keyPath = serverConfig.key ?? defaults.keyPath;
-		const certPath = serverConfig.cert ?? defaults.certPath;
+		const {keyPath, certPath} = resolveServerCertificatePaths(ui5DataDir, {
+			keyPath: serverConfig.key,
+			certPath: serverConfig.cert,
+		});
 
 		const {getSslCertificate, SslCertificateNotFoundError} = await import("@ui5/server/internal/sslUtil");
 		try {
