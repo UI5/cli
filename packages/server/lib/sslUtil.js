@@ -1,5 +1,6 @@
 import {stat, readFile, writeFile, mkdir, chmod, rm, constants} from "node:fs/promises";
 import path from "node:path";
+import process from "node:process";
 import {getLogger} from "@ui5/logger";
 
 const log = getLogger("server:sslUtil");
@@ -106,6 +107,12 @@ export async function generateSslCertificate(keyPath, certPath) {
 	const {default: devCert} = await import("devcert-sanscache");
 
 	const {key, cert} = await devCert("UI5Tooling");
+
+	// When a browser (e.g. Firefox) requires manual confirmation, devcert-sanscache resumes stdin to
+	// wait for the user to press <Enter>, but never pauses it again. The resumed stdin keeps a
+	// reference on the event loop that would prevent the calling process from exiting. Pause it to
+	// release that reference.
+	process.stdin.pause();
 
 	await Promise.all([
 		// Write certificates to the ui5 certificate folder
