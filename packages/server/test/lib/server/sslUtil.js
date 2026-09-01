@@ -126,7 +126,7 @@ test.serial("Generate new certificate and install it", async (t) => {
 	const sslCert = "defg";
 
 	devcertSanscache.callsFake(function(name) {
-		t.is(name, "UI5Tooling", "Create certificate for UI5Tooling.");
+		t.is(name, "UI5 CLI", "Create certificate for UI5 CLI.");
 		return Promise.resolve({
 			key: sslKey,
 			cert: sslCert
@@ -222,6 +222,6 @@ test.serial("Generate new certificate not succeeded", async (t) => {
 	const sslPathCert = path.join(sslPath, "someOtherServer3.crt");
 	const err = await t.throwsAsync(sslUtil.generateSslCertificate(sslPathKey, sslPathCert));
 	t.is(err.message, "some error", "Correct error thrown");
-	t.is(devcertSanscache.firstCall.args[0], "UI5Tooling", "Certificate created for UI5Tooling");
+	t.is(devcertSanscache.firstCall.args[0], "UI5 CLI", "Certificate created for UI5 CLI");
 	t.true(mkdir.called, "mkdir was attempted");
 });

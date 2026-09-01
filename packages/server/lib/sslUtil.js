@@ -106,7 +106,7 @@ export async function generateSslCertificate(keyPath, certPath) {
 	// Create a self-signed certificate and put it into the user's trust store
 	const {default: devCert} = await import("devcert-sanscache");
 
-	const {key, cert} = await devCert("UI5Tooling");
+	const {key, cert} = await devCert("UI5 CLI");
 
 	// When a browser (e.g. Firefox) requires manual confirmation, devcert-sanscache resumes stdin to
 	// wait for the user to press <Enter>, but never pauses it again. The resumed stdin keeps a
