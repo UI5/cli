@@ -97,6 +97,32 @@ test.serial("getUi5DataDirOrDefault: falls back to ~/.ui5 when no value defined"
 	t.is(result, path.join(os.homedir(), ".ui5"));
 });
 
+test.serial("resolveServerCertificatePaths: returns default paths", (t) => {
+	const {dataDir} = t.context;
+	const ui5DataDir = path.join(path.resolve(path.sep), "ui5-data-dir");
+
+	const result = dataDir.resolveServerCertificatePaths(ui5DataDir);
+
+	t.deepEqual(result, {
+		keyPath: path.join(ui5DataDir, "server", "server.key"),
+		certPath: path.join(ui5DataDir, "server", "server.crt"),
+	});
+});
+
+test.serial("resolveServerCertificatePaths: explicit paths override defaults", (t) => {
+	const {dataDir} = t.context;
+	const ui5DataDir = path.join(path.resolve(path.sep), "ui5-data-dir");
+
+	const result = dataDir.resolveServerCertificatePaths(ui5DataDir, {
+		keyPath: path.join(path.resolve(path.sep), "custom", "server.key"),
+	});
+
+	t.deepEqual(result, {
+		keyPath: path.join(path.resolve(path.sep), "custom", "server.key"),
+		certPath: path.join(ui5DataDir, "server", "server.crt"),
+	});
+});
+
 test.serial("formatPath: replaces home directory with ~", (t) => {
 	const {dataDir} = t.context;
 

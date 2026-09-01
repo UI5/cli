@@ -119,7 +119,7 @@ The UI5 CLI contains a web server to serve the project via HTTPS protocol.
 ui5 serve --https
 ```
 
-This requires an SSL certificate. You are guided through the automatic generation process. Also see the [UI5 Server documentation](./Server.md#ssl-certificates)
+This requires an SSL certificate. Generate one up front with `ui5 certificate generate`. Also see the [UI5 Server documentation](./Server.md#ssl-certificates)
 
 ## Integration in Other Tools
 One of the key features of the UI5 CLI is its modularization. Single parts of UI5 CLI can easily be integrated in other `Node.js`-based tools and frameworks like [Grunt](https://gruntjs.com/) or [Gulp](https://gulpjs.com/).

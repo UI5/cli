@@ -18,13 +18,11 @@ function fileExists(filePath) {
 }
 
 test.beforeEach(async (t) => {
-	t.context.yesno = sinon.stub();
 	t.context.devcertSanscache = sinon.stub();
 	t.context.mkdir = sinon.stub().resolves();
 
 	t.context.createSslUtilMock = async (mockMkdir = false) => {
 		const mocks = {
-			"yesno": t.context.yesno,
 			"devcert-sanscache": t.context.devcertSanscache
 		};
 		if (mockMkdir) {
@@ -38,7 +36,9 @@ test.beforeEach(async (t) => {
 });
 
 test.afterEach.always((t) => {
-	esmock.purge(t.context.sslUtil);
+	if (t.context.sslUtil) {
+		esmock.purge(t.context.sslUtil);
+	}
 });
 
 test("Get existing certificate", async (t) => {
@@ -78,27 +78,54 @@ test("Get existing certificate with outdated permissions triggers chmod error ha
 	t.true(chmodStub.calledTwice, "chmod was called for both key and cert");
 });
 
-test.serial("Create new certificate and install it", async (t) => {
-	const {createSslUtilMock, yesno, devcertSanscache} = t.context;
+test("Get missing certificate throws SslCertificateNotFoundError", async (t) => {
+	const sslUtil = await esmock("../../../lib/sslUtil.js");
+
+	const keyPath = "/does/not/exist/server.key";
+	const certPath = "/does/not/exist/server.crt";
+	const err = await t.throwsAsync(sslUtil.getSslCertificate(keyPath, certPath), {
+		instanceOf: sslUtil.SslCertificateNotFoundError
+	});
+	t.is(err.code, "SSL_CERTIFICATE_NOT_FOUND", "Error carries a recognizable code");
+	t.is(err.keyPath, keyPath, "Error exposes the key path");
+	t.is(err.certPath, certPath, "Error exposes the cert path");
+});
+
+test("Get certificate with empty key or cert file throws SslCertificateNotFoundError", async (t) => {
+	const constants = await import("node:fs").then((m) => m.constants);
+	const statStub = sinon.stub().resolves({mode: constants.S_IRUSR});
+	// A leftover file from an interrupted write reads as a truthy but zero-length Buffer
+	const readFileStub = sinon.stub();
+	readFileStub.withArgs("/fake/path.key").resolves(Buffer.alloc(0));
+	readFileStub.withArgs("/fake/path.crt").resolves(Buffer.from("cert-content"));
+
+	const sslUtil = await esmock("../../../lib/sslUtil.js", {
+		"node:fs/promises": {
+			stat: statStub,
+			readFile: readFileStub,
+			writeFile: sinon.stub(),
+			mkdir: sinon.stub(),
+			chmod: sinon.stub().resolves(),
+			constants,
+		}
+	});
+
+	await t.throwsAsync(sslUtil.getSslCertificate("/fake/path.key", "/fake/path.crt"), {
+		instanceOf: sslUtil.SslCertificateNotFoundError
+	}, "An empty key file is treated as missing");
+});
+
+test.serial("Generate new certificate and install it", async (t) => {
+	const {createSslUtilMock, devcertSanscache} = t.context;
 	const sslUtil = await createSslUtilMock();
 
-	t.plan(6);
+	t.plan(5);
 
 	const sslKey = "abcd";
 	const sslCert = "defg";
 
-	yesno.callsFake(async function(options) {
-		t.deepEqual(options, {
-			question: "No SSL certificates found. " +
-				"Do you want to create new SSL certificates and install them locally? (yes)",
-			defaultValue: true
-		}, "Pass options to yesno");
-
-		return true;
-	});
-
 	devcertSanscache.callsFake(function(name) {
-		t.is(name, "UI5Tooling", "Create certificate for UI5Tooling.");
+		t.is(name, "UI5CLI", "Create certificate for UI5CLI.");
 		return Promise.resolve({
 			key: sslKey,
 			cert: sslCert
@@ -110,7 +137,7 @@ test.serial("Create new certificate and install it", async (t) => {
 
 	const sslPathKey = path.join(sslPath, "someOtherServer1.key");
 	const sslPathCert = path.join(sslPath, "someOtherServer1.crt");
-	const result = await sslUtil.getSslCertificate(sslPathKey, sslPathCert);
+	const result = await sslUtil.generateSslCertificate(sslPathKey, sslPathCert);
 	t.deepEqual(result.key, sslKey, "Key should be returned");
 	t.deepEqual(result.cert, sslCert, "Cert should be returned");
 
@@ -123,68 +150,60 @@ test.serial("Create new certificate and install it", async (t) => {
 	t.is(fileExistsResult[1], true, "Cert was created.");
 });
 
-test.serial("Create new certificate and do not install it", async (t) => {
-	const {createSslUtilMock, yesno} = t.context;
+test.serial("Generate new certificate overwrites an existing read-only certificate", async (t) => {
+	const {createSslUtilMock, devcertSanscache} = t.context;
 	const sslUtil = await createSslUtilMock();
 
-	t.plan(2);
-
-	yesno.callsFake(async function(options) {
-		t.deepEqual(options, {
-			question: "No SSL certificates found. " +
-				"Do you want to create new SSL certificates and install them locally? (yes)",
-			defaultValue: true
-		}, "Pass options to yesno");
-
-		return false;
-	});
+	devcertSanscache.resolves({key: "new-key", cert: "new-cert"});
 
 	const sslPath = path.join(process.cwd(), "./test/tmp/ssl/");
-	const sslPathKey = path.join(sslPath, "someOtherServer2.key");
-	const sslPathCert = path.join(sslPath, "someOtherServer2.crt");
-	const result = sslUtil.getSslCertificate(sslPathKey, sslPathCert);
-	return result.catch((error) => {
-		t.is(
-			error.message,
-			"Certificate installation aborted! Please install the SSL certificate manually.",
-			"Certificate install aborted."
-		);
-	});
+	const sslPathKey = path.join(sslPath, "existingServer.key");
+	const sslPathCert = path.join(sslPath, "existingServer.crt");
+
+	// Simulate a certificate from a previous run: written with read-only permissions (0o400),
+	// which would otherwise cause EACCES when opened for writing.
+	await promisify(fs.mkdir)(sslPath, {recursive: true});
+	await promisify(fs.writeFile)(sslPathKey, "old-key", {mode: 0o400});
+	await promisify(fs.writeFile)(sslPathCert, "old-cert", {mode: 0o400});
+
+	await t.notThrowsAsync(sslUtil.generateSslCertificate(sslPathKey, sslPathCert),
+		"Regeneration succeeds despite read-only existing files");
+
+	const readFile = promisify(fs.readFile);
+	t.is((await readFile(sslPathKey)).toString(), "new-key", "Key was overwritten");
+	t.is((await readFile(sslPathCert)).toString(), "new-cert", "Cert was overwritten");
 });
 
-test.serial("Create new certificate not succeeded", async (t) => {
-	const {createSslUtilMock, yesno, devcertSanscache, mkdir} = t.context;
+test.serial("Generate new certificate reports the written paths", async (t) => {
+	const {createSslUtilMock, devcertSanscache} = t.context;
+	const sslUtil = await createSslUtilMock();
+
+	devcertSanscache.resolves({key: "k", cert: "c"});
+
+	const sslPath = path.join(process.cwd(), "./test/tmp/ssl/");
+	const sslPathKey = path.join(sslPath, "someOtherServer4.key");
+	const sslPathCert = path.join(sslPath, "someOtherServer4.crt");
+	const result = await sslUtil.generateSslCertificate(sslPathKey, sslPathCert);
+
+	t.is(result.keyPath, sslPathKey, "Returned key path matches");
+	t.is(result.certPath, sslPathCert, "Returned cert path matches");
+});
+
+test.serial("Generate new certificate not succeeded", async (t) => {
+	const {createSslUtilMock, devcertSanscache, mkdir} = t.context;
 	const sslUtil = await createSslUtilMock(true);
 
-	t.plan(6);
-
-	yesno.callsFake(async function(options) {
-		t.deepEqual(options, {
-			question: "No SSL certificates found. " +
-				"Do you want to create new SSL certificates and install them locally? (yes)",
-			defaultValue: true
-		}, "Pass options to yesno");
-
-		return true;
+	devcertSanscache.resolves({
+		key: "aaa",
+		cert: "bbb"
 	});
-
-	devcertSanscache.callsFake(async function(name) {
-		t.is(name, "UI5Tooling", "Create certificate for UI5Tooling.");
-		return {
-			key: "aaa",
-			cert: "bbb"
-		};
-	});
-	mkdir.callsFake(async function(dirName) {
-		t.pass("mkdir mock reached.");
-
-		throw new Error("some error");
-	});
+	mkdir.rejects(new Error("some error"));
 
 	const sslPath = path.join(process.cwd(), "./test/tmp/ssl/");
 	const sslPathKey = path.join(sslPath, "someOtherServer3.key");
 	const sslPathCert = path.join(sslPath, "someOtherServer3.crt");
-	const err = await t.throwsAsync(sslUtil.getSslCertificate(sslPathKey, sslPathCert));
+	const err = await t.throwsAsync(sslUtil.generateSslCertificate(sslPathKey, sslPathCert));
 	t.is(err.message, "some error", "Correct error thrown");
+	t.is(devcertSanscache.firstCall.args[0], "UI5CLI", "Certificate created for UI5CLI");
+	t.true(mkdir.called, "mkdir was attempted");
 });
-

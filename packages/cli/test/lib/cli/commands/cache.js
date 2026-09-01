@@ -43,7 +43,8 @@ test.beforeEach(async (t) => {
 	t.context.argv = getDefaultArgv();
 	t.context.stderrWriteStub = sinon.stub(process.stderr, "write");
 
-	// Prevent real env var from leaking into tests
+	// Tests rely on not having UI5_DATA_DIR defined
+	t.context.originalUi5DataDirEnv = process.env.UI5_DATA_DIR;
 	delete process.env.UI5_DATA_DIR;
 
 	t.context.getUi5DataDirOrDefaultStub = sinon.stub().resolves(TEST_UI5_DATA_DIR);
@@ -91,7 +92,11 @@ test.afterEach.always((t) => {
 	sinon.restore();
 	esmock.purge(t.context.cache);
 	process.exitCode = undefined;
-	delete process.env.UI5_DATA_DIR;
+	if (typeof t.context.originalUi5DataDirEnv === "undefined") {
+		delete process.env.UI5_DATA_DIR;
+	} else {
+		process.env.UI5_DATA_DIR = t.context.originalUi5DataDirEnv;
+	}
 });
 
 // ─── Command structure ──────────────────────────────────────────────────────
