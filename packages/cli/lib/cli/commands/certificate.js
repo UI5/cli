@@ -93,6 +93,12 @@ async function handleGenerate(argv) {
 		`  Private key: ${chalk.bold(formatPath(keyPath))}\n` +
 		`  Certificate: ${chalk.bold(formatPath(certPath))}\n`
 	);
+
+	// devcert-sanscache leaves handles open that keep the event loop alive: it resumes stdin to wait
+	// for the user to confirm the browser import without pausing it again, and its Firefox flow starts
+	// an HTTP server that is never closed. The latter runs unconditionally on Windows, so the process
+	// would otherwise hang here on every run. All work is done at this point, so exit explicitly.
+	process.exit(0);
 }
 
 export default certificateCommand;

@@ -32,6 +32,10 @@ test.beforeEach(async (t) => {
 		return true;
 	});
 
+	// generateSslCertificate leaves event-loop handles open (see handleGenerate); the handler exits
+	// explicitly. Stub process.exit so the test runner is not terminated.
+	t.context.processExitStub = sinon.stub(process, "exit");
+
 	// Tests rely on not having UI5_DATA_DIR defined
 	t.context.originalUi5DataDirEnv = process.env.UI5_DATA_DIR;
 	delete process.env.UI5_DATA_DIR;
@@ -141,13 +145,25 @@ test.serial("ui5 certificate generate: uses --key and --cert options", async (t)
 	t.deepEqual(generateSslCertificateStub.getCall(0).args, ["/custom/my.key", "/custom/my.crt"]);
 });
 
+test.serial("ui5 certificate generate: exits explicitly so leaked handles cannot hang the process", async (t) => {
+	const {argv, processExitStub} = t.context;
+
+	await runGenerate(t, argv);
+
+	// devcert-sanscache leaves stdin resumed and an HTTP server open (unconditionally on Windows),
+	// keeping the event loop alive. The handler must force a clean exit after generation.
+	t.is(processExitStub.callCount, 1, "process.exit is called after generation");
+	t.deepEqual(processExitStub.getCall(0).args, [0], "Exits with code 0");
+});
+
 test.serial("ui5 certificate generate: skips generation when certificate exists", async (t) => {
-	const {argv, existsStub, generateSslCertificateStub} = t.context;
+	const {argv, existsStub, generateSslCertificateStub, processExitStub} = t.context;
 	existsStub.resolves(true); // both key and cert exist
 
 	await runGenerate(t, argv);
 
 	t.is(generateSslCertificateStub.callCount, 0, "Does not generate a new certificate");
+	t.is(processExitStub.callCount, 0, "Does not force an exit when nothing was generated");
 	t.true(t.context.consoleOutput.includes("already exists"),
 		"Reports that a certificate already exists");
 	t.true(t.context.consoleOutput.includes("--force"), "Suggests --force to overwrite");
