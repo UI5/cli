@@ -234,9 +234,9 @@ test.serial("ui5 serve --https without existing certificate", async (t) => {
 	argv.https = true;
 
 	const err = await t.throwsAsync(serve.handler(argv));
-	t.regex(err.message, /No SSL certificate found for HTTPS/);
-	t.regex(err.message, /Private key: .*server\.key \(default\)/);
-	t.regex(err.message, /Certificate: .*server\.crt \(default\)/);
+	t.regex(err.message, /Failed to find required SSL certificate for launching the HTTPS server/);
+	t.regex(err.message, /Private key: .*server\.key \(default location\)/);
+	t.regex(err.message, /Certificate: .*server\.crt \(default location\)/);
 	t.regex(err.message, /ui5 certificate generate/);
 	t.regex(err.message, /--key and --cert/);
 
@@ -259,7 +259,7 @@ test.serial("ui5 serve --https without existing certificate at custom --key/--ce
 	argv.cert = "/custom/my.crt";
 
 	const err = await t.throwsAsync(serve.handler(argv));
-	t.regex(err.message, /No SSL certificate found for HTTPS/);
+	t.regex(err.message, /Failed to find required SSL certificate for launching the HTTPS server/);
 	t.regex(err.message, /Private key: \/custom\/my\.key \(--key\)/);
 	t.regex(err.message, /Certificate: \/custom\/my\.crt \(--cert\)/);
 	t.regex(err.message, /ui5 certificate generate/);
@@ -288,7 +288,7 @@ test.serial("ui5 serve --https without existing certificate at mixed custom/defa
 	// The user-supplied key is attributed to --key; the fallback cert path is marked as a default,
 	// never misattributed as something the user specified.
 	t.regex(err.message, /Private key: \/custom\/my\.key \(--key\)/);
-	t.regex(err.message, /Certificate: .*server\.crt \(default\)/);
+	t.regex(err.message, /Certificate: .*server\.crt \(default location\)/);
 
 	// The server must not be started when no certificate is available
 	t.is(server.serve.callCount, 0);
