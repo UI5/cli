@@ -4,6 +4,35 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v4.0.7...HEAD).
 
+## [5.0.0-alpha.9](https://github.com/UI5/cli/compare/server-v5.0.0-alpha.8...server-v5.0.0-alpha.9) (2026-09-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* **cli:** "ui5 serve --https" no longer generates or installs a self-signed certificate when none exists. Run "ui5 certificate generate" first, or pass --key and --cert.
+* The `--h2` option of `ui5 serve` has been removed. Use `--https` to serve the project over HTTPS. The `@ui5/server` `serve()` option `h2` and the returned `h2` property have been renamed to `https`. If you need HTTP/2 for local development, put a reverse proxy (e.g. nginx) in front of the server to terminate it.
+* The internal Express server has been upgraded from Express 4 to Express 5. Review your custom middleware against the Express 5 migration guide (https://expressjs.com/en/guide/migrating-5/) and adjust it if necessary.
+
+### Features
+
+* **cli:** Add "certificate generate" command ([#1560](https://github.com/UI5/cli/issues/1560)) ([af98631](https://github.com/UI5/cli/commit/af98631e105c89618196811b4ea74b909dac8e7d))
+* Replace HTTP/2 support with HTTPS ([#1532](https://github.com/UI5/cli/issues/1532)) ([506dec4](https://github.com/UI5/cli/commit/506dec48c04ed75ed4d78e036f380d5493f6dd77))
+
+
+### Dependencies
+
+* Bump express from 4.22.2 to 5.2.1 ([87b2686](https://github.com/UI5/cli/commit/87b26860b83bcb27f910c470d2628c71bb2dd4b6))
+* Bump mime-types from 2.1.35 to 3.0.2 ([356df87](https://github.com/UI5/cli/commit/356df871173eca67c417c00161becf53d82ebc80))
+* Bump serve-index fork to 1.9.2 ([2995381](https://github.com/UI5/cli/commit/29953811d978aeb16c79e8c767236db027d8c648))
+* Bump the npm group with 7 updates ([77718d7](https://github.com/UI5/cli/commit/77718d760db51a2ab248d0454df1eb3d64facc9a))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.8 to ^5.0.0-alpha.9
+    * @ui5/fs bumped from ^5.0.0-alpha.8 to ^5.0.0-alpha.9
+    * @ui5/logger bumped from ^5.0.0-alpha.8 to ^5.0.0-alpha.9
+  * devDependencies
+    * @ui5/project bumped from ^5.0.0-alpha.8 to ^5.0.0-alpha.9
+
 ## [5.0.0-alpha.8](https://github.com/UI5/cli/compare/server-v5.0.0-alpha.7...server-v5.0.0-alpha.8) (2026-08-14)
 
 
