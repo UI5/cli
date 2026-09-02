@@ -42,6 +42,7 @@ test.beforeEach(async (t) => {
 	setLogLevel("info");
 	t.context.argv = getDefaultArgv();
 	t.context.stderrWriteStub = sinon.stub(process.stderr, "write");
+	t.context.stdoutWriteStub = sinon.stub(process.stdout, "write");
 
 	// Tests rely on not having UI5_DATA_DIR defined
 	t.context.originalUi5DataDirEnv = process.env.UI5_DATA_DIR;
@@ -59,12 +60,35 @@ test.beforeEach(async (t) => {
 	t.context.buildCacheGetAdditionalCacheInfo = sinon.stub().resolves([]);
 	t.context.buildCacheGetProjectCacheInfo = sinon.stub();
 	t.context.buildCacheCleanProject = sinon.stub();
+	t.context.buildCacheGetProjectsCacheEntries = sinon.stub().resolves(new Map());
+	t.context.buildCacheGetStageDetails = sinon.stub().resolves([]);
+	t.context.getProjectBuildSignaturesStub = sinon.stub().resolves(new Map());
 
 	t.context.yesnoStub = sinon.stub();
 
 	t.context.getRootStub = sinon.stub().returns({getId: () => "my.project"});
-	t.context.graphFromPackageDependencies = sinon.stub().resolves({getRoot: t.context.getRootStub});
-	t.context.graphFromStaticFile = sinon.stub().resolves({getRoot: t.context.getRootStub});
+	// Projects yielded by the graph traversal in inspect tests
+	t.context.inspectProjects = [
+		{name: "my.project", id: "my.project", type: "application", version: "1.0.0", framework: false},
+		{name: "sap.ui.core", id: "sap.ui.core", type: "library", version: "1.120.0", framework: true},
+	];
+	t.context.traverseBreadthFirstStub = sinon.stub().callsFake(async (cb) => {
+		for (const p of t.context.inspectProjects) {
+			await cb({project: {
+				getName: () => p.name,
+				getId: () => p.id,
+				getType: () => p.type,
+				getVersion: () => p.version,
+				isFrameworkProject: () => p.framework,
+			}});
+		}
+	});
+	const graphStub = {
+		getRoot: t.context.getRootStub,
+		traverseBreadthFirst: t.context.traverseBreadthFirstStub,
+	};
+	t.context.graphFromPackageDependencies = sinon.stub().resolves(graphStub);
+	t.context.graphFromStaticFile = sinon.stub().resolves(graphStub);
 
 	t.context.cache = await esmock.p("../../../../lib/cli/commands/cache.js", {
 		"@ui5/project/internal/ui5Framework/cache": {
@@ -83,7 +107,12 @@ test.beforeEach(async (t) => {
 				static getAdditionalCacheInfo = t.context.buildCacheGetAdditionalCacheInfo;
 				static getProjectCacheInfo = t.context.buildCacheGetProjectCacheInfo;
 				static cleanProject = t.context.buildCacheCleanProject;
+				static getProjectsCacheEntries = t.context.buildCacheGetProjectsCacheEntries;
+				static getStageDetails = t.context.buildCacheGetStageDetails;
 			}
+		},
+		"@ui5/project/internal/build/helpers/getProjectBuildSignatures": {
+			getProjectBuildSignatures: t.context.getProjectBuildSignaturesStub,
 		},
 		"@ui5/project/graph": {
 			graphFromPackageDependencies: t.context.graphFromPackageDependencies,
@@ -118,6 +147,7 @@ test("Command builder", async (t) => {
 	const yargsStub = {
 		usage: sinon.stub().returnsThis(),
 		option: sinon.stub().returnsThis(),
+		positional: sinon.stub().returnsThis(),
 		coerce: sinon.stub().returnsThis(),
 		example: sinon.stub().returnsThis(),
 	};
@@ -134,13 +164,18 @@ test("Command builder", async (t) => {
 	const result = cacheModule.default.builder(cliStub);
 	t.is(result, cliStub, "Builder returns cli instance");
 	t.is(cliStub.demandCommand.callCount, 1, "demandCommand called once");
-	t.is(cliStub.command.callCount, 1, "command called once");
-	t.is(yargsStub.usage.callCount, 1, "usage called once for warning help banner");
+	t.is(cliStub.command.callCount, 3, "command called for 'clean', 'inspect' and 'inspect-stage'");
+	t.is(yargsStub.usage.callCount, 1, "usage called once for warning help banner (clean only)");
 	t.true(yargsStub.usage.firstCall.args[0].startsWith("WARNING:"),
 		"usage banner starts with warning");
-	// config, dependency-definition, workspace-config, workspace, force, project
-	t.is(yargsStub.option.callCount, 6, "option called for all clean options");
-	t.is(yargsStub.example.callCount, 5, "example called 5 times");
+	// clean: config, dependency-definition, workspace-config, workspace, force, project (6)
+	// inspect: config, dependency-definition, workspace-config, workspace, include-task, exclude-task,
+	//   build-mode, all, stale, stages, sizes, framework-version, snapshot-cache, json (14)
+	// inspect-stage: sizes, json (2)
+	t.is(yargsStub.option.callCount, 22, "option called for all clean, inspect and inspect-stage options");
+	t.is(yargsStub.positional.callCount, 2, "positional called for inspect projectId and inspect-stage signature");
+	// clean: 5 examples, inspect: 4 examples, inspect-stage: 2 examples
+	t.is(yargsStub.example.callCount, 11, "example called 11 times across all sub-commands");
 });
 
 test.serial("Command definition is correct", (t) => {
@@ -1055,4 +1090,395 @@ test.serial("ui5 cache clean --project <id>: nothing to clean for an unknown id"
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes("Nothing to clean"), "Prints nothing to clean");
+});
+
+// ─── Inspect (ui5 cache inspect) ─────────────────────────────────────────────
+
+// The inspect sub-commands register their handlers via the builder. Extract a handler by the
+// command-name prefix from the (esmocked) command module so its closure uses the mocked imports.
+function getCommandHandler(cacheModule, namePrefix) {
+	let handler;
+	const cliStub = {
+		demandCommand: sinon.stub().returnsThis(),
+		command: sinon.stub().callsFake((name, _desc, config) => {
+			if (name.startsWith(namePrefix)) {
+				handler = config.handler;
+			}
+			return cliStub;
+		}),
+	};
+	cacheModule.builder(cliStub);
+	return handler;
+}
+
+// "inspect [projectId]": the trailing space avoids also matching "inspect-stage <signature>".
+function getInspectHandler(cacheModule) {
+	return getCommandHandler(cacheModule, "inspect ");
+}
+
+function getStageInspectHandler(cacheModule) {
+	return getCommandHandler(cacheModule, "inspect-stage");
+}
+
+function inspectEntry(buildSignature, overrides = {}) {
+	return {
+		buildSignature,
+		indexTimestamp: Date.now() - 3600 * 1000,
+		tasks: ["minify"],
+		availableDependencies: "deps",
+		stageEntries: [{stageId: "task/minify", stageSignature: "s"}],
+		resultSignatures: ["r"],
+		taskEntries: [{taskName: "minify", type: "project"}],
+		...overrides,
+	};
+}
+
+// ── Tree mode ──
+
+test.serial("ui5 cache inspect: resolves via package dependencies with framework resolution", async (t) => {
+	const {cache, argv, graphFromPackageDependencies, graphFromStaticFile,
+		getProjectBuildSignaturesStub} = t.context;
+
+	argv["_"] = ["cache", "inspect"];
+	await getInspectHandler(cache)(argv);
+
+	t.is(graphFromPackageDependencies.callCount, 1, "Resolves graph from package dependencies");
+	t.is(graphFromStaticFile.callCount, 0, "Does not use static file resolution");
+	t.true(graphFromPackageDependencies.firstCall.args[0].resolveFrameworkDependencies,
+		"Resolves framework dependencies for inspect");
+	t.is(getProjectBuildSignaturesStub.callCount, 1, "Computes the current build signatures");
+});
+
+test.serial("ui5 cache inspect: uses static file when dependency-definition is given", async (t) => {
+	const {cache, argv, graphFromStaticFile, graphFromPackageDependencies} = t.context;
+
+	argv["_"] = ["cache", "inspect"];
+	argv["dependencyDefinition"] = "/path/to/deps.yaml";
+	await getInspectHandler(cache)(argv);
+
+	t.is(graphFromStaticFile.callCount, 1, "Resolves graph from static file");
+	t.is(graphFromStaticFile.firstCall.args[0].filePath, "/path/to/deps.yaml", "Passes dependency definition path");
+	t.true(graphFromStaticFile.firstCall.args[0].resolveFrameworkDependencies,
+		"Resolves framework dependencies for inspect");
+	t.is(graphFromPackageDependencies.callCount, 0, "Does not use package dependency resolution");
+});
+
+test.serial("ui5 cache inspect --build-mode: maps to the build config for signature computation", async (t) => {
+	const {cache, argv, getProjectBuildSignaturesStub} = t.context;
+
+	argv["_"] = ["cache", "inspect"];
+	argv["buildMode"] = "jsdoc";
+	argv["includeTask"] = ["generateJsdoc"];
+	argv["excludeTask"] = ["minify"];
+	await getInspectHandler(cache)(argv);
+
+	t.deepEqual(getProjectBuildSignaturesStub.firstCall.args[1], {
+		selfContained: false, jsdoc: true, includedTasks: ["generateJsdoc"], excludedTasks: ["minify"],
+	}, "jsdoc mode and task filters feed the build config");
+});
+
+test.serial("ui5 cache inspect --build-mode self-contained: sets selfContained", async (t) => {
+	const {cache, argv, getProjectBuildSignaturesStub} = t.context;
+
+	argv["_"] = ["cache", "inspect"];
+	argv["buildMode"] = "self-contained";
+	await getInspectHandler(cache)(argv);
+
+	t.true(getProjectBuildSignaturesStub.firstCall.args[1].selfContained);
+	t.false(getProjectBuildSignaturesStub.firstCall.args[1].jsdoc);
+});
+
+test.serial("ui5 cache inspect: marks the current signature and summarizes the rest", async (t) => {
+	const {cache, argv, stdoutWriteStub, getProjectBuildSignaturesStub,
+		buildCacheGetProjectsCacheEntries} = t.context;
+
+	getProjectBuildSignaturesStub.resolves(new Map([
+		["my.project", "aaaaaaaaaaaa1111"],
+		["sap.ui.core", "cccccccccccc3333"],
+	]));
+	buildCacheGetProjectsCacheEntries.resolves(new Map([
+		["my.project", [inspectEntry("aaaaaaaaaaaa1111"), inspectEntry("bbbbbbbbbbbb2222")]],
+		["sap.ui.core", []], // current signature not on disk
+	]));
+
+	argv["_"] = ["cache", "inspect"];
+	await getInspectHandler(cache)(argv);
+
+	const allOutput = stdoutWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("current"), "Marks the current signature");
+	t.true(allOutput.includes("aaaaaaaaaaaa"), "Shows the current signature");
+	t.true(allOutput.includes("1 other signature on disk"), "Summarizes the stale signature");
+	t.false(allOutput.includes("bbbbbbbbbbbb"), "Does not expand stale signatures by default");
+	t.true(allOutput.includes("not cached"), "Shows not-cached note when the current signature is absent");
+});
+
+test.serial("ui5 cache inspect --all: expands stale signatures", async (t) => {
+	const {cache, argv, stdoutWriteStub, getProjectBuildSignaturesStub,
+		buildCacheGetProjectsCacheEntries} = t.context;
+
+	getProjectBuildSignaturesStub.resolves(new Map([["my.project", "aaaaaaaaaaaa1111"]]));
+	buildCacheGetProjectsCacheEntries.resolves(new Map([
+		["my.project", [inspectEntry("aaaaaaaaaaaa1111"), inspectEntry("bbbbbbbbbbbb2222")]],
+		["sap.ui.core", []],
+	]));
+
+	argv["_"] = ["cache", "inspect"];
+	argv["all"] = true;
+	await getInspectHandler(cache)(argv);
+
+	const allOutput = stdoutWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("bbbbbbbbbbbb"), "Expands the stale signature with --all");
+	t.false(allOutput.includes("other signature on disk"), "Does not summarize when expanded");
+});
+
+test.serial("ui5 cache inspect --stale: shows only stale signatures", async (t) => {
+	const {cache, argv, stdoutWriteStub, getProjectBuildSignaturesStub,
+		buildCacheGetProjectsCacheEntries} = t.context;
+
+	getProjectBuildSignaturesStub.resolves(new Map([["my.project", "aaaaaaaaaaaa1111"]]));
+	buildCacheGetProjectsCacheEntries.resolves(new Map([
+		["my.project", [inspectEntry("aaaaaaaaaaaa1111"), inspectEntry("bbbbbbbbbbbb2222")]],
+		["sap.ui.core", []],
+	]));
+
+	argv["_"] = ["cache", "inspect"];
+	argv["stale"] = true;
+	await getInspectHandler(cache)(argv);
+
+	const allOutput = stdoutWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("bbbbbbbbbbbb"), "Shows the stale signature");
+	t.false(allOutput.includes("aaaaaaaaaaaa"), "Does not show the current signature in stale-only mode");
+	t.true(allOutput.includes("No stale signatures"), "Notes projects with no stale signatures");
+});
+
+test.serial("ui5 cache inspect --sizes: requests sizes from the cache", async (t) => {
+	const {cache, argv, buildCacheGetProjectsCacheEntries} = t.context;
+
+	argv["_"] = ["cache", "inspect"];
+	argv["sizes"] = true;
+	await getInspectHandler(cache)(argv);
+
+	t.deepEqual(buildCacheGetProjectsCacheEntries.firstCall.args[2], {withSizes: true},
+		"Passes withSizes through to the cache read");
+});
+
+test.serial("ui5 cache inspect --stages: lists contained stage signatures under the current entry", async (t) => {
+	const {cache, argv, stdoutWriteStub, getProjectBuildSignaturesStub,
+		buildCacheGetProjectsCacheEntries} = t.context;
+
+	getProjectBuildSignaturesStub.resolves(new Map([["my.project", "aaaaaaaaaaaa1111"]]));
+	buildCacheGetProjectsCacheEntries.resolves(new Map([
+		["my.project", [inspectEntry("aaaaaaaaaaaa1111", {stageEntries: [
+			{stageId: "task/minify", stageSignature: "stagesigminify00"},
+			{stageId: "source", stageSignature: "stagesigsource00"},
+		]})]],
+		["sap.ui.core", []],
+	]));
+
+	argv["_"] = ["cache", "inspect"];
+	argv["stages"] = true;
+	await getInspectHandler(cache)(argv);
+
+	const allOutput = stdoutWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("task/minify"), "Lists the stage id");
+	t.true(allOutput.includes("stagesigmini"), "Lists the short stage signature (drillable via --stage)");
+	t.true(allOutput.includes("source"), "Lists all contained stages");
+});
+
+test.serial("ui5 cache inspect: does not list stage signatures without --stages", async (t) => {
+	const {cache, argv, stdoutWriteStub, getProjectBuildSignaturesStub,
+		buildCacheGetProjectsCacheEntries} = t.context;
+
+	getProjectBuildSignaturesStub.resolves(new Map([["my.project", "aaaaaaaaaaaa1111"]]));
+	buildCacheGetProjectsCacheEntries.resolves(new Map([
+		["my.project", [inspectEntry("aaaaaaaaaaaa1111", {stageEntries: [
+			{stageId: "task/minify", stageSignature: "stagesigminify00"},
+		]})]],
+		["sap.ui.core", []],
+	]));
+
+	argv["_"] = ["cache", "inspect"];
+	await getInspectHandler(cache)(argv);
+
+	const allOutput = stdoutWriteStub.args.map((a) => a[0]).join("");
+	t.false(allOutput.includes("task/minify"), "Stage signatures are hidden by default");
+});
+
+test.serial("ui5 cache inspect --json: emits parseable JSON with current/stale split", async (t) => {
+	const {cache, argv, stdoutWriteStub, getProjectBuildSignaturesStub,
+		buildCacheGetProjectsCacheEntries} = t.context;
+
+	getProjectBuildSignaturesStub.resolves(new Map([["my.project", "aaaaaaaaaaaa1111"]]));
+	buildCacheGetProjectsCacheEntries.resolves(new Map([
+		["my.project", [inspectEntry("aaaaaaaaaaaa1111")]],
+		["sap.ui.core", []],
+	]));
+
+	argv["_"] = ["cache", "inspect"];
+	argv["json"] = true;
+	await getInspectHandler(cache)(argv);
+
+	const allOutput = stdoutWriteStub.args.map((a) => a[0]).join("");
+	const parsed = JSON.parse(allOutput);
+	t.is(parsed.ui5DataDir, TEST_UI5_DATA_DIR, "JSON carries the resolved data dir");
+	t.is(parsed.projects.length, 2, "JSON lists all projects");
+	t.is(parsed.projects[0].current.buildSignature, "aaaaaaaaaaaa1111", "Marks the current entry");
+	t.deepEqual(parsed.projects[1].stale, [], "Framework project without entries has no stale entries");
+});
+
+// ── Project mode ──
+
+test.serial("ui5 cache inspect <projectId>: lists all signatures without resolving a graph", async (t) => {
+	const {cache, argv, stdoutWriteStub, graphFromPackageDependencies, graphFromStaticFile,
+		getProjectBuildSignaturesStub, buildCacheGetProjectsCacheEntries} = t.context;
+
+	buildCacheGetProjectsCacheEntries.resolves(new Map([
+		["some.project", [inspectEntry("aaaaaaaaaaaa1111"), inspectEntry("bbbbbbbbbbbb2222")]],
+	]));
+
+	argv["_"] = ["cache", "inspect"];
+	argv["projectId"] = "some.project";
+	await getInspectHandler(cache)(argv);
+
+	t.is(graphFromPackageDependencies.callCount, 0, "Does not resolve a graph");
+	t.is(graphFromStaticFile.callCount, 0, "Does not resolve a graph");
+	t.is(getProjectBuildSignaturesStub.callCount, 0, "Does not compute signatures");
+	t.deepEqual(buildCacheGetProjectsCacheEntries.firstCall.args[1], ["some.project"],
+		"Queries only the requested project id");
+
+	const allOutput = stdoutWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("some.project"), "Names the project");
+	t.true(allOutput.includes("aaaaaaaaaaaa"), "Shows the first signature");
+	t.true(allOutput.includes("bbbbbbbbbbbb"), "Shows all signatures");
+});
+
+test.serial("ui5 cache inspect <projectId> --json: emits parseable JSON", async (t) => {
+	const {cache, argv, stdoutWriteStub, buildCacheGetProjectsCacheEntries} = t.context;
+
+	buildCacheGetProjectsCacheEntries.resolves(new Map([["some.project", [inspectEntry("aaaaaaaaaaaa1111")]]]));
+
+	argv["_"] = ["cache", "inspect"];
+	argv["projectId"] = "some.project";
+	argv["json"] = true;
+	await getInspectHandler(cache)(argv);
+
+	const parsed = JSON.parse(stdoutWriteStub.args.map((a) => a[0]).join(""));
+	t.is(parsed.projectId, "some.project");
+	t.is(parsed.entries.length, 1);
+});
+
+test.serial("ui5 cache inspect <projectId>: empty cache renders no entries", async (t) => {
+	const {cache, argv, stdoutWriteStub, buildCacheGetProjectsCacheEntries} = t.context;
+
+	buildCacheGetProjectsCacheEntries.resolves(new Map());
+
+	argv["_"] = ["cache", "inspect"];
+	argv["projectId"] = "some.project";
+	await getInspectHandler(cache)(argv);
+
+	const allOutput = stdoutWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("No cache entries"), "Renders empty-cache line");
+});
+
+test.serial("ui5 cache inspect <projectId> --stages: lists stage signatures per entry", async (t) => {
+	const {cache, argv, stdoutWriteStub, buildCacheGetProjectsCacheEntries} = t.context;
+
+	buildCacheGetProjectsCacheEntries.resolves(new Map([["some.project", [
+		inspectEntry("aaaaaaaaaaaa1111", {stageEntries: [
+			{stageId: "task/minify", stageSignature: "stagesigminify00"},
+		]}),
+	]]]));
+
+	argv["_"] = ["cache", "inspect"];
+	argv["projectId"] = "some.project";
+	argv["stages"] = true;
+	await getInspectHandler(cache)(argv);
+
+	const allOutput = stdoutWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("task/minify"), "Lists the stage id under the entry");
+	t.true(allOutput.includes("stagesigmini"), "Lists the short stage signature");
+});
+
+// ── Stage mode (ui5 cache inspect-stage) ──
+
+test.serial("ui5 cache inspect-stage: renders the cached resources of a stage", async (t) => {
+	const {cache, argv, stdoutWriteStub, buildCacheGetStageDetails,
+		graphFromPackageDependencies} = t.context;
+
+	buildCacheGetStageDetails.resolves([{
+		projectId: "some.project",
+		buildSignature: "aaaaaaaaaaaa1111",
+		stageId: "task/minify",
+		resources: [{path: "/a.js", integrity: "sha256-abc", size: 100, lastModified: 1}],
+	}]);
+
+	argv["_"] = ["cache", "inspect-stage"];
+	argv["signature"] = "stagesig01234567";
+	await getStageInspectHandler(cache)(argv);
+
+	t.is(graphFromPackageDependencies.callCount, 0, "Does not resolve a graph");
+	t.is(buildCacheGetStageDetails.firstCall.args[1], "stagesig01234567", "Passes the stage signature");
+	t.falsy(buildCacheGetStageDetails.firstCall.args[2].withSizes, "Sizes off by default");
+
+	const allOutput = stdoutWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("task/minify"), "Shows the stage id");
+	t.true(allOutput.includes("/a.js"), "Shows the cached resource path");
+});
+
+test.serial("ui5 cache inspect-stage: passes a signature prefix through unchanged", async (t) => {
+	const {cache, argv, buildCacheGetStageDetails} = t.context;
+
+	buildCacheGetStageDetails.resolves([{
+		projectId: "some.project", buildSignature: "bs", stageId: "task/minify", resources: [],
+	}]);
+
+	argv["_"] = ["cache", "inspect-stage"];
+	argv["signature"] = "26b223c2c5f1";
+	await getStageInspectHandler(cache)(argv);
+
+	t.is(buildCacheGetStageDetails.firstCall.args[1], "26b223c2c5f1",
+		"Forwards the short prefix; the storage layer resolves it");
+});
+
+test.serial("ui5 cache inspect-stage --sizes: requests on-disk sizes", async (t) => {
+	const {cache, argv, buildCacheGetStageDetails} = t.context;
+
+	buildCacheGetStageDetails.resolves([]);
+
+	argv["_"] = ["cache", "inspect-stage"];
+	argv["signature"] = "stagesig01234567";
+	argv["sizes"] = true;
+	await getStageInspectHandler(cache)(argv);
+
+	t.true(buildCacheGetStageDetails.firstCall.args[2].withSizes, "Requests sizes from the cache");
+});
+
+test.serial("ui5 cache inspect-stage: reports when no stage matches", async (t) => {
+	const {cache, argv, stdoutWriteStub, buildCacheGetStageDetails} = t.context;
+
+	buildCacheGetStageDetails.resolves([]);
+
+	argv["_"] = ["cache", "inspect-stage"];
+	argv["signature"] = "missing0123456789";
+	await getStageInspectHandler(cache)(argv);
+
+	const allOutput = stdoutWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("No cached stage found"), "Reports the miss");
+});
+
+test.serial("ui5 cache inspect-stage --json: emits parseable JSON", async (t) => {
+	const {cache, argv, stdoutWriteStub, buildCacheGetStageDetails} = t.context;
+
+	buildCacheGetStageDetails.resolves([{
+		projectId: "some.project", buildSignature: "bs", stageId: "task/minify", resources: [],
+	}]);
+
+	argv["_"] = ["cache", "inspect-stage"];
+	argv["signature"] = "stagesig01234567";
+	argv["json"] = true;
+	await getStageInspectHandler(cache)(argv);
+
+	const parsed = JSON.parse(stdoutWriteStub.args.map((a) => a[0]).join(""));
+	t.is(parsed.stageSignature, "stagesig01234567");
+	t.is(parsed.stageEntries.length, 1);
 });
