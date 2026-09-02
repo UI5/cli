@@ -164,6 +164,30 @@ test("build", async (t) => {
 	t.is(executeCleanupTasksStub.callCount, 1, "_executeCleanupTasksStub got called once");
 });
 
+test("build: forwards dependencyIncludes to _determineRequestedProjects", async (t) => {
+	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
+
+	const builder = new ProjectBuilder({graph, taskRepository});
+
+	const determineRequestedProjectsStub = sinon.stub(builder, "_determineRequestedProjects").returns([]);
+	// Short-circuit the actual build; we only assert the requested-projects resolution
+	sinon.stub(builder._buildContext, "getRequiredProjectContexts").resolves(new Map());
+	sinon.stub(builder, "_registerCleanupSigHooks").returns("cleanup sig hooks");
+	sinon.stub(builder, "_deregisterCleanupSigHooks");
+	sinon.stub(builder, "_executeCleanupTasks").resolves();
+
+	await builder.build({
+		includedDependencies: ["dep a"],
+		excludedDependencies: ["dep b"],
+		dependencyIncludes: "dependencyIncludes"
+	});
+
+	t.is(determineRequestedProjectsStub.callCount, 1, "_determineRequestedProjects got called once");
+	t.deepEqual(determineRequestedProjectsStub.getCall(0).args, [
+		true, ["dep a"], ["dep b"], "dependencyIncludes"
+	], "_determineRequestedProjects got called with dependencyIncludes forwarded");
+});
+
 test("build: Conflicting dependency parameters", async (t) => {
 	const {graph, taskRepository, ProjectBuilder} = t.context;
 
@@ -645,6 +669,7 @@ test.serial("_writeResults: Create build manifest", async (t) => {
 		excludedTasks: [],
 		includedTasks: [],
 		jsdoc: false,
+		server: false,
 		selfContained: false,
 		cache: "Default",
 	}, "createBuildManifest got called with correct build configuration");

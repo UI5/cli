@@ -3,6 +3,8 @@
  *
  * Sets specific tasks to be disabled by default, these tasks need to be included explicitly.
  * Based on the selected build mode (selfContained|preload), different tasks are enabled.
+ * When the <code>server</code> flag is set, tasks whose output the server generates on the fly
+ * (currently <code>generateVersionInfo</code>) are disabled by default.
  * Tasks can be enabled or disabled. The wildcard <code>*</code> is also supported and affects all tasks.
  *
  * @private
@@ -11,7 +13,7 @@
  * 			Build configuration
  * @returns {Array} List of tasks to be executed
  */
-export default function composeTaskList(allTasks, {selfContained, jsdoc, includedTasks, excludedTasks}) {
+export default function composeTaskList(allTasks, {selfContained, jsdoc, server, includedTasks, excludedTasks}) {
 	let selectedTasks = allTasks.reduce((list, key) => {
 		list[key] = true;
 		return list;
@@ -57,6 +59,13 @@ export default function composeTaskList(allTasks, {selfContained, jsdoc, include
 		selectedTasks.generateLibraryManifest = false;
 		selectedTasks.minify = false;
 		selectedTasks.generateFlexChangesBundle = false;
+	}
+
+	if (server) {
+		// The 'versionInfo' server middleware generates the version info on the fly, so a server
+		// build does not run generateVersionInfo. Keeping it out of the default set here lets
+		// 'ui5 serve' and 'ui5 build for-server' share one build-cache entry.
+		selectedTasks.generateVersionInfo = false;
 	}
 
 	// Exclude tasks

@@ -706,6 +706,14 @@ class ProjectGraph {
 	 *   part of the build result. If this is provided, the other mentioned parameters will be ignored.
 	 * @param {boolean} [parameters.selfContained=false] Flag to activate self contained build
 	 * @param {boolean} [parameters.jsdoc=false] Flag to activate JSDoc build
+	 * @param {boolean} [parameters.server=false]
+	 *   Flag to activate a server-aligned build. Disables tasks whose output the server generates
+	 *   on the fly (currently <code>generateVersionInfo</code>) by default, so the build result
+	 *   matches what <code>@ui5/server</code> produces.
+	 * @param {boolean} [parameters.cacheOnly=false]
+	 *   Only populate the build cache without writing the build result to <code>destPath</code>.
+	 *   Intended to warm the shared build cache that a subsequent <code>ui5 serve</code> reuses.
+	 *   When set, <code>destPath</code> and <code>cleanDest</code> are ignored.
 	 * @param {boolean} [parameters.createBuildManifest=false]
 	 * 			Whether to create a build manifest file for the root project.
 	 *			This is currently only supported for projects of type 'library' and 'theme-library'
@@ -725,7 +733,8 @@ class ProjectGraph {
 		destPath, cleanDest = false,
 		includedDependencies = [], excludedDependencies = [],
 		dependencyIncludes,
-		selfContained = false, jsdoc = false, createBuildManifest = false,
+		selfContained = false, jsdoc = false, server = false, createBuildManifest = false,
+		cacheOnly = false,
 		includedTasks = [], excludedTasks = [],
 		outputStyle = OutputStyleEnum.Default,
 		cache = Cache.Default,
@@ -745,13 +754,28 @@ class ProjectGraph {
 			graph: this,
 			taskRepository: await this._getTaskRepository(),
 			buildConfig: {
-				selfContained, jsdoc,
+				selfContained, jsdoc, server,
 				createBuildManifest,
 				includedTasks, excludedTasks, outputStyle,
 				cache
 			},
 			ui5DataDir,
 		});
+		if (cacheOnly) {
+			// Build to populate the cache only, without writing the result to a target directory.
+			// buildToTarget closes the CacheManager itself; the reader-based build() does not, so
+			// close it explicitly once the build has finished.
+			try {
+				await builder.build({
+					includeRootProject: true,
+					includedDependencies, excludedDependencies,
+					dependencyIncludes,
+				});
+			} finally {
+				builder.closeCacheManager();
+			}
+			return;
+		}
 		return await builder.buildToTarget({
 			destPath, cleanDest,
 			includedDependencies, excludedDependencies,
@@ -803,6 +827,9 @@ class ProjectGraph {
 			taskRepository: await this._getTaskRepository(),
 			buildConfig: {
 				selfContained, jsdoc,
+				// A serve is always a server-aligned build: disable tasks the server generates
+				// on the fly (e.g. generateVersionInfo). See composeTaskList.
+				server: true,
 				createBuildManifest,
 				includedTasks, excludedTasks,
 				outputStyle: OutputStyleEnum.Default,

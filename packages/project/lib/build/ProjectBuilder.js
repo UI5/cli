@@ -23,6 +23,11 @@ class ProjectBuilder {
 	 * @typedef {object} @ui5/project/build/ProjectBuilder~BuildConfiguration
 	 * @property {boolean} [selfContained=false] Flag to activate self contained build
 	 * @property {boolean} [jsdoc=false] Flag to activate JSDoc build
+	 * @property {boolean} [server=false]
+	 *   Flag to activate a server-aligned build. Disables tasks whose output the server generates
+	 *   on the fly (currently <code>generateVersionInfo</code>) by default, matching the task set
+	 *   used by <code>@ui5/server</code>. The disabled tasks can still be re-enabled via
+	 *   <code>includedTasks</code>.
 	 * @property {boolean} [createBuildManifest=false]
 	 *   Whether to create a build manifest file for the root project.
 	 *   This is currently only supported for projects of type 'library' and 'theme-library'
@@ -195,6 +200,10 @@ class ProjectBuilder {
 	 * @param {boolean} [parameters.includeRootProject=true] Whether to include the root project
 	 * @param {Array.<string|RegExp>} [parameters.includedDependencies=[]] List of dependencies to include
 	 * @param {Array.<string|RegExp>} [parameters.excludedDependencies=[]] List of dependencies to exclude
+	 * @param {@ui5/project/build/ProjectBuilder~DependencyIncludes} [parameters.dependencyIncludes]
+	 *   Alternative to the <code>includedDependencies</code> and <code>excludedDependencies</code> parameters.
+	 *   Allows for a more sophisticated configuration for defining which dependencies should be built.
+	 *   If this is provided, the other mentioned parameters are ignored.
 	 * @param {AbortSignal} [parameters.signal] Signal to abort the build
 	 * @param {Function} [projectBuiltCallback] Callback invoked after each project is built
 	 * @returns {Promise<string[]>} Promise resolving with array of processed project names
@@ -202,10 +211,11 @@ class ProjectBuilder {
 	async build({
 		includeRootProject = true,
 		includedDependencies = [], excludedDependencies = [],
+		dependencyIncludes,
 		signal,
 	}, projectBuiltCallback) {
 		const requestedProjects = this._determineRequestedProjects(
-			includeRootProject, includedDependencies, excludedDependencies);
+			includeRootProject, includedDependencies, excludedDependencies, dependencyIncludes);
 		return await this.#build(requestedProjects, projectBuiltCallback, signal);
 	}
 
