@@ -3,12 +3,15 @@ import path from "node:path";
 import process from "node:process";
 import {isLogLevelEnabled} from "@ui5/logger";
 import baseMiddleware from "../middlewares/base.js";
-import {applyProjectConfigOptions, applyWorkspaceOptions} from "../options.js";
+import {applyProjectConfigOptions, applyWorkspaceOptions, applyBuildOptions, dedupeArray} from "../options.js";
 import {getUi5DataDirOrDefault, formatPath} from "../../dataDir.js";
 import {
 	CACHE_CLEAN_HELP_USAGE,
 	displayCacheCleanWarning,
 	displayCacheInfo,
+	displayCacheInspection,
+	displayProjectInspection,
+	displayStageInspection,
 	displayCleanupResult,
 	displayProjectCacheInfo,
 	displayProjectCleanupResult,
@@ -23,7 +26,7 @@ const cacheCommand = {
 
 cacheCommand.builder = function(cli) {
 	return cli
-		.demandCommand(1, "Command required. Available command is 'clean'")
+		.demandCommand(1, "Command required. Available commands are 'clean', 'inspect' and 'inspect-stage'")
 		.command("clean", "Remove all cached UI5 data", {
 			handler: handleCache,
 			builder: function(yargs) {
@@ -55,6 +58,103 @@ cacheCommand.builder = function(cli) {
 						"Remove only the build cache of the project 'sap.ui.core'")
 					.example("UI5_DATA_DIR=/custom/path $0 cache clean",
 						"Remove cached data from a non-default UI5 data directory");
+			},
+			middlewares: [baseMiddleware],
+		})
+		.command("inspect [projectId]", "Inspect the build cache of the current project and its dependencies", {
+			handler: handleInspect,
+			builder: function(yargs) {
+				applyProjectConfigOptions(yargs);
+				applyWorkspaceOptions(yargs);
+				applyBuildOptions(yargs);
+				return yargs
+					.positional("projectId", {
+						describe: "Show all cached build signatures for this project id instead of " +
+							"the current dependency tree",
+						type: "string",
+					})
+					.option("build-mode", {
+						describe: "Build variant whose signature is treated as current",
+						type: "string",
+						default: "preload",
+						choices: ["preload", "jsdoc", "self-contained"],
+					})
+					.option("all", {
+						describe: "Show all build signatures on disk, not only the current one",
+						default: false,
+						type: "boolean",
+					})
+					.option("stale", {
+						describe: "Show only stale build signatures (cleanup candidates)",
+						default: false,
+						type: "boolean",
+					})
+					.option("stages", {
+						describe: "List the stage signatures contained in each build signature",
+						default: false,
+						type: "boolean",
+					})
+					.option("sizes", {
+						describe: "Compute the on-disk size of cached content (slower)",
+						default: false,
+						type: "boolean",
+					})
+					.option("framework-version", {
+						describe:
+							"Overrides the framework version defined by the project. " +
+							"Takes the same value as the version part of \"ui5 use\"",
+						type: "string",
+					})
+					.option("snapshot-cache", {
+						describe:
+							"Cache mode to use when consuming SNAPSHOT versions of framework dependencies. " +
+							"The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the " +
+							"cache only and does not create any requests. 'Off' invalidates any existing cache " +
+							"and updates from the repository",
+						type: "string",
+						defaultDescription: "Default",
+						choices: ["Default", "Force", "Off"],
+					})
+					.option("json", {
+						describe: "Output the inspection result as JSON for tooling",
+						default: false,
+						type: "boolean",
+					})
+					.coerce(["framework-version"], dedupeArray)
+					.example("$0 cache inspect",
+						"Show the build cache relevant to the current dependency tree")
+					.example("$0 cache inspect --all",
+						"Also show stale build signatures for each project")
+					.example("$0 cache inspect some.project",
+						"Show all cached build signatures for a single project")
+					.example("$0 cache inspect --stages",
+						"List the stage signatures contained in each build signature");
+			},
+			middlewares: [baseMiddleware],
+		})
+		.command("inspect-stage <signature>", "Inspect the cached resources of a single build stage", {
+			handler: handleStageInspect,
+			builder: function(yargs) {
+				return yargs
+					.positional("signature", {
+						describe: "Stage signature, or a unique prefix of one, as listed by " +
+							"'ui5 cache inspect --stages'",
+						type: "string",
+					})
+					.option("sizes", {
+						describe: "Compute the on-disk size of cached content (slower)",
+						default: false,
+						type: "boolean",
+					})
+					.option("json", {
+						describe: "Output the inspection result as JSON for tooling",
+						default: false,
+						type: "boolean",
+					})
+					.example("$0 cache inspect-stage 26b223c2c5f1",
+						"Show the cached resources of a stage; a unique signature prefix is enough")
+					.example("$0 cache inspect-stage 26b223c2c5f1 --sizes",
+						"Also compute the on-disk size of each cached resource");
 			},
 			middlewares: [baseMiddleware],
 		});
@@ -190,6 +290,37 @@ async function handleCache(argv) {
 }
 
 /**
+ * Resolves the project graph for the current directory.
+ *
+ * @param {Yargs.Arguments} argv
+ * @param {object} options
+ * @param {boolean} options.resolveFrameworkDependencies Whether to resolve framework libraries
+ * @param {string} [options.versionOverride] Framework version override
+ * @param {string} [options.snapshotCache] Snapshot cache mode
+ * @returns {Promise<object>} Resolved project graph
+ */
+async function resolveGraph(argv, {resolveFrameworkDependencies, versionOverride, snapshotCache}) {
+	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
+	if (argv.dependencyDefinition) {
+		return graphFromStaticFile({
+			filePath: argv.dependencyDefinition,
+			rootConfigPath: argv.config,
+			resolveFrameworkDependencies,
+			versionOverride,
+			snapshotCache,
+		});
+	}
+	return graphFromPackageDependencies({
+		rootConfigPath: argv.config,
+		workspaceConfigPath: argv.workspaceConfig,
+		workspaceName: argv.workspace === false ? null : argv.workspace,
+		resolveFrameworkDependencies,
+		versionOverride,
+		snapshotCache,
+	});
+}
+
+/**
  * Resolves the project graph for the current directory and returns the root project's id,
  * which is the key used for its entries in the build cache.
  *
@@ -201,22 +332,7 @@ async function handleCache(argv) {
  * @returns {Promise<string>} Root project id
  */
 async function getRootProjectId(argv) {
-	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
-	let graph;
-	if (argv.dependencyDefinition) {
-		graph = await graphFromStaticFile({
-			filePath: argv.dependencyDefinition,
-			rootConfigPath: argv.config,
-			resolveFrameworkDependencies: false,
-		});
-	} else {
-		graph = await graphFromPackageDependencies({
-			rootConfigPath: argv.config,
-			workspaceConfigPath: argv.workspaceConfig,
-			workspaceName: argv.workspace === false ? null : argv.workspace,
-			resolveFrameworkDependencies: false,
-		});
-	}
+	const graph = await resolveGraph(argv, {resolveFrameworkDependencies: false});
 	return graph.getRoot().getId();
 }
 
@@ -271,6 +387,132 @@ async function handleProjectCache(argv) {
 			deletedEntries: result?.deletedEntries ?? 0,
 		});
 	}
+}
+
+/**
+ * Maps the inspect build options to a build config for signature computation.
+ *
+ * @param {Yargs.Arguments} argv
+ * @returns {{selfContained: boolean, jsdoc: boolean, includedTasks: string[], excludedTasks: string[]}}
+ */
+function inspectBuildConfig(argv) {
+	const mode = argv.buildMode ?? "preload";
+	return {
+		selfContained: mode === "self-contained",
+		jsdoc: mode === "jsdoc",
+		includedTasks: argv.includeTask ?? [],
+		excludedTasks: argv.excludeTask ?? [],
+	};
+}
+
+/**
+ * Inspects the build cache. Read-only: no confirmation, no mutation. Dispatches to one of two
+ * modes: all signatures for one project id (positional projectId) or the current dependency tree
+ * (default). The single-stage drill-down is a separate command, {@link handleStageInspect}.
+ *
+ * @param {Yargs.Arguments} argv
+ */
+async function handleInspect(argv) {
+	if (argv.projectId) {
+		return handleProjectInspect(argv);
+	}
+	return handleTreeInspect(argv);
+}
+
+/**
+ * Default inspect mode: resolve the full project tree (including framework libraries), compute the
+ * live build signature per project, and mark the matching cache entry as current while summarizing
+ * the rest.
+ *
+ * @param {Yargs.Arguments} argv
+ */
+async function handleTreeInspect(argv) {
+	const [{default: CacheManager}, {getProjectBuildSignatures}] = await Promise.all([
+		import("@ui5/project/internal/build/cache/CacheManager"),
+		import("@ui5/project/internal/build/helpers/getProjectBuildSignatures"),
+	]);
+
+	const graph = await resolveGraph(argv, {
+		resolveFrameworkDependencies: true,
+		versionOverride: argv.frameworkVersion,
+		snapshotCache: argv.snapshotCache ?? "Default",
+	});
+	const ui5DataDir = await getUi5DataDirOrDefault({cwd: process.cwd()});
+
+	const currentSignatures = await getProjectBuildSignatures(graph, inspectBuildConfig(argv));
+
+	const projects = [];
+	await graph.traverseBreadthFirst(({project}) => {
+		projects.push({
+			name: project.getName(),
+			id: project.getId(),
+			type: project.getType(),
+			isFramework: project.isFrameworkProject(),
+			version: project.getVersion(),
+			currentSignature: currentSignatures.get(project.getId()) ?? null,
+		});
+	});
+
+	const entriesById = await CacheManager.getProjectsCacheEntries(
+		ui5DataDir, projects.map((p) => p.id), {withSizes: argv.sizes});
+	for (const project of projects) {
+		const entries = entriesById.get(project.id) ?? [];
+		project.current = entries.find((entry) => entry.buildSignature === project.currentSignature) ?? null;
+		project.stale = entries.filter((entry) => entry.buildSignature !== project.currentSignature);
+	}
+
+	if (argv.json) {
+		process.stdout.write(`${JSON.stringify({ui5DataDir, buildMode: argv.buildMode ?? "preload", projects})}\n`);
+		return;
+	}
+
+	displayCacheInspection({
+		ui5DataDir, projects,
+		showAll: argv.all, staleOnly: argv.stale, withSizes: argv.sizes, withStages: argv.stages,
+	});
+}
+
+/**
+ * Project drill-down: list all cached build signatures for a single project id, without resolving
+ * a graph or the framework.
+ *
+ * @param {Yargs.Arguments} argv
+ */
+async function handleProjectInspect(argv) {
+	const {default: CacheManager} = await import("@ui5/project/internal/build/cache/CacheManager");
+	const ui5DataDir = await getUi5DataDirOrDefault({cwd: process.cwd()});
+
+	const entriesById = await CacheManager.getProjectsCacheEntries(
+		ui5DataDir, [argv.projectId], {withSizes: argv.sizes});
+	const entries = entriesById.get(argv.projectId) ?? [];
+
+	if (argv.json) {
+		process.stdout.write(`${JSON.stringify({ui5DataDir, projectId: argv.projectId, entries})}\n`);
+		return;
+	}
+
+	displayProjectInspection({ui5DataDir, projectId: argv.projectId, entries, withSizes: argv.sizes,
+		withStages: argv.stages});
+}
+
+/**
+ * Stage drill-down: show the cached resources of a single stage. The signature argument is the
+ * abbreviated value listed by 'ui5 cache inspect --stages'; a unique prefix resolves it.
+ *
+ * @param {Yargs.Arguments} argv
+ */
+async function handleStageInspect(argv) {
+	const {default: CacheManager} = await import("@ui5/project/internal/build/cache/CacheManager");
+	const ui5DataDir = await getUi5DataDirOrDefault({cwd: process.cwd()});
+
+	const stageEntries = await CacheManager.getStageDetails(ui5DataDir, argv.signature, {withSizes: argv.sizes});
+
+	if (argv.json) {
+		process.stdout.write(`${JSON.stringify({ui5DataDir, stageSignature: argv.signature, stageEntries})}\n`);
+		return;
+	}
+
+	displayStageInspection({ui5DataDir, stageSignature: argv.signature, stageEntries, withSizes: argv.sizes});
 }
 
 export default cacheCommand;

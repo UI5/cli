@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import path from "node:path";
 import process from "node:process";
 import {formatPath} from "../../../dataDir.js";
 
@@ -84,6 +85,40 @@ export function displayCacheCleanWarning() {
 
 function formatEntries(count) {
 	return `${count.toLocaleString("en-US")} ${count === 1 ? "entry" : "entries"}`;
+}
+
+/**
+ * Formats the age of a cache entry as a coarse relative time (e.g. "3h ago").
+ *
+ * The age is derived from the index_cache "source" blob's indexTimestamp. A signature
+ * with stage/result rows but no source-index row (partial or legacy) has no timestamp,
+ * so its age is reported as unknown.
+ *
+ * @param {number|null} indexTimestamp Epoch milliseconds, or null when unknown
+ * @returns {string} Relative-time label
+ */
+function formatAge(indexTimestamp) {
+	if (!indexTimestamp) {
+		return "age unknown";
+	}
+	const ms = Date.now() - indexTimestamp;
+	if (ms < 1000) {
+		return "just now";
+	}
+	const seconds = Math.floor(ms / 1000);
+	if (seconds < 60) {
+		return `${seconds}s ago`;
+	}
+	const minutes = Math.floor(seconds / 60);
+	if (minutes < 60) {
+		return `${minutes}m ago`;
+	}
+	const hours = Math.floor(minutes / 60);
+	if (hours < 24) {
+		return `${hours}h ago`;
+	}
+	const days = Math.floor(hours / 24);
+	return `${days}d ago`;
 }
 
 /**
@@ -282,4 +317,189 @@ export function displayCleanupResult({
 	});
 
 	process.stderr.write(`\n${chalk.green("Success:")} Cleaned ${cleanedSections.join(" and ")}\n`);
+}
+
+/**
+ * Formats the details of a single build-signature entry (age, task count, stage/result counts,
+ * and optionally the on-disk size).
+ *
+ * @param {object} entry Build-signature entry
+ * @param {object} [options]
+ * @param {boolean} [options.withSizes]
+ * @returns {string}
+ */
+function formatEntryDetails(entry, {withSizes = false} = {}) {
+	const taskCount = entry.tasks.length;
+	const parts = [
+		formatAge(entry.indexTimestamp),
+		`${taskCount} ${taskCount === 1 ? "task" : "tasks"}`,
+		`${entry.stageEntries.length} stage / ${entry.resultSignatures.length} result entries`,
+	];
+	if (withSizes && typeof entry.sizeBytes === "number") {
+		parts.push(formatSize(entry.sizeBytes));
+	}
+	return parts.join(` ${ITEM_DIVIDER} `);
+}
+
+function writeEntryLine(entry, {tag = "", withSizes = false, withStages = false} = {}) {
+	const shortSignature = chalk.cyan(entry.buildSignature.slice(0, 12));
+	process.stdout.write(
+		`  ${tag ? `${tag} ` : ""}${shortSignature} ${chalk.dim(formatEntryDetails(entry, {withSizes}))}\n`
+	);
+	if (withStages) {
+		writeStageEntries(entry);
+	}
+}
+
+// Lists a build signature's contained stage signatures, each drillable via 'ui5 cache inspect-stage'.
+function writeStageEntries(entry) {
+	const stages = [...(entry.stageEntries ?? [])].sort((a, b) => a.stageId.localeCompare(b.stageId));
+	const width = stages.reduce((max, stage) => Math.max(max, stage.stageId.length), 0);
+	for (const {stageId, stageSignature} of stages) {
+		process.stdout.write(`    ${stageId.padEnd(width)}  ${chalk.cyan(stageSignature.slice(0, 12))}\n`);
+	}
+}
+
+function writeProjectHeading(project) {
+	let name = chalk.bold(project.name);
+	if (project.isFramework) {
+		name = chalk.blue(name);
+	}
+	const meta = [project.version, project.type].filter(Boolean).join(", ");
+	process.stdout.write(`${name}${meta ? ` ${chalk.dim(`(${meta})`)}` : ""}\n`);
+}
+
+function writeInspectionHeader(ui5DataDir, title) {
+	process.stdout.write(
+		`\n${chalk.bold(title)} ${chalk.dim.italic(formatPath(path.join(ui5DataDir, "buildCache")))}\n\n`
+	);
+}
+
+/**
+ * Display a read-only inspection of the build cache for the current project tree on stdout.
+ * Each project shows the cache entry matching its current build signature (or a "not cached"
+ * note), and summarizes the other on-disk signatures. `--all` expands them; `--stale` shows
+ * only the non-current ones.
+ *
+ * @param {object} data
+ * @param {string} data.ui5DataDir Resolved absolute path to the UI5 data directory
+ * @param {Array<object>} data.projects Ordered projects, each with `currentSignature`, `current`
+ *   (matching entry or null) and `stale` (array of non-current entries)
+ * @param {boolean} [data.showAll] Expand stale signatures instead of summarizing
+ * @param {boolean} [data.staleOnly] Show only stale signatures
+ * @param {boolean} [data.withSizes] Show on-disk sizes
+ * @param {boolean} [data.withStages] List contained stage signatures under each entry
+ */
+export function displayCacheInspection({
+	ui5DataDir, projects, showAll = false, staleOnly = false, withSizes = false, withStages = false,
+}) {
+	writeInspectionHeader(ui5DataDir, "Build cache inspection");
+	const currentTag = chalk.green("current");
+	const staleTag = chalk.yellow("stale");
+
+	for (const project of projects) {
+		writeProjectHeading(project);
+
+		if (staleOnly) {
+			if (!project.stale.length) {
+				process.stdout.write(`  ${chalk.italic("No stale signatures")}\n`);
+			} else {
+				for (const entry of project.stale) {
+					writeEntryLine(entry, {tag: staleTag, withSizes, withStages});
+				}
+			}
+			continue;
+		}
+
+		if (project.current) {
+			writeEntryLine(project.current, {tag: currentTag, withSizes, withStages});
+		} else {
+			const shortSignature = project.currentSignature ?
+				chalk.cyan(project.currentSignature.slice(0, 12)) : chalk.dim("unknown");
+			process.stdout.write(
+				`  ${currentTag} ${shortSignature} ${chalk.dim.italic("not cached (a build would populate it)")}\n`
+			);
+		}
+
+		if (project.stale.length) {
+			if (showAll) {
+				for (const entry of project.stale) {
+					writeEntryLine(entry, {tag: staleTag, withSizes, withStages});
+				}
+			} else {
+				const count = project.stale.length;
+				process.stdout.write(
+					`  ${chalk.dim(`${count} other signature${count === 1 ? "" : "s"} on disk (use --all to show)`)}\n`
+				);
+			}
+		}
+	}
+	process.stdout.write("\n");
+}
+
+/**
+ * Display all cached build signatures for a single project id on stdout.
+ *
+ * @param {object} data
+ * @param {string} data.ui5DataDir
+ * @param {string} data.projectId
+ * @param {Array<object>} data.entries Per-signature entries
+ * @param {boolean} [data.withSizes]
+ * @param {boolean} [data.withStages] List contained stage signatures under each entry
+ */
+export function displayProjectInspection({ui5DataDir, projectId, entries, withSizes = false, withStages = false}) {
+	writeInspectionHeader(ui5DataDir, `Build cache for ${projectId}`);
+	if (!entries.length) {
+		process.stdout.write(`  ${chalk.italic("No cache entries")}\n\n`);
+		return;
+	}
+	for (const entry of entries) {
+		writeEntryLine(entry, {withSizes, withStages});
+	}
+	process.stdout.write("\n");
+}
+
+function formatIntegrity(integrity) {
+	if (!integrity) {
+		return chalk.dim("no integrity");
+	}
+	return chalk.dim(integrity.length > 23 ? `${integrity.slice(0, 20)}...` : integrity);
+}
+
+/**
+ * Display the cached resources of a single stage signature on stdout.
+ *
+ * @param {object} data
+ * @param {string} data.ui5DataDir
+ * @param {string} data.stageSignature
+ * @param {Array<{projectId: string, buildSignature: string, stageId: string, resources: Array<object>}>}
+ *   data.stageEntries Matching stage rows
+ * @param {boolean} [data.withSizes]
+ */
+export function displayStageInspection({ui5DataDir, stageSignature, stageEntries, withSizes = false}) {
+	writeInspectionHeader(ui5DataDir, `Stage ${stageSignature.slice(0, 12)}`);
+	if (!stageEntries.length) {
+		process.stdout.write(`  ${chalk.italic(`No cached stage found for ${stageSignature}`)}\n\n`);
+		return;
+	}
+	for (const stage of stageEntries) {
+		process.stdout.write(
+			`${chalk.bold(stage.stageId)} ${chalk.dim(`(${stage.projectId} ${ITEM_DIVIDER} ` +
+			`${stage.buildSignature.slice(0, 12)})`)}\n`
+		);
+		const resourceCount = stage.resources.length;
+		process.stdout.write(
+			`  ${chalk.dim(`${resourceCount} ${resourceCount === 1 ? "resource" : "resources"}`)}\n`
+		);
+		for (const resource of stage.resources) {
+			const details = [formatIntegrity(resource.integrity)];
+			if (withSizes && typeof resource.sizeBytes === "number") {
+				details.push(chalk.dim(formatSize(resource.sizeBytes)));
+			} else if (typeof resource.size === "number") {
+				details.push(chalk.dim(formatSize(resource.size)));
+			}
+			process.stdout.write(`    ${resource.path} ${details.join(` ${ITEM_DIVIDER} `)}\n`);
+		}
+	}
+	process.stdout.write("\n");
 }
