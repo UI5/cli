@@ -3,12 +3,15 @@ import path from "node:path";
 import process from "node:process";
 import {isLogLevelEnabled} from "@ui5/logger";
 import baseMiddleware from "../middlewares/base.js";
+import {applyProjectConfigOptions, applyWorkspaceOptions} from "../options.js";
 import {getUi5DataDirOrDefault, formatPath} from "../../dataDir.js";
 import {
 	CACHE_CLEAN_HELP_USAGE,
 	displayCacheCleanWarning,
 	displayCacheInfo,
 	displayCleanupResult,
+	displayProjectCacheInfo,
+	displayProjectCleanupResult,
 } from "./helpers/cacheOutput.js";
 
 const cacheCommand = {
@@ -24,6 +27,8 @@ cacheCommand.builder = function(cli) {
 		.command("clean", "Remove all cached UI5 data", {
 			handler: handleCache,
 			builder: function(yargs) {
+				applyProjectConfigOptions(yargs);
+				applyWorkspaceOptions(yargs);
 				return yargs
 					.usage(CACHE_CLEAN_HELP_USAGE)
 					.option("force", {
@@ -32,10 +37,22 @@ cacheCommand.builder = function(cli) {
 						default: false,
 						type: "boolean",
 					})
+					.option("project", {
+						alias: "p",
+						describe: "Remove only the build cache of a single project, leaving other " +
+							"projects' build cache and the downloaded framework packages intact. " +
+							"Without a value, targets the project in the current directory. Pass a " +
+							"project id (e.g. --project sap.ui.core) to target a specific project",
+						type: "string",
+					})
 					.example("$0 cache clean",
 						"Remove all cached UI5 data after confirmation")
 					.example("$0 cache clean --force",
 						"Remove all cached UI5 data without confirmation (e.g. in CI scenarios)")
+					.example("$0 cache clean --project",
+						"Remove only the build cache of the project in the current directory")
+					.example("$0 cache clean --project sap.ui.core",
+						"Remove only the build cache of the project 'sap.ui.core'")
 					.example("UI5_DATA_DIR=/custom/path $0 cache clean",
 						"Remove cached data from a non-default UI5 data directory");
 			},
@@ -46,16 +63,17 @@ cacheCommand.builder = function(cli) {
  * Prompt the user for confirmation before proceeding with cache cleanup.
  *
  * @param {Yargs.Arguments} argv
+ * @param {string} [question] Confirmation prompt text
  * @returns {Promise<boolean>} Confirmation result
  */
-async function getConfirmation(argv) {
+async function getConfirmation(argv, question = "Proceed with cache cleanup? (y/N)") {
 	if (argv.force) {
 		return true;
 	}
 	displayCacheCleanWarning();
 	const {default: yesno} = await import("yesno");
 	return yesno({
-		question: "Proceed with cache cleanup? (y/N)",
+		question,
 		defaultValue: false
 	});
 }
@@ -74,6 +92,9 @@ function getAbsPath(ui5DataDir, cacheEntry) {
 }
 
 async function handleCache(argv) {
+	if (argv.project !== undefined) {
+		return handleProjectCache(argv);
+	}
 	// Lazy loading to prevent unnecessary imports when the command is not executed
 	const [{default: FrameworkCache}, {default: CacheManager}] = await Promise.all([
 		import("@ui5/project/internal/ui5Framework/cache"),
@@ -164,6 +185,90 @@ async function handleCache(argv) {
 			buildSize: buildCleanupResult?.size ?? 0,
 			staleInfoWithAbsPaths: cleanedStaleFramework,
 			buildAdditionalResult: cleanedStaleBuild,
+		});
+	}
+}
+
+/**
+ * Resolves the project graph for the current directory and returns the root project's id,
+ * which is the key used for its entries in the build cache.
+ *
+ * Framework dependencies are not resolved: the root project id is its package name and does
+ * not depend on the framework version, so resolving the framework would only add network
+ * access and a failure surface to a command meant to leave framework packages untouched.
+ *
+ * @param {Yargs.Arguments} argv
+ * @returns {Promise<string>} Root project id
+ */
+async function getRootProjectId(argv) {
+	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
+	let graph;
+	if (argv.dependencyDefinition) {
+		graph = await graphFromStaticFile({
+			filePath: argv.dependencyDefinition,
+			rootConfigPath: argv.config,
+			resolveFrameworkDependencies: false,
+		});
+	} else {
+		graph = await graphFromPackageDependencies({
+			rootConfigPath: argv.config,
+			workspaceConfigPath: argv.workspaceConfig,
+			workspaceName: argv.workspace === false ? null : argv.workspace,
+			resolveFrameworkDependencies: false,
+		});
+	}
+	return graph.getRoot().getId();
+}
+
+/**
+ * Removes the build cache of a single project, leaving other projects' build cache and the
+ * framework cache intact.
+ *
+ * A project id passed via --project is used directly. Without one, the root project id of the
+ * current directory is resolved from the project graph the same way 'ui5 build' does.
+ *
+ * @param {Yargs.Arguments} argv
+ */
+async function handleProjectCache(argv) {
+	const {default: CacheManager} = await import("@ui5/project/internal/build/cache/CacheManager");
+
+	const projectId = argv.project || await getRootProjectId(argv);
+	const ui5DataDir = await getUi5DataDirOrDefault({cwd: process.cwd()});
+	const isVerbose = isLogLevelEnabled("verbose");
+
+	if (isVerbose) {
+		process.stderr.write(
+			`Checking build cache for project ${chalk.bold(projectId)} at ${chalk.bold(formatPath(ui5DataDir))} …\n`
+		);
+	}
+
+	const info = await CacheManager.getProjectCacheInfo(ui5DataDir, projectId);
+	if (!info) {
+		if (isVerbose) {
+			process.stderr.write(`${chalk.italic("Nothing to clean")}\n`);
+		}
+		return;
+	}
+
+	if (isVerbose) {
+		displayProjectCacheInfo({projectId, absPath: getAbsPath(ui5DataDir, info)});
+	}
+
+	const confirmed = await getConfirmation(argv, `Delete build cache for '${projectId}'? (y/N)`);
+	if (!confirmed) {
+		if (isVerbose) {
+			process.stderr.write(`${chalk.italic("Cancelled")}\n`);
+		}
+		return;
+	}
+
+	const result = await CacheManager.cleanProject(ui5DataDir, projectId);
+
+	if (isVerbose) {
+		displayProjectCleanupResult({
+			projectId,
+			absPath: getAbsPath(ui5DataDir, result),
+			deletedEntries: result?.deletedEntries ?? 0,
 		});
 	}
 }
