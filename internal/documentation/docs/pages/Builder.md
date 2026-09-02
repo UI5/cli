@@ -58,7 +58,7 @@ All available standard tasks are documented under **API -> @ui5/builder -> tasks
 <sup>3</sup> Enabled in `self-contained` build, which disables `generateComponentPreload` and `generateLibraryPreload`  
 <sup>4</sup> Enabled for projects defining a [bundle configuration](./Configuration.md#custom-bundling)  
 <sup>5</sup> Can be enabled for framework projects via the `includeTask` option. For other projects, this task is skipped  
-<sup>6</sup> Disabled for the server due to a corresponding middleware producing the same output  
+<sup>6</sup> Disabled for the server (`ui5 serve` and `ui5 build for-server`) due to a corresponding middleware producing the same output  
 <sup>7</sup> Enabled for Specification Version 4.0 and lower, and for framework projects. For other projects using Specification Version 5.0 and higher, this task is skipped
 
 ### minify
@@ -227,6 +227,8 @@ The cache may grow over time. It can be deleted at any time to reclaim disk spac
 
 ::: info
 By default, build caches created by `ui5 build` and `ui5 serve` are **separate and cannot be mixed**. Each command executes a distinct set of tasks, resulting in separate caches tailored to its specific use case. For more details on server caching, see the [UI5 Server documentation](./Server.md).
+
+To pre-populate the cache that `ui5 serve` reuses, run `ui5 build for-server`. It executes the same task set as the server (for example, it skips `generateVersionInfo`, which the server generates on the fly) and only warms the cache without writing a build result to the destination directory. A subsequent `ui5 serve` then reuses those cached results.
 :::
 
 
