@@ -23,6 +23,12 @@ const log = getLogger("build:helpers:fileWatcher");
  * contained: when the native backend is selected but cannot load, subscribe() falls back to polling,
  * which needs no native code.
  *
+ * <code>UI5_WATCH_MODE=off</code> disables watching entirely: subscribe() returns an inert
+ * subscription that never invokes its callback, so no backend is loaded and no filesystem is polled.
+ * This is meant for CI and other environments where sources do not change while the server runs and
+ * the watching overhead (especially the polling backend's tree walk on container volumes) is pure
+ * cost.
+ *
  * @private
  * @module @ui5/project/build/helpers/fileWatcher
  */
@@ -34,8 +40,9 @@ const CONTAINER_MARKER_FILES = ["/.dockerenv", "/run/.containerenv"];
 // cgroup path fragments that appear only when PID 1 runs under a container runtime.
 const rContainerCgroup = /\b(?:docker|libpod|containerd|kubepods)\b/;
 
-// Memoized backend decision. Computed once per process and shared by every subscribe() call.
-let usePolling = null;
+// Memoized backend decision, one of "native" | "polling" | "off". Computed once per process and
+// shared by every subscribe() call.
+let watchBackend = null;
 
 // Memoized native backend: the @parcel/watcher module once loaded, or null when it could not load
 // (e.g. no prebuilt binary for this platform). nativeBackendLoaded guards the one load attempt so a
@@ -44,25 +51,44 @@ let nativeBackend = null;
 let nativeBackendLoaded = false;
 
 /**
- * Decides whether to poll, once per process. <code>UI5_WATCH_MODE=polling|native</code> forces the
- * choice; otherwise polling is the default inside a container and the native backend is the default
- * elsewhere.
+ * Decides the watcher backend, once per process. <code>UI5_WATCH_MODE=off|polling|native</code>
+ * forces the choice; otherwise polling is the default inside a container and the native backend is
+ * the default elsewhere.
  *
+ * @returns {"native"|"polling"|"off"} The selected backend
+ */
+function getWatchBackend() {
+	return (watchBackend ??= decideBackend());
+}
+
+/**
  * @returns {boolean} True when the polling backend should be used
  */
 export function shouldUsePolling() {
-	return (usePolling ??= decideBackend());
+	return getWatchBackend() === "polling";
+}
+
+/**
+ * @returns {boolean} True when file watching is disabled (<code>UI5_WATCH_MODE=off</code>)
+ */
+export function isWatchingDisabled() {
+	return getWatchBackend() === "off";
 }
 
 function decideBackend() {
 	const mode = process.env.UI5_WATCH_MODE;
+	if (mode === "off") {
+		log.info(`UI5_WATCH_MODE=off: file watching is disabled. Source changes will not trigger ` +
+			`rebuilds or live reload while the server runs.`);
+		return "off";
+	}
 	if (mode === "polling") {
 		log.verbose(`UI5_WATCH_MODE=polling: using polling file watcher`);
-		return true;
+		return "polling";
 	}
 	if (mode === "native") {
 		log.verbose(`UI5_WATCH_MODE=native: using native file watcher`);
-		return false;
+		return "native";
 	}
 	if (mode) {
 		log.warn(`Ignoring invalid UI5_WATCH_MODE '${mode}', detecting file watcher backend`);
@@ -72,10 +98,10 @@ function decideBackend() {
 		log.info(`Detected a container environment: using the polling file watcher. Inside a ` +
 			`container, inotify often does not report changes made to a mounted volume from outside ` +
 			`the container. Set UI5_WATCH_MODE=native to force the native watcher.`);
-		return true;
+		return "polling";
 	}
 	log.verbose(`No container environment detected, using the native file watcher`);
-	return false;
+	return "native";
 }
 
 // Reports whether the process runs inside a container. Checks the marker files the runtimes drop
@@ -98,7 +124,9 @@ function isRunningInContainer() {
 
 /**
  * Subscribes to filesystem changes below <code>dir</code>, matching
- * <code>@parcel/watcher</code>'s <code>subscribe</code> signature and return contract.
+ * <code>@parcel/watcher</code>'s <code>subscribe</code> signature and return contract. When watching
+ * is disabled (<code>UI5_WATCH_MODE=off</code>), the returned subscription is inert: its callback is
+ * never invoked and <code>unsubscribe</code> is a no-op.
  *
  * @param {string} dir Directory to watch
  * @param {Function} callback Invoked as <code>(err, events)</code>, events being
@@ -111,6 +139,12 @@ function isRunningInContainer() {
  * @returns {Promise<{unsubscribe: Function}>} Resolves once the watcher is ready
  */
 export async function subscribe(dir, callback, opts = {}) {
+	if (isWatchingDisabled()) {
+		// Watching is off (UI5_WATCH_MODE=off). Return an inert subscription the caller tracks and
+		// unsubscribes exactly as a real one, but the callback is never invoked, so no backend loads
+		// and no rebuild or live reload is ever triggered.
+		return {unsubscribe: async () => {}};
+	}
 	if (!shouldUsePolling()) {
 		const native = await loadNativeBackend();
 		if (native) {
