@@ -34,9 +34,8 @@ const log = getLogger("server");
 export async function buildRouter(graph, config, error, getDegradedError) {
 	const {
 		sendSAPTargetCSP = false, simpleIndex = false, liveReload = false, serveCSPReports = false,
-		cache, ui5DataDir, includedTasks, webSocketToken = null,
+		cache, ui5DataDir, includedTasks, excludedTasks, webSocketToken = null,
 	} = config;
-	let {excludedTasks} = config;
 	const rootProject = graph.getRoot();
 
 	const readers = [];
@@ -72,15 +71,10 @@ export async function buildRouter(graph, config, error, getDegradedError) {
 		initialBuildIncludedDependencies.push("sap.ui.core");
 	}
 
-	// Explicitly exclude task "generateVersionInfo" for Server builds
-	// because middleware "versionInfo" will generate the version info anyways.
-	if (!Array.isArray(excludedTasks)) {
-		excludedTasks = [];
-	}
-	if (!excludedTasks.includes("generateVersionInfo")) {
-		excludedTasks = [...excludedTasks, "generateVersionInfo"];
-	}
-
+	// graph.serve() runs a server-aligned build (server:true), which disables the
+	// "generateVersionInfo" task by default because the "versionInfo" middleware generates the
+	// version info on the fly. The default task set is owned by @ui5/project (composeTaskList),
+	// so no task filtering is applied here.
 	const buildServer = await graph.serve({
 		initialBuildIncludedDependencies,
 		includedTasks,
