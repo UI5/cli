@@ -4,6 +4,21 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v4.0.11...HEAD).
 
+## [5.0.0-alpha.9](https://github.com/UI5/cli/compare/builder-v5.0.0-alpha.8...builder-v5.0.0-alpha.9) (2026-09-02)
+
+
+### Dependencies
+
+* Bump less-openui5 from 0.11.6 to 0.12.0 ([146a8fd](https://github.com/UI5/cli/commit/146a8fde30565e041cf48e36dee030e5744d9124))
+* Bump terser from 5.50.0 to 5.51.1 in the npm group ([#1556](https://github.com/UI5/cli/issues/1556)) ([b844c39](https://github.com/UI5/cli/commit/b844c3948aafd6357b6edb8c7ac3eed047703ede))
+* Bump the npm group with 7 updates ([77718d7](https://github.com/UI5/cli/commit/77718d760db51a2ab248d0454df1eb3d64facc9a))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/fs bumped from ^5.0.0-alpha.8 to ^5.0.0-alpha.9
+    * @ui5/logger bumped from ^5.0.0-alpha.8 to ^5.0.0-alpha.9
+  * devDependencies
+    * @ui5/project bumped from ^5.0.0-alpha.8 to ^5.0.0-alpha.9
+
 ## [5.0.0-alpha.8](https://github.com/UI5/cli/compare/builder-v5.0.0-alpha.7...builder-v5.0.0-alpha.8) (2026-08-14)
 
 
