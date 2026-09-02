@@ -19,6 +19,43 @@ const DATA_TABLES = ["content", "index_cache", "stage_metadata", "task_metadata"
 const PROJECT_TABLES = ["index_cache", "stage_metadata", "task_metadata", "result_metadata"];
 
 /**
+ * Flattens a stage metadata blob's resource metadata into a list of resources.
+ *
+ * The blob stores resource metadata either as a single object keyed by resource path (plain
+ * writer) or as an array of per-reader objects with a `resourceMapping` from path to array index
+ * (writer collection). Both forms are reduced to one resource entry per path.
+ *
+ * @param {object} metadata Deserialized stage metadata blob
+ * @returns {Array<{path: string, integrity: string, size: number, lastModified: number}>}
+ */
+function normalizeStageResources(metadata) {
+	const {resourceMetadata, resourceMapping} = metadata ?? {};
+	const toEntry = (path, meta) => ({
+		path,
+		integrity: meta?.integrity ?? null,
+		size: meta?.size ?? null,
+		lastModified: meta?.lastModified ?? null,
+	});
+	if (Array.isArray(resourceMetadata)) {
+		return Object.entries(resourceMapping ?? {}).map(([path, idx]) =>
+			toEntry(path, resourceMetadata[idx]?.[path]));
+	}
+	return Object.entries(resourceMetadata ?? {}).map(([path, meta]) => toEntry(path, meta));
+}
+
+/**
+ * Escapes the LIKE wildcards `%` and `_` (and the escape character itself) so a caller-supplied
+ * value is matched as a plain string under `LIKE ? ESCAPE '\'`. Stage signatures are hex, but the
+ * value reaching {@link BuildCacheStorage#getStageEntriesBySignature} is a user-typed prefix.
+ *
+ * @param {string} value
+ * @returns {string}
+ */
+function escapeLikePattern(value) {
+	return value.replace(/[\\%_]/g, "\\$&");
+}
+
+/**
  * Unified SQLite-backed storage for the build cache
  *
  * Stores both metadata (index caches, stage metadata, task metadata, result metadata)
@@ -565,6 +602,197 @@ export default class BuildCacheStorage {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Enumerates all cache entries for a single project across the project-keyed tables,
+	 * grouped by build signature. Read-only; used by the inspect command to surface what
+	 * the cache holds for a project without recomputing the live build signature.
+	 *
+	 * The index_cache "source" blob is the anchor for a signature: it carries the index
+	 * timestamp (age), the recorded task list, and the dependency-set identity. A signature
+	 * present only in the stage/result/task tables (partial or legacy) still yields an entry,
+	 * with a null indexTimestamp.
+	 *
+	 * @param {string} projectId Project identifier
+	 * @param {object} [options]
+	 * @param {boolean} [options.withSizes=false] Also compute the on-disk content size per signature
+	 *   (reads stage blobs to collect integrities; deduped within a signature)
+	 * @returns {Array<{
+	 *   buildSignature: string,
+	 *   indexTimestamp: number|null,
+	 *   tasks: string[],
+	 *   availableDependencies: string|null,
+	 *   stageEntries: Array<{stageId: string, stageSignature: string}>,
+	 *   resultSignatures: string[],
+	 *   taskEntries: Array<{taskName: string, type: string}>,
+	 *   sizeBytes?: number,
+	 * }>} Per-signature summaries, one per build signature present for the project
+	 */
+	getProjectCacheEntries(projectId, {withSizes = false} = {}) {
+		const bySignature = new Map();
+		const forSignature = (buildSignature) => {
+			let entry = bySignature.get(buildSignature);
+			if (!entry) {
+				entry = {
+					buildSignature,
+					indexTimestamp: null,
+					tasks: [],
+					availableDependencies: null,
+					stageEntries: [],
+					resultSignatures: [],
+					taskEntries: [],
+				};
+				if (withSizes) {
+					entry.sizeBytes = 0;
+					entry.integrities = new Set(); // dropped before returning
+				}
+				bySignature.set(buildSignature, entry);
+			}
+			return entry;
+		};
+
+		const indexRows = this.#db.prepare(
+			"SELECT build_signature, kind, data FROM index_cache WHERE project_id = ?"
+		).all(projectId);
+		for (const row of indexRows) {
+			const entry = forSignature(row.build_signature);
+			if (row.kind !== "source") {
+				continue;
+			}
+			const index = this.#deserializeMetadata(row.data);
+			entry.indexTimestamp = index.indexTimestamp ?? null;
+			entry.availableDependencies = index.availableDependencies ?? null;
+			// tasks is an array of [taskName, supportsDifferentialBuilds] pairs
+			entry.tasks = (index.tasks ?? []).map((task) => Array.isArray(task) ? task[0] : task);
+		}
+
+		// With sizes, the stage data blob is needed to collect resource integrities
+		const stageColumns = withSizes ?
+			"build_signature, stage_id, stage_signature, data" :
+			"build_signature, stage_id, stage_signature";
+		const stageRows = this.#db.prepare(
+			`SELECT ${stageColumns} FROM stage_metadata WHERE project_id = ?`
+		).all(projectId);
+		for (const row of stageRows) {
+			const entry = forSignature(row.build_signature);
+			entry.stageEntries.push({
+				stageId: row.stage_id,
+				stageSignature: row.stage_signature,
+			});
+			if (withSizes) {
+				for (const {integrity} of normalizeStageResources(this.#deserializeMetadata(row.data))) {
+					if (integrity) {
+						entry.integrities.add(integrity);
+					}
+				}
+			}
+		}
+
+		const resultRows = this.#db.prepare(
+			"SELECT build_signature, stage_signature FROM result_metadata WHERE project_id = ?"
+		).all(projectId);
+		for (const row of resultRows) {
+			forSignature(row.build_signature).resultSignatures.push(row.stage_signature);
+		}
+
+		const taskRows = this.#db.prepare(
+			"SELECT build_signature, task_name, type FROM task_metadata WHERE project_id = ?"
+		).all(projectId);
+		for (const row of taskRows) {
+			forSignature(row.build_signature).taskEntries.push({
+				taskName: row.task_name,
+				type: row.type,
+			});
+		}
+
+		const entries = [...bySignature.values()];
+		if (withSizes) {
+			// Sum on-disk content sizes per signature, deduped within the signature. Blobs shared
+			// across signatures are counted once per signature, so a tree total may over-count.
+			for (const entry of entries) {
+				const sizes = this.getContentSizes([...entry.integrities]);
+				let total = 0;
+				for (const size of sizes.values()) {
+					total += size;
+				}
+				entry.sizeBytes = total;
+				delete entry.integrities;
+			}
+		}
+		return entries;
+	}
+
+	/**
+	 * Locates every cached stage whose signature starts with the given prefix and returns its stored
+	 * resource list. Signatures are shown abbreviated (see the inspect command), so the prefix is
+	 * what a user pastes back, like a short git commit hash. A hash prefix is effectively unique, but
+	 * the query is not scoped to a project, so more than one row may match: an identical stage shared
+	 * across builds or projects yields one row each, all with the same full signature.
+	 *
+	 * When the prefix matches more than one distinct full signature, it is ambiguous and an error is
+	 * thrown listing the candidates rather than returning an arbitrary one.
+	 *
+	 * The stage blob stores resource metadata either as a single {@link Object} (plain writer) or
+	 * as an array of per-reader objects addressed by a `resourceMapping` (writer collection); both
+	 * are normalized into a flat resource list here.
+	 *
+	 * @param {string} stageSignaturePrefix Full stage signature or a leading prefix of one
+	 * @returns {Array<{
+	 *   projectId: string,
+	 *   buildSignature: string,
+	 *   stageId: string,
+	 *   resources: Array<{path: string, integrity: string, size: number, lastModified: number}>,
+	 * }>} One entry per matching stage row
+	 * @throws {Error} When the prefix matches more than one distinct stage signature
+	 */
+	getStageEntriesBySignature(stageSignaturePrefix) {
+		const rows = this.#db.prepare(
+			`SELECT project_id, build_signature, stage_id, stage_signature, data
+			FROM stage_metadata WHERE stage_signature LIKE ? ESCAPE '\\'`
+		).all(`${escapeLikePattern(stageSignaturePrefix)}%`);
+
+		const distinct = new Set(rows.map((row) => row.stage_signature));
+		if (distinct.size > 1) {
+			const candidates = [...distinct].map((sig) => sig.slice(0, 12)).sort().join(", ");
+			throw new Error(
+				`Stage signature prefix '${stageSignaturePrefix}' is ambiguous: it matches ` +
+				`${distinct.size} stage signatures (${candidates}). Provide more characters.`
+			);
+		}
+
+		return rows.map((row) => {
+			const metadata = this.#deserializeMetadata(row.data);
+			return {
+				projectId: row.project_id,
+				buildSignature: row.build_signature,
+				stageId: row.stage_id,
+				resources: normalizeStageResources(metadata),
+			};
+		});
+	}
+
+	/**
+	 * Returns the on-disk byte length of each stored content blob for the given integrities.
+	 * The length is the compressed size when the blob is gzip-compressed (content above the
+	 * compression threshold) and the raw size otherwise. Missing integrities are absent from the map.
+	 *
+	 * @param {string[]} integrities SRI integrity strings
+	 * @returns {Map<string, number>} Map of integrity to stored byte length
+	 */
+	getContentSizes(integrities) {
+		const sizes = new Map();
+		if (!integrities.length) {
+			return sizes;
+		}
+		const placeholders = integrities.map(() => "?").join(",");
+		const rows = this.#db.prepare(
+			`SELECT integrity, LENGTH(data) AS size FROM content WHERE integrity IN (${placeholders})`
+		).all(...integrities);
+		for (const row of rows) {
+			sizes.set(row.integrity, row.size);
+		}
+		return sizes;
 	}
 
 	/**

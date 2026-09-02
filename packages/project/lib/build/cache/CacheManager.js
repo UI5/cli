@@ -457,6 +457,62 @@ export default class CacheManager {
 	}
 
 	/**
+	 * Enumerates build cache entries for multiple projects, grouped by build signature.
+	 *
+	 * Opens the database once for the whole set of project ids: a framework tree resolves
+	 * to dozens of projects, so a per-project open would be wasteful. Read-only.
+	 *
+	 * @public
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @param {string[]} projectIds Project identifiers to enumerate
+	 * @param {object} [options]
+	 * @param {boolean} [options.withSizes=false] Also compute on-disk content size per signature
+	 * @returns {Promise<Map<string, Array<object>>>} Map of project id to per-signature entries.
+	 *   Projects without entries map to an empty array. Empty Map when the database is unavailable.
+	 */
+	static getProjectsCacheEntries(ui5DataDir, projectIds, {withSizes = false} = {}) {
+		return CacheManager.#withStorage(ui5DataDir, new Map(), (storage) => {
+			const result = new Map();
+			for (const projectId of projectIds) {
+				result.set(projectId, storage.getProjectCacheEntries(projectId, {withSizes}));
+			}
+			return result;
+		});
+	}
+
+	/**
+	 * Locates every cached stage whose signature starts with the given prefix and returns its stored
+	 * resources. The prefix is the abbreviated signature shown by the inspect command; it must
+	 * resolve to a single stage signature or an error is thrown.
+	 *
+	 * @public
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @param {string} stageSignaturePrefix Full stage signature or a leading prefix of one
+	 * @param {object} [options]
+	 * @param {boolean} [options.withSizes=false] Attach the on-disk size to each resource
+	 * @returns {Promise<Array<object>>} Matching stage entries, or empty array when unavailable
+	 * @throws {Error} When the prefix matches more than one distinct stage signature
+	 */
+	static getStageDetails(ui5DataDir, stageSignaturePrefix, {withSizes = false} = {}) {
+		return CacheManager.#withStorage(ui5DataDir, [], (storage) => {
+			const entries = storage.getStageEntriesBySignature(stageSignaturePrefix);
+			if (withSizes) {
+				const integrities = entries.flatMap((entry) =>
+					entry.resources.map((r) => r.integrity).filter(Boolean));
+				const sizes = storage.getContentSizes(integrities);
+				for (const entry of entries) {
+					for (const resource of entry.resources) {
+						resource.sizeBytes = sizes.get(resource.integrity) ?? null;
+					}
+				}
+			}
+			return entries;
+		});
+	}
+
+	/**
 	 * Runs VACUUM to reclaim disk space from a previous {@link cleanCache} call.
 	 * Only runs if the database has freelist pages (i.e. cleanup was deferred).
 	 *
