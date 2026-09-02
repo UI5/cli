@@ -347,6 +347,106 @@ test.serial("cleanProject: Returns null when db does not exist", async (t) => {
 	t.is(result, null);
 });
 
+test.serial("getProjectsCacheEntries: Returns empty Map when db does not exist", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+
+	const result = await CacheManager.getProjectsCacheEntries(testDir, ["project-x"]);
+	t.true(result instanceof Map);
+	t.is(result.size, 0);
+});
+
+test.serial("getProjectsCacheEntries: Round-trips entries for multiple project ids", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.writeIndexCache("project-x", "sig-x", "source", {
+		indexTimestamp: 1_712_000_000_000,
+		indexTree: {root: {hash: "hx"}},
+		tasks: [["minify", 1]],
+		availableDependencies: "deps-x",
+	});
+	cm.writeResultMetadata("project-x", "sig-x", "result-sig", {v: 1});
+	cm.writeIndexCache("project-y", "sig-y", "source", {
+		indexTimestamp: 1_712_000_000_001,
+		indexTree: {root: {hash: "hy"}},
+		tasks: [],
+		availableDependencies: null,
+	});
+	cm.close();
+
+	const result = await CacheManager.getProjectsCacheEntries(testDir, ["project-x", "project-y", "project-z"]);
+	t.is(result.size, 3, "One key per requested project id");
+
+	t.is(result.get("project-x").length, 1);
+	t.is(result.get("project-x")[0].buildSignature, "sig-x");
+	t.deepEqual(result.get("project-x")[0].tasks, ["minify"]);
+	t.is(result.get("project-x")[0].resultSignatures.length, 1);
+
+	t.is(result.get("project-y").length, 1);
+	t.is(result.get("project-y")[0].buildSignature, "sig-y");
+
+	t.deepEqual(result.get("project-z"), [], "Project without records maps to an empty array");
+});
+
+test.serial("getStageDetails: Returns empty array when db does not exist", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+
+	const result = await CacheManager.getStageDetails(testDir, "stg");
+	t.deepEqual(result, []);
+});
+
+test.serial("getStageDetails: Locates a stage by signature and attaches sizes with withSizes", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.putContent("sha256-a", Buffer.alloc(15));
+	cm.writeStageCache("project-x", "sig-x", "task/minify", "stg", {
+		resourceMetadata: {"/a.js": {integrity: "sha256-a", size: 100, lastModified: 1, inode: 1}},
+	});
+	cm.close();
+
+	const withoutSizes = await CacheManager.getStageDetails(testDir, "stg");
+	t.is(withoutSizes.length, 1);
+	t.is(withoutSizes[0].stageId, "task/minify");
+	t.is(withoutSizes[0].resources[0].sizeBytes, undefined, "No on-disk size without withSizes");
+
+	const withSizes = await CacheManager.getStageDetails(testDir, "stg", {withSizes: true});
+	t.is(withSizes[0].resources[0].sizeBytes, 15, "Attaches on-disk content size");
+});
+
+test.serial("getStageDetails: Resolves a stage-signature prefix", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.writeStageCache("project-x", "sig-x", "task/minify", "26b223c2c5f1abcd", {
+		resourceMetadata: {"/a.js": {integrity: "sha256-a", size: 100, lastModified: 1}},
+	});
+	cm.close();
+
+	const entries = await CacheManager.getStageDetails(testDir, "26b223c2c5f1");
+	t.is(entries.length, 1, "The short prefix resolves to the stored stage");
+	t.is(entries[0].stageId, "task/minify");
+});
+
+test.serial("getProjectsCacheEntries: withSizes attaches sizeBytes per signature", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.putContent("sha256-a", Buffer.alloc(10));
+	cm.writeIndexCache("project-x", "sig-x", "source", {
+		indexTimestamp: 1, indexTree: {root: {}}, tasks: [], availableDependencies: null,
+	});
+	cm.writeStageCache("project-x", "sig-x", "task/minify", "stg", {
+		resourceMetadata: {"/a.js": {integrity: "sha256-a", size: 100, lastModified: 1, inode: 1}},
+	});
+	cm.close();
+
+	const result = await CacheManager.getProjectsCacheEntries(testDir, ["project-x"], {withSizes: true});
+	t.is(result.get("project-x")[0].sizeBytes, 10);
+});
+
 test.serial("getAdditionalCacheInfo: returns empty array when no stale tables", async (t) => {
 	const testDir = getUniqueTestDir();
 	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;

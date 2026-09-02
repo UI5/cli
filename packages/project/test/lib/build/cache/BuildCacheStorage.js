@@ -504,6 +504,218 @@ test("dropProjectRecords: No-op returns 0 for an unknown project", (t) => {
 	t.true(t.context.storage.hasProjectRecords("project-a"), "Existing project untouched");
 });
 
+// ===== getProjectCacheEntries =====
+
+// Seeds a realistic index_cache "source" blob plus one row in each other project-keyed table
+// for a given project id and build signature.
+function seedSignature(storage, projectId, buildSignature, {
+	indexTimestamp = 1_700_000_000_000,
+	tasks = [["minify", 1], ["replaceVersion", 0]],
+	availableDependencies = "dep-set-id",
+} = {}) {
+	storage.writeIndexCache(projectId, buildSignature, "source", {
+		indexTimestamp,
+		indexTree: {root: {hash: "root-hash"}},
+		tasks,
+		availableDependencies,
+	});
+	storage.writeStageCache(projectId, buildSignature, "task/minify", "stage-sig", {v: 1});
+	storage.writeResultMetadata(projectId, buildSignature, "result-sig", {v: 2});
+	storage.writeTaskMetadata(projectId, buildSignature, "minify", "project", {v: 3});
+}
+
+test("getProjectCacheEntries: Returns empty array for a project without records", (t) => {
+	seedSignature(t.context.storage, "project-a", "build-sig");
+	t.deepEqual(t.context.storage.getProjectCacheEntries("project-b"), []);
+});
+
+test("getProjectCacheEntries: Extracts indexTimestamp, tasks and dependencies from the source blob", (t) => {
+	seedSignature(t.context.storage, "project-a", "build-sig", {
+		indexTimestamp: 1_712_345_678_000,
+		tasks: [["minify", 1], ["generateBundle", 0]],
+		availableDependencies: "deps-abc",
+	});
+
+	const entries = t.context.storage.getProjectCacheEntries("project-a");
+	t.is(entries.length, 1, "One entry for the single build signature");
+	const [entry] = entries;
+	t.is(entry.buildSignature, "build-sig");
+	t.is(entry.indexTimestamp, 1_712_345_678_000);
+	t.deepEqual(entry.tasks, ["minify", "generateBundle"], "Task names extracted from [name, flag] pairs");
+	t.is(entry.availableDependencies, "deps-abc");
+	t.deepEqual(entry.stageEntries, [{stageId: "task/minify", stageSignature: "stage-sig"}]);
+	t.deepEqual(entry.resultSignatures, ["result-sig"]);
+	t.deepEqual(entry.taskEntries, [{taskName: "minify", type: "project"}]);
+});
+
+test("getProjectCacheEntries: Groups rows by build signature", (t) => {
+	seedSignature(t.context.storage, "project-a", "sig-1");
+	seedSignature(t.context.storage, "project-a", "sig-2");
+
+	const entries = t.context.storage.getProjectCacheEntries("project-a");
+	t.is(entries.length, 2, "One entry per build signature");
+	const signatures = entries.map((e) => e.buildSignature).sort();
+	t.deepEqual(signatures, ["sig-1", "sig-2"]);
+});
+
+test("getProjectCacheEntries: Signature without a source-index row reports null timestamp and no tasks", (t) => {
+	// Only stage/result rows exist for this signature (partial or legacy)
+	t.context.storage.writeStageCache("project-a", "orphan-sig", "task/minify", "stage-sig", {v: 1});
+	t.context.storage.writeResultMetadata("project-a", "orphan-sig", "result-sig", {v: 2});
+
+	const entries = t.context.storage.getProjectCacheEntries("project-a");
+	t.is(entries.length, 1);
+	const [entry] = entries;
+	t.is(entry.buildSignature, "orphan-sig");
+	t.is(entry.indexTimestamp, null, "No timestamp without a source-index row");
+	t.deepEqual(entry.tasks, []);
+	t.is(entry.availableDependencies, null);
+	t.is(entry.stageEntries.length, 1);
+	t.is(entry.resultSignatures.length, 1);
+});
+
+test("getProjectCacheEntries: Ignores other projects", (t) => {
+	seedSignature(t.context.storage, "project-a", "build-sig");
+	seedSignature(t.context.storage, "project-b", "build-sig");
+
+	const entries = t.context.storage.getProjectCacheEntries("project-a");
+	t.is(entries.length, 1, "Only the target project's signature is returned");
+	t.is(entries[0].taskEntries.length, 1, "Does not mix in other projects' task rows");
+});
+
+test("getProjectCacheEntries: Ignores the shared content table", (t) => {
+	t.context.storage.putContent("sha256-shared", Buffer.from("data"));
+	t.deepEqual(t.context.storage.getProjectCacheEntries("project-a"), [],
+		"Shared content does not surface as project entries");
+});
+
+test("getProjectCacheEntries: withSizes sums on-disk content size per signature", (t) => {
+	// Small content (<=128 bytes) is stored uncompressed, so LENGTH(data) equals the byte length
+	t.context.storage.putContent("sha256-a", Buffer.alloc(10));
+	t.context.storage.putContent("sha256-b", Buffer.alloc(20));
+	t.context.storage.writeIndexCache("project-a", "sig-1", "source", {
+		indexTimestamp: 1, indexTree: {root: {}}, tasks: [], availableDependencies: null,
+	});
+	t.context.storage.writeStageCache("project-a", "sig-1", "task/minify", "stg", {
+		resourceMetadata: {
+			"/a.js": {integrity: "sha256-a", size: 111, lastModified: 1, inode: 1},
+			"/b.js": {integrity: "sha256-b", size: 222, lastModified: 2, inode: 2},
+			"/a-dup.js": {integrity: "sha256-a", size: 111, lastModified: 3, inode: 3},
+		},
+	});
+
+	const [entry] = t.context.storage.getProjectCacheEntries("project-a", {withSizes: true});
+	t.is(entry.sizeBytes, 30, "Sums content sizes, deduped by integrity within the signature");
+	t.false("integrities" in entry, "Internal integrity set is not leaked");
+});
+
+// ===== getStageEntriesBySignature =====
+
+test("getStageEntriesBySignature: Returns resources from a plain-object stage blob", (t) => {
+	t.context.storage.writeStageCache("project-a", "sig-1", "task/minify", "stg-1", {
+		resourceMetadata: {"/a.js": {integrity: "i1", size: 5, lastModified: 10, inode: 1}},
+		projectTagOperations: {},
+		buildTagOperations: {},
+	});
+
+	const entries = t.context.storage.getStageEntriesBySignature("stg-1");
+	t.is(entries.length, 1);
+	t.deepEqual(entries[0], {
+		projectId: "project-a",
+		buildSignature: "sig-1",
+		stageId: "task/minify",
+		resources: [{path: "/a.js", integrity: "i1", size: 5, lastModified: 10}],
+	});
+});
+
+test("getStageEntriesBySignature: Resolves array/mapping stage blob (writer collection)", (t) => {
+	t.context.storage.writeStageCache("project-a", "sig-1", "result", "stg-2", {
+		resourceMapping: {"/a.js": 0, "/b.js": 1},
+		resourceMetadata: [
+			{"/a.js": {integrity: "i1", size: 5, lastModified: 10, inode: 1}},
+			{"/b.js": {integrity: "i2", size: 6, lastModified: 20, inode: 2}},
+		],
+	});
+
+	const [entry] = t.context.storage.getStageEntriesBySignature("stg-2");
+	t.deepEqual(entry.resources, [
+		{path: "/a.js", integrity: "i1", size: 5, lastModified: 10},
+		{path: "/b.js", integrity: "i2", size: 6, lastModified: 20},
+	], "Each path is resolved through its reader index");
+});
+
+test("getStageEntriesBySignature: Returns all rows sharing a stage signature across projects", (t) => {
+	t.context.storage.writeStageCache("project-a", "sig-1", "task/minify", "shared", {resourceMetadata: {}});
+	t.context.storage.writeStageCache("project-b", "sig-9", "task/minify", "shared", {resourceMetadata: {}});
+
+	const entries = t.context.storage.getStageEntriesBySignature("shared");
+	t.is(entries.length, 2);
+	t.deepEqual(entries.map((e) => e.projectId).sort(), ["project-a", "project-b"]);
+});
+
+test("getStageEntriesBySignature: Returns empty array when not found", (t) => {
+	t.deepEqual(t.context.storage.getStageEntriesBySignature("missing"), []);
+});
+
+test("getStageEntriesBySignature: Resolves a unique signature prefix", (t) => {
+	t.context.storage.writeStageCache("project-a", "sig-1", "task/minify", "26b223c2c5f1abcd", {
+		resourceMetadata: {"/a.js": {integrity: "i1", size: 5, lastModified: 10}},
+	});
+
+	const [entry] = t.context.storage.getStageEntriesBySignature("26b223c2c5f1");
+	t.is(entry.stageId, "task/minify", "The short prefix resolves to the full-signature row");
+	t.deepEqual(entry.resources, [{path: "/a.js", integrity: "i1", size: 5, lastModified: 10}]);
+});
+
+test("getStageEntriesBySignature: A prefix shared by one signature across projects returns all rows", (t) => {
+	t.context.storage.writeStageCache("project-a", "sig-1", "task/minify", "shared-sig-0", {resourceMetadata: {}});
+	t.context.storage.writeStageCache("project-b", "sig-9", "task/minify", "shared-sig-0", {resourceMetadata: {}});
+
+	const entries = t.context.storage.getStageEntriesBySignature("shared-");
+	t.is(entries.length, 2, "Multiple rows of one signature are not ambiguous");
+	t.deepEqual(entries.map((e) => e.projectId).sort(), ["project-a", "project-b"]);
+});
+
+test("getStageEntriesBySignature: Throws when the prefix matches more than one signature", (t) => {
+	t.context.storage.writeStageCache("project-a", "sig-1", "task/minify", "abcd1111", {resourceMetadata: {}});
+	t.context.storage.writeStageCache("project-a", "sig-1", "result", "abcd2222", {resourceMetadata: {}});
+
+	const err = t.throws(() => t.context.storage.getStageEntriesBySignature("abcd"));
+	t.regex(err.message, /ambiguous/, "Names the ambiguity");
+	t.true(err.message.includes("abcd1111") && err.message.includes("abcd2222"),
+		"Lists the candidate signatures");
+});
+
+test("getStageEntriesBySignature: Treats LIKE wildcards in the input as plain characters", (t) => {
+	t.context.storage.writeStageCache("project-a", "sig-1", "task/minify", "a_b", {resourceMetadata: {}});
+	t.context.storage.writeStageCache("project-a", "sig-1", "result", "axb", {resourceMetadata: {}});
+
+	const entries = t.context.storage.getStageEntriesBySignature("a_b");
+	t.is(entries.length, 1, "'_' is escaped, so it does not match the 'axb' row as a wildcard");
+	t.is(entries[0].stageId, "task/minify");
+});
+
+// ===== getContentSizes =====
+
+test("getContentSizes: Returns raw length for small content and omits missing integrities", (t) => {
+	t.context.storage.putContent("sha256-tiny", Buffer.alloc(12));
+	const sizes = t.context.storage.getContentSizes(["sha256-tiny", "sha256-absent"]);
+	t.is(sizes.get("sha256-tiny"), 12, "Uncompressed content length");
+	t.false(sizes.has("sha256-absent"), "Missing integrity is absent from the map");
+});
+
+test("getContentSizes: Returns the compressed length for content above the threshold", (t) => {
+	const content = Buffer.alloc(4096, "x");
+	t.context.storage.putContent("sha256-big", content);
+	const sizes = t.context.storage.getContentSizes(["sha256-big"]);
+	t.true(sizes.get("sha256-big") > 0);
+	t.true(sizes.get("sha256-big") < content.length, "Highly compressible content stores smaller than raw");
+});
+
+test("getContentSizes: Returns empty map for empty input", (t) => {
+	t.is(t.context.storage.getContentSizes([]).size, 0);
+});
+
 test("getDatabaseSize: Returns positive database size", (t) => {
 	const size = t.context.storage.getDatabaseSize();
 	t.true(Number.isInteger(size));

@@ -13,7 +13,7 @@ test("export of package.json", (t) => {
 // Check number of definied exports
 test("check number of exports", (t) => {
 	const packageJson = require("@ui5/project/package.json");
-	t.is(Object.keys(packageJson.exports).length, 17);
+	t.is(Object.keys(packageJson.exports).length, 18);
 });
 
 // Public API contract (exported modules)
@@ -21,6 +21,10 @@ test("check number of exports", (t) => {
 	"config/Configuration",
 	"build/cache/Cache",
 	{exportedSpecifier: "internal/build/cache/CacheManager", mappedModule: "../../lib/build/cache/CacheManager.js"},
+	{
+		exportedSpecifier: "internal/build/helpers/getProjectBuildSignatures",
+		mappedModule: "../../lib/build/helpers/getProjectBuildSignatures.js",
+	},
 	"specifications/Specification",
 	"specifications/SpecificationVersion",
 	"ui5Framework/Openui5Resolver",
