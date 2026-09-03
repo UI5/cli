@@ -38,7 +38,7 @@
 		"npm": ">= 8"
 	},
 	"devDependencies": {
-		"@npmcli/arborist": "^9.9.0",
+		"@npmcli/arborist": "^10.0.2",
 		"@npmcli/config": "^11.0.1",
 		"eslint": "^10.9.1",
 		"pacote": "^22.0.0"
