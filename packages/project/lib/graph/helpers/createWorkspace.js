@@ -74,7 +74,7 @@ async function readWorkspaceConfigFile(filePath) {
 	} = await import("graceful-fs");
 	const {promisify} = await import("node:util");
 	const readFile = promisify(fs.readFile);
-	const jsyaml = await import("js-yaml");
+	const {loadAll: jsyamlLoadAll} = await import("js-yaml");
 
 	let fileContent;
 	try {
@@ -87,7 +87,7 @@ async function readWorkspaceConfigFile(filePath) {
 	}
 	let configs;
 	try {
-		configs = jsyaml.loadAll(fileContent, undefined, {
+		configs = jsyamlLoadAll(fileContent, undefined, {
 			filename: filePath,
 		});
 	} catch (err) {
