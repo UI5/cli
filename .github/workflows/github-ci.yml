@@ -89,3 +89,12 @@ jobs:
     - name: Check lockfile extractor integrity
       working-directory: internal/lockfile-extractor
       run: npm run test
+
+  bundle-cli-dry-run:
+    name: Verify @ui5/cli bundle (dry-run)
+    needs: test
+    permissions:
+      id-token: write # Required by the reusable workflow's job declaration; token is requested but unused in dry-run
+    uses: ./.github/workflows/bundle-and-publish-cli.yml
+    with:
+      dry_run: true

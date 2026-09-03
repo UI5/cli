@@ -98,7 +98,6 @@ jobs:
           npm publish --access public --tag next
 
   publish-cli:
-    runs-on: ubuntu-24.04
     needs: [release-please, publish-packages]
     # Two paths:
     # 1. Automatic: release-please created releases and publish-packages succeeded
@@ -117,48 +116,9 @@ jobs:
         )
       )
     permissions:
-      id-token: write # Required for trusted publishing via OIDC (https://docs.npmjs.com/trusted-publishers)
-    # The GitHub Actions Environment configured for the trusted publisher
-    environment: npmjs:ui5-cli-mono
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Node.js LTS
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 24.x
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate package-lock.json for bundling
-        working-directory: packages/cli
-        run: |
-          set -e
-          node ../../internal/lockfile-extractor/cli.js ../../
-
-      - name: Bundle and publish @ui5/cli
-        run: |
-          set -e
-          TEMP_CLI_DIR=$(mktemp -d)
-
-          # Copy package (including generated package-lock.json) outside the workspace
-          cp -r packages/cli/. "$TEMP_CLI_DIR/"
-          echo "📦 Copied @ui5/cli to temporary directory: $TEMP_CLI_DIR"
-
-          cd "$TEMP_CLI_DIR"
-
-          # Strip devDependencies so npm ci only installs production deps matching the lock file
-          node -e "
-          const fs = require('fs');
-          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          delete pkg.devDependencies;
-          fs.writeFileSync('package.json', JSON.stringify(pkg, null, '\t'));
-          "
-
-          # Install exact versions from generated lock file (no workspace symlinks)
-          echo "📦 Installing production dependencies from package-lock.json"
-          npm ci
-
-          echo "🚀 Publishing @ui5/cli from temporary directory: $TEMP_CLI_DIR"
-          npm publish --access public --tag next
+      id-token: write # Required for OIDC trusted publishing inside the reusable workflow
+    uses: ./.github/workflows/bundle-and-publish-cli.yml
+    with:
+      dry_run: false
+      npm_tag: next
+      npm_env: npmjs:ui5-cli-mono

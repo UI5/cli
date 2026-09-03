@@ -1,0 +1,85 @@
+name: Bundle and Publish @ui5/cli
+
+# Reusable workflow: called by release-please.yml (real publish) and github-ci.yml (dry-run).
+# The caller controls whether the publish is real or dry-run via the dry_run input.
+
+on:
+  workflow_call:
+    inputs:
+      dry_run:
+        description: "Skip actual publish — runs npm publish --dry-run for CI verification"
+        type: boolean
+        default: false
+      npm_tag:
+        description: "npm dist-tag (e.g. next, latest)"
+        type: string
+        default: next
+      npm_env:
+        # Setting this shapes the OIDC token subject claim to
+        #  'repo:UI5/cli:environment:<name>', which must match the trusted
+        #  publisher configuration on npmjs.com.
+        #  Pass 'npmjs:ui5-cli-mono' for a real publish; leave empty for
+        #  dry-run calls (npm publish --dry-run never contacts the registry,
+        #  so no OIDC token is needed — and omitting the environment avoids
+        #  deployment-protection rules that would otherwise block PR builds).
+        description: >
+          GitHub Actions environment name for OIDC trusted publishing (e.g. npmjs:ui5-cli-mono). Leave empty for dry-run calls."
+        type: string
+        default: ""
+
+jobs:
+  bundle-and-publish:
+    runs-on: ubuntu-24.04
+    # Controls the OIDC subject claim: 'repo:UI5/cli:environment:<npm_env>'.
+    # npm's trusted publisher verifies this claim — empty string means no environment
+    # (subject becomes 'repo:UI5/cli:ref:refs/heads/...'), used for dry-run only.
+    environment: ${{ inputs.npm_env }}
+    permissions:
+      id-token: write # Required for OIDC trusted publishing; harmless when npm_env is empty
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Node.js LTS
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.x
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate package-lock.json for bundling
+        working-directory: packages/cli
+        run: |
+          set -e
+          node ../../internal/lockfile-extractor/cli.js ../../
+
+      - name: Bundle and publish @ui5/cli
+        run: |
+          set -e
+          TEMP_CLI_DIR=$(mktemp -d)
+
+          # Copy package (including generated package-lock.json) outside the workspace
+          cp -r packages/cli/. "$TEMP_CLI_DIR/"
+          echo "📦 Copied @ui5/cli to temporary directory: $TEMP_CLI_DIR"
+
+          cd "$TEMP_CLI_DIR"
+
+          # Strip devDependencies so npm ci only installs production deps matching the lock file
+          node -e "
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          delete pkg.devDependencies;
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, '\t'));
+          "
+
+          # Install exact versions from generated lock file (no workspace symlinks)
+          echo "📦 Installing production dependencies from package-lock.json"
+          npm ci
+
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "🔍 Dry-run: reporting what would be published (no actual publish)"
+            npm publish --access public --tag "${{ inputs.npm_tag }}" --dry-run
+          else
+            echo "🚀 Publishing @ui5/cli from temporary directory: $TEMP_CLI_DIR"
+            npm publish --access public --tag "${{ inputs.npm_tag }}"
+          fi
