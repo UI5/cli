@@ -125,6 +125,42 @@ test.serial("subscribe: polling backend is loaded and used when UI5_WATCH_MODE=p
 	}
 });
 
+test.serial("subscribe: returns an inert subscription when UI5_WATCH_MODE=off", async (t) => {
+	// Disabled mode must not load any backend. The native stub stands in as a tripwire: if subscribe()
+	// delegated, it would be called. The returned subscription is real enough to track and unsubscribe.
+	process.env.UI5_WATCH_MODE = "off";
+	const parcelSubscribe = sinon.stub().resolves({unsubscribe: sinon.stub().resolves()});
+	const watcher = await importWatcherWithParcel({
+		default: {subscribe: parcelSubscribe}, subscribe: parcelSubscribe,
+	});
+	try {
+		const cb = sinon.stub();
+		const subscription = await watcher.subscribe("/some/dir", cb, {ignore: ["**/x/**"]});
+
+		t.is(parcelSubscribe.callCount, 0, "no native backend is loaded when watching is disabled");
+		t.is(cb.callCount, 0, "the callback is never invoked");
+		t.is(typeof subscription.unsubscribe, "function", "returns a subscription with unsubscribe()");
+		await t.notThrowsAsync(subscription.unsubscribe(), "unsubscribe is a no-op that resolves");
+	} finally {
+		esmock.purge(watcher);
+	}
+});
+
+test.serial("isWatchingDisabled: true only for UI5_WATCH_MODE=off", async (t) => {
+	process.env.UI5_WATCH_MODE = "off";
+	let watcher = await importWatcher();
+	t.true(watcher.isWatchingDisabled(), "off disables watching");
+	t.false(watcher.shouldUsePolling(), "off is not polling");
+
+	process.env.UI5_WATCH_MODE = "polling";
+	watcher = await importWatcher();
+	t.false(watcher.isWatchingDisabled(), "polling does not disable watching");
+
+	process.env.UI5_WATCH_MODE = "native";
+	watcher = await importWatcher();
+	t.false(watcher.isWatchingDisabled(), "native does not disable watching");
+});
+
 test.serial("shouldUsePolling: UI5_WATCH_MODE forces the backend without inspecting the environment", async (t) => {
 	const existsSync = sinon.stub().returns(false);
 	process.env.UI5_WATCH_MODE = "polling";
