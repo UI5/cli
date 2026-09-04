@@ -109,23 +109,10 @@ test("buildRouter() getDegradedError is undefined for the embedding path (no sup
 		"no degraded accessor is threaded when none was supplied");
 });
 
-test("buildRouter() adds generateVersionInfo to excludedTasks when undefined", async (t) => {
-	// The versionInfo middleware generates the version info, so the build must skip
-	// the generateVersionInfo task. Verify it lands in the excludedTasks passed to
-	// graph.serve() even when the caller excludes nothing.
-	const buildServer = createBuildServer();
-	const graph = createGraph(buildServer);
-	const applyMiddleware = sinon.stub().resolves();
-
-	const {buildRouter} = await importBuildRouter(applyMiddleware);
-	await buildRouter(graph, {excludedTasks: undefined});
-
-	t.true(graph.serve.calledOnce);
-	const callArgs = graph.serve.firstCall.args[0];
-	t.deepEqual(callArgs.excludedTasks, ["generateVersionInfo"]);
-});
-
-test("buildRouter() appends generateVersionInfo to existing excludedTasks", async (t) => {
+test("buildRouter() passes the caller's excludedTasks through unchanged", async (t) => {
+	// The versionInfo middleware generates the version info, so the build must skip the
+	// generateVersionInfo task. That default is now owned by graph.serve() (server:true) in
+	// @ui5/project, so stack.js no longer edits excludedTasks: verify it forwards them as-is.
 	const buildServer = createBuildServer();
 	const graph = createGraph(buildServer);
 	const applyMiddleware = sinon.stub().resolves();
@@ -136,23 +123,22 @@ test("buildRouter() appends generateVersionInfo to existing excludedTasks", asyn
 
 	t.true(graph.serve.calledOnce);
 	const callArgs = graph.serve.firstCall.args[0];
-	t.deepEqual(callArgs.excludedTasks, ["anotherTask", "anotherTask2", "generateVersionInfo"]);
+	t.is(callArgs.excludedTasks, originalExcludedTasks,
+		"the caller's excludedTasks are forwarded unchanged, without appending generateVersionInfo");
 	t.deepEqual(originalExcludedTasks, ["anotherTask", "anotherTask2"],
 		"the caller's excludedTasks array is not mutated");
 });
 
-test("buildRouter() keeps generateVersionInfo when already excluded", async (t) => {
+test("buildRouter() forwards an undefined excludedTasks without adding generateVersionInfo", async (t) => {
 	const buildServer = createBuildServer();
 	const graph = createGraph(buildServer);
 	const applyMiddleware = sinon.stub().resolves();
 
 	const {buildRouter} = await importBuildRouter(applyMiddleware);
-	const originalExcludedTasks = ["anotherTask", "generateVersionInfo", "anotherTask2"];
-	await buildRouter(graph, {excludedTasks: originalExcludedTasks});
+	await buildRouter(graph, {excludedTasks: undefined});
 
 	t.true(graph.serve.calledOnce);
 	const callArgs = graph.serve.firstCall.args[0];
-	t.deepEqual(callArgs.excludedTasks, ["anotherTask", "generateVersionInfo", "anotherTask2"]);
-	t.deepEqual(originalExcludedTasks, ["anotherTask", "generateVersionInfo", "anotherTask2"],
-		"the caller's excludedTasks array is not mutated");
+	t.is(callArgs.excludedTasks, undefined,
+		"stack.js does not synthesize a generateVersionInfo exclusion");
 });

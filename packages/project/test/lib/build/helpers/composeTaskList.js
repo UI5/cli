@@ -124,6 +124,51 @@ const allTasks = [
 		]
 	],
 	[
+		"composeTaskList: server=true excludes generateVersionInfo by default", {
+			archive: false,
+			selfContained: false,
+			jsdoc: false,
+			server: true,
+			includedTasks: [],
+			excludedTasks: []
+		}, [
+			"replaceCopyright",
+			"replaceVersion",
+			"replaceBuildtime",
+			"escapeNonAsciiCharacters",
+			"minify",
+			"buildThemes",
+			"generateLibraryManifest",
+			"generateFlexChangesBundle",
+			"generateComponentPreload",
+			"generateBundle",
+			"generateLibraryPreload",
+		]
+	],
+	[
+		"composeTaskList: server=true with includedTasks re-enables generateVersionInfo", {
+			archive: false,
+			selfContained: false,
+			jsdoc: false,
+			server: true,
+			includedTasks: ["generateVersionInfo"],
+			excludedTasks: []
+		}, [
+			"replaceCopyright",
+			"replaceVersion",
+			"replaceBuildtime",
+			"escapeNonAsciiCharacters",
+			"minify",
+			"buildThemes",
+			"generateLibraryManifest",
+			"generateVersionInfo",
+			"generateFlexChangesBundle",
+			"generateComponentPreload",
+			"generateBundle",
+			"generateLibraryPreload",
+		]
+	],
+	[
 		"composeTaskList: includedTasks / excludedTasks", {
 			archive: false,
 			selfContained: false,

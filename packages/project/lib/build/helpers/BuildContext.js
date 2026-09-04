@@ -18,6 +18,7 @@ class BuildContext {
 	constructor(graph, taskRepository, { // buildConfig
 		selfContained = false,
 		jsdoc = false,
+		server = false,
 		createBuildManifest = false,
 		outputStyle = OutputStyleEnum.Default,
 		includedTasks = [], excludedTasks = [],
@@ -69,6 +70,7 @@ class BuildContext {
 		this._buildConfig = {
 			selfContained,
 			jsdoc,
+			server,
 			createBuildManifest,
 			outputStyle,
 			includedTasks,
