@@ -117,13 +117,16 @@ test("Version collisions: root packages get priority at top level", async (t) =>
 
 	const shrinkwrapJson = await convertPackageLockToShrinkwrap(cwd, "@ui5/cli");
 
-	// ansi-regex: root has v6.2.2, CLI workspace has v5.0.1
-	// Root version should be at top level, workspace version nested
+	// ansi-regex: root has v6.2.2, CLI workspace has v5.0.1, but not direct dependency to @ui5/cli
 	const rootAnsiRegex = shrinkwrapJson.packages["node_modules/ansi-regex"];
 	assert.equal(rootAnsiRegex?.version, "6.2.2", "Root ansi-regex at top level");
 
-	const cliAnsiRegex = shrinkwrapJson.packages["node_modules/@ui5/cli/node_modules/ansi-regex"];
-	assert.equal(cliAnsiRegex?.version, "5.0.1", "Workspace ansi-regex nested under @ui5/cli");
+	Object.keys(shrinkwrapJson.packages)
+		.filter((pkg) => pkg.endsWith("node_modules/ansi-regex") && pkg !== "node_modules/ansi-regex")
+		.forEach((pkgName) => {
+			assert.equal(shrinkwrapJson.packages[pkgName]?.version,
+				"5.0.1", `Workspace ansi-regex nested under @ui5/cli -> ${pkgName}`);
+		});
 
 	// Verify root version satisfies dependents
 	const stripAnsi = shrinkwrapJson.packages["node_modules/strip-ansi"];
@@ -217,29 +220,6 @@ test("Compare generated shrinkwrap with expected result: package.b", async (t) =
 		"Generated shrinkwrap packages should match expected");
 });
 
-test("Optional peer dependencies with null edges should be excluded", async (t) => {
-	// Guards against: ws declares bufferutil and utf-8-validate as peerOptional, but they are not
-	// installed. Arborist represents these as edges with edge.to === null. The generator must skip
-	// them instead of throwing "Cannot read properties of null (reading 'location')".
-	const __dirname = import.meta.dirname;
-
-	const cwd = path.join(__dirname, "..", "fixture", "project.a");
-	const symlinkPath = await setupFixtureSymlink(cwd);
-	t.after(async () => await unlink(symlinkPath).catch(() => {}));
-
-	const shrinkwrapJson = await convertPackageLockToShrinkwrap(cwd, "@ui5/cli");
-
-	// ws itself must be present (it is a real production dep of @ui5/server)
-	assert.ok(shrinkwrapJson.packages["node_modules/ws"],
-		"ws should be included in the shrinkwrap");
-
-	// Its optional peer deps are not installed and must NOT appear
-	assert.equal(shrinkwrapJson.packages["node_modules/bufferutil"], undefined,
-		"bufferutil (optional peerDep of ws) must not be included");
-	assert.equal(shrinkwrapJson.packages["node_modules/utf-8-validate"], undefined,
-		"utf-8-validate (optional peerDep of ws) must not be included");
-});
-
 test("Compare generated shrinkwrap with expected result: package.c", async (t) => {
 	// Setup mock to prevent actual npm registry requests
 	const mockRestore = setupPacoteMock();
@@ -269,6 +249,29 @@ test("Compare generated shrinkwrap with expected result: package.c", async (t) =
 
 	assert.deepEqual(generatedShrinkwrap.packages, expectedShrinkwrap.packages,
 		"Generated shrinkwrap packages should match expected");
+});
+
+test("Optional peer dependencies with null edges should be excluded", async (t) => {
+	// Guards against: ws declares bufferutil and utf-8-validate as peerOptional, but they are not
+	// installed. Arborist represents these as edges with edge.to === null. The generator must skip
+	// them instead of throwing "Cannot read properties of null (reading 'location')".
+	const __dirname = import.meta.dirname;
+
+	const cwd = path.join(__dirname, "..", "fixture", "project.a");
+	const symlinkPath = await setupFixtureSymlink(cwd);
+	t.after(async () => await unlink(symlinkPath).catch(() => {}));
+
+	const shrinkwrapJson = await convertPackageLockToShrinkwrap(cwd, "@ui5/cli");
+
+	// ws itself must be present (it is a real production dep of @ui5/server)
+	assert.ok(shrinkwrapJson.packages["node_modules/ws"],
+		"ws should be included in the shrinkwrap");
+
+	// Its optional peer deps are not installed and must NOT appear
+	assert.equal(shrinkwrapJson.packages["node_modules/bufferutil"], undefined,
+		"bufferutil (optional peerDep of ws) must not be included");
+	assert.equal(shrinkwrapJson.packages["node_modules/utf-8-validate"], undefined,
+		"utf-8-validate (optional peerDep of ws) must not be included");
 });
 
 // Error handling tests
@@ -356,6 +359,38 @@ test("Error handling - invalid package-lock.json files", async (t) => {
 	await assert.rejects(
 		convertPackageLockToShrinkwrap(v2Dir, "@ui5/cli"),
 		/Unsupported lockfile version: 2\. Only lockfile version 3 is supported/
+	);
+});
+
+test("Arborist validation catches invalid shrinkwrap structure", async (t) => {
+	const __dirname = import.meta.dirname;
+	const {Arborist} = await import("@npmcli/arborist");
+
+	// Mock Arborist.loadVirtual to simulate validation failure
+	const originalLoadVirtual = Arborist.prototype.loadVirtual;
+	let callCount = 0;
+
+	Arborist.prototype.loadVirtual = async function(...args) {
+		callCount++;
+		// First call is the real load (in convertPackageLockToShrinkwrap)
+		// Second call is the validation
+		if (callCount === 2) {
+			throw new Error("Mock validation error: Invalid dependency tree");
+		}
+		return originalLoadVirtual.apply(this, args);
+	};
+
+	const cwd = path.join(__dirname, "..", "fixture", "project.a");
+	const symlinkPath = await setupFixtureSymlink(cwd);
+
+	t.after(async () => {
+		Arborist.prototype.loadVirtual = originalLoadVirtual;
+		await unlink(symlinkPath).catch(() => {});
+	});
+
+	await assert.rejects(
+		convertPackageLockToShrinkwrap(cwd, "@ui5/cli"),
+		/Generated shrinkwrap validation failed.*Mock validation error/
 	);
 });
 

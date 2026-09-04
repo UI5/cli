@@ -23,6 +23,7 @@
 		"unit": "node --test test/lib/convertToShrinkwrap.js",
 		"unit-watch": "node --test --watch test/lib/convertToShrinkwrap.js",
 		"coverage": "node --test --experimental-test-coverage 'test/lib/convertToShrinkwrap.js'",
+		"integration": "node --test test/integration/shrinkwrap-validation.js",
 		"lint": "eslint ."
 	},
 	"keywords": [
