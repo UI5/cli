@@ -117,7 +117,7 @@ jobs:
       )
     permissions:
       id-token: write # Required for OIDC trusted publishing inside the reusable workflow
-    uses: ./.github/workflows/bundle-and-publish-cli.yml
+    uses: $/.github/workflows/bundle-and-publish-cli.yml
     with:
       dry_run: false
       npm_tag: next

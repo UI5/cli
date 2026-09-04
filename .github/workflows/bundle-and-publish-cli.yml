@@ -56,6 +56,9 @@ jobs:
           node ../../internal/lockfile-extractor/cli.js ../../
 
       - name: Bundle and publish @ui5/cli
+        env:
+          NPM_TAG: ${{ inputs.npm_tag }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -e
           TEMP_CLI_DIR=$(mktemp -d)
@@ -78,10 +81,10 @@ jobs:
           echo "📦 Installing production dependencies from package-lock.json"
           npm ci
 
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
+          if [ "$DRY_RUN" = "true" ]; then
             echo "🔍 Dry-run: reporting what would be published (no actual publish)"
-            npm publish --access public --tag "${{ inputs.npm_tag }}" --dry-run
+            npm publish --access public --tag "$NPM_TAG" --dry-run
           else
             echo "🚀 Publishing @ui5/cli from temporary directory: $TEMP_CLI_DIR"
-            npm publish --access public --tag "${{ inputs.npm_tag }}"
+            npm publish --access public --tag "$NPM_TAG"
           fi
