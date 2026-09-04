@@ -13,6 +13,12 @@ const CONTENT_COMPRESSION_THRESHOLD = 128;
 const DATA_TABLES = ["content", "index_cache", "stage_metadata", "task_metadata", "result_metadata"];
 
 /**
+ * Data tables keyed by project_id. The content table is content-addressed and shared
+ * across projects, so it is not part of a project-scoped delete.
+ */
+const PROJECT_TABLES = ["index_cache", "stage_metadata", "task_metadata", "result_metadata"];
+
+/**
  * Unified SQLite-backed storage for the build cache
  *
  * Stores both metadata (index caches, stage metadata, task metadata, result metadata)
@@ -145,6 +151,11 @@ export default class BuildCacheStorage {
 				`INSERT OR REPLACE INTO result_metadata
 				(project_id, build_signature, stage_signature, data) VALUES (?, ?, ?, ?)`
 			),
+
+			// Project-scoped deletion (one DELETE per project-keyed table)
+			deleteProjectRecords: Object.fromEntries(PROJECT_TABLES.map((table) => [
+				table, this.#db.prepare(`DELETE FROM ${table} WHERE project_id = ?`)
+			])),
 		};
 	}
 
@@ -533,6 +544,53 @@ export default class BuildCacheStorage {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Checks whether any project-keyed table holds records for the given project.
+	 *
+	 * The content table is content-addressed and shared across projects, so it is not
+	 * considered here.
+	 *
+	 * @param {string} projectId Project identifier
+	 * @returns {boolean} True if any project-keyed table has a row for the project
+	 */
+	hasProjectRecords(projectId) {
+		for (const table of PROJECT_TABLES) {
+			const {is_populated: isPopulated} = this.#db.prepare(
+				`SELECT EXISTS(SELECT 1 FROM ${table} WHERE project_id = ? LIMIT 1) as is_populated`
+			).get(projectId);
+			if (isPopulated) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Deletes all cache entries for a single project across the project-keyed tables
+	 * (index_cache, stage_metadata, task_metadata, result_metadata) in one transaction.
+	 *
+	 * The content table is left untouched: it is content-addressed and shared across
+	 * projects. Orphaned blobs are reused on the next build and reclaimed by a full
+	 * {@link dropAllRecords}. No VACUUM is run; freed pages return to the freelist.
+	 *
+	 * @param {string} projectId Project identifier
+	 * @returns {number} Number of deleted rows across all project-keyed tables
+	 */
+	dropProjectRecords(projectId) {
+		this.#db.exec("BEGIN");
+		try {
+			let deletedEntries = 0;
+			for (const table of PROJECT_TABLES) {
+				deletedEntries += this.#stmts.deleteProjectRecords[table].run(projectId).changes;
+			}
+			this.#db.exec("COMMIT");
+			return deletedEntries;
+		} catch (err) {
+			this.#db.exec("ROLLBACK");
+			throw err;
+		}
 	}
 
 	/**
