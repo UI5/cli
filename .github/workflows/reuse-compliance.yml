@@ -19,7 +19,7 @@ jobs:
       matrix:
         package:
           - "internal/documentation"
-          - "internal/shrinkwrap-extractor"
+          - "internal/lockfile-extractor"
           - "packages/builder"
           - "packages/cli"
           - "packages/fs"

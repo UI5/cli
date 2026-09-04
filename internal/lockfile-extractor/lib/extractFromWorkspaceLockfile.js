@@ -11,7 +11,7 @@ async function readJson(filePath) {
 	return JSON.parse(jsonString);
 }
 
-export default async function convertPackageLockToShrinkwrap(workspaceRootDir, targetPackageName) {
+export default async function extractFromWorkspaceLockfile(workspaceRootDir, targetPackageName) {
 	const packageLockJson = await readJson(path.join(workspaceRootDir, "package-lock.json"));
 
 	// Input validation
@@ -60,6 +60,7 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 
 	// Using the keys, extract relevant package-entries from package-lock.json
 	const extractedPackages = Object.create(null);
+	const extractedPackageNodes = new Map();
 	for (let [packageLoc, node] of relevantPackageLocations) {
 		let pkg = packageLockJson.packages[packageLoc];
 		if (pkg.link) {
@@ -82,7 +83,24 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 			pkg.resolved = resolved;
 			pkg.integrity = integrity;
 		}
+		const existingNode = extractedPackageNodes.get(packageLoc);
+		if (existingNode &&
+			(existingNode.packageName !== node.packageName || existingNode.version !== node.version)) {
+			const existingIsFromTarget = isDirectDependencyOf(existingNode, targetPackageName);
+			const currentIsFromTarget = isDirectDependencyOf(node, targetPackageName);
+			if (existingIsFromTarget !== currentIsFromTarget) {
+				if (currentIsFromTarget) {
+					nestPackageBelowDependents(existingNode, extractedPackages[packageLoc], extractedPackages,
+						relevantPackageLocations, targetPackageName, tree.packageName);
+				} else {
+					nestPackageBelowDependents(node, pkg, extractedPackages, relevantPackageLocations,
+						targetPackageName, tree.packageName);
+					continue;
+				}
+			}
+		}
 		extractedPackages[packageLoc] = pkg;
+		extractedPackageNodes.set(packageLoc, node);
 	}
 
 	// Sort packages by key to ensure consistent order (just like the npm cli does it)
@@ -92,8 +110,8 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 		sortedExtractedPackages[key] = extractedPackages[key];
 	}
 
-	// Generate npm-shrinkwrap.json
-	const shrinkwrap = {
+	// Generate package-lock.json
+	const lockfile = {
 		name: targetPackageName,
 		version: cliNode.version,
 		lockfileVersion: 3,
@@ -101,7 +119,7 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 		packages: sortedExtractedPackages
 	};
 
-	return shrinkwrap;
+	return lockfile;
 }
 
 /**
@@ -112,9 +130,9 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
  *
  * @param {string} location - Package location from arborist
  * @param {object} node - Package node from arborist
- * @param {string} targetPackageName - Target package name for shrinkwrap file
+ * @param {string} targetPackageName - Target package name for lockfile file
  * @param {string} rootPackageName - Root / workspace package name
- * @returns {string} - Normalized location for npm-shrinkwrap.json
+ * @returns {string} - Normalized location for package-lock.json
  */
 function normalizePackageLocation(location, node, targetPackageName, rootPackageName) {
 	const topPackageName = node.top.packageName;
@@ -127,6 +145,22 @@ function normalizePackageLocation(location, node, targetPackageName, rootPackage
 	}
 	// If it's already within the root workspace package, keep as-is
 	return location;
+}
+
+function nestPackageBelowDependents(node, pkg, extractedPackages, relevantPackageLocations,
+	targetPackageName, rootPackageName) {
+	for (const edge of node.edgesIn) {
+		if (edge.dev || !relevantPackageLocations.has(edge.from.location)) {
+			continue;
+		}
+		const parentLoc = normalizePackageLocation(edge.from.location, edge.from,
+			targetPackageName, rootPackageName);
+		extractedPackages[`${parentLoc}/node_modules/${edge.name}`] = pkg;
+	}
+}
+
+function isDirectDependencyOf(node, packageName) {
+	return Array.from(node.edgesIn).some((edge) => !edge.dev && edge.from.packageName === packageName);
 }
 
 function collectDependencies(node, relevantPackageLocations) {

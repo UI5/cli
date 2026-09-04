@@ -76,7 +76,7 @@ jobs:
     environment: npmjs:ui5-cli-mono
     strategy:
       # Sequential publishing ensures dependencies exist on NPM before dependents are published
-      # Order: logger → fs → builder → server → project (CLI handled separately for shrinkwrap generation)
+      # Order: logger → fs → builder → server → project (CLI handled separately for lockfile generation)
       max-parallel: 1
       matrix:
         package: [logger, fs, builder, server, project]
@@ -98,7 +98,6 @@ jobs:
           npm publish --access public --tag next
 
   publish-cli:
-    runs-on: ubuntu-24.04
     needs: [release-please, publish-packages]
     # Two paths:
     # 1. Automatic: release-please created releases and publish-packages succeeded
@@ -117,28 +116,9 @@ jobs:
         )
       )
     permissions:
-      id-token: write # Required for trusted publishing via OIDC (https://docs.npmjs.com/trusted-publishers)
-    # The GitHub Actions Environment configured for the trusted publisher
-    environment: npmjs:ui5-cli-mono
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Node.js LTS
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 24.x
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate npm-shrinkwrap.json
-        working-directory: packages/cli
-        run: |
-          set -e
-          node ../../internal/shrinkwrap-extractor/cli.js ../../
-
-      - name: Publish @ui5/cli package
-        working-directory: packages/cli
-        run: |
-          echo "🚀 Publishing @ui5/cli"
-          npm publish --access public --tag next
+      id-token: write # Required for OIDC trusted publishing inside the reusable workflow
+    uses: ./.github/workflows/bundle-and-publish-cli.yml
+    with:
+      dry_run: false
+      npm_tag: next
+      npm_env: npmjs:ui5-cli-mono

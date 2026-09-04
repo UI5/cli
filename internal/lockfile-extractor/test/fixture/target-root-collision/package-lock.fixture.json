@@ -1,0 +1,46 @@
+{
+	"name": "fixture-workspace",
+	"version": "1.0.0",
+	"lockfileVersion": 3,
+	"requires": true,
+	"packages": {
+		"": {
+			"name": "fixture-workspace",
+			"version": "1.0.0",
+			"workspaces": [
+				"packages/cli"
+			]
+		},
+		"node_modules/@ui5/cli": {
+			"resolved": "packages/cli",
+			"link": true
+		},
+		"node_modules/boxen": {
+			"version": "8.0.1",
+			"dependencies": {
+				"chalk": "^5.3.0"
+			}
+		},
+		"node_modules/chalk": {
+			"version": "5.6.2"
+		},
+		"node_modules/update-notifier": {
+			"version": "7.3.1",
+			"dependencies": {
+				"boxen": "^8.0.1",
+				"chalk": "^5.3.0"
+			}
+		},
+		"packages/cli": {
+			"name": "@ui5/cli",
+			"version": "1.0.0",
+			"dependencies": {
+				"chalk": "^6.0.0",
+				"update-notifier": "^7.3.1"
+			}
+		},
+		"packages/cli/node_modules/chalk": {
+			"version": "6.0.0"
+		}
+	}
+}

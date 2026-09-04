@@ -1,33 +1,32 @@
 {
-	"name": "@ui5/shrinkwrap-extractor",
+	"name": "@ui5/lockfile-extractor",
 	"version": "1.0.0",
 	"private": true,
-	"description": "Convert npm package-lock.json files to npm-shrinkwrap.json format for specific packages in monorepos",
+	"description": "Extract a standalone package-lock.json for a specific package from a monorepo workspace",
 	"author": {
 		"name": "SAP SE",
 		"email": "openui5@sap.com",
 		"url": "https://www.sap.com"
 	},
 	"license": "Apache-2.0",
-	"main": "lib/convertPackageLockToShrinkwrap.js",
+	"main": "lib/extractFromWorkspaceLockfile.js",
 	"bin": {
-		"shrinkwrap-extractor": "cli.js"
+		"lockfile-extractor": "cli.js"
 	},
 	"repository": {
 		"type": "git",
 		"url": "git+ssh://git@github.com/UI5/cli.git",
-		"directory": "internal/shrinkwrap-extractor"
+		"directory": "internal/lockfile-extractor"
 	},
 	"scripts": {
 		"test": "npm run lint && npm run coverage",
-		"unit": "node --test test/lib/convertToShrinkwrap.js",
-		"unit-watch": "node --test --watch test/lib/convertToShrinkwrap.js",
-		"coverage": "node --test --experimental-test-coverage 'test/lib/convertToShrinkwrap.js'",
+		"unit": "node --test test/lib/extractFromWorkspaceLockfile.js",
+		"unit-watch": "node --test --watch test/lib/extractFromWorkspaceLockfile.js",
+		"coverage": "node --test --experimental-test-coverage 'test/lib/extractFromWorkspaceLockfile.js'",
 		"lint": "eslint ."
 	},
 	"keywords": [
 		"npm",
-		"shrinkwrap",
 		"package-lock",
 		"monorepo",
 		"dependencies"

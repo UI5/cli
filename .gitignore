@@ -73,3 +73,6 @@ internal/documentation/tmp
 
 # E2E-tests
 internal/e2e-tests/tmp
+
+# Generated during bundled CLI publish flow (not committed)
+packages/cli/package-lock.json

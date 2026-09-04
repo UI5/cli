@@ -86,6 +86,13 @@ jobs:
         npm run build:vitepress
         npm run build:assets
 
-    - name: Check shrinkwrap integrity
-      working-directory: internal/shrinkwrap-extractor
+    - name: Run lockfile extractor tests
+      working-directory: internal/lockfile-extractor
       run: npm run test
+
+  bundle-cli-dry-run:
+    name: Verify @ui5/cli bundle (dry-run)
+    needs: test
+    uses: ./.github/workflows/bundle-and-publish-cli.yml
+    with:
+      dry_run: true
