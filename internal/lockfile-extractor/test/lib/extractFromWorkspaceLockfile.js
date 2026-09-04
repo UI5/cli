@@ -227,6 +227,21 @@ test("Optional peer dependencies with null edges should be excluded", async (t) 
 		"utf-8-validate (optional peerDep of ws) must not be included");
 });
 
+test("Direct target dependencies take precedence at the root", async (t) => {
+	const mockRestore = setupPacoteMock();
+	t.after(() => mockRestore());
+
+	const cwd = path.join(import.meta.dirname, "..", "fixture", "target-root-collision");
+	const symlinkPath = await setupFixtureSymlink(cwd);
+	t.after(async () => await unlink(symlinkPath).catch(() => {}));
+
+	const lockfileJson = await extractFromWorkspaceLockfile(cwd, "@ui5/cli");
+
+	assert.equal(lockfileJson.packages["node_modules/chalk"].version, "6.0.0");
+	assert.equal(lockfileJson.packages["node_modules/update-notifier/node_modules/chalk"].version, "5.6.2");
+	assert.equal(lockfileJson.packages["node_modules/boxen/node_modules/chalk"].version, "5.6.2");
+});
+
 // Error handling tests
 test("Error handling - invalid target package name", async (t) => {
 	const __dirname = import.meta.dirname;

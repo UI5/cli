@@ -60,6 +60,7 @@ export default async function extractFromWorkspaceLockfile(workspaceRootDir, tar
 
 	// Using the keys, extract relevant package-entries from package-lock.json
 	const extractedPackages = Object.create(null);
+	const extractedPackageNodes = new Map();
 	for (let [packageLoc, node] of relevantPackageLocations) {
 		let pkg = packageLockJson.packages[packageLoc];
 		if (pkg.link) {
@@ -82,7 +83,24 @@ export default async function extractFromWorkspaceLockfile(workspaceRootDir, tar
 			pkg.resolved = resolved;
 			pkg.integrity = integrity;
 		}
+		const existingNode = extractedPackageNodes.get(packageLoc);
+		if (existingNode &&
+			(existingNode.packageName !== node.packageName || existingNode.version !== node.version)) {
+			const existingIsFromTarget = isDirectDependencyOf(existingNode, targetPackageName);
+			const currentIsFromTarget = isDirectDependencyOf(node, targetPackageName);
+			if (existingIsFromTarget !== currentIsFromTarget) {
+				if (currentIsFromTarget) {
+					nestPackageBelowDependents(existingNode, extractedPackages[packageLoc], extractedPackages,
+						relevantPackageLocations, targetPackageName, tree.packageName);
+				} else {
+					nestPackageBelowDependents(node, pkg, extractedPackages, relevantPackageLocations,
+						targetPackageName, tree.packageName);
+					continue;
+				}
+			}
+		}
 		extractedPackages[packageLoc] = pkg;
+		extractedPackageNodes.set(packageLoc, node);
 	}
 
 	// Sort packages by key to ensure consistent order (just like the npm cli does it)
@@ -127,6 +145,22 @@ function normalizePackageLocation(location, node, targetPackageName, rootPackage
 	}
 	// If it's already within the root workspace package, keep as-is
 	return location;
+}
+
+function nestPackageBelowDependents(node, pkg, extractedPackages, relevantPackageLocations,
+	targetPackageName, rootPackageName) {
+	for (const edge of node.edgesIn) {
+		if (edge.dev || !relevantPackageLocations.has(edge.from.location)) {
+			continue;
+		}
+		const parentLoc = normalizePackageLocation(edge.from.location, edge.from,
+			targetPackageName, rootPackageName);
+		extractedPackages[`${parentLoc}/node_modules/${edge.name}`] = pkg;
+	}
+}
+
+function isDirectDependencyOf(node, packageName) {
+	return Array.from(node.edgesIn).some((edge) => !edge.dev && edge.from.packageName === packageName);
 }
 
 function collectDependencies(node, relevantPackageLocations) {
