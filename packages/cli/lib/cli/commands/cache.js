@@ -51,7 +51,7 @@ cacheCommand.builder = function(cli) {
 						"Remove all cached UI5 data without confirmation (e.g. in CI scenarios)")
 					.example("$0 cache clean --project",
 						"Remove only the build cache of the project in the current directory")
-					.example("$0 cache clean --project sap.ui.core",
+					.example("$0 cache clean --project @openui5/sap.ui.core",
 						"Remove only the build cache of the project 'sap.ui.core'")
 					.example("UI5_DATA_DIR=/custom/path $0 cache clean",
 						"Remove cached data from a non-default UI5 data directory");
