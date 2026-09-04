@@ -23,7 +23,7 @@ on:
         #  so no OIDC token is needed — and omitting the environment avoids
         #  deployment-protection rules that would otherwise block PR builds).
         description: >
-          GitHub Actions environment name for OIDC trusted publishing (e.g. npmjs:ui5-cli-mono). Leave empty for dry-run calls."
+          GitHub Actions environment name for OIDC trusted publishing (e.g. npmjs:ui5-cli-mono). Leave empty for dry-run calls.
         type: string
         default: ""
 
@@ -33,9 +33,10 @@ jobs:
     # Controls the OIDC subject claim: 'repo:UI5/cli:environment:<npm_env>'.
     # npm's trusted publisher verifies this claim — empty string means no environment
     # (subject becomes 'repo:UI5/cli:ref:refs/heads/...'), used for dry-run only.
+    # Permissions are not set here: they are inherited from the calling job.
+    # The real-publish caller (release-please.yml) passes id-token:write;
+    # the dry-run caller (github-ci.yml) does not, so no OIDC token is minted for dry-runs.
     environment: ${{ inputs.npm_env }}
-    permissions:
-      id-token: write # Required for OIDC trusted publishing; harmless when npm_env is empty
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
