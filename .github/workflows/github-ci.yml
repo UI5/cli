@@ -86,7 +86,7 @@ jobs:
         npm run build:vitepress
         npm run build:assets
 
-    - name: Check lockfile extractor integrity
+    - name: Run lockfile extractor tests
       working-directory: internal/lockfile-extractor
       run: npm run test
 
