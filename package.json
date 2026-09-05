@@ -41,6 +41,11 @@
 		"type": "git",
 		"url": "git@github.com:UI5/cli.git"
 	},
+	"overrides": {
+		"@ui5/cli": {
+			"qs": "^6.16.0"
+		}
+	},
 	"dependencies": {
 		"@ui5/builder": "^4.3.1",
 		"@ui5/cli": "^4.0.65",
