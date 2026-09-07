@@ -225,8 +225,7 @@ test.serial("ui5 certificate generate: prints trust-store notice before generati
 	await runGenerate(t, argv);
 
 	t.true(
-		t.context.consoleOutput.includes("importing the newly created") &&
-		t.context.consoleOutput.includes("operating system and browsers"),
+		t.context.consoleOutput.includes("SSL certificate into the operating system and browsers"),
 		"Prints notice about installing the certificate into the trust store"
 	);
 });
