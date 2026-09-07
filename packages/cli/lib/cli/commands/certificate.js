@@ -78,10 +78,10 @@ async function handleGenerate(argv) {
 	// Inform the user before triggering the trust-store installation, which requires elevated
 	// privileges and therefore prompts for the root password (or shows a confirmation dialog on Windows).
 	if (process.platform === "win32") {
-		process.stderr.write("Please press allow in the opened dialog to confirm importing the newly created " +
+		process.stderr.write("Press 'Allow' in the opened dialog to confirm importing the newly created " +
 			"SSL certificate into the operating system and browsers.\n");
 	} else {
-		process.stderr.write("Please enter your root password to allow importing the newly created " +
+		process.stderr.write("Enter your root password to import the newly created " +
 			"SSL certificate into the operating system and browsers.\n");
 	}
 
