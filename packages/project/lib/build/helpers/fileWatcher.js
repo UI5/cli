@@ -37,11 +37,11 @@ const rContainerCgroup = /\b(?:docker|libpod|containerd|kubepods)\b/;
 // Memoized backend decision. Computed once per process and shared by every subscribe() call.
 let usePolling = null;
 
-// Memoized native backend: the @parcel/watcher module once loaded, or null when it could not load
-// (e.g. no prebuilt binary for this platform). nativeBackendLoaded guards the one load attempt so a
-// null result is not retried.
-let nativeBackend = null;
-let nativeBackendLoaded = false;
+// Memoized load of the native backend. nativeBackendPromise holds the single in-flight (or
+// settled) load so concurrent subscribe() calls await the same import instead of each reading
+// nativeBackend before it resolves. It resolves to the @parcel/watcher module, or null when it
+// could not load (e.g. no prebuilt binary for this platform); a null result is not retried.
+let nativeBackendPromise = null;
 
 /**
  * Decides whether to poll, once per process. <code>UI5_WATCH_MODE=polling|native</code> forces the
@@ -125,22 +125,21 @@ export async function subscribe(dir, callback, opts = {}) {
 	return subscribePolling(dir, callback, opts);
 }
 
-// Loads @parcel/watcher on demand and memoizes the result. Imported here rather than at module top
-// because it resolves a native binding at load time and throws when the platform's prebuilt binary is
-// not installed. A failure returns null (logged once) so subscribe() can fall back to polling instead
-// of taking down every consumer.
-async function loadNativeBackend() {
-	if (nativeBackendLoaded) {
-		return nativeBackend;
-	}
-	nativeBackendLoaded = true;
-	try {
-		nativeBackend = (await import("@parcel/watcher")).default;
-	} catch (err) {
-		nativeBackend = null;
-		log.warn(`Could not load the native file watcher (@parcel/watcher), falling back to ` +
-			`polling. This usually means the prebuilt binary for this platform was not installed. ` +
-			`Original error: ${err.message}`);
-	}
-	return nativeBackend;
+// Loads @parcel/watcher on demand and memoizes the in-flight load. Imported here rather than at
+// module top because it resolves a native binding at load time and throws when the platform's
+// prebuilt binary is not installed. A failure resolves to null (logged once) so subscribe() can
+// fall back to polling instead of taking down every consumer. The promise is memoized (not a
+// pre-await flag) so concurrent callers cannot observe a half-initialized backend and wrongly
+// fall back to polling.
+function loadNativeBackend() {
+	return (nativeBackendPromise ??= (async () => {
+		try {
+			return (await import("@parcel/watcher")).default;
+		} catch (err) {
+			log.warn(`Could not load the native file watcher (@parcel/watcher), falling back to ` +
+				`polling. This usually means the prebuilt binary for this platform was not installed. ` +
+				`Original error: ${err.message}`);
+			return null;
+		}
+	})());
 }
