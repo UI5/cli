@@ -80,6 +80,30 @@ test.serial("subscribe: native delegation when UI5_WATCH_MODE=native", async (t)
 	}
 });
 
+test.serial("subscribe: concurrent calls all use the native backend (no polling race)", async (t) => {
+	process.env.UI5_WATCH_MODE = "native";
+	const nativeSubscription = {unsubscribe: sinon.stub().resolves()};
+	const parcelSubscribe = sinon.stub().resolves(nativeSubscription);
+	const watcher = await importWatcherWithParcel({
+		default: {subscribe: parcelSubscribe}, subscribe: parcelSubscribe,
+	});
+	try {
+		// Fire concurrently, as WatchHandler does via Promise.all, before the first load resolves.
+		const results = await Promise.all([
+			watcher.subscribe("/dir/a", () => {}, {}),
+			watcher.subscribe("/dir/b", () => {}, {}),
+			watcher.subscribe("/dir/c", () => {}, {}),
+		]);
+		for (const s of results) {
+			t.is(s, nativeSubscription, "every concurrent subscription used the native backend");
+		}
+		t.is(parcelSubscribe.callCount, 3,
+			"the native backend handled all subscriptions (none fell back to polling)");
+	} finally {
+		esmock.purge(watcher);
+	}
+});
+
 test.serial("subscribe: falls back to polling when the native backend is unavailable", async (t) => {
 	// A missing prebuilt binary leaves no usable native backend. subscribe() must not fail the watch:
 	// it uses polling, which needs no native code. The mock stands in for that unavailable module (no
