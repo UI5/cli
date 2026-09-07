@@ -32,6 +32,14 @@ build.builder = function(cli) {
 				builder: noop,
 				middlewares: [baseMiddleware]
 			})
+		.command("for-server",
+			"Build the project into the shared build cache for reuse by 'ui5 serve'. " +
+			"Aligns the task set with the server (e.g. skips 'generateVersionInfo') and does not " +
+			"write the build result to the destination directory.", {
+				handler: handleBuild,
+				builder: noop,
+				middlewares: [baseMiddleware]
+			})
 		.option("include-all-dependencies", {
 			describe: "Include all dependencies in the build result. " +
 				"This is equivalent to '--include-dependency \"*\"'",
@@ -215,6 +223,8 @@ async function handleBuild(argv) {
 		},
 		selfContained: command === "self-contained",
 		jsdoc: command === "jsdoc",
+		server: command === "for-server",
+		cacheOnly: command === "for-server",
 		includedTasks: argv["include-task"],
 		excludedTasks: argv["exclude-task"],
 		outputStyle: argv["output-style"],

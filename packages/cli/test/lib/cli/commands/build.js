@@ -52,6 +52,8 @@ function getDefaultBuilderArgs() {
 		createBuildManifest: false,
 		selfContained: false,
 		jsdoc: false,
+		server: false,
+		cacheOnly: false,
 		includedTasks: undefined,
 		excludedTasks: undefined,
 		outputStyle: "Default"
@@ -118,6 +120,19 @@ test.serial("ui5 build jsdoc", async (t) => {
 
 	expectedBuilderArgs.jsdoc = true;
 	t.deepEqual(builder.getCall(0).args[0], expectedBuilderArgs, "JSDoc build called with expected arguments");
+});
+
+test.serial("ui5 build for-server", async (t) => {
+	const {build, argv, builder, expectedBuilderArgs} = t.context;
+
+	argv._.push("for-server");
+
+	await build.handler(argv);
+
+	expectedBuilderArgs.server = true;
+	expectedBuilderArgs.cacheOnly = true;
+	t.deepEqual(builder.getCall(0).args[0], expectedBuilderArgs,
+		"for-server build called with expected arguments");
 });
 
 test.serial("ui5 build --framework-version", async (t) => {

@@ -218,10 +218,6 @@ test.serial("Serve application.a, request application resource", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -251,8 +247,7 @@ test.serial("Serve application.a, request application resource", async (t) => {
 						// Note: replaceCopyright is skipped because no copyright is configured in the project
 						"replaceCopyright",
 						"enhanceManifest",
-						"generateFlexChangesBundle",
-						"generateVersionInfo"
+						"generateFlexChangesBundle"
 					]
 				}
 			}
@@ -319,10 +314,6 @@ test.serial("Serve application.a, create and delete a source file", async (t) =>
 		resource: "/created.js",
 		assertions: {
 			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -354,8 +345,7 @@ test.serial("Serve application.a, create and delete a source file", async (t) =>
 						"escapeNonAsciiCharacters",
 						"replaceCopyright",
 						"enhanceManifest",
-						"generateFlexChangesBundle",
-						"generateVersionInfo"
+						"generateFlexChangesBundle"
 					]
 				}
 			}
@@ -377,13 +367,19 @@ test.serial("Serve application.a, create and delete a source file", async (t) =>
 		}
 	});
 
-	// #5 the second file is no longer served, thus requesting it shouldn't trigger a rebuild
-	// (all projects are still cached from the previous builds)
+	// #5 the second file is no longer served. Resolving the not-found lookup searches the
+	// dependencies, which builds the libraries for the first time (the server build no longer
+	// pre-builds them via generateVersionInfo).
 	await fixtureTester.requestResource({
 		resource: "/another.js",
 		notFound: true,
 		assertions: {
-			projects: {}
+			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {}
+			}
 		}
 	});
 
@@ -403,8 +399,7 @@ test.serial("Serve application.a, create and delete a source file", async (t) =>
 						"escapeNonAsciiCharacters",
 						"replaceCopyright",
 						"enhanceManifest",
-						"generateFlexChangesBundle",
-						"generateVersionInfo"
+						"generateFlexChangesBundle"
 					]
 				}
 			}
@@ -583,10 +578,9 @@ test.serial("Serve application.a, request application resource AND library resou
 		resources: ["/test.js", "/resources/library/a/.library"],
 		assertions: {
 			projects: {
-				"library.d": {},
+				// Only the requested projects build. Libraries are no longer pulled in by
+				// generateVersionInfo, which the server build disables by default.
 				"library.a": {},
-				"library.b": {},
-				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -658,10 +652,6 @@ test.serial("Serve application.a with --cache=Default", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -690,8 +680,7 @@ test.serial("Serve application.a with --cache=Default", async (t) => {
 						"escapeNonAsciiCharacters",
 						"replaceCopyright",
 						"enhanceManifest",
-						"generateFlexChangesBundle",
-						"generateVersionInfo"
+						"generateFlexChangesBundle"
 					]
 				}
 			}
@@ -714,10 +703,6 @@ test.serial("Serve application.a with --cache=Off", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -741,10 +726,6 @@ test.serial("Serve application.a with --cache=Off", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -765,10 +746,6 @@ test.serial("Serve application.a with --cache=Off", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -791,10 +768,6 @@ test.serial("Serve application.a with --cache=Off", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -810,10 +783,6 @@ test.serial("Serve application.a with --cache=ReadOnly", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -846,8 +815,7 @@ test.serial("Serve application.a with --cache=ReadOnly", async (t) => {
 						"escapeNonAsciiCharacters",
 						"replaceCopyright",
 						"enhanceManifest",
-						"generateFlexChangesBundle",
-						"generateVersionInfo"
+						"generateFlexChangesBundle"
 					]
 				}
 			}
@@ -876,8 +844,7 @@ test.serial("Serve application.a with --cache=ReadOnly", async (t) => {
 						"escapeNonAsciiCharacters",
 						"replaceCopyright",
 						"enhanceManifest",
-						"generateFlexChangesBundle",
-						"generateVersionInfo"
+						"generateFlexChangesBundle"
 					]
 				}
 			}
@@ -894,10 +861,6 @@ test.serial("Serve application.a with --cache=Force (1)", async (t) => {
 		resource: "/test.js",
 		assertions: {
 			projects: {
-				"library.d": {},
-				"library.a": {},
-				"library.b": {},
-				"library.c": {},
 				"application.a": {}
 			}
 		}
@@ -1238,17 +1201,15 @@ test.serial("Source change during second build retries cleanly without no_cache 
 });
 
 test.serial("Serve application.a (test exclusion of generateVersionInfo)", async (t) => {
-	// This test verifies that the "generateVersionInfo" task
-	// can be excluded from the server build via the "excludedTasks" config option.
+	// The server build (graph.serve, server:true) disables the "generateVersionInfo" task by
+	// default, because the "versionInfo" middleware generates the version info on the fly. This
+	// test verifies the default exclusion and that "includedTasks" can re-enable the task.
 
 	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
 
-	// #1 Exclude "generateVersionInfo":
-	await fixtureTester.serveProject({
-		config: {
-			excludedTasks: ["generateVersionInfo"],
-		}
-	});
+	// #1 Default server build: "generateVersionInfo" is excluded by default. It does not pull in
+	// the libraries, so only application.a builds to serve the request.
+	await fixtureTester.serveProject();
 
 	// Request a resource to trigger the build:
 	await fixtureTester.requestResource({
@@ -1274,10 +1235,11 @@ test.serial("Serve application.a (test exclusion of generateVersionInfo)", async
 	await fixtureTester.teardown();
 
 
-	// #2 Don't exclude tasks (includes "generateVersionInfo"):
+	// #2 Re-enable "generateVersionInfo" via includedTasks. It collects the version info of all
+	// libraries, so those get built as well.
 	await fixtureTester.serveProject({
 		config: {
-			excludedTasks: [],
+			includedTasks: ["generateVersionInfo"],
 		}
 	});
 
