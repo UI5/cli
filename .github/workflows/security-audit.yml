@@ -23,6 +23,14 @@ jobs:
         with:
           ref: ${{ matrix.branch }}
 
+      # Use Node.js 24 to get npm 11 instead of npm 10. The default runner Node.js version is 22, which
+      # comes with npm 10. This could lead to different installation paths that could conflict with the
+      # allowlist in audit-ci.jsonc.
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24"
+
       - name: Install dependencies
         run: npm ci
 

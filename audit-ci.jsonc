@@ -2,6 +2,8 @@
     // $schema provides code completion hints to IDEs.
     "$schema": "https://github.com/IBM/audit-ci/raw/main/docs/schema.json",
     "low": true,
+    // NOTE: Run "npm ci && npm run audit" with npm 11 or higher. Older npm versions report
+    // different vulnerability paths, so the allowlist below may not match and the audit will fail.
     "allowlist": [
         // GHSA-67mh-4wv8-2f99 allows malicious websites to read localhost files while dev server runs.
         // We use VitePress for documentation build and all the information is already publicly available on GitHub Pages.
