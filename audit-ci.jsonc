@@ -2,14 +2,16 @@
     // $schema provides code completion hints to IDEs.
     "$schema": "https://github.com/IBM/audit-ci/raw/main/docs/schema.json",
     "low": true,
+    // NOTE: Run "npm ci && npm run audit" with npm 11 or higher. Older npm versions report
+    // different vulnerability paths, so the allowlist below may not match and the audit will fail.
     "allowlist": [
         // @ui5/project uses only pacote.packument(), pacote.manifest(), and pacote.extract()
         // with verifySignatures/verifyAttestations left at their default false.
         // Neither the vulnerable sigstore.verify() path nor the DSSE preAuthEncoding code is
         // reachable through our call sites, so neither advisory is exploitable via @ui5/project.
-        "GHSA-jfc7-64v2-mr8c|@sigstore/sign>@sigstore/core",
-        "GHSA-jfc7-64v2-mr8c|@sigstore/verify>@sigstore/core",
-        "GHSA-jfc7-64v2-mr8c|@ui5/cli>@ui5/project>pacote>sigstore>@sigstore/core",
+        "GHSA-jfc7-64v2-mr8c|@sigstore/core>",
+        "GHSA-jfc7-64v2-mr8c|@sigstore/verify>@sigstore/core>",
+        "GHSA-jfc7-64v2-mr8c|@ui5/cli>@ui5/project>pacote>sigstore>@sigstore/sign>@sigstore/core",
         // GHSA-w4pp-8pjf-rmxw: ReDoS in pacote's addGitSha() function (pacote < 21.5.1).
         // The vulnerable code path is only triggered when resolving git specs (git+https://, github:, etc.).
         // @ui5/project passes only npm registry specs (pkgName@version) to packument/manifest/extract,
@@ -25,9 +27,9 @@
         // Confirmed upstream in https://github.com/expressjs/express/pull/7440.
         // We cannot bump qs ourselves (transitive via express); the fix is pending an Express 4.x
         // release (expressjs/express#7439, #7440; expressjs/body-parser#761 merged but unreleased).
-        "GHSA-4mjr-xmp4-gh2g|@ui5/cli>@ui5/server>express>qs",
-        "GHSA-4mjr-xmp4-gh2g|body-parser>qs",
-        "GHSA-x5fp-wj9c-mxmx|@ui5/cli>@ui5/server>express>qs",
-        "GHSA-x5fp-wj9c-mxmx|body-parser>qs"
+        "GHSA-4mjr-xmp4-gh2g|qs>",
+        "GHSA-4mjr-xmp4-gh2g|@ui5/cli>@ui5/server>express>body-parser>qs",
+        "GHSA-x5fp-wj9c-mxmx|qs>",
+        "GHSA-x5fp-wj9c-mxmx|@ui5/cli>@ui5/server>express>body-parser>qs"
     ]
 }
