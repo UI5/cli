@@ -23,7 +23,7 @@
 		"npm": ">= 8"
 	},
 	"scripts": {
-		"test": "npm run lint && npm run check-licenses && npm run knip && npm run coverage && npm run schema-generate && npm run generate-cli-doc",
+		"test": "npm run lint && npm run check-licenses && npm run knip && npm run coverage && npm run docs:build",
 		"lint": "eslint ./ && npm run lint --workspaces --if-present",
 		"lint:commit": "commitlint",
 		"unit": "npm run unit --workspaces --if-present",
@@ -33,7 +33,8 @@
 		"knip": "knip --config knip.config.js",
 		"check-engine": "check-engine-light .",
 		"check-licenses": "licensee --errors-only",
-		"docs:dev": "npm run jsdoc-generate --workspace=@ui5/documentation && npm run generate-cli-doc --workspace=@ui5/documentation && npm run dev --workspace=@ui5/documentation",
+		"docs:dev": "npm run dev --workspace=@ui5/documentation",
+		"docs:build": "npm run build --workspace=@ui5/documentation",
 		"audit": "audit-ci --config ./audit-ci.jsonc"
 	},
 	"repository": {
