@@ -4,7 +4,7 @@ import flexChangesBundler from "../../../../lib/processors/bundlers/flexChangesB
 test("flexChangesBundler with empty resources", async (t) => {
 	const resources = [];
 	const options = {};
-	const aResult = await flexChangesBundler({resources, options});
+	const {bundleResources: aResult} = await flexChangesBundler({resources, options});
 	t.deepEqual(aResult, [], "The result should be an empty array");
 });
 
@@ -98,7 +98,7 @@ test("flexChangesBundler with 2 changes", async (t) => {
 	const options = {
 		pathPrefix: "/mypath"
 	};
-	const aResult = await flexChangesBundler({resources, options});
+	const {bundleResources: aResult} = await flexChangesBundler({resources, options});
 	t.is(aResult.length, 1, "There should be only one element");
 	const oResult = aResult[0];
 
@@ -131,7 +131,7 @@ test("includes annotation_changes in flexibility-bundle when hasFlexBundleVersio
 	}];
 
 	const options = {pathPrefix: "/mypath", hasFlexBundleVersion: true};
-	const aResult = await flexChangesBundler({resources, options});
+	const {bundleResources: aResult} = await flexChangesBundler({resources, options});
 	t.is(aResult.length, 1);
 	const parsed = JSON.parse(await aResult[0].getString());
 	t.true(Array.isArray(parsed.annotationChanges));
@@ -450,7 +450,7 @@ test("flexChangesBundler has ctrl_variant and hasFlexBundleVersion = true", asyn
 		pathPrefix: "/mypath",
 		hasFlexBundleVersion: true
 	};
-	const aResult = await flexChangesBundler({resources, options});
+	const {bundleResources: aResult} = await flexChangesBundler({resources, options});
 	t.is(aResult.length, 1, "There should be only one element");
 	const oResult = aResult[0];
 
@@ -993,7 +993,7 @@ test("flexChangesBundler with existing flexibility-bundle.json", async (t) => {
 		pathPrefix: "/mypath",
 		hasFlexBundleVersion: true
 	};
-	const aResult = await flexChangesBundler({resources, options, existingFlexBundle});
+	const {bundleResources: aResult} = await flexChangesBundler({resources, options, existingFlexBundle});
 
 	t.is(aResult.length, 1, "There should be only one element");
 	const oResult = aResult[0];
@@ -1296,7 +1296,7 @@ test("flexChangesBundler with existing flexibility-bundle.json and missing/wrong
 		pathPrefix: "/mypath",
 		hasFlexBundleVersion: true
 	};
-	const aResult = await flexChangesBundler({resources, options, existingFlexBundle});
+	const {bundleResources: aResult} = await flexChangesBundler({resources, options, existingFlexBundle});
 
 	t.is(aResult.length, 1, "There should be only one element");
 	const oResult = aResult[0];
@@ -1407,7 +1407,7 @@ test("flexChangesBundler with existing flexibility-bundle.json and version lower
 		pathPrefix: "/mypath",
 		hasFlexBundleVersion: false
 	};
-	const aResult = await flexChangesBundler({resources, options, existingFlexBundle});
+	const {bundleResources: aResult} = await flexChangesBundler({resources, options, existingFlexBundle});
 
 	t.is(aResult.length, 1, "There should be only one element");
 	const oResult = aResult[0];
