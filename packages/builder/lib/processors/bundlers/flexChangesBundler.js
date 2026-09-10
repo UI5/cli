@@ -8,6 +8,20 @@ import {createResource} from "@ui5/fs/resourceFactory";
  */
 
 /**
+ * Result of the flex changes bundling process.
+ *
+ * @public
+ * @typedef {object} FlexChangesBundlerResult
+ * @property {boolean|undefined} flexBundle Flag indicating whether a flexibility bundle was created.
+ *   - `true`: a flexibility bundle was created and at least one annotation change is included
+ *   - `undefined`: a flexibility bundle was created, but does not contain any annotation change,
+ *     so the client should not enforce an early dedicated loading of the bundle
+ *   - `false`: no flexibility bundle was created (no changes to bundle, e.g. only filtered
+ *     app-descriptor changes were provided)
+ * @property {@ui5/fs/Resource[]} bundleResources List of created flex changes bundle resources
+ */
+
+/**
  * Bundles all supplied changes.
  *
  * @public
@@ -18,14 +32,18 @@ import {createResource} from "@ui5/fs/resourceFactory";
  * @param {@ui5/fs/Resource[]} parameters.resources List of resources to be processed
  * @param {object} parameters.options Options
  * @param {string} parameters.options.pathPrefix Prefix for bundle path
- * @param {string} parameters.options.hasFlexBundleVersion true if minUI5Version >= 1.73
+ * @param {boolean} parameters.options.hasFlexBundleVersion true if minUI5Version >= 1.73
  *															and create flexibility-bundle.json
  * @param {object} [parameters.existingFlexBundle={}] Object with existing flexibility-bundle.json
  * 															to merge with new changes
- * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with flex changes bundle resources
+ * @returns {Promise<FlexChangesBundlerResult>} Promise resolving with an object containing
+ *   the flexBundle flag and the created flex changes bundle resources
  */
 export default function({resources, options: {pathPrefix, hasFlexBundleVersion}, existingFlexBundle = {}}) {
 	let bundleName = "changes-bundle.json";
+	// Default to `false`: no bundle content will be written.
+	// Updated below to `true` (annotation changes present) or `undefined` otherwise
+	let flexBundle = false;
 
 	function sortByTimeStamp(a, b) {
 		return a.creation > b.creation ? 1 : -1;
@@ -34,8 +52,8 @@ export default function({resources, options: {pathPrefix, hasFlexBundleVersion},
 	/**
 	 * bundle changes resource to json string
 	 *
-	 * @param {Array} changesContent Array of resources files
-	 * @returns {string} Json sting of changes and control variants
+	 * @param {Array} changesContent Array of resources files (changes, variants, etc)
+	 * @returns {string} Json string of changes and control variants
 	 */
 	function sortAndStringifyInFlexFormat(changesContent) {
 		changesContent = changesContent.sort(sortByTimeStamp);
@@ -81,6 +99,15 @@ export default function({resources, options: {pathPrefix, hasFlexBundleVersion},
 			}
 		});
 
+		const hasBundleContent =
+			changes.length > 0 ||
+			variantDependentControlChanges.length > 0 ||
+			compVariants.length > 0 ||
+			variants.length > 0 ||
+			variantChanges.length > 0 ||
+			variantManagementChanges.length > 0 ||
+			annotationChanges.length > 0;
+
 		if (!hasFlexBundleVersion && (
 			compVariants.length != 0 ||
 			variants.length != 0 ||
@@ -93,6 +120,13 @@ export default function({resources, options: {pathPrefix, hasFlexBundleVersion},
 				"There are some files in the changes folder supported only with a UI5 version 1.73 and above. " +
 				"Please update the minUI5Version in the manifest.json to 1.73 or higher");
 		}
+
+		if (annotationChanges.length > 0) {
+			flexBundle = true;
+		} else if (hasBundleContent) {
+			flexBundle = undefined;
+		}
+
 		// create changes-bundle.json
 		if (!hasFlexBundleVersion) {
 			return JSON.stringify(changes);
@@ -149,6 +183,9 @@ export default function({resources, options: {pathPrefix, hasFlexBundleVersion},
 				string: changesContent
 			}));
 		}
-		return result;
+		return {
+			bundleResources: result,
+			flexBundle
+		};
 	});
 }
