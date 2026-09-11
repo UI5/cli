@@ -32,6 +32,10 @@
 
         // GHSA-v6wh-96g9-6wx3: launch-editor: NTLMv2 hash disclosure via UNC path handling on Windows
         // Not applicable as we don't use launch-editor.
-        "GHSA-v6wh-96g9-6wx3|vitepress>vite"
+        "GHSA-v6wh-96g9-6wx3|vitepress>vite",
+
+        // GHSA-vwc7-r8mq-g2x9: adm-zip extraction follows destination symlinks, allowing arbitrary file overwrite
+        // Not applicable as we only extract trusted files to the local filesystem without symlinks during testing.
+        "GHSA-vwc7-r8mq-g2x9|adm-zip"
     ]
 }
