@@ -82,6 +82,45 @@ export function displayCacheCleanWarning() {
 	process.stderr.write(`${chalk.italic(CACHE_CLEAN_WARNING_IMPACT)}\n\n`);
 }
 
+function formatEntries(count) {
+	return `${count.toLocaleString("en-US")} ${count === 1 ? "entry" : "entries"}`;
+}
+
+/**
+ * Display information about the build cache entries of a single project that will be removed.
+ *
+ * @param {object} data
+ * @param {string} data.projectId
+ * @param {string} data.absPath
+ */
+export function displayProjectCacheInfo({projectId, absPath}) {
+	process.stderr.write(
+		`\n${chalk.bold(`The build cache of project ${chalk.cyan(projectId)} will be removed:`)}\n\n`
+	);
+	writePreviewItem(absPath);
+	process.stderr.write("\n");
+}
+
+/**
+ * Display the result of a project-scoped build cache cleanup.
+ *
+ * @param {object} data
+ * @param {string} data.projectId
+ * @param {string|null} data.absPath
+ * @param {number} data.deletedEntries
+ */
+export function displayProjectCleanupResult({projectId, absPath, deletedEntries}) {
+	if (!absPath) {
+		process.stderr.write(`${chalk.italic(PARALLEL_CLEANUP_NOTICE)}\n`);
+		return;
+	}
+	process.stderr.write(`\n${chalk.bold("Cleanup result:")}\n\n`);
+	writeCleanupItem(absPath, formatEntries(deletedEntries));
+	process.stderr.write(
+		`\n${chalk.green("Success:")} Removed the build cache of project ${chalk.cyan(projectId)}\n`
+	);
+}
+
 function createFrameworkItems(entries) {
 	const items = [];
 	for (const entry of entries) {
