@@ -4,6 +4,23 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v4.0.6...HEAD).
 
+## [5.0.0-alpha.10](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.9...project-v5.0.0-alpha.10) (2026-09-11)
+
+
+### Bug Fixes
+
+* **project:** Memoize in-flight native watcher load to avoid polling race ([073f807](https://github.com/UI5/cli/commit/073f80780bdad7a8bc55180cbee862f8bf5b4126))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/fs bumped from ^5.0.0-alpha.9 to ^5.0.0-alpha.10
+    * @ui5/logger bumped from ^5.0.0-alpha.9 to ^5.0.0-alpha.10
+  * peerDependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.9 to ^5.0.0-alpha.10
+
 ## [5.0.0-alpha.9](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.8...project-v5.0.0-alpha.9) (2026-09-02)
 
 
