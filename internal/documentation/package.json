@@ -39,7 +39,7 @@
 	"devDependencies": {
 		"@apidevtools/json-schema-ref-parser": "^14.2.1",
 		"@tailwindcss/vite": "^4.3.3",
-		"@types/node": "^25.2.2",
+		"@types/node": "^26.5.1",
 		"autoprefixer": "^10.5.4",
 		"cssnano": "^7.1.9",
 		"handlebars": "^4.7.9",
