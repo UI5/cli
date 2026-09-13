@@ -40,7 +40,7 @@
 	"devDependencies": {
 		"@npmcli/arborist": "^10.0.2",
 		"@npmcli/config": "^11.0.1",
-		"eslint": "^10.9.1",
+		"eslint": "^10.10.0",
 		"pacote": "^22.0.0"
 	}
 }
