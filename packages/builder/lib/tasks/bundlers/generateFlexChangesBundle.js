@@ -10,7 +10,7 @@ import semver from "semver";
 
 /* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
 /**
- * Task to create changesBundle.json file containing all changes stored in the /changes folder for easier consumption
+ * Task to create changes-bundle.json file containing all changes stored in the /changes folder for easier consumption
  * at runtime.
  * If a change bundle is created, "sap.ui.fl" is added as a dependency to the manifest.json if not already present -
  * if the dependency is already listed but lazy-loaded, lazy loading is disabled.
@@ -38,12 +38,24 @@ export default async function({workspace, taskUtil, options = {}}) {
 		pathPrefix = `/resources/${namespace}`;
 	}
 
-	function updateJson(data, bBundleCreated) {
+	/**
+	 * Update the manifest.json JSON in-place with the flexBundle flag and, if a bundle was
+	 * written, ensure the sap.ui.fl dependency is present (and lazy loading disabled).
+	 *
+	 * @param {object} data Parsed manifest.json content
+	 * @param {boolean|undefined} flexBundleFlag Result flag from the flex changes bundler:
+	 *   - `true`: bundle written including annotation changes
+	 *   - `undefined`: bundle written but without annotation changes
+	 *   - `false`: no bundle written
+	 */
+	function updateJson(data, flexBundleFlag) {
 		data["sap.ui5"] = data["sap.ui5"] || {};
 		// explicit set the flag to inform the runtime if a bundle is present before the preload can be interpreted
-		data["sap.ui5"].flexBundle = bBundleCreated;
+		data["sap.ui5"].flexBundle = flexBundleFlag;
 
-		if (bBundleCreated) {
+		// A bundle has been written whenever the flag is not explicitly `false` - this includes the `undefined`.
+		// In all these cases the sap.ui.fl library dependency is required.
+		if (flexBundleFlag !== false) {
 			// ensure the existence of the libs section in the dependencies
 			data["sap.ui5"].dependencies = data["sap.ui5"].dependencies || {};
 			const mLibs = data["sap.ui5"].dependencies.libs = data["sap.ui5"].dependencies.libs || {};
@@ -61,7 +73,7 @@ export default async function({workspace, taskUtil, options = {}}) {
 		}
 	}
 
-	async function updateManifestWithFlDependencyAndFlexBundleFlag(bBundleCreated) {
+	async function updateManifestWithFlDependencyAndFlexBundleFlag(flexBundleFlag) {
 		const manifestResource = await workspace.byPath(`${pathPrefix}/manifest.json`);
 		if (!manifestResource) {
 			log.verbose("No manifest.json found, skipping update of sap.ui.fl dependency and flexBundle flag");
@@ -69,7 +81,7 @@ export default async function({workspace, taskUtil, options = {}}) {
 		}
 		const manifestContent = JSON.parse(await manifestResource.getString());
 
-		updateJson(manifestContent, bBundleCreated);
+		updateJson(manifestContent, flexBundleFlag);
 		manifestResource.setString(JSON.stringify(manifestContent, null, "\t"));
 
 		await workspace.write(manifestResource);
@@ -99,7 +111,7 @@ export default async function({workspace, taskUtil, options = {}}) {
 			"ctrl_variant_change,ctrl_variant_management_change}"
 	);
 
-	let bBundleCreated = false;
+	let flexChangesBundleResult;
 
 	if (allResources.length > 0) {
 		const versionArray = await readManifestMinUI5Version();
@@ -114,7 +126,7 @@ export default async function({workspace, taskUtil, options = {}}) {
 				flexBundle = JSON.parse(await flexBundleResource.getString());
 			}
 		}
-		const processedResources = await flexChangesBundler({
+		flexChangesBundleResult = await flexChangesBundler({
 			resources: allResources,
 			options: {
 				pathPrefix,
@@ -122,12 +134,13 @@ export default async function({workspace, taskUtil, options = {}}) {
 			},
 			existingFlexBundle: flexBundle
 		});
-		await Promise.all(processedResources.map((resource) => {
+
+		const bundleResources = flexChangesBundleResult.bundleResources;
+
+		await Promise.all(bundleResources.map((resource) => {
 			log.verbose("Writing flexibility changes bundle");
 			return workspace.write(resource);
 		}));
-		// Add the sap.ui.fl dependency if a bundle has been created
-		bBundleCreated = processedResources.length > 0;
 
 		// Do not write bundled source files to build result
 		if (taskUtil) {
@@ -137,6 +150,9 @@ export default async function({workspace, taskUtil, options = {}}) {
 		}
 	}
 
-	// Always append the flexBundle flag to the manifest.json, even if no bundle was created
-	await updateManifestWithFlDependencyAndFlexBundleFlag(bBundleCreated);
+	// Always append the flexBundle flag to the manifest.json, even if no bundle was created.
+	// When no flex changes have been processed at all, no bundle is created and the flag
+	// is set to `false`.
+	const flexBundleFlag = flexChangesBundleResult ? flexChangesBundleResult.flexBundle : false;
+	await updateManifestWithFlDependencyAndFlexBundleFlag(flexBundleFlag);
 }
