@@ -1,0 +1,756 @@
+import test from "ava";
+import fs from "node:fs/promises";
+import {createFixtureTesterFactory, registerBuildHooks} from "./__helper__/ProjectBuilderFixtureTester.js";
+
+const FixtureTester = createFixtureTesterFactory("caching");
+registerBuildHooks(test);
+
+test.serial("Build application.a project multiple times", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+
+	// #1 build (with empty cache)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: false},
+		assertions: {
+			projects: {
+				// Default builds of project type "application" include the "generateVersionInfo"
+				// task which requires dependencies to be built, so all dependencies are expected to be built here.
+				// Subsequent builds can reuse the cached results of these dependencies.
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+				"application.a": {}
+			}
+		}
+	});
+
+
+	// #2 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+
+	// Change a source file in application.a
+	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
+	await fs.appendFile(changedFilePath, `\ntest("line added");\n`);
+
+	// #3 build (with cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"escapeNonAsciiCharacters",
+						// Note: replaceCopyright is skipped because no copyright is configured in the project
+						"replaceCopyright",
+						"enhanceManifest",
+						"generateFlexChangesBundle",
+						"generateVersionInfo",
+					]
+				}
+			}
+		}
+	});
+
+	// Check whether the changed file is in the destPath
+	const builtFileContent = await fs.readFile(`${destPath}/test.js`, {encoding: "utf8"});
+	t.true(builtFileContent.includes(`test("line added");`), "Build dest contains changed file content");
+
+
+	// #4 build (with cache, no changes, with dependencies)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			// Dependencies are NOT rebuilt because
+			// they were already built in build #1 and can be reused from cache.
+			// Thus, empty assertion for built projects.
+			projects: {}
+		}
+	});
+
+
+	// #5 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+
+	// #6 build (with cache, no changes, with dependencies)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {}
+		}
+	});
+
+
+	// #7 build (with cache, no changes, with custom tasks)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+
+	// #8 build (with cache, no changes, with custom tasks)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+
+	// #9 build (with cache, no changes, with dependencies)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {}
+		}
+	});
+
+
+	// Change a source file with existing source map in application.a
+	const fileWithSourceMapPath =
+		`${fixtureTester.fixturePath}/webapp/thirdparty/scriptWithSourceMap.js`;
+	const fileWithSourceMapContent = await fs.readFile(fileWithSourceMapPath, {encoding: "utf8"});
+	await fs.writeFile(
+		fileWithSourceMapPath,
+		fileWithSourceMapContent.replace(
+			`This is a script with a source map.`,
+			`This is a CHANGED script with a source map.`
+		)
+	);
+	const sourceMapPath = `${fixtureTester.fixturePath}/webapp/thirdparty/scriptWithSourceMap.js.map`;
+	const sourceMapContent = await fs.readFile(sourceMapPath, {encoding: "utf8"});
+	await fs.writeFile(
+		sourceMapPath,
+		sourceMapContent.replace(
+			`This is a script with a source map.`,
+			`This is a CHANGED script with a source map.`
+		)
+	);
+
+	// #10 build (with cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"enhanceManifest",
+						"escapeNonAsciiCharacters",
+						"generateFlexChangesBundle",
+						"generateVersionInfo",
+						"replaceCopyright"
+					]
+				}
+			}
+		}
+	});
+
+
+	// Add a new file to application.a
+	await fs.writeFile(`${fixtureTester.fixturePath}/webapp/someNew.js`,
+		`console.log("SOME NEW CONTENT");\n`
+	);
+
+	// #11 build (with cache, with changes - someNew.js added)
+	// Tasks that don't depend on someNew.js can reuse their caches from build #10.
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"application.a": {
+				skippedTasks: [
+					"enhanceManifest",
+					"escapeNonAsciiCharacters",
+					"generateFlexChangesBundle",
+					"replaceCopyright",
+					"generateVersionInfo",
+				]
+			}}
+		}
+	});
+
+	await fs.rm(`${fixtureTester.fixturePath}/webapp/someNew.js`);
+
+	// #12 build (with cache, with changes - someNew.js removed)
+	// Source state matches build #10's cached result -> cache reused, everything skipped
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {},
+		}
+	});
+});
+
+test.serial("Build library.d project multiple times", async (t) => {
+	const fixtureTester = new FixtureTester(t, "library.d");
+	const destPath = fixtureTester.destPath;
+
+	// #1 build (with empty cache)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: false},
+		assertions: {
+			projects: {"library.d": {}}
+		}
+	});
+
+
+	// #2 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+
+	// Change a source file in library.d
+	const changedFilePath = `${fixtureTester.fixturePath}/main/src/library/d/.library`;
+	await fs.writeFile(
+		changedFilePath,
+		(await fs.readFile(changedFilePath, {encoding: "utf8"})).replace(
+			`<documentation>Library D</documentation>`,
+			`<documentation>Library D (updated #1)</documentation>`
+		)
+	);
+
+	// #3 build (with cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"library.d": {
+				skippedTasks: [
+					"buildThemes",
+					"escapeNonAsciiCharacters",
+					"minify",
+					"replaceBuildtime",
+				]
+			}}
+		}
+	});
+
+	// Check whether the changes are in the destPath
+	const builtFileContent = await fs.readFile(`${destPath}/resources/library/d/.library`, {encoding: "utf8"});
+	t.true(
+		builtFileContent.includes(`<documentation>Library D (updated #1)</documentation>`),
+		"Build dest contains changed file content"
+	);
+
+	// Check whether the manifest.json was updated with the new documentation
+	const manifestContent = await fs.readFile(`${destPath}/resources/library/d/manifest.json`, {encoding: "utf8"});
+	t.true(
+		manifestContent.includes(`"Library D (updated #1)"`),
+		"Build dest contains updated description in manifest.json"
+	);
+
+
+	// #4 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+
+	// Update copyright in ui5.yaml (should trigger a full rebuild of the project)
+	const ui5YamlPath = `${fixtureTester.fixturePath}/ui5.yaml`;
+	await fs.writeFile(
+		ui5YamlPath,
+		(await fs.readFile(ui5YamlPath, {encoding: "utf8"})).replace(
+			"copyright: Some fancy copyright",
+			"copyright: Some updated fancy copyright"
+		)
+	);
+
+	await fs.writeFile(`${fixtureTester.fixturePath}/main/src/library/d/someNew.js`,
+		`console.log("SOME NEW CONTENT");\n`
+	);
+
+	// #5 build (with cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"library.d": {}}
+		}
+	});
+
+	await fs.rm(`${fixtureTester.fixturePath}/main/src/library/d/someNew.js`);
+
+	// #6 build (with cache, with changes - someNew.js removed)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"library.d": {
+				skippedTasks: [
+					"buildThemes",
+					"enhanceManifest",
+					"escapeNonAsciiCharacters",
+					"replaceBuildtime",
+				]
+			}},
+		}
+	});
+
+	// Re-add someNew.js (restores source state to match build #5)
+	await fs.writeFile(`${fixtureTester.fixturePath}/main/src/library/d/someNew.js`,
+		`console.log("SOME NEW CONTENT");\n`
+	);
+
+	// #7 build (with cache, with changes - someNew.js re-added)
+	// Source state now matches build #5's cached result -> cache reused
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {},
+		}
+	});
+
+	// Remove someNew.js again
+	await fs.rm(`${fixtureTester.fixturePath}/main/src/library/d/someNew.js`);
+
+	// #8 build (with cache, with changes - someNew.js removed again)
+	// Source state matches build #6's cached result -> cache reused, everything skipped
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {},
+		}
+	});
+});
+
+test.serial("Build theme.library.e project multiple times", async (t) => {
+	const fixtureTester = new FixtureTester(t, "theme.library.e");
+	const destPath = fixtureTester.destPath;
+
+	// #1 build (with empty cache)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: false},
+		assertions: {
+			projects: {"theme.library.e": {}}
+		}
+	});
+
+
+	// #2 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+
+	// Change a source file in theme.library.e
+	const librarySourceFilePath =
+		`${fixtureTester.fixturePath}/src/theme/library/e/themes/my_theme/library.source.less`;
+	await fs.appendFile(librarySourceFilePath, `\n.someNewClass {\n\tcolor: red;\n}\n`);
+
+	// #3 build (with cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"theme.library.e": {}}
+		}
+	});
+
+	// Check whether the changed file is in the destPath
+	const builtFileContent = await fs.readFile(
+		`${destPath}/resources/theme/library/e/themes/my_theme/library.source.less`, {encoding: "utf8"}
+	);
+	t.true(
+		builtFileContent.includes(`.someNewClass`),
+		"Build dest contains changed file content"
+	);
+
+	// Check whether the build output contains the new CSS rule
+	const builtCssContent = await fs.readFile(
+		`${destPath}/resources/theme/library/e/themes/my_theme/library.css`, {encoding: "utf8"}
+	);
+	t.true(
+		builtCssContent.includes(`.someNewClass`),
+		"Build dest contains new rule in library.css"
+	);
+
+
+	// Add a new less file and import it in library.source.less
+	await fs.writeFile(`${fixtureTester.fixturePath}/src/theme/library/e/themes/my_theme/newImportFile.less`,
+		`.someOtherNewClass {\n\tcolor: blue;\n}\n`
+	);
+	await fs.appendFile(librarySourceFilePath, `\n@import "newImportFile.less";\n`);
+
+	// #4 build (with cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"theme.library.e": {}},
+		}
+	});
+
+	// Check whether the build output contains the import to the new file
+	const builtCssContent2 = await fs.readFile(
+		`${destPath}/resources/theme/library/e/themes/my_theme/library.css`, {encoding: "utf8"}
+	);
+	t.true(
+		builtCssContent2.includes(`.someOtherNewClass`),
+		"Build dest contains new rule in library.css"
+	);
+
+
+	// #5 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {},
+		}
+	});
+
+
+	// Change content of new less file
+	await fs.writeFile(`${fixtureTester.fixturePath}/src/theme/library/e/themes/my_theme/newImportFile.less`,
+		`.someOtherNewClass {\n\tcolor: green;\n}\n`
+	);
+
+	// #6 build (with cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"theme.library.e": {}},
+		}
+	});
+
+	// Check whether the build output contains the changed content of the imported file
+	const builtCssContent3 = await fs.readFile(
+		`${destPath}/resources/theme/library/e/themes/my_theme/library.css`, {encoding: "utf8"}
+	);
+	t.true(
+		builtCssContent3.includes(`.someOtherNewClass{color:green}`),
+		"Build dest contains new rule in library.css"
+	);
+
+
+	// Delete import of library.source.less
+	const librarySourceFileContent = (await fs.readFile(librarySourceFilePath)).toString();
+	await fs.writeFile(librarySourceFilePath,
+		librarySourceFileContent.replace(`\n@import "newImportFile.less";\n`, "")
+	);
+
+	// Change content of new less file again
+	await fs.writeFile(`${fixtureTester.fixturePath}/src/theme/library/e/themes/my_theme/newImportFile.less`,
+		`.someOtherNewClass {\n\tcolor: yellow;\n}\n`
+	);
+
+	// #7 build (with cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"theme.library.e": {
+				skippedTasks: ["buildThemes"]
+			}},
+		}
+	});
+
+	// Check if library.css does NOT contain the imported rule anymore
+	t.false(
+		(await fs.readFile(
+			`${destPath}/resources/theme/library/e/themes/my_theme/library.css`, {encoding: "utf8"}
+		)).includes(`.someOtherNewClass`),
+		"Build dest should NOT contain the rule in library.css anymore"
+	);
+
+
+	// Delete the imported less file
+	await fs.rm(`${fixtureTester.fixturePath}/src/theme/library/e/themes/my_theme/newImportFile.less`);
+
+	// #8 build (with cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}, // -> everything should be skipped
+		}
+	});
+});
+
+test.serial("Build component.a project multiple times", async (t) => {
+	const fixtureTester = new FixtureTester(t, "component.a");
+	const destPath = fixtureTester.destPath;
+
+	// #1 build (no cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"component.a": {}
+			}
+		}
+	});
+
+
+	// #2 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+
+	// Change a source file in component.a
+	const changedFilePath = `${fixtureTester.fixturePath}/src/test.js`;
+	await fs.appendFile(changedFilePath, `\ntest("line added");\n`);
+
+	// #3 build (with cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"component.a": {
+					skippedTasks: [
+						"escapeNonAsciiCharacters",
+						// Note: replaceCopyright is skipped because no copyright is configured in the project
+						"replaceCopyright",
+						"enhanceManifest",
+						"generateFlexChangesBundle",
+					]
+				}
+			}
+		}
+	});
+
+	// Check whether the changed file is in the destPath
+	const builtFileContent = await fs.readFile(`${destPath}/resources/id1/test.js`, {encoding: "utf8"});
+	t.true(builtFileContent.includes(`test("line added");`), "Build dest contains changed file content");
+
+
+	// #4 build (with cache, no changes, with dependencies)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+			}
+		}
+	});
+
+
+	// #5 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+
+	// #6 build (with cache, no changes, with dependencies)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {}
+		}
+	});
+
+
+	// Add a new file to component.a
+	await fs.writeFile(`${fixtureTester.fixturePath}/src/someNew.js`,
+		`console.log("SOME NEW CONTENT");\n`
+	);
+
+	// #7 build (with cache, with changes - someNew.js added)
+	// Tasks that don't depend on someNew.js can reuse their caches from build #3.
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"component.a": {
+				skippedTasks: [
+					"enhanceManifest",
+					"escapeNonAsciiCharacters",
+					"generateFlexChangesBundle",
+					"replaceCopyright",
+				]
+			}}
+		}
+	});
+
+	await fs.rm(`${fixtureTester.fixturePath}/src/someNew.js`);
+
+	// #8 build (with cache, with changes - someNew.js removed)
+	// Source state matches build #6's cached result -> cache reused, everything skipped
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {},
+		}
+	});
+});
+
+test.serial("Build module.b project multiple times", async (t) => {
+	const fixtureTester = new FixtureTester(t, "module.b");
+	const destPath = fixtureTester.destPath;
+
+	// #1 build (no cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"module.b": {}}
+		},
+	});
+
+
+	// #2 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+
+	// Change a source file in module.b
+	const changedFilePath = `${fixtureTester.fixturePath}/dev/devTools.js`;
+	await fs.appendFile(changedFilePath, `\ntest("line added");\n`);
+
+	// #3 build (no cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"module.b": {}}
+		}
+	});
+
+	// Check whether the changed file is in the destPath
+	const builtFileContent = await fs.readFile(`${destPath}/resources/b/module/dev/devTools.js`, {encoding: "utf8"});
+	t.true(builtFileContent.includes(`test("line added");`), "Build dest contains changed file content");
+
+
+	// Remove a source file in module.b
+	await fs.rm(`${fixtureTester.fixturePath}/dev/devTools.js`);
+
+	// #4 build (no cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"module.b": {}}
+		}
+	});
+
+	// Check that the removed file is NOT in the destPath anymore
+	// (dist output should be totally empty: no source files -> no build result)
+	await t.throwsAsync(fs.readFile(`${destPath}/resources/b/module/dev/devTools.js`, {encoding: "utf8"}));
+
+
+	// #5 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+
+	// Add a new file in module.b
+	await fs.mkdir(`${fixtureTester.fixturePath}/dev/newFolder`, {recursive: true});
+	await fs.writeFile(`${fixtureTester.fixturePath}/dev/newFolder/newFile.js`,
+		`console.log("this is a new file which should be included in the build result")`);
+
+	// #6 build (no cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"module.b": {}}
+		},
+	});
+
+	// Check whether the added file is in the destPath
+	const newFile = await fs.readFile(`${destPath}/resources/b/module/dev/newFolder/newFile.js`,
+		{encoding: "utf8"});
+	t.true(newFile.includes(`this is a new file which should be included in the build result`),
+		"Build dest contains correct file content");
+
+
+	// Add a new path mapping:
+	const originalUi5Yaml = await fs.readFile(`${fixtureTester.fixturePath}/ui5.yaml`, {encoding: "utf8"}); // for later
+	const newFileName = "someOtherNewFile.js";
+	const newFolderName = "newPathmapping";
+	const virtualPath = `/resources/b/module/${newFolderName}/`;
+	await fs.writeFile(`${fixtureTester.fixturePath}/ui5.yaml`,
+		`---
+specVersion: "5.0"
+type: module
+metadata:
+  name: module.b
+resources:
+  configuration:
+    paths:
+      /resources/b/module/dev/: dev
+      ${virtualPath}: ${newFolderName}`
+	);
+
+	// Create a resource for this new path mapping:
+	await fs.mkdir(`${fixtureTester.fixturePath}/${newFolderName}`, {recursive: true});
+	await fs.writeFile(`${fixtureTester.fixturePath}/${newFolderName}/${newFileName}`,
+		`console.log("this should be included in the build result if the path mapping has been set")`);
+
+	// #7 build (no cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"module.b": {}}
+		},
+	});
+
+	// Check whether the added file is in the destPath
+	const someOtherNewFile = await fs.readFile(`${destPath}${virtualPath}${newFileName}`,
+		{encoding: "utf8"});
+	t.true(someOtherNewFile.includes(`path mapping has been set`), "Build dest contains correct file content");
+
+
+	// Remove the path mapping again (revert original ui5.yaml):
+	await fs.writeFile(`${fixtureTester.fixturePath}/ui5.yaml`, originalUi5Yaml);
+
+	// #8 build (with cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {} // -> cache can be reused
+		},
+	});
+
+	// Check that the added resource of the path mapping is NOT in the destPath anymore:
+	await t.throwsAsync(fs.readFile(`${destPath}${virtualPath}${newFileName}`,
+		{encoding: "utf8"}));
+
+
+	// #9 build (with cache, no changes, with dependencies)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+			}
+		},
+	});
+});
