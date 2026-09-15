@@ -13,7 +13,7 @@
 		"lint": "eslint ."
 	},
 	"devDependencies": {
-		"adm-zip": "^0.6.0",
-		"execa": "^10.0.1"
+		"execa": "^10.0.1",
+		"node-stream-zip": "^1.16.0"
 	}
 }
