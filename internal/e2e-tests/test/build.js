@@ -7,7 +7,9 @@ import {describe, test} from "node:test";
 import {fileURLToPath} from "node:url";
 import path from "node:path";
 import fs from "node:fs/promises";
-import AdmZip from "adm-zip";
+import StreamZip from "node-stream-zip";
+
+const AsyncStreamZip = StreamZip.async;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -91,12 +93,13 @@ describe("ui5 build", () => {
 		assert.ok(zipFileExists, "The zip file should be created in the dist folder");
 
 		// Check the archive content
-		const zip = new AdmZip(zipFilePath);
-		const zipEntries = zip.getEntries();
+		const zip = new AsyncStreamZip({file: zipFilePath});
+		const zipEntries = Object.keys(await zip.entries());
+		await zip.close();
 		assert.ok(zipEntries.length > 0, "The zip file should contain entries");
 
 		// Check that the zip file contains the expected source file
-		const testControllerEntry = zipEntries.find((entry) => entry.entryName === "controller/Test.controller.js");
+		const testControllerEntry = zipEntries.find((entryName) => entryName === "controller/Test.controller.js");
 		assert.ok(testControllerEntry, "The zip file should contain the expected source file");
 
 		// --------------------------------------------------------------------------------------------
@@ -112,13 +115,14 @@ describe("ui5 build", () => {
 		assert.ok(newZipFileExists, "The zip file should be created in the dist folder after the second build");
 
 		// Check the archive content
-		const zip2 = new AdmZip(zipFilePath);
-		const zipEntries2 = zip2.getEntries();
+		const zip2 = new AsyncStreamZip({file: zipFilePath});
+		const zipEntries2 = Object.keys(await zip2.entries());
+		await zip2.close();
 		assert.ok(zipEntries2.length > 0, "The zip file should contain entries after the second build");
 
 		// Check that the zip file does NOT contain the expected source file anymore
-		const deletedTestControllerEntry = zipEntries2.find((entry) =>
-			entry.entryName === "controller/Test.controller.js");
+		const deletedTestControllerEntry = zipEntries2.find((entryName) =>
+			entryName === "controller/Test.controller.js");
 		assert.ok(!deletedTestControllerEntry, "The zip file should NOT contain the deleted source file");
 	});
 
