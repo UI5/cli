@@ -36,7 +36,11 @@ export default async function({
 		resources = await Promise.all(
 			changedProjectResourcePaths
 				// Filtering out non-JS resources such as .map files
-				// FIXME: The changed resources should rather be matched against the provided pattern
+				// FIXME: A changed input source map (.js.map) does not re-minify its owning .js here,
+				// so the produced -dbg.js.map goes stale. Matching changed paths against "pattern"
+				// would not fix this: the task would need to learn the .map -> .js relation while
+				// processing changedProjectResourcePaths. That is likely a larger rework rather than a
+				// local fix (see the failing minify source-map staleness tests in @ui5/project).
 				.filter((resourcePath) => resourcePath.endsWith(".js"))
 				.map((resource) => workspace.byPath(resource))
 		);
