@@ -1307,6 +1307,54 @@ test.serial("Serve application.a (test exclusion of generateVersionInfo)", async
 	});
 });
 
+// A custom task's determineBuildSignature callback derives the project's build signature from an
+// input that is NOT a watched source resource (here: an on-disk control file at the project root).
+// The desired behavior is that changing such an input while the server runs invalidates the served
+// build result — otherwise the dev server keeps serving a stale state and the user has no way of
+// knowing. This test asserts that desired behavior: request a resource, change the control file
+// (which both the task body and determineBuildSignature read), request again, and expect the served
+// content to reflect the new value WITHOUT restarting the server.
+//
+// It is marked test.failing because it currently fails: BuildServer computes each project's build
+// signature exactly once (BuildContext memoizes the ProjectBuildContext for the server's lifetime),
+// so determineBuildSignature is never re-evaluated for a running server, and the changed control
+// file is ignored until the next `serve()`. AVA reports a failing-marked test as a pass while it
+// throws and as a hard error once it starts passing, so committing it keeps CI green and flips to a
+// signal the moment the behavior is fixed (at which point drop the `.failing`).
+test.serial.failing(
+	"Serve application.a, changing a determineBuildSignature input invalidates served output", async (t) => {
+		const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
+
+		// The custom task appends the control file's value to test.js and also feeds it into
+		// determineBuildSignature.
+		const controlFilePath = `${fixtureTester.fixturePath}/buildSignatureControl.txt`;
+		await fs.writeFile(controlFilePath, "v1");
+
+		await fixtureTester.serveProject({
+			graphConfig: {rootConfigPath: "ui5-customTask-buildSignature.yaml"},
+		});
+
+		// #1 request: served test.js reflects control value "v1"
+		const first = await fixtureTester.requestResource({resource: "/test.js"});
+		const firstContent = await first.getString();
+		t.true(firstContent.includes("// build-signature-control: v1"),
+			"Initial served resource reflects control value v1");
+
+		// Change ONLY the control file — no watched source resource changes. The determineBuildSignature
+		// input is now different. The control file lives at the project root, outside the watched
+		// source paths, so no watcher event fires for it (mirroring a real determineBuildSignature
+		// input that is not a project source resource).
+		await fs.writeFile(controlFilePath, "v2");
+
+		// #2 request: the served resource must reflect the new control value "v2".
+		const second = await fixtureTester.requestResource({resource: "/test.js"});
+		const secondContent = await second.getString();
+		t.true(secondContent.includes("// build-signature-control: v2"),
+			"Served resource reflects the changed determineBuildSignature input without a server restart");
+		t.false(secondContent.includes("// build-signature-control: v1"),
+			"Served resource no longer reflects the stale control value v1");
+	});
+
 function getFixturePath(fixtureName) {
 	return fileURLToPath(new URL(`../../fixtures/${fixtureName}`, import.meta.url));
 }
