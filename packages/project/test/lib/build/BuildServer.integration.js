@@ -1355,6 +1355,77 @@ test.serial.failing(
 			"Served resource no longer reflects the stale control value v1");
 	});
 
+// Served counterpart of the ProjectBuilder minify source-map staleness test (see
+// ProjectBuilder.caching.integration.js for the full mechanism). Minify reads a resource's input source
+// map via fsInterface and embeds its content into the `-dbg.js.map` output. That read goes through the
+// monitored workspace's byPath, so changing ONLY the `.js.map` (not the referencing `.js`) invalidates
+// minify's cache and re-runs it in delta mode with the `.js.map` as the sole changed path. But minify
+// keeps only changed `.js` paths, so the unchanged `.js` is filtered out, the task writes nothing, and
+// the previously served `-dbg.js.map` is carried forward STALE.
+//
+// This asserts the desired behavior (the changed input map is reflected in the served debug map without
+// a server restart) and is marked test.failing because the delta path does not yet achieve it. See the
+// minify FIXME for why a fix needs the `.map` -> `.js` relation, not a local pattern tweak.
+test.serial.failing(
+	"Serve application.a, changing only an input source map read via fs by minify invalidates the debug source map",
+	async (t) => {
+		const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
+
+		await fixtureTester.serveProject();
+
+		const dbgSourceMapResourcePath = "/thirdparty/scriptWithSourceMap-dbg.js.map";
+		const jsMapFilePath = `${fixtureTester.fixturePath}/webapp/thirdparty/scriptWithSourceMap.js.map`;
+
+		// #1 request (fills the cache): the produced debug source map embeds the input source map's
+		// content, so it reflects the original marker.
+		const first = await fixtureTester.requestResource({resource: dbgSourceMapResourcePath});
+		const firstContent = await first.getString();
+		t.true(firstContent.includes("This is a script with a source map."),
+			"Initial debug source map reflects the original input source map content");
+
+		// Change ONLY the input source map — NOT the referencing scriptWithSourceMap.js. The minify task
+		// read this map via fsInterface, so it is a tracked input and this change invalidates minify's
+		// cache. But the owning .js is unchanged, so the differential minify path has no .js to reprocess.
+		const jsMapContent = await fs.readFile(jsMapFilePath, {encoding: "utf8"});
+		await fs.writeFile(
+			jsMapFilePath,
+			jsMapContent.replace(
+				"This is a script with a source map.",
+				"This is a CHANGED script with a source map."
+			)
+		);
+		await fixtureTester.fireWatcherEvent("update", jsMapFilePath);
+
+		// #2 request: the served debug source map must reflect the changed input source map content.
+		// The minify task is expected to re-execute here (its cache is invalidated because the changed
+		// .js.map is a tracked input) — proving the staleness is a differential-execution defect, not a
+		// missed invalidation.
+		const second = await fixtureTester.requestResource({
+			resource: dbgSourceMapResourcePath,
+			assertions: {
+				projects: {
+					"application.a": {
+						skippedTasks: [
+							"escapeNonAsciiCharacters",
+							// replaceCopyright is skipped because no copyright is configured in the project
+							"replaceCopyright",
+							"replaceVersion",
+							"enhanceManifest",
+							"generateFlexChangesBundle",
+							"generateVersionInfo"
+							// "minify" is NOT skipped: it re-runs in differential mode for the changed .js.map
+						]
+					}
+				}
+			}
+		});
+		const secondContent = await second.getString();
+		t.true(secondContent.includes("This is a CHANGED script with a source map."),
+			"Served debug source map reflects the changed input source map without a server restart");
+		t.false(secondContent.includes("This is a script with a source map."),
+			"Served debug source map no longer reflects the stale input source map content");
+	});
+
 function getFixturePath(fixtureName) {
 	return fileURLToPath(new URL(`../../fixtures/${fixtureName}`, import.meta.url));
 }
