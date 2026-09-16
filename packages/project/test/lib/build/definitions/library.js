@@ -78,6 +78,8 @@ test("Standard build", async (t) => {
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
 			supportsDifferentialBuilds: true,
+			newTaskSystem: true,
+			taskFunction: tasks.get("replaceVersion").taskFunction,
 		},
 		replaceBuildtime: {
 			options: {
@@ -104,6 +106,8 @@ test("Standard build", async (t) => {
 				]
 			},
 			supportsDifferentialBuilds: true,
+			newTaskSystem: true,
+			taskFunction: tasks.get("minify").taskFunction,
 		},
 		generateLibraryManifest: {},
 		enhanceManifest: {},
@@ -216,6 +220,8 @@ test("Standard build with legacy spec version", (t) => {
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
 			supportsDifferentialBuilds: true,
+			newTaskSystem: true,
+			taskFunction: tasks.get("replaceVersion").taskFunction,
 		},
 		replaceBuildtime: {
 			options: {
@@ -242,6 +248,8 @@ test("Standard build with legacy spec version", (t) => {
 				]
 			},
 			supportsDifferentialBuilds: true,
+			newTaskSystem: true,
+			taskFunction: tasks.get("minify").taskFunction,
 		},
 		generateLibraryManifest: {},
 		enhanceManifest: {},
@@ -346,6 +354,8 @@ test("Custom bundles", async (t) => {
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
 			supportsDifferentialBuilds: true,
+			newTaskSystem: true,
+			taskFunction: tasks.get("replaceVersion").taskFunction,
 		},
 		replaceBuildtime: {
 			options: {
@@ -372,6 +382,8 @@ test("Custom bundles", async (t) => {
 				]
 			},
 			supportsDifferentialBuilds: true,
+			newTaskSystem: true,
+			taskFunction: tasks.get("minify").taskFunction,
 		},
 		generateLibraryManifest: {},
 		enhanceManifest: {},
@@ -501,6 +513,8 @@ test("Minification excludes", (t) => {
 			]
 		},
 		supportsDifferentialBuilds: true,
+		newTaskSystem: true,
+		taskFunction: taskDefinition.taskFunction,
 	}, "Correct minify task definition");
 });
 
@@ -528,6 +542,8 @@ test("Minification excludes not applied for legacy specVersion", (t) => {
 			]
 		},
 		supportsDifferentialBuilds: true,
+		newTaskSystem: true,
+		taskFunction: taskDefinition.taskFunction,
 	}, "Correct minify task definition");
 });
 
@@ -728,6 +744,8 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
 			supportsDifferentialBuilds: true,
+			newTaskSystem: true,
+			taskFunction: tasks.get("replaceVersion").taskFunction,
 		},
 		replaceBuildtime: {
 			options: {
@@ -754,6 +772,8 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 				]
 			},
 			supportsDifferentialBuilds: true,
+			newTaskSystem: true,
+			taskFunction: tasks.get("minify").taskFunction,
 		},
 		generateLibraryManifest: {},
 		enhanceManifest: {},

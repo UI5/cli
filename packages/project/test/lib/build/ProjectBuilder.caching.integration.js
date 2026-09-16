@@ -372,7 +372,7 @@ test.serial("Build application.a project multiple times", async (t) => {
 // marked test.failing because the delta path does not yet achieve it. See BuildServer.integration.js for
 // the same scenario over the served build, and the minify FIXME for why a fix needs the `.map` -> `.js`
 // relation, not a local pattern tweak.
-test.serial.failing(
+test.serial(
 	"Build application.a, changing only an input source map read via fs by minify invalidates the debug source map",
 	async (t) => {
 		const fixtureTester = new FixtureTester(t, "application.a");
@@ -418,7 +418,9 @@ test.serial.failing(
 							"generateFlexChangesBundle",
 							"generateVersionInfo",
 							// replaceCopyright is skipped because no copyright is configured in the project
-							"replaceCopyright"
+							"replaceCopyright",
+							// replaceVersion (new task system) has no work for the changed .js.map and is skipped
+							"replaceVersion"
 							// "minify" is NOT skipped: it re-runs in differential mode for the changed .js.map
 						]
 					}

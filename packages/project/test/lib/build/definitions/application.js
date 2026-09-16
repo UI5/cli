@@ -65,6 +65,8 @@ test("Standard build", (t) => {
 				version: "version", pattern: "/**/*.{js,json}"
 			},
 			supportsDifferentialBuilds: true,
+			newTaskSystem: true,
+			taskFunction: tasks.get("replaceVersion").taskFunction,
 		},
 		minify: {
 			options: {
@@ -74,6 +76,8 @@ test("Standard build", (t) => {
 				]
 			},
 			supportsDifferentialBuilds: true,
+			newTaskSystem: true,
+			taskFunction: tasks.get("minify").taskFunction,
 		},
 		enhanceManifest: {},
 		generateFlexChangesBundle: {},
@@ -148,6 +152,8 @@ test("Standard build with legacy spec version", (t) => {
 				version: "version", pattern: "/**/*.{js,json}"
 			},
 			supportsDifferentialBuilds: true,
+			newTaskSystem: true,
+			taskFunction: tasks.get("replaceVersion").taskFunction,
 		},
 		minify: {
 			options: {
@@ -157,6 +163,8 @@ test("Standard build with legacy spec version", (t) => {
 				]
 			},
 			supportsDifferentialBuilds: true,
+			newTaskSystem: true,
+			taskFunction: tasks.get("minify").taskFunction,
 		},
 		enhanceManifest: {},
 		generateFlexChangesBundle: {},
@@ -264,6 +272,8 @@ test("Custom bundles", async (t) => {
 				version: "version", pattern: "/**/*.{js,json}"
 			},
 			supportsDifferentialBuilds: true,
+			newTaskSystem: true,
+			taskFunction: tasks.get("replaceVersion").taskFunction,
 		},
 		minify: {
 			options: {
@@ -273,6 +283,8 @@ test("Custom bundles", async (t) => {
 				]
 			},
 			supportsDifferentialBuilds: true,
+			newTaskSystem: true,
+			taskFunction: tasks.get("minify").taskFunction,
 		},
 		enhanceManifest: {},
 		generateFlexChangesBundle: {},
@@ -407,6 +419,8 @@ test("Minification excludes", (t) => {
 			]
 		},
 		supportsDifferentialBuilds: true,
+		newTaskSystem: true,
+		taskFunction: taskDefinition.taskFunction,
 	}, "Correct minify task definition");
 });
 
@@ -433,6 +447,8 @@ test("Minification excludes not applied for legacy specVersion", (t) => {
 			]
 		},
 		supportsDifferentialBuilds: true,
+		newTaskSystem: true,
+		taskFunction: taskDefinition.taskFunction,
 	}, "Correct minify task definition");
 });
 

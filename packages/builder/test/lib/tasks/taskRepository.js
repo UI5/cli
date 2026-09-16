@@ -17,6 +17,7 @@ test("getAllTaskNames", (t) => {
 	t.deepEqual(taskNames, [
 		"replaceCopyright",
 		"replaceVersion",
+		"replaceVersion_v2",
 		"replaceBuildtime",
 		"enhanceManifest",
 		"escapeNonAsciiCharacters",
@@ -24,6 +25,7 @@ test("getAllTaskNames", (t) => {
 		"generateApiIndex",
 		"generateJsdoc",
 		"minify",
+		"minify_v2",
 		"buildThemes",
 		"transformBootstrapHtml",
 		"generateLibraryManifest",
