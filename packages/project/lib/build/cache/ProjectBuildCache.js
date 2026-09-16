@@ -52,6 +52,10 @@ export const RESULT_CACHE_STATES = Object.freeze({
  * Map of resource paths to their tags that were set or cleared during this stage's execution, for build tags
  */
 
+// Prototype "new task system" process-level store (see the accessor methods below and
+// lib/build/helpers/NewTaskSystem.js). Keyed by `${projectName}:${taskName}`.
+const newTaskSystemInvocationReadsStore = new Map();
+
 export default class ProjectBuildCache {
 	#taskCache = new Map();
 	#stageCache = new StageCache();
@@ -93,6 +97,19 @@ export default class ProjectBuildCache {
 
 	#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
 	#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
+
+	// Prototype "new task system": map of primary resource path -> read paths recorded during the last
+	// run of a new-system task. Stored per project+task in a process-level cache so it survives across
+	// separate ProjectBuildCache instances within one process (e.g. two sequential ProjectBuilder builds,
+	// or repeated BuildServer requests), which is sufficient for the prototype. A production version would
+	// persist this alongside the task metadata in the cache DB. See lib/build/helpers/NewTaskSystem.js.
+	getNewTaskSystemInvocationReads(taskName) {
+		return newTaskSystemInvocationReadsStore.get(`${this.#project.getName()}:${taskName}`);
+	}
+
+	setNewTaskSystemInvocationReads(taskName, invocationReads) {
+		newTaskSystemInvocationReadsStore.set(`${this.#project.getName()}:${taskName}`, invocationReads);
+	}
 
 	/**
 	 * Creates a new ProjectBuildCache instance

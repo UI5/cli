@@ -16,6 +16,7 @@ import {createRequire} from "node:module";
 const taskInfos = {
 	replaceCopyright: {path: "./replaceCopyright.js"},
 	replaceVersion: {path: "./replaceVersion.js"},
+	replaceVersion_v2: {path: "./replaceVersion_v2.js"},
 	replaceBuildtime: {path: "./replaceBuildtime.js"},
 	enhanceManifest: {path: "./enhanceManifest.js"},
 	escapeNonAsciiCharacters: {path: "./escapeNonAsciiCharacters.js"},
@@ -23,6 +24,7 @@ const taskInfos = {
 	generateApiIndex: {path: "./jsdoc/generateApiIndex.js"},
 	generateJsdoc: {path: "./jsdoc/generateJsdoc.js"},
 	minify: {path: "./minify.js"},
+	minify_v2: {path: "./minify_v2.js"},
 	buildThemes: {path: "./buildThemes.js"},
 	transformBootstrapHtml: {path: "./transformBootstrapHtml.js"},
 	generateLibraryManifest: {path: "./generateLibraryManifest.js"},

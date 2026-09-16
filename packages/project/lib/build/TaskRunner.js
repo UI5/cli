@@ -1,5 +1,6 @@
 import {getLogger} from "@ui5/logger";
 import composeTaskList from "./helpers/composeTaskList.js";
+import NewTaskSystem from "./helpers/NewTaskSystem.js";
 import {createReaderCollection, createMonitor} from "@ui5/fs/resourceFactory";
 
 /**
@@ -178,13 +179,17 @@ class TaskRunner {
 	 *   Whether the task requires access to project dependencies
 	 * @param {boolean} [parameters.supportsDifferentialBuilds=false]
 	 *   Whether the task supports differential updates using cache
+	 * @param {boolean} [parameters.newTaskSystem=false]
+	 *   Whether the task uses the declarative new task system (registers work via
+	 *   newTaskSystem.forEachResource instead of executing directly). See helpers/NewTaskSystem.js.
 	 * @param {object} [parameters.options={}] Options to pass to the task
 	 * @param {Function|null} [parameters.taskFunction]
 	 *   Task function to execute, or null to explicitly skip the task
 	 * @returns {void}
 	 */
 	_addTask(taskName, {
-		requiresDependencies = false, supportsDifferentialBuilds = false, options = {}, taskFunction
+		requiresDependencies = false, supportsDifferentialBuilds = false, newTaskSystem = false,
+		options = {}, taskFunction
 	} = {}) {
 		if (this._tasks[taskName]) {
 			throw new Error(`Failed to add duplicate task ${taskName} for project ${this._project.getName()}`);
@@ -233,7 +238,21 @@ class TaskRunner {
 				}
 				this._log.startTask(taskName, usingCache);
 				this._taskStart = performance.now();
-				await taskFunction(params);
+				if (newTaskSystem) {
+					// New task system: the task's default export only REGISTERS its intent via
+					// newTaskSystem.forEachResource(); the adapter then drives the callbacks, deciding
+					// which resources to (re-)process and attributing per-invocation reads so delta
+					// builds map a changed input back to the invocation that read it.
+					const taskSystem = new NewTaskSystem({workspace, taskUtil: this._taskUtil});
+					await taskFunction({newTaskSystem: taskSystem, options});
+					const previousInvocationReads =
+						this._buildCache.getNewTaskSystemInvocationReads(taskName);
+					const invocationReads = await taskSystem.run(
+						usingCache ? cacheInfo : undefined, previousInvocationReads);
+					this._buildCache.setNewTaskSystemInvocationReads(taskName, invocationReads);
+				} else {
+					await taskFunction(params);
+				}
 				if (this._log.isLevelEnabled("perf")) {
 					this._log.perf(
 						`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);

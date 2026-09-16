@@ -29,6 +29,8 @@ export default function({project, taskUtil, getTask}) {
 
 	tasks.set("replaceVersion", {
 		supportsDifferentialBuilds: true,
+		newTaskSystem: true,
+		taskFunction: async (params) => (await getTask("replaceVersion_v2")).task(params),
 		options: {
 			version: project.getVersion(),
 			pattern: "/**/*.{js,json}"
@@ -45,6 +47,8 @@ export default function({project, taskUtil, getTask}) {
 	}
 	tasks.set("minify", {
 		supportsDifferentialBuilds: true,
+		newTaskSystem: true,
+		taskFunction: async (params) => (await getTask("minify_v2")).task(params),
 		options: {
 			pattern: minificationPattern
 		}

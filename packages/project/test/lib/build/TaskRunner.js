@@ -133,6 +133,8 @@ test.beforeEach(async (t) => {
 		recordTaskResult: sinon.stub().resolves(),
 		allTasksCompleted: sinon.stub().resolves([]),
 		prefetchStageCache: sinon.stub(),
+		getNewTaskSystemInvocationReads: sinon.stub().returns(undefined),
+		setNewTaskSystemInvocationReads: sinon.stub(),
 	};
 
 	t.context.resourceFactory = {
