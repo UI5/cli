@@ -325,6 +325,71 @@ test.serial.skip("Build application.a (dependency content changes)", async (t) =
 	t.true(builtFileContent2.includes(`console.log('something new');`), "Build dest contains changed file content");
 });
 
+test.serial("Build application.a (custom task determineBuildSignature callback)", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+	await fixtureTester._initialize();
+
+	// The custom task "build-signature-task" implements a determineBuildSignature callback which
+	// derives the project's build signature from an on-disk control file at the project root.
+	// Changing that file's content changes the returned signature (and nothing else), which must
+	// invalidate application.a's build cache — proving the callback is wired into signature
+	// computation. A stable content must keep the cache intact.
+	const controlFilePath = `${fixtureTester.fixturePath}/buildSignatureControl.txt`;
+	await fs.writeFile(controlFilePath, "v1");
+
+	// #1 build (no cache): everything builds
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-buildSignature.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+				"application.a": {}
+			}
+		}
+	});
+
+	// #2 build (with cache, signature unchanged): full cache hit, nothing rebuilt
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-buildSignature.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// Change only the control file → determineBuildSignature returns a different value.
+	// No source or dependency resource changes.
+	await fs.writeFile(controlFilePath, "v2");
+
+	// #3 build (with cache, changed signature): application.a's build signature changed, so its
+	// cache is invalidated and it is rebuilt. The dependencies are unaffected.
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-buildSignature.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				// application.a is rebuilt (its build signature changed); none of its tasks can be
+				// reused from cache, since the changed signature invalidates the whole project cache.
+				"application.a": {}
+			}
+		}
+	});
+
+	// #4 build (with cache, signature unchanged again): full cache hit, nothing rebuilt
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-buildSignature.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+});
+
 test.serial("Build application.a (cross-project tag change)", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
