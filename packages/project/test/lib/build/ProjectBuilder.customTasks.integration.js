@@ -236,18 +236,21 @@ test.serial("Build application.a (multiple custom tasks 2)", async (t) => {
 	});
 });
 
-// eslint-disable-next-line ava/no-skip-test
-test.serial.skip("Build application.a (dependency content changes)", async (t) => {
+test.serial.failing("Build application.a (dependency content changes)", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
 
 	// Scenario: A custom task reads dependency resources via taskUtil.getProject().getReader() and conditionally
 	// modifies application resources based on what it finds. When the dependency content changes, the application
-	// should be rebuilt so the custom task can react to the new dependency state.
+	// should be rebuilt so the custom task can react to the new dependency state. The assertions below encode that
+	// desired behavior.
 	//
-	// Currently skipped: The custom task accesses dependencies through taskUtil.getProject("library.d").getReader()
-	// rather than the monitored "dependencies" reader parameter. Reads through this path are not tracked by the
-	// caching system's ResourceRequestManager, so dependency changes don't invalidate the application's result cache.
+	// Marked test.failing because it currently fails: the custom task accesses dependencies through
+	// taskUtil.getProject("library.d").getReader() rather than the monitored "dependencies" reader parameter. Reads
+	// through this path are not tracked by the caching system's ResourceRequestManager, so dependency changes don't
+	// invalidate the application's result cache. AVA reports a failing-marked test as a pass while it throws and as a
+	// hard error once it starts passing, so committing it keeps CI green and flips to a signal the moment the behavior
+	// is fixed (at which point drop the `.failing`).
 	// Fixing this requires tracking reads made via taskUtil.getProject().getReader() as dependency requests.
 
 	// #1 build (no cache, no changes, no dependencies)
