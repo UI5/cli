@@ -8,9 +8,9 @@ import fsInterface from "@ui5/fs/fsInterface";
 // to only a `.js.map` re-runs the owning `.js` and regenerates a correct `-dbg.js.map` — no task-authored
 // delta logic, no staleness (contrast the FIXME in minify.js).
 //
-// PARKED follow-ups (not handled here): process.env is read below as a non-deterministic input that is not
-// yet modeled as a monitored/invalidating input; a new terser version does not yet invalidate the cache;
-// full resource-tag propagation through the per-invocation layer.
+// Open follow-ups touching this task (process.env as a non-resource input, terser version not invalidating
+// the cache, resource-tag propagation through the per-invocation layer) are tracked in
+// ../../../project/lib/build/helpers/NewTaskSystem.open-gaps.md
 export default async function({
 	newTaskSystem,
 	options: {pattern, omitSourceMapResources = false, useInputSourceMaps = true}
@@ -58,9 +58,3 @@ export default async function({
 		]);
 	});
 }
-
-// "workspace" provided in the callback of newTaskSystem.forEachResource associates reads/writes
-// with the resource being processed.
-
-// "taskUtil" provided in the callback of newTaskSystem.forEachResource associates access to utility
-// functions for managing resource tags with the resource being processed.
