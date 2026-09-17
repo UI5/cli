@@ -14,6 +14,3 @@ export default async function({newTaskSystem, options: {pattern, version}}) {
 		}
 	});
 }
-
-// "workspace" provided in the callback of newTaskSystem.forEachResource associates reads/writes
-// with the resource that is currently being processed.
