@@ -108,7 +108,7 @@ function generateDoc() {
 
 		const commandsObj = [];
 		obj.commands.shift();
-		if (!(obj.commands.length <= 1)) {
+		if (!(obj.commands.length < 1)) {
 			for (const all of obj.commands) {
 				const temp = checkChars(all);
 				const {command, description} = splitString(temp);
@@ -143,6 +143,10 @@ function generateDoc() {
 		if (!(obj.addOptions.length <= 1)) {
 			for (const all of obj.addOptions) {
 				const temp = checkChars(all);
+				// yargs appends a trailing empty line to some sections; skip it to avoid ghost table rows
+				if (temp == "") {
+					continue;
+				}
 				const {command, description, details} = splitString(temp);
 				optionObj.push({option: command, optionDescription: description, optionDetails: details});
 			}
