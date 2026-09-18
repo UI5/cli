@@ -60,6 +60,8 @@ function parseOutput(stdout) {
 			}
 			if (section.includes("Options:")) {
 				obj.addOptions = section.split("\n").filter(function(el) {
+					// Skip section headers (non-indented lines ending with ":", e.g. "Options:")
+					if (!el.startsWith(" ") && el.trim().endsWith(":")) return false;
 					const array = obj.commonOptions;
 					array.forEach(function(item, index, array) {
 						array[index] = item.replace(/\s+/g, "");
@@ -127,8 +129,7 @@ function buildCommandEntry(commandPath, aliases = []) {
 	}
 
 	const optionObj = [];
-	obj.addOptions.shift();
-	if (!(obj.addOptions.length <= 1)) {
+	if (!(obj.addOptions.length < 1)) {
 		for (const all of obj.addOptions) {
 			const temp = checkChars(all);
 			// yargs appends a trailing empty line to some sections; skip it to avoid ghost table rows
