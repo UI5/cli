@@ -85,7 +85,64 @@ of the untracked-input *shape* the model must handle in general.
 
 ---
 
-## 3. Resource-tag propagation through the per-invocation layer
+## 3. Clock-derived inputs (`${currentYear}`, `${buildtime}`) — undecided
+
+**Status:** open, **undecided**. Raised while analysing `replaceCopyright` for
+CPOUI5FOUNDATION-1363. No failing test and no integration yet; `replaceCopyright`
+integration is **blocked on this decision**.
+
+A specialization of the §2 non-resource-input class: the input is the wall clock, read *inside*
+the task and baked into the output, but never observed by the cache. Two built-in tasks are the
+two poles of the question, and it is not yet decided whether either is actually a bug.
+
+**Instances / two poles:**
+
+| Task | Placeholder | Resolved via | Scope | Granularity |
+|------|-------------|--------------|-------|-------------|
+| `replaceCopyright` | `${currentYear}` | `new Date().getFullYear()` (`replaceCopyright.js:40`) | application + library | year |
+| `replaceBuildtime` | `${buildtime}` | `yyyyMMdd-HHmm` timestamp (`replaceBuildtime.js:6-15,44`) | library-only (`Global.js`/`Core.js`) | minute |
+
+Both are `supportsDifferentialBuilds: true` with **no** `determineBuildSignature`, so their
+signature is `JSON.stringify(options)` (`TaskDefinitions.js:138-140`) with the clock value
+**unresolved** — the raw `copyright` option still contains the literal `${currentYear}`, and
+`replaceBuildtime` has no clock-derived option at all. The clock value is therefore never in the
+signature: a build cached in year N and reused in year N+1 keeps the stale year; a cached build
+reused later keeps the stale timestamp.
+
+**The axes that distinguish them** (analysis, not a verdict):
+
+1. Is the clock value part of the *semantic output the author wants kept current* (`currentYear`
+   on a copyright notice), or an *artifact of the build event* — "when this build ran"
+   (`buildtime`)? Under the build-event reading, a cache hit means no build ran, so keeping the
+   previously-baked value is arguably *correct*.
+2. Staleness granularity: **year** (`currentYear`) means folding the resolved value in costs at
+   most one forced rebuild per calendar year — cache-friendly. **Minute** (`buildtime`) means
+   folding it in makes the signature unique on essentially every build, so the cache could
+   **never** hit — folding-in is clearly the wrong model there.
+
+**Three candidate models** (none selected):
+
+1. **Ignore it** (current behavior). Correct under "keep the last build's value"; stale under
+   "reflect the wall clock at build time".
+2. **Fold the *resolved* value into the signature** (via `determineBuildSignature` as
+   `generateJsdoc` does, or a new-system equivalent). Correct invalidation, but poisons the cache
+   at fine granularity — acceptable for `currentYear`, fatal for `buildtime`.
+3. **Resolve the value *outside* the cached task** (the orchestrator computes it once and passes
+   it as an ordinary option) so the task is a pure function of its options and model 2 falls out
+   for free. Only sensible when there is a coarse granularity worth forcing a rebuild on —
+   plausible for `currentYear`, not for `buildtime`.
+
+**Open questions to resolve later** (explicitly deferred, the user is not ready to decide):
+
+- Is stale clock-derived output on a cache hit a **bug**, or **correct-by-design** (no rebuild
+  happened, so the old value legitimately stands)?
+- Should a mid-year rebuild triggered by an *unrelated* source change be allowed to flip the
+  displayed year, or should the year be "whatever it was when the artifact was first built"?
+- Is `replaceBuildtime` in scope for CPOUI5FOUNDATION-1363 at all, or does it "work as designed"?
+
+---
+
+## 4. Resource-tag propagation through the per-invocation layer
 
 **Status:** open. Parked from `minify_v2.js`.
 
@@ -98,7 +155,7 @@ signatures the same way direct resource reads do — otherwise a tag-only change
 
 ---
 
-## 4. `forEachResource` should accept an exact path, not only a glob
+## 5. `forEachResource` should accept an exact path, not only a glob
 
 **Status:** open. Came out of the `transformBootstrapHtml` pass of CPOUI5FOUNDATION-1363.
 
@@ -117,7 +174,7 @@ API should express "this one resource" as a first-class case rather than a degen
 
 ---
 
-## 5. A task's declared pattern matching nothing is currently silent
+## 6. A task's declared pattern matching nothing is currently silent
 
 **Status:** open. Came out of the `transformBootstrapHtml` pass of CPOUI5FOUNDATION-1363.
 
@@ -140,4 +197,6 @@ warnings. Left to a later task to reinforce before committing to an API shape.
   `packages/builder/lib/tasks/minify_v2.js`.
 - §1 came out of the buildThemes pass of CPOUI5FOUNDATION-1363; it generalizes the terser case
   minify already exposed, so it is task-agnostic and belongs to the system, not a single task.
-- §4 and §5 came out of the transformBootstrapHtml pass of CPOUI5FOUNDATION-1363.
+- §3 came out of the replaceCopyright pass of CPOUI5FOUNDATION-1363; it is a specialization of
+  §2 and is left **undecided** — replaceCopyright integration is blocked on it.
+- §5 and §6 came out of the transformBootstrapHtml pass of CPOUI5FOUNDATION-1363.
