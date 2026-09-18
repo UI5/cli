@@ -1,0 +1,4 @@
+{
+	"command": "versions",
+	"describe": "Shows the versions of all UI5 CLI modules"
+}

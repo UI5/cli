@@ -1,0 +1,36 @@
+{
+	"command": "config",
+	"describe": "Get and set UI5 CLI configuration options",
+	"subcommands": [
+		{
+			"command": "set <option> [value]",
+			"describe": "Set the value for a given configuration option. Clear an existing configuration by omitting the value",
+			"positionals": [
+				{
+					"key": "option",
+					"required": true,
+					"choices": ["mavenSnapshotEndpointUrl", "ui5DataDir"]
+				}
+			]
+		},
+		{
+			"command": "get <option>",
+			"describe": "Get the value for a given configuration option",
+			"positionals": [
+				{
+					"key": "option",
+					"required": true,
+					"choices": ["mavenSnapshotEndpointUrl", "ui5DataDir"]
+				}
+			]
+		},
+		{
+			"command": "list",
+			"describe": "Display the current configuration"
+		}
+	],
+	"examples": [
+		["$0 config set ui5DataDir /path/to/.ui5", "Set a value for the ui5DataDir configuration"],
+		["$0 config set ui5DataDir", "Unset the current value of the ui5DataDir configuration"]
+	]
+}

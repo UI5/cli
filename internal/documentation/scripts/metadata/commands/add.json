@@ -1,0 +1,44 @@
+{
+	"command": "add [--development] [--optional] <framework-libraries..>",
+	"describe": "Add SAPUI5/OpenUI5 framework libraries to the project configuration.",
+	"options": [
+		{
+			"key": "config",
+			"alias": "c",
+			"type": "string",
+			"describe": "Path to project configuration file in YAML format"
+		},
+		{
+			"key": "dependency-definition",
+			"type": "string",
+			"describe": "Path to a YAML file containing the project's dependency tree. This option will disable resolution of node package dependencies."
+		},
+		{
+			"key": "development",
+			"alias": ["D", "dev"],
+			"type": "boolean",
+			"default": false,
+			"describe": "Add as development dependency"
+		},
+		{
+			"key": "optional",
+			"alias": ["O"],
+			"type": "boolean",
+			"default": false,
+			"describe": "Add as optional dependency"
+		}
+	],
+	"positionals": [
+		{
+			"key": "framework-libraries",
+			"type": "string",
+			"required": true,
+			"describe": "Framework library names"
+		}
+	],
+	"examples": [
+		["$0 add sap.ui.core sap.m", "Add the framework libraries sap.ui.core and sap.m as dependencies"],
+		["$0 add -D sap.ui.support", "Add the framework library sap.ui.support as development dependency"],
+		["$0 add --optional themelib_sap_fiori_3", "Add the framework library themelib_sap_fiori_3 as optional dependency"]
+	]
+}

@@ -1,0 +1,155 @@
+{
+	"command": "build",
+	"describe": "Build project in current directory",
+	"subcommands": [
+		{
+			"command": "jsdoc",
+			"describe": "Build JSDoc resources"
+		},
+		{
+			"command": "preload",
+			"describe": "(default) Build project and create preload bundles"
+		},
+		{
+			"command": "self-contained",
+			"describe": "Build project and create self-contained bundle. Recommended to be used in conjunction with --include-all-dependencies"
+		}
+	],
+	"options": [
+		{
+			"key": "config",
+			"alias": "c",
+			"type": "string",
+			"describe": "Path to project configuration file in YAML format"
+		},
+		{
+			"key": "dependency-definition",
+			"type": "string",
+			"describe": "Path to a YAML file containing the project's dependency tree. This option will disable resolution of node package dependencies."
+		},
+		{
+			"key": "workspace-config",
+			"type": "string",
+			"describe": "Path to workspace configuration file in YAML format"
+		},
+		{
+			"key": "workspace",
+			"alias": "w",
+			"type": "string",
+			"default": "default",
+			"describe": "Name of the workspace configuration to use"
+		},
+		{
+			"key": "include-task",
+			"type": "string",
+			"array": true,
+			"describe": "A list of tasks to be added to the default execution set. This option takes precedence over any excludes."
+		},
+		{
+			"key": "exclude-task",
+			"type": "string",
+			"array": true,
+			"describe": "A list of tasks to be excluded from the default task execution set"
+		},
+		{
+			"key": "include-all-dependencies",
+			"alias": ["all", "a"],
+			"type": "boolean",
+			"default": false,
+			"describe": "Include all dependencies in the build result. This is equivalent to '--include-dependency \"*\"'"
+		},
+		{
+			"key": "include-dependency",
+			"type": "string",
+			"array": true,
+			"describe": "A list of dependencies to be included in the build result. You can use the asterisk '*' as an alias for including all dependencies in the build result. The listed dependencies cannot be overruled by dependencies defined in 'exclude-dependency'. The provided name must match with the dependency name shown in 'ui5 ls --flat'"
+		},
+		{
+			"key": "include-dependency-regexp",
+			"type": "string",
+			"array": true,
+			"describe": "A list of regular expressions defining dependencies to be included in the build result. This list is prioritized like 'include-dependency'."
+		},
+		{
+			"key": "include-dependency-tree",
+			"type": "string",
+			"array": true,
+			"describe": "A list of dependencies to be included in the build result. Transitive dependencies are implicitly included and do not need to be part of this list. These dependencies overrule the selection of 'exclude-dependency-tree' but can be overruled by 'exclude-dependency'."
+		},
+		{
+			"key": "exclude-dependency",
+			"type": "string",
+			"array": true,
+			"describe": "A list of dependencies to be excluded from the build result. The listed dependencies can be overruled by dependencies defined in 'include-dependency'. The provided name must match with the dependency name shown in 'ui5 ls --flat'"
+		},
+		{
+			"key": "exclude-dependency-regexp",
+			"type": "string",
+			"array": true,
+			"describe": "A list of regular expressions defining dependencies to be excluded from the build result. This list is prioritized like 'exclude-dependency'."
+		},
+		{
+			"key": "exclude-dependency-tree",
+			"type": "string",
+			"array": true,
+			"describe": "A list of dependencies to be excluded from the build result. Transitive dependencies are implicitly included and do not need to be part of this list."
+		},
+		{
+			"key": "dest",
+			"type": "string",
+			"default": "./dist",
+			"describe": "Path of build destination"
+		},
+		{
+			"key": "clean-dest",
+			"type": "boolean",
+			"default": false,
+			"describe": "If present, clean the destination directory before building"
+		},
+		{
+			"key": "cache",
+			"type": "string",
+			"default": "Default",
+			"choices": ["Default", "Force", "ReadOnly", "Off"],
+			"describe": "Cache mode to use for building UI5 projects. The 'Default' behavior is to always use the cache if available. 'Force' uses the cache only. If the cache is unavailable or invalid, the build fails. 'ReadOnly' does not create or update any cache but makes use of a cache if available. 'Off' does not use any cache and always triggers a rebuild of the project"
+		},
+		{
+			"key": "create-build-manifest",
+			"type": "boolean",
+			"default": false,
+			"describe": "Store build metadata in a '.ui5' directory in the build destination, allowing reuse of the build result in other builds"
+		},
+		{
+			"key": "framework-version",
+			"type": "string",
+			"describe": "Overrides the framework version defined by the project. Takes the same value as the version part of \"ui5 use\""
+		},
+		{
+			"key": "cache-mode",
+			"type": "string",
+			"hidden": true,
+			"choices": ["Default", "Force", "Off"],
+			"describe": "As of UI5 CLI version 5, renamed to '--snapshot-cache'. Use '--snapshot-cache' to control this behavior."
+		},
+		{
+			"key": "snapshot-cache",
+			"type": "string",
+			"defaultDescription": "Default",
+			"choices": ["Default", "Force", "Off"],
+			"describe": "Cache mode to use when consuming SNAPSHOT versions of framework dependencies. The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the cache only and does not create any requests. 'Off' invalidates any existing cache and updates from the repository"
+		},
+		{
+			"key": "output-style",
+			"type": "string",
+			"default": "Default",
+			"choices": ["Default", "Flat", "Namespace"],
+			"describe": "Processes build results into a specific directory structure.<br>- Flat: Omits the project namespace and the \"resources\" directory.<br>- Namespace: Respects the project namespace and the \"resources\" directory, maintaining the original structure.<br>- Default: The default directory structure for every project type. For applications, this is identical to \"Flat\", and for libraries, it is \"Namespace\". Other types have a more distinct default output style."
+		}
+	],
+	"examples": [
+		["ui5 build", "Preload build for project without dependencies"],
+		["ui5 build self-contained", "Self-contained build for project"],
+		["ui5 build --exclude-task=* --include-task=minify generateComponentPreload", "Build project but only apply the minify- and generateComponentPreload tasks"],
+		["ui5 build --include-task=minify --exclude-task=generateComponentPreload", "Build project by applying all default tasks including the minify task and excluding the generateComponentPreload task"]
+	]
+}
