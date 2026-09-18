@@ -87,7 +87,11 @@ export default function({project, taskUtil, getTask}) {
 
 	tasks.set("generateStandaloneAppBundle", {requiresDependencies: true});
 
-	tasks.set("transformBootstrapHtml", {});
+	tasks.set("transformBootstrapHtml", {
+		supportsDifferentialBuilds: true,
+		newTaskSystem: true,
+		taskFunction: async (params) => (await getTask("transformBootstrapHtml_v2")).task(params),
+	});
 
 	if (bundles.length) {
 		tasks.set("generateBundle", {
