@@ -34,10 +34,22 @@ is exactly the failure mode this system is meant to remove.
 |------|-------------------|-------------------------|-------------------------|
 | `buildThemes` | `less-openui5` | `^0.12.0` | Stale CSS / RTL / `library-parameters.json` |
 | `minify` | `terser` | `^5.51.2` | Stale minified JS / source maps |
+| `transformBootstrapHtml` | `cheerio` | `1.0.0` (pinned) | Stale bootstrap `index.html` (HTML re-serialization) |
 
-Both produce 100% of their output via the processor. A bump within the semver range (a dedup,
-a lockfile update, a compiler fix) that changes output does not change `@ui5/builder`'s version,
-so the signature is identical and the cached result is reused → stale output served.
+Both `buildThemes` and `minify` produce 100% of their output via the processor. A bump within the
+semver range (a dedup, a lockfile update, a compiler fix) that changes output does not change
+`@ui5/builder`'s version, so the signature is identical and the cached result is reused → stale output
+served.
+
+`transformBootstrapHtml` is the same *class* of untracked input, from the opposite end of the range
+spectrum: it edits a single attribute, but the surrounding HTML is re-serialized by `cheerio`, so a
+`cheerio` change to entity encoding, whitespace, or self-closing-tag handling alters the output. Today
+`cheerio` is pinned to an exact version, so it can only change together with an explicit `@ui5/builder`
+change (which bumps the builder version and invalidates the signature anyway) — the gap is not
+currently *exploitable* here. It is listed because the model must not depend on that pin: the version
+is still not folded into the signature, so relaxing the pin to a range would silently reopen the gap.
+That is exactly why processor versions belong in the model as declared inputs rather than being kept
+safe by hand-maintained pins.
 
 **Why no failing test upfront.** Unlike a resource-tracking gap (e.g. the minify
 differential source-map case, which we could reproduce by changing a `.js.map`), this gap has
@@ -86,9 +98,46 @@ signatures the same way direct resource reads do — otherwise a tag-only change
 
 ---
 
+## 4. `forEachResource` should accept an exact path, not only a glob
+
+**Status:** open. Came out of the `transformBootstrapHtml` pass of CPOUI5FOUNDATION-1363.
+
+`forEachResource(pattern, callback)` currently treats its first argument as a glob and resolves it
+via `workspace.byGlob()` on every build (and again, per pattern, during delta selection in
+`#selectDeltaResources`). But some tasks address a **single, known resource**: `transformBootstrapHtml`
+processes exactly one `index.html` at a namespace-derived path, so it passes that path *as* the pattern
+(`/resources/${namespace}/index.html`). Routing a known single path through glob matching is wasteful —
+a `byPath()` lookup is a direct hit, whereas `byGlob()` walks the workspace.
+
+**Requirement / improvement.** Let a registration declare that its target is an exact path (or detect
+a glob-free pattern) and resolve it via `workspace.byPath()` instead of `byGlob()`, in both the
+full-build drive and the delta selection. This is a performance improvement, not a correctness gap —
+the current glob path produces the right result — but single-resource tasks are common enough that the
+API should express "this one resource" as a first-class case rather than a degenerate glob.
+
+---
+
+## 5. A task's declared pattern matching nothing is currently silent
+
+**Status:** open. Came out of the `transformBootstrapHtml` pass of CPOUI5FOUNDATION-1363.
+
+The pre-`_v2` `transformBootstrapHtml` warned when its `index.html` was missing. In the declarative
+model a zero-match pattern is simply a no-op (the callback never runs), so the warning was dropped
+during integration. That is the right default — but it removes a task's ability to react when its
+declared input is unexpectedly absent (a genuine misconfiguration vs. a legitimately empty match).
+
+**Question for the design.** Should the system offer a task a way to distinguish "matched nothing"
+from "matched and processed" — e.g. an optional per-registration hook, or a returned count — so a task
+can surface a warning without owning delta/invalidation logic? Deferred: on a delta build a
+missing/unchanged resource is normal, so any such signal must be full-build-aware to avoid false
+warnings. Left to a later task to reinforce before committing to an API shape.
+
+---
+
 ## Notes
 
 - These items were consolidated here from inline `PARKED follow-ups` comments in
   `packages/builder/lib/tasks/minify_v2.js`.
 - §1 came out of the buildThemes pass of CPOUI5FOUNDATION-1363; it generalizes the terser case
   minify already exposed, so it is task-agnostic and belongs to the system, not a single task.
+- §4 and §5 came out of the transformBootstrapHtml pass of CPOUI5FOUNDATION-1363.

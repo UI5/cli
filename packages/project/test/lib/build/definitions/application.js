@@ -91,7 +91,11 @@ test("Standard build", (t) => {
 		generateStandaloneAppBundle: {
 			requiresDependencies: true
 		},
-		transformBootstrapHtml: {},
+		transformBootstrapHtml: {
+			supportsDifferentialBuilds: true,
+			newTaskSystem: true,
+			taskFunction: tasks.get("transformBootstrapHtml").taskFunction,
+		},
 		generateBundle: {
 			taskFunction: null
 		},
@@ -178,7 +182,11 @@ test("Standard build with legacy spec version", (t) => {
 		generateStandaloneAppBundle: {
 			requiresDependencies: true
 		},
-		transformBootstrapHtml: {},
+		transformBootstrapHtml: {
+			supportsDifferentialBuilds: true,
+			newTaskSystem: true,
+			taskFunction: tasks.get("transformBootstrapHtml").taskFunction,
+		},
 		generateBundle: {
 			taskFunction: null
 		},
@@ -301,7 +309,11 @@ test("Custom bundles", async (t) => {
 		generateStandaloneAppBundle: {
 			requiresDependencies: true
 		},
-		transformBootstrapHtml: {},
+		transformBootstrapHtml: {
+			supportsDifferentialBuilds: true,
+			newTaskSystem: true,
+			taskFunction: tasks.get("transformBootstrapHtml").taskFunction,
+		},
 		generateBundle: {
 			requiresDependencies: true,
 			taskFunction: generateBundleTaskDefinition.taskFunction

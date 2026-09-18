@@ -27,6 +27,7 @@ const taskInfos = {
 	minify_v2: {path: "./minify_v2.js"},
 	buildThemes: {path: "./buildThemes.js"},
 	transformBootstrapHtml: {path: "./transformBootstrapHtml.js"},
+	transformBootstrapHtml_v2: {path: "./transformBootstrapHtml_v2.js"},
 	generateLibraryManifest: {path: "./generateLibraryManifest.js"},
 	generateVersionInfo: {path: "./generateVersionInfo.js"},
 	generateFlexChangesBundle: {path: "./bundlers/generateFlexChangesBundle.js"},
