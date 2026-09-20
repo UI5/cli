@@ -89,7 +89,7 @@
 		"@ui5/fs": "^5.0.0-alpha.10",
 		"@ui5/logger": "^5.0.0-alpha.10",
 		"body-parser": "^2.3.0",
-		"compression": "^1.8.1",
+		"compression": "^1.8.2",
 		"cors": "^2.8.6",
 		"devcert-sanscache": "^0.5.1",
 		"escape-html": "^1.0.3",
