@@ -119,6 +119,9 @@ class FixtureTester {
 		 *   projects: {
 		 *     "projectName": {
 		 *       skippedTasks: ["task1", "task2"],
+		 *       writtenResources: {
+		 *         "taskName": ["/resources/path/a", "/resources/path/b"],
+		 *       },
 		 *     },
 		 *     // ...
 		 *   },
@@ -127,6 +130,12 @@ class FixtureTester {
 		 *
 		 * projects - for asserting all projects which are expected to be built
 		 * allProjects - optional, for asserting all seen projects nonetheless if built or not
+		 *
+		 * writtenResources - optional per project, asserts the exact set of resource paths a task
+		 *   wrote (sourced from the `writtenResourcePaths` field of the `task-end` build-status
+		 *   event). Only tasks listed are asserted; other tasks are ignored. This is the signal for
+		 *   delta-build correctness: it reveals WHAT a task did (which outputs it (re-)wrote), not
+		 *   just whether it ran.
 		 */
 		const {projects = {}, allProjects = []} = assertions;
 
@@ -149,12 +158,15 @@ class FixtureTester {
 		const projectBuildStatusEvents = this._t.context.projectBuildStatusEventStub.args.map((args) => args[0]);
 		for (const event of projectBuildStatusEvents) {
 			if (!tasksByProject[event.projectName]) {
-				tasksByProject[event.projectName] = {executed: [], skipped: []};
+				tasksByProject[event.projectName] = {executed: [], skipped: [], writtenResources: {}};
 			}
 			if (event.status === "task-skip") {
 				tasksByProject[event.projectName].skipped.push(event.taskName);
 			} else if (event.status === "task-start") {
 				tasksByProject[event.projectName].executed.push(event.taskName);
+			} else if (event.status === "task-end") {
+				tasksByProject[event.projectName].writtenResources[event.taskName] =
+					event.writtenResourcePaths;
 			}
 		}
 
@@ -170,12 +182,23 @@ class FixtureTester {
 				"All seen projects (built or not) should match expected");
 		}
 
-		// Assert skipped tasks per project
-		for (const [projectName, expectedSkipped] of Object.entries(projects)) {
-			const skippedTasks = expectedSkipped.skippedTasks || [];
+		// Assert skipped tasks and written resources per project
+		for (const [projectName, expected] of Object.entries(projects)) {
+			const skippedTasks = expected.skippedTasks || [];
 			const actualSkipped = (tasksByProject[projectName]?.skipped || []).sort();
 			const expectedArray = skippedTasks.sort();
 			this._t.deepEqual(actualSkipped, expectedArray);
+
+			if (expected.writtenResources) {
+				const actualWritten = tasksByProject[projectName]?.writtenResources || {};
+				for (const [taskName, expectedPaths] of Object.entries(expected.writtenResources)) {
+					this._t.deepEqual(
+						[...(actualWritten[taskName] || [])].sort(),
+						[...expectedPaths].sort(),
+						`Written resources of task '${taskName}' in project '${projectName}' should match expected`
+					);
+				}
+			}
 		}
 	}
 
@@ -463,5 +486,106 @@ metadata:
 		await fs.writeFile(`${this.fixturePath}/package.json`,
 			JSON.stringify(packageJsonContent)
 		);
+	}
+
+	/**
+	* Helper function to add a multi-library theme-library dependency ("themelib.multi") to a root project.
+	*
+	* Unlike {@link addThemeLibraryDependency}, this theme-library ships `library.source.less` for TWO
+	* separate library namespaces (`lib/one` and `lib/two`) and gates each theme with a sibling
+	* `library.js` marker file placed under the owning library's namespace directory in the
+	* theme-library's OWN src tree. When the theme-library is built as a DEPENDENCY
+	* (`isRootProject() === false`), buildThemes' `librariesPattern`
+	* (`/resources/**&#47;(*.library|library.js)`) then filters which themes are built by the presence
+	* of these markers (see packages/builder/lib/tasks/buildThemes.js `isAvailable`).
+	*
+	* By default both markers are present. Pass `{libTwoMarker: false}` to omit `lib/two`'s
+	* `library.js` — its theme is then filtered out. The `lib/one` marker is always written so
+	* `availableLibraries` is never empty (which would trigger the "build everything" escape hatch in
+	* buildThemes). No `sap/ui/core/themes/*` is shipped, so the `themesPattern` theme-name filter is
+	* bypassed and only the `librariesPattern` library filter is active.
+	*
+	* @param {string} sourceDir - source path of the root project (e.g. `${this.fixturePath}/webapp`)
+	* @param {object} [options]
+	* @param {boolean} [options.libTwoMarker=true] Whether to write the `lib/two/library.js` marker
+	*/
+	async addMultiLibraryThemeLibraryDependency(sourceDir, {libTwoMarker = true} = {}) {
+		const modulePath = `${this.fixturePath}/node_modules/themelib.multi`;
+
+		const writeThemeSource = async (namespace) => {
+			const themeDir = `${modulePath}/src/${namespace}/themes/my_theme`;
+			await fs.mkdir(themeDir, {recursive: true});
+			await fs.writeFile(`${themeDir}/library.source.less`,
+				`@mycolor: blue;
+.sapUiBody {
+	background-color: @mycolor;
+}`);
+			await fs.writeFile(`${themeDir}/.theme`,
+				`<?xml version="1.0" encoding="UTF-8" ?>
+<theme xmlns="http://www.sap.com/sap.ui.library.xsd" >
+	<name>my_theme</name>
+	<vendor>me</vendor>
+	<copyright>` +"\"${copyright}\"" + `</copyright>
+	<version>` +"\"${version}\"" + `</version>
+</theme>`);
+		};
+
+		// A minimal `library.js` marker file for a given namespace. Its mere existence (matching
+		// librariesPattern) is what enables the corresponding theme to be built.
+		const writeLibraryMarker = async (namespace) => {
+			await fs.writeFile(`${modulePath}/src/${namespace}/library.js`,
+				`sap.ui.define([], () => {});\n`);
+		};
+
+		await writeThemeSource("lib/one");
+		await writeThemeSource("lib/two");
+		await writeLibraryMarker("lib/one");
+		if (libTwoMarker) {
+			await writeLibraryMarker("lib/two");
+		}
+
+		await fs.writeFile(`${modulePath}/ui5.yaml`,
+			`---
+specVersion: "5.0"
+type: theme-library
+metadata:
+  name: themelib.multi
+`);
+		await fs.writeFile(`${modulePath}/package.json`,
+			`{
+	"name": "themelib.multi",
+	"version": "1.0.0"
+}`
+		);
+
+		await fs.writeFile(`${sourceDir}/themelibMultiConsumer.js`,
+			`sap.ui.define(["sap/ui/core/Theming"], (Theming) => {
+	Theming.setTheme("my_theme");
+	console.log(Theming.getTheme());
+});`);
+		const packageJsonContent = JSON.parse(
+			await fs.readFile(`${this.fixturePath}/package.json`, {encoding: "utf8"}));
+		if (!packageJsonContent.dependencies) {
+			packageJsonContent.dependencies = {};
+		}
+		packageJsonContent.dependencies["themelib.multi"] = "file:../themelib.multi";
+		await fs.writeFile(`${this.fixturePath}/package.json`,
+			JSON.stringify(packageJsonContent)
+		);
+	}
+
+	/**
+	* Adds or removes the `lib/two/library.js` marker of the "themelib.multi" dependency created by
+	* {@link addMultiLibraryThemeLibraryDependency}, to toggle whether buildThemes builds `lib/two`'s theme.
+	*
+	* @param {boolean} present Whether the `lib/two/library.js` marker should exist afterwards
+	*/
+	async setMultiLibraryThemeLibTwoMarker(present) {
+		const markerPath = `${this.fixturePath}/node_modules/themelib.multi/src/lib/two/library.js`;
+		if (present) {
+			await fs.writeFile(markerPath, `sap.ui.define([], () => {});\n`);
+		} else {
+			await fs.rm(markerPath, {force: true});
+		}
 	}
 }
