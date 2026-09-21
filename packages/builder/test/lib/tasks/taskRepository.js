@@ -27,6 +27,7 @@ test("getAllTaskNames", (t) => {
 		"minify",
 		"minify_v2",
 		"buildThemes",
+		"buildThemes_v2",
 		"transformBootstrapHtml",
 		"transformBootstrapHtml_v2",
 		"generateLibraryManifest",
