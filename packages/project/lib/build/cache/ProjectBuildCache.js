@@ -841,7 +841,8 @@ export default class ProjectBuildCache {
 	 *   Resource requests for dependency resources
 	 * @param {object} cacheInfo Cache information for differential updates
 	 * @param {boolean} supportsDifferentialBuilds Whether the task supports differential updates
-	 * @returns {Promise<void>}
+	 * @returns {Promise<string[]|undefined>} The resource paths written by the task,
+	 *   or <code>undefined</code> if caching is disabled
 	 */
 	async recordTaskResult(
 		taskName, projectResourceRequests, dependencyResourceRequests, cacheInfo, supportsDifferentialBuilds
@@ -980,6 +981,7 @@ export default class ProjectBuildCache {
 				`completed in ${(performance.now() - recordStart).toFixed(2)} ms ` +
 				`(${writtenResourcePaths.length} written resources, delta=${!!cacheInfo})`);
 		}
+		return writtenResourcePaths;
 	}
 
 	/**

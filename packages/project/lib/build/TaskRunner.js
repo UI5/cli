@@ -238,12 +238,12 @@ class TaskRunner {
 					this._log.perf(
 						`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
 				}
-				this._log.endTask(taskName);
-				await this._buildCache.recordTaskResult(taskName,
+				const writtenResourcePaths = await this._buildCache.recordTaskResult(taskName,
 					workspace.getResourceRequests(),
 					dependencies?.getResourceRequests(),
 					usingCache ? cacheInfo : undefined,
 					supportsDifferentialBuilds);
+				this._log.endTask(taskName, usingCache, writtenResourcePaths);
 			};
 		}
 		this._tasks[taskName] = {
@@ -486,12 +486,12 @@ class TaskRunner {
 			}
 			this._log.startTask(taskName, usingCache);
 			await taskFunction(params);
-			this._log.endTask(taskName);
-			await this._buildCache.recordTaskResult(taskName,
+			const writtenResourcePaths = await this._buildCache.recordTaskResult(taskName,
 				workspace.getResourceRequests(),
 				dependencies?.getResourceRequests(),
 				usingCache ? cacheInfo : undefined,
 				supportsDifferentialBuilds);
+			this._log.endTask(taskName, usingCache, writtenResourcePaths);
 		};
 	}
 
