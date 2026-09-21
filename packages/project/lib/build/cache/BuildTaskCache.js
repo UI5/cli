@@ -31,6 +31,7 @@ export default class BuildTaskCache {
 	#projectName;
 	#taskName;
 	#supportsDifferentialBuilds;
+	#allowRemovedDeltas;
 
 	#projectRequestManager;
 	#dependencyRequestManager;
@@ -45,18 +46,24 @@ export default class BuildTaskCache {
 	 * @param {ResourceRequestManager} [projectRequestManager] Optional pre-existing project request manager from cache
 	 * @param {ResourceRequestManager} [dependencyRequestManager]
 	 * 	Optional pre-existing dependency request manager from cache
+	 * @param {boolean} [allowRemovedDeltas=false] Whether removed-resource delta transitions may be
+	 *   emitted as differential updates (only safe for new-task-system tasks; see ResourceRequestManager)
 	 */
-	constructor(projectName, taskName, supportsDifferentialBuilds, projectRequestManager, dependencyRequestManager) {
+	constructor(projectName, taskName, supportsDifferentialBuilds, projectRequestManager, dependencyRequestManager,
+		allowRemovedDeltas = false) {
 		this.#projectName = projectName;
 		this.#taskName = taskName;
 		this.#supportsDifferentialBuilds = supportsDifferentialBuilds;
+		this.#allowRemovedDeltas = allowRemovedDeltas;
 		log.verbose(`Initializing BuildTaskCache for task "${taskName}" of project "${this.#projectName}" ` +
 			`(supportsDifferentialBuilds=${supportsDifferentialBuilds})`);
 
 		this.#projectRequestManager = projectRequestManager ??
-			new ResourceRequestManager(projectName, taskName, supportsDifferentialBuilds);
+			new ResourceRequestManager(projectName, taskName, supportsDifferentialBuilds,
+				undefined, false, allowRemovedDeltas);
 		this.#dependencyRequestManager = dependencyRequestManager ??
-			new ResourceRequestManager(projectName, taskName, supportsDifferentialBuilds);
+			new ResourceRequestManager(projectName, taskName, supportsDifferentialBuilds,
+				undefined, false, allowRemovedDeltas);
 	}
 
 	/**
@@ -71,15 +78,18 @@ export default class BuildTaskCache {
 	 * @param {boolean} supportsDifferentialBuilds Whether the task supports differential updates
 	 * @param {object} projectRequests Cached project request manager data
 	 * @param {object} dependencyRequests Cached dependency request manager data
+	 * @param {boolean} [allowRemovedDeltas=false] Whether removed-resource delta transitions may be
+	 *   emitted as differential updates (only safe for new-task-system tasks)
 	 * @returns {BuildTaskCache} Restored task cache instance
 	 */
-	static fromCache(projectName, taskName, supportsDifferentialBuilds, projectRequests, dependencyRequests) {
+	static fromCache(projectName, taskName, supportsDifferentialBuilds, projectRequests, dependencyRequests,
+		allowRemovedDeltas = false) {
 		const projectRequestManager = ResourceRequestManager.fromCache(projectName, taskName,
-			supportsDifferentialBuilds, projectRequests);
+			supportsDifferentialBuilds, projectRequests, allowRemovedDeltas);
 		const dependencyRequestManager = ResourceRequestManager.fromCache(projectName, taskName,
-			supportsDifferentialBuilds, dependencyRequests);
+			supportsDifferentialBuilds, dependencyRequests, allowRemovedDeltas);
 		return new BuildTaskCache(projectName, taskName, supportsDifferentialBuilds,
-			projectRequestManager, dependencyRequestManager);
+			projectRequestManager, dependencyRequestManager, allowRemovedDeltas);
 	}
 
 	// ===== METADATA ACCESS =====
@@ -105,6 +115,18 @@ export default class BuildTaskCache {
 	 */
 	getSupportsDifferentialBuilds() {
 		return this.#supportsDifferentialBuilds;
+	}
+
+	/**
+	 * Checks whether removed-resource delta transitions may be emitted as differential updates.
+	 * Only new-task-system tasks set this, as they handle a removed input by dropping the outputs the
+	 * owning invocation no longer produces (see ResourceRequestManager / NewTaskSystem).
+	 *
+	 * @public
+	 * @returns {boolean} True if removed-resource deltas are allowed
+	 */
+	getAllowRemovedDeltas() {
+		return this.#allowRemovedDeltas;
 	}
 
 	/**

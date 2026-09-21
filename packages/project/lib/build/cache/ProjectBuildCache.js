@@ -53,8 +53,9 @@ export const RESULT_CACHE_STATES = Object.freeze({
  */
 
 // Prototype "new task system" process-level store (see the accessor methods below and
-// lib/build/helpers/NewTaskSystem.js). Keyed by `${projectName}:${taskName}`.
-const newTaskSystemInvocationReadsStore = new Map();
+// lib/build/helpers/NewTaskSystem.js). Keyed by `${projectName}:${taskName}`. Each value is a Map of
+// primary resource path -> {reads, writes} recorded during the last run of a new-system task.
+const newTaskSystemInvocationDataStore = new Map();
 
 export default class ProjectBuildCache {
 	#taskCache = new Map();
@@ -98,17 +99,20 @@ export default class ProjectBuildCache {
 	#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
 	#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
 
-	// Prototype "new task system": map of primary resource path -> read paths recorded during the last
-	// run of a new-system task. Stored per project+task in a process-level cache so it survives across
-	// separate ProjectBuildCache instances within one process (e.g. two sequential ProjectBuilder builds,
-	// or repeated BuildServer requests), which is sufficient for the prototype. A production version would
-	// persist this alongside the task metadata in the cache DB. See lib/build/helpers/NewTaskSystem.js.
-	getNewTaskSystemInvocationReads(taskName) {
-		return newTaskSystemInvocationReadsStore.get(`${this.#project.getName()}:${taskName}`);
+	// Prototype "new task system": map of primary resource path -> {reads, writes} recorded during the
+	// last run of a new-system task. `reads` lets a delta build map a changed input back to the
+	// invocation that read it; `writes` lets a delta rerun drop outputs an invocation previously owned
+	// but no longer produces (so they are not resurrected from the previous stage cache). Stored per
+	// project+task in a process-level cache so it survives across separate ProjectBuildCache instances
+	// within one process (e.g. two sequential ProjectBuilder builds, or repeated BuildServer requests),
+	// which is sufficient for the prototype. A production version would persist this alongside the task
+	// metadata in the cache DB. See lib/build/helpers/NewTaskSystem.js.
+	getNewTaskSystemInvocationData(taskName) {
+		return newTaskSystemInvocationDataStore.get(`${this.#project.getName()}:${taskName}`);
 	}
 
-	setNewTaskSystemInvocationReads(taskName, invocationReads) {
-		newTaskSystemInvocationReadsStore.set(`${this.#project.getName()}:${taskName}`, invocationReads);
+	setNewTaskSystemInvocationData(taskName, invocationData) {
+		newTaskSystemInvocationDataStore.set(`${this.#project.getName()}:${taskName}`, invocationData);
 	}
 
 	/**
@@ -858,20 +862,25 @@ export default class ProjectBuildCache {
 	 *   Resource requests for dependency resources
 	 * @param {object} cacheInfo Cache information for differential updates
 	 * @param {boolean} supportsDifferentialBuilds Whether the task supports differential updates
+	 * @param {boolean} [newTaskSystem=false] Whether the task uses the declarative new task system
+	 *   (enables removed-resource deltas, since such tasks drop outputs no longer produced)
 	 * @returns {Promise<string[]|undefined>} The resource paths written by the task,
 	 *   or <code>undefined</code> if caching is disabled
 	 */
 	async recordTaskResult(
-		taskName, projectResourceRequests, dependencyResourceRequests, cacheInfo, supportsDifferentialBuilds
+		taskName, projectResourceRequests, dependencyResourceRequests, cacheInfo, supportsDifferentialBuilds,
+		newTaskSystem = false
 	) {
 		if (this.#cacheMode === Cache.Off) {
 			return;
 		}
 		const recordStart = performance.now();
 		if (!this.#taskCache.has(taskName)) {
-			// Initialize task cache
+			// Initialize task cache. New-task-system tasks may emit removed-resource deltas (they drop
+			// outputs the owning invocation no longer produces), so pass that capability through.
 			this.#taskCache.set(taskName,
-				new BuildTaskCache(this.#project.getName(), taskName, supportsDifferentialBuilds));
+				new BuildTaskCache(this.#project.getName(), taskName, supportsDifferentialBuilds,
+					undefined, undefined, newTaskSystem));
 		}
 		log.verbose(`Recording results of task ${taskName} in project ${this.#project.getName()}...`);
 		const taskCache = this.#taskCache.get(taskName);
@@ -1449,7 +1458,7 @@ export default class ProjectBuildCache {
 
 			// Import task caches
 			const buildTaskCaches = await Promise.all(
-				indexCache.tasks.map(async ([taskName, supportsDifferentialBuilds]) => {
+				indexCache.tasks.map(async ([taskName, supportsDifferentialBuilds, allowRemovedDeltas]) => {
 					const projectRequests = this.#cacheManager.readTaskMetadata(
 						this.#project.getId(), this.#buildSignature, taskName, "project");
 					if (!projectRequests) {
@@ -1463,7 +1472,7 @@ export default class ProjectBuildCache {
 							`${taskName} in project ${this.#project.getName()}`);
 					}
 					return BuildTaskCache.fromCache(this.#project.getName(), taskName, !!supportsDifferentialBuilds,
-						projectRequests, dependencyRequests);
+						projectRequests, dependencyRequests, !!allowRemovedDeltas);
 				})
 			);
 			// Ensure taskCache is filled in the order of task execution
@@ -1851,7 +1860,11 @@ export default class ProjectBuildCache {
 		const sourceIndexObject = this.#sourceIndex.toCacheObject();
 		const tasks = [];
 		for (const [taskName, taskCache] of this.#taskCache) {
-			tasks.push([taskName, taskCache.getSupportsDifferentialBuilds() ? 1 : 0]);
+			tasks.push([
+				taskName,
+				taskCache.getSupportsDifferentialBuilds() ? 1 : 0,
+				taskCache.getAllowRemovedDeltas() ? 1 : 0,
+			]);
 		}
 		return {
 			projectId: this.#project.getId(),

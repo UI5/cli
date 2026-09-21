@@ -51,6 +51,7 @@ class ResourceRequestManager {
 
 	#hasNewOrModifiedCacheEntries;
 	#useDifferentialUpdate;
+	#allowRemovedDeltas;
 	#unusedAtLeastOnce;
 
 	/**
@@ -61,11 +62,16 @@ class ResourceRequestManager {
 	 * @param {boolean} useDifferentialUpdate Whether to track differential updates
 	 * @param {ResourceRequestGraph} [requestGraph] Optional pre-existing request graph from cache
 	 * @param {boolean} [unusedAtLeastOnce=false] Whether the task has been unused at least once
+	 * @param {boolean} [allowRemovedDeltas=false] Whether a delta transition that removes a resource
+	 *   may still be emitted as a differential update (only safe for new-task-system tasks, which
+	 *   handle a removed input by dropping the outputs the owning invocation no longer produces)
 	 */
-	constructor(projectName, taskName, useDifferentialUpdate, requestGraph, unusedAtLeastOnce = false) {
+	constructor(projectName, taskName, useDifferentialUpdate, requestGraph, unusedAtLeastOnce = false,
+		allowRemovedDeltas = false) {
 		this.#projectName = projectName;
 		this.#taskName = taskName;
 		this.#useDifferentialUpdate = useDifferentialUpdate;
+		this.#allowRemovedDeltas = allowRemovedDeltas;
 		this.#unusedAtLeastOnce = unusedAtLeastOnce;
 		if (requestGraph) {
 			this.#requestGraph = requestGraph;
@@ -90,14 +96,16 @@ class ResourceRequestManager {
 	 * @param {Array<object>} cacheData.rootIndices Array of root resource indices
 	 * @param {Array<object>} [cacheData.deltaIndices] Array of delta resource indices
 	 * @param {boolean} [cacheData.unusedAtLeastOnce] Whether the task has been unused
+	 * @param {boolean} [allowRemovedDeltas=false] Whether removed-resource delta transitions may be
+	 *   emitted as differential updates (only safe for new-task-system tasks)
 	 * @returns {ResourceRequestManager} Restored manager instance
 	 */
 	static fromCache(projectName, taskName, useDifferentialUpdate, {
 		requestSetGraph, rootIndices, deltaIndices, unusedAtLeastOnce
-	}) {
+	}, allowRemovedDeltas = false) {
 		const requestGraph = ResourceRequestGraph.fromCache(requestSetGraph);
 		const resourceRequestManager = new ResourceRequestManager(
-			projectName, taskName, useDifferentialUpdate, requestGraph, unusedAtLeastOnce);
+			projectName, taskName, useDifferentialUpdate, requestGraph, unusedAtLeastOnce, allowRemovedDeltas);
 		const registries = new Map();
 		// Restore root resource indices
 		for (const {nodeId, resourceIndex: serializedIndex, unresolvedRequests} of rootIndices) {
@@ -288,6 +296,22 @@ class ResourceRequestManager {
 				`${cacheHits} cache hits, ${cacheMisses} cache misses`);
 		}
 
+		// Snapshot each matched node's unresolved-request set BEFORE draining. The signature a node
+		// exposes (and the stage was cached under) is the composite of its tree hash and its unresolved
+		// requests (see #computeNodeSignature). The delta transition must therefore be expressed in the
+		// same composite terms: its originalSignature has to match the pre-update composite (what the
+		// cached stage was keyed by), and its newSignature the post-drain composite. Capture the
+		// pre-drain sets here, keyed by the node's tree, for use in #flushTreeChangesWithDiffTracking.
+		const preUpdateUnresolvedByTree = new Map();
+		if (this.#useDifferentialUpdate) {
+			for (const requestSetId of matchingRequestSetIds) {
+				const metadata = this.#requestGraph.getMetadata(requestSetId);
+				preUpdateUnresolvedByTree.set(
+					metadata.resourceIndex.getTree(),
+					metadata.unresolvedRequests ? new Set(metadata.unresolvedRequests) : undefined);
+			}
+		}
+
 		// Phase 3: Process each request set from cache
 		for (const requestSetId of matchingRequestSetIds) {
 			const metadata = this.#requestGraph.getMetadata(requestSetId);
@@ -326,7 +350,7 @@ class ResourceRequestManager {
 		}
 		let hasChanges;
 		if (this.#useDifferentialUpdate) {
-			hasChanges = await this.#flushTreeChangesWithDiffTracking();
+			hasChanges = await this.#flushTreeChangesWithDiffTracking(preUpdateUnresolvedByTree);
 		} else {
 			hasChanges = await this.#flushTreeChangesWithoutDiffTracking();
 		}
@@ -404,19 +428,32 @@ class ResourceRequestManager {
 	 * which resources were added, updated, or removed. Used when differential updates
 	 * are enabled to support incremental cache invalidation.
 	 *
+	 * @param {Map<object, Set<string>|undefined>} [preUpdateUnresolvedByTree] Per-node unresolved-request
+	 *   sets captured BEFORE draining, keyed by the node's tree, used to compose the delta's
+	 *   originalSignature as the same composite the stage was cached under (see updateIndices)
 	 * @returns {Promise<boolean>} True if any changes were detected, false otherwise
 	 */
-	async #flushTreeChangesWithDiffTracking() {
+	async #flushTreeChangesWithDiffTracking(preUpdateUnresolvedByTree = new Map()) {
 		const requestSetIds = this.#requestGraph.getAllNodeIds();
 		const previousTreeSignatures = new Map();
+		// Post-drain unresolved sets per node, keyed by tree, so the new (post-update) signature can be
+		// expressed as the same composite the node will expose afterwards.
+		const postUpdateUnresolvedByTree = new Map();
 		// Record current signatures and create mapping between trees and request sets
 		requestSetIds.map((requestSetId) => {
-			const {resourceIndex} = this.#requestGraph.getMetadata(requestSetId);
+			const metadata = this.#requestGraph.getMetadata(requestSetId);
+			const {resourceIndex} = metadata;
 			if (!resourceIndex) {
 				throw new Error(`Resource index missing for request set ID ${requestSetId}`);
 			}
-			// Remember the original signature
-			previousTreeSignatures.set(resourceIndex.getTree(), [requestSetId, resourceIndex.getSignature()]);
+			const tree = resourceIndex.getTree();
+			// Remember the original composite signature: the pure tree signature folded together with
+			// the pre-update unresolved requests. This matches what the node exposed (and the stage was
+			// cached under) before this update, so the delta's originalSignature keys the cached stage.
+			const preUnresolved = preUpdateUnresolvedByTree.get(tree);
+			const originalSignature = this.#composeSignature(resourceIndex.getSignature(), preUnresolved);
+			previousTreeSignatures.set(tree, [requestSetId, originalSignature]);
+			postUpdateUnresolvedByTree.set(tree, metadata.unresolvedRequests);
 		});
 		const results = await this.#flushTreeChanges();
 		let hasChanges = false;
@@ -426,7 +463,10 @@ class ResourceRequestManager {
 			}
 			for (const [tree, diff] of res.treeStats) {
 				const [requestSetId, originalSignature] = previousTreeSignatures.get(tree);
-				const newSignature = tree.getRootHash();
+				// New signature is the post-update tree hash folded with the post-drain unresolved set,
+				// matching the composite the node exposes going forward.
+				const newSignature = this.#composeSignature(
+					tree.getRootHash(), postUpdateUnresolvedByTree.get(tree));
 				this.#addDeltaEntry(requestSetId, originalSignature, newSignature, diff);
 			}
 		}
@@ -521,11 +561,15 @@ class ResourceRequestManager {
 			let changedPaths;
 			if (diff) {
 				const {added, updated, removed} = diff;
-				if (removed.length) {
-					// Cannot use differential build if a resource has been removed
+				if (removed.length && !this.#allowRemovedDeltas) {
+					// Cannot use differential build if a resource has been removed, unless the task
+					// opted in (new-task-system tasks handle a removed input by dropping the outputs
+					// the owning invocation no longer produces). The removal is already reflected in
+					// newSignature; feeding the removed paths into changedPaths lets the adapter
+					// reverse-map them to the owning invocation and drop the stale derived outputs.
 					continue;
 				}
-				changedPaths = Array.from(new Set([...added, ...updated]));
+				changedPaths = Array.from(new Set([...added, ...updated, ...removed]));
 			} else {
 				changedPaths = [];
 			}
@@ -661,7 +705,21 @@ class ResourceRequestManager {
 	 * @returns {string} Exposed signature
 	 */
 	#computeNodeSignature(resourceIndex, unresolvedRequests) {
-		const treeSignature = resourceIndex.getSignature();
+		return this.#composeSignature(resourceIndex.getSignature(), unresolvedRequests);
+	}
+
+	/**
+	 * Folds a tree signature together with a set of unresolved request keys into the composite
+	 * signature a node exposes. Extracted from #computeNodeSignature so delta tracking
+	 * (#flushTreeChangesWithDiffTracking) can compose the same signature from a raw tree hash and an
+	 * arbitrary (pre- or post-drain) unresolved set, keeping exact-match and delta signatures in
+	 * lockstep. With no unresolved requests this is just the tree signature.
+	 *
+	 * @param {string} treeSignature Tree hash / signature
+	 * @param {Set<string>|undefined} unresolvedRequests Set of unresolved request keys
+	 * @returns {string} Composite signature
+	 */
+	#composeSignature(treeSignature, unresolvedRequests) {
 		if (!unresolvedRequests?.size) {
 			return treeSignature;
 		}

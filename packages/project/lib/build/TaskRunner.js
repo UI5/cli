@@ -243,13 +243,23 @@ class TaskRunner {
 					// newTaskSystem.forEachResource(); the adapter then drives the callbacks, deciding
 					// which resources to (re-)process and attributing per-invocation reads so delta
 					// builds map a changed input back to the invocation that read it.
-					const taskSystem = new NewTaskSystem({workspace, taskUtil: this._taskUtil});
+					const taskSystem = new NewTaskSystem({
+						workspace, dependencies, taskUtil: this._taskUtil,
+					});
 					await taskFunction({newTaskSystem: taskSystem, options});
-					const previousInvocationReads =
-						this._buildCache.getNewTaskSystemInvocationReads(taskName);
-					const invocationReads = await taskSystem.run(
-						usingCache ? cacheInfo : undefined, previousInvocationReads);
-					this._buildCache.setNewTaskSystemInvocationReads(taskName, invocationReads);
+					const previousInvocationData =
+						this._buildCache.getNewTaskSystemInvocationData(taskName);
+					const {invocationData, staleOutputs} = await taskSystem.run(
+						usingCache ? cacheInfo : undefined, previousInvocationData);
+					this._buildCache.setNewTaskSystemInvocationData(taskName, invocationData);
+					if (usingCache && staleOutputs.length) {
+						// Outputs a rerun invocation previously owned but no longer produces (e.g. a
+						// theme whose gating marker was removed). Add them to the changed-paths set so
+						// recordTaskResult drops them from the delta merge instead of resurrecting the
+						// previous stage's stale copies.
+						cacheInfo.changedProjectResourcePaths =
+							[...cacheInfo.changedProjectResourcePaths, ...staleOutputs];
+					}
 				} else {
 					await taskFunction(params);
 				}
@@ -261,7 +271,8 @@ class TaskRunner {
 					workspace.getResourceRequests(),
 					dependencies?.getResourceRequests(),
 					usingCache ? cacheInfo : undefined,
-					supportsDifferentialBuilds);
+					supportsDifferentialBuilds,
+					newTaskSystem);
 				this._log.endTask(taskName, usingCache, writtenResourcePaths);
 			};
 		}

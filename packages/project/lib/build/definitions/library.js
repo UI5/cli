@@ -164,6 +164,9 @@ export default function({project, taskUtil, getTask}) {
 
 	tasks.set("buildThemes", {
 		requiresDependencies: true,
+		supportsDifferentialBuilds: true,
+		newTaskSystem: true,
+		taskFunction: async (params) => (await getTask("buildThemes_v2")).task(params),
 		options: {
 			projectName: project.getName(),
 			librariesPattern: !taskUtil.isRootProject() ? "/resources/**/(*.library|library.js)" : undefined,
