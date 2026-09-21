@@ -5,6 +5,167 @@ import {createFixtureTesterFactory, registerBuildHooks} from "./__helper__/Proje
 const FixtureTester = createFixtureTesterFactory("caching");
 registerBuildHooks(test);
 
+// The three output resources buildThemes writes per theme (see themeBuilder.js): the compiled CSS,
+// its RTL variant and the extracted theme parameters.
+function themeOutputs(namespace) {
+	const base = `/resources/${namespace}/themes/my_theme`;
+	return [
+		`${base}/library.css`,
+		`${base}/library-RTL.css`,
+		`${base}/library-parameters.json`,
+	];
+}
+
+// buildThemes builds a library's theme only if a `library.js`/`.library` marker for that library is
+// available via workspace+dependencies (its `librariesPattern` filter, active when the theme-library
+// is built as a DEPENDENCY). The `themelib.multi` fixture ships `library.source.less` for two library
+// namespaces (`lib/one`, `lib/two`), each gated by its own `library.js` marker. Adding/removing a
+// marker changes which single theme should be (re)built — the others must stay served from cache.
+//
+// Both tests are marked test.serial.failing: buildThemes does NOT set `supportsDifferentialBuilds`,
+// so ANY tracked-input change re-runs the whole task and rewrites EVERY matched theme. There is no
+// per-theme delta and no preservation of unaffected theme output. The new task system
+// (CPOUI5FOUNDATION-1363) is expected to make this correct by design; dropping `.failing` once that
+// work lands will show the gap is closed. The assertions below state the DESIRED behavior.
+
+test.serial.failing(
+	"buildThemes: adding a library rebuilds only the newly enabled theme, others stay cached",
+	async (t) => {
+		const fixtureTester = new FixtureTester(t, "application.a");
+		const destPath = fixtureTester.destPath;
+
+		// Materialize the fixture with an initial build (addMultiLibraryThemeLibraryDependency must run
+		// AFTER the fixture is copied, as the first buildProject re-initializes the fixture directory).
+		await fixtureTester.buildProject({
+			config: {destPath, cleanDest: false, dependencyIncludes: {includeAllDependencies: true}},
+		});
+
+		// Add the multi-library theme-library, initially WITHOUT the lib/two marker: only lib/one's
+		// theme is enabled by the librariesPattern filter.
+		await fixtureTester.addMultiLibraryThemeLibraryDependency(
+			`${fixtureTester.fixturePath}/webapp`, {libTwoMarker: false});
+
+		// #1 build (fills the cache): buildThemes builds ONLY lib/one's theme.
+		await fixtureTester.buildProject({
+			config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+			assertions: {
+				projects: {
+					"themelib.multi": {
+						writtenResources: {
+							buildThemes: themeOutputs("lib/one"),
+						},
+					},
+					"application.a": {
+						skippedTasks: [
+							"enhanceManifest",
+							"escapeNonAsciiCharacters",
+							"generateFlexChangesBundle",
+							"generateVersionInfo",
+							"replaceCopyright",
+						],
+					},
+				},
+			},
+		});
+
+		// Add the lib/two marker: its theme now becomes eligible. Only lib/two's theme is new work;
+		// lib/one's already-built theme output is unaffected and should be reused from cache.
+		await fixtureTester.setMultiLibraryThemeLibTwoMarker(true);
+
+		// #2 build (with cache, with changes): DESIRED — buildThemes writes ONLY lib/two's theme.
+		// Fails today: the whole task re-runs and rewrites lib/one's theme too (6 files instead of 3).
+		// (Only themelib.multi is rebuilt here; application.a is fully served from cache.)
+		await fixtureTester.buildProject({
+			config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+			assertions: {
+				projects: {
+					"themelib.multi": {
+						skippedTasks: ["replaceCopyright", "replaceVersion"],
+						writtenResources: {
+							buildThemes: themeOutputs("lib/two"),
+						},
+					},
+				},
+			},
+		});
+
+		// Both themes must be present in the dest regardless of the delta.
+		for (const outPath of [...themeOutputs("lib/one"), ...themeOutputs("lib/two")]) {
+			await t.notThrowsAsync(fs.readFile(`${destPath}${outPath}`, {encoding: "utf8"}),
+				`Built dest contains ${outPath}`);
+		}
+	});
+
+test.serial.failing(
+	"buildThemes: removing a library removes only its theme, others stay cached",
+	async (t) => {
+		const fixtureTester = new FixtureTester(t, "application.a");
+		const destPath = fixtureTester.destPath;
+
+		// Materialize the fixture with an initial build.
+		await fixtureTester.buildProject({
+			config: {destPath, cleanDest: false, dependencyIncludes: {includeAllDependencies: true}},
+		});
+
+		// Add the multi-library theme-library with BOTH markers present: both themes are built.
+		await fixtureTester.addMultiLibraryThemeLibraryDependency(`${fixtureTester.fixturePath}/webapp`);
+
+		// #1 build (fills the cache): buildThemes builds both lib/one's and lib/two's theme.
+		await fixtureTester.buildProject({
+			config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+			assertions: {
+				projects: {
+					"themelib.multi": {
+						writtenResources: {
+							buildThemes: [...themeOutputs("lib/one"), ...themeOutputs("lib/two")],
+						},
+					},
+					"application.a": {
+						skippedTasks: [
+							"enhanceManifest",
+							"escapeNonAsciiCharacters",
+							"generateFlexChangesBundle",
+							"generateVersionInfo",
+							"replaceCopyright",
+						],
+					},
+				},
+			},
+		});
+
+		// Remove the lib/two marker: lib/two's theme is no longer eligible and its output must be
+		// removed. lib/one's theme is unaffected and should be reused from cache (not rewritten).
+		await fixtureTester.setMultiLibraryThemeLibTwoMarker(false);
+
+		// #2 build (with cache, with changes): DESIRED — buildThemes does NOT rewrite lib/one's theme
+		// (empty written set for buildThemes; the survivor is carried forward from cache).
+		// Fails today: the whole task re-runs and rewrites lib/one's theme (3 files instead of 0).
+		// (Only themelib.multi is rebuilt here; application.a is fully served from cache.)
+		await fixtureTester.buildProject({
+			config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+			assertions: {
+				projects: {
+					"themelib.multi": {
+						skippedTasks: ["replaceCopyright", "replaceVersion"],
+						writtenResources: {
+							buildThemes: [],
+						},
+					},
+				},
+			},
+		});
+
+		// lib/one's theme must still be present; lib/two's theme output must be gone.
+		for (const outPath of themeOutputs("lib/one")) {
+			await t.notThrowsAsync(fs.readFile(`${destPath}${outPath}`, {encoding: "utf8"}),
+				`Built dest still contains ${outPath}`);
+		}
+		for (const outPath of themeOutputs("lib/two")) {
+			await t.throwsAsync(fs.readFile(`${destPath}${outPath}`, {encoding: "utf8"}),
+				undefined, `Built dest no longer contains ${outPath}`);
+		}
+	});
+
 test.serial("Build application.a project multiple times", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
