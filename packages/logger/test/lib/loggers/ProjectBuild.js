@@ -137,7 +137,30 @@ test.serial("End task", (t) => {
 		status: "task-end",
 		taskName: "task.a",
 		isDifferentialBuild: undefined,
+		writtenResourcePaths: undefined,
 	}, "Metadata event has expected payload");
+
+	t.is(logHandler.callCount, 0, "No log event emitted");
+	t.is(metadataHandler.callCount, 1, "One build-metadata event emitted");
+	t.is(logStub.callCount, 0, "_log was never called");
+});
+
+test.serial("End task with written resource paths", (t) => {
+	const {projectBuildLogger, logHandler, metadataHandler, statusHandler, logStub} = t.context;
+	projectBuildLogger.setTasks(["task.a"]);
+
+	projectBuildLogger.endTask("task.a", true, ["/resources/a.js", "/resources/b.js"]);
+
+	t.is(statusHandler.callCount, 1, "One build-status event emitted");
+	t.deepEqual(statusHandler.getCall(0).args[0], {
+		level: "verbose",
+		projectName: "projectName",
+		projectType: "projectType",
+		status: "task-end",
+		taskName: "task.a",
+		isDifferentialBuild: true,
+		writtenResourcePaths: ["/resources/a.js", "/resources/b.js"],
+	}, "Metadata event carries differential flag and written resource paths");
 
 	t.is(logHandler.callCount, 0, "No log event emitted");
 	t.is(metadataHandler.callCount, 1, "One build-metadata event emitted");

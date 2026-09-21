@@ -67,7 +67,7 @@ class ProjectBuild extends Logger {
 		}
 	}
 
-	endTask(taskName, isDifferentialBuild) {
+	endTask(taskName, isDifferentialBuild, writtenResourcePaths) {
 		if (!this.#tasksToRun || !this.#tasksToRun.includes(taskName)) {
 			throw new Error(`loggers/ProjectBuild#endTask: Unknown task ${taskName}`);
 		}
@@ -79,6 +79,7 @@ class ProjectBuild extends Logger {
 			taskName,
 			status: "task-end",
 			isDifferentialBuild,
+			writtenResourcePaths,
 		});
 
 		if (!hasListeners) {
