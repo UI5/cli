@@ -1427,18 +1427,24 @@ test.serial(
 	});
 
 // CPOUI5FOUNDATION-1363 (cross-project theme `@import` regression guard): buildThemes resolves LESS
-// `@import`s through its workspace+dependencies combo (fsInterface(combo) in buildThemes.js). When a
+// `@import`s through its combined workspace+dependencies file system interface. When a
 // theme-library's `library.source.less` `@import`s the base theme LESS of a *different* control
-// library, that `@import` is a cross-project DEPENDENCY read. Changing the imported base LESS while the
-// server runs must re-run the theme-library's buildThemes and serve fresh CSS — the theme-library
-// "builds on top of" the base theme, so a base-theme change must propagate. This test asserts that:
-// build the theme-library's `library.css` (which embeds the base color pulled in via the cross-project
-// `@import`), change ONLY the base library's `themes/base/library.source.less`, notify the watcher, and
-// expect the served CSS to reflect the new base color WITHOUT a server restart.
+// library, that `@import` is a cross-project DEPENDENCY read. The desired behavior is that changing
+// the imported base LESS while the server runs re-runs the theme-library's buildThemes and serves
+// fresh CSS — the theme-library "builds on top of" the base theme, so a base-theme change must
+// propagate. This test asserts that behavior: build the theme-library's `library.css` (which embeds
+// the base color pulled in via the cross-project `@import`), change ONLY the base library's
+// `themes/base/library.source.less`, notify the watcher, and expect the served CSS to reflect the new
+// base color WITHOUT a server restart.
 //
-// This scenario passes on main and guards the current cross-project `@import` invalidation behavior
-// against regression while the new task system (CPOUI5FOUNDATION-1363) is developed on a separate
-// branch, where the same behavior must be preserved by design rather than by chance.
+// The gap this closed: the cross-project `@import` read WAS recorded as a dependency request and the
+// change DID invalidate the theme-library's buildThemes dependency index (producing a dependency-only
+// delta with the base LESS as a changed dependency path). But NewTaskSystem's delta selection only
+// mapped changed PROJECT paths back to invocations (via their project `reads`); a changed DEPENDENCY
+// path was never matched against an invocation's recorded `dependencyReads`, so the theme invocation
+// was not re-driven, no fresh CSS was written, and the merged stale `library.css` was served.
+// `#selectDeltaResources` now matches `dependencyReads` against the changed dependency paths too, so
+// the theme whose `@import` pulled in the changed base LESS is re-driven and rebuilt.
 test.serial(
 	"Serve theme.library.e, changing an @import-ed base theme LESS in a dependency invalidates the theme CSS",
 	async (t) => {

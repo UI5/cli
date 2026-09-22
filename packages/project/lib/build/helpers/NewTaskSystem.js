@@ -195,7 +195,8 @@ export default class NewTaskSystem {
 					currentPrimaryPaths.add(resource.getPath());
 				}
 				resources = await this.#selectDeltaResources(
-					pattern, cacheInfo.changedProjectResourcePaths, previousInvocationData);
+					pattern, cacheInfo.changedProjectResourcePaths,
+					cacheInfo.changedDependencyResourcePaths, previousInvocationData);
 			} else {
 				resources = await this.#workspace.byGlob(pattern);
 			}
@@ -256,19 +257,28 @@ export default class NewTaskSystem {
 	 * Selects which resources to (re-)process on a delta build for the given pattern.
 	 *
 	 * A resource is selected if it is itself among the changed paths, OR if a previous invocation
-	 * processing it read one of the changed paths (e.g. the `foo.js` invocation read `foo.js.map`,
-	 * and `foo.js.map` changed; or a theme's invocation read its `library.js` marker, and the marker
-	 * was added/removed). This is the reverse mapping that fixes cross-resource staleness.
+	 * processing it read one of the changed paths. Two kinds of read are matched:
+	 *  - a project `read` against a changed PROJECT path (e.g. the `foo.js` invocation read
+	 *    `foo.js.map`, and `foo.js.map` changed; or a theme's invocation probed its `library.js`
+	 *    marker, and the marker was added/removed), and
+	 *  - a `dependencyRead` against a changed DEPENDENCY path — the cross-project sibling: a theme
+	 *    whose `library.source.less` `@import`s the base theme LESS of another (dependency) library
+	 *    recorded that base LESS as a dependency read; when it changes, the theme must rebuild so its
+	 *    compiled CSS reflects the new base (see open-gaps §7's cross-project sibling and the
+	 *    BuildServer.integration.js theme.library.e `@import` test).
+	 * This is the reverse mapping that fixes cross-resource staleness.
 	 *
 	 * @param {string|string[]} pattern Glob pattern selecting the resources to process
-	 * @param {string[]} changedPaths Resource paths reported as changed since the cached signature
+	 * @param {string[]} changedProjectPaths Project resource paths reported as changed
+	 * @param {string[]} [changedDependencyPaths] Dependency resource paths reported as changed
 	 * @param {Map<string, object>} [previousInvocationData] Map of primary resource path ->
-	 *   {reads, dependencyReads, writes} recorded during the previous run. Only project `reads` are
-	 *   matched here, against the changed PROJECT resource paths.
+	 *   {reads, dependencyReads, writes} recorded during the previous run. Project `reads` are matched
+	 *   against the changed PROJECT paths; `dependencyReads` against the changed DEPENDENCY paths.
 	 * @returns {Promise<@ui5/fs/Resource[]>} Resources to (re-)process
 	 */
-	async #selectDeltaResources(pattern, changedPaths, previousInvocationData) {
-		const changed = new Set(changedPaths);
+	async #selectDeltaResources(pattern, changedProjectPaths, changedDependencyPaths, previousInvocationData) {
+		const changed = new Set(changedProjectPaths);
+		const changedDependencies = new Set(changedDependencyPaths ?? []);
 		const selectedPaths = new Set();
 
 		// 1. Directly changed resources matching the pattern.
@@ -277,9 +287,12 @@ export default class NewTaskSystem {
 		}
 
 		// 2. Resources whose previous invocation read a changed path (cross-resource dependency).
+		//    Project reads match changed project paths; dependency reads match changed dependency
+		//    paths (a cross-project `@import` of a dependency library's `.source.less`).
 		if (previousInvocationData) {
-			for (const [primaryPath, {reads}] of previousInvocationData) {
-				if (reads.some((readPath) => changed.has(readPath))) {
+			for (const [primaryPath, {reads, dependencyReads}] of previousInvocationData) {
+				if (reads.some((readPath) => changed.has(readPath)) ||
+					(dependencyReads ?? []).some((readPath) => changedDependencies.has(readPath))) {
 					selectedPaths.add(primaryPath);
 				}
 			}
@@ -299,7 +312,7 @@ export default class NewTaskSystem {
 		}
 		log.verbose(
 			`Delta selection for pattern ${JSON.stringify(pattern)}: ${resources.length} resource(s) ` +
-			`from ${changed.size} changed path(s)`);
+			`from ${changed.size} changed project and ${changedDependencies.size} changed dependency path(s)`);
 		return resources;
 	}
 }

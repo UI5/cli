@@ -225,6 +225,19 @@ new-task-system tasks (the `newTaskSystem` flag already threaded into `recordTas
 removed-input relaxation. The merged delta output is correct for the complete read set, so re-keying the
 stage on it — rather than the partial `cacheInfo.newSignature` node — is right.
 
+**Cross-project sibling (also closed).** Recording the cross-project `@import` read (a dependency read)
+and invalidating the dependent theme-library's dependency index on a base-LESS change both already
+worked — the change produced a dependency-only delta with the base `.source.less` as a changed
+*dependency* path. The remaining gap was in **delta selection**: `NewTaskSystem.#selectDeltaResources`
+mapped only changed *project* paths back to an invocation (via its project `reads`); a changed
+*dependency* path was never matched against an invocation's recorded `dependencyReads`, so the theme
+whose `@import` pulled in the changed base LESS was not re-driven, wrote no fresh CSS, and the merged
+stale `library.css` was served. `#selectDeltaResources` now also matches `dependencyReads` against the
+changed dependency paths (threaded through as `cacheInfo.changedDependencyResourcePaths`), so a theme
+that `@import`s a dependency library's base theme rebuilds when that base LESS changes. Regression:
+"Serve theme.library.e, changing an @import-ed base theme LESS in a dependency invalidates the theme
+CSS" in `BuildServer.integration.js` (was `test.serial.failing`, now passing).
+
 ---
 
 ## Notes
@@ -240,4 +253,6 @@ stage on it — rather than the partial `cacheInfo.newSignature` node — is rig
   half was closed first (new-task-system tasks emit removed-resource deltas and drop the outputs an
   invocation no longer produces — see the passing add/remove "buildThemes: ..." caching tests); the
   grow-input-on-delta half is closed by folding the delta build's complete read set back into the task's
-  request graph and re-keying the stage on it (see §7 above).
+  request graph and re-keying the stage on it (see §7 above). The cross-project `@import` sibling is
+  closed by matching persisted `dependencyReads` against changed dependency paths in delta selection
+  (see §7's "Cross-project sibling").
