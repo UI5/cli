@@ -99,14 +99,16 @@ export default class ProjectBuildCache {
 	#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
 	#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
 
-	// Prototype "new task system": map of primary resource path -> {reads, writes} recorded during the
-	// last run of a new-system task. `reads` lets a delta build map a changed input back to the
-	// invocation that read it; `writes` lets a delta rerun drop outputs an invocation previously owned
-	// but no longer produces (so they are not resurrected from the previous stage cache). Stored per
-	// project+task in a process-level cache so it survives across separate ProjectBuildCache instances
-	// within one process (e.g. two sequential ProjectBuilder builds, or repeated BuildServer requests),
-	// which is sufficient for the prototype. A production version would persist this alongside the task
-	// metadata in the cache DB. See lib/build/helpers/NewTaskSystem.js.
+	// Prototype "new task system": map of primary resource path -> {reads, dependencyReads, writes}
+	// recorded during the last run of a new-system task. `reads`/`dependencyReads` let a delta build
+	// map a changed input back to the invocation that read it and fold newly-observed reads back into
+	// the task's request graph (see recordTaskResult / open-gaps §7); `writes` lets a delta rerun drop
+	// outputs an invocation previously owned but no longer produces (so they are not resurrected from
+	// the previous stage cache). Stored per project+task in a process-level cache so it survives across
+	// separate ProjectBuildCache instances within one process (e.g. two sequential ProjectBuilder
+	// builds, or repeated BuildServer requests), which is sufficient for the prototype. A production
+	// version would persist this alongside the task metadata in the cache DB. See
+	// lib/build/helpers/NewTaskSystem.js.
 	getNewTaskSystemInvocationData(taskName) {
 		return newTaskSystemInvocationDataStore.get(`${this.#project.getName()}:${taskName}`);
 	}
@@ -962,6 +964,26 @@ export default class ProjectBuildCache {
 					`(${previousWrittenResources.length} previous, ${mergedCount} merged, ` +
 					`${droppedCount} dropped)`);
 			}
+
+			// New-task-system delta builds: fold the reads observed on this delta back into the task's
+			// request graph and re-key the stage on the resulting (complete-read-set) signature. The
+			// full-build branch below re-records requests every run so its stage is always keyed on the
+			// node matching the current reads; the delta branch does not, so a resource read for the
+			// first time during this delta (e.g. a `.less` pulled in by a newly added `@import`) would
+			// key the stage on a node that does not track it, and a later change to it would match no
+			// recorded request and wrongly skip the task (open-gaps §7). Folding the complete read set
+			// grows the request set (reusing the matching node or deriving a child that adds the new
+			// path) and yields the signature the NEXT build will look the stage up under; the merged
+			// delta output is correct for that complete read set, so keying it there is right. Scoped to
+			// new-task-system tasks, like §1's removed-input relaxation.
+			if (newTaskSystem) {
+				const foldedSignaturePair = await this.#foldNewTaskSystemDeltaReads(
+					taskName, taskCache, projectResourceRequests, dependencyResourceRequests);
+				if (foldedSignaturePair) {
+					this.#currentStageSignatures.set(this.#getStageNameForTask(taskName), foldedSignaturePair);
+					stageSignature = createStageSignature(...foldedSignaturePair);
+				}
+			}
 		} else {
 			// Calculate signature for executed task
 			const recordReqStart = performance.now();
@@ -1008,6 +1030,72 @@ export default class ProjectBuildCache {
 				`(${writtenResourcePaths.length} written resources, delta=${!!cacheInfo})`);
 		}
 		return writtenResourcePaths;
+	}
+
+	/**
+	 * Folds the reads observed by a new-task-system task on a delta build back into its cached request
+	 * graph and returns the resulting signature pair, so {@link #recordTaskResult} can re-key the stage
+	 * on the complete read set (see open-gaps §7).
+	 *
+	 * recordRequests uses an exact-match lookup on the whole request set, so it must be fed the
+	 * COMPLETE current read set or it keys on the wrong (partial) node. Two sources are combined: the
+	 * delta build's own monitored requests (`projectResourceRequests` / `dependencyResourceRequests`) —
+	 * which carry the task's top-level glob pattern(s) plus the paths of the re-driven invocations,
+	 * including any read first observed on this delta — and the per-invocation data the adapter persists
+	 * across builds ({@link #getNewTaskSystemInvocationData}), which additionally covers invocations
+	 * that were NOT re-driven this build (e.g. other themes). Paths from both are unioned into the
+	 * respective (project vs. dependency) request set; the monitor's patterns are preserved so the fed
+	 * set matches the pattern-based node the task recorded on its full build (reusing it or deriving a
+	 * child that adds the new paths).
+	 *
+	 * @param {string} taskName Name of the executed task
+	 * @param {@ui5/project/build/cache/BuildTaskCache} taskCache The task's cache
+	 * @param {@ui5/project/build/cache/BuildTaskCache~ResourceRequests} projectResourceRequests
+	 *   Monitored project requests from this delta build (paths + patterns)
+	 * @param {@ui5/project/build/cache/BuildTaskCache~ResourceRequests|undefined} dependencyResourceRequests
+	 *   Monitored dependency requests from this delta build, if the task reads dependencies
+	 * @returns {Promise<string[]>} The [projectSignature, dependencySignature] pair for the complete
+	 *   read set
+	 */
+	async #foldNewTaskSystemDeltaReads(taskName, taskCache, projectResourceRequests, dependencyResourceRequests) {
+		const projectPaths = new Set(projectResourceRequests.paths ?? []);
+		const dependencyPaths = new Set(dependencyResourceRequests?.paths ?? []);
+
+		// Add cross-build paths from invocations not re-driven this build.
+		const invocationData = this.getNewTaskSystemInvocationData(taskName);
+		if (invocationData) {
+			for (const {reads, dependencyReads} of invocationData.values()) {
+				for (const path of reads ?? []) {
+					projectPaths.add(path);
+				}
+				for (const path of dependencyReads ?? []) {
+					dependencyPaths.add(path);
+				}
+			}
+		}
+
+		const projectRequests = {
+			paths: [...projectPaths],
+			patterns: [...(projectResourceRequests.patterns ?? [])],
+		};
+		// Only record dependency requests when the task reads dependencies; passing undefined maps to
+		// recordNoRequests(), matching the full-build branch for a task without dependency reads.
+		const dependencyRequests = (dependencyResourceRequests || dependencyPaths.size) ? {
+			paths: [...dependencyPaths],
+			patterns: [...(dependencyResourceRequests?.patterns ?? [])],
+		} : undefined;
+
+		const foldStart = performance.now();
+		const signaturePair = await taskCache.recordRequests(
+			projectRequests, dependencyRequests, this.#currentProjectReader, this.#currentDependencyReader);
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`recordTaskResult foldNewTaskSystemDeltaReads for task ${taskName} ` +
+				`in project ${this.#project.getName()} completed in ` +
+				`${(performance.now() - foldStart).toFixed(2)} ms ` +
+				`(${projectPaths.size} project reads, ${dependencyPaths.size} dependency reads)`);
+		}
+		return signaturePair;
 	}
 
 	/**

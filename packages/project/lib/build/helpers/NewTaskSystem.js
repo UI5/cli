@@ -6,19 +6,29 @@ const log = getLogger("build:helpers:NewTaskSystem");
 
 /**
  * Per-invocation recorder shared by the recording reader/writer wrappers below. Collects the
- * paths/patterns a single forEachResource callback invocation read and the paths it wrote. This is
+ * paths a single forEachResource callback invocation read and the paths it wrote. This is
  * what lets a delta build:
  *  - map a changed input resource (e.g. a `.js.map`, or a theme's `library.js` marker) back to the
  *    specific invocation that read it (via `reads`), and
  *  - drop an output an invocation previously owned but no longer produces (via `writes`), so a
  *    removed input does not leave stale output behind (resurrected from the previous stage cache).
+ *
+ * Project and dependency reads are kept in separate buckets so they can be folded back into the
+ * task's project vs. dependency request graph independently (see ProjectBuildCache.recordTaskResult
+ * and open-gaps §7): folding a dependency path into the project graph would resolve it against the
+ * project reader and corrupt the signature.
  */
 class InvocationRecorder {
 	reads = new Set();
+	dependencyReads = new Set();
 	writes = new Set();
 
-	recordRead(path) {
+	recordProjectRead(path) {
 		this.reads.add(path);
+	}
+
+	recordDependencyRead(path) {
+		this.dependencyReads.add(path);
 	}
 
 	recordWrite(path) {
@@ -50,7 +60,7 @@ class InvocationRecordingReader extends AbstractReader {
 		// resolved matches after the fact.
 		const resources = await this.#reader._byGlob(virPattern, options, trace);
 		for (const resource of resources) {
-			this.#recorder.recordRead(resource.getPath());
+			this.#recorder.recordDependencyRead(resource.getPath());
 		}
 		return resources;
 	}
@@ -59,7 +69,7 @@ class InvocationRecordingReader extends AbstractReader {
 		// Record the probed path verbatim, even when it resolves to nothing: probing an absent path
 		// (e.g. a theme's `library.js` marker that does not exist yet) must count as an input, so a
 		// later creation of that path invalidates this invocation on a delta build.
-		this.#recorder.recordRead(virPath);
+		this.#recorder.recordDependencyRead(virPath);
 		return this.#reader._byPath(virPath, options, trace);
 	}
 }
@@ -82,13 +92,13 @@ class InvocationRecordingReaderWriter extends AbstractReaderWriter {
 	async _byGlob(virPattern, options, trace) {
 		const resources = await this.#workspace._byGlob(virPattern, options, trace);
 		for (const resource of resources) {
-			this.#recorder.recordRead(resource.getPath());
+			this.#recorder.recordProjectRead(resource.getPath());
 		}
 		return resources;
 	}
 
 	async _byPath(virPath, options, trace) {
-		this.#recorder.recordRead(virPath);
+		this.#recorder.recordProjectRead(virPath);
 		return this.#workspace._byPath(virPath, options, trace);
 	}
 
@@ -156,21 +166,34 @@ export default class NewTaskSystem {
 	 * @param {object} [cacheInfo] Falsy for a full build; the delta object
 	 *   ({changedProjectResourcePaths, ...}) for a differential build
 	 * @param {Map<string, object>} [previousInvocationData] Map of primary resource path ->
-	 *   {reads, writes} recorded during the previous run (used to select delta invocations and to
-	 *   drop stale outputs)
+	 *   {reads, dependencyReads, writes} recorded during the previous run (used to select delta
+	 *   invocations and to drop stale outputs)
 	 * @returns {Promise<object>} <code>{invocationData, staleOutputs}</code>: the per-invocation
-	 *   {reads, writes} recorded during this run (to persist for the next delta build), and the set of
-	 *   output paths that a rerun invocation previously owned but no longer produced (to be dropped so
-	 *   they are not resurrected from the previous stage cache)
+	 *   {reads, dependencyReads, writes} recorded during this run (to persist for the next delta
+	 *   build), and the set of output paths that a rerun invocation previously owned but no longer
+	 *   produced (to be dropped so they are not resurrected from the previous stage cache).
+	 *
+	 *   On a delta build only the re-driven invocations run, so their fresh entries are merged over
+	 *   the previous run's map (current wins per primary path) rather than replacing it — subsequent
+	 *   builds need the COMPLETE cross-build read set to fold reads back into the cache index (see
+	 *   ProjectBuildCache.recordTaskResult and open-gaps §7). Primaries whose resource no longer
+	 *   matches any registered pattern are pruned so removed inputs do not linger.
 	 */
 	async run(cacheInfo, previousInvocationData) {
 		const invocationData = new Map();
 		const staleOutputs = new Set();
 		const usingDelta = !!(cacheInfo && cacheInfo.changedProjectResourcePaths);
+		// On a delta build, the set of primary paths still matching any registered pattern. Used to
+		// prune previous-run entries whose primary no longer exists (e.g. a theme's deleted
+		// `.source.less`), while keeping entries that were simply not re-driven this build.
+		const currentPrimaryPaths = usingDelta ? new Set() : null;
 
 		for (const {pattern, callback} of this.#registrations) {
 			let resources;
 			if (usingDelta) {
+				for (const resource of await this.#workspace.byGlob(pattern)) {
+					currentPrimaryPaths.add(resource.getPath());
+				}
 				resources = await this.#selectDeltaResources(
 					pattern, cacheInfo.changedProjectResourcePaths, previousInvocationData);
 			} else {
@@ -190,6 +213,7 @@ export default class NewTaskSystem {
 				const primaryPath = resource.getPath();
 				invocationData.set(primaryPath, {
 					reads: [...recorder.reads],
+					dependencyReads: [...recorder.dependencyReads],
 					writes: [...recorder.writes],
 				});
 
@@ -207,6 +231,24 @@ export default class NewTaskSystem {
 				}
 			}
 		}
+
+		if (usingDelta && previousInvocationData) {
+			// Fold the previous run's invocations under the current run's, so the persisted map stays
+			// the complete cross-build read set. A re-driven invocation (present in invocationData)
+			// wins, dropping any read/write it no longer performs; a primary that no longer matches any
+			// pattern is pruned entirely.
+			const merged = new Map();
+			for (const [primaryPath, entry] of previousInvocationData) {
+				if (invocationData.has(primaryPath) || !currentPrimaryPaths.has(primaryPath)) {
+					continue;
+				}
+				merged.set(primaryPath, entry);
+			}
+			for (const [primaryPath, entry] of invocationData) {
+				merged.set(primaryPath, entry);
+			}
+			return {invocationData: merged, staleOutputs: [...staleOutputs]};
+		}
 		return {invocationData, staleOutputs: [...staleOutputs]};
 	}
 
@@ -221,7 +263,8 @@ export default class NewTaskSystem {
 	 * @param {string|string[]} pattern Glob pattern selecting the resources to process
 	 * @param {string[]} changedPaths Resource paths reported as changed since the cached signature
 	 * @param {Map<string, object>} [previousInvocationData] Map of primary resource path ->
-	 *   {reads, writes} recorded during the previous run
+	 *   {reads, dependencyReads, writes} recorded during the previous run. Only project `reads` are
+	 *   matched here, against the changed PROJECT resource paths.
 	 * @returns {Promise<@ui5/fs/Resource[]>} Resources to (re-)process
 	 */
 	async #selectDeltaResources(pattern, changedPaths, previousInvocationData) {

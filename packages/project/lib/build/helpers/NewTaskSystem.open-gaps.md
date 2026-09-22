@@ -193,29 +193,37 @@ warnings. Left to a later task to reinforce before committing to an API shape.
 
 ## 7. Reads first observed on a delta build are not folded back into the cache index
 
-**Status:** open. Came out of the `buildThemes` pass of CPOUI5FOUNDATION-1363. Tracked by the
-`test.serial.failing` "Build theme.library.e project multiple times" case in
-`ProjectBuilder.caching.integration.js`.
+**Status:** CLOSED. Came out of the `buildThemes` pass of CPOUI5FOUNDATION-1363. Regression:
+"Build theme.library.e project multiple times" in `ProjectBuilder.caching.integration.js` (was
+`test.serial.failing`, now passing).
 
-**Problem.** `ProjectBuildCache.recordTaskResult` records the task's resource requests into the cached
+**Problem.** `ProjectBuildCache.recordTaskResult` recorded the task's resource requests into the cached
 `ResourceIndex` (via `taskCache.recordRequests`) **only on a full (non-delta) execution**. The delta
-branch merges the previous stage and stores the stage under the delta's signature, but never re-records
+branch merged the previous stage and stored the stage under the delta's signature, but never re-recorded
 requests. So a resource a task reads *for the first time during a delta build* — e.g. a new `.less`
-file pulled in by an `@import` that was added on that same delta build — is captured by the new task
-system's per-invocation reads (used for delta *selection* within the task) but is **not** added to the
-task's cached `ResourceIndex`. On the next build, `updateIndices` matches a change to that file against
-no recorded request, so the task is considered unaffected and is wrongly skipped → stale output.
+file pulled in by an `@import` that was added on that same delta build — was captured by the new task
+system's per-invocation reads (used for delta *selection* within the task) but was **not** added to the
+task's cached `ResourceIndex`. On the next build, `updateIndices` matched a change to that file against
+no recorded request, so the task was considered unaffected and wrongly skipped → stale output.
 
-The nuance: a first-time read that is *covered by an existing recorded glob* is still tracked (the glob
+The nuance: a first-time read that is *covered by an existing recorded glob* was still tracked (the glob
 membership change is observed). Only a read not covered by any recorded request (a `byPath` of a
-specific file, or an `@import` outside a recorded glob) is lost.
+specific file, or an `@import` outside a recorded glob) was lost.
 
-**Requirement for the new system.** On a delta build, additively fold the newly-observed reads back
-into the task's request graph so subsequent builds invalidate correctly. The per-invocation reads the
-adapter already persists (`newTaskSystemInvocationDataStore`) are the complete source across builds
-(the delta build's own `workspace.getResourceRequests()` only covers re-driven invocations). The merge
-must be additive (never a replace) and must not disturb the stage key the delta was cached under
-(`cacheInfo.newSignature`). Scope it to new-task-system tasks, like §1's removed-input relaxation.
+**Resolution.** On a new-task-system delta build, `recordTaskResult` now folds the complete current read
+set back into the task's request graph and **re-keys the stage** on the resulting signature
+(`#foldNewTaskSystemDeltaReads`). This mirrors the full-build branch, which re-records requests every run
+so its stage is always keyed on the node matching the current reads. The complete read set is the union
+of the delta build's own monitored requests (`workspace.getResourceRequests()`, carrying the task's
+top-level pattern(s) plus re-driven invocations' paths — including the newly observed read) and the
+per-invocation reads the adapter persists across builds (`newTaskSystemInvocationDataStore`, covering
+invocations not re-driven this build). Project and dependency reads are split at record time
+(`InvocationRecorder` now has separate project/dependency buckets) so a dependency path is not folded
+into the project graph. The merge of persisted invocation data is additive (previous ∪ current, current
+wins per primary, primaries no longer matching any pattern pruned — see `NewTaskSystem.run`). Scoped to
+new-task-system tasks (the `newTaskSystem` flag already threaded into `recordTaskResult`), like §1's
+removed-input relaxation. The merged delta output is correct for the complete read set, so re-keying the
+stage on it — rather than the partial `cacheInfo.newSignature` node — is right.
 
 ---
 
@@ -228,7 +236,8 @@ must be additive (never a replace) and must not disturb the stage key the delta 
 - §3 came out of the replaceCopyright pass of CPOUI5FOUNDATION-1363; it is a specialization of
   §2 and is left **undecided** — replaceCopyright integration is blocked on it.
 - §5 and §6 came out of the transformBootstrapHtml pass of CPOUI5FOUNDATION-1363.
-- §7 came out of the buildThemes pass of CPOUI5FOUNDATION-1363; the removed-input half of the same
-  pass was closed (new-task-system tasks now emit removed-resource deltas and drop the outputs an
-  invocation no longer produces — see the passing add/remove "buildThemes: ..." caching tests), but the
-  grow-input-on-delta half above remains open.
+- §7 came out of the buildThemes pass of CPOUI5FOUNDATION-1363 and is now closed. The removed-input
+  half was closed first (new-task-system tasks emit removed-resource deltas and drop the outputs an
+  invocation no longer produces — see the passing add/remove "buildThemes: ..." caching tests); the
+  grow-input-on-delta half is closed by folding the delta build's complete read set back into the task's
+  request graph and re-keying the stage on it (see §7 above).

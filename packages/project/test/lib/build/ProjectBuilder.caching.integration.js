@@ -572,14 +572,13 @@ test.serial("Build library.d project multiple times", async (t) => {
 	});
 });
 
-// KNOWN GAP (CPOUI5FOUNDATION-1363, tracked in helpers/NewTaskSystem.open-gaps.md §7): marked
-// test.serial.failing. buildThemes is now a differential new-task-system task. This scenario adds a
-// NEW `@import`-ed `.less` file DURING a delta build (#4) and later changes it (#6). A read first
-// observed on a delta build is not folded back into the task's cached ResourceIndex (recordTaskResult
-// does not re-record requests on the delta path), so the subsequent change (#6) is not recognized as
-// affecting buildThemes and the task is wrongly skipped. Folding delta-build reads back into the index
-// is general new-task-system work deferred to a follow-up; closing it will drop `.failing` here.
-test.serial.failing("Build theme.library.e project multiple times", async (t) => {
+// CPOUI5FOUNDATION-1363 (open-gaps §7, now closed): buildThemes is a differential new-task-system
+// task. This scenario adds a NEW `@import`-ed `.less` file DURING a delta build (#4) and later changes
+// it (#6). Reads first observed on a delta build are now folded back into the task's cached
+// ResourceIndex (recordTaskResult.#foldNewTaskSystemDeltaReads), so the subsequent change (#6) is
+// recognized as affecting buildThemes and the task re-runs; removing the import/file again (#7/#8)
+// then correctly skips it.
+test.serial("Build theme.library.e project multiple times", async (t) => {
 	const fixtureTester = new FixtureTester(t, "theme.library.e");
 	const destPath = fixtureTester.destPath;
 
