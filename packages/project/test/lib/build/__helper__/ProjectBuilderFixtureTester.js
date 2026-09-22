@@ -219,6 +219,64 @@ resources:
 	}
 
 	/**
+	* Adds a minimal `sap.ui.core` dependency to an arbitrary root project, at a controllable version.
+	*
+	* It is declared as a `type: module`: it only needs to exist in the graph and expose a version via
+	* `taskUtil.getProject("sap.ui.core").getVersion()`. A `type: module` runs no build tasks and needs
+	* no library scaffolding to build cleanly.
+	*
+	* Ships `/resources/ui5loader.js` and `/resources/sap/ui/core/Core.js` so a bundle definition with a
+	* `require`/`preload` section filtering `sap/ui/core/Core.js` resolves.
+	*
+	* @param {string} [version="1.120.0"] Initial `package.json` version of the dependency
+	*/
+	async addSapUiCoreDependency(version = "1.120.0") {
+		const modulePath = `${this.fixturePath}/node_modules/sap.ui.core`;
+		await fs.mkdir(`${modulePath}/main/src/sap/ui/core`, {recursive: true});
+		await fs.writeFile(`${modulePath}/main/src/ui5loader.js`,
+			`(function () {\n\tvar thisIsTheUi5Loader = true;\n\tconsole.log(thisIsTheUi5Loader);\n})()\n`);
+		await fs.writeFile(`${modulePath}/main/src/sap/ui/core/Core.js`,
+			`sap.ui.define([], function() {\n\t"use strict";\n\treturn {};\n});\n`);
+		await fs.writeFile(`${modulePath}/ui5.yaml`,
+			`---
+specVersion: "5.0"
+type: module
+metadata:
+  name: sap.ui.core
+resources:
+  configuration:
+    paths:
+      /resources/: main/src
+`);
+		await fs.writeFile(`${modulePath}/package.json`,
+			JSON.stringify({name: "sap.ui.core", version}, null, "\t"));
+
+		const packageJsonContent = JSON.parse(
+			await fs.readFile(`${this.fixturePath}/package.json`, {encoding: "utf8"}));
+		if (!packageJsonContent.dependencies) {
+			packageJsonContent.dependencies = {};
+		}
+		packageJsonContent.dependencies["sap.ui.core"] = "file:./node_modules/sap.ui.core";
+		await fs.writeFile(`${this.fixturePath}/package.json`,
+			JSON.stringify(packageJsonContent)
+		);
+	}
+
+	/**
+	* Changes the `package.json` version of the "sap.ui.core" dependency created by
+	* {@link addSapUiCoreDependency}. Since that dependency is a `type: module` (no build tasks), this
+	* changes ONLY the project version metadata — no dependency resource content changes.
+	*
+	* @param {string} version The new `package.json` version (e.g. "2.0.0")
+	*/
+	async setSapUiCoreDependencyVersion(version) {
+		const pkgPath = `${this.fixturePath}/node_modules/sap.ui.core/package.json`;
+		const pkg = JSON.parse(await fs.readFile(pkgPath, {encoding: "utf8"}));
+		pkg.version = version;
+		await fs.writeFile(pkgPath, JSON.stringify(pkg, null, "\t"));
+	}
+
+	/**
 	* Helper function to add a new component dependency ("component.z") to an arbitrary root project.
 	*
 	* @param {string} sourceDir - source path of the root project (e.g. `${this.fixturePath}/webapp` for applications)

@@ -589,3 +589,87 @@ test.serial("Build component.a (Custom Component preload configuration)", async 
 		}
 	});
 });
+
+// generateLibraryPreload feeds the resolved sap.ui.core DEPENDENCY version into the bundler as
+// `targetUi5CoreVersion` (generateLibraryPreload.js: `taskUtil.getProject("sap.ui.core").getVersion()`).
+// Under the experimental bundle-info preload (env UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD, see
+// getBundleInfoPreloadDefinition), that version changes the library-preload.js OUTPUT: for core major
+// < 2 the library's own `manifest.json` is bundled into the preload; for core major >= 2 a `provided`
+// section excludes it ("Do not include manifest.json in UI5 2.x and higher ..."). The sap.ui.core
+// version is therefore a genuine input of the preload.
+//
+// But the project build signature (getBuildSignature.js `getProjectSignature`) folds in only the
+// project's OWN id/config, task signatures, and the @ui5/builder/@ui5/fs/@ui5/project versions —
+// never a DEPENDENCY project's version. So changing only the sap.ui.core dependency version between
+// builds, while the library's own sources are untouched, does not change the signature: the result
+// cache hits and the previously built (stale) preload is served.
+//
+// generateLibraryPreload reads ONLY the current project's own workspace (`nonDbgWorkspace.byGlob(...)`),
+// never the `dependencies` reader. So the built RESOURCE content of the sap.ui.core dependency is never
+// an input to library.d's preload — a version bump reaches the output solely through
+// `taskUtil.getProject("sap.ui.core").getVersion()`, which is precisely the input the signature does
+// not observe.
+//
+// This asserts the desired behavior: after bumping the sap.ui.core dependency from 1.x to 2.x, the
+// rebuilt preload reflects the >=2 form (manifest.json no longer bundled). It is marked test.failing
+// because the signature does not yet observe the dependency version, so the v1 preload is served
+// stale. AVA reports a failing-marked test as a pass while it throws and as a hard error once it
+// starts passing; committing it keeps CI green and flips to a signal the moment the gap is fixed
+// (at which point drop the `.failing`).
+test.serial.failing(
+	"Build library.d (changing the sap.ui.core dependency version invalidates the library preload)",
+	async (t) => {
+		const fixtureTester = new FixtureTester(t, "library.d");
+		const destPath = fixtureTester.destPath;
+		const preloadPath = `${destPath}/resources/library/d/library-preload.js`;
+
+		// The manifest.json inclusion/exclusion is only wired up on the experimental bundle-info
+		// preload code path, so enable it for this test and restore it afterwards.
+		const previousFlag = process.env.UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD;
+		process.env.UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD = "true";
+		t.teardown(() => {
+			if (previousFlag === undefined) {
+				delete process.env.UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD;
+			} else {
+				process.env.UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD = previousFlag;
+			}
+		});
+
+		await fixtureTester._initialize();
+
+		// The library must ship a manifest.json under its namespace for the version-dependent
+		// include/exclude to be observable in the preload.
+		await fs.writeFile(`${fixtureTester.fixturePath}/main/src/library/d/manifest.json`,
+			JSON.stringify({"sap.app": {"id": "library.d", "type": "library"}}, null, "\t"));
+
+		// Add a sap.ui.core dependency at version 1.120.0 (major < 2). generateLibraryPreload never
+		// reads dependency resources, so the version reaches the preload only via
+		// taskUtil.getProject("sap.ui.core").getVersion().
+		await fixtureTester.addSapUiCoreDependency("1.120.0");
+
+		// #1 build (no cache) with sap.ui.core@1.120.0
+		await fixtureTester.buildProject({
+			graphConfig: {rootConfigPath: "ui5.yaml"},
+			config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		});
+
+		// Core major < 2: manifest.json is bundled into the preload.
+		const preloadV1 = await fs.readFile(preloadPath, {encoding: "utf8"});
+		t.true(preloadV1.includes("library/d/manifest.json"),
+			"Preload built against sap.ui.core@1.x bundles the library's manifest.json");
+
+		// Change ONLY the sap.ui.core dependency version to a 2.x major. No library source resource
+		// changes, and no sap.ui.core resource content is read by this task either.
+		await fixtureTester.setSapUiCoreDependencyVersion("2.0.0");
+
+		// #2 build (with cache): the preload must be regenerated against sap.ui.core@2.0.0, dropping
+		// the bundled manifest.json.
+		await fixtureTester.buildProject({
+			graphConfig: {rootConfigPath: "ui5.yaml"},
+			config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		});
+
+		const preloadV2 = await fs.readFile(preloadPath, {encoding: "utf8"});
+		t.false(preloadV2.includes("library/d/manifest.json"),
+			"Preload rebuilt against sap.ui.core@2.x no longer bundles the library's manifest.json");
+	});
