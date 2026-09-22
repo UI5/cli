@@ -104,6 +104,13 @@ class InvocationRecordingReaderWriter extends AbstractReaderWriter {
 
 	async _write(resource, options) {
 		this.#recorder.recordWrite(resource.getPath());
+		// FIXME: actual write to the shared workspace must only be performed after
+		// all parallel invocations have completed, in order of the invocation sequence.
+		// We should consider disallowing multiple invocations that write the same resource (i.e. same path).
+		// Ideally, writes within an invocation should be visible to that invocation's
+		// subsequent reads (via reader overlay),
+		// but those reads should not be tracked for cache invalidation.
+		// For a sequential execution model it is the opposite and writes must be visible immediately.
 		return this.#workspace.write(resource, options);
 	}
 }
