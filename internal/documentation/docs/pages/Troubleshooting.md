@@ -126,6 +126,18 @@ If you encounter this problem in your container-based development setup, try set
 Polling reads the watched files on an interval, so it reports changes regardless of where they originate, at the cost of more CPU than the event-based native watcher. Use it only when the native watcher fails to detect your file changes.
 :::
 
+### Disabling File Watching in CI
+
+`ui5 serve` watches the project's files and rebuilds them on change. In CI and other environments where the sources do not change while the server runs, watching might cause unnecessary CPU usage, especially if the "polling" file watcher is used.
+
+Set the environment variable `UI5_WATCH_MODE` to `off` in such cases, in order to disable file watching.
+
+```sh
+UI5_WATCH_MODE=off ui5 serve
+```
+
+Note that this will also disable the live reload functionality of the server, since that relies on the file watching functionality.
+
 ### Changing UI5 CLI's Data Directory
 
 UI5 CLI's data directory is by default at `~/.ui5`. It's the place where the framework artifacts are stored.
