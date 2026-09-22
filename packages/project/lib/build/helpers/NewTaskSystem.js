@@ -201,7 +201,24 @@ export default class NewTaskSystem {
 				resources = await this.#workspace.byGlob(pattern);
 			}
 
-			for (const resource of resources) {
+			// Invoke the callback for every selected resource in PARALLEL. This lets a task offload
+			// work to workers and process several resources concurrently. Registrations are still
+			// processed sequentially (the enclosing loop), but the resources of one registration are
+			// not serialized against each other.
+			//
+			// Safety of the parallelism:
+			//  - Each invocation gets its OWN InvocationRecorder plus its own recording
+			//    reader/writer wrappers, so read/write attribution never bleeds between invocations.
+			//  - The shared bookkeeping mutated below is collision-free: invocationData is keyed by the
+			//    invocation's unique primaryPath (one entry per resource), and staleOutputs is a Set
+			//    whose add() is idempotent. JS runs these synchronously between await points, so there
+			//    is no torn read/write of the Map or Set.
+			//  - Interactions with the workspace / dependencies / taskUtil are order-independent by
+			//    design: the underlying monitored workspace only ADDS to request Sets, and each
+			//    invocation writes its own output path(s). It is therefore fine for a later invocation
+			//    to write before an earlier one — writes do not observe each other, and caching keys
+			//    off the recorded per-invocation reads/writes, not their wall-clock order.
+			await Promise.all(resources.map(async (resource) => {
 				const recorder = new InvocationRecorder();
 				const invocationWorkspace = new InvocationRecordingReaderWriter(this.#workspace, recorder);
 				const invocationDependencies = this.#dependencies ?
@@ -230,7 +247,7 @@ export default class NewTaskSystem {
 						}
 					}
 				}
-			}
+			}));
 		}
 
 		if (usingDelta && previousInvocationData) {
