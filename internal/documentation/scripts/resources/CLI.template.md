@@ -50,6 +50,10 @@ These options you can use with each command.
 
 {{description}}
 
+{{#if aliases}}
+**Aliases**: {{#each aliases}}`ui5 {{this}}`{{#unless @last}}, {{/unless}}{{/each}}
+
+{{/if}}
 **Usage**
 
 `
