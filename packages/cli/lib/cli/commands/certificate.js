@@ -1,44 +1,29 @@
+import {createRequire} from "node:module";
 import chalk from "chalk";
 import process from "node:process";
 import baseMiddleware from "../middlewares/base.js";
+import {applyCommandMetadata} from "../commandMetadata.js";
 import {getUi5DataDirOrDefault, resolveServerCertificatePaths, formatPath} from "../../dataDir.js";
 import {exists} from "../../utils/fsHelper.js";
 
+const require = createRequire(import.meta.url);
+const metadata = require("./certificate.json");
+
 const certificateCommand = {
-	command: "certificate",
-	describe: "Manage the UI5 CLI server certificate",
+	command: metadata.command,
+	describe: metadata.describe,
 	middlewares: [baseMiddleware],
 };
 
 certificateCommand.builder = function(cli) {
+	const generateMeta = metadata.subcommands.find((s) => s.command === "generate");
 	return cli
 		.demandCommand(1, "Command required. Available command is 'generate'")
-		.command("generate", "Generate a self-signed server certificate and install it into the trust store", {
+		.command("generate", generateMeta.describe, {
 			handler: handleGenerate,
 			builder: function(yargs) {
-				return yargs
-					.option("key", {
-						describe: "Path the private key is written to",
-						defaultDescription: "~/.ui5/server/server.key",
-						type: "string"
-					})
-					.option("cert", {
-						describe: "Path the certificate is written to",
-						defaultDescription: "~/.ui5/server/server.crt",
-						type: "string"
-					})
-					.option("force", {
-						alias: "f",
-						describe: "Generate a new certificate even if one already exists at the target path",
-						default: false,
-						type: "boolean"
-					})
-					.example("$0 certificate generate",
-						"Generate a server certificate in the default UI5 data directory")
-					.example("$0 certificate generate --force",
-						"Regenerate the server certificate, overwriting an existing one")
-					.example("UI5_DATA_DIR=/custom/path $0 certificate generate",
-						"Generate a server certificate in a non-default UI5 data directory");
+				applyCommandMetadata(yargs, generateMeta);
+				return yargs;
 			},
 			middlewares: [baseMiddleware],
 		});

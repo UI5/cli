@@ -1,25 +1,29 @@
+import {createRequire} from "node:module";
 import chalk from "chalk";
 import process from "node:process";
 import baseMiddleware from "../middlewares/base.js";
+import {applyCommandMetadata} from "../commandMetadata.js";
 import Configuration from "@ui5/project/config/Configuration";
 
+const require = createRequire(import.meta.url);
+const metadata = require("./config.json");
+
 const configCommand = {
-	command: "config",
-	describe: "Get and set UI5 CLI configuration options",
+	command: metadata.command,
+	describe: metadata.describe,
 	middlewares: [baseMiddleware],
 	handler: handleConfig
 };
 
 configCommand.builder = function(cli) {
+	const setMeta = metadata.subcommands.find((s) => s.command.startsWith("set"));
+	applyCommandMetadata(cli, metadata);
 	return cli
 		.demandCommand(1, "Command required. Available commands are 'set', 'get', and 'list'")
-		.command("set <option> [value]", "Set the value for a given configuration option. " +
-			"Clear an existing configuration by omitting the value", {
+		.command("set <option> [value]", setMeta.describe, {
 			handler: handleConfig,
-			builder: (cli) => {
-				cli.positional("option", {
-					choices: Configuration.OPTIONS
-				});
+			builder: (yargs) => {
+				applyCommandMetadata(yargs, setMeta);
 			},
 			middlewares: [baseMiddleware],
 		})
@@ -32,11 +36,7 @@ configCommand.builder = function(cli) {
 			handler: handleConfig,
 			builder: noop,
 			middlewares: [baseMiddleware],
-		})
-		.example("$0 config set ui5DataDir /path/to/.ui5",
-			"Set a value for the ui5DataDir configuration")
-		.example("$0 config set ui5DataDir",
-			"Unset the current value of the ui5DataDir configuration");
+		});
 };
 
 function noop() {}

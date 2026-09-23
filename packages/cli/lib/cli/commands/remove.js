@@ -1,21 +1,22 @@
 // Remove
+import {createRequire} from "node:module";
 import baseMiddleware from "../middlewares/base.js";
 import {applyProjectConfigOptions} from "../options.js";
+import {applyCommandMetadata} from "../commandMetadata.js";
+
+const require = createRequire(import.meta.url);
+const metadata = require("./remove.json");
 
 const removeCommand = {
-	command: "remove <framework-libraries..>",
-	describe: "Remove SAPUI5/OpenUI5 framework libraries from the project configuration.",
+	command: metadata.command,
+	describe: metadata.describe,
 	middlewares: [baseMiddleware]
 };
 
 removeCommand.builder = function(cli) {
+	applyCommandMetadata(cli, metadata);
 	applyProjectConfigOptions(cli);
-	return cli
-		.positional("framework-libraries", {
-			describe: "Framework library names",
-			type: "string"
-		})
-		.example("$0 remove sap.ui.core sap.m", "Remove the framework libraries sap.ui.core and sap.m as dependencies");
+	return cli;
 };
 
 removeCommand.handler = async function(argv) {

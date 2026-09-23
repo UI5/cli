@@ -1,8 +1,10 @@
+import {createRequire} from "node:module";
 import chalk from "chalk";
 import path from "node:path";
 import process from "node:process";
 import {isLogLevelEnabled} from "@ui5/logger";
 import baseMiddleware from "../middlewares/base.js";
+import {applyCommandMetadata} from "../commandMetadata.js";
 import {getUi5DataDirOrDefault, formatPath} from "../../dataDir.js";
 import {
 	CACHE_CLEAN_HELP_USAGE,
@@ -11,33 +13,25 @@ import {
 	displayCleanupResult,
 } from "./helpers/cacheOutput.js";
 
+const require = createRequire(import.meta.url);
+const metadata = require("./cache.json");
+
 const cacheCommand = {
-	command: "cache",
-	describe: "Manage the UI5 CLI cache (downloaded framework packages and build data)",
+	command: metadata.command,
+	describe: metadata.describe,
 	middlewares: [baseMiddleware],
 	handler: handleCache
 };
 
 cacheCommand.builder = function(cli) {
+	const cleanMeta = metadata.subcommands.find((s) => s.command === "clean");
 	return cli
 		.demandCommand(1, "Command required. Available command is 'clean'")
-		.command("clean", "Remove all cached UI5 data", {
+		.command("clean", cleanMeta.describe, {
 			handler: handleCache,
 			builder: function(yargs) {
-				return yargs
-					.usage(CACHE_CLEAN_HELP_USAGE)
-					.option("force", {
-						alias: "f",
-						describe: "Skip the confirmation prompt, e.g. for use in CI pipelines",
-						default: false,
-						type: "boolean",
-					})
-					.example("$0 cache clean",
-						"Remove all cached UI5 data after confirmation")
-					.example("$0 cache clean --force",
-						"Remove all cached UI5 data without confirmation (e.g. in CI scenarios)")
-					.example("UI5_DATA_DIR=/custom/path $0 cache clean",
-						"Remove cached data from a non-default UI5 data directory");
+				applyCommandMetadata(yargs, cleanMeta);
+				return yargs.usage(CACHE_CLEAN_HELP_USAGE);
 			},
 			middlewares: [baseMiddleware],
 		});

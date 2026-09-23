@@ -4,8 +4,8 @@ import Handlebars from "handlebars";
 
 const SCRIPTS_DIR = new URL(".", import.meta.url);
 const TEMPLATE_PATH = new URL("./resources/CLI.template.md", SCRIPTS_DIR);
-const METADATA_DIR = new URL("./metadata/", SCRIPTS_DIR);
-const COMMANDS_DIR = new URL("./metadata/commands/", SCRIPTS_DIR);
+const CLI_DIR = new URL("../../../packages/cli/lib/cli/", SCRIPTS_DIR);
+const COMMANDS_DIR = new URL("commands/", CLI_DIR);
 
 const source = readFileSync(fileURLToPath(TEMPLATE_PATH), "utf8");
 const template = Handlebars.compile(source);
@@ -149,7 +149,7 @@ function flattenCommand(def, parentPath = "") {
 }
 
 function generateDoc() {
-	const base = loadJson(new URL("base.json", METADATA_DIR));
+	const base = loadJson(new URL("base.json", CLI_DIR));
 	const commandFiles = readdirSync(fileURLToPath(COMMANDS_DIR))
 		.filter((f) => f.endsWith(".json"))
 		.sort();

@@ -15,14 +15,7 @@
 		},
 		{
 			"command": "get <option>",
-			"describe": "Get the value for a given configuration option",
-			"positionals": [
-				{
-					"key": "option",
-					"required": true,
-					"choices": ["mavenSnapshotEndpointUrl", "ui5DataDir"]
-				}
-			]
+			"describe": "Get the value for a given configuration option"
 		},
 		{
 			"command": "list",

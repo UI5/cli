@@ -1,89 +1,27 @@
+import {createRequire} from "node:module";
 import process from "node:process";
 import baseMiddleware from "../middlewares/base.js";
-import {applyProjectConfigOptions, applyWorkspaceOptions, applyBuildOptions, dedupeArray} from "../options.js";
+import {applyProjectConfigOptions, applyWorkspaceOptions, dedupeArray} from "../options.js";
+import {applyCommandMetadata} from "../commandMetadata.js";
 import {getUi5DataDirOrDefault, resolveServerCertificatePaths, formatPath} from "../../dataDir.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("cli:commands:serve");
 
+const require = createRequire(import.meta.url);
+const metadata = require("./serve.json");
+
 // Serve
 const serve = {
-	command: "serve",
-	describe: "Start a web server for the current project",
+	command: metadata.command,
+	describe: metadata.describe,
 	middlewares: [baseMiddleware]
 };
 
 serve.builder = function(cli) {
+	applyCommandMetadata(cli, metadata);
 	applyProjectConfigOptions(cli);
 	applyWorkspaceOptions(cli);
-	applyBuildOptions(cli);
 	return cli
-		.option("port", {
-			describe: "Port to bind on (default for HTTP: 8080, HTTPS: 8443)",
-			alias: "p",
-			type: "number"
-		})
-		.option("open", {
-			describe:
-				"Open web server root directory in default browser. " +
-				"Optionally, supplied relative path will be appended to the root URL",
-			alias: "o",
-			type: "string"
-		})
-		.option("https", {
-			describe: "Enable the HTTPS protocol for the web server",
-			default: false,
-			type: "boolean"
-		})
-		.option("simple-index", {
-			describe: "Use a simplified view for the server directory listing",
-			default: false,
-			type: "boolean"
-		})
-		.option("live-reload", {
-			describe:
-				"Automatically reload the browser when project sources change. " +
-				"Overrides the 'liveReload' setting in the project's server configuration",
-			defaultDescription: "true",
-			type: "boolean"
-		})
-		.option("accept-remote-connections", {
-			describe: "Accept remote connections. By default the server only accepts connections from localhost",
-			default: false,
-			type: "boolean"
-		})
-		.option("key", {
-			describe: "Path to the private key",
-			defaultDescription: "~/.ui5/server/server.key",
-			type: "string"
-		})
-		.option("cert", {
-			describe: "Path to the certificate",
-			defaultDescription: "~/.ui5/server/server.crt",
-			type: "string"
-		})
-		.option("sap-csp-policies", {
-			describe:
-				"Always send content security policies 'sap-target-level-1' and " +
-				"'sap-target-level-3' in report-only mode",
-			default: false,
-			type: "boolean"
-		})
-		.option("serve-csp-reports", {
-			describe: "Collects and serves CSP reports upon request to '/.ui5/csp/csp-reports.json'",
-			default: false,
-			type: "boolean"
-		})
-		.option("cache", {
-			describe:
-				"Cache mode to use for building UI5 projects. " +
-				"The 'Default' behavior is to always use the build-cache if available. 'Force' uses the cache only. " +
-				"If the build-cache is unavailable or invalid, the server will fail to build the project. " +
-				"'ReadOnly' does not create or update any cache but makes use of a cache if available. " +
-				"'Off' does not use any build-cache and always triggers a rebuild of the project",
-			type: "string",
-			default: "Default",
-			choices: ["Default", "Force", "ReadOnly", "Off"],
-		})
 		.coerce("cache", (opt) => {
 			opt = dedupeArray(opt);
 			const lower = opt.toLowerCase();
@@ -91,20 +29,6 @@ serve.builder = function(cli) {
 				return "ReadOnly";
 			}
 			return lower.charAt(0).toUpperCase() + lower.slice(1);
-		})
-		.option("framework-version", {
-			describe: "Overrides the framework version defined by the project. " +
-				"Takes the same value as the version part of \"ui5 use\"",
-			type: "string"
-		})
-		.option("cache-mode", {
-			// Deprecated
-			hidden: true,
-			describe:
-				"As of UI5 CLI version 5, renamed to '--snapshot-cache'. " +
-				"Use '--snapshot-cache' to control this behavior.",
-			type: "string",
-			choices: ["Default", "Force", "Off"],
 		})
 		.coerce("cache-mode", (opt) => {
 			opt = dedupeArray(opt);
@@ -115,23 +39,7 @@ serve.builder = function(cli) {
 			}
 			return opt;
 		})
-		.option("snapshot-cache", {
-			describe:
-				"Cache mode to use when consuming SNAPSHOT versions of framework dependencies. " +
-				"The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the cache only and " +
-				"does not create any requests. 'Off' invalidates any existing cache and updates from the repository",
-			type: "string",
-			defaultDescription: "Default", // Use "defaultDescription" to allow undefined (needed for evaluation)
-			choices: ["Default", "Force", "Off"],
-		})
-		.coerce(["framework-version", "open", "port", "key", "cert"], dedupeArray)
-		.example("ui5 serve", "Start a web server for the current project")
-		.example("ui5 serve --https", "Enable the HTTPS protocol for the web server (requires SSL certificate)")
-		.example("ui5 serve --config /path/to/ui5.yaml", "Use the project configuration from a custom path")
-		.example("ui5 serve --dependency-definition /path/to/projectDependencies.yaml",
-			"Use a static dependency definition file")
-		.example("ui5 serve --port 1337 --open tests/QUnit.html",
-			"Listen to port 1337 and launch default browser with http://localhost:1337/test/QUnit.html");
+		.coerce(["framework-version", "open", "port", "key", "cert"], dedupeArray);
 };
 
 serve.handler = async function(argv) {
