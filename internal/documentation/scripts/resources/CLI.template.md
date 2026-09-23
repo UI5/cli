@@ -50,6 +50,10 @@ These options you can use with each command.
 
 {{description}}
 
+{{#if aliases}}
+**Aliases**: {{aliases}}
+
+{{/if}}
 **Usage**
 
 `
