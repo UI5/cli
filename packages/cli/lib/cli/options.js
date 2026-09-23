@@ -1,10 +1,10 @@
 /**
- * Shared yargs option factories used by the CLI commands.
+ * Shared yargs coerce helpers used by the CLI commands.
  *
- * Project-graph related options are not relevant for every command (e.g. "ui5 versions"
- * does not load a project). To keep the option definitions in a single place while only
- * exposing them on commands that actually consume them, each command builder opts in
- * to the option groups it needs via the helpers below.
+ * Option declarations have moved to per-command JSON metadata files
+ * (packages/cli/lib/cli/commands/*.json) and are applied at runtime via
+ * applyCommandMetadata(). The functions below apply only the coerce logic
+ * that cannot be expressed in JSON.
  */
 
 /**
@@ -34,68 +34,27 @@ export function dedupeArray(arg) {
 }
 
 /**
- * Adds the project configuration related options ("--config" / "-c" and
- * "--dependency-definition") to the given yargs instance.
+ * Applies deduplication coerce for the project configuration options
+ * ("--config" / "-c" and "--dependency-definition").
+ *
+ * Option declarations are in the command's JSON metadata file.
  *
  * @param {object} cli The yargs instance
  * @returns {object} The yargs instance
  */
 export function applyProjectConfigOptions(cli) {
-	return cli
-		.option("config", {
-			alias: "c",
-			describe: "Path to project configuration file in YAML format",
-			type: "string"
-		})
-		.option("dependency-definition", {
-			describe: "Path to a YAML file containing the project's dependency tree. " +
-				"This option will disable resolution of node package dependencies.",
-			type: "string"
-		})
-		.coerce(["config", "dependency-definition"], dedupeArray);
+	return cli.coerce(["config", "dependency-definition"], dedupeArray);
 }
 
 /**
- * Adds the workspace related options ("--workspace-config" and "--workspace" / "-w")
- * to the given yargs instance.
+ * Applies deduplication coerce for the workspace options
+ * ("--workspace-config" and "--workspace" / "-w").
+ *
+ * Option declarations are in the command's JSON metadata file.
  *
  * @param {object} cli The yargs instance
  * @returns {object} The yargs instance
  */
 export function applyWorkspaceOptions(cli) {
-	return cli
-		.option("workspace-config", {
-			describe: "Path to workspace configuration file in YAML format",
-			type: "string"
-		})
-		.option("workspace", {
-			alias: "w",
-			describe: "Name of the workspace configuration to use",
-			default: "default",
-			type: "string"
-		})
-		.coerce(["workspace-config", "workspace"], dedupeArray);
-}
-
-/**
- * Adds the shared build-related options ("--include-task" and "--exclude-task")
- * to the given yargs instance. Both the "ui5 build" and "ui5 serve" commands
- * trigger a build internally and honour the same task filters.
- *
- * @param {object} cli The yargs instance
- * @returns {object} The yargs instance
- */
-export function applyBuildOptions(cli) {
-	return cli
-		.option("include-task", {
-			describe: "A list of tasks to be added to the default execution set. " +
-				"This option takes precedence over any excludes.",
-			type: "string",
-			array: true
-		})
-		.option("exclude-task", {
-			describe: "A list of tasks to be excluded from the default task execution set",
-			type: "string",
-			array: true
-		});
+	return cli.coerce(["workspace-config", "workspace"], dedupeArray);
 }

@@ -6,16 +6,26 @@ import {
 	dedupeArray,
 } from "../../../lib/cli/options.js";
 
-function buildCli(applyFns) {
-	const cli = yargs().strict(true).exitProcess(false);
-	for (const apply of applyFns) {
-		apply(cli);
-	}
+// Options are declared in per-command JSON metadata files and registered via
+// applyCommandMetadata(). These helpers only apply .coerce() logic.
+// Tests register options manually to isolate the coerce behavior under test.
+
+function buildCli(registerFn, coerceFn) {
+	const cli = yargs().exitProcess(false);
+	registerFn(cli);
+	coerceFn(cli);
 	cli.command("test", "test command", () => {}, () => {});
-	cli.fail((msg) => {
-		throw new Error(msg);
-	});
 	return cli;
+}
+
+function withProjectConfigOptions(cli) {
+	cli.option("config", {type: "string"});
+	cli.option("dependency-definition", {type: "string"});
+}
+
+function withWorkspaceOptions(cli) {
+	cli.option("workspace", {type: "string"});
+	cli.option("workspace-config", {type: "string"});
 }
 
 test("dedupeArray returns last value of array", (t) => {
@@ -27,75 +37,32 @@ test("dedupeArray returns scalar unchanged", (t) => {
 	t.is(dedupeArray(undefined), undefined);
 });
 
-test("applyProjectConfigOptions: --config and --dependency-definition accepted", async (t) => {
-	const cli = buildCli([applyProjectConfigOptions]);
-	const argv = await cli.parse(["test", "--config", "a.yaml", "--dependency-definition", "b.yaml"]);
-	t.is(argv.config, "a.yaml");
-	t.is(argv.dependencyDefinition, "b.yaml");
-});
-
-test("applyProjectConfigOptions: -c alias works", async (t) => {
-	const cli = buildCli([applyProjectConfigOptions]);
-	const argv = await cli.parse(["test", "-c", "a.yaml"]);
-	t.is(argv.config, "a.yaml");
-});
-
 test("applyProjectConfigOptions: --config specified twice keeps last value", async (t) => {
-	const cli = buildCli([applyProjectConfigOptions]);
+	const cli = buildCli(withProjectConfigOptions, applyProjectConfigOptions);
 	const argv = await cli.parse(["test", "--config", "first.yaml", "--config", "second.yaml"]);
 	t.is(argv.config, "second.yaml");
 });
 
-test("applyProjectConfigOptions: rejects --workspace when workspace options not applied", (t) => {
-	const cli = buildCli([applyProjectConfigOptions]);
-	t.throws(() => cli.parse(["test", "--workspace", "foo"]), {
-		message: /Unknown argument: workspace/,
-	});
-});
-
-test("applyWorkspaceOptions: --workspace and --workspace-config accepted", async (t) => {
-	const cli = buildCli([applyWorkspaceOptions]);
-	const argv = await cli.parse(["test", "--workspace", "dolphin", "--workspace-config", "ws.yaml"]);
-	t.is(argv.workspace, "dolphin");
-	t.is(argv.workspaceConfig, "ws.yaml");
-});
-
-test("applyWorkspaceOptions: -w alias works", async (t) => {
-	const cli = buildCli([applyWorkspaceOptions]);
-	const argv = await cli.parse(["test", "-w", "dolphin"]);
-	t.is(argv.workspace, "dolphin");
-});
-
-test("applyWorkspaceOptions: --workspace defaults to 'default'", async (t) => {
-	const cli = buildCli([applyWorkspaceOptions]);
-	const argv = await cli.parse(["test"]);
-	t.is(argv.workspace, "default");
+test("applyProjectConfigOptions: --dependency-definition specified twice keeps last value", async (t) => {
+	const cli = buildCli(withProjectConfigOptions, applyProjectConfigOptions);
+	const argv = await cli.parse(["test",
+		"--dependency-definition", "first.yaml",
+		"--dependency-definition", "second.yaml",
+	]);
+	t.is(argv.dependencyDefinition, "second.yaml");
 });
 
 test("applyWorkspaceOptions: --workspace specified twice keeps last value", async (t) => {
-	const cli = buildCli([applyWorkspaceOptions]);
+	const cli = buildCli(withWorkspaceOptions, applyWorkspaceOptions);
 	const argv = await cli.parse(["test", "--workspace", "first", "--workspace", "second"]);
 	t.is(argv.workspace, "second");
 });
 
-test("applyWorkspaceOptions: rejects --config when project-config options not applied", (t) => {
-	const cli = buildCli([applyWorkspaceOptions]);
-	t.throws(() => cli.parse(["test", "--config", "foo.yaml"]), {
-		message: /Unknown argument: config/,
-	});
-});
-
-test("Both helpers combined: all four options accepted", async (t) => {
-	const cli = buildCli([applyProjectConfigOptions, applyWorkspaceOptions]);
-	const argv = await cli.parse([
-		"test",
-		"--config", "a.yaml",
-		"--dependency-definition", "b.yaml",
-		"--workspace", "dolphin",
-		"--workspace-config", "ws.yaml",
+test("applyWorkspaceOptions: --workspace-config specified twice keeps last value", async (t) => {
+	const cli = buildCli(withWorkspaceOptions, applyWorkspaceOptions);
+	const argv = await cli.parse(["test",
+		"--workspace-config", "first.yaml",
+		"--workspace-config", "second.yaml",
 	]);
-	t.is(argv.config, "a.yaml");
-	t.is(argv.dependencyDefinition, "b.yaml");
-	t.is(argv.workspace, "dolphin");
-	t.is(argv.workspaceConfig, "ws.yaml");
+	t.is(argv.workspaceConfig, "second.yaml");
 });

@@ -1,0 +1,134 @@
+{
+	"command": "serve",
+	"describe": "Start a web server for the current project",
+	"options": [
+		{
+			"key": "config",
+			"alias": "c",
+			"type": "string",
+			"describe": "Path to project configuration file in YAML format"
+		},
+		{
+			"key": "dependency-definition",
+			"type": "string",
+			"describe": "Path to a YAML file containing the project's dependency tree. This option will disable resolution of node package dependencies."
+		},
+		{
+			"key": "workspace-config",
+			"type": "string",
+			"describe": "Path to workspace configuration file in YAML format"
+		},
+		{
+			"key": "workspace",
+			"alias": "w",
+			"type": "string",
+			"default": "default",
+			"describe": "Name of the workspace configuration to use"
+		},
+		{
+			"key": "include-task",
+			"type": "string",
+			"array": true,
+			"describe": "A list of tasks to be added to the default execution set. This option takes precedence over any excludes."
+		},
+		{
+			"key": "exclude-task",
+			"type": "string",
+			"array": true,
+			"describe": "A list of tasks to be excluded from the default task execution set"
+		},
+		{
+			"key": "port",
+			"alias": "p",
+			"type": "number",
+			"describe": "Port to bind on (default for HTTP: 8080, HTTPS: 8443)"
+		},
+		{
+			"key": "open",
+			"alias": "o",
+			"type": "string",
+			"describe": "Open web server root directory in default browser. Optionally, supplied relative path will be appended to the root URL"
+		},
+		{
+			"key": "https",
+			"type": "boolean",
+			"default": false,
+			"describe": "Enable the HTTPS protocol for the web server"
+		},
+		{
+			"key": "simple-index",
+			"type": "boolean",
+			"default": false,
+			"describe": "Use a simplified view for the server directory listing"
+		},
+		{
+			"key": "live-reload",
+			"type": "boolean",
+			"defaultDescription": "true",
+			"describe": "Automatically reload the browser when project sources change. Overrides the 'liveReload' setting in the project's server configuration"
+		},
+		{
+			"key": "accept-remote-connections",
+			"type": "boolean",
+			"default": false,
+			"describe": "Accept remote connections. By default the server only accepts connections from localhost"
+		},
+		{
+			"key": "key",
+			"type": "string",
+			"defaultDescription": "~/.ui5/server/server.key",
+			"describe": "Path to the private key"
+		},
+		{
+			"key": "cert",
+			"type": "string",
+			"defaultDescription": "~/.ui5/server/server.crt",
+			"describe": "Path to the certificate"
+		},
+		{
+			"key": "sap-csp-policies",
+			"type": "boolean",
+			"default": false,
+			"describe": "Always send content security policies 'sap-target-level-1' and 'sap-target-level-3' in report-only mode"
+		},
+		{
+			"key": "serve-csp-reports",
+			"type": "boolean",
+			"default": false,
+			"describe": "Collects and serves CSP reports upon request to '/.ui5/csp/csp-reports.json'"
+		},
+		{
+			"key": "cache",
+			"type": "string",
+			"default": "Default",
+			"choices": ["Default", "Force", "ReadOnly", "Off"],
+			"describe": "Cache mode to use for building UI5 projects. The 'Default' behavior is to always use the build-cache if available. 'Force' uses the cache only. If the build-cache is unavailable or invalid, the server will fail to build the project. 'ReadOnly' does not create or update any cache but makes use of a cache if available. 'Off' does not use any build-cache and always triggers a rebuild of the project"
+		},
+		{
+			"key": "framework-version",
+			"type": "string",
+			"describe": "Overrides the framework version defined by the project. Takes the same value as the version part of \"ui5 use\""
+		},
+		{
+			"key": "cache-mode",
+			"type": "string",
+			"hidden": true,
+			"choices": ["Default", "Force", "Off"],
+			"describe": "As of UI5 CLI version 5, renamed to '--snapshot-cache'. Use '--snapshot-cache' to control this behavior."
+		},
+		{
+			"key": "snapshot-cache",
+			"type": "string",
+			"defaultDescription": "Default",
+			"choices": ["Default", "Force", "Off"],
+			"describe": "Cache mode to use when consuming SNAPSHOT versions of framework dependencies. The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the cache only and does not create any requests. 'Off' invalidates any existing cache and updates from the repository"
+		}
+	],
+	"examples": [
+		["ui5 serve", "Start a web server for the current project"],
+		["ui5 serve --https", "Enable the HTTPS protocol for the web server (requires SSL certificate)"],
+		["ui5 serve --config /path/to/ui5.yaml", "Use the project configuration from a custom path"],
+		["ui5 serve --dependency-definition /path/to/projectDependencies.yaml", "Use a static dependency definition file"],
+		["ui5 serve --port 1337 --open tests/QUnit.html", "Listen to port 1337 and launch default browser with http://localhost:1337/test/QUnit.html"]
+	]
+}

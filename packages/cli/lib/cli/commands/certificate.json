@@ -1,0 +1,36 @@
+{
+	"command": "certificate",
+	"describe": "Manage the UI5 CLI server certificate",
+	"subcommands": [
+		{
+			"command": "generate",
+			"describe": "Generate a self-signed server certificate and install it into the trust store",
+			"options": [
+				{
+					"key": "key",
+					"type": "string",
+					"defaultDescription": "~/.ui5/server/server.key",
+					"describe": "Path the private key is written to"
+				},
+				{
+					"key": "cert",
+					"type": "string",
+					"defaultDescription": "~/.ui5/server/server.crt",
+					"describe": "Path the certificate is written to"
+				},
+				{
+					"key": "force",
+					"alias": "f",
+					"type": "boolean",
+					"default": false,
+					"describe": "Generate a new certificate even if one already exists at the target path"
+				}
+			],
+			"examples": [
+				["$0 certificate generate", "Generate a server certificate in the default UI5 data directory"],
+				["$0 certificate generate --force", "Regenerate the server certificate, overwriting an existing one"],
+				["UI5_DATA_DIR=/custom/path $0 certificate generate", "Generate a server certificate in a non-default UI5 data directory"]
+			]
+		}
+	]
+}

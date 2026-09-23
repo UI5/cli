@@ -1,0 +1,28 @@
+{
+	"command": "remove <framework-libraries..>",
+	"describe": "Remove SAPUI5/OpenUI5 framework libraries from the project configuration.",
+	"options": [
+		{
+			"key": "config",
+			"alias": "c",
+			"type": "string",
+			"describe": "Path to project configuration file in YAML format"
+		},
+		{
+			"key": "dependency-definition",
+			"type": "string",
+			"describe": "Path to a YAML file containing the project's dependency tree. This option will disable resolution of node package dependencies."
+		}
+	],
+	"positionals": [
+		{
+			"key": "framework-libraries",
+			"type": "string",
+			"required": true,
+			"describe": "Framework library names"
+		}
+	],
+	"examples": [
+		["$0 remove sap.ui.core sap.m", "Remove the framework libraries sap.ui.core and sap.m as dependencies"]
+	]
+}

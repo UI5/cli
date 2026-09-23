@@ -1,0 +1,24 @@
+{
+	"command": "cache",
+	"describe": "Manage the UI5 CLI cache (downloaded framework packages and build data)",
+	"subcommands": [
+		{
+			"command": "clean",
+			"describe": "Remove all cached UI5 data",
+			"options": [
+				{
+					"key": "force",
+					"alias": "f",
+					"type": "boolean",
+					"default": false,
+					"describe": "Skip the confirmation prompt, e.g. for use in CI pipelines"
+				}
+			],
+			"examples": [
+				["$0 cache clean", "Remove all cached UI5 data after confirmation"],
+				["$0 cache clean --force", "Remove all cached UI5 data without confirmation (e.g. in CI scenarios)"],
+				["UI5_DATA_DIR=/custom/path $0 cache clean", "Remove cached data from a non-default UI5 data directory"]
+			]
+		}
+	]
+}

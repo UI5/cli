@@ -1,0 +1,4 @@
+{
+	"command": "init",
+	"describe": "Initialize the UI5 CLI configuration for an application or library project."
+}

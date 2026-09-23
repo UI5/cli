@@ -1,0 +1,31 @@
+{
+	"command": "use <framework-info>",
+	"describe": "Initialize or update the project's framework configuration.",
+	"options": [
+		{
+			"key": "config",
+			"alias": "c",
+			"type": "string",
+			"describe": "Path to project configuration file in YAML format"
+		},
+		{
+			"key": "dependency-definition",
+			"type": "string",
+			"describe": "Path to a YAML file containing the project's dependency tree. This option will disable resolution of node package dependencies."
+		}
+	],
+	"positionals": [
+		{
+			"key": "framework-info",
+			"type": "string",
+			"required": true,
+			"describe": "Framework name, version or both (name@version).\nName can be \"SAPUI5\" or \"OpenUI5\" (case-insensitive).\nVersion can be \"latest\" (default), a version or range according to the Semantic Versioning specification (https://semver.org/), or a tag available in the npm registry.\nFor SAP-internal usage the version can also be \"latest-snapshot\", a version or range ending with -SNAPSHOT, or a simplified range such as \"1-SNAPSHOT\", \"1.x-SNAPSHOT\" or \"1.108-SNAPSHOT\"."
+		}
+	],
+	"examples": [
+		["$0 use sapui5@latest", "Use SAPUI5 in the latest available version"],
+		["$0 use openui5@1.76", "Use OpenUI5 in the latest available 1.76 patch version"],
+		["$0 use latest", "Use the latest available version of the configured framework"],
+		["$0 use openui5", "Use OpenUI5 in the latest available version"]
+	]
+}

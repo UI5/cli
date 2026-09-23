@@ -1,30 +1,22 @@
 // Use
+import {createRequire} from "node:module";
 import baseMiddleware from "../middlewares/base.js";
 import {applyProjectConfigOptions} from "../options.js";
+import {applyCommandMetadata} from "../commandMetadata.js";
+
+const require = createRequire(import.meta.url);
+const metadata = require("./use.json");
 
 const useCommand = {
-	command: "use <framework-info>",
-	describe: "Initialize or update the project's framework configuration.",
+	command: metadata.command,
+	describe: metadata.describe,
 	middlewares: [baseMiddleware]
 };
 
 useCommand.builder = function(cli) {
+	applyCommandMetadata(cli, metadata);
 	applyProjectConfigOptions(cli);
-	return cli
-		.positional("framework-info", {
-			describe: "Framework name, version or both (name@version).\n" +
-			"Name can be \"SAPUI5\" or \"OpenUI5\" (case-insensitive).\n" +
-			"Version can be \"latest\" (default), a version or range according to the Semantic Versioning specification (https://semver.org/), " +
-			"or a tag available in the npm registry.\n" +
-			"For SAP-internal usage the version can also be \"latest-snapshot\", " +
-			"a version or range ending with -SNAPSHOT, " +
-			"or a simplified range such as \"1-SNAPSHOT\", \"1.x-SNAPSHOT\" or \"1.108-SNAPSHOT\".",
-			type: "string"
-		})
-		.example("$0 use sapui5@latest", "Use SAPUI5 in the latest available version")
-		.example("$0 use openui5@1.76", "Use OpenUI5 in the latest available 1.76 patch version")
-		.example("$0 use latest", "Use the latest available version of the configured framework")
-		.example("$0 use openui5", "Use OpenUI5 in the latest available version");
+	return cli;
 };
 
 function parseFrameworkInfo(frameworkInfo) {

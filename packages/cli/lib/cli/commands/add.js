@@ -1,33 +1,22 @@
 // Add
+import {createRequire} from "node:module";
 import base from "../middlewares/base.js";
 import {applyProjectConfigOptions} from "../options.js";
+import {applyCommandMetadata} from "../commandMetadata.js";
+
+const require = createRequire(import.meta.url);
+const metadata = require("./add.json");
+
 const addCommand = {
-	command: "add [--development] [--optional] <framework-libraries..>",
-	describe: "Add SAPUI5/OpenUI5 framework libraries to the project configuration.",
+	command: metadata.command,
+	describe: metadata.describe,
 	middlewares: [base]
 };
 
 addCommand.builder = function(cli) {
+	applyCommandMetadata(cli, metadata);
 	applyProjectConfigOptions(cli);
-	return cli
-		.positional("framework-libraries", {
-			describe: "Framework library names",
-			type: "string"
-		}).option("development", {
-			describe: "Add as development dependency",
-			alias: ["D", "dev"],
-			default: false,
-			type: "boolean"
-		}).option("optional", {
-			describe: "Add as optional dependency",
-			alias: ["O"],
-			default: false,
-			type: "boolean"
-		})
-		.example("$0 add sap.ui.core sap.m", "Add the framework libraries sap.ui.core and sap.m as dependencies")
-		.example("$0 add -D sap.ui.support", "Add the framework library sap.ui.support as development dependency")
-		.example("$0 add --optional themelib_sap_fiori_3",
-			"Add the framework library themelib_sap_fiori_3 as optional dependency");
+	return cli;
 };
 
 addCommand.handler = async function(argv) {

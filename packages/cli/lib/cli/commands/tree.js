@@ -1,47 +1,27 @@
 // Tree
+import {createRequire} from "node:module";
 import baseMiddleware from "../middlewares/base.js";
 import {applyProjectConfigOptions, applyWorkspaceOptions, dedupeArray} from "../options.js";
+import {applyCommandMetadata} from "../commandMetadata.js";
 import chalk from "chalk";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("cli:commands:tree");
 
+const require = createRequire(import.meta.url);
+const metadata = require("./tree.json");
+
 const tree = {
-	command: "tree",
-	aliases: ["ls", "list"],
-	describe:
-		"Outputs the dependency tree of the current project to stdout. " +
-		"It takes all relevant parameters of ui5 build into account.",
+	command: metadata.command,
+	aliases: metadata.aliases,
+	describe: metadata.describe,
 	middlewares: [baseMiddleware]
 };
 
 tree.builder = function(cli) {
+	applyCommandMetadata(cli, metadata);
 	applyProjectConfigOptions(cli);
 	applyWorkspaceOptions(cli);
 	return cli
-		.option("flat", {
-			describe: "Output a flat list of all dependencies instead of a tree hierarchy",
-			type: "boolean",
-			default: false
-		})
-		.option("level", {
-			describe: "Limit the number of levels shown in the tree hierarchy",
-			type: "number"
-		})
-		.option("framework-version", {
-			describe:
-				"Overrides the framework version defined by the project. " +
-				"Takes the same value as the version part of \"ui5 use\"",
-			type: "string"
-		})
-		.option("cache-mode", {
-			// Deprecated
-			hidden: true,
-			describe:
-				"As of UI5 CLI version 5, renamed to '--snapshot-cache'. " +
-				"Use '--snapshot-cache' to control this behavior.",
-			type: "string",
-			choices: ["Default", "Force", "Off"],
-		})
 		.coerce("cache-mode", (opt) => {
 			opt = dedupeArray(opt);
 			// Log a warning if this option is used
@@ -50,15 +30,6 @@ tree.builder = function(cli) {
 					"Use '--snapshot-cache' to control this behavior.");
 			}
 			return opt;
-		})
-		.option("snapshot-cache", {
-			describe:
-				"Cache mode to use when consuming SNAPSHOT versions of framework dependencies. " +
-				"The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the cache only and " +
-				"does not create any requests. 'Off' invalidates any existing cache and updates from the repository",
-			type: "string",
-			defaultDescription: "Default", // Use "defaultDescription" to allow undefined (needed for evaluation)
-			choices: ["Default", "Force", "Off"],
 		})
 		.coerce(["framework-version"], dedupeArray);
 };

@@ -1,0 +1,46 @@
+{
+	"usage": "ui5 <command> [options]",
+	"options": [
+		{
+			"key": "loglevel",
+			"alias": "log-level",
+			"type": "string",
+			"default": "info",
+			"choices": ["silent", "error", "warn", "info", "perf", "verbose", "silly"],
+			"describe": "Set the logging level"
+		},
+		{
+			"key": "verbose",
+			"type": "boolean",
+			"default": false,
+			"describe": "Enable verbose logging."
+		},
+		{
+			"key": "perf",
+			"type": "boolean",
+			"default": false,
+			"describe": "Enable performance measurements and related logging."
+		},
+		{
+			"key": "silent",
+			"type": "boolean",
+			"default": false,
+			"describe": "Disable all log output."
+		},
+		{
+			"key": "help",
+			"alias": "h",
+			"type": "boolean",
+			"describe": "Show help"
+		},
+		{
+			"key": "version",
+			"alias": "v",
+			"type": "boolean",
+			"describe": "Show version number"
+		}
+	],
+	"examples": [
+		["ui5 <command> --log-level silly", "Execute command with the maximum log output"]
+	]
+}

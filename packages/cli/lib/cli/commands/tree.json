@@ -1,0 +1,60 @@
+{
+	"command": "tree",
+	"describe": "Outputs the dependency tree of the current project to stdout. It takes all relevant parameters of ui5 build into account.",
+	"aliases": ["ls", "list"],
+	"options": [
+		{
+			"key": "config",
+			"alias": "c",
+			"type": "string",
+			"describe": "Path to project configuration file in YAML format"
+		},
+		{
+			"key": "dependency-definition",
+			"type": "string",
+			"describe": "Path to a YAML file containing the project's dependency tree. This option will disable resolution of node package dependencies."
+		},
+		{
+			"key": "workspace-config",
+			"type": "string",
+			"describe": "Path to workspace configuration file in YAML format"
+		},
+		{
+			"key": "workspace",
+			"alias": "w",
+			"type": "string",
+			"default": "default",
+			"describe": "Name of the workspace configuration to use"
+		},
+		{
+			"key": "flat",
+			"type": "boolean",
+			"default": false,
+			"describe": "Output a flat list of all dependencies instead of a tree hierarchy"
+		},
+		{
+			"key": "level",
+			"type": "number",
+			"describe": "Limit the number of levels shown in the tree hierarchy"
+		},
+		{
+			"key": "framework-version",
+			"type": "string",
+			"describe": "Overrides the framework version defined by the project. Takes the same value as the version part of \"ui5 use\""
+		},
+		{
+			"key": "cache-mode",
+			"type": "string",
+			"hidden": true,
+			"choices": ["Default", "Force", "Off"],
+			"describe": "As of UI5 CLI version 5, renamed to '--snapshot-cache'. Use '--snapshot-cache' to control this behavior."
+		},
+		{
+			"key": "snapshot-cache",
+			"type": "string",
+			"defaultDescription": "Default",
+			"choices": ["Default", "Force", "Off"],
+			"describe": "Cache mode to use when consuming SNAPSHOT versions of framework dependencies. The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the cache only and does not create any requests. 'Off' invalidates any existing cache and updates from the repository"
+		}
+	]
+}
