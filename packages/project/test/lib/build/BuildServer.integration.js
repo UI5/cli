@@ -1426,6 +1426,81 @@ test.serial.failing(
 			"Served debug source map no longer reflects the stale input source map content");
 	});
 
+// CPOUI5FOUNDATION-1363 (cross-project theme `@import` regression guard): buildThemes resolves LESS
+// `@import`s through its workspace+dependencies combo (fsInterface(combo) in buildThemes.js). When a
+// theme-library's `library.source.less` `@import`s the base theme LESS of a *different* control
+// library, that `@import` is a cross-project DEPENDENCY read. Changing the imported base LESS while the
+// server runs must re-run the theme-library's buildThemes and serve fresh CSS — the theme-library
+// "builds on top of" the base theme, so a base-theme change must propagate. This test asserts that:
+// build the theme-library's `library.css` (which embeds the base color pulled in via the cross-project
+// `@import`), change ONLY the base library's `themes/base/library.source.less`, notify the watcher, and
+// expect the served CSS to reflect the new base color WITHOUT a server restart.
+//
+// This scenario passes on main and guards the current cross-project `@import` invalidation behavior
+// against regression while the new task system (CPOUI5FOUNDATION-1363) is developed on a separate
+// branch, where the same behavior must be preserved by design rather than by chance.
+test.serial(
+	"Serve theme.library.e, changing an @import-ed base theme LESS in a dependency invalidates the theme CSS",
+	async (t) => {
+		const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "theme.library.e");
+
+		// Wire up a base control library dependency that ships a base theme `library.source.less`, and
+		// make theme.library.e's theme `@import` it across the project boundary. Done before serveProject
+		// so the file watcher does not race with these writes (see FixtureTester.create's note).
+		const baseLibDir = `${fixtureTester.fixturePath}/node_modules/library.base`;
+		const baseThemeDir = `${baseLibDir}/src/library/base/themes/base`;
+		const baseLessPath = `${baseThemeDir}/library.source.less`;
+		await fs.mkdir(baseThemeDir, {recursive: true});
+		await fs.writeFile(baseLessPath,
+			`@baseColor: #010101;\n.baseRule {\n\tcolor: @baseColor;\n}\n`);
+		await fs.writeFile(`${baseLibDir}/src/library/base/.library`,
+			`<?xml version="1.0" encoding="UTF-8" ?>\n` +
+			`<library xmlns="http://www.sap.com/sap.ui.library.xsd">\n` +
+			`\t<name>library.base</name>\n\t<vendor>me</vendor>\n\t<version>1.0.0</version>\n` +
+			`\t<documentation>Base library</documentation>\n</library>\n`);
+		// specVersion 2.3 (like the library.a fixture) so no manifest.json is required in source.
+		await fs.writeFile(`${baseLibDir}/ui5.yaml`,
+			`---\nspecVersion: "2.3"\ntype: library\nmetadata:\n  name: library.base\n`);
+		await fs.writeFile(`${baseLibDir}/package.json`,
+			`{\n\t"name": "library.base",\n\t"version": "1.0.0"\n}\n`);
+
+		// Declare the dependency and rewrite the theme LESS to import the base library's base theme.
+		const pkgPath = `${fixtureTester.fixturePath}/package.json`;
+		const pkg = JSON.parse(await fs.readFile(pkgPath, {encoding: "utf8"}));
+		pkg.dependencies = {...(pkg.dependencies || {}), "library.base": "file:./node_modules/library.base"};
+		await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2));
+
+		const themeLessPath =
+			`${fixtureTester.fixturePath}/src/theme/library/e/themes/my_theme/library.source.less`;
+		await fs.writeFile(themeLessPath,
+			`@import "/resources/library/base/themes/base/library.source.less";\n\n` +
+			`.sapUiBody {\n\tbackground-color: @baseColor;\n}\n`);
+
+		await fixtureTester.serveProject();
+
+		const cssResource = "/resources/theme/library/e/themes/my_theme/library.css";
+
+		// #1 request builds the theme; the compiled CSS embeds the base color imported from library.base.
+		const first = await fixtureTester.requestResource({resource: cssResource});
+		const firstContent = await first.getString();
+		t.true(firstContent.includes("#010101"),
+			"Initial theme CSS reflects the base color imported from the base library's base theme");
+
+		// Change ONLY the base library's base theme LESS — the theme-library's own source is untouched.
+		await fs.writeFile(baseLessPath,
+			`@baseColor: #020202;\n.baseRule {\n\tcolor: @baseColor;\n}\n`);
+		await fixtureTester.fireWatcherEvent("update", baseLessPath);
+
+		// #2 request: the served theme CSS must reflect the changed base color, because the theme
+		// `@import`s the base library's base theme and thus builds on top of it.
+		const second = await fixtureTester.requestResource({resource: cssResource});
+		const secondContent = await second.getString();
+		t.true(secondContent.includes("#020202"),
+			"Served theme CSS reflects the changed @import-ed base theme LESS without a server restart");
+		t.false(secondContent.includes("#010101"),
+			"Served theme CSS no longer reflects the stale base color");
+	});
+
 function getFixturePath(fixtureName) {
 	return fileURLToPath(new URL(`../../fixtures/${fixtureName}`, import.meta.url));
 }
