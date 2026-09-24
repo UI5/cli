@@ -276,6 +276,77 @@ test.serial("cleanCache: returns null when db does not exist", async (t) => {
 	t.is(result, null);
 });
 
+test.serial("getProjectCacheInfo: Returns null when db does not exist", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+
+	const info = await CacheManager.getProjectCacheInfo(testDir, "project-x");
+	t.is(info, null);
+});
+
+test.serial("getProjectCacheInfo: Returns null when project has no records", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.writeIndexCache("project-a", "build-sig", "source", {value: 1});
+	cm.close();
+
+	const info = await CacheManager.getProjectCacheInfo(testDir, "project-b");
+	t.is(info, null);
+});
+
+test.serial("getProjectCacheInfo: Returns info when project has records", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.writeIndexCache("project-x", "build-sig", "source", {value: 1});
+	cm.close();
+
+	const info = await CacheManager.getProjectCacheInfo(testDir, "project-x");
+	t.truthy(info);
+	t.is(info.projectId, "project-x");
+	t.regex(info.path, /^buildCache\//);
+});
+
+test.serial("cleanProject: Removes only the project's records and returns the result", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.writeIndexCache("project-x", "build-sig", "source", {value: 1});
+	cm.writeResultMetadata("project-x", "build-sig", "result-sig", {value: 2});
+	cm.writeIndexCache("project-y", "build-sig", "source", {value: 3});
+	cm.close();
+
+	const result = await CacheManager.cleanProject(testDir, "project-x");
+	t.truthy(result);
+	t.is(result.projectId, "project-x");
+	t.is(result.deletedEntries, 2);
+
+	t.is(await CacheManager.getProjectCacheInfo(testDir, "project-x"), null,
+		"Target project has no records left");
+	t.truthy(await CacheManager.getProjectCacheInfo(testDir, "project-y"),
+		"Other project is untouched");
+});
+
+test.serial("cleanProject: Returns null when project has no records", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+	const cm = new CacheManager(path.join(testDir, "buildCache"));
+	cm.writeIndexCache("project-a", "build-sig", "source", {value: 1});
+	cm.close();
+
+	const result = await CacheManager.cleanProject(testDir, "project-b");
+	t.is(result, null);
+});
+
+test.serial("cleanProject: Returns null when db does not exist", async (t) => {
+	const testDir = getUniqueTestDir();
+	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
+
+	const result = await CacheManager.cleanProject(testDir, "project-x");
+	t.is(result, null);
+});
+
 test.serial("getAdditionalCacheInfo: returns empty array when no stale tables", async (t) => {
 	const testDir = getUniqueTestDir();
 	const CacheManager = (await import("../../../../lib/build/cache/CacheManager.js")).default;
