@@ -9,6 +9,19 @@ function emptyarray() {
 	return [];
 }
 
+// A task receives its taskUtil wrapped in a MonitoredTaskUtil, which records the inputs the task
+// reads. The wrapper exposes getInputRecording() and delegates every other member to the underlying
+// taskUtil, so a wrapped member reads back the underlying value.
+function assertMonitoredTaskUtil(t, actual, {delegates} = {}) {
+	t.is(typeof actual.getInputRecording, "function", "task received a MonitoredTaskUtil");
+	t.deepEqual(actual.getInputRecording(), [], "no task inputs recorded");
+	if (delegates) {
+		for (const [key, value] of Object.entries(delegates)) {
+			t.is(actual[key], value, `MonitoredTaskUtil delegates '${key}' to the underlying taskUtil`);
+		}
+	}
+}
+
 const buildConfig = {
 	selfContained: false,
 	jsdoc: false,
@@ -78,8 +91,6 @@ test.beforeEach(async (t) => {
 		getProject: sinon.stub(),
 		getDependencies: sinon.stub().returns(["dep.a", "dep.b"]),
 		getInterface: sinon.stub(),
-		resetEnvReadRecording: sinon.stub(),
-		getEnvReadRecording: sinon.stub().returns([]),
 	};
 	t.context.taskUtil.getInterface.returns(t.context.taskUtil);
 
@@ -670,7 +681,7 @@ test("Custom task is called correctly", async (t) => {
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
 		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
 	});
-	t.context.taskUtil.getInterface.returns("taskUtil interface");
+	t.context.taskUtil.getInterface.returns({isTaskUtilInterface: true});
 	const project = getMockProject("module");
 	project.getCustomTasks = () => [
 		{name: "myTask", configuration: "configuration"}
@@ -704,7 +715,7 @@ test("Custom task is called correctly", async (t) => {
 	const taskArgs = taskStub.getCall(0).args[0];
 	t.is(taskArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
 	t.is(taskArgs.dependencies.constructor.name, "MonitoredReader", "dependencies is MonitoredReader");
-	t.is(taskArgs.taskUtil, "taskUtil interface", "taskUtil is correct");
+	assertMonitoredTaskUtil(t, taskArgs.taskUtil, {delegates: {isTaskUtilInterface: true}});
 	t.is(taskArgs.options.projectName, "project.b", "projectName is correct");
 	t.is(taskArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
 	t.is(taskArgs.options.configuration, "configuration", "configuration is correct");
@@ -933,7 +944,7 @@ test("Custom task with specVersion 3.0", async (t) => {
 	t.is(taskArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
 	t.is(taskArgs.dependencies.constructor.name, "MonitoredReader", "dependencies is MonitoredReader");
 	t.is(taskArgs.log, "group logger", "log is correct");
-	t.deepEqual(taskArgs.taskUtil, taskUtil, "taskUtil is correct");
+	assertMonitoredTaskUtil(t, taskArgs.taskUtil);
 	t.is(taskArgs.options.projectName, "project.b", "projectName is correct");
 	t.is(taskArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
 	t.is(taskArgs.options.taskName, "myTask", "taskName is correct");
@@ -993,7 +1004,7 @@ test("Custom task with specVersion 3.0 and no requiredDependenciesCallback", asy
 	const taskArgs = taskStub.getCall(0).args[0];
 	t.is(taskArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
 	t.is(taskArgs.log, "group logger", "log is correct");
-	t.deepEqual(taskArgs.taskUtil, taskUtil, "taskUtil is correct");
+	assertMonitoredTaskUtil(t, taskArgs.taskUtil);
 	t.is(taskArgs.options.projectName, "project.b", "projectName is correct");
 	t.is(taskArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
 	t.is(taskArgs.options.taskName, "myTask", "taskName is correct");
@@ -1175,7 +1186,7 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 	const taskCArgs = taskStubC.getCall(0).args[0];
 	t.is(taskCArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
 	t.is(taskCArgs.log, "group logger", "log is correct");
-	t.deepEqual(taskCArgs.taskUtil, taskUtil, "taskUtil is correct");
+	assertMonitoredTaskUtil(t, taskCArgs.taskUtil);
 	t.is(taskCArgs.options.projectName, "project.b", "projectName is correct");
 	t.is(taskCArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
 	t.is(taskCArgs.options.taskName, "myTask--3", "taskName is correct");
@@ -1187,7 +1198,7 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 	t.is(taskDArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
 	t.is(taskDArgs.dependencies.constructor.name, "MonitoredReader", "dependencies is MonitoredReader");
 	t.is(taskDArgs.log, "group logger", "log is correct");
-	t.deepEqual(taskDArgs.taskUtil, taskUtil, "taskUtil is correct");
+	assertMonitoredTaskUtil(t, taskDArgs.taskUtil);
 	t.is(taskDArgs.options.projectName, "project.b", "projectName is correct");
 	t.is(taskDArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
 	t.is(taskDArgs.options.taskName, "myTask--4", "taskName is correct");
@@ -1304,7 +1315,7 @@ test("Custom task attached to a disabled task", async (t) => {
 });
 
 test.serial("_addTask", async (t) => {
-	const {sinon, taskUtil, taskRepository} = t.context;
+	const {sinon, taskRepository} = t.context;
 
 	const taskStub = sinon.stub();
 	taskRepository.getTask.withArgs("standardTask").resolves({
@@ -1336,11 +1347,11 @@ test.serial("_addTask", async (t) => {
 	t.is(taskCallArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
 	t.is(taskCallArgs.options.projectName, "project.b", "projectName is correct");
 	t.is(taskCallArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
-	t.is(taskCallArgs.taskUtil, taskUtil, "taskUtil is correct");
+	assertMonitoredTaskUtil(t, taskCallArgs.taskUtil);
 });
 
 test.serial("_addTask with options", async (t) => {
-	const {sinon, taskUtil, taskRepository} = t.context;
+	const {sinon, taskRepository} = t.context;
 	const taskStub = sinon.stub();
 	const project = getMockProject("module");
 
@@ -1378,7 +1389,7 @@ test.serial("_addTask with options", async (t) => {
 	t.is(taskCallArgs.options.projectName, "project.b", "projectName is correct");
 	t.is(taskCallArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
 	t.is(taskCallArgs.options.myTaskOption, "cat", "myTaskOption is correct");
-	t.is(taskCallArgs.taskUtil, taskUtil, "taskUtil is correct");
+	assertMonitoredTaskUtil(t, taskCallArgs.taskUtil);
 });
 
 test("_addTask: Duplicate task", async (t) => {

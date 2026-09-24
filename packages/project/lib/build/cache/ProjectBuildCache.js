@@ -61,6 +61,7 @@ export default class ProjectBuildCache {
 	#buildSignature;
 	#cacheManager;
 	#cacheMode;
+	#resolveInputValue;
 	#currentProjectReader;
 	#currentDependencyReader;
 	#sourceIndex;
@@ -105,14 +106,19 @@ export default class ProjectBuildCache {
 	 * @param {string} buildSignature Build signature for the current build
 	 * @param {object|null} cacheManager Cache manager instance for reading/writing cache data
 	 * @param {string} cacheMode Cache mode to use for building UI5 projects
+	 * @param {function(string, string): (string|undefined)} [resolveInputValue]
+	 *   Resolver for the current value of a recorded non-resource task input, given its type and
+	 *   name. Provided by the ProjectBuildContext (which can reach the project graph). When omitted,
+	 *   only environment-variable inputs are re-read (from <code>process.env</code>).
 	 */
-	constructor(project, buildSignature, cacheManager, cacheMode) {
+	constructor(project, buildSignature, cacheManager, cacheMode, resolveInputValue) {
 		log.verbose(
 			`ProjectBuildCache for project ${project.getName()} uses build signature ${buildSignature}`);
 		this.#project = project;
 		this.#buildSignature = buildSignature;
 		this.#cacheManager = cacheManager;
 		this.#cacheMode = cacheMode;
+		this.#resolveInputValue = resolveInputValue;
 	}
 
 	/**
@@ -539,7 +545,7 @@ export default class ProjectBuildCache {
 	#getAggregatedInputSignature() {
 		const inputSignatures = [];
 		for (const taskCache of this.#taskCache.values()) {
-			inputSignatures.push(taskCache.getInputSignature());
+			inputSignatures.push(taskCache.getInputSignature(this.#resolveInputValue));
 		}
 		return crypto.createHash("sha256").update(inputSignatures.sort().join("\0")).digest("hex");
 	}
@@ -588,9 +594,10 @@ export default class ProjectBuildCache {
 		// After index update, try to find cached stages for the new signatures
 		// let stageSignatures = taskCache.getAffiliatedSignaturePairs();
 
-		// Current non-resource input signature (e.g. env-var usage), re-evaluated against the current
-		// environment. Folded into the project component so a changed input misses the cached stage.
-		const inputSig = taskCache.getInputSignature();
+		// Current non-resource input signature (env-var usage, TaskUtil interface reads), re-evaluated
+		// against the current environment and graph. Folded into the project component so a changed
+		// input misses the cached stage.
+		const inputSig = taskCache.getInputSignature(this.#resolveInputValue);
 		const combineInput = (projSig) => combineProjectAndInputSignature(projSig, inputSig);
 
 		const projectSignatures = taskCache.getProjectIndexSignatures().map(combineInput);
@@ -722,8 +729,9 @@ export default class ProjectBuildCache {
 		const stageName = this.#getStageNameForTask(taskName);
 
 		// Compute possible signatures from current index state. Fold the current non-resource input
-		// signature (e.g. env-var usage) into the project component, matching how stages are recorded.
-		const inputSig = taskCache.getInputSignature();
+		// signature (env-var usage, TaskUtil interface reads) into the project component, matching how
+		// stages are recorded.
+		const inputSig = taskCache.getInputSignature(this.#resolveInputValue);
 		const projectSignatures = taskCache.getProjectIndexSignatures()
 			.map((projSig) => combineProjectAndInputSignature(projSig, inputSig));
 		const dependencySignatures = taskCache.getDependencyIndexSignatures();
@@ -891,14 +899,15 @@ export default class ProjectBuildCache {
 	 *   Resource requests for dependency resources
 	 * @param {object} cacheInfo Cache information for differential updates
 	 * @param {boolean} supportsDifferentialBuilds Whether the task supports differential updates
-	 * @param {Array<{type: string, name: string, value: string|undefined}>} [envRecording]
-	 *   Non-resource inputs (e.g. environment variables) recorded during task execution
+	 * @param {Array<{type: string, name: string, value: string|undefined}>} [inputRecording]
+	 *   Non-resource inputs (environment variables, TaskUtil interface reads) recorded during task
+	 *   execution
 	 * @returns {Promise<string[]|undefined>} The resource paths written by the task,
 	 *   or <code>undefined</code> if caching is disabled
 	 */
 	async recordTaskResult(
 		taskName, projectResourceRequests, dependencyResourceRequests, cacheInfo, supportsDifferentialBuilds,
-		envRecording = []
+		inputRecording = []
 	) {
 		if (this.#cacheMode === Cache.Off) {
 			return;
@@ -997,7 +1006,7 @@ export default class ProjectBuildCache {
 				dependencyResourceRequests,
 				this.#currentProjectReader,
 				this.#currentDependencyReader,
-				envRecording
+				inputRecording
 			);
 			if (log.isLevelEnabled("perf")) {
 				log.perf(
@@ -2034,7 +2043,7 @@ function createStageSignature(projectSignature, dependencySignature) {
  *
  * @param {string} projectSignature Project resource index signature
  * @param {string} inputSignature Non-resource input signature (see
- *   {@link @ui5/project/build/cache/index/InputHashTree})
+ *   {@link @ui5/project/build/cache/index/TaskInputSet})
  * @returns {string} Combined project-component signature
  */
 function combineProjectAndInputSignature(projectSignature, inputSignature) {

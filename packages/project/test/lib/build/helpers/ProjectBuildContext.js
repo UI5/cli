@@ -434,3 +434,71 @@ test("getBuildMetadata: has no build-manifest", (t) => {
 	);
 	t.is(projectBuildContext.getBuildMetadata(), null, "Project has no build manifest");
 });
+
+test("resolveInputValue: env reads process.env", (t) => {
+	const buildContext = createBuildContextStub();
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	t.teardown(() => {
+		delete process.env.UI5_PROJECT_BUILD_CONTEXT_TEST;
+	});
+	delete process.env.UI5_PROJECT_BUILD_CONTEXT_TEST;
+	t.is(projectBuildContext.resolveInputValue("env", "UI5_PROJECT_BUILD_CONTEXT_TEST"), undefined,
+		"unset variable resolves to undefined");
+	process.env.UI5_PROJECT_BUILD_CONTEXT_TEST = "value";
+	t.is(projectBuildContext.resolveInputValue("env", "UI5_PROJECT_BUILD_CONTEXT_TEST"), "value");
+});
+
+test("resolveInputValue: isRootProject normalizes the boolean", (t) => {
+	const rootProject = {getName: () => "root", getType: () => "type"};
+	const buildContext = createBuildContextStub({getRootProject: () => rootProject});
+	const projectBuildContext = new ProjectBuildContext(buildContext, rootProject);
+
+	t.is(projectBuildContext.resolveInputValue("isRootProject", ""), "true");
+});
+
+test("resolveInputValue: getDependencies normalizes the array via the graph", (t) => {
+	const getDependencies = sinon.stub().returns(["dep.a", "dep.b"]);
+	const buildContext = createBuildContextStub({
+		getGraph: () => ({getDependencies, getTaskRepository: () => ({})}),
+		getTaskRepository: () => ({}),
+	});
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	t.is(projectBuildContext.resolveInputValue("getDependencies", "project"), `["dep.a","dep.b"]`);
+	t.true(getDependencies.calledWith("project"));
+});
+
+test("resolveInputValue: project.getVersion reads the dependency version from the graph", (t) => {
+	const coreProject = {getName: () => "sap.ui.core", getVersion: () => "2.0.0"};
+	const getProject = sinon.stub().callsFake((name) => (name === "sap.ui.core" ? coreProject : undefined));
+	const buildContext = createBuildContextStub({
+		getGraph: () => ({getProject}),
+	});
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	t.is(projectBuildContext.resolveInputValue("project.getVersion", "sap.ui.core"), "2.0.0");
+});
+
+test("resolveInputValue: unresolvable project yields undefined", (t) => {
+	const getProject = sinon.stub().returns(undefined);
+	const buildContext = createBuildContextStub({
+		getGraph: () => ({getProject}),
+	});
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	t.is(projectBuildContext.resolveInputValue("project.getVersion", "gone"), undefined,
+		"a project no longer in the graph resolves to undefined");
+});
+
+test("resolveInputValue: unknown type yields undefined", (t) => {
+	const buildContext = createBuildContextStub();
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	t.is(projectBuildContext.resolveInputValue("unknownType", "x"), undefined);
+});

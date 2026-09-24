@@ -302,10 +302,21 @@ metadata:
 	* @param {string} version The new `package.json` version (e.g. "2.0.0")
 	*/
 	async setSapUiCoreDependencyVersion(version) {
-		const pkgPath = `${this.fixturePath}/node_modules/sap.ui.core/package.json`;
+		const modulePath = `${this.fixturePath}/node_modules/@openui5/sap.ui.core`;
+		const pkgPath = `${modulePath}/package.json`;
 		const pkg = JSON.parse(await fs.readFile(pkgPath, {encoding: "utf8"}));
 		pkg.version = version;
 		await fs.writeFile(pkgPath, JSON.stringify(pkg, null, "\t"));
+		// Keep the .library version in sync: a UI5 library project's version is read from .library.
+		await fs.writeFile(`${modulePath}/src/sap/ui/core/.library`,
+			`<?xml version="1.0" encoding="UTF-8" ?>\n` +
+			`<library xmlns="http://www.sap.com/sap.ui.library.xsd">\n` +
+			`\t<name>sap.ui.core</name>\n` +
+			`\t<vendor>SAP SE</vendor>\n` +
+			`\t<copyright>Some fancy copyright</copyright>\n` +
+			`\t<version>${version}</version>\n` +
+			`\t<documentation>SAP UI core library</documentation>\n` +
+			`</library>\n`);
 	}
 
 	/**

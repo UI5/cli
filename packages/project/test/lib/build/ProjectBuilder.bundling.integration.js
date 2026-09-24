@@ -598,25 +598,20 @@ test.serial("Build component.a (Custom Component preload configuration)", async 
 // section excludes it ("Do not include manifest.json in UI5 2.x and higher ..."). The sap.ui.core
 // version is therefore a genuine input of the preload.
 //
-// But the project build signature (getBuildSignature.js `getProjectSignature`) folds in only the
-// project's OWN id/config, task signatures, and the @ui5/builder/@ui5/fs/@ui5/project versions —
-// never a DEPENDENCY project's version. So changing only the sap.ui.core dependency version between
-// builds, while the library's own sources are untouched, does not change the signature: the result
-// cache hits and the previously built (stale) preload is served.
+// The project build signature (getBuildSignature.js `getProjectSignature`) folds in only the
+// project's OWN id/config, task signatures, and the @ui5/builder/@ui5/fs/@ui5/project versions,
+// never a DEPENDENCY project's version. generateLibraryPreload also reads ONLY the current project's
+// own workspace (`nonDbgWorkspace.byGlob(...)`), never the `dependencies` reader, so the built
+// resource content of the sap.ui.core dependency is not an input either. The version reaches the
+// output solely through `taskUtil.getProject("sap.ui.core").getVersion()`.
 //
-// generateLibraryPreload reads ONLY the current project's own workspace (`nonDbgWorkspace.byGlob(...)`),
-// never the `dependencies` reader. So the built RESOURCE content of the sap.ui.core dependency is never
-// an input to library.d's preload — a version bump reaches the output solely through
-// `taskUtil.getProject("sap.ui.core").getVersion()`, which is precisely the input the signature does
-// not observe.
-//
-// This asserts the desired behavior: after bumping the sap.ui.core dependency from 1.x to 2.x, the
-// rebuilt preload reflects the >=2 form (manifest.json no longer bundled). It is marked test.failing
-// because the signature does not yet observe the dependency version, so the v1 preload is served
-// stale. AVA reports a failing-marked test as a pass while it throws and as a hard error once it
-// starts passing; committing it keeps CI green and flips to a signal the moment the gap is fixed
-// (at which point drop the `.failing`).
-test.serial.failing(
+// The task receives its taskUtil wrapped in a MonitoredTaskUtil, so that getVersion read is recorded
+// as a task input ("project.getVersion" for sap.ui.core) and folded into the task's build-cache
+// signature. On a later build the recorded input is re-evaluated against the current graph
+// (ProjectBuildContext#resolveInputValue), so a version bump misses the cache and rebuilds the
+// preload. This asserts that: after bumping sap.ui.core from 1.x to 2.x, the rebuilt preload reflects
+// the >=2 form (manifest.json no longer bundled).
+test.serial(
 	"Build library.d (changing the sap.ui.core dependency version invalidates the library preload)",
 	async (t) => {
 		const fixtureTester = new FixtureTester(t, "library.d");
