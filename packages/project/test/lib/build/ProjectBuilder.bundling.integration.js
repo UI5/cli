@@ -690,11 +690,10 @@ test.serial.failing(
 // the previously built (non-bundle-info) preload is served, and `_library-content.js` is never produced.
 //
 // This asserts the desired behavior: after enabling the env var, the rebuilt output includes the
-// experimental `_library-content.js` bundle. It is marked test.failing because env-var usage is not yet
-// a tracked task input, so the stale output is served. AVA reports a failing-marked test as a pass while
-// it throws and as a hard error once it starts passing; committing it keeps CI green and flips to a
-// signal the moment the env-var tracking PoC lands (at which point drop the `.failing`).
-test.serial.failing(
+// experimental `_library-content.js` bundle. generateLibraryPreload reads the flag through
+// taskUtil.getEnv, so the incremental build tracks it as a task input and invalidates the cached
+// result when it changes.
+test.serial(
 	"Build library.d (toggling UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD invalidates the library preload)",
 	async (t) => {
 		const fixtureTester = new FixtureTester(t, "library.d");
@@ -729,7 +728,7 @@ test.serial.failing(
 
 		await t.notThrowsAsync(fs.readFile(preloadPath, {encoding: "utf8"}),
 			"Regular build produces the library-preload.js bundle");
-		await t.throwsAsync(fs.readFile(contentBundlePath, {encoding: "utf8"}),
+		await t.throwsAsync(fs.readFile(contentBundlePath, {encoding: "utf8"}), undefined,
 			"Regular build does not produce the experimental _library-content.js bundle");
 
 		// Enable the experimental flag. No library source resource changes.
