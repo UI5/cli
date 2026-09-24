@@ -1,5 +1,6 @@
 import {getLogger} from "@ui5/logger";
 import ResourceRequestManager from "./ResourceRequestManager.js";
+import InputHashTree from "./index/InputHashTree.js";
 const log = getLogger("build:cache:BuildTaskCache");
 
 /**
@@ -35,6 +36,15 @@ export default class BuildTaskCache {
 	#projectRequestManager;
 	#dependencyRequestManager;
 
+	// Tracks non-resource inputs (currently environment variables) recorded during the last
+	// execution of this task. Its signature is folded into the task's stage signature so that a
+	// changed input invalidates the cached result. Only entry names are persisted; values are
+	// re-read on lookup (see #inputTree.getSignatureWithCurrentValues).
+	#inputTree;
+	// Whether the input tree changed since it was restored from cache (or was freshly recorded),
+	// so that toCacheObjects/hasNewOrModifiedCacheEntries know it must be persisted.
+	#inputTreeModified = false;
+
 	/**
 	 * Creates a new BuildTaskCache instance
 	 *
@@ -45,8 +55,10 @@ export default class BuildTaskCache {
 	 * @param {ResourceRequestManager} [projectRequestManager] Optional pre-existing project request manager from cache
 	 * @param {ResourceRequestManager} [dependencyRequestManager]
 	 * 	Optional pre-existing dependency request manager from cache
+	 * @param {InputHashTree} [inputTree] Optional pre-existing input hash tree from cache
 	 */
-	constructor(projectName, taskName, supportsDifferentialBuilds, projectRequestManager, dependencyRequestManager) {
+	constructor(projectName, taskName, supportsDifferentialBuilds, projectRequestManager, dependencyRequestManager,
+		inputTree) {
 		this.#projectName = projectName;
 		this.#taskName = taskName;
 		this.#supportsDifferentialBuilds = supportsDifferentialBuilds;
@@ -57,6 +69,7 @@ export default class BuildTaskCache {
 			new ResourceRequestManager(projectName, taskName, supportsDifferentialBuilds);
 		this.#dependencyRequestManager = dependencyRequestManager ??
 			new ResourceRequestManager(projectName, taskName, supportsDifferentialBuilds);
+		this.#inputTree = inputTree ?? new InputHashTree();
 	}
 
 	/**
@@ -71,15 +84,17 @@ export default class BuildTaskCache {
 	 * @param {boolean} supportsDifferentialBuilds Whether the task supports differential updates
 	 * @param {object} projectRequests Cached project request manager data
 	 * @param {object} dependencyRequests Cached dependency request manager data
+	 * @param {object} [inputTree] Cached input hash tree data
 	 * @returns {BuildTaskCache} Restored task cache instance
 	 */
-	static fromCache(projectName, taskName, supportsDifferentialBuilds, projectRequests, dependencyRequests) {
+	static fromCache(projectName, taskName, supportsDifferentialBuilds, projectRequests, dependencyRequests,
+		inputTree) {
 		const projectRequestManager = ResourceRequestManager.fromCache(projectName, taskName,
 			supportsDifferentialBuilds, projectRequests);
 		const dependencyRequestManager = ResourceRequestManager.fromCache(projectName, taskName,
 			supportsDifferentialBuilds, dependencyRequests);
 		return new BuildTaskCache(projectName, taskName, supportsDifferentialBuilds,
-			projectRequestManager, dependencyRequestManager);
+			projectRequestManager, dependencyRequestManager, InputHashTree.fromCache(inputTree));
 	}
 
 	// ===== METADATA ACCESS =====
@@ -118,7 +133,26 @@ export default class BuildTaskCache {
 	 */
 	hasNewOrModifiedCacheEntries() {
 		return this.#projectRequestManager.hasNewOrModifiedCacheEntries() ||
-			this.#dependencyRequestManager.hasNewOrModifiedCacheEntries();
+			this.#dependencyRequestManager.hasNewOrModifiedCacheEntries() ||
+			this.#inputTreeModified;
+	}
+
+	/**
+	 * Returns the signature of this task's recorded non-resource inputs, computed against the
+	 * current environment.
+	 *
+	 * Used on cache lookup: the recorded input names are re-evaluated against the current
+	 * <code>process.env</code>, so the returned signature reflects the environment of the build
+	 * performing the lookup. When the task recorded no inputs, a stable empty-input sentinel is
+	 * returned.
+	 *
+	 * @public
+	 * @param {object} [callbacks] Optional value-read callbacks (see
+	 *   {@link @ui5/project/build/cache/index/InputHashTree#getSignatureWithCurrentValues})
+	 * @returns {string} Input signature
+	 */
+	getInputSignature(callbacks) {
+		return this.#inputTree.getSignatureWithCurrentValues(callbacks);
 	}
 
 	/**
@@ -257,9 +291,12 @@ export default class BuildTaskCache {
 	 *   Dependency resource requests (paths and patterns)
 	 * @param {module:@ui5/fs.AbstractReader} projectReader Reader for accessing project resources
 	 * @param {module:@ui5/fs.AbstractReader} dependencyReader Reader for accessing dependency resources
-	 * @returns {Promise<string[]>} Array containing [projectSignature, dependencySignature]
+	 * @param {Array<{type: string, name: string, value: string|undefined}>} [envRecording]
+	 *   Non-resource inputs (e.g. environment variables) recorded during task execution
+	 * @returns {Promise<string[]>} Array containing [projectSignature, dependencySignature, inputSignature]
 	 */
-	async recordRequests(projectRequestRecording, dependencyRequestRecording, projectReader, dependencyReader) {
+	async recordRequests(projectRequestRecording, dependencyRequestRecording, projectReader, dependencyReader,
+		envRecording = []) {
 		const {
 			setId: projectReqSetId, signature: projectReqSignature
 		} = await this.#projectRequestManager.addRequests(projectRequestRecording, projectReader);
@@ -275,7 +312,17 @@ export default class BuildTaskCache {
 		} else {
 			dependencyReqSignature = this.#dependencyRequestManager.recordNoRequests();
 		}
-		return [projectReqSignature, dependencyReqSignature];
+
+		// Record the non-resource inputs consumed by this execution. Rebuild the tree from the
+		// recording; if the recorded entry set differs from what was restored/recorded before, flag
+		// it for persistence.
+		const newInputTree = new InputHashTree(envRecording);
+		if (newInputTree.getSignature() !== this.#inputTree.getSignature()) {
+			this.#inputTreeModified = true;
+		}
+		this.#inputTree = newInputTree;
+
+		return [projectReqSignature, dependencyReqSignature, this.#inputTree.getSignature()];
 	}
 
 	/**
@@ -286,9 +333,14 @@ export default class BuildTaskCache {
 	 * the cache state. Returns undefined for request managers with no new or modified entries.
 	 *
 	 * @public
-	 * @returns {Array<object|undefined>} Array containing [projectCacheObject, dependencyCacheObject]
+	 * @returns {Array<object|undefined>} Array containing
+	 *   [projectCacheObject, dependencyCacheObject, inputCacheObject]
 	 */
 	toCacheObjects() {
-		return [this.#projectRequestManager.toCacheObject(), this.#dependencyRequestManager.toCacheObject()];
+		return [
+			this.#projectRequestManager.toCacheObject(),
+			this.#dependencyRequestManager.toCacheObject(),
+			this.#inputTree.isEmpty() ? undefined : this.#inputTree.toCacheObject(),
+		];
 	}
 }

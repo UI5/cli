@@ -7,6 +7,7 @@ import os from "node:os";
 import BuildTaskCache from "./BuildTaskCache.js";
 import StageCache from "./StageCache.js";
 import ResourceIndex from "./index/ResourceIndex.js";
+import {EMPTY_INPUT_SIGNATURE} from "./index/InputHashTree.js";
 import {isResourceUnchanged} from "./utils.js";
 const log = getLogger("build:cache:ProjectBuildCache");
 import Cache from "./Cache.js";
@@ -495,9 +496,16 @@ export default class ProjectBuildCache {
 		}
 		const dependencySignaturesCombinations = cartesianProduct(taskDependencySignatures);
 
+		// Aggregate the current non-resource input signature (e.g. env-var usage) across all tasks.
+		// It is a single current value (not a set of cached alternatives), so it applies to every
+		// dependency-signature combination as a constant, folded into the source component.
+		const aggregatedInputSignature = this.#getAggregatedInputSignature();
+		const sourceComponent =
+			combineProjectAndInputSignature(projectSourceSignature, aggregatedInputSignature);
+
 		return dependencySignaturesCombinations.map((dependencySignatures) => {
 			const combinedDepSignature = createDependencySignature(dependencySignatures);
-			return createStageSignature(projectSourceSignature, combinedDepSignature);
+			return createStageSignature(sourceComponent, combinedDepSignature);
 		});
 	}
 
@@ -513,7 +521,35 @@ export default class ProjectBuildCache {
 			dependencySignatures.push(depSignature);
 		}
 		const combinedDepSignature = createDependencySignature(dependencySignatures);
-		return createStageSignature(projectSourceSignature, combinedDepSignature);
+		const aggregatedInputSignature = this.#getAggregatedInputSignature();
+		const sourceComponent =
+			combineProjectAndInputSignature(projectSourceSignature, aggregatedInputSignature);
+		return createStageSignature(sourceComponent, combinedDepSignature);
+	}
+
+	/**
+	 * Aggregates the current non-resource input signatures (e.g. recorded env-var usage) across all
+	 * task caches into a single signature, re-evaluated against the current environment.
+	 *
+	 * Folded into the result stage signature so that a changed input invalidates the project-level
+	 * result cache and the per-project build is not skipped wholesale (the result-cache check runs
+	 * before per-task cache checks). Returns the empty-input sentinel when no task recorded any
+	 * input, keeping the result signature identical to pre-input-tracking behavior.
+	 *
+	 * @returns {string} Aggregated input signature
+	 */
+	#getAggregatedInputSignature() {
+		const inputSignatures = [];
+		for (const taskCache of this.#taskCache.values()) {
+			const sig = taskCache.getInputSignature();
+			if (sig && sig !== EMPTY_INPUT_SIGNATURE) {
+				inputSignatures.push(sig);
+			}
+		}
+		if (!inputSignatures.length) {
+			return EMPTY_INPUT_SIGNATURE;
+		}
+		return crypto.createHash("sha256").update(inputSignatures.sort().join("\0")).digest("hex");
 	}
 
 	// ===== TASK MANAGEMENT =====
@@ -560,7 +596,12 @@ export default class ProjectBuildCache {
 		// After index update, try to find cached stages for the new signatures
 		// let stageSignatures = taskCache.getAffiliatedSignaturePairs();
 
-		const projectSignatures = taskCache.getProjectIndexSignatures();
+		// Current non-resource input signature (e.g. env-var usage), re-evaluated against the current
+		// environment. Folded into the project component so a changed input misses the cached stage.
+		const inputSig = taskCache.getInputSignature();
+		const combineInput = (projSig) => combineProjectAndInputSignature(projSig, inputSig);
+
+		const projectSignatures = taskCache.getProjectIndexSignatures().map(combineInput);
 		const dependencySignatures = taskCache.getDependencyIndexSignatures();
 		const stageSignatures = combineTwoArraysFast(
 			projectSignatures,
@@ -596,9 +637,19 @@ export default class ProjectBuildCache {
 			const projectDeltas = taskCache.getProjectIndexDeltas();
 			const depDeltas = taskCache.getDependencyIndexDeltas();
 
+			// Delta keys are raw project signatures; the cached stage stores the input-combined form.
+			// Track a combined -> raw mapping so a delta hit can be resolved back to its delta entry.
+			const combinedToRawProjectSig = new Map();
+			const combinedProjectDeltaKeys = [];
+			for (const rawProjSig of projectDeltas.keys()) {
+				const combined = combineInput(rawProjSig);
+				combinedToRawProjectSig.set(combined, rawProjSig);
+				combinedProjectDeltaKeys.push(combined);
+			}
+
 			// Combine deltas of project stages with cached dependency signatures
 			const projDeltaSignatures = combineTwoArraysFast(
-				Array.from(projectDeltas.keys()),
+				combinedProjectDeltaKeys,
 				dependencySignatures,
 			).map((signaturePair) => {
 				return createStageSignature(...signaturePair);
@@ -612,7 +663,7 @@ export default class ProjectBuildCache {
 			});
 			// Combine deltas of both project and dependency stages
 			const deltaDeltaSignatures = combineTwoArraysFast(
-				Array.from(projectDeltas.keys()),
+				combinedProjectDeltaKeys,
 				Array.from(depDeltas.keys()),
 			).map((signaturePair) => {
 				return createStageSignature(...signaturePair);
@@ -634,11 +685,15 @@ export default class ProjectBuildCache {
 					}
 				}
 
-				// Create new signature and determine changed resource paths
-				const projectDeltaInfo = projectDeltas.get(foundProjectSig);
+				// Create new signature and determine changed resource paths.
+				// The found project signature is the input-combined form; map it back to the raw
+				// project signature to look up the delta, then recombine with the current input
+				// signature so the new signature stays consistent with how stages are recorded.
+				const rawFoundProjectSig = combinedToRawProjectSig.get(foundProjectSig) ?? foundProjectSig;
+				const projectDeltaInfo = projectDeltas.get(rawFoundProjectSig);
 				const dependencyDeltaInfo = depDeltas.get(foundDepSig);
 
-				const newProjSig = projectDeltaInfo?.newSignature ?? foundProjectSig;
+				const newProjSig = combineInput(projectDeltaInfo?.newSignature ?? rawFoundProjectSig);
 				const newDepSig = dependencyDeltaInfo?.newSignature ?? foundDepSig;
 				const newSignature = createStageSignature(newProjSig, newDepSig);
 				this.#currentStageSignatures.set(stageName, [newProjSig, newDepSig]);
@@ -674,8 +729,11 @@ export default class ProjectBuildCache {
 		}
 		const stageName = this.#getStageNameForTask(taskName);
 
-		// Compute possible signatures from current index state
-		const projectSignatures = taskCache.getProjectIndexSignatures();
+		// Compute possible signatures from current index state. Fold the current non-resource input
+		// signature (e.g. env-var usage) into the project component, matching how stages are recorded.
+		const inputSig = taskCache.getInputSignature();
+		const projectSignatures = taskCache.getProjectIndexSignatures()
+			.map((projSig) => combineProjectAndInputSignature(projSig, inputSig));
 		const dependencySignatures = taskCache.getDependencyIndexSignatures();
 		const stageSignatures = combineTwoArraysFast(
 			projectSignatures,
@@ -841,11 +899,14 @@ export default class ProjectBuildCache {
 	 *   Resource requests for dependency resources
 	 * @param {object} cacheInfo Cache information for differential updates
 	 * @param {boolean} supportsDifferentialBuilds Whether the task supports differential updates
+	 * @param {Array<{type: string, name: string, value: string|undefined}>} [envRecording]
+	 *   Non-resource inputs (e.g. environment variables) recorded during task execution
 	 * @returns {Promise<string[]|undefined>} The resource paths written by the task,
 	 *   or <code>undefined</code> if caching is disabled
 	 */
 	async recordTaskResult(
-		taskName, projectResourceRequests, dependencyResourceRequests, cacheInfo, supportsDifferentialBuilds
+		taskName, projectResourceRequests, dependencyResourceRequests, cacheInfo, supportsDifferentialBuilds,
+		envRecording = []
 	) {
 		if (this.#cacheMode === Cache.Off) {
 			return;
@@ -939,11 +1000,12 @@ export default class ProjectBuildCache {
 		} else {
 			// Calculate signature for executed task
 			const recordReqStart = performance.now();
-			const currentSignaturePair = await taskCache.recordRequests(
+			const [projectSig, dependencySig, inputSig] = await taskCache.recordRequests(
 				projectResourceRequests,
 				dependencyResourceRequests,
 				this.#currentProjectReader,
-				this.#currentDependencyReader
+				this.#currentDependencyReader,
+				envRecording
 			);
 			if (log.isLevelEnabled("perf")) {
 				log.perf(
@@ -951,6 +1013,10 @@ export default class ProjectBuildCache {
 					`in project ${this.#project.getName()} completed in ` +
 					`${(performance.now() - recordReqStart).toFixed(2)} ms`);
 			}
+			// Fold any recorded non-resource inputs (e.g. env-var usage) into the project component,
+			// keeping the stage signature a two-component pair.
+			const combinedProjectSig = combineProjectAndInputSignature(projectSig, inputSig);
+			const currentSignaturePair = [combinedProjectSig, dependencySig];
 			// If provided, set dependency signature for later use in result stage signature calculation
 			const stageName = this.#getStageNameForTask(taskName);
 			this.#currentStageSignatures.set(stageName, currentSignaturePair);
@@ -1445,8 +1511,13 @@ export default class ProjectBuildCache {
 						throw new Error(`Failed to load dependency request cache for task ` +
 							`${taskName} in project ${this.#project.getName()}`);
 					}
+					// Input metadata (e.g. recorded env-var usage) is optional: absent for tasks that
+					// declared no non-resource inputs, and absent in caches written before input
+					// tracking existed.
+					const inputTree = this.#cacheManager.readTaskMetadata(
+						this.#project.getId(), this.#buildSignature, taskName, "input");
 					return BuildTaskCache.fromCache(this.#project.getName(), taskName, !!supportsDifferentialBuilds,
-						projectRequests, dependencyRequests);
+						projectRequests, dependencyRequests, inputTree);
 				})
 			);
 			// Ensure taskCache is filled in the order of task execution
@@ -1804,13 +1875,16 @@ export default class ProjectBuildCache {
 			if (!taskCache.hasNewOrModifiedCacheEntries()) {
 				continue;
 			}
-			const [projectRequests, dependencyRequests] = taskCache.toCacheObjects();
+			const [projectRequests, dependencyRequests, inputTree] = taskCache.toCacheObjects();
 			log.verbose(`Preparing task cache metadata for task ${taskName} in project ${this.#project.getName()}`);
 			if (projectRequests) {
 				out.push({taskName, type: "project", metadata: projectRequests});
 			}
 			if (dependencyRequests) {
 				out.push({taskName, type: "dependencies", metadata: dependencyRequests});
+			}
+			if (inputTree) {
+				out.push({taskName, type: "input", metadata: inputTree});
 			}
 		}
 		return out;
@@ -1959,6 +2033,31 @@ function combineTwoArraysFast(array1, array2) {
  */
 function createStageSignature(projectSignature, dependencySignature) {
 	return `${projectSignature}-${dependencySignature}`;
+}
+
+/**
+ * Folds a task's non-resource input signature (e.g. recorded env-var usage) into its project
+ * resource signature, keeping the stage signature a two-component pair so the delta combinatorics
+ * are unaffected.
+ *
+ * Returns the project signature unchanged for the empty-input sentinel
+ * ({@link @ui5/project/build/cache/index/InputHashTree.EMPTY_INPUT_SIGNATURE}), so tasks that
+ * declare no inputs produce the exact same stage signature as before input tracking existed
+ * (backward compatible with caches written by older versions).
+ *
+ * @param {string} projectSignature Project resource index signature
+ * @param {string} inputSignature Non-resource input signature
+ * @returns {string} Combined project-component signature
+ */
+function combineProjectAndInputSignature(projectSignature, inputSignature) {
+	if (!inputSignature || inputSignature === EMPTY_INPUT_SIGNATURE) {
+		return projectSignature;
+	}
+	return crypto.createHash("sha256")
+		.update(projectSignature)
+		.update("\0")
+		.update(inputSignature)
+		.digest("hex");
 }
 
 /**
