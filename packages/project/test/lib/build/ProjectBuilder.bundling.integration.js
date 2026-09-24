@@ -673,3 +673,76 @@ test.serial.failing(
 		t.false(preloadV2.includes("library/d/manifest.json"),
 			"Preload rebuilt against sap.ui.core@2.x no longer bundles the library's manifest.json");
 	});
+
+// generateLibraryPreload reads process.env.UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD
+// (generateLibraryPreload.js: `const createBundleInfoPreload = !!process.env.UI5_CLI_EXPERIMENTAL_...`).
+// The env var switches the task between two output shapes: without it a single
+// `${namespace}/library-preload.js` is produced; with it the experimental bundle-info path additionally
+// emits a `${namespace}/_library-content.js` bundle (getBundleInfoPreloadDefinition /
+// getContentBundleDefinition). The env var is therefore a genuine input of the task's output.
+//
+// But the incremental build tracks only RESOURCE inputs: a task's stage signature is derived from the
+// content hashes of the project/dependency resources it reads (BuildTaskCache.recordRequests ->
+// ResourceRequestManager), and the project build signature (getBuildSignature.js `getProjectSignature`)
+// folds in only build config, task option signatures, project id/config and tool versions. No
+// process.env value feeds either. So flipping UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD between builds,
+// while the library's sources are untouched, does not change any signature: the result cache hits and
+// the previously built (non-bundle-info) preload is served, and `_library-content.js` is never produced.
+//
+// This asserts the desired behavior: after enabling the env var, the rebuilt output includes the
+// experimental `_library-content.js` bundle. It is marked test.failing because env-var usage is not yet
+// a tracked task input, so the stale output is served. AVA reports a failing-marked test as a pass while
+// it throws and as a hard error once it starts passing; committing it keeps CI green and flips to a
+// signal the moment the env-var tracking PoC lands (at which point drop the `.failing`).
+test.serial.failing(
+	"Build library.d (toggling UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD invalidates the library preload)",
+	async (t) => {
+		const fixtureTester = new FixtureTester(t, "library.d");
+		const destPath = fixtureTester.destPath;
+		const contentBundlePath = `${destPath}/resources/library/d/_library-content.js`;
+		const preloadPath = `${destPath}/resources/library/d/library-preload.js`;
+
+		// Always restore the env var so neighbouring tests observe the ambient value.
+		const previousFlag = process.env.UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD;
+		t.teardown(() => {
+			if (previousFlag === undefined) {
+				delete process.env.UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD;
+			} else {
+				process.env.UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD = previousFlag;
+			}
+		});
+
+		await fixtureTester._initialize();
+
+		// The experimental bundle-info path resolves `${namespace}/library.js` and a
+		// `${namespace}/manifest.json`; ship a manifest.json so both the preload and the content bundle
+		// have something to bundle.
+		await fs.writeFile(`${fixtureTester.fixturePath}/main/src/library/d/manifest.json`,
+			JSON.stringify({"sap.app": {"id": "library.d", "type": "library"}}, null, "\t"));
+
+		// #1 build (no cache) with the experimental flag DISABLED: regular preload, no content bundle.
+		delete process.env.UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD;
+		await fixtureTester.buildProject({
+			graphConfig: {rootConfigPath: "ui5.yaml"},
+			config: {destPath, cleanDest: true},
+		});
+
+		await t.notThrowsAsync(fs.readFile(preloadPath, {encoding: "utf8"}),
+			"Regular build produces the library-preload.js bundle");
+		await t.throwsAsync(fs.readFile(contentBundlePath, {encoding: "utf8"}),
+			"Regular build does not produce the experimental _library-content.js bundle");
+
+		// Enable the experimental flag. No library source resource changes.
+		process.env.UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD = "true";
+
+		// #2 build (with cache): generateLibraryPreload must re-run under the experimental path and
+		// produce the additional _library-content.js bundle.
+		await fixtureTester.buildProject({
+			graphConfig: {rootConfigPath: "ui5.yaml"},
+			config: {destPath, cleanDest: true},
+		});
+
+		await t.notThrowsAsync(fs.readFile(contentBundlePath, {encoding: "utf8"}),
+			"Rebuild with UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD enabled produces the " +
+			"experimental _library-content.js bundle");
+	});
