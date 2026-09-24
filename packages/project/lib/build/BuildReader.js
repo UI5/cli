@@ -14,6 +14,7 @@ class BuildReader extends AbstractReader {
 	#projects;
 	#projectNames;
 	#applicationProjectName;
+	#themeLibraryProjectNames = [];
 	#namespaces = new Map();
 	#buildServerInterface;
 
@@ -46,6 +47,15 @@ class BuildReader extends AbstractReader {
 			if (project.getType() === "application") {
 				this.#applicationProjectName = project.getName();
 			}
+
+			// Theme libraries have no namespace (they can contribute themes to several) and serve
+			// their resources under a path owned by another project, e.g. themelib_sap_horizon
+			// serves /resources/sap/ui/core/themes/sap_horizon/. Namespace matching therefore
+			// routes such a request to the wrong project, so theme libraries are tracked
+			// separately and offered as a routing candidate for theme resource paths.
+			if (project.getType() === "theme-library") {
+				this.#themeLibraryProjectNames.push(project.getName());
+			}
 		}
 	}
 
@@ -66,8 +76,10 @@ class BuildReader extends AbstractReader {
 	/**
 	 * Locates a resource by path
 	 *
-	 * Attempts to determine the appropriate project reader based on the resource path
-	 * and namespace. Falls back to searching all projects if the resource cannot be found.
+	 * Tries candidate readers in priority order (see {@link BuildReader#_getReaderCandidates})
+	 * and returns the first resource found. Each candidate reader is requested from the build server
+	 * only when the preceding ones did not yield the resource, so the minimal set of projects is
+	 * built. The reader for all projects is the last resort.
 	 *
 	 * @public
 	 * @param {string} virPath Virtual path of the resource
@@ -75,61 +87,98 @@ class BuildReader extends AbstractReader {
 	 * @returns {Promise<@ui5/fs/Resource|null>} Promise resolving to resource or null if not found
 	 */
 	async byPath(virPath, ...args) {
-		const reader = await this._getReaderForResource(virPath);
-		let res = await reader.byPath(virPath, ...args);
-		if (!res) {
-			// Fallback to unspecified projects
-			const allReader = await this.#buildServerInterface.getReaderForProjects(this.#projectNames);
-			res = await allReader.byPath(virPath, ...args);
+		for (const getReader of this._getReaderCandidates(virPath)) {
+			const reader = await getReader();
+			if (!reader) {
+				continue;
+			}
+			const res = await reader.byPath(virPath, ...args);
+			if (res) {
+				return res;
+			}
 		}
-		return res;
+		return null;
 	}
 
 	/**
-	 * Gets the appropriate reader for a resource at the given path
+	 * Builds the ordered list of candidate readers for a resource path
 	 *
-	 * Determines which project(s) might contain the resource based on namespace matching
-	 * and returns a reader for those projects. For single-project readers, returns that
-	 * project's reader directly.
+	 * Each entry is a factory resolving to a reader (or undefined when its strategy does not apply).
+	 * Factories are evaluated lazily by {@link BuildReader#byPath} and requesting a reader from the
+	 * build server may (re)build the associated projects, so ordering minimizes unnecessary builds:
+	 * cheaper and more specific strategies come first, the reader for all projects comes last.
 	 *
 	 * @param {string} virPath Virtual path of the resource
-	 * @returns {Promise<@ui5/fs/AbstractReader>} Promise resolving to appropriate reader
+	 * @returns {Array<function(): Promise<@ui5/fs/AbstractReader|undefined>>} Ordered readers
 	 */
-	async _getReaderForResource(virPath) {
+	_getReaderCandidates(virPath) {
 		if (this.#projects.length === 1) {
 			// Filtering on a single project (typically the root project)
-			return await this.#buildServerInterface.getReaderForProject(this.#projectNames[0]);
-		}
-		// Determine project for resource path
-		const projects = this._getProjectsForResourcePath(virPath);
-		if (projects.length) {
-			return await this.#buildServerInterface.getReaderForProjects(projects);
+			return [
+				() => this.#buildServerInterface.getReaderForProject(this.#projectNames[0]),
+			];
 		}
 
-		// Unable to determine project for resource using path
-		// Fallback 1: Try to find resource in cached readers (if available) to identify the relevant project
-		const cachedReader = this.#buildServerInterface.getCachedReadersForProjects(this.#projectNames);
-		if (cachedReader) {
+		const readers = [];
+
+		// Cached readers hold the results of already-built (fresh) projects and are free to query,
+		// so consult them first: a hit identifies the owning project without building anything.
+		readers.push(async () => {
+			const cachedReader = this.#buildServerInterface.getCachedReadersForProjects(this.#projectNames);
+			if (!cachedReader) {
+				return;
+			}
 			const res = await cachedReader.byPath(virPath);
 			if (res) {
-				// Found resource in one of the cached readers. Assume it still belongs to the associated project
-				return this.#buildServerInterface.getReaderForProject(res.getProject().getName());
+				// Found in a cached reader. Request the project's own reader so a subsequent
+				// invalidation is reflected, assuming the resource still belongs to that project.
+				return await this.#buildServerInterface.getReaderForProject(res.getProject().getName());
 			}
+		});
+
+		// Namespace matches, most specific first. Offered individually so a more specific match is
+		// tried (and its project built) before a less specific one.
+		for (const projectName of this._getProjectsForResourcePath(virPath)) {
+			readers.push(() => this.#buildServerInterface.getReaderForProject(projectName));
 		}
 
-		// Fallback 2: If the root project is of type application, and the request does not start with
-		// /resources/ or /test-resources/, test whether the resource can be found in the root project
+		// Theme libraries serve resources under a path owned by another project's namespace, so the
+		// namespace match above can miss them. When the path looks like a theme resource, offer the
+		// theme libraries as a candidate before falling back to all projects.
+		if (this.#themeLibraryProjectNames.length && this._isThemeResourcePath(virPath)) {
+			readers.push(() =>
+				this.#buildServerInterface.getReaderForProjects(this.#themeLibraryProjectNames));
+		}
+
+		// If the root project is an application and the request does not start with /resources/ or
+		// /test-resources/, the resource may live in the application project itself.
 		if (this.#applicationProjectName && !virPath.startsWith("/resources/") &&
 			!virPath.startsWith("/test-resources/")) {
-			const appReader = await this.#buildServerInterface.getReaderForProject(this.#applicationProjectName);
-			const res = await appReader.byPath(virPath);
-			if (res) {
-				return appReader;
-			}
+			readers.push(() => this.#buildServerInterface.getReaderForProject(this.#applicationProjectName));
 		}
 
-		// Fallback to request a reader for all projects
-		return await this.#buildServerInterface.getReaderForProjects(this.#projectNames);
+		// Last resort: a reader for all projects. This (re)builds every non-fresh project, so it is
+		// only reached when no more specific strategy located the resource.
+		readers.push(() => this.#buildServerInterface.getReaderForProjects(this.#projectNames));
+
+		return readers;
+	}
+
+	/**
+	 * Checks whether a path looks like a theme-library resource
+	 *
+	 * Theme libraries serve their resources under a "themes/<theme-name>/" segment
+	 * (e.g. /resources/sap/ui/core/themes/sap_horizon/library.css), so only such paths
+	 * are routed to theme libraries.
+	 *
+	 * @param {string} virPath Virtual resource path
+	 * @returns {boolean} True if the path is a resource path with a "themes" segment
+	 */
+	_isThemeResourcePath(virPath) {
+		if (!virPath.startsWith("/resources/") && !virPath.startsWith("/test-resources/")) {
+			return false;
+		}
+		return virPath.split("/").includes("themes");
 	}
 
 	/**
