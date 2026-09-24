@@ -40,7 +40,6 @@
 	},
 	"files": [
 		"CHANGELOG.md",
-		"npm-shrinkwrap.json",
 		"bin/**",
 		"lib/**",
 		"LICENSES/**"

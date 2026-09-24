@@ -1,9 +1,0 @@
-{
-	"lockfileVersion": 2,
-	"packages": {
-		"": {
-			"name": "@ui5/cli",
-			"version": "1.0.0"
-		}
-	}
-}

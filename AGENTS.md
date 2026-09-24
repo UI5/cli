@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-UI5 CLI v5 — an open, modular toolchain for developing UI5 framework applications. This is a **monorepo** using npm workspaces containing 6 public packages and 4 internal packages. All code uses **ESM** (`"type": "module"`).
+UI5 CLI v5 — an open, modular toolchain for developing UI5 framework applications. This is a **monorepo** using npm workspaces containing 6 public packages and 3 internal packages. All code uses **ESM** (`"type": "module"`).
 
 **Node requirement**: `^22.20.0 || >=24.0.0`
 
@@ -62,8 +62,9 @@ npm run coverage --workspace=@ui5/server  # Single package
 - **Project** builds a `ProjectGraph` of dependencies from npm packages and UI5 config files (YAML/XML); validates configs with AJV JSON schemas
 
 Internal packages:
+- `internal/benchmark` — CLI performance benchmark tooling
 - `internal/documentation` — VitePress docs + JSDoc + JSON schema generation
-- `internal/shrinkwrap-extractor` — npm shrinkwrap utilities
+- `internal/e2e-tests` — end-to-end tests for packaged CLI workflows
 
 ### Internal package dependencies
 
@@ -93,6 +94,6 @@ Conventional commits enforced via commitlint + husky. Subject must be sentence-c
 
 **Types**: `build`, `ci`, `deps`, `docs`, `feat`, `fix`, `perf`, `refactor`, `release`, `revert`, `style`, `test`
 
-**Scopes** are package names: `builder`, `cli`, `documentation`, `fs`, `logger`, `project`, `server`, `shrinkwrap-extractor`. Some types restrict which scopes are valid (e.g., `feat` and `fix` only allow public package scopes).
+**Scopes** are package names: `builder`, `cli`, `documentation`, `fs`, `logger`, `project`, `server`. Some types restrict which scopes are valid (e.g., `feat` and `fix` only allow public package scopes).
 
 Examples: `feat(builder): Add CSS source map support`, `fix(server): Correct middleware ordering`

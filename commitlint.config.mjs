@@ -10,7 +10,6 @@ const PUBLIC_PACKAGES = [
 
 const INTERNAL_PACKAGES = [
 	"documentation",
-	"shrinkwrap-extractor"
 ];
 
 const ALLOWED_TYPE_SCOPE_COMBINATIONS = {
