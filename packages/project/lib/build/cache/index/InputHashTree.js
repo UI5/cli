@@ -1,19 +1,6 @@
 import crypto from "node:crypto";
 
 /**
- * Signature returned for an input set with no recorded entries.
- *
- * A fixed, distinct sentinel so that "this task declared no additional inputs"
- * is stable across builds and never collides with a real hash. It is composed
- * away in {@link @ui5/project/build/cache/ProjectBuildCache} so that tasks
- * without additional inputs keep producing the exact same stage signature they
- * did before input tracking existed (backward compatibility with older caches).
- *
- * @type {string}
- */
-export const EMPTY_INPUT_SIGNATURE = "no-inputs";
-
-/**
  * @typedef {object} @ui5/project/build/cache/index/InputHashTree~InputEntry
  * @property {string} type Input type. Currently only "env" is supported.
  * @property {string} name Input name (e.g. the environment variable name)
@@ -88,8 +75,6 @@ export default class InputHashTree {
 	/**
 	 * Computes the signature over the recorded entries and their recorded values.
 	 *
-	 * Returns {@link EMPTY_INPUT_SIGNATURE} when no entries are recorded.
-	 *
 	 * @returns {string} Input signature
 	 */
 	getSignature() {
@@ -121,14 +106,14 @@ export default class InputHashTree {
 	}
 
 	/**
+	 * Computes the signature over the recorded entries. An empty set produces a stable, fixed
+	 * digest (the hash of zero entries).
+	 *
 	 * @param {function(@ui5/project/build/cache/index/InputHashTree~InputEntry): (string|undefined)} getValue
 	 * @returns {string}
 	 * @private
 	 */
 	#computeSignature(getValue) {
-		if (this.#entries.size === 0) {
-			return EMPTY_INPUT_SIGNATURE;
-		}
 		const hash = crypto.createHash("sha256");
 		// Entries are hashed in stable (type, name) order. Fields are NUL-separated:
 		// types are known identifiers, env names/values are arbitrary strings, but
@@ -165,16 +150,18 @@ export default class InputHashTree {
 	/**
 	 * Restores an InputHashTree from its serialized form.
 	 *
-	 * Tolerates missing or unrecognized data by returning an empty tree: an "input" metadata row is
-	 * optional (tasks with no tracked inputs never write one, and caches written before input
-	 * tracking existed have none), so absence must not be an error.
+	 * An "input" metadata row is written only for tasks that recorded at least one input, so a
+	 * missing row (<code>null</code>/<code>undefined</code>) yields an empty tree.
 	 *
 	 * @param {object} [data] Serialized cache object created by {@link #toCacheObject}
 	 * @returns {InputHashTree}
 	 */
 	static fromCache(data) {
-		if (!data || data.version !== 1 || !Array.isArray(data.entries)) {
+		if (!data) {
 			return new InputHashTree();
+		}
+		if (data.version !== 1) {
+			throw new Error(`Unsupported InputHashTree version: ${data.version}`);
 		}
 		// Restored entries carry no value; a lookup reads current values by name.
 		return new InputHashTree(data.entries.map(({type, name}) => ({type, name, value: undefined})));

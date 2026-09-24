@@ -1381,6 +1381,9 @@ async function buildCacheWithWarmCacheAndTaskResult({
 
 	// Mock task metadata for the cached task
 	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
+		if (type === "input") {
+			return null;
+		}
 		return {
 			requestSetGraph: {nodes: [], nextId: 1},
 			rootIndices: [],
@@ -1592,6 +1595,9 @@ test("restoreFrozenSources: cache miss skips gracefully", async (t) => {
 	};
 	cacheManager.readIndexCache.returns(indexCache);
 	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
+		if (type === "input") {
+			return null;
+		}
 		return {
 			requestSetGraph: {nodes: [], nextId: 1},
 			rootIndices: [],
@@ -1676,6 +1682,9 @@ test("restoreFrozenSources: cache hit creates CAS reader", async (t) => {
 	};
 	cacheManager.readIndexCache.returns(indexCache);
 	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
+		if (type === "input") {
+			return null;
+		}
 		return {
 			requestSetGraph: {nodes: [], nextId: 1},
 			rootIndices: [],
@@ -1791,6 +1800,9 @@ async function createCacheInRestoringState({
 	};
 
 	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
+		if (type === "input") {
+			return null;
+		}
 		return {
 			requestSetGraph: {nodes: [], nextId: 1},
 			rootIndices: [],
@@ -2284,6 +2296,9 @@ async function createCacheWithDependencyGlob({
 	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, task, type) => {
 		if (type === "dependencies") {
 			return depCacheObject;
+		}
+		if (type === "input") {
+			return null;
 		}
 		return {requestSetGraph: {nodes: [], nextId: 1}, rootIndices: [], deltaIndices: [], unusedAtLeastOnce: false};
 	});

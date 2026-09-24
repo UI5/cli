@@ -7,7 +7,6 @@ import os from "node:os";
 import BuildTaskCache from "./BuildTaskCache.js";
 import StageCache from "./StageCache.js";
 import ResourceIndex from "./index/ResourceIndex.js";
-import {EMPTY_INPUT_SIGNATURE} from "./index/InputHashTree.js";
 import {isResourceUnchanged} from "./utils.js";
 const log = getLogger("build:cache:ProjectBuildCache");
 import Cache from "./Cache.js";
@@ -533,21 +532,14 @@ export default class ProjectBuildCache {
 	 *
 	 * Folded into the result stage signature so that a changed input invalidates the project-level
 	 * result cache and the per-project build is not skipped wholesale (the result-cache check runs
-	 * before per-task cache checks). Returns the empty-input sentinel when no task recorded any
-	 * input, keeping the result signature identical to pre-input-tracking behavior.
+	 * before per-task cache checks).
 	 *
 	 * @returns {string} Aggregated input signature
 	 */
 	#getAggregatedInputSignature() {
 		const inputSignatures = [];
 		for (const taskCache of this.#taskCache.values()) {
-			const sig = taskCache.getInputSignature();
-			if (sig && sig !== EMPTY_INPUT_SIGNATURE) {
-				inputSignatures.push(sig);
-			}
-		}
-		if (!inputSignatures.length) {
-			return EMPTY_INPUT_SIGNATURE;
+			inputSignatures.push(taskCache.getInputSignature());
 		}
 		return crypto.createHash("sha256").update(inputSignatures.sort().join("\0")).digest("hex");
 	}
@@ -2040,19 +2032,12 @@ function createStageSignature(projectSignature, dependencySignature) {
  * resource signature, keeping the stage signature a two-component pair so the delta combinatorics
  * are unaffected.
  *
- * Returns the project signature unchanged for the empty-input sentinel
- * ({@link @ui5/project/build/cache/index/InputHashTree.EMPTY_INPUT_SIGNATURE}), so tasks that
- * declare no inputs produce the exact same stage signature as before input tracking existed
- * (backward compatible with caches written by older versions).
- *
  * @param {string} projectSignature Project resource index signature
- * @param {string} inputSignature Non-resource input signature
+ * @param {string} inputSignature Non-resource input signature (see
+ *   {@link @ui5/project/build/cache/index/InputHashTree})
  * @returns {string} Combined project-component signature
  */
 function combineProjectAndInputSignature(projectSignature, inputSignature) {
-	if (!inputSignature || inputSignature === EMPTY_INPUT_SIGNATURE) {
-		return projectSignature;
-	}
 	return crypto.createHash("sha256")
 		.update(projectSignature)
 		.update("\0")
