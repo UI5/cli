@@ -49,18 +49,21 @@ test("byPath: returns resource from primary reader", async (t) => {
 	t.is(result, resource);
 });
 
-test("byPath: falls back to all projects when primary reader returns null", async (t) => {
+test("byPath: single project queries only its own reader", async (t) => {
+	// For a single project, #getReaderForProjects short-circuits to the same reader as
+	// #getReaderForProject, so byPath offers only the single project's reader and consults
+	// nothing else when it returns null.
 	const projects = [createMockProject("proj-a", "my/ns")];
-	const resource = {getPath: () => "/resources/my/ns/a.js"};
 	const primaryReader = {byPath: sinon.stub().resolves(null)};
-	const fallbackReader = {byPath: sinon.stub().resolves(resource)};
 	const buildServerInterface = {
 		getReaderForProject: sinon.stub().resolves(primaryReader),
-		getReaderForProjects: sinon.stub().resolves(fallbackReader),
+		getReaderForProjects: sinon.stub().resolves(primaryReader),
 	};
 	const reader = new BuildReader("test", projects, buildServerInterface);
 	const result = await reader.byPath("/resources/my/ns/a.js");
-	t.is(result, resource);
+	t.is(result, null);
+	t.is(buildServerInterface.getReaderForProject.callCount, 1);
+	t.is(buildServerInterface.getReaderForProjects.callCount, 0);
 });
 
 test("byPath: final fallback when path doesn't match any namespace", async (t) => {
