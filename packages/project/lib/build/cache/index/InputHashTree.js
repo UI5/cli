@@ -165,17 +165,18 @@ export default class InputHashTree {
 	/**
 	 * Restores an InputHashTree from its serialized form.
 	 *
-	 * @param {object} data Serialized cache object created by {@link #toCacheObject}
+	 * Tolerates missing or unrecognized data by returning an empty tree: an "input" metadata row is
+	 * optional (tasks with no tracked inputs never write one, and caches written before input
+	 * tracking existed have none), so absence must not be an error.
+	 *
+	 * @param {object} [data] Serialized cache object created by {@link #toCacheObject}
 	 * @returns {InputHashTree}
 	 */
 	static fromCache(data) {
-		if (!data) {
+		if (!data || data.version !== 1 || !Array.isArray(data.entries)) {
 			return new InputHashTree();
 		}
-		if (data.version !== 1) {
-			throw new Error(`Unsupported InputHashTree version: ${data.version}`);
-		}
 		// Restored entries carry no value; a lookup reads current values by name.
-		return new InputHashTree((data.entries ?? []).map(({type, name}) => ({type, name, value: undefined})));
+		return new InputHashTree(data.entries.map(({type, name}) => ({type, name, value: undefined})));
 	}
 }
