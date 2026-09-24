@@ -233,6 +233,7 @@ class TaskRunner {
 				}
 				this._log.startTask(taskName, usingCache);
 				this._taskStart = performance.now();
+				this._taskUtil.resetEnvReadRecording();
 				await taskFunction(params);
 				if (this._log.isLevelEnabled("perf")) {
 					this._log.perf(
@@ -242,7 +243,8 @@ class TaskRunner {
 					workspace.getResourceRequests(),
 					dependencies?.getResourceRequests(),
 					usingCache ? cacheInfo : undefined,
-					supportsDifferentialBuilds);
+					supportsDifferentialBuilds,
+					this._taskUtil.getEnvReadRecording());
 				this._log.endTask(taskName, usingCache, writtenResourcePaths);
 			};
 		}
@@ -485,12 +487,14 @@ class TaskRunner {
 				params.dependencies = dependencies;
 			}
 			this._log.startTask(taskName, usingCache);
+			this._taskUtil.resetEnvReadRecording();
 			await taskFunction(params);
 			const writtenResourcePaths = await this._buildCache.recordTaskResult(taskName,
 				workspace.getResourceRequests(),
 				dependencies?.getResourceRequests(),
 				usingCache ? cacheInfo : undefined,
-				supportsDifferentialBuilds);
+				supportsDifferentialBuilds,
+				this._taskUtil.getEnvReadRecording());
 			this._log.endTask(taskName, usingCache, writtenResourcePaths);
 		};
 	}

@@ -78,6 +78,8 @@ test.beforeEach(async (t) => {
 		getProject: sinon.stub(),
 		getDependencies: sinon.stub().returns(["dep.a", "dep.b"]),
 		getInterface: sinon.stub(),
+		resetEnvReadRecording: sinon.stub(),
+		getEnvReadRecording: sinon.stub().returns([]),
 	};
 	t.context.taskUtil.getInterface.returns(t.context.taskUtil);
 

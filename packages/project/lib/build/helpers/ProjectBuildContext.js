@@ -53,6 +53,11 @@ class ProjectBuildContext {
 		this._queues = {
 			cleanup: []
 		};
+
+		// Records environment-variable reads made by the task currently being executed
+		// (via TaskUtil#getEnv). Reset by the TaskRunner before each task and drained
+		// afterwards to fold the recorded usage into the task's stage signature.
+		this._currentEnvReadRecording = new Map();
 	}
 
 	/**
@@ -127,6 +132,42 @@ class ProjectBuildContext {
 	 */
 	registerCleanupTask(callback) {
 		this._queues.cleanup.push(callback);
+	}
+
+	/**
+	 * Records an environment-variable read made by the task currently being executed.
+	 *
+	 * Called by [TaskUtil#getEnv]{@link @ui5/project/build/helpers/TaskUtil#getEnv}. The recorded
+	 * usage is drained by {@link #getEnvReadRecording} at the task boundary and folded into the
+	 * task's stage signature so that a changed environment variable invalidates the task's cached
+	 * result.
+	 *
+	 * @param {string} name Environment variable name
+	 * @param {string|undefined} value Environment variable value at read time
+	 */
+	recordEnvRead(name, value) {
+		this._currentEnvReadRecording.set(name, value);
+	}
+
+	/**
+	 * Clears the environment-variable read recording.
+	 *
+	 * Called by the TaskRunner right before invoking a task so that recorded reads are scoped to
+	 * that single task execution (the TaskUtil instance is shared across all tasks of a project).
+	 */
+	resetEnvReadRecording() {
+		this._currentEnvReadRecording = new Map();
+	}
+
+	/**
+	 * Returns the environment-variable reads recorded since the last {@link #resetEnvReadRecording}.
+	 *
+	 * @returns {Array<{type: string, name: string, value: string|undefined}>}
+	 *   Recorded input entries (all of type "env")
+	 */
+	getEnvReadRecording() {
+		return Array.from(this._currentEnvReadRecording.entries())
+			.map(([name, value]) => ({type: "env", name, value}));
 	}
 
 	/**

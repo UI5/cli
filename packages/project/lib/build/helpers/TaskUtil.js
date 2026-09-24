@@ -138,6 +138,54 @@ class TaskUtil {
 	}
 
 	/**
+	 * Reads an environment variable and records the read as an input of the task currently being
+	 * executed.
+	 *
+	 * Tasks whose output depends on an environment variable must read it through this method rather
+	 * than accessing <code>process.env</code> directly. The recorded usage is folded into the task's
+	 * build-cache signature, so that changing the variable between builds invalidates the task's
+	 * cached result (just like a changed resource does). Reading <code>process.env</code> directly
+	 * bypasses this and can lead to a stale cached result being served.
+	 *
+	 * </br></br>
+	 * <b>Experimental:</b> Proof-of-concept API for tracking non-resource task inputs.
+	 *
+	 * @param {string} name Environment variable name
+	 * @returns {string|undefined} The environment variable value, or <code>undefined</code> if unset
+	 * @public
+	 */
+	getEnv(name) {
+		const value = process.env[name];
+		this._projectBuildContext.recordEnvRead(name, value);
+		return value;
+	}
+
+	/**
+	 * Clears the environment-variable read recording for the task about to execute.
+	 *
+	 * Internal: called by the TaskRunner at the task boundary so that recorded reads are scoped to a
+	 * single task execution (a TaskUtil instance is shared across all tasks of a project).
+	 *
+	 * @private
+	 */
+	resetEnvReadRecording() {
+		this._projectBuildContext.resetEnvReadRecording();
+	}
+
+	/**
+	 * Returns the environment-variable reads recorded since the last {@link #resetEnvReadRecording}.
+	 *
+	 * Internal: called by the TaskRunner after a task executes to fold the recorded usage into the
+	 * task's build-cache signature.
+	 *
+	 * @private
+	 * @returns {Array<{type: string, name: string, value: string|undefined}>} Recorded input entries
+	 */
+	getEnvReadRecording() {
+		return this._projectBuildContext.getEnvReadRecording();
+	}
+
+	/**
 	 * Check whether the project currently being built is the root project.
 	 *
 	 * </br></br>
@@ -315,7 +363,7 @@ class TaskUtil {
 			STANDARD_TAGS: this.STANDARD_TAGS,
 		};
 		bindFunctions(this, baseInterface, [
-			"setTag", "clearTag", "getTag", "isRootProject", "registerCleanupTask"
+			"setTag", "clearTag", "getTag", "getEnv", "isRootProject", "registerCleanupTask"
 		]);
 
 		if (specVersion.gte("3.0")) {
@@ -359,7 +407,7 @@ class TaskUtil {
 			STANDARD_TAGS: this.STANDARD_TAGS,
 		};
 		bindFunctions(this, baseInterface, [
-			"getTag", "isRootProject"
+			"getTag", "getEnv", "isRootProject"
 		]);
 
 		if (specVersion.gte("3.0")) {
