@@ -1,7 +1,15 @@
 import {getLogger} from "@ui5/logger";
+import crypto from "node:crypto";
 import ResourceRequestManager from "./ResourceRequestManager.js";
 import TaskInputSet from "./index/TaskInputSet.js";
 const log = getLogger("build:cache:BuildTaskCache");
+
+// Serialized form of an empty, unmodified request manager. Restoring a root manager from this (rather
+// than constructing a fresh one) marks it clean, so a task that recorded no root reads is not
+// re-persisted on every build.
+function emptyRequestManagerCache() {
+	return {requestSetGraph: {nodes: [], nextId: 1}, rootIndices: [], deltaIndices: [], unusedAtLeastOnce: false};
+}
 
 /**
  * @typedef {object} @ui5/project/build/cache/BuildTaskCache~ResourceRequests
@@ -36,6 +44,14 @@ export default class BuildTaskCache {
 	#projectRequestManager;
 	#dependencyRequestManager;
 
+	// Resources read through the project's root reader (files outside the UI5 resource model: a
+	// tsconfig.json in the project root, third-party packages under node_modules). Kept in two
+	// managers because getRootReader's useGitignore flag changes which resources a glob matches, so a
+	// request recorded with the flag on must re-materialize against a root reader with the flag on.
+	// Both are resolved against a dedicated root reader (not the stage-pipeline project reader) and
+	// their signatures fold into the task's stage signature.
+	#rootRequestManagers;
+
 	// Tracks non-resource inputs (environment variables and TaskUtil interface reads) recorded during
 	// the last execution of this task. Its signature is folded into the task's stage signature so that
 	// a changed input invalidates the cached result. Only entry names are persisted; values are
@@ -56,9 +72,11 @@ export default class BuildTaskCache {
 	 * @param {ResourceRequestManager} [dependencyRequestManager]
 	 * 	Optional pre-existing dependency request manager from cache
 	 * @param {TaskInputSet} [inputSet] Optional pre-existing task input set from cache
+	 * @param {{gitignore: ResourceRequestManager, noGitignore: ResourceRequestManager}} [rootRequestManagers]
+	 * 	Optional pre-existing root request managers from cache, keyed by useGitignore
 	 */
 	constructor(projectName, taskName, supportsDifferentialBuilds, projectRequestManager, dependencyRequestManager,
-		inputSet) {
+		inputSet, rootRequestManagers) {
 		this.#projectName = projectName;
 		this.#taskName = taskName;
 		this.#supportsDifferentialBuilds = supportsDifferentialBuilds;
@@ -70,6 +88,12 @@ export default class BuildTaskCache {
 		this.#dependencyRequestManager = dependencyRequestManager ??
 			new ResourceRequestManager(projectName, taskName, supportsDifferentialBuilds);
 		this.#inputSet = inputSet ?? new TaskInputSet();
+		// Root requests use full-refresh signatures, not differential deltas: a changed root file
+		// re-runs the whole task rather than a differential update.
+		this.#rootRequestManagers = rootRequestManagers ?? {
+			gitignore: new ResourceRequestManager(projectName, `${taskName}#root`, false),
+			noGitignore: new ResourceRequestManager(projectName, `${taskName}#root-no-gitignore`, false),
+		};
 	}
 
 	/**
@@ -85,16 +109,28 @@ export default class BuildTaskCache {
 	 * @param {object} projectRequests Cached project request manager data
 	 * @param {object} dependencyRequests Cached dependency request manager data
 	 * @param {object} [inputSet] Cached task input set data
+	 * @param {object} [rootRequests] Cached useGitignore:true root request manager data
+	 * @param {object} [rootNoGitignoreRequests] Cached useGitignore:false root request manager data
 	 * @returns {BuildTaskCache} Restored task cache instance
 	 */
 	static fromCache(projectName, taskName, supportsDifferentialBuilds, projectRequests, dependencyRequests,
-		inputSet) {
+		inputSet, rootRequests, rootNoGitignoreRequests) {
 		const projectRequestManager = ResourceRequestManager.fromCache(projectName, taskName,
 			supportsDifferentialBuilds, projectRequests);
 		const dependencyRequestManager = ResourceRequestManager.fromCache(projectName, taskName,
 			supportsDifferentialBuilds, dependencyRequests);
+		// Root managers are optional: absent for tasks that made no root reads, and absent in caches
+		// written before root tracking existed. A missing entry restores a clean empty manager (not a
+		// fresh dirty one), so a task without root reads is not needlessly re-persisted.
+		const rootRequestManagers = {
+			gitignore: ResourceRequestManager.fromCache(
+				projectName, `${taskName}#root`, false, rootRequests ?? emptyRequestManagerCache()),
+			noGitignore: ResourceRequestManager.fromCache(
+				projectName, `${taskName}#root-no-gitignore`, false,
+				rootNoGitignoreRequests ?? emptyRequestManagerCache()),
+		};
 		return new BuildTaskCache(projectName, taskName, supportsDifferentialBuilds,
-			projectRequestManager, dependencyRequestManager, TaskInputSet.fromCache(inputSet));
+			projectRequestManager, dependencyRequestManager, TaskInputSet.fromCache(inputSet), rootRequestManagers);
 	}
 
 	// ===== METADATA ACCESS =====
@@ -134,6 +170,8 @@ export default class BuildTaskCache {
 	hasNewOrModifiedCacheEntries() {
 		return this.#projectRequestManager.hasNewOrModifiedCacheEntries() ||
 			this.#dependencyRequestManager.hasNewOrModifiedCacheEntries() ||
+			this.#rootRequestManagers.gitignore.hasNewOrModifiedCacheEntries() ||
+			this.#rootRequestManagers.noGitignore.hasNewOrModifiedCacheEntries() ||
 			this.#inputSetModified;
 	}
 
@@ -153,6 +191,57 @@ export default class BuildTaskCache {
 	 */
 	getInputSignature(resolveValue) {
 		return this.#inputSet.getSignatureWithCurrentValues(resolveValue);
+	}
+
+	/**
+	 * Returns whether this task recorded any root resource requests
+	 *
+	 * @public
+	 * @returns {boolean}
+	 */
+	hasRootRequests() {
+		return this.#rootRequestManagers.gitignore.hasRequests() ||
+			this.#rootRequestManagers.noGitignore.hasRequests();
+	}
+
+	/**
+	 * Refreshes both root resource indices against the current project root.
+	 *
+	 * Root files (a tsconfig.json, third-party packages under node_modules) live outside the source
+	 * and dependency readers and are not reported through the incremental change signal, so a full
+	 * refresh runs at the start of every build from cache. Each manager resolves against a root reader
+	 * built with the matching useGitignore flag, since the same recorded glob matches a different
+	 * resource set with the flag on versus off.
+	 *
+	 * @public
+	 * @param {function(boolean): module:@ui5/fs.AbstractReader} getRootReader
+	 *   Factory returning a project root reader for the given useGitignore flag
+	 * @returns {Promise<void>}
+	 */
+	async refreshRootIndices(getRootReader) {
+		await Promise.all([
+			this.#rootRequestManagers.gitignore.refreshIndices(getRootReader(true)),
+			this.#rootRequestManagers.noGitignore.refreshIndices(getRootReader(false)),
+		]);
+	}
+
+	/**
+	 * Returns a single signature aggregating the current signatures of both root request sets.
+	 *
+	 * Folded into the task's stage signature so a changed root file misses the cached stage. Unlike
+	 * the project and dependency components, root requests are not delta-tracked: the aggregate is one
+	 * value, so any root change re-runs the whole task. A task with no recorded root requests yields a
+	 * stable digest that stays constant across builds.
+	 *
+	 * @public
+	 * @returns {string} Aggregated root signature
+	 */
+	getRootSignature() {
+		const signatures = [
+			...this.#rootRequestManagers.gitignore.getIndexSignatures(),
+			...this.#rootRequestManagers.noGitignore.getIndexSignatures(),
+		];
+		return crypto.createHash("sha256").update(signatures.sort().join("\0")).digest("hex");
 	}
 
 	/**
@@ -294,10 +383,16 @@ export default class BuildTaskCache {
 	 * @param {Array<{type: string, name: string, value: string|undefined}>} [inputRecording]
 	 *   Non-resource inputs (environment variables, TaskUtil interface reads) recorded during task
 	 *   execution
-	 * @returns {Promise<string[]>} Array containing [projectSignature, dependencySignature, inputSignature]
+	 * @param {{gitignore: @ui5/project/build/cache/BuildTaskCache~ResourceRequests,
+	 *   noGitignore: @ui5/project/build/cache/BuildTaskCache~ResourceRequests}} [rootRequestRecording]
+	 *   Root resource requests, keyed by the useGitignore flag they were read with
+	 * @param {function(boolean): module:@ui5/fs.AbstractReader} [getRootReader]
+	 *   Factory returning a project root reader for the given useGitignore flag
+	 * @returns {Promise<string[]>}
+	 *   Array containing [projectSignature, dependencySignature, inputSignature, rootSignature]
 	 */
 	async recordRequests(projectRequestRecording, dependencyRequestRecording, projectReader, dependencyReader,
-		inputRecording = []) {
+		inputRecording = [], rootRequestRecording, getRootReader) {
 		const {
 			setId: projectReqSetId, signature: projectReqSignature
 		} = await this.#projectRequestManager.addRequests(projectRequestRecording, projectReader);
@@ -323,7 +418,19 @@ export default class BuildTaskCache {
 		}
 		this.#inputSet = newInputSet;
 
-		return [projectReqSignature, dependencyReqSignature, this.#inputSet.getSignature()];
+		// Record root requests against a root reader built with the matching useGitignore flag. Skip a
+		// bucket with no reads so its manager stays empty (and clean), keeping hasRootRequests accurate.
+		if (rootRequestRecording && getRootReader) {
+			const recordBucket = (manager, recording, useGitignore) =>
+				recording && (recording.paths.length || recording.patterns.length) ?
+					manager.addRequests(recording, getRootReader(useGitignore)) : Promise.resolve();
+			await Promise.all([
+				recordBucket(this.#rootRequestManagers.gitignore, rootRequestRecording.gitignore, true),
+				recordBucket(this.#rootRequestManagers.noGitignore, rootRequestRecording.noGitignore, false),
+			]);
+		}
+
+		return [projectReqSignature, dependencyReqSignature, this.#inputSet.getSignature(), this.getRootSignature()];
 	}
 
 	/**
@@ -335,13 +442,20 @@ export default class BuildTaskCache {
 	 *
 	 * @public
 	 * @returns {Array<object|undefined>} Array containing
-	 *   [projectCacheObject, dependencyCacheObject, inputCacheObject]
+	 *   [projectCacheObject, dependencyCacheObject, inputCacheObject,
+	 *    rootCacheObject, rootNoGitignoreCacheObject]
 	 */
 	toCacheObjects() {
 		return [
 			this.#projectRequestManager.toCacheObject(),
 			this.#dependencyRequestManager.toCacheObject(),
 			this.#inputSet.isEmpty() ? undefined : this.#inputSet.toCacheObject(),
+			// Only persist a root manager that recorded requests, so a task without root reads
+			// writes no root metadata.
+			this.#rootRequestManagers.gitignore.hasRequests() ?
+				this.#rootRequestManagers.gitignore.toCacheObject() : undefined,
+			this.#rootRequestManagers.noGitignore.hasRequests() ?
+				this.#rootRequestManagers.noGitignore.toCacheObject() : undefined,
 		];
 	}
 }

@@ -70,6 +70,12 @@ export default class ProjectBuildCache {
 	#cachedResultSignature;
 	#currentResultSignature;
 
+	// Aggregated root resource signature established when the cache was last validated or built in this
+	// session. A mismatch on the next validateCache means a root file (a tsconfig.json, a bundled
+	// node_modules package) changed since, forcing result-cache revalidation even when no source or
+	// dependency resource changed (root files are not reported through the incremental change signal).
+	#cachedRootAggregateSignature;
+
 	// Dependency-set identity: a hash over the project's transitive dependency ids, computed by the
 	// caller from the graph and passed into validateCache. #cachedDependencySetIdentity is restored
 	// from the persisted source index, #currentDependencySetIdentity reflects the current graph. A
@@ -247,6 +253,29 @@ export default class ProjectBuildCache {
 						`in ${(performance.now() - flushStart).toFixed(2)} ms`);
 			}
 			this.#combinedIndexState = INDEX_STATES.FRESH;
+		}
+
+		// Root resources (a tsconfig.json, third-party packages a task bundles from node_modules) live
+		// outside the source and dependency readers and are not reported through the incremental change
+		// signal. Refresh their indices against the current project root and, if their aggregate
+		// signature moved since the cache was last validated, force result-cache revalidation so a root
+		// change is not skipped when no source or dependency resource changed.
+		if (this.#combinedIndexState === INDEX_STATES.FRESH && this.#anyTaskHasRootRequests()) {
+			const rootStart = performance.now();
+			await this.#refreshRootIndices();
+			const rootAggregate = this.#getAggregatedRootSignature();
+			if (this.#cachedRootAggregateSignature !== undefined &&
+				rootAggregate !== this.#cachedRootAggregateSignature) {
+				log.verbose(`Root resources changed for project ${this.#project.getName()}, ` +
+					`revalidating result cache`);
+				this.#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
+			}
+			this.#cachedRootAggregateSignature = rootAggregate;
+			if (log.isLevelEnabled("perf")) {
+				log.perf(
+					`Refreshed root indices for project ${this.#project.getName()} ` +
+					`in ${(performance.now() - rootStart).toFixed(2)} ms`);
+			}
 		}
 
 		if (this.#resultCacheState === RESULT_CACHE_STATES.PENDING_VALIDATION) {
@@ -533,21 +562,75 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Aggregates the current non-resource input signatures (e.g. recorded env-var usage) across all
-	 * task caches into a single signature, re-evaluated against the current environment.
+	 * Aggregates the current auxiliary signatures (non-resource inputs plus root resources) across all
+	 * task caches into a single signature, re-evaluated against the current environment, graph, and
+	 * project root.
 	 *
-	 * Folded into the result stage signature so that a changed input invalidates the project-level
-	 * result cache and the per-project build is not skipped wholesale (the result-cache check runs
-	 * before per-task cache checks).
+	 * Folded into the result stage signature so that a changed input or root file invalidates the
+	 * project-level result cache and the per-project build is not skipped wholesale (the result-cache
+	 * check runs before per-task cache checks).
 	 *
-	 * @returns {string} Aggregated input signature
+	 * @returns {string} Aggregated auxiliary signature
 	 */
 	#getAggregatedInputSignature() {
-		const inputSignatures = [];
+		const auxiliarySignatures = [];
 		for (const taskCache of this.#taskCache.values()) {
-			inputSignatures.push(taskCache.getInputSignature(this.#resolveInputValue));
+			auxiliarySignatures.push(combineInputAndRootSignature(
+				taskCache.getInputSignature(this.#resolveInputValue), taskCache.getRootSignature()));
 		}
-		return crypto.createHash("sha256").update(inputSignatures.sort().join("\0")).digest("hex");
+		return crypto.createHash("sha256").update(auxiliarySignatures.sort().join("\0")).digest("hex");
+	}
+
+	/**
+	 * Returns a factory for project root readers, used to re-materialize recorded root resource
+	 * requests. The useGitignore flag must match the one the request was recorded with, since it
+	 * changes which resources a glob matches.
+	 *
+	 * @returns {function(boolean): @ui5/fs/AbstractReader} Root reader factory
+	 */
+	#getRootReaderFactory() {
+		return (useGitignore) => this.#project.getRootReader({useGitignore});
+	}
+
+	/**
+	 * Whether any task cache recorded root resource requests.
+	 *
+	 * @returns {boolean}
+	 */
+	#anyTaskHasRootRequests() {
+		for (const taskCache of this.#taskCache.values()) {
+			if (taskCache.hasRootRequests()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Refreshes the root resource indices of every task cache that recorded root requests, resolving
+	 * them against the current project root. Bounded by what the tasks requested.
+	 *
+	 * @returns {Promise<void>}
+	 */
+	async #refreshRootIndices() {
+		const getRootReader = this.#getRootReaderFactory();
+		await Promise.all(Array.from(this.#taskCache.values())
+			.filter((taskCache) => taskCache.hasRootRequests())
+			.map((taskCache) => taskCache.refreshRootIndices(getRootReader)));
+	}
+
+	/**
+	 * Aggregates the current root signatures across all task caches into one signature, used to detect
+	 * whether any recorded root file changed since the cache was last validated.
+	 *
+	 * @returns {string} Aggregated root signature
+	 */
+	#getAggregatedRootSignature() {
+		const rootSignatures = [];
+		for (const taskCache of this.#taskCache.values()) {
+			rootSignatures.push(taskCache.getRootSignature());
+		}
+		return crypto.createHash("sha256").update(rootSignatures.sort().join("\0")).digest("hex");
 	}
 
 	// ===== TASK MANAGEMENT =====
@@ -594,11 +677,13 @@ export default class ProjectBuildCache {
 		// After index update, try to find cached stages for the new signatures
 		// let stageSignatures = taskCache.getAffiliatedSignaturePairs();
 
-		// Current non-resource input signature (env-var usage, TaskUtil interface reads), re-evaluated
-		// against the current environment and graph. Folded into the project component so a changed
-		// input misses the cached stage.
-		const inputSig = taskCache.getInputSignature(this.#resolveInputValue);
-		const combineInput = (projSig) => combineProjectAndInputSignature(projSig, inputSig);
+		// Current auxiliary signature (non-resource inputs plus root resources), re-evaluated against
+		// the current environment, graph, and project root. Folded into the project component so a
+		// changed input or root file misses the cached stage. Root indices were refreshed in
+		// validateCache before this build's tasks run.
+		const auxSig = combineInputAndRootSignature(
+			taskCache.getInputSignature(this.#resolveInputValue), taskCache.getRootSignature());
+		const combineInput = (projSig) => combineProjectAndInputSignature(projSig, auxSig);
 
 		const projectSignatures = taskCache.getProjectIndexSignatures().map(combineInput);
 		const dependencySignatures = taskCache.getDependencyIndexSignatures();
@@ -728,12 +813,13 @@ export default class ProjectBuildCache {
 		}
 		const stageName = this.#getStageNameForTask(taskName);
 
-		// Compute possible signatures from current index state. Fold the current non-resource input
-		// signature (env-var usage, TaskUtil interface reads) into the project component, matching how
-		// stages are recorded.
-		const inputSig = taskCache.getInputSignature(this.#resolveInputValue);
+		// Compute possible signatures from current index state. Fold the current auxiliary signature
+		// (non-resource inputs plus root resources) into the project component, matching how stages are
+		// recorded.
+		const auxSig = combineInputAndRootSignature(
+			taskCache.getInputSignature(this.#resolveInputValue), taskCache.getRootSignature());
 		const projectSignatures = taskCache.getProjectIndexSignatures()
-			.map((projSig) => combineProjectAndInputSignature(projSig, inputSig));
+			.map((projSig) => combineProjectAndInputSignature(projSig, auxSig));
 		const dependencySignatures = taskCache.getDependencyIndexSignatures();
 		const stageSignatures = combineTwoArraysFast(
 			projectSignatures,
@@ -902,12 +988,15 @@ export default class ProjectBuildCache {
 	 * @param {Array<{type: string, name: string, value: string|undefined}>} [inputRecording]
 	 *   Non-resource inputs (environment variables, TaskUtil interface reads) recorded during task
 	 *   execution
+	 * @param {{gitignore: @ui5/project/build/cache/BuildTaskCache~ResourceRequests,
+	 *   noGitignore: @ui5/project/build/cache/BuildTaskCache~ResourceRequests}} [rootResourceRequests]
+	 *   Resource requests read through the project's root reader, keyed by useGitignore
 	 * @returns {Promise<string[]|undefined>} The resource paths written by the task,
 	 *   or <code>undefined</code> if caching is disabled
 	 */
 	async recordTaskResult(
 		taskName, projectResourceRequests, dependencyResourceRequests, cacheInfo, supportsDifferentialBuilds,
-		inputRecording = []
+		inputRecording = [], rootResourceRequests
 	) {
 		if (this.#cacheMode === Cache.Off) {
 			return;
@@ -1001,12 +1090,14 @@ export default class ProjectBuildCache {
 		} else {
 			// Calculate signature for executed task
 			const recordReqStart = performance.now();
-			const [projectSig, dependencySig, inputSig] = await taskCache.recordRequests(
+			const [projectSig, dependencySig, inputSig, rootSig] = await taskCache.recordRequests(
 				projectResourceRequests,
 				dependencyResourceRequests,
 				this.#currentProjectReader,
 				this.#currentDependencyReader,
-				inputRecording
+				inputRecording,
+				rootResourceRequests,
+				this.#getRootReaderFactory()
 			);
 			if (log.isLevelEnabled("perf")) {
 				log.perf(
@@ -1014,9 +1105,10 @@ export default class ProjectBuildCache {
 					`in project ${this.#project.getName()} completed in ` +
 					`${(performance.now() - recordReqStart).toFixed(2)} ms`);
 			}
-			// Fold any recorded non-resource inputs (e.g. env-var usage) into the project component,
-			// keeping the stage signature a two-component pair.
-			const combinedProjectSig = combineProjectAndInputSignature(projectSig, inputSig);
+			// Fold the recorded non-resource inputs (e.g. env-var usage) and root resources into the
+			// project component, keeping the stage signature a two-component pair.
+			const auxSig = combineInputAndRootSignature(inputSig, rootSig);
+			const combinedProjectSig = combineProjectAndInputSignature(projectSig, auxSig);
 			const currentSignaturePair = [combinedProjectSig, dependencySig];
 			// If provided, set dependency signature for later use in result stage signature calculation
 			const stageName = this.#getStageNameForTask(taskName);
@@ -1354,6 +1446,9 @@ export default class ProjectBuildCache {
 		this.#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
 		// initSourceIndex does not touch this one, so reset it here.
 		this.#changedDependencyResourcePaths = [];
+		// Root managers are held on the (now cleared) task caches; drop the remembered aggregate so the
+		// re-initialized caches re-establish it on the next validateCache.
+		this.#cachedRootAggregateSignature = undefined;
 		// Clear per-build state so a failed build does not leak into the next one.
 		// #currentResultSignature drives the #findResultCache early return; #currentStageSignatures
 		// drives the isInitialImport/setStage guards in #importStages.
@@ -1425,6 +1520,10 @@ export default class ProjectBuildCache {
 		}
 		this.#resultCacheState = RESULT_CACHE_STATES.FRESH_AND_IN_USE;
 		const changedPaths = this.#writtenResultResourcePaths;
+
+		// Record the root aggregate this build resolved against, so a later in-session validateCache can
+		// detect a root file changing without a source or dependency change.
+		this.#cachedRootAggregateSignature = this.#getAggregatedRootSignature();
 
 		this.#currentResultSignature = this.#getResultStageSignature();
 
@@ -1517,8 +1616,15 @@ export default class ProjectBuildCache {
 					// tracking existed.
 					const inputTree = this.#cacheManager.readTaskMetadata(
 						this.#project.getId(), this.#buildSignature, taskName, "input");
+					// Root request metadata is optional too: absent for tasks that made no root reads,
+					// and absent in caches written before root tracking existed. Kept per useGitignore
+					// flag since the flag changes which resources a recorded glob matches.
+					const rootRequests = this.#cacheManager.readTaskMetadata(
+						this.#project.getId(), this.#buildSignature, taskName, "root");
+					const rootNoGitignoreRequests = this.#cacheManager.readTaskMetadata(
+						this.#project.getId(), this.#buildSignature, taskName, "root-no-gitignore");
 					return BuildTaskCache.fromCache(this.#project.getName(), taskName, !!supportsDifferentialBuilds,
-						projectRequests, dependencyRequests, inputTree);
+						projectRequests, dependencyRequests, inputTree, rootRequests, rootNoGitignoreRequests);
 				})
 			);
 			// Ensure taskCache is filled in the order of task execution
@@ -1876,7 +1982,8 @@ export default class ProjectBuildCache {
 			if (!taskCache.hasNewOrModifiedCacheEntries()) {
 				continue;
 			}
-			const [projectRequests, dependencyRequests, inputTree] = taskCache.toCacheObjects();
+			const [projectRequests, dependencyRequests, inputTree, rootRequests, rootNoGitignoreRequests] =
+				taskCache.toCacheObjects();
 			log.verbose(`Preparing task cache metadata for task ${taskName} in project ${this.#project.getName()}`);
 			if (projectRequests) {
 				out.push({taskName, type: "project", metadata: projectRequests});
@@ -1886,6 +1993,12 @@ export default class ProjectBuildCache {
 			}
 			if (inputTree) {
 				out.push({taskName, type: "input", metadata: inputTree});
+			}
+			if (rootRequests) {
+				out.push({taskName, type: "root", metadata: rootRequests});
+			}
+			if (rootNoGitignoreRequests) {
+				out.push({taskName, type: "root-no-gitignore", metadata: rootNoGitignoreRequests});
 			}
 		}
 		return out;
@@ -2051,6 +2164,28 @@ function combineProjectAndInputSignature(projectSignature, inputSignature) {
 		.update(projectSignature)
 		.update("\0")
 		.update(inputSignature)
+		.digest("hex");
+}
+
+/**
+ * Combines a task's non-resource input signature with its root resource signature into a single
+ * auxiliary signature, folded into the project component alongside {@link combineProjectAndInputSignature}.
+ *
+ * Both are re-derived per build (inputs against the current environment and graph, root resources
+ * against the current project root), so a change to either misses the cached stage. Keeping them in
+ * one auxiliary value preserves the two-component (project-dependency) stage signature shape.
+ *
+ * @param {string} inputSignature Non-resource input signature (see
+ *   {@link @ui5/project/build/cache/index/TaskInputSet})
+ * @param {string} rootSignature Aggregated root resource signature (see
+ *   {@link @ui5/project/build/cache/BuildTaskCache#getRootSignature})
+ * @returns {string} Combined auxiliary signature
+ */
+function combineInputAndRootSignature(inputSignature, rootSignature) {
+	return crypto.createHash("sha256")
+		.update(inputSignature)
+		.update("\0")
+		.update(rootSignature)
 		.digest("hex");
 }
 

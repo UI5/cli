@@ -587,3 +587,104 @@ test("fromCache: restores recorded inputs and re-evaluates them on lookup", asyn
 	t.not(cache2.getInputSignature(() => "2.0.0"), cache2.getInputSignature(() => "1.120.0"),
 		"Restored input set still reacts to a changed resolved value");
 });
+
+// ===== ROOT REQUEST TRACKING =====
+
+const ROOT_REQUESTS = {
+	gitignore: {paths: ["/tsconfig.json"], patterns: []},
+	noGitignore: {paths: [], patterns: []},
+};
+
+test("recordRequests: records root requests and reflects them in the root signature", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const projectReader = createMockReader([createMockResource("/test.js")]);
+	const rootReader = createMockReader([createMockResource("/tsconfig.json", "{}")]);
+	const projectRequests = {paths: new Set(["/test.js"]), patterns: new Set()};
+
+	t.false(cache.hasRootRequests(), "No root requests before recording");
+	const emptyRootSig = cache.getRootSignature();
+
+	const [, , , rootSig] = await cache.recordRequests(
+		projectRequests, undefined, projectReader, createMockReader([]), [],
+		ROOT_REQUESTS, () => rootReader);
+
+	t.true(cache.hasRootRequests(), "Root requests recorded");
+	t.is(typeof rootSig, "string");
+	t.not(rootSig, emptyRootSig, "Recording a root read changes the root signature");
+	t.is(rootSig, cache.getRootSignature(), "recordRequests returns the aggregated root signature");
+});
+
+test("getRootSignature: is stable and empty when no root requests were recorded", async (t) => {
+	const a = new BuildTaskCache("test.project", "testTask", false);
+	const b = new BuildTaskCache("other.project", "otherTask", false);
+	const reader = createMockReader([createMockResource("/test.js")]);
+	// Record only project requests, leaving the root managers untouched.
+	await a.recordRequests({paths: new Set(["/test.js"]), patterns: new Set()},
+		undefined, reader, createMockReader([]));
+
+	t.false(a.hasRootRequests(), "A task with no root reads reports no root requests");
+	t.is(a.getRootSignature(), b.getRootSignature(),
+		"Two caches without root requests share the same stable root signature");
+});
+
+test("recordRequests: an empty root bucket leaves the manager clean", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const projectReader = createMockReader([createMockResource("/test.js")]);
+	await cache.recordRequests(
+		{paths: new Set(["/test.js"]), patterns: new Set()}, undefined, projectReader, createMockReader([]), [],
+		{gitignore: {paths: [], patterns: []}, noGitignore: {paths: [], patterns: []}}, () => createMockReader([]));
+
+	t.false(cache.hasRootRequests(), "An empty root recording records no requests");
+	const [, , , rootCache, rootNoGitignoreCache] = cache.toCacheObjects();
+	t.is(rootCache, undefined, "No root cache object for an empty gitignore bucket");
+	t.is(rootNoGitignoreCache, undefined, "No root cache object for an empty noGitignore bucket");
+});
+
+test("refreshRootIndices: a changed root file changes the root signature", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const projectReader = createMockReader([createMockResource("/test.js")]);
+
+	await cache.recordRequests(
+		{paths: new Set(["/test.js"]), patterns: new Set()}, undefined, projectReader,
+		createMockReader([]), [], ROOT_REQUESTS,
+		() => createMockReader([createMockResource("/tsconfig.json", "{}", "hash-v1")]));
+	const before = cache.getRootSignature();
+
+	// A later build sees tsconfig.json with different content.
+	await cache.refreshRootIndices(
+		() => createMockReader([createMockResource("/tsconfig.json", "{changed}", "hash-v2")]));
+
+	t.not(cache.getRootSignature(), before, "Root signature reflects the changed root file");
+});
+
+test("toCacheObjects/fromCache: round-trips recorded root requests", async (t) => {
+	const cache1 = new BuildTaskCache("test.project", "testTask", false);
+	const projectReader = createMockReader([createMockResource("/test.js")]);
+	const rootReader = () => createMockReader([createMockResource("/tsconfig.json", "{}", "hash-root")]);
+
+	await cache1.recordRequests(
+		{paths: new Set(["/test.js"]), patterns: new Set()}, undefined, projectReader,
+		createMockReader([]), [], ROOT_REQUESTS, rootReader);
+	const [projectCache, dependencyCache, inputCache, rootCache, rootNoGitignoreCache] =
+		cache1.toCacheObjects();
+
+	t.truthy(rootCache, "useGitignore:true root cache object present");
+	t.is(rootNoGitignoreCache, undefined, "useGitignore:false bucket was empty, so nothing to persist");
+
+	const cache2 = BuildTaskCache.fromCache("test.project", "testTask", false,
+		projectCache, dependencyCache, inputCache, rootCache, rootNoGitignoreCache);
+
+	t.true(cache2.hasRootRequests(), "Restored cache carries the root requests");
+	await cache2.refreshRootIndices(rootReader);
+	t.is(cache2.getRootSignature(), cache1.getRootSignature(),
+		"Restored root managers reproduce the root signature for unchanged content");
+});
+
+test("fromCache: a task without root metadata restores clean root managers", (t) => {
+	const emptyRequests = {requestSetGraph: {nodes: [], nextId: 1}, rootIndices: [], deltaIndices: []};
+	const cache = BuildTaskCache.fromCache("test.project", "testTask", false, emptyRequests, emptyRequests);
+
+	t.false(cache.hasRootRequests(), "No root requests restored");
+	t.false(cache.hasNewOrModifiedCacheEntries(),
+		"Restoring a task without root reads does not mark it for re-persistence");
+});

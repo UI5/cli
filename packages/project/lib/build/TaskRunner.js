@@ -276,7 +276,8 @@ class TaskRunner {
 					mergeResourceRequests(dependencies?.getResourceRequests(), taskUtilRequests.dependencies),
 					usingCache ? cacheInfo : undefined,
 					supportsDifferentialBuilds,
-					monitoredTaskUtil.getInputRecording());
+					monitoredTaskUtil.getInputRecording(),
+					taskUtilRequests.root);
 				this._log.endTask(taskName, usingCache, writtenResourcePaths);
 			};
 		}
@@ -527,7 +528,8 @@ class TaskRunner {
 				mergeResourceRequests(dependencies?.getResourceRequests(), taskUtilRequests?.dependencies),
 				usingCache ? cacheInfo : undefined,
 				supportsDifferentialBuilds,
-				monitoredTaskUtil ? monitoredTaskUtil.getInputRecording() : []);
+				monitoredTaskUtil ? monitoredTaskUtil.getInputRecording() : [],
+				taskUtilRequests?.root);
 			this._log.endTask(taskName, usingCache, writtenResourcePaths);
 		};
 	}
