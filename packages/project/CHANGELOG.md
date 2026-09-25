@@ -4,6 +4,28 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v4.0.6...HEAD).
 
+## [5.0.0-alpha.11](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.10...project-v5.0.0-alpha.11) (2026-09-25)
+
+
+### Features
+
+* **project:** Surface per-task written resource paths on task-end event ([be818d1](https://github.com/UI5/cli/commit/be818d1ba8c4d66463f7977f810212a94e4b3ecd))
+
+
+### Bug Fixes
+
+* **project:** Route theme-library resources in BuildReader ([af31b26](https://github.com/UI5/cli/commit/af31b267f70f8dbd4e53e27aa180155336d5e4ff))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/fs bumped from ^5.0.0-alpha.10 to ^5.0.0-alpha.11
+    * @ui5/logger bumped from ^5.0.0-alpha.10 to ^5.0.0-alpha.11
+  * peerDependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.10 to ^5.0.0-alpha.11
+
 ## [5.0.0-alpha.10](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.9...project-v5.0.0-alpha.10) (2026-09-14)
 
 

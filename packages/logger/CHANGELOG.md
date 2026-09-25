@@ -4,6 +4,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logger/compare/v4.0.2...HEAD).
 
+## [5.0.0-alpha.11](https://github.com/UI5/cli/compare/logger-v5.0.0-alpha.10...logger-v5.0.0-alpha.11) (2026-09-25)
+
+
+### Features
+
+* **logger:** Add written resource paths to task-end build-status event ([982ee59](https://github.com/UI5/cli/commit/982ee5914bd694da9d8a91ae23d4e7d4264647d9))
+
 ## [5.0.0-alpha.10](https://github.com/UI5/cli/compare/logger-v5.0.0-alpha.9...logger-v5.0.0-alpha.10) (2026-09-14)
 
 
