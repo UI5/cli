@@ -3,6 +3,36 @@ import composeTaskList from "./helpers/composeTaskList.js";
 import MonitoredTaskUtil from "./helpers/MonitoredTaskUtil.js";
 import {createReaderCollection, createMonitor} from "@ui5/fs/resourceFactory";
 
+const EMPTY_RESOURCE_REQUESTS = {paths: [], patterns: []};
+
+/**
+ * Concatenates two resource-request recordings into one.
+ *
+ * <code>base</code> is the recording from a reader the TaskRunner monitors directly (the workspace or
+ * dependencies reader); <code>extra</code> is the corresponding bucket recorded by the
+ * MonitoredTaskUtil for reads a task made through <code>getProject(name).getReader()</code>.
+ *
+ * When <code>base</code> is undefined (no reader was provided to the task) the result stays undefined
+ * unless the task read resources through the taskUtil, preserving the "intentionally requested no
+ * dependencies" signal that recordTaskResult distinguishes from an empty request set.
+ *
+ * @param {{paths: string[], patterns: string[]}|undefined} base Requests from a monitored reader
+ * @param {{paths: string[], patterns: string[]}} [extra] Requests recorded via the taskUtil
+ * @returns {{paths: string[], patterns: string[]}|undefined} Merged requests, or undefined
+ */
+function mergeResourceRequests(base, extra = EMPTY_RESOURCE_REQUESTS) {
+	if (!base) {
+		if (!extra.paths.length && !extra.patterns.length) {
+			return undefined;
+		}
+		return {paths: [...extra.paths], patterns: [...extra.patterns]};
+	}
+	return {
+		paths: [...base.paths, ...extra.paths],
+		patterns: [...base.patterns, ...extra.patterns],
+	};
+}
+
 /**
  * TaskRunner
  *
@@ -240,9 +270,10 @@ class TaskRunner {
 					this._log.perf(
 						`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
 				}
+				const taskUtilRequests = monitoredTaskUtil.getResourceRequests();
 				const writtenResourcePaths = await this._buildCache.recordTaskResult(taskName,
-					workspace.getResourceRequests(),
-					dependencies?.getResourceRequests(),
+					mergeResourceRequests(workspace.getResourceRequests(), taskUtilRequests.project),
+					mergeResourceRequests(dependencies?.getResourceRequests(), taskUtilRequests.dependencies),
 					usingCache ? cacheInfo : undefined,
 					supportsDifferentialBuilds,
 					monitoredTaskUtil.getInputRecording());
@@ -490,9 +521,10 @@ class TaskRunner {
 			}
 			this._log.startTask(taskName, usingCache);
 			await taskFunction(params);
+			const taskUtilRequests = monitoredTaskUtil?.getResourceRequests();
 			const writtenResourcePaths = await this._buildCache.recordTaskResult(taskName,
-				workspace.getResourceRequests(),
-				dependencies?.getResourceRequests(),
+				mergeResourceRequests(workspace.getResourceRequests(), taskUtilRequests?.project),
+				mergeResourceRequests(dependencies?.getResourceRequests(), taskUtilRequests?.dependencies),
 				usingCache ? cacheInfo : undefined,
 				supportsDifferentialBuilds,
 				monitoredTaskUtil ? monitoredTaskUtil.getInputRecording() : []);

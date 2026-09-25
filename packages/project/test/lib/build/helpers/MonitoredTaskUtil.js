@@ -99,6 +99,87 @@ test("does not record untracked project accessors", (t) => {
 	t.deepEqual(monitored.getInputRecording(), [], "getSpecVersion is not recorded");
 });
 
+// Builds a fake AbstractReader-like reader that answers byPath/byGlob and exposes the
+// _byPath/_byGlob hooks a real MonitoredReader delegates to. Records nothing itself; the
+// MonitoredReader wrapping it is what records the requests.
+function fakeReader(name) {
+	return {
+		getName: () => name,
+		byPath: async (virPath) => ({getPath: () => virPath}),
+		byGlob: async () => [],
+		_byPath: async (virPath) => ({getPath: () => virPath}),
+		_byGlob: async () => [],
+	};
+}
+
+// In the shared fixture, getProject() with no argument resolves to sap.ui.core, so that project is
+// the one being built. Reads of its reader are project requests; reads of any other project's reader
+// are dependency requests.
+test("captures reads of the current project's getReader() as project requests", async (t) => {
+	t.context.coreProject.getReader = () => fakeReader("sap.ui.core reader");
+
+	const monitored = new MonitoredTaskUtil(t.context.taskUtil);
+	await monitored.getProject().getReader().byPath("/resources/sap/ui/core/library.js");
+
+	t.deepEqual(monitored.getResourceRequests(), {
+		project: {paths: ["/resources/sap/ui/core/library.js"], patterns: []},
+		dependencies: {paths: [], patterns: []},
+	}, "reads of the project being built land in the project bucket");
+});
+
+test("captures reads of a dependency's getReader() as dependency requests", async (t) => {
+	const depProject = {getName: () => "my.dep", getReader: () => fakeReader("my.dep reader")};
+	t.context.taskUtil.getProject.callsFake((name) => {
+		if (name === undefined || name === "sap.ui.core") {
+			return t.context.coreProject;
+		}
+		if (name === "my.dep") {
+			return depProject;
+		}
+		return undefined;
+	});
+
+	const monitored = new MonitoredTaskUtil(t.context.taskUtil);
+	await monitored.getProject("my.dep").getReader().byGlob("/resources/my/dep/**");
+
+	t.deepEqual(monitored.getResourceRequests(), {
+		project: {paths: [], patterns: []},
+		dependencies: {paths: [], patterns: ["/resources/my/dep/**"]},
+	}, "reads of a dependency's reader land in the dependency bucket");
+});
+
+test("routes reads to the project or dependency bucket by project identity", async (t) => {
+	t.context.coreProject.getReader = () => fakeReader("sap.ui.core reader");
+	const depProject = {getName: () => "my.dep", getReader: () => fakeReader("my.dep reader")};
+	t.context.taskUtil.getProject.callsFake((name) => {
+		if (name === undefined || name === "sap.ui.core") {
+			return t.context.coreProject;
+		}
+		if (name === "my.dep") {
+			return depProject;
+		}
+		return undefined;
+	});
+
+	const monitored = new MonitoredTaskUtil(t.context.taskUtil);
+	// Reading the current project by its explicit name still routes to the project bucket.
+	await monitored.getProject("sap.ui.core").getReader().byPath("/resources/sap/ui/core/library.js");
+	await monitored.getProject("my.dep").getReader().byPath("/resources/my/dep/thing.js");
+
+	t.deepEqual(monitored.getResourceRequests(), {
+		project: {paths: ["/resources/sap/ui/core/library.js"], patterns: []},
+		dependencies: {paths: ["/resources/my/dep/thing.js"], patterns: []},
+	});
+});
+
+test("getResourceRequests returns empty buckets when no project reader was accessed", (t) => {
+	const monitored = new MonitoredTaskUtil(t.context.taskUtil);
+	t.deepEqual(monitored.getResourceRequests(), {
+		project: {paths: [], patterns: []},
+		dependencies: {paths: [], patterns: []},
+	});
+});
+
 test("getProject returns the underlying falsy value for an unknown project", (t) => {
 	const monitored = new MonitoredTaskUtil(t.context.taskUtil);
 	t.is(monitored.getProject("does.not.exist"), undefined);
