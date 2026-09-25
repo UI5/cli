@@ -222,14 +222,52 @@ test.serial("Build application.a (including only some dependencies)", async (t) 
 	await fs.writeFile(`${fixtureTester.fixturePath}/package.json`, JSON.stringify(packageJsonContent, null, 2));
 
 	// #4 build
-	// Build application.a again with "includeAllDependencies"
-	// and check with assertion "allProjects" that "library.d" isn't even seen:
+	// Build application.a again with "includeAllDependencies" and check with assertion "allProjects"
+	// that "library.d" isn't even seen.
+	//
+	// library.a, library.b and library.c each declare library.d as a dependency in their .library, so
+	// generateLibraryManifest embeds library.d's version as the dependency minVersion in their
+	// manifest.json (manifestCreator resolves it via taskUtil.getProject("library.d").getVersion()).
+	// Because that read is tracked as a task input, removing library.d changes the input and
+	// re-runs generateLibraryManifest (and the downstream generateLibraryManifest-dependent tasks)
+	// for library.a/b/c; their unaffected tasks stay cached. application.a rebuilds because its
+	// dependency set changed.
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true,
 			dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
 			allProjects: ["library.a", "library.b", "library.c", "application.a"],
 			projects: {
+				"library.a": {
+					skippedTasks: [
+						"buildThemes",
+						"escapeNonAsciiCharacters",
+						"minify",
+						"replaceBuildtime",
+						"replaceCopyright",
+						"replaceVersion",
+					]
+				},
+				"library.b": {
+					skippedTasks: [
+						"buildThemes",
+						"escapeNonAsciiCharacters",
+						"minify",
+						"replaceBuildtime",
+						"replaceCopyright",
+						"replaceVersion",
+					]
+				},
+				"library.c": {
+					skippedTasks: [
+						"buildThemes",
+						"escapeNonAsciiCharacters",
+						"minify",
+						"replaceBuildtime",
+						"replaceCopyright",
+						"replaceVersion",
+					]
+				},
 				"application.a": {
 					skippedTasks: [
 						"enhanceManifest",

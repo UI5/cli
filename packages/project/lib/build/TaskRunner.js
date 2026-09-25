@@ -1,5 +1,6 @@
 import {getLogger} from "@ui5/logger";
 import composeTaskList from "./helpers/composeTaskList.js";
+import MonitoredTaskUtil from "./helpers/MonitoredTaskUtil.js";
 import {createReaderCollection, createMonitor} from "@ui5/fs/resourceFactory";
 
 /**
@@ -210,9 +211,10 @@ class TaskRunner {
 				}
 				const usingCache = !!(supportsDifferentialBuilds && cacheInfo);
 				const workspace = createMonitor(this._project.getWorkspace());
+				const monitoredTaskUtil = new MonitoredTaskUtil(this._taskUtil);
 				const params = {
 					workspace,
-					taskUtil: this._taskUtil,
+					taskUtil: monitoredTaskUtil,
 					options,
 				};
 
@@ -242,7 +244,8 @@ class TaskRunner {
 					workspace.getResourceRequests(),
 					dependencies?.getResourceRequests(),
 					usingCache ? cacheInfo : undefined,
-					supportsDifferentialBuilds);
+					supportsDifferentialBuilds,
+					monitoredTaskUtil.getInputRecording());
 				this._log.endTask(taskName, usingCache, writtenResourcePaths);
 			};
 		}
@@ -469,8 +472,9 @@ class TaskRunner {
 			const specVersion = task.getSpecVersion();
 			const taskUtilInterface = taskUtil.getInterface(specVersion);
 			// Interface is undefined if specVersion does not support taskUtil
-			if (taskUtilInterface) {
-				params.taskUtil = taskUtilInterface;
+			const monitoredTaskUtil = taskUtilInterface ? new MonitoredTaskUtil(taskUtilInterface) : undefined;
+			if (monitoredTaskUtil) {
+				params.taskUtil = monitoredTaskUtil;
 			}
 			const taskFunction = await task.getTask();
 
@@ -490,7 +494,8 @@ class TaskRunner {
 				workspace.getResourceRequests(),
 				dependencies?.getResourceRequests(),
 				usingCache ? cacheInfo : undefined,
-				supportsDifferentialBuilds);
+				supportsDifferentialBuilds,
+				monitoredTaskUtil ? monitoredTaskUtil.getInputRecording() : []);
 			this._log.endTask(taskName, usingCache, writtenResourcePaths);
 		};
 	}
