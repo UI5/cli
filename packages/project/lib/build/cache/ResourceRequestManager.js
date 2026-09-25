@@ -48,6 +48,10 @@ class ResourceRequestManager {
 
 	#treeRegistries = [];
 	#treeUpdateDeltas = new Map();
+	// Per-updateIndices scratch: each affected node's exposed (composite) signature captured before its
+	// unresolved requests are drained, so a recorded delta keys on the same signature the stage was
+	// stored under (getIndexSignatures folds unresolved requests in; the tree hash alone does not).
+	#deltaOriginalComposite = new Map();
 
 	#hasNewOrModifiedCacheEntries;
 	#useDifferentialUpdate;
@@ -224,6 +228,7 @@ class ResourceRequestManager {
 	async updateIndices(reader, changedResourcePaths) {
 		const matchingRequestSetIds = [];
 		const updatesByRequestSetId = new Map();
+		this.#deltaOriginalComposite.clear();
 		if (this.#requestGraph.getSize() === 0) {
 			// No requests recorded -> No updates necessary
 			return false;
@@ -295,6 +300,10 @@ class ResourceRequestManager {
 			if (!resourceIndex) {
 				throw new Error(`Missing resource index for request set ID ${requestSetId}`);
 			}
+			// Capture the exposed signature (tree + unresolved requests) before draining below, so the
+			// delta records the same signature the stage was stored under (see #deltaOriginalComposite).
+			this.#deltaOriginalComposite.set(requestSetId,
+				this.#computeNodeSignature(resourceIndex, metadata.unresolvedRequests));
 
 			const resourcePathsToUpdate = updatesByRequestSetId.get(requestSetId);
 			const resourcesToUpdate = [];
@@ -425,8 +434,14 @@ class ResourceRequestManager {
 				hasChanges = true;
 			}
 			for (const [tree, diff] of res.treeStats) {
-				const [requestSetId, originalSignature] = previousTreeSignatures.get(tree);
-				const newSignature = tree.getRootHash();
+				const [requestSetId] = previousTreeSignatures.get(tree);
+				const metadata = this.#requestGraph.getMetadata(requestSetId);
+				// Key the delta on the exposed (composite) signatures, matching getIndexSignatures and
+				// the signature the stage was stored under. For a node without unresolved requests the
+				// composite equals the tree hash, so this is a no-op for the common case.
+				const originalSignature =
+					this.#deltaOriginalComposite.get(requestSetId) ?? previousTreeSignatures.get(tree)[1];
+				const newSignature = this.#computeNodeSignature(metadata.resourceIndex, metadata.unresolvedRequests);
 				this.#addDeltaEntry(requestSetId, originalSignature, newSignature, diff);
 			}
 		}
