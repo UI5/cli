@@ -47,7 +47,8 @@ Use this table to locate source files. ALWAYS read the relevant source file befo
 | `drainSubscriptions` | `lib/build/helpers/watchSubscriptions.js` | Unsubscribes a list of subscriptions in parallel (`Promise.allSettled`), returns the failures. Used by both watchers' `destroy()` and BuildServer's recovery re-subscribe |
 | `fileWatcher` | `lib/build/helpers/fileWatcher.js` | Watcher-backend facade. Exposes a `subscribe()` matching `@parcel/watcher`'s contract and picks a backend once per process: `UI5_WATCH_MODE=polling\|native` forces the choice, otherwise it auto-detects containers (`/.dockerenv`, `/run/.containerenv`, PID 1 cgroup) and uses polling there. Also falls back to polling if the native `@parcel/watcher` binding cannot load. All three watchers subscribe through this facade rather than importing `@parcel/watcher` directly |
 | `pollingWatcher` | `lib/build/helpers/pollingWatcher.js` | Pure-JS polling backend. Walks the tree and diffs an `{mtimeMs, size}` snapshot every 250 ms (`DEFAULT_POLL_INTERVAL_MS`), emitting the same `{type, path}` events as the native backend. Needed on bind-mounted container volumes where inotify misses writes made from outside the container |
-| `TaskRunner` | `lib/build/TaskRunner.js` | Task composition, execution loop, abort handling |
+| `TaskRunner` | `lib/build/TaskRunner.js` | Task composition, execution loop, abort handling. Binds a per-task `ProcessEach` driver to the task's readers and cache state and exposes it as `taskUtil.processEach` |
+| `ProcessEach` | `lib/build/helpers/ProcessEach.js` | Per-task driver behind `taskUtil.processEach(keys, callback, concurrent)`. Runs the callback once per key against per-step recording readers, selects which steps to (re-)run on a delta build from the previous run's per-key reads, and reports the folded read set, the stale outputs, and the invocation data to persist. See "Per-Step Caching (processEach)" |
 | `Cache` enum | `lib/build/cache/Cache.js` | Cache mode constants: `Default`, `Force`, `ReadOnly`, `Off` (CLI `--cache` option) |
 | `ProjectBuildCache` | `lib/build/cache/ProjectBuildCache.js` | Cache orchestration per project: index management, stage lookup, result recording |
 | `BuildTaskCache` | `lib/build/cache/BuildTaskCache.js` | Per-task resource request tracking and index management. Also holds the task's `TaskInputSet` (non-resource inputs) and exposes `getInputSignature(resolveValue)` |
@@ -287,6 +288,27 @@ Reads through a `getProject(name).getReader()` are not input values but resource
 
 Contract for task authors: read an env var through `taskUtil.getEnv(name)` (not `process.env` directly), and read graph-derived values through the `taskUtil`/`getProject` interface, so the monitor observes the read. A direct `process.env` read or a value obtained outside the monitored `taskUtil` is untracked and can serve stale. Conditional reads are handled correctly as long as the branching input is itself read through `taskUtil`: the recorded set changes with the branch, and the branching input's own value invalidates the cache when it changes.
 
+### Per-Step Caching (processEach)
+
+`taskUtil.processEach(keys, callback, concurrent)` lets a task split its work into per-key steps that the build cache tracks and re-runs individually, replacing the old differential mode where a task received `changedProjectResourcePaths` and did its own delta bookkeeping. `minify` (one step per resource) and `buildThemes` (one step per theme) are built on it; `minify.js` and `buildThemes.js` keep a batch fallback for standalone use where no `taskUtil.processEach` is available.
+
+The driver (`ProcessEach`) is bound per task by the `TaskRunner` to the task's monitored workspace and dependencies readers, the delta `cacheInfo`, the previous run's invocation data, and the abort signal. It is constructed lazily on first call, so a task that never calls `processEach` neither builds a driver nor reads its persisted data. Only one `processEach` call per task is currently supported.
+
+Per step, the callback receives its own recording readers (`{workspace, dependencies}`) that delegate to the task-level monitored readers and additionally attribute each read to the step, plus the task's `taskUtil`. Key identity is content-based: a resource key is identified by its path and its integrity (path distinguishes resources that share content but produce different output; integrity makes a content change a new key that cannot yield a stale hit), a string key by its value. Compound keys are the caller's responsibility to express as a stable string.
+
+Execution and writes:
+- `concurrent: false` persists each step's writes immediately, so a later step reads what an earlier step wrote.
+- `concurrent: true` (default) buffers writes and flushes them in key order after all steps finish; two concurrent steps writing the same path throw, since concurrent steps must be independent.
+- The abort signal is checked between steps; a single in-flight step is not interrupted.
+
+Delta selection and cache integration:
+- On a delta build, a step re-runs when its key is new or its recorded reads intersect the changed project/dependency paths (the reverse mapping that re-runs the owner of a changed cross-resource input, e.g. a `.js` whose `.js.map` changed, or a theme whose gating marker was added).
+- `getStaleOutputs()` reports paths a step produced before but no longer produces (a re-run step that writes fewer paths, or a removed key). The `TaskRunner` appends them to the delta's `changedProjectResourcePaths` so `recordTaskResult`'s stage merge drops them.
+- `getResourceRequests()` folds every step's reads (including steps not re-run this build, from the persisted invocation data) into one request set. On a delta build the `TaskRunner` merges it into the recorded requests and `recordTaskResult` re-keys the stage on the resulting complete-read-set signature, so a read first seen on a delta build stays tracked. On a full build every step runs, so the task-level monitor already captured everything and no fold is needed.
+- Per-key invocation data (`Map<keyId, {reads, dependencyReads, writes}>`) is persisted as a `task_metadata` sidecar (type `"processEach"`), loaded lazily by `ProjectBuildCache.getProcessEachInvocationData`.
+
+Known limitation: removing an input resource does not yield a per-step delta, because the shared delta path (`ResourceRequestManager.getDeltas`) refuses a delta once any resource is removed. Such a build falls back to a full re-execution, which is correct (the removed input's output is gone) but rewrites the surviving steps' output. Callback return values are collected but not yet cached in CAS, and steps do not yet receive a per-step `MonitoredTaskUtil` for non-resource inputs; both are tracked follow-ups.
+
 ### Source File CAS Storage (Frozen Sources)
 
 To prevent race conditions where a dependency's source files change between project builds in a multi-project build, untransformed source files are stored in CAS after each build completes:
@@ -415,7 +437,7 @@ At runtime, each materialized request set references a `SharedHashTree` represen
 - `addRequests(recording, reader)`: Records path/glob requests, creates or reuses a request set in the graph, builds a resource index (SharedHashTree), returns signature
 - `updateIndices(reader, changedPaths)`: Traverses graph breadth-first, matches changed paths against request patterns per node, batch-fetches resources, upserts into affected resource indices via TreeRegistry
 - `getIndexSignatures()`: Returns current signatures for all request sets
-- `getDeltas()`: Returns map of original -> new signature for changed request sets
+- `getDeltas()`: Returns map of original -> new signature for changed request sets. Both ends are the node's exposed (composite) signature (tree hash folded with any unresolved-request keys, matching `getIndexSignatures`), so a delta on a task that probed an absent path keys on the same signature the stage was stored under. A delta is not emitted once a resource is removed from a set (the shared path cannot express a removal), so a removal falls back to a full re-execution
 
 ## Resource Tags
 
@@ -498,7 +520,7 @@ project.getProjectResources().setStage(stageName, stageCache.stage,
     - content(integrity TEXT PK, data BLOB)                                  # CAS: gzip above ~128 bytes
     - index_cache(project_id, build_signature, kind, data)                   # kind: "source"
     - stage_metadata(project_id, build_signature, stage_id, stage_signature, data)
-    - task_metadata(project_id, build_signature, task_name, type, data)      # type: "project" | "dependencies" | "input"
+    - task_metadata(project_id, build_signature, task_name, type, data)      # type: "project" | "dependencies" | "input" | "root" | "root-no-gitignore" | "processEach"
     - result_metadata(project_id, build_signature, stage_signature, data)
 ```
 
@@ -525,7 +547,7 @@ Stage metadata stored on disk includes:
 3. **Abort/retry**: File changes abort running builds; projects re-queued automatically
 4. **Structural sharing**: Derived hash trees share unchanged subtrees, reducing memory
 5. **Content-addressed storage**: Resources deduplicated via integrity hashes in custom CAS (synchronous path resolution, gzip-compressed)
-6. **Differential caching**: Tasks track resource requests; delta builds only re-process changed resources
+6. **Differential caching**: Tasks track resource requests; delta builds only re-process changed resources. A task opts in with `supportsDifferentialBuilds` and consumes deltas through `taskUtil.processEach` (see "Per-Step Caching (processEach)"), which replaced the older `changedProjectResourcePaths` parameter
 7. **Tag propagation**: Resource tags flow through stages via cached tag operations, included in hash signatures
 8. **Two-tier cache**: Fast in-memory StageCache + persistent filesystem cache via CacheManager
 9. **Two-phase invalidation**: Changes queued via `projectSourcesChanged()` / `dependencyResourcesChanged()` (state -> `REQUIRES_UPDATE`), applied only during `#flushPendingChanges()` at next build start. "Definitely invalidated" only after content comparison confirms actual differences.
