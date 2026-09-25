@@ -9,6 +9,13 @@ import fsInterface from "@ui5/fs/fsInterface";
 /**
  * Task to minify resources.
  *
+ * Each matched resource is processed as its own cached step via
+ * [taskUtil.processEach]{@link @ui5/project/build/helpers/TaskUtil#processEach}, so a delta build
+ * re-minifies only the resources whose inputs changed. A resource's input source map (the
+ * <code>//# sourceMappingURL=</code> target) is read through the step's workspace and thus recorded
+ * as an input of that step, so changing only the <code>.js.map</code> re-runs its owning
+ * <code>.js</code> and regenerates a correct <code>-dbg.js.map</code>.
+ *
  * @public
  * @function default
  * @static
@@ -16,8 +23,6 @@ import fsInterface from "@ui5/fs/fsInterface";
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
- * @param {string[]} [parameters.changedProjectResourcePaths] Set of changed resource paths within the project.
- * This is only set if a cache is used and changes have been detected.
  * @param {object} parameters.options Options
  * @param {string} parameters.options.pattern Pattern to locate the files to be processed
  * @param {boolean} [parameters.options.omitSourceMapResources=false] Whether source map resources shall
@@ -28,66 +33,69 @@ import fsInterface from "@ui5/fs/fsInterface";
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 export default async function({
-	workspace, taskUtil, changedProjectResourcePaths,
+	workspace, taskUtil,
 	options: {pattern, omitSourceMapResources = false, useInputSourceMaps = true}
 }) {
-	let resources;
-	if (changedProjectResourcePaths) {
-		resources = await Promise.all(
-			changedProjectResourcePaths
-				// Filtering out non-JS resources such as .map files
-				// FIXME: A changed input source map (.js.map) does not re-minify its owning .js here,
-				// so the produced -dbg.js.map goes stale. Matching changed paths against "pattern"
-				// would not fix this: the task would need to learn the .map -> .js relation while
-				// processing changedProjectResourcePaths. That is likely a larger rework rather than a
-				// local fix (see the failing minify source-map staleness tests in @ui5/project).
-				.filter((resourcePath) => resourcePath.endsWith(".js"))
-				.map((resource) => workspace.byPath(resource))
-		);
-	} else {
-		resources = await workspace.byGlob(pattern);
-	}
+	const resources = await workspace.byGlob(pattern);
 	if (resources.length === 0) {
 		return;
 	}
-	const processedResources = await minifier({
-		resources,
-		fs: fsInterface(workspace),
-		taskUtil,
-		options: {
-			addSourceMappingUrl: !omitSourceMapResources,
-			readSourceMappingUrl: !!useInputSourceMaps,
-			useWorkers: !process.env.UI5_CLI_NO_WORKERS && !!taskUtil,
-		}
-	});
 
-	return Promise.all(processedResources.map(async ({
-		resource, dbgResource, sourceMapResource, dbgSourceMapResource
-	}) => {
-		if (taskUtil) {
+	// Applies the debug/omit tags to a minified resource and its derived resources, then writes them.
+	const tagAndWrite = async (processed, stepWorkspace, stepTaskUtil) => {
+		const {resource, dbgResource, sourceMapResource, dbgSourceMapResource} = processed;
+		if (stepTaskUtil) {
 			// Carry over OmitFromBuildResult from input resource to all derived resources
-			if (taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.OmitFromBuildResult)) {
-				taskUtil.setTag(dbgResource, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
-				taskUtil.setTag(sourceMapResource, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
+			if (stepTaskUtil.getTag(resource, stepTaskUtil.STANDARD_TAGS.OmitFromBuildResult)) {
+				stepTaskUtil.setTag(dbgResource, stepTaskUtil.STANDARD_TAGS.OmitFromBuildResult);
+				stepTaskUtil.setTag(sourceMapResource, stepTaskUtil.STANDARD_TAGS.OmitFromBuildResult);
 			}
-			taskUtil.setTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
-			taskUtil.setTag(dbgResource, taskUtil.STANDARD_TAGS.IsDebugVariant);
-			taskUtil.setTag(sourceMapResource, taskUtil.STANDARD_TAGS.HasDebugVariant);
+			stepTaskUtil.setTag(resource, stepTaskUtil.STANDARD_TAGS.HasDebugVariant);
+			stepTaskUtil.setTag(dbgResource, stepTaskUtil.STANDARD_TAGS.IsDebugVariant);
+			stepTaskUtil.setTag(sourceMapResource, stepTaskUtil.STANDARD_TAGS.HasDebugVariant);
 			if (omitSourceMapResources) {
-				taskUtil.setTag(sourceMapResource, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
+				stepTaskUtil.setTag(sourceMapResource, stepTaskUtil.STANDARD_TAGS.OmitFromBuildResult);
 			}
 			if (dbgSourceMapResource) {
-				taskUtil.setTag(dbgSourceMapResource, taskUtil.STANDARD_TAGS.IsDebugVariant);
+				stepTaskUtil.setTag(dbgSourceMapResource, stepTaskUtil.STANDARD_TAGS.IsDebugVariant);
 				if (omitSourceMapResources) {
-					taskUtil.setTag(dbgSourceMapResource, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
+					stepTaskUtil.setTag(dbgSourceMapResource, stepTaskUtil.STANDARD_TAGS.OmitFromBuildResult);
 				}
 			}
 		}
-		return Promise.all([
-			workspace.write(resource),
-			workspace.write(dbgResource),
-			workspace.write(sourceMapResource),
-			dbgSourceMapResource && workspace.write(dbgSourceMapResource)
+		await Promise.all([
+			stepWorkspace.write(resource),
+			stepWorkspace.write(dbgResource),
+			stepWorkspace.write(sourceMapResource),
+			dbgSourceMapResource && stepWorkspace.write(dbgSourceMapResource)
 		]);
-	}));
+	};
+
+	const minifierOptions = {
+		addSourceMappingUrl: !omitSourceMapResources,
+		readSourceMappingUrl: !!useInputSourceMaps,
+	};
+
+	if (taskUtil?.processEach) {
+		// One cached step per resource, so a delta build re-minifies only the resources whose inputs
+		// changed. The input source map is read through the step's workspace and thus tracked per step.
+		await taskUtil.processEach(resources, async (inputResource, {workspace, taskUtil}) => {
+			const [processed] = await minifier({
+				resources: [inputResource],
+				fs: fsInterface(workspace),
+				taskUtil,
+				options: {...minifierOptions, useWorkers: !process.env.UI5_CLI_NO_WORKERS && !!taskUtil},
+			});
+			await tagAndWrite(processed, workspace, taskUtil);
+		});
+	} else {
+		// Standalone use without the build cache (e.g. a direct task invocation): minify in one batch.
+		const processedResources = await minifier({
+			resources,
+			fs: fsInterface(workspace),
+			taskUtil,
+			options: {...minifierOptions, useWorkers: !process.env.UI5_CLI_NO_WORKERS && !!taskUtil},
+		});
+		await Promise.all(processedResources.map((processed) => tagAndWrite(processed, workspace, taskUtil)));
+	}
 }
