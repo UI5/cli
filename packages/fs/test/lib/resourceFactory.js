@@ -189,6 +189,23 @@ test("createReader: No project", async (t) => {
 	], "Excludes do not get prefixed.");
 });
 
+test("createReader: forwards useGitignore to the adapter", (t) => {
+	const withGitignore = createReader({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/",
+		name: "reader name",
+		useGitignore: true
+	});
+	t.true(withGitignore._readers[0]._useGitignore, "useGitignore reaches the underlying adapter");
+
+	const withoutGitignore = createReader({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/",
+		name: "reader name"
+	});
+	t.false(withoutGitignore._readers[0]._useGitignore, "useGitignore defaults to false");
+});
+
 test("createReader: Throw error missing 'fsBasePath'", (t) => {
 	const error = t.throws(() => createReader({
 		virBasePath: "/resources/app/",

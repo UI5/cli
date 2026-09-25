@@ -61,9 +61,11 @@ export function createAdapter({name, fsBasePath, virBasePath, project, excludes,
  * @param {object} [parameters.project] Experimental, internal parameter. Do not use
  * @param {string[]} [parameters.excludes] List of glob patterns to exclude
  * @param {string} [parameters.name] Name for the reader collection
+ * @param {boolean} [parameters.useGitignore=false]
+ *   Whether to apply any excludes defined in an optional .gitignore in the <code>fsBasePath</code> directory
  * @returns {@ui5/fs/ReaderCollection} Reader collection wrapping an adapter
  */
-export function createReader({fsBasePath, virBasePath, project, excludes = [], name}) {
+export function createReader({fsBasePath, virBasePath, project, excludes = [], name, useGitignore = false}) {
 	if (!fsBasePath) {
 		// Creating a reader with a memory adapter seems pointless right now
 		// since there would be no way to fill the adapter with resources
@@ -96,7 +98,8 @@ export function createReader({fsBasePath, virBasePath, project, excludes = [], n
 			fsBasePath,
 			virBasePath,
 			project,
-			excludes: normalizedExcludes
+			excludes: normalizedExcludes,
+			useGitignore
 		})]
 	});
 }
