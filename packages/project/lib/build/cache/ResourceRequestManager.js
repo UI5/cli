@@ -523,8 +523,9 @@ class ResourceRequestManager {
 	 * Gets all delta entries for differential cache updates
 	 *
 	 * Returns a map of signature transitions and their associated changed resource paths.
-	 * Only includes deltas where no resources were removed, as removed resources prevent
-	 * differential updates.
+	 * A removed resource is included as a changed path: a processEach step that read the removed
+	 * input then re-runs (or, for a gone key, drops out), and its stale output is dropped from the
+	 * carried-forward stage via the changed-paths merge in ProjectBuildCache.recordTaskResult.
 	 *
 	 * @public
 	 * @returns {Map<string, object>} Map from original signature to delta information
@@ -536,11 +537,7 @@ class ResourceRequestManager {
 			let changedPaths;
 			if (diff) {
 				const {added, updated, removed} = diff;
-				if (removed.length) {
-					// Cannot use differential build if a resource has been removed
-					continue;
-				}
-				changedPaths = Array.from(new Set([...added, ...updated]));
+				changedPaths = Array.from(new Set([...added, ...updated, ...removed]));
 			} else {
 				changedPaths = [];
 			}
