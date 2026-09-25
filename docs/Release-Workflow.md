@@ -37,9 +37,9 @@ The workflow consists of three main jobs:
 
 ### 3. `publish-cli` Job
 - **Trigger**: All other packages have been published
-- **Purpose**: Generates `npm-shrinkwrap.json` using `shrinkwrap-extractor` and publishes the CLI package
-- **Why separate**: The shrinkwrap must contain published registry versions of workspace packages, not workspace links. This requires all dependencies to be available on npm registry first.
-- **How it works**: The `shrinkwrap-extractor` reads the monorepo's `package-lock.json`, extracts production dependencies for `@ui5/cli`, converts workspace references to registry URLs, and generates a valid `npm-shrinkwrap.json` that will be included in the published CLI package.
+- **Purpose**: Publishes the CLI package after all of its `@ui5/*` dependencies have been published
+- **Why separate**: All workspace dependencies must be available on the npm registry before the CLI is published.
+- **How it works**: The release uses the repository's `package-lock.json` with `npm ci`, then publishes `@ui5/cli` as a normal package. Consumers resolve dependencies from the ranges declared in its `package.json`.
 
 ## Release Please Configuration
 

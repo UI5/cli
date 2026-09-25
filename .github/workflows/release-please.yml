@@ -76,7 +76,7 @@ jobs:
     environment: npmjs:ui5-cli-mono
     strategy:
       # Sequential publishing ensures dependencies exist on NPM before dependents are published
-      # Order: logger → fs → builder → server → project (CLI handled separately for shrinkwrap generation)
+      # Order: logger → fs → builder → server → project (CLI handled separately)
       max-parallel: 1
       matrix:
         package: [logger, fs, builder, server, project]
@@ -130,12 +130,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Generate npm-shrinkwrap.json
-        working-directory: packages/cli
-        run: |
-          set -e
-          node ../../internal/shrinkwrap-extractor/cli.js ../../
 
       - name: Publish @ui5/cli package
         working-directory: packages/cli
