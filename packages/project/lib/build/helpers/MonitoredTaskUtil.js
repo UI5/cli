@@ -26,6 +26,49 @@ const TRACKED_TASK_UTIL_METHODS = {
 // (`isRootProject`) record under the empty name.
 const NAME_ARG_METHODS = new Set(["getEnv", "getTime"]);
 
+// Root-reader subtrees excluded from tracking by default. A wide glob (e.g. "/**") over the project
+// root would otherwise pull the whole dependency install and the git database into the build-cache
+// signature. A recorded glob only reaches these when it targets them explicitly (see
+// `augmentRootPatterns`), so a bundler that wants a third-party package under `node_modules` opts in
+// with `getRootReader({useGitignore: false}).byGlob("/node_modules/<pkg>/**")`.
+const ROOT_IGNORE_PREFIXES = ["/node_modules", "/.git"];
+
+/**
+ * Whether a single glob pattern targets one of the default-ignored root subtrees explicitly.
+ *
+ * A leading "!" marks a negation, which never opts a subtree in. Everything else counts as explicit
+ * when it starts with an ignored prefix followed by "/" or the pattern end, so "/node_modules/x/**"
+ * opts in while "/**" and "/node_modules_stuff/**" do not.
+ *
+ * @param {string} pattern Glob pattern
+ * @returns {boolean} True if the pattern explicitly enters an ignored subtree
+ */
+function patternEntersIgnoredSubtree(pattern) {
+	if (typeof pattern !== "string" || pattern.startsWith("!")) {
+		return false;
+	}
+	return ROOT_IGNORE_PREFIXES.some((prefix) =>
+		pattern === prefix || pattern.startsWith(`${prefix}/`));
+}
+
+/**
+ * Applies the default root-monitor ignore to a recorded glob request.
+ *
+ * A request that already targets `node_modules` or `.git` explicitly is recorded unchanged so its
+ * content is tracked. Any other request gains negations for those subtrees, so re-materializing the
+ * request set on a later build resolves the same bounded resource set the record-time read intended.
+ *
+ * @param {string|string[]} pattern Recorded glob pattern (single or array form)
+ * @returns {string|string[]} Pattern, augmented with ignore negations unless it opts in explicitly
+ */
+function augmentRootPattern(pattern) {
+	const patterns = Array.isArray(pattern) ? pattern : [pattern];
+	if (patterns.some(patternEntersIgnoredSubtree)) {
+		return pattern;
+	}
+	return [...patterns, "!/node_modules/**", "!/.git/**"];
+}
+
 /**
  * Records the inputs a task reads through its [TaskUtil]{@link @ui5/project/build/helpers/TaskUtil},
  * analogous to how [MonitoredReader]{@link @ui5/fs/internal/MonitoredReader} records the resources a
@@ -53,9 +96,20 @@ const NAME_ARG_METHODS = new Set(["getEnv", "getTime"]);
  * these, split into a <code>project</code> bucket (reads of the project being built) and a
  * <code>dependencies</code> bucket (reads of any other project). The TaskRunner merges each bucket
  * into the project and dependency resource requests it already collects from the workspace and
- * dependencies readers. <code>getRootReader</code> is deliberately not wrapped: it exposes the
- * project root (test sources, config) which is not part of the dependency reader collection those
- * requests are later resolved against, so a read through it stays untracked.
+ * dependencies readers.
+ *
+ * Reads through the project being built's <code>getRootReader()</code> are tracked in a third
+ * <code>root</code> bucket. The root reader exposes files outside the UI5 resource model (a
+ * <code>tsconfig.json</code> in the project root, third-party packages under <code>node_modules</code>),
+ * so a task reading them would otherwise bypass every tracked reader. The bucket is keyed by the
+ * reader's <code>useGitignore</code> flag, because the same glob returns a different resource set with
+ * the flag on versus off; a read recorded under one flag is re-materialized against a root reader
+ * built with the same flag. The default <code>useGitignore: true</code> bucket additionally tracks the
+ * root <code>.gitignore</code> as an input, so an edit that un-ignores a file invalidates the recorded
+ * request sets even though no filesystem change event fires for that file. <code>node_modules</code>
+ * and <code>.git</code> are ignored unless a request globs into them explicitly (see
+ * {@link augmentRootPattern}). A dependency's <code>getRootReader()</code> stays an unwrapped
+ * pass-through: root requests re-materialize against the built project's root, not a dependency's.
  *
  * @alias @ui5/project/build/helpers/MonitoredTaskUtil
  */
@@ -77,6 +131,11 @@ class MonitoredTaskUtil {
 		// wrapping a getProject(name).getReader() result; getResourceRequests drains them.
 		const projectReaderMonitors = [];
 		const dependencyReaderMonitors = [];
+
+		// Monitored root readers of the project being built, keyed by the useGitignore flag the read
+		// used. Two lists because the same glob resolves differently with the flag on versus off, so
+		// each recorded request must re-materialize against a matching root reader.
+		const rootReaderMonitors = {true: [], false: []};
 
 		// Name of the project being built, resolved lazily from the underlying taskUtil (getProject()
 		// with no argument) and cached. `null` when the wrapped interface has no getProject (spec
@@ -102,13 +161,27 @@ class MonitoredTaskUtil {
 			return {paths, patterns};
 		};
 
+		// Drains the root reader monitors recorded under one useGitignore flag, applying the default
+		// node_modules/.git ignore to glob patterns. When useGitignore is on and the bucket recorded
+		// anything, the root .gitignore is tracked as a path input so its content joins the request
+		// set's signature (an edit that un-ignores a file changes what the recorded globs match).
+		const mergeRootRequests = (useGitignore) => {
+			const {paths, patterns} = mergeResourceRequests(rootReaderMonitors[useGitignore]);
+			const augmentedPatterns = patterns.map(augmentRootPattern);
+			if (useGitignore && (paths.length || augmentedPatterns.length) && !paths.includes("/.gitignore")) {
+				paths.push("/.gitignore");
+			}
+			return {paths, patterns: augmentedPatterns};
+		};
+
 		// Wraps a project (or interfaced project) returned by getProject so that reading a tracked
 		// accessor records the value under the project's name, and reading through getReader records
 		// the resources as resource requests. Methods bind to the underlying project so private fields
 		// keep working, and untracked methods pass straight through.
 		const wrapProject = (project) => {
 			const projectName = project.getName();
-			const readerMonitors = projectName === getCurrentProjectName() ?
+			const isCurrentProject = projectName === getCurrentProjectName();
+			const readerMonitors = isCurrentProject ?
 				projectReaderMonitors : dependencyReaderMonitors;
 			return new Proxy(project, {
 				get(target, prop) {
@@ -130,6 +203,16 @@ class MonitoredTaskUtil {
 							return monitor;
 						};
 					}
+					if (prop === "getRootReader" && isCurrentProject) {
+						// Only the built project's root re-materializes correctly on lookup (against
+						// this.#project.getRootReader). A dependency's root reader passes through
+						// unwrapped, staying untracked as before.
+						return function({useGitignore = true} = {}) {
+							const monitor = createMonitor(orig.call(target, {useGitignore}));
+							rootReaderMonitors[!!useGitignore].push(monitor);
+							return monitor;
+						};
+					}
 					return orig.bind(target);
 				},
 			});
@@ -144,6 +227,10 @@ class MonitoredTaskUtil {
 					return () => ({
 						project: mergeResourceRequests(projectReaderMonitors),
 						dependencies: mergeResourceRequests(dependencyReaderMonitors),
+						root: {
+							gitignore: mergeRootRequests(true),
+							noGitignore: mergeRootRequests(false),
+						},
 					});
 				}
 				const orig = target[prop];
@@ -193,19 +280,26 @@ class MonitoredTaskUtil {
 	}
 
 	/**
-	 * Returns the resource requests recorded through project readers since this monitor was created,
-	 * split into reads of the project being built and reads of dependencies.
+	 * Returns the resource requests recorded through project readers since this monitor was created.
 	 *
-	 * Called by the TaskRunner after the task finishes; each bucket is merged into the project and
-	 * dependency resource requests the TaskRunner already collects from the workspace and dependencies
-	 * readers.
+	 * Called by the TaskRunner after the task finishes. The <code>project</code> and
+	 * <code>dependencies</code> buckets are merged into the project and dependency resource requests
+	 * the TaskRunner already collects from the workspace and dependencies readers. The <code>root</code>
+	 * bucket carries reads through the built project's root reader, keyed by <code>useGitignore</code>,
+	 * for the build cache to re-materialize against a matching root reader.
 	 *
-	 * @returns {{project: {paths: string[], patterns: string[]},
-	 *   dependencies: {paths: string[], patterns: string[]}}} Recorded resource requests
+	 * @returns {{project: {paths: string[], patterns: (string|string[])[]},
+	 *   dependencies: {paths: string[], patterns: (string|string[])[]},
+	 *   root: {gitignore: {paths: string[], patterns: (string|string[])[]},
+	 *     noGitignore: {paths: string[], patterns: (string|string[])[]}}}} Recorded resource requests
 	 */
 	getResourceRequests() {
 		// Implemented via the constructor's Proxy trap; this declaration documents the contract.
-		return {project: {paths: [], patterns: []}, dependencies: {paths: [], patterns: []}};
+		return {
+			project: {paths: [], patterns: []},
+			dependencies: {paths: [], patterns: []},
+			root: {gitignore: {paths: [], patterns: []}, noGitignore: {paths: [], patterns: []}},
+		};
 	}
 }
 

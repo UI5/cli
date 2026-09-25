@@ -987,3 +987,82 @@ resources:
 		},
 	});
 });
+
+test.serial("Build application.a (custom task reads a root config file, tracked as a root input)", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+	await fixtureTester._initialize();
+
+	// A tsconfig.json in the project root: outside the UI5 resource model, so it is reachable only
+	// through getRootReader() and bypasses the source and dependency readers. The root-config custom
+	// task embeds its content into an output resource, so a change to it must invalidate the task's
+	// cache even though no source or dependency resource changed.
+	const tsconfigPath = `${fixtureTester.fixturePath}/tsconfig.json`;
+	const digestPath = `${destPath}/tsconfigDigest.js`;
+	await fs.writeFile(tsconfigPath, `{"compilerOptions":{"target":"es2022"}}`);
+
+	// #1 build (no cache): the full graph builds and the task reads the initial tsconfig.
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-root-config.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+				"application.a": {},
+			},
+		},
+	});
+	t.true((await fs.readFile(digestPath, {encoding: "utf8"})).includes("es2022"),
+		"Output embeds the initial tsconfig content");
+
+	// #2 build (with cache, no changes): the whole project is served from cache, nothing is built.
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-root-config.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {projects: {}},
+	});
+
+	// Change only the root config. No source or dependency resource changes.
+	await fs.writeFile(tsconfigPath, `{"compilerOptions":{"target":"es2015"}}`);
+
+	// #3 build (with cache, root config changed): the root change invalidates application.a's result
+	// cache, so it is rebuilt and the root-config task re-runs with the new content. Without root
+	// tracking this build would serve the stale cached result and build nothing.
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-root-config.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"application.a": {
+					// Source is unchanged, so every source-driven task is served from cache. Only
+					// root-config re-runs, because its stage signature folds in the root resources.
+					skippedTasks: [
+						"enhanceManifest",
+						"escapeNonAsciiCharacters",
+						"generateComponentPreload",
+						"generateFlexChangesBundle",
+						"generateVersionInfo",
+						"minify",
+						"replaceCopyright",
+						"replaceVersion",
+					],
+					writtenResources: {
+						"root-config": ["/tsconfigDigest.js"],
+					},
+				},
+			},
+		},
+	});
+	t.true((await fs.readFile(digestPath, {encoding: "utf8"})).includes("es2015"),
+		"Output embeds the changed tsconfig content after the root change");
+
+	// #4 build (with cache, no changes): fresh again, nothing is built.
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-root-config.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {projects: {}},
+	});
+});
