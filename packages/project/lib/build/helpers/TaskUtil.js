@@ -6,6 +6,7 @@ import {
 	createLinkReader,
 	createFlatReader
 } from "@ui5/fs/resourceFactory";
+import {quantizeTime} from "./quantizeTime.js";
 
 /**
  * Convenience functions for UI5 tasks.
@@ -157,6 +158,37 @@ class TaskUtil {
 	 */
 	getEnv(name) {
 		return process.env[name];
+	}
+
+	/**
+	 * Reads the current time quantized to a fixed granularity.
+	 *
+	 * Tasks whose output depends on the current time (for example
+	 * [replaceCopyright]{@link @ui5/builder/tasks/replaceCopyright}, which expands
+	 * <code>${currentYear}</code>) must read it through this method rather than calling
+	 * <code>new Date()</code> directly. During a build the task receives a
+	 * [MonitoredTaskUtil]{@link @ui5/project/build/helpers/MonitoredTaskUtil} that records the read
+	 * and folds it into the task's build-cache signature, so a cached result re-runs once the time
+	 * bucket rolls over (a <code>"year"</code>-granularity result is re-run at the next calendar year).
+	 * A direct <code>Date</code> read is not tracked and can serve a stale result.
+	 *
+	 * The granularity is the contract: it names the bucket at which the output is stable. A
+	 * millisecond-precision read would change on every build and miss the cache every time, so this
+	 * method never returns a raw timestamp. Reading at <code>"year"</code> means "re-run only when the
+	 * year changes".
+	 *
+	 * </br></br>
+	 * <b>Experimental:</b> API for tracking non-resource task inputs.
+	 *
+	 * @param {string} granularity Time bucket, one of <code>"year"</code>, <code>"month"</code>,
+	 *   <code>"day"</code>, <code>"hour"</code>
+	 * @returns {string} Current time quantized to the granularity, e.g. <code>"2026"</code> for
+	 *   <code>"year"</code> or <code>"2026-09-25T14"</code> for <code>"hour"</code>
+	 * @throws {Error} If the granularity is not one of the supported buckets
+	 * @public
+	 */
+	getTime(granularity) {
+		return quantizeTime(granularity);
 	}
 
 	/**
@@ -337,7 +369,7 @@ class TaskUtil {
 			STANDARD_TAGS: this.STANDARD_TAGS,
 		};
 		bindFunctions(this, baseInterface, [
-			"setTag", "clearTag", "getTag", "getEnv", "isRootProject", "registerCleanupTask"
+			"setTag", "clearTag", "getTag", "getEnv", "getTime", "isRootProject", "registerCleanupTask"
 		]);
 
 		if (specVersion.gte("3.0")) {
@@ -381,7 +413,7 @@ class TaskUtil {
 			STANDARD_TAGS: this.STANDARD_TAGS,
 		};
 		bindFunctions(this, baseInterface, [
-			"getTag", "getEnv", "isRootProject"
+			"getTag", "getEnv", "getTime", "isRootProject"
 		]);
 
 		if (specVersion.gte("3.0")) {

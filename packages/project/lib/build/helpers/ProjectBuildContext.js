@@ -6,6 +6,7 @@ import TaskDefinitions from "../TaskDefinitions.js";
 import {getProjectSignature} from "./getBuildSignature.js";
 import ProjectBuildCache from "../cache/ProjectBuildCache.js";
 import {normalizeInputValue} from "../cache/index/TaskInputSet.js";
+import {quantizeTime, TIME_GRANULARITIES} from "./quantizeTime.js";
 
 /**
  * Build context of a single project. Always part of an overall
@@ -141,7 +142,8 @@ class ProjectBuildContext {
 	 * misses the cache and forces the task to re-run. The recording and lookup sides run values
 	 * through the same {@link normalizeInputValue}, so equal values compare equal.
 	 *
-	 * @param {string} type Input type (e.g. "env", "isRootProject", "getDependencies", "project.*")
+	 * @param {string} type Input type (e.g. "env", "time", "isRootProject", "getDependencies",
+	 *   "project.*")
 	 * @param {string} name Input name within the type
 	 * @returns {string|undefined} Current normalized value, or <code>undefined</code> for an unknown
 	 *   type or an input that can no longer be resolved (e.g. a project removed from the graph)
@@ -154,6 +156,15 @@ class ProjectBuildContext {
 			rawValue = this.isRootProject();
 		} else if (type === "getDependencies") {
 			rawValue = this.getDependencies(name);
+		} else if (type === "time") {
+			// Re-derive the current bucket for the recorded granularity: the same bucket hits the
+			// cache, a rolled-over bucket misses and re-runs the task. A recorded granularity is always
+			// valid (getTime throws on an unknown one at record time); guard anyway so a corrupt cache
+			// row misses the cache instead of throwing during lookup.
+			if (!TIME_GRANULARITIES.includes(name)) {
+				return undefined;
+			}
+			rawValue = quantizeTime(name);
 		} else if (type.startsWith("project.")) {
 			const method = type.slice("project.".length);
 			const project = this.getProject(name);

@@ -17,8 +17,14 @@ const TRACKED_PROJECT_METHODS = new Set([
 // they need the resolved project name (see the constructor).
 const TRACKED_TASK_UTIL_METHODS = {
 	getEnv: "env",
+	getTime: "time",
 	isRootProject: "isRootProject",
 };
+
+// Tracked methods whose first argument is the input name (the environment variable name, the time
+// granularity). Their read is recorded under that argument. Argument-less tracked methods
+// (`isRootProject`) record under the empty name.
+const NAME_ARG_METHODS = new Set(["getEnv", "getTime"]);
 
 /**
  * Records the inputs a task reads through its [TaskUtil]{@link @ui5/project/build/helpers/TaskUtil},
@@ -27,12 +33,13 @@ const TRACKED_TASK_UTIL_METHODS = {
  *
  * The TaskRunner wraps the TaskUtil (or the spec-version interface) handed to a task in a
  * MonitoredTaskUtil and passes the wrapper to the task instead. Every tracked read the task makes
- * (an environment variable via <code>getEnv</code>, <code>isRootProject</code>,
- * <code>getDependencies</code>, or a <code>project.*</code> accessor on a
- * <code>getProject(name)</code> result) is recorded. After the task finishes, the TaskRunner drains
- * the recording via {@link #getInputRecording} and folds it into the task's build-cache signature so
- * that a changed input invalidates the cached result. Reads made outside a task (by build
- * orchestration code holding the raw TaskUtil) are not monitored and stay untracked.
+ * (an environment variable via <code>getEnv</code>, the quantized current time via
+ * <code>getTime</code>, <code>isRootProject</code>, <code>getDependencies</code>, or a
+ * <code>project.*</code> accessor on a <code>getProject(name)</code> result) is recorded. After the
+ * task finishes, the TaskRunner drains the recording via {@link #getInputRecording} and folds it into
+ * the task's build-cache signature so that a changed input invalidates the cached result. Reads made
+ * outside a task (by build orchestration code holding the raw TaskUtil) are not monitored and stay
+ * untracked.
  *
  * Wrapping is done with a Proxy so the monitor exposes exactly the same shape as the wrapped
  * TaskUtil: a custom task's limited interface stays limited, and non-input members (tag mutations,
@@ -148,7 +155,7 @@ class MonitoredTaskUtil {
 					const type = TRACKED_TASK_UTIL_METHODS[prop];
 					return function(name) {
 						const value = orig.call(target, name);
-						record(type, prop === "getEnv" ? name : "", value);
+						record(type, NAME_ARG_METHODS.has(prop) ? name : "", value);
 						return value;
 					};
 				}

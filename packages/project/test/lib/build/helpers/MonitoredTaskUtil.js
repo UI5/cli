@@ -17,6 +17,7 @@ test.beforeEach((t) => {
 	t.context.taskUtil = {
 		STANDARD_TAGS: {IsBundle: "ui5:IsBundle"},
 		getEnv: sinon.stub().callsFake((name) => (name === "SET" ? "on" : undefined)),
+		getTime: sinon.stub().callsFake((granularity) => (granularity === "year" ? "2026" : "2026-09-25")),
 		isRootProject: sinon.stub().returns(true),
 		getDependencies: sinon.stub().returns(["dep.a", "dep.b"]),
 		getProject: sinon.stub().callsFake((name) => {
@@ -54,6 +55,19 @@ test("records getEnv reads", (t) => {
 	t.deepEqual(monitored.getInputRecording(), [
 		{type: "env", name: "SET", value: "on"},
 		{type: "env", name: "UNSET", value: undefined},
+	]);
+});
+
+test("records getTime reads keyed by granularity", (t) => {
+	const monitored = new MonitoredTaskUtil(t.context.taskUtil);
+
+	t.is(monitored.getTime("year"), "2026", "returns the underlying quantized value");
+	t.is(monitored.getTime("day"), "2026-09-25");
+
+	// The granularity is recorded as the input name, the quantized bucket as the value.
+	t.deepEqual(monitored.getInputRecording(), [
+		{type: "time", name: "year", value: "2026"},
+		{type: "time", name: "day", value: "2026-09-25"},
 	]);
 });
 
