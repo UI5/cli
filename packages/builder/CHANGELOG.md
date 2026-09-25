@@ -4,6 +4,23 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v4.0.11...HEAD).
 
+## [5.0.0-alpha.11](https://github.com/UI5/cli/compare/builder-v5.0.0-alpha.10...builder-v5.0.0-alpha.11) (2026-09-25)
+
+
+### Bug Fixes
+
+* **builder:** Improvement of flexBundle flagging in generateFlexBundle ([#1589](https://github.com/UI5/cli/issues/1589)) ([f0b80e7](https://github.com/UI5/cli/commit/f0b80e77aa8494fcb3003248f535832ac18827cd))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/fs bumped from ^5.0.0-alpha.10 to ^5.0.0-alpha.11
+    * @ui5/logger bumped from ^5.0.0-alpha.10 to ^5.0.0-alpha.11
+  * devDependencies
+    * @ui5/project bumped from ^5.0.0-alpha.10 to ^5.0.0-alpha.11
+
 ## [5.0.0-alpha.10](https://github.com/UI5/cli/compare/builder-v5.0.0-alpha.9...builder-v5.0.0-alpha.10) (2026-09-14)
 
 
