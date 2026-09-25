@@ -117,8 +117,12 @@ class MonitoredTaskUtil {
 	/**
 	 * @param {@ui5/project/build/helpers/TaskUtil|object} taskUtil TaskUtil instance or a
 	 *   spec-version interface returned by {@link @ui5/project/build/helpers/TaskUtil#getInterface}
+	 * @param {object} [parameters]
+	 * @param {Function} [parameters.processEach] Per-task <code>processEach</code> implementation the
+	 *   TaskRunner binds to the task's readers and cache state. Exposed as <code>taskUtil.processEach</code>
+	 *   because the recording readers a step needs are per-task, not per-project.
 	 */
-	constructor(taskUtil) {
+	constructor(taskUtil, {processEach} = {}) {
 		// Recorded inputs, keyed by `${type}\0${name}` so repeated reads of the same input collapse
 		// to a single entry (last read wins).
 		const recording = new Map();
@@ -220,6 +224,10 @@ class MonitoredTaskUtil {
 
 		return new Proxy(taskUtil, {
 			get(target, prop) {
+				if (prop === "processEach") {
+					// Injected by the TaskRunner, bound to this task's readers and cache state.
+					return processEach;
+				}
 				if (prop === "getInputRecording") {
 					return () => Array.from(recording.values());
 				}

@@ -101,6 +101,13 @@ export default class ProjectBuildCache {
 	#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
 	#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
 
+	// Per-task processEach invocation data (see lib/build/helpers/ProcessEach.js), keyed by task name.
+	// Each value is a Map of key identity -> {reads, dependencyReads, writes} recorded during the last
+	// run. It lets a delta build map a changed input back to the step that read it, fold newly-observed
+	// reads into the task's request graph, and drop outputs a step no longer produces. Loaded lazily
+	// from task_metadata (type "processEach") and persisted alongside the other per-task metadata.
+	#processEachInvocationData = new Map();
+
 	/**
 	 * Creates a new ProjectBuildCache instance
 	 *
@@ -994,9 +1001,69 @@ export default class ProjectBuildCache {
 	 * @returns {Promise<string[]|undefined>} The resource paths written by the task,
 	 *   or <code>undefined</code> if caching is disabled
 	 */
+	/**
+	 * Returns the processEach invocation data recorded for a task on its previous run, or
+	 * <code>undefined</code> if the task has none (first build, or no processEach usage). Loaded
+	 * lazily from the persistent cache and memoized.
+	 *
+	 * @param {string} taskName Task name
+	 * @returns {Map<string, object>|undefined} Map of key identity to <code>{reads, dependencyReads, writes}</code>
+	 */
+	getProcessEachInvocationData(taskName) {
+		if (this.#processEachInvocationData.has(taskName)) {
+			return this.#processEachInvocationData.get(taskName);
+		}
+		let data;
+		const cached = this.#cacheManager?.readTaskMetadata(
+			this.#project.getId(), this.#buildSignature, taskName, "processEach");
+		if (cached) {
+			// Persisted as an array of [keyId, entry] pairs (JSON has no Map).
+			data = new Map(cached);
+		}
+		this.#processEachInvocationData.set(taskName, data);
+		return data;
+	}
+
+	/**
+	 * Stores the processEach invocation data a task recorded on this build, for the delta selection and
+	 * read fold-back of the next build. Persisted by {@link #prepareTaskRequestCache}.
+	 *
+	 * @param {string} taskName Task name
+	 * @param {Map<string, object>} invocationData Map of key identity to <code>{reads, dependencyReads, writes}</code>
+	 */
+	setProcessEachInvocationData(taskName, invocationData) {
+		this.#processEachInvocationData.set(taskName, invocationData);
+	}
+
+	/**
+	 * Re-records a processEach task's complete request set on a delta build and returns the resulting
+	 * [projectSignature, dependencySignature] pair, so {@link #recordTaskResult} can re-key the stage on
+	 * it (see open-gaps §7). The request set fed in already unions the delta's monitored requests with
+	 * every step's persisted reads (assembled by the driver and the TaskRunner), so recording it keys
+	 * the stage exactly as a full build would.
+	 *
+	 * @param {string} taskName Executed task name
+	 * @param {@ui5/project/build/cache/BuildTaskCache} taskCache The task's cache
+	 * @param {object} projectResourceRequests Complete project requests (paths + patterns)
+	 * @param {object} dependencyResourceRequests Complete dependency requests, if the task reads dependencies
+	 * @param {Array<object>} inputRecording Recorded non-resource inputs
+	 * @param {object} rootResourceRequests Recorded root requests
+	 * @returns {Promise<string[]>} The [projectSignature, dependencySignature] pair
+	 */
+	async #foldProcessEachReads(
+		taskName, taskCache, projectResourceRequests, dependencyResourceRequests, inputRecording, rootResourceRequests
+	) {
+		const [projectSig, dependencySig, inputSig, rootSig] = await taskCache.recordRequests(
+			projectResourceRequests, dependencyResourceRequests,
+			this.#currentProjectReader, this.#currentDependencyReader,
+			inputRecording, rootResourceRequests, this.#getRootReaderFactory());
+		const auxSig = combineInputAndRootSignature(inputSig, rootSig);
+		return [combineProjectAndInputSignature(projectSig, auxSig), dependencySig];
+	}
+
 	async recordTaskResult(
 		taskName, projectResourceRequests, dependencyResourceRequests, cacheInfo, supportsDifferentialBuilds,
-		inputRecording = [], rootResourceRequests
+		inputRecording = [], rootResourceRequests, processEach = false
 	) {
 		if (this.#cacheMode === Cache.Off) {
 			return;
@@ -1086,6 +1153,20 @@ export default class ProjectBuildCache {
 					`${(performance.now() - mergeStart).toFixed(2)} ms ` +
 					`(${previousWrittenResources.length} previous, ${mergedCount} merged, ` +
 					`${droppedCount} dropped)`);
+			}
+
+			if (processEach) {
+				// The delta merge above carried unaffected steps' output forward and dropped stale
+				// output (their paths arrive via changedProjectResourcePaths). But cacheInfo.newSignature
+				// keys the stage on the delta's partial request node, which does not track a read first
+				// observed on this build (a marker probe, a source map pulled in by a re-run step). Re-key
+				// on the complete read set instead, exactly as the full-build branch does, so the next
+				// build looks the stage up under a signature that tracks every current input (open-gaps §7).
+				const foldedSignaturePair = await this.#foldProcessEachReads(
+					taskName, taskCache, projectResourceRequests, dependencyResourceRequests,
+					inputRecording, rootResourceRequests);
+				this.#currentStageSignatures.set(this.#getStageNameForTask(taskName), foldedSignaturePair);
+				stageSignature = createStageSignature(...foldedSignaturePair);
 			}
 		} else {
 			// Calculate signature for executed task
@@ -1999,6 +2080,13 @@ export default class ProjectBuildCache {
 			}
 			if (rootNoGitignoreRequests) {
 				out.push({taskName, type: "root-no-gitignore", metadata: rootNoGitignoreRequests});
+			}
+		}
+		// processEach invocation data is a per-task sidecar (not part of BuildTaskCache), persisted as
+		// an array of [keyId, {reads, dependencyReads, writes}] pairs since JSON has no Map.
+		for (const [taskName, invocationData] of this.#processEachInvocationData) {
+			if (invocationData && invocationData.size) {
+				out.push({taskName, type: "processEach", metadata: [...invocationData]});
 			}
 		}
 		return out;

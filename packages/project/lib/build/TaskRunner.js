@@ -1,6 +1,7 @@
 import {getLogger} from "@ui5/logger";
 import composeTaskList from "./helpers/composeTaskList.js";
 import MonitoredTaskUtil from "./helpers/MonitoredTaskUtil.js";
+import ProcessEach from "./helpers/ProcessEach.js";
 import {createReaderCollection, createMonitor} from "@ui5/fs/resourceFactory";
 
 const EMPTY_RESOURCE_REQUESTS = {paths: [], patterns: []};
@@ -118,6 +119,8 @@ class TaskRunner {
 	 */
 	async runTasks(signal) {
 		await this._initTasks();
+		// Kept for the per-task processEach driver to check between steps.
+		this._signal = signal;
 
 		// Ensure cached dependencies reader is initialized and up-to-date (TODO: improve this lifecycle)
 		await this.getDependenciesReader(this._directDependencies);
@@ -241,16 +244,37 @@ class TaskRunner {
 				}
 				const usingCache = !!(supportsDifferentialBuilds && cacheInfo);
 				const workspace = createMonitor(this._project.getWorkspace());
-				const monitoredTaskUtil = new MonitoredTaskUtil(this._taskUtil);
+				let dependencies;
+				if (requiresDependencies) {
+					dependencies = createMonitor(this._cachedDependenciesReader);
+				}
+
+				// Bind a processEach driver to this task's readers and cache state, exposed as
+				// taskUtil.processEach. Constructed lazily on first use, so a task that does not call
+				// processEach neither builds a driver nor reads its persisted invocation data.
+				let processEachDriver;
+				const monitoredTaskUtil = new MonitoredTaskUtil(this._taskUtil, {
+					processEach: (keys, callback, concurrent) => {
+						if (!processEachDriver) {
+							processEachDriver = new ProcessEach({
+								workspace,
+								dependencies,
+								taskUtil: monitoredTaskUtil,
+								cacheInfo: usingCache ? cacheInfo : undefined,
+								previousInvocationData: this._buildCache.getProcessEachInvocationData(taskName),
+								signal: this._signal,
+							});
+						}
+						return processEachDriver.run(keys, callback, concurrent);
+					},
+				});
+
 				const params = {
 					workspace,
 					taskUtil: monitoredTaskUtil,
 					options,
 				};
-
-				let dependencies;
-				if (requiresDependencies) {
-					dependencies = createMonitor(this._cachedDependenciesReader);
+				if (dependencies) {
 					params.dependencies = dependencies;
 				}
 				if (usingCache) {
@@ -271,13 +295,37 @@ class TaskRunner {
 						`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
 				}
 				const taskUtilRequests = monitoredTaskUtil.getResourceRequests();
+				let projectRequests = mergeResourceRequests(workspace.getResourceRequests(), taskUtilRequests.project);
+				let dependencyRequests =
+					mergeResourceRequests(dependencies?.getResourceRequests(), taskUtilRequests.dependencies);
+
+				// A task that called processEach folds the driver's outcome into the recorded result:
+				// its complete per-step read set (so first-seen reads stay tracked), its stale outputs
+				// (dropped from the carried-forward stage via the changed-paths merge), and its
+				// invocation data (persisted for the next delta build).
+				const usedProcessEach = !!processEachDriver;
+				if (usedProcessEach) {
+					this._buildCache.setProcessEachInvocationData(taskName, processEachDriver.getInvocationData());
+					const driverRequests = processEachDriver.getResourceRequests();
+					projectRequests = mergeResourceRequests(projectRequests, driverRequests.project);
+					dependencyRequests = mergeResourceRequests(dependencyRequests, driverRequests.dependencies);
+					if (usingCache) {
+						const staleOutputs = processEachDriver.getStaleOutputs();
+						if (staleOutputs.length) {
+							cacheInfo.changedProjectResourcePaths =
+								[...cacheInfo.changedProjectResourcePaths, ...staleOutputs];
+						}
+					}
+				}
+
 				const writtenResourcePaths = await this._buildCache.recordTaskResult(taskName,
-					mergeResourceRequests(workspace.getResourceRequests(), taskUtilRequests.project),
-					mergeResourceRequests(dependencies?.getResourceRequests(), taskUtilRequests.dependencies),
+					projectRequests,
+					dependencyRequests,
 					usingCache ? cacheInfo : undefined,
 					supportsDifferentialBuilds,
 					monitoredTaskUtil.getInputRecording(),
-					taskUtilRequests.root);
+					taskUtilRequests.root,
+					usedProcessEach);
 				this._log.endTask(taskName, usingCache, writtenResourcePaths);
 			};
 		}
