@@ -5,6 +5,7 @@ import TaskRunner from "../TaskRunner.js";
 import TaskDefinitions from "../TaskDefinitions.js";
 import {getProjectSignature} from "./getBuildSignature.js";
 import ProjectBuildCache from "../cache/ProjectBuildCache.js";
+import {normalizeInputValue} from "../cache/index/TaskInputSet.js";
 
 /**
  * Build context of a single project. Always part of an overall
@@ -82,7 +83,8 @@ class ProjectBuildContext {
 			baseSignature, taskSignatures, project, buildContext.getGraph(), buildContext.getTaskRepository());
 
 		const cacheMode = buildContext.getBuildConfig().cache;
-		ctx._buildCache = new ProjectBuildCache(project, ctx._buildSignature, cacheManager, cacheMode);
+		ctx._buildCache = new ProjectBuildCache(project, ctx._buildSignature, cacheManager, cacheMode,
+			(type, name) => ctx.resolveInputValue(type, name));
 		return ctx;
 	}
 
@@ -127,6 +129,40 @@ class ProjectBuildContext {
 	 */
 	registerCleanupTask(callback) {
 		this._queues.cleanup.push(callback);
+	}
+
+	/**
+	 * Re-derives the current normalized value of a recorded task input.
+	 *
+	 * The counterpart to the recording done by
+	 * [MonitoredTaskUtil]{@link @ui5/project/build/helpers/MonitoredTaskUtil}: on a cache lookup the
+	 * build cache re-evaluates each input a task recorded last time against the current environment
+	 * and project graph. A value that differs from the one baked into the cached stage signature
+	 * misses the cache and forces the task to re-run. The recording and lookup sides run values
+	 * through the same {@link normalizeInputValue}, so equal values compare equal.
+	 *
+	 * @param {string} type Input type (e.g. "env", "isRootProject", "getDependencies", "project.*")
+	 * @param {string} name Input name within the type
+	 * @returns {string|undefined} Current normalized value, or <code>undefined</code> for an unknown
+	 *   type or an input that can no longer be resolved (e.g. a project removed from the graph)
+	 */
+	resolveInputValue(type, name) {
+		let rawValue;
+		if (type === "env") {
+			rawValue = process.env[name];
+		} else if (type === "isRootProject") {
+			rawValue = this.isRootProject();
+		} else if (type === "getDependencies") {
+			rawValue = this.getDependencies(name);
+		} else if (type.startsWith("project.")) {
+			const method = type.slice("project.".length);
+			const project = this.getProject(name);
+			rawValue = project && typeof project[method] === "function" ? project[method]() : undefined;
+		} else {
+			// Unknown input type: cannot re-derive a value
+			return undefined;
+		}
+		return normalizeInputValue(rawValue);
 	}
 
 	/**

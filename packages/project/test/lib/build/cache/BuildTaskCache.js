@@ -524,3 +524,66 @@ test("recordRequests with unresolved probe in delta position returns a distinct 
 	t.not(probingProjSig, firstProjSig,
 		"Probing recording gets a cache key distinct from the parent's; the probed absence matters for output");
 });
+
+// ===== NON-RESOURCE INPUT TRACKING =====
+
+test("recordRequests: returns an input signature and flags a modified input set", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const projectReader = createMockReader([createMockResource("/test.js")]);
+	const dependencyReader = createMockReader([]);
+	const projectRequests = {paths: new Set(["/test.js"]), patterns: new Set()};
+
+	const [, , inputSig] = await cache.recordRequests(
+		projectRequests, undefined, projectReader, dependencyReader,
+		[{type: "env", name: "FLAG", value: "on"}]);
+
+	t.is(typeof inputSig, "string", "Input signature returned");
+	t.true(cache.hasNewOrModifiedCacheEntries(), "Recording an input flags the set as modified");
+});
+
+test("getInputSignature: re-evaluates recorded inputs via the resolver", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const projectReader = createMockReader([createMockResource("/test.js")]);
+	const projectRequests = {paths: new Set(["/test.js"]), patterns: new Set()};
+
+	await cache.recordRequests(projectRequests, undefined, projectReader, createMockReader([]),
+		[{type: "project.getVersion", name: "sap.ui.core", value: "1.120.0"}]);
+
+	const sameVersion = cache.getInputSignature(() => "1.120.0");
+	const bumpedVersion = cache.getInputSignature(() => "2.0.0");
+	t.not(sameVersion, bumpedVersion, "A changed resolver value changes the input signature");
+});
+
+test("toCacheObjects: includes an input cache object only when inputs were recorded", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const projectReader = createMockReader([createMockResource("/test.js")]);
+	const projectRequests = {paths: new Set(["/test.js"]), patterns: new Set()};
+
+	await cache.recordRequests(projectRequests, undefined, projectReader, createMockReader([]));
+	t.is(cache.toCacheObjects()[2], undefined, "No input cache object without recorded inputs");
+
+	await cache.recordRequests(projectRequests, undefined, projectReader, createMockReader([]),
+		[{type: "env", name: "FLAG", value: "on"}]);
+	const inputCache = cache.toCacheObjects()[2];
+	t.truthy(inputCache, "Input cache object present after recording an input");
+	t.deepEqual(inputCache.entries, [{type: "env", name: "FLAG"}], "Only type/name persisted");
+});
+
+test("fromCache: restores recorded inputs and re-evaluates them on lookup", async (t) => {
+	const cache1 = new BuildTaskCache("test.project", "testTask", false);
+	const projectReader = createMockReader([createMockResource("/test.js")]);
+	const projectRequests = {paths: new Set(["/test.js"]), patterns: new Set()};
+
+	await cache1.recordRequests(projectRequests, undefined, projectReader, createMockReader([]),
+		[{type: "project.getVersion", name: "sap.ui.core", value: "1.120.0"}]);
+	const [projectCache, dependencyCache, inputCache] = cache1.toCacheObjects();
+
+	const cache2 = BuildTaskCache.fromCache("test.project", "testTask", false,
+		projectCache, dependencyCache, inputCache);
+
+	// Restored set carries only names; the resolver decides the value.
+	t.is(cache2.getInputSignature(() => "1.120.0"), cache1.getInputSignature(() => "1.120.0"),
+		"Restored input set reproduces the signature for the same resolved value");
+	t.not(cache2.getInputSignature(() => "2.0.0"), cache2.getInputSignature(() => "1.120.0"),
+		"Restored input set still reacts to a changed resolved value");
+});

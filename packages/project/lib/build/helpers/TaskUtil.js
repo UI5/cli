@@ -138,6 +138,28 @@ class TaskUtil {
 	}
 
 	/**
+	 * Reads an environment variable.
+	 *
+	 * Tasks whose output depends on an environment variable must read it through this method rather
+	 * than accessing <code>process.env</code> directly. During a build the task receives a
+	 * [MonitoredTaskUtil]{@link @ui5/project/build/helpers/MonitoredTaskUtil} that records the read
+	 * and folds it into the task's build-cache signature, so that changing the variable between
+	 * builds invalidates the task's cached result (the same way a changed resource does). Reading
+	 * <code>process.env</code> directly is not tracked and can lead to a stale cached result being
+	 * served.
+	 *
+	 * </br></br>
+	 * <b>Experimental:</b> API for tracking non-resource task inputs.
+	 *
+	 * @param {string} name Environment variable name
+	 * @returns {string|undefined} The environment variable value, or <code>undefined</code> if unset
+	 * @public
+	 */
+	getEnv(name) {
+		return process.env[name];
+	}
+
+	/**
 	 * Check whether the project currently being built is the root project.
 	 *
 	 * </br></br>
@@ -315,7 +337,7 @@ class TaskUtil {
 			STANDARD_TAGS: this.STANDARD_TAGS,
 		};
 		bindFunctions(this, baseInterface, [
-			"setTag", "clearTag", "getTag", "isRootProject", "registerCleanupTask"
+			"setTag", "clearTag", "getTag", "getEnv", "isRootProject", "registerCleanupTask"
 		]);
 
 		if (specVersion.gte("3.0")) {
@@ -359,7 +381,7 @@ class TaskUtil {
 			STANDARD_TAGS: this.STANDARD_TAGS,
 		};
 		bindFunctions(this, baseInterface, [
-			"getTag", "isRootProject"
+			"getTag", "getEnv", "isRootProject"
 		]);
 
 		if (specVersion.gte("3.0")) {

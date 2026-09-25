@@ -294,6 +294,7 @@ test("getInterface: specVersion 2.2", (t) => {
 		"setTag",
 		"clearTag",
 		"getTag",
+		"getEnv",
 		"isRootProject",
 		"registerCleanupTask"
 	], "Correct methods are provided");
@@ -302,6 +303,7 @@ test("getInterface: specVersion 2.2", (t) => {
 	t.is(typeof interfacedTaskUtil.setTag, "function", "function setTag is provided");
 	t.is(typeof interfacedTaskUtil.clearTag, "function", "function clearTag is provided");
 	t.is(typeof interfacedTaskUtil.getTag, "function", "function getTag is provided");
+	t.is(typeof interfacedTaskUtil.getEnv, "function", "function getEnv is provided");
 	t.is(typeof interfacedTaskUtil.isRootProject, "function", "function isRootProject is provided");
 	t.is(typeof interfacedTaskUtil.registerCleanupTask, "function", "function registerCleanupTask is provided");
 });
@@ -318,6 +320,7 @@ test("getInterface: specVersion 2.3", (t) => {
 		"setTag",
 		"clearTag",
 		"getTag",
+		"getEnv",
 		"isRootProject",
 		"registerCleanupTask"
 	], "Correct methods are provided");
@@ -326,6 +329,7 @@ test("getInterface: specVersion 2.3", (t) => {
 	t.is(typeof interfacedTaskUtil.setTag, "function", "function setTag is provided");
 	t.is(typeof interfacedTaskUtil.clearTag, "function", "function clearTag is provided");
 	t.is(typeof interfacedTaskUtil.getTag, "function", "function getTag is provided");
+	t.is(typeof interfacedTaskUtil.getEnv, "function", "function getEnv is provided");
 	t.is(typeof interfacedTaskUtil.isRootProject, "function", "function isRootProject is provided");
 	t.is(typeof interfacedTaskUtil.registerCleanupTask, "function", "function registerCleanupTask is provided");
 });
@@ -342,6 +346,7 @@ test("getInterface: specVersion 2.4", (t) => {
 		"setTag",
 		"clearTag",
 		"getTag",
+		"getEnv",
 		"isRootProject",
 		"registerCleanupTask"
 	], "Correct methods are provided");
@@ -350,6 +355,7 @@ test("getInterface: specVersion 2.4", (t) => {
 	t.is(typeof interfacedTaskUtil.setTag, "function", "function setTag is provided");
 	t.is(typeof interfacedTaskUtil.clearTag, "function", "function clearTag is provided");
 	t.is(typeof interfacedTaskUtil.getTag, "function", "function getTag is provided");
+	t.is(typeof interfacedTaskUtil.getEnv, "function", "function getEnv is provided");
 	t.is(typeof interfacedTaskUtil.isRootProject, "function", "function isRootProject is provided");
 	t.is(typeof interfacedTaskUtil.registerCleanupTask, "function", "function registerCleanupTask is provided");
 });
@@ -366,6 +372,7 @@ test("getInterface: specVersion 2.5", (t) => {
 		"setTag",
 		"clearTag",
 		"getTag",
+		"getEnv",
 		"isRootProject",
 		"registerCleanupTask"
 	], "Correct methods are provided");
@@ -374,6 +381,7 @@ test("getInterface: specVersion 2.5", (t) => {
 	t.is(typeof interfacedTaskUtil.setTag, "function", "function setTag is provided");
 	t.is(typeof interfacedTaskUtil.clearTag, "function", "function clearTag is provided");
 	t.is(typeof interfacedTaskUtil.getTag, "function", "function getTag is provided");
+	t.is(typeof interfacedTaskUtil.getEnv, "function", "function getEnv is provided");
 	t.is(typeof interfacedTaskUtil.isRootProject, "function", "function isRootProject is provided");
 	t.is(typeof interfacedTaskUtil.registerCleanupTask, "function", "function registerCleanupTask is provided");
 });
@@ -390,6 +398,7 @@ test("getInterface: specVersion 2.6", (t) => {
 		"setTag",
 		"clearTag",
 		"getTag",
+		"getEnv",
 		"isRootProject",
 		"registerCleanupTask"
 	], "Correct methods are provided");
@@ -398,6 +407,7 @@ test("getInterface: specVersion 2.6", (t) => {
 	t.is(typeof interfacedTaskUtil.setTag, "function", "function setTag is provided");
 	t.is(typeof interfacedTaskUtil.clearTag, "function", "function clearTag is provided");
 	t.is(typeof interfacedTaskUtil.getTag, "function", "function getTag is provided");
+	t.is(typeof interfacedTaskUtil.getEnv, "function", "function getEnv is provided");
 	t.is(typeof interfacedTaskUtil.isRootProject, "function", "function isRootProject is provided");
 	t.is(typeof interfacedTaskUtil.registerCleanupTask, "function", "function registerCleanupTask is provided");
 });
@@ -436,6 +446,7 @@ test("getInterface: specVersion 3.0", (t) => {
 		"setTag",
 		"clearTag",
 		"getTag",
+		"getEnv",
 		"isRootProject",
 		"registerCleanupTask",
 		"getProject",
@@ -447,6 +458,7 @@ test("getInterface: specVersion 3.0", (t) => {
 	t.is(typeof interfacedTaskUtil.setTag, "function", "function setTag is provided");
 	t.is(typeof interfacedTaskUtil.clearTag, "function", "function clearTag is provided");
 	t.is(typeof interfacedTaskUtil.getTag, "function", "function getTag is provided");
+	t.is(typeof interfacedTaskUtil.getEnv, "function", "function getEnv is provided");
 	t.is(typeof interfacedTaskUtil.isRootProject, "function", "function isRootProject is provided");
 	t.is(typeof interfacedTaskUtil.registerCleanupTask, "function", "function registerCleanupTask is provided");
 	t.is(typeof interfacedTaskUtil.getProject, "function", "function registerCleanupTask is provided");
