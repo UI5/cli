@@ -20,15 +20,16 @@ function themeOutputs(namespace) {
 // available via workspace+dependencies (its `librariesPattern` filter, active when the theme-library
 // is built as a DEPENDENCY). The `themelib.multi` fixture ships `library.source.less` for two library
 // namespaces (`lib/one`, `lib/two`), each gated by its own `library.js` marker. Adding/removing a
-// marker changes which single theme should be (re)built — the others must stay served from cache.
+// marker changes which single theme should be (re)built, and the others must stay served from cache.
 //
-// Both tests are marked test.serial.failing: buildThemes does NOT set `supportsDifferentialBuilds`,
-// so ANY tracked-input change re-runs the whole task and rewrites EVERY matched theme. There is no
-// per-theme delta and no preservation of unaffected theme output. The new task system
-// (CPOUI5FOUNDATION-1363) is expected to make this correct by design; dropping `.failing` once that
-// work lands will show the gap is closed. The assertions below state the DESIRED behavior.
+// buildThemes builds each theme as a processEach step (CPOUI5FOUNDATION-1363), so adding a marker now
+// rebuilds only the newly enabled theme. Removing a marker is still marked test.serial.failing: the
+// survivor's output is preserved, but the shared delta path refuses a differential build once an input
+// resource is removed, so the whole task re-runs and rewrites the surviving theme. Dropping `.failing`
+// once removal-deltas are supported will show that gap closed. The assertions below state the DESIRED
+// behavior.
 
-test.serial.failing(
+test.serial(
 	"buildThemes: adding a library rebuilds only the newly enabled theme, others stay cached",
 	async (t) => {
 		const fixtureTester = new FixtureTester(t, "application.a");
