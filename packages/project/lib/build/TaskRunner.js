@@ -306,10 +306,16 @@ class TaskRunner {
 				const usedProcessEach = !!processEachDriver;
 				if (usedProcessEach) {
 					this._buildCache.setProcessEachInvocationData(taskName, processEachDriver.getInvocationData());
-					const driverRequests = processEachDriver.getResourceRequests();
-					projectRequests = mergeResourceRequests(projectRequests, driverRequests.project);
-					dependencyRequests = mergeResourceRequests(dependencyRequests, driverRequests.dependencies);
 					if (usingCache) {
+						// Delta build: only some steps re-ran, so the task-level monitor missed the reads of
+						// the steps served from cache. Fold every step's reads (from the driver's persisted
+						// invocation data) into the recorded requests so a first-seen input stays tracked,
+						// and append the driver's stale outputs to the changed paths so they drop from the
+						// carried-forward stage. On a full build every step ran, so the monitor already
+						// captured everything and no fold is needed.
+						const driverRequests = processEachDriver.getResourceRequests();
+						projectRequests = mergeResourceRequests(projectRequests, driverRequests.project);
+						dependencyRequests = mergeResourceRequests(dependencyRequests, driverRequests.dependencies);
 						const staleOutputs = processEachDriver.getStaleOutputs();
 						if (staleOutputs.length) {
 							cacheInfo.changedProjectResourcePaths =
