@@ -87,6 +87,11 @@ test.beforeEach(async (t) => {
 	// Definition-watcher namespace the handler injects into server.serve().
 	t.context.projectWatcher = {default: {create: sinon.stub()}};
 
+	// Watch-mode facade from @ui5/project. Defaults to watching enabled. Off-mode tests override it.
+	t.context.fileWatcher = {
+		isWatchingDisabled: sinon.stub().returns(false)
+	};
+
 	// Capture stray writes to stderr/stdout so failing assertions surface the
 	// actual output instead of ava's timeout diagnostics.
 	t.context.consoleOutput = "";
@@ -106,6 +111,7 @@ test.beforeEach(async (t) => {
 		"@ui5/server/internal/sslUtil": t.context.sslUtil,
 		"@ui5/project/graph": t.context.graph,
 		"@ui5/project/internal/graph/ProjectDefinitionWatcher": t.context.projectWatcher,
+		"@ui5/project/internal/build/helpers/fileWatcher": t.context.fileWatcher,
 		"open": t.context.open
 	}, {
 		"../../../../lib/dataDir.js": {
@@ -572,6 +578,47 @@ test.serial("ui5 serve --live-reload overrides ui5.yaml liveReload setting", asy
 
 	t.is(server.serve.callCount, 1);
 	t.is(server.serve.getCall(0).args[1].liveReload, true);
+});
+
+test.serial("ui5 serve UI5_WATCH_MODE=off disables live reload (default)", async (t) => {
+	const {argv, serve, server, fileWatcher} = t.context;
+
+	fileWatcher.isWatchingDisabled.returns(true);
+
+	serve.handler(argv);
+	await t.context.handlerReady;
+
+	t.is(server.serve.callCount, 1);
+	t.is(server.serve.getCall(0).args[1].liveReload, false,
+		"live reload is forced off when watching is disabled");
+});
+
+test.serial("ui5 serve UI5_WATCH_MODE=off overrides --live-reload", async (t) => {
+	const {argv, serve, server, fileWatcher} = t.context;
+
+	argv.liveReload = true;
+	fileWatcher.isWatchingDisabled.returns(true);
+
+	serve.handler(argv);
+	await t.context.handlerReady;
+
+	t.is(server.serve.callCount, 1);
+	t.is(server.serve.getCall(0).args[1].liveReload, false,
+		"off wins over an explicit --live-reload");
+});
+
+test.serial("ui5 serve UI5_WATCH_MODE=off overrides ui5.yaml liveReload=true setting", async (t) => {
+	const {argv, serve, server, fileWatcher, getServerSettings} = t.context;
+
+	getServerSettings.returns({liveReload: true});
+	fileWatcher.isWatchingDisabled.returns(true);
+
+	serve.handler(argv);
+	await t.context.handlerReady;
+
+	t.is(server.serve.callCount, 1);
+	t.is(server.serve.getCall(0).args[1].liveReload, false,
+		"off wins over server.settings.liveReload");
 });
 
 test.serial("ui5 serve --include-task / --exclude-task", async (t) => {

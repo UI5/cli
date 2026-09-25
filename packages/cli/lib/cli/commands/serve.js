@@ -208,6 +208,21 @@ serve.handler = async function(argv) {
 		}
 	}
 
+	const {isWatchingDisabled} = await import("@ui5/project/internal/build/helpers/fileWatcher");
+	if (isWatchingDisabled()) {
+		// Watchers are disabled. The server builds resources on demand but does not
+		// rebuild them on change. An edit to sources or configuration while it runs is not picked up
+		// and can produce an inconsistent result until the server is restarted.
+		log.info(
+			`File watching is disabled through environment configuration. ` +
+			`Changes to sources or project configuration will require a server restart.`);
+		if (liveReload) {
+			// Live reload needs a watcher to learn when to push.
+			log.info(`Live reload is deactivated due to disabled file watching.`);
+			liveReload = false;
+		}
+	}
+
 	const serverConfig = {
 		port,
 		changePortIfInUse,
