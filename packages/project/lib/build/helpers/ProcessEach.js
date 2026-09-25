@@ -118,8 +118,9 @@ class RecordingReaderWriter extends AbstractReaderWriter {
  * re-run only the steps whose observed inputs changed and drop the outputs of steps that no longer
  * produce them, without any delta bookkeeping in the task itself.
  *
- * A key is identified by content: a resource key by its integrity (never its path, so a content
- * change is a different key and cannot yield a stale hit), a string key by its value. A compound key
+ * A key is identified by content and identity: a resource key by its path and integrity (the path
+ * distinguishes resources that share content but produce different output, the integrity makes a
+ * content change a new key that cannot yield a stale hit), a string key by its value. A compound key
  * is the caller's responsibility to express as a stable string.
  *
  * @private
@@ -166,11 +167,17 @@ export default class ProcessEach {
 	 * @returns {Promise<Array>} Per-key results aligned to <code>keys</code> order
 	 */
 	async run(keys, callback, concurrent = true) {
+		if (this.#invocationData) {
+			// A single processEach per task keeps the persisted per-key data unambiguous. Multiple
+			// step groups per task can be supported later by namespacing their persisted entries.
+			throw new Error("processEach may currently be called at most once per task");
+		}
 		if (typeof callback !== "function") {
 			throw new Error("processEach: callback must be a function");
 		}
 		const entries = await this.#resolveEntries(keys);
 		const toRun = this.#selectStepsToRun(entries);
+
 
 		const currentInvocationData = new Map();
 		const results = new Array(entries.length);
@@ -258,7 +265,11 @@ export default class ProcessEach {
 
 	async #keyId(key) {
 		if (key && typeof key.getIntegrity === "function") {
-			return `resource:${await key.getIntegrity()}`;
+			// Path and integrity together: the path distinguishes resources that share content but
+			// produce different output (e.g. two libraries' identical library.source.less), while the
+			// integrity makes a content change a new key, so the step re-runs and its previous output
+			// is dropped rather than served stale.
+			return `resource:${key.getPath()}\0${await key.getIntegrity()}`;
 		}
 		if (typeof key === "string") {
 			return `string:${key}`;

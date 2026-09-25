@@ -160,11 +160,11 @@ test("Stale outputs cover removed keys and a re-run step's dropped write", async
 		"Dropped write of a re-run step and all outputs of a removed key are stale");
 });
 
-test("A resource key is identified by integrity, not path", async (t) => {
+test("A resource key is identified by path and integrity", async (t) => {
 	const workspace = createWorkspace();
-	// Same path, different content -> different integrity -> different key identity.
+	// Same path, changed content -> different integrity -> different key identity.
 	const previousInvocationData = new Map([
-		["resource:sha256-old", {reads: [], dependencyReads: [], writes: ["/x.js.out"]}],
+		["resource:/x.js\u0000sha256-old", {reads: [], dependencyReads: [], writes: ["/x.js.out"]}],
 	]);
 	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
 	const processEach = new ProcessEach({workspace, taskUtil: {}, cacheInfo, previousInvocationData});
@@ -178,6 +178,23 @@ test("A resource key is identified by integrity, not path", async (t) => {
 	t.deepEqual(ran, ["/x.js"], "Changed content yields a new key identity, so the step re-runs");
 	t.deepEqual(processEach.getStaleOutputs(), ["/x.js.out"],
 		"The previous integrity's output is stale (not re-written by the new key)");
+});
+
+test("Two resources with identical content are distinct keys", async (t) => {
+	const workspace = createWorkspace();
+	const processEach = new ProcessEach({workspace, taskUtil: {}});
+
+	// Same content (same integrity), different paths: keying on integrity alone would collapse them
+	// and lose one's output. Path plus integrity keeps them distinct.
+	const one = createResource("/one/library.source.less", "identical");
+	const two = createResource("/two/library.source.less", "identical");
+	await processEach.run([one, two], async (key, {workspace}) => {
+		await workspace.write(createResource(`${key.getPath()}.css`));
+	});
+
+	t.is(processEach.getInvocationData().size, 2, "Two same-content resources record two invocations");
+	t.true(workspace.store.has("/one/library.source.less.css") && workspace.store.has("/two/library.source.less.css"),
+		"Both outputs written");
 });
 
 test("Keys must be resources or strings", async (t) => {
