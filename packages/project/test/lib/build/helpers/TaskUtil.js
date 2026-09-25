@@ -258,6 +258,26 @@ test("resourceFactory", (t) => {
 		"resourceFactory function createFlatReader is available");
 });
 
+test("getTime returns the current time quantized to the requested granularity", (t) => {
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {}
+	});
+
+	// getTime reads the current time, so assert against a value derived the same way rather than a
+	// literal. A "year" bucket is the current calendar year as a string.
+	t.is(taskUtil.getTime("year"), String(new Date().getFullYear()), "year bucket matches the current year");
+	t.regex(taskUtil.getTime("hour"), /^\d{4}-\d{2}-\d{2}T\d{2}$/, "hour bucket has the expected shape");
+});
+
+test("getTime throws for an unknown granularity", (t) => {
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {}
+	});
+
+	const err = t.throws(() => taskUtil.getTime("second"));
+	t.is(err.message, `Invalid time granularity "second". Expected one of: year, month, day, hour`);
+});
+
 test("registerCleanupTask", (t) => {
 	const registerCleanupTaskStub = sinon.stub();
 	const taskUtil = new TaskUtil({
@@ -295,6 +315,7 @@ test("getInterface: specVersion 2.2", (t) => {
 		"clearTag",
 		"getTag",
 		"getEnv",
+		"getTime",
 		"isRootProject",
 		"registerCleanupTask"
 	], "Correct methods are provided");
@@ -304,6 +325,7 @@ test("getInterface: specVersion 2.2", (t) => {
 	t.is(typeof interfacedTaskUtil.clearTag, "function", "function clearTag is provided");
 	t.is(typeof interfacedTaskUtil.getTag, "function", "function getTag is provided");
 	t.is(typeof interfacedTaskUtil.getEnv, "function", "function getEnv is provided");
+	t.is(typeof interfacedTaskUtil.getTime, "function", "function getTime is provided");
 	t.is(typeof interfacedTaskUtil.isRootProject, "function", "function isRootProject is provided");
 	t.is(typeof interfacedTaskUtil.registerCleanupTask, "function", "function registerCleanupTask is provided");
 });
@@ -321,6 +343,7 @@ test("getInterface: specVersion 2.3", (t) => {
 		"clearTag",
 		"getTag",
 		"getEnv",
+		"getTime",
 		"isRootProject",
 		"registerCleanupTask"
 	], "Correct methods are provided");
@@ -330,6 +353,7 @@ test("getInterface: specVersion 2.3", (t) => {
 	t.is(typeof interfacedTaskUtil.clearTag, "function", "function clearTag is provided");
 	t.is(typeof interfacedTaskUtil.getTag, "function", "function getTag is provided");
 	t.is(typeof interfacedTaskUtil.getEnv, "function", "function getEnv is provided");
+	t.is(typeof interfacedTaskUtil.getTime, "function", "function getTime is provided");
 	t.is(typeof interfacedTaskUtil.isRootProject, "function", "function isRootProject is provided");
 	t.is(typeof interfacedTaskUtil.registerCleanupTask, "function", "function registerCleanupTask is provided");
 });
@@ -347,6 +371,7 @@ test("getInterface: specVersion 2.4", (t) => {
 		"clearTag",
 		"getTag",
 		"getEnv",
+		"getTime",
 		"isRootProject",
 		"registerCleanupTask"
 	], "Correct methods are provided");
@@ -356,6 +381,7 @@ test("getInterface: specVersion 2.4", (t) => {
 	t.is(typeof interfacedTaskUtil.clearTag, "function", "function clearTag is provided");
 	t.is(typeof interfacedTaskUtil.getTag, "function", "function getTag is provided");
 	t.is(typeof interfacedTaskUtil.getEnv, "function", "function getEnv is provided");
+	t.is(typeof interfacedTaskUtil.getTime, "function", "function getTime is provided");
 	t.is(typeof interfacedTaskUtil.isRootProject, "function", "function isRootProject is provided");
 	t.is(typeof interfacedTaskUtil.registerCleanupTask, "function", "function registerCleanupTask is provided");
 });
@@ -373,6 +399,7 @@ test("getInterface: specVersion 2.5", (t) => {
 		"clearTag",
 		"getTag",
 		"getEnv",
+		"getTime",
 		"isRootProject",
 		"registerCleanupTask"
 	], "Correct methods are provided");
@@ -382,6 +409,7 @@ test("getInterface: specVersion 2.5", (t) => {
 	t.is(typeof interfacedTaskUtil.clearTag, "function", "function clearTag is provided");
 	t.is(typeof interfacedTaskUtil.getTag, "function", "function getTag is provided");
 	t.is(typeof interfacedTaskUtil.getEnv, "function", "function getEnv is provided");
+	t.is(typeof interfacedTaskUtil.getTime, "function", "function getTime is provided");
 	t.is(typeof interfacedTaskUtil.isRootProject, "function", "function isRootProject is provided");
 	t.is(typeof interfacedTaskUtil.registerCleanupTask, "function", "function registerCleanupTask is provided");
 });
@@ -399,6 +427,7 @@ test("getInterface: specVersion 2.6", (t) => {
 		"clearTag",
 		"getTag",
 		"getEnv",
+		"getTime",
 		"isRootProject",
 		"registerCleanupTask"
 	], "Correct methods are provided");
@@ -408,6 +437,7 @@ test("getInterface: specVersion 2.6", (t) => {
 	t.is(typeof interfacedTaskUtil.clearTag, "function", "function clearTag is provided");
 	t.is(typeof interfacedTaskUtil.getTag, "function", "function getTag is provided");
 	t.is(typeof interfacedTaskUtil.getEnv, "function", "function getEnv is provided");
+	t.is(typeof interfacedTaskUtil.getTime, "function", "function getTime is provided");
 	t.is(typeof interfacedTaskUtil.isRootProject, "function", "function isRootProject is provided");
 	t.is(typeof interfacedTaskUtil.registerCleanupTask, "function", "function registerCleanupTask is provided");
 });
@@ -447,6 +477,7 @@ test("getInterface: specVersion 3.0", (t) => {
 		"clearTag",
 		"getTag",
 		"getEnv",
+		"getTime",
 		"isRootProject",
 		"registerCleanupTask",
 		"getProject",
@@ -459,6 +490,7 @@ test("getInterface: specVersion 3.0", (t) => {
 	t.is(typeof interfacedTaskUtil.clearTag, "function", "function clearTag is provided");
 	t.is(typeof interfacedTaskUtil.getTag, "function", "function getTag is provided");
 	t.is(typeof interfacedTaskUtil.getEnv, "function", "function getEnv is provided");
+	t.is(typeof interfacedTaskUtil.getTime, "function", "function getTime is provided");
 	t.is(typeof interfacedTaskUtil.isRootProject, "function", "function isRootProject is provided");
 	t.is(typeof interfacedTaskUtil.registerCleanupTask, "function", "function registerCleanupTask is provided");
 	t.is(typeof interfacedTaskUtil.getProject, "function", "function registerCleanupTask is provided");

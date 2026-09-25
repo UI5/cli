@@ -495,6 +495,26 @@ test("resolveInputValue: unresolvable project yields undefined", (t) => {
 		"a project no longer in the graph resolves to undefined");
 });
 
+test("resolveInputValue: time re-derives the current bucket for the granularity", (t) => {
+	const buildContext = createBuildContextStub();
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	// Re-derived independently of the recording side, so it must match a value computed here the same
+	// way. A "year" bucket is the current calendar year as a string.
+	t.is(projectBuildContext.resolveInputValue("time", "year"), String(new Date().getFullYear()));
+	t.regex(projectBuildContext.resolveInputValue("time", "hour"), /^\d{4}-\d{2}-\d{2}T\d{2}$/);
+});
+
+test("resolveInputValue: time with an unknown granularity yields undefined", (t) => {
+	const buildContext = createBuildContextStub();
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	// A corrupt cache row must miss the cache, not crash the lookup.
+	t.is(projectBuildContext.resolveInputValue("time", "minute"), undefined);
+});
+
 test("resolveInputValue: unknown type yields undefined", (t) => {
 	const buildContext = createBuildContextStub();
 	const project = {getName: () => "project", getType: () => "type"};
