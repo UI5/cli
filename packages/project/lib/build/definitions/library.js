@@ -160,6 +160,7 @@ export default function({project, taskUtil, getTask}) {
 
 	tasks.set("buildThemes", {
 		requiresDependencies: true,
+		supportsDifferentialBuilds: true,
 		options: {
 			projectName: project.getName(),
 			librariesPattern: !taskUtil.isRootProject() ? "/resources/**/(*.library|library.js)" : undefined,
