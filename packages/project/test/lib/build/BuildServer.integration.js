@@ -1366,7 +1366,7 @@ test.serial.failing(
 // This asserts the desired behavior (the changed input map is reflected in the served debug map without
 // a server restart) and is marked test.failing because the delta path does not yet achieve it. See the
 // minify FIXME for why a fix needs the `.map` -> `.js` relation, not a local pattern tweak.
-test.serial.failing(
+test.serial(
 	"Serve application.a, changing only an input source map read via fs by minify invalidates the debug source map",
 	async (t) => {
 		const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "application.a");
