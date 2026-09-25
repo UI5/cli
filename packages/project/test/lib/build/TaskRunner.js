@@ -158,7 +158,7 @@ test.beforeEach(async (t) => {
 				return {
 					constructor: {name: "MonitoredReader"},
 					getName: () => name,
-					getResourceRequests: sinon.stub().returns([])
+					getResourceRequests: sinon.stub().returns({paths: [], patterns: []})
 				};
 			}
 			return resource;
@@ -1390,6 +1390,58 @@ test.serial("_addTask with options", async (t) => {
 	t.is(taskCallArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
 	t.is(taskCallArgs.options.myTaskOption, "cat", "myTaskOption is correct");
 	assertMonitoredTaskUtil(t, taskCallArgs.taskUtil);
+});
+
+// A fake AbstractReader-like project reader. Answers byPath/byGlob for the pass-through path and
+// exposes the _byPath/_byGlob hooks a real MonitoredReader delegates to once the reader is wrapped.
+function fakeProjectReader(name) {
+	return {
+		getName: () => name,
+		byPath: async (virPath) => ({getPath: () => virPath}),
+		byGlob: async () => [],
+		_byPath: async (virPath) => ({getPath: () => virPath}),
+		_byGlob: async () => [],
+	};
+}
+
+test.serial("Folds taskUtil project-reader reads into the recorded resource requests", async (t) => {
+	const {sinon, taskUtil, buildCache} = t.context;
+	const project = getMockProject("module");
+
+	// getProject() (no arg) / "project.b" is the project being built; "dep.a" is a dependency.
+	taskUtil.getProject.callsFake((name) => {
+		if (name === undefined || name === "project.b") {
+			return {getName: () => "project.b", getReader: () => fakeProjectReader("project.b reader")};
+		}
+		if (name === "dep.a") {
+			return {getName: () => "dep.a", getReader: () => fakeProjectReader("dep.a reader")};
+		}
+		return undefined;
+	});
+
+	const taskStub = sinon.stub().callsFake(async (params) => {
+		await params.taskUtil.getProject().getReader().byPath("/resources/project/b/own.js");
+		await params.taskUtil.getProject("dep.a").getReader().byGlob("/resources/dep/a/**");
+	});
+
+	const taskRunner = createTaskRunner(t, project);
+	await taskRunner._initTasks();
+	taskRunner._addTask("standardTask", {requiresDependencies: true, taskFunction: taskStub});
+
+	// Warm the cached dependencies reader (normally done by runTasks)
+	await taskRunner.getDependenciesReader(new Set(["dep.a", "dep.b"]), true);
+	await taskRunner._tasks["standardTask"].task();
+
+	t.is(taskStub.callCount, 1, "task executed");
+	const [, projectResourceRequests, dependencyResourceRequests] = buildCache.recordTaskResult.getCall(0).args;
+	t.deepEqual(projectResourceRequests, {
+		paths: ["/resources/project/b/own.js"],
+		patterns: [],
+	}, "reads of the project being built are folded into the project resource requests");
+	t.deepEqual(dependencyResourceRequests, {
+		paths: [],
+		patterns: ["/resources/dep/a/**"],
+	}, "reads of a dependency's reader are folded into the dependency resource requests");
 });
 
 test("_addTask: Duplicate task", async (t) => {
