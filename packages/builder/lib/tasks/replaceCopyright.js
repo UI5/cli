@@ -24,6 +24,7 @@ import stringReplacer from "../processors/stringReplacer.js";
  *
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {string[]} [parameters.changedProjectResourcePaths] Set of changed resource paths within the project.
  * This is only set if a cache is used and changes have been detected.
  * @param {object} parameters.options Options
@@ -31,13 +32,18 @@ import stringReplacer from "../processors/stringReplacer.js";
  * @param {string} parameters.options.pattern Pattern to locate the files to be processed
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-export default async function({workspace, changedProjectResourcePaths, options: {copyright, pattern}}) {
+export default async function({workspace, taskUtil, changedProjectResourcePaths, options: {copyright, pattern}}) {
 	if (!copyright) {
 		return;
 	}
 
+	// Read the current year through taskUtil.getTime so the incremental build cache tracks it as a
+	// task input: a cached result then re-runs when the calendar year rolls over. Fall back to a
+	// direct Date read when the task runs without a TaskUtil.
+	const currentYear = taskUtil?.getTime ? taskUtil.getTime("year") : new Date().getFullYear();
+
 	// Replace optional placeholder ${currentYear} with the current year
-	copyright = copyright.replace(/(?:\$\{currentYear\})/, new Date().getFullYear());
+	copyright = copyright.replace(/(?:\$\{currentYear\})/, currentYear);
 
 	let resources;
 	if (changedProjectResourcePaths) {
