@@ -23,11 +23,9 @@ function themeOutputs(namespace) {
 // marker changes which single theme should be (re)built, and the others must stay served from cache.
 //
 // buildThemes builds each theme as a processEach step (CPOUI5FOUNDATION-1363), so adding a marker now
-// rebuilds only the newly enabled theme. Removing a marker is still marked test.serial.failing: the
-// survivor's output is preserved, but the shared delta path refuses a differential build once an input
-// resource is removed, so the whole task re-runs and rewrites the surviving theme. Dropping `.failing`
-// once removal-deltas are supported will show that gap closed. The assertions below state the DESIRED
-// behavior.
+// rebuilds only the newly enabled theme, and removing a marker rebuilds nothing: the removed input
+// yields a delta (ResourceRequestManager.getDeltas includes removed paths), the owning step drops out,
+// and its stale output is dropped from the carried-forward stage while the other theme stays cached.
 
 test.serial(
 	"buildThemes: adding a library rebuilds only the newly enabled theme, others stay cached",
@@ -97,7 +95,7 @@ test.serial(
 		}
 	});
 
-test.serial.failing(
+test.serial(
 	"buildThemes: removing a library removes only its theme, others stay cached",
 	async (t) => {
 		const fixtureTester = new FixtureTester(t, "application.a");
@@ -138,9 +136,8 @@ test.serial.failing(
 		// removed. lib/one's theme is unaffected and should be reused from cache (not rewritten).
 		await fixtureTester.setMultiLibraryThemeLibTwoMarker(false);
 
-		// #2 build (with cache, with changes): DESIRED — buildThemes does NOT rewrite lib/one's theme
+		// #2 build (with cache, with changes): buildThemes does NOT rewrite lib/one's theme
 		// (empty written set for buildThemes; the survivor is carried forward from cache).
-		// Fails today: the whole task re-runs and rewrites lib/one's theme (3 files instead of 0).
 		// (Only themelib.multi is rebuilt here; application.a is fully served from cache.)
 		await fixtureTester.buildProject({
 			config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
