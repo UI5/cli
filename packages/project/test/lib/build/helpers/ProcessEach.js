@@ -31,6 +31,27 @@ function createDependencies(initial = []) {
 	};
 }
 
+// An in-memory stand-in for the CAS-backed return value store the ProjectBuildCache provides. It keeps
+// content by integrity so store() and a later restore() round-trip the exact bytes, exactly as the real
+// SQLite CAS does across two builds.
+function createReturnValueStore() {
+	const cas = new Map();
+	return {
+		cas,
+		store: async (resources) => Promise.all(resources.map(async (res) => {
+			const integrity = await res.getIntegrity();
+			cas.set(integrity, await res.getString());
+			return {path: res.getPath(), integrity};
+		})),
+		restore: ({path, integrity}) => ({
+			getPath: () => path,
+			getIntegrity: async () => integrity,
+			getString: async () => cas.get(integrity),
+			restored: true,
+		}),
+	};
+}
+
 test("Full build runs every step and records reads, writes and requests", async (t) => {
 	const workspace = createWorkspace();
 	const dependencies = createDependencies([createResource("/dep/marker")]);
@@ -203,4 +224,163 @@ test("Keys must be resources or strings", async (t) => {
 
 	await t.throwsAsync(processEach.run([{notAKey: true}], async () => {}),
 		{message: /keys must be resources or strings/});
+});
+
+test("Returned resources are handed back and stored in the CAS", async (t) => {
+	const workspace = createWorkspace();
+	const returnValueStore = createReturnValueStore();
+	const processEach = new ProcessEach({workspace, taskUtil: {}, returnValueStore});
+
+	const results = await processEach.run(["a", "b"], async (key, {workspace}) => {
+		const out = createResource(`/out/${key}`, `content-${key}`);
+		await workspace.write(out);
+		return out;
+	});
+
+	t.is(results.length, 2, "One result per key");
+	t.is(await results[0].getString(), "content-a", "First step's returned resource handed back");
+	t.is(await results[1].getString(), "content-b", "Second step's returned resource handed back");
+	t.deepEqual([...returnValueStore.cas.keys()].sort(), ["sha256-content-a", "sha256-content-b"],
+		"Returned content stored in the CAS by integrity");
+
+	const invocationData = processEach.getInvocationData();
+	t.deepEqual(invocationData.get("string:a").returns,
+		{isArray: false, items: [{path: "/out/a", integrity: "sha256-content-a"}]},
+		"Single-resource return recorded as a non-array descriptor");
+});
+
+test("A step may return an array of resources", async (t) => {
+	const workspace = createWorkspace();
+	const returnValueStore = createReturnValueStore();
+	const processEach = new ProcessEach({workspace, taskUtil: {}, returnValueStore});
+
+	const results = await processEach.run(["a"], async (key) => {
+		return [createResource(`/out/${key}.1`, "one"), createResource(`/out/${key}.2`, "two")];
+	});
+
+	t.is(results[0].length, 2, "Array return handed back as an array");
+	t.deepEqual(await Promise.all(results[0].map((r) => r.getString())), ["one", "two"],
+		"Both returned resources handed back in order");
+	t.true(processEach.getInvocationData().get("string:a").returns.isArray,
+		"Array return recorded as an array descriptor");
+});
+
+test("A step returning nothing has an undefined result and a null return descriptor", async (t) => {
+	const workspace = createWorkspace();
+	const returnValueStore = createReturnValueStore();
+	const processEach = new ProcessEach({workspace, taskUtil: {}, returnValueStore});
+
+	const results = await processEach.run(["a"], async () => {
+		// Writes only, returns nothing.
+	});
+
+	t.is(results[0], undefined, "Result slot is undefined when a step returns nothing");
+	t.is(processEach.getInvocationData().get("string:a").returns, null,
+		"No return descriptor recorded for a step that returned nothing");
+	t.is(returnValueStore.cas.size, 0, "Nothing stored in the CAS");
+});
+
+test("Returning a non-resource throws", async (t) => {
+	const workspace = createWorkspace();
+	const returnValueStore = createReturnValueStore();
+	const processEach = new ProcessEach({workspace, taskUtil: {}, returnValueStore});
+
+	await t.throwsAsync(processEach.run(["a"], async () => 42),
+		{message: /may return only resources or an array of resources; got a number/});
+	await t.throwsAsync(processEach.run(["a"], async () => [createResource("/ok"), {}]),
+		{message: /array entry 1 is a plain object/});
+});
+
+test("A cached step's returned resource is rebuilt from the CAS without re-running", async (t) => {
+	const returnValueStore = createReturnValueStore();
+
+	// Build 1 (full build): every step runs and its return is stored in the CAS.
+	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: {}, returnValueStore});
+	await build1.run(["a", "b"], async (key) => createResource(`/out/${key}`, `content-${key}`));
+	const previousInvocationData = build1.getInvocationData();
+
+	// Build 2 (unchanged rebuild): no changed paths, so no step re-runs. Every result comes from the CAS.
+	const ran = [];
+	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
+	const build2 = new ProcessEach({
+		workspace: createWorkspace(), taskUtil: {}, cacheInfo, previousInvocationData, returnValueStore,
+	});
+	const results = await build2.run(["a", "b"], async (key) => {
+		ran.push(key);
+		return createResource(`/out/${key}`, `content-${key}`);
+	});
+
+	t.deepEqual(ran, [], "No step re-ran on the unchanged rebuild");
+	t.is(await results[0].getString(), "content-a", "First result rebuilt from the CAS");
+	t.is(await results[1].getString(), "content-b", "Second result rebuilt from the CAS");
+	t.true(results[0].restored && results[1].restored, "Both results are the store's restored resources");
+});
+
+test("Delta build re-runs the changed step fresh and restores the unchanged step from the CAS", async (t) => {
+	const returnValueStore = createReturnValueStore();
+
+	// Build 1: record reads and returns for two string keys.
+	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: {}, returnValueStore});
+	await build1.run(["a", "b"], async (key, {workspace}) => {
+		await workspace.byPath(`/in/${key}`); // recorded read, so a change to it re-runs this step
+		return createResource(`/out/${key}`, `content-${key}`);
+	});
+	const previousInvocationData = build1.getInvocationData();
+
+	// Build 2: only /in/a changed, so step "a" re-runs (fresh) and step "b" is restored from the CAS.
+	const ran = [];
+	const cacheInfo = {changedProjectResourcePaths: ["/in/a"], changedDependencyResourcePaths: []};
+	const build2 = new ProcessEach({
+		workspace: createWorkspace(), taskUtil: {}, cacheInfo, previousInvocationData, returnValueStore,
+	});
+	const results = await build2.run(["a", "b"], async (key, {workspace}) => {
+		ran.push(key);
+		await workspace.byPath(`/in/${key}`);
+		return createResource(`/out/${key}`, `fresh-${key}`);
+	});
+
+	t.deepEqual(ran, ["a"], "Only the step whose recorded read changed re-ran");
+	t.is(await results[0].getString(), "fresh-a", "Re-run step's fresh return handed back");
+	t.is(results[0].restored, undefined, "Re-run step's result is the fresh resource, not a restore");
+	t.is(await results[1].getString(), "content-b", "Cached step's return rebuilt from the CAS");
+	t.true(results[1].restored, "Cached step's result is the store's restored resource");
+});
+
+test("A resource written and returned at the same path is stored and restored independently", async (t) => {
+	const returnValueStore = createReturnValueStore();
+
+	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: {}, returnValueStore});
+	await build1.run(["a"], async (key, {workspace}) => {
+		const out = createResource(`/out/${key}`, `content-${key}`);
+		await workspace.write(out);
+		return out; // same path as the written output
+	});
+	const invocation = build1.getInvocationData().get("string:a");
+	t.deepEqual(invocation.writes, ["/out/a"], "Output write recorded");
+	t.is(invocation.returns.items[0].path, "/out/a", "Return descriptor recorded for the same path");
+
+	// The return is rebuilt from the CAS on a cached rebuild, independent of the workspace output.
+	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
+	const build2 = new ProcessEach({
+		workspace: createWorkspace(), taskUtil: {}, cacheInfo,
+		previousInvocationData: build1.getInvocationData(), returnValueStore,
+	});
+	const results = await build2.run(["a"], async () => t.fail("Step must not re-run"));
+	t.is(await results[0].getString(), "content-a", "Returned resource rebuilt from the CAS");
+});
+
+test("Restoring a cached return without a store throws a clear error", async (t) => {
+	const previousInvocationData = new Map([
+		["string:a", {
+			reads: [], dependencyReads: [], writes: [],
+			returns: {isArray: false, items: [{path: "/out/a", integrity: "sha256-x"}]},
+		}],
+	]);
+	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
+	const processEach = new ProcessEach({
+		workspace: createWorkspace(), taskUtil: {}, cacheInfo, previousInvocationData,
+	});
+
+	await t.throwsAsync(processEach.run(["a"], async () => {}),
+		{message: /cannot restore a cached step's returned resources without a return value store/});
 });

@@ -5,6 +5,34 @@ import {getLogger} from "@ui5/logger";
 const log = getLogger("build:helpers:ProcessEach");
 
 /**
+ * A callback may return a resource or an array of resources. A resource is anything carrying the two
+ * identity accessors the key logic already relies on, so the check stays consistent with {@link #keyId}.
+ *
+ * @param {*} value Candidate return value
+ * @returns {boolean} <code>true</code> if the value is a resource
+ */
+function isResource(value) {
+	return !!value && typeof value.getPath === "function" && typeof value.getIntegrity === "function";
+}
+
+/**
+ * Names a rejected return value in an error message without assuming it is serializable.
+ *
+ * @param {*} value Rejected value
+ * @returns {string} A short human-readable type description
+ */
+function describeValue(value) {
+	if (value === null) {
+		return "null";
+	}
+	if (typeof value === "object") {
+		const name = value.constructor?.name;
+		return name && name !== "Object" ? `a ${name}` : "a plain object";
+	}
+	return `a ${typeof value}`;
+}
+
+/**
  * Collects the reads and writes of a single processEach step. Project reads (workspace) and
  * dependency reads are kept apart so they can be folded back into the task's project vs. dependency
  * request graph independently: a dependency path folded into the project graph would resolve against
@@ -114,9 +142,14 @@ class RecordingReaderWriter extends AbstractReaderWriter {
  * Per-task driver behind <code>taskUtil.processEach(keys, callback, concurrent)</code>.
  *
  * A task iterates a set of keys, running <code>callback</code> once per key against per-step readers
- * that record what each step reads, writes, and (later) returns. The recording lets a delta build
- * re-run only the steps whose observed inputs changed and drop the outputs of steps that no longer
- * produce them, without any delta bookkeeping in the task itself.
+ * that record what each step reads, writes, and returns. The recording lets a delta build re-run only
+ * the steps whose observed inputs changed and drop the outputs of steps that no longer produce them,
+ * without any delta bookkeeping in the task itself.
+ *
+ * A callback may return a resource or an array of resources. Returned resources are stored in the CAS,
+ * so a step served from cache on a delta build has its returned resource(s) rebuilt from the CAS
+ * without re-running the callback, and <code>run</code>'s result array is reassembled in key order from
+ * a mix of freshly-returned and restored entries.
  *
  * A key is identified by content and identity: a resource key by its path and integrity (the path
  * distinguishes resources that share content but produce different output, the integrity makes a
@@ -131,6 +164,7 @@ export default class ProcessEach {
 	#taskUtil;
 	#cacheInfo;
 	#previousInvocationData;
+	#returnValueStore;
 	#signal;
 
 	// Populated by run(): the complete per-key invocation data to persist, and the output paths that
@@ -146,14 +180,20 @@ export default class ProcessEach {
 	 * @param {object} [parameters.cacheInfo] Delta info for a differential build, or falsy for a full build
 	 * @param {Map<string, object>} [parameters.previousInvocationData] Per-key invocation data recorded
 	 *   during the previous run of this task
+	 * @param {object} [parameters.returnValueStore] CAS-backed store for callback return values, with
+	 *   <code>store(resources)</code> (persist content, return path-aligned descriptors) and
+	 *   <code>restore(descriptor)</code> (rebuild a resource from a descriptor). Absent for standalone
+	 *   use without a build cache: return values are then handed back for the current build but not
+	 *   persisted, so a later delta build cannot restore a step that is served from cache.
 	 * @param {AbortSignal} [parameters.signal] Build abort signal, checked between steps
 	 */
-	constructor({workspace, dependencies, taskUtil, cacheInfo, previousInvocationData, signal}) {
+	constructor({workspace, dependencies, taskUtil, cacheInfo, previousInvocationData, returnValueStore, signal}) {
 		this.#workspace = workspace;
 		this.#dependencies = dependencies;
 		this.#taskUtil = taskUtil;
 		this.#cacheInfo = cacheInfo;
 		this.#previousInvocationData = previousInvocationData;
+		this.#returnValueStore = returnValueStore;
 		this.#signal = signal;
 	}
 
@@ -164,7 +204,9 @@ export default class ProcessEach {
 	 * @param {Function} callback <code>async (key, {workspace, dependencies, taskUtil}) => resource(s)</code>
 	 * @param {boolean} [concurrent=true] Run steps concurrently (buffered writes flushed in key order)
 	 *   or sequentially (writes visible to later steps immediately)
-	 * @returns {Promise<Array>} Per-key results aligned to <code>keys</code> order
+	 * @returns {Promise<Array>} Per-key results aligned to <code>keys</code> order. Each entry is what
+	 *   that step returned (a resource, an array of resources, or <code>undefined</code>). A step served
+	 *   from cache contributes its previous run's returned resource(s), rebuilt from the CAS.
 	 */
 	async run(keys, callback, concurrent = true) {
 		if (this.#invocationData) {
@@ -177,11 +219,21 @@ export default class ProcessEach {
 		}
 		const entries = await this.#resolveEntries(keys);
 		const toRun = this.#selectStepsToRun(entries);
-
+		const toRunIndices = new Set(toRun.map((entry) => entry.index));
 
 		const currentInvocationData = new Map();
 		const results = new Array(entries.length);
 		const writeBuffer = concurrent ? new Map() : null;
+
+		// A step served from cache did not run, so its returned resource(s) are rebuilt from the CAS out
+		// of the previous run's recorded return descriptors. Its slots are disjoint from the re-run steps
+		// below, so this can happen before or after they run.
+		for (const {keyId, index} of entries) {
+			if (toRunIndices.has(index)) {
+				continue;
+			}
+			results[index] = this.#restoreReturn(this.#previousInvocationData?.get(keyId)?.returns);
+		}
 
 		const runStep = async ({key, keyId, index}) => {
 			this.#signal?.throwIfAborted();
@@ -190,11 +242,13 @@ export default class ProcessEach {
 			const dependencies = this.#dependencies ?
 				new RecordingReader(this.#dependencies, recorder) : undefined;
 
-			results[index] = await callback(key, {workspace, dependencies, taskUtil: this.#taskUtil});
+			const returnValue = await callback(key, {workspace, dependencies, taskUtil: this.#taskUtil});
+			results[index] = returnValue;
 			currentInvocationData.set(keyId, {
 				reads: [...recorder.projectReads],
 				dependencyReads: [...recorder.dependencyReads],
 				writes: [...recorder.writes],
+				returns: await this.#recordReturn(returnValue),
 			});
 		};
 
@@ -221,7 +275,9 @@ export default class ProcessEach {
 	/**
 	 * The complete per-key invocation data to persist for the next build.
 	 *
-	 * @returns {Map<string, object>} Map of key identity to <code>{reads, dependencyReads, writes}</code>
+	 * @returns {Map<string, object>} Map of key identity to
+	 *   <code>{reads, dependencyReads, writes, returns}</code>, where <code>returns</code> is the
+	 *   CAS descriptors for the step's returned resource(s), or <code>null</code> if it returned nothing
 	 */
 	getInvocationData() {
 		return this.#invocationData;
@@ -277,6 +333,78 @@ export default class ProcessEach {
 		throw new Error(
 			"processEach: keys must be resources or strings. " +
 			"Express a compound key as a stable string.");
+	}
+
+	/**
+	 * Validates a step's return value and, when a return value store is bound, persists its content in
+	 * the CAS. Only resources may be returned; anything else throws with the offending type named.
+	 *
+	 * @param {*} returnValue The value the callback returned
+	 * @returns {Promise<object|null>} The persisted return descriptor
+	 *   <code>{isArray, items: [{path, integrity, size, lastModified, inode}]}</code>, or
+	 *   <code>null</code> when the step returned nothing or no store is bound to persist against
+	 */
+	async #recordReturn(returnValue) {
+		const normalized = this.#normalizeReturn(returnValue);
+		if (!normalized) {
+			return null;
+		}
+		if (!this.#returnValueStore) {
+			// Standalone use: the fresh resource(s) are handed back for this build via the results array,
+			// but with no CAS to persist against there is nothing for a later build to restore.
+			return null;
+		}
+		const items = await this.#returnValueStore.store(normalized.resources);
+		return {isArray: normalized.isArray, items};
+	}
+
+	/**
+	 * Rebuilds a cached step's returned resource(s) from the descriptors recorded on its previous run.
+	 *
+	 * @param {object|null} [returns] The recorded return descriptor, or falsy when the step returned nothing
+	 * @returns {*} The single resource, the array of resources, or <code>undefined</code>
+	 */
+	#restoreReturn(returns) {
+		if (!returns) {
+			return undefined;
+		}
+		if (!this.#returnValueStore) {
+			throw new Error(
+				"processEach: cannot restore a cached step's returned resources without a return value store");
+		}
+		const items = returns.items.map((descriptor) => this.#returnValueStore.restore(descriptor));
+		return returns.isArray ? items : items[0];
+	}
+
+	/**
+	 * Classifies a return value as nothing, a single resource, or an array of resources, throwing on
+	 * anything else. Keeping returns to resources keeps the storage model identical to how the build
+	 * already stores content and sidesteps the identity questions arbitrary objects raise.
+	 *
+	 * @param {*} value The value the callback returned
+	 * @returns {{isArray: boolean, resources: object[]}|null} The classified resources, or
+	 *   <code>null</code> when the step returned nothing
+	 */
+	#normalizeReturn(value) {
+		if (value === undefined || value === null) {
+			return null;
+		}
+		if (Array.isArray(value)) {
+			value.forEach((entry, i) => {
+				if (!isResource(entry)) {
+					throw new Error(
+						`processEach: a callback may return only resources or an array of resources; ` +
+						`array entry ${i} is ${describeValue(entry)}`);
+				}
+			});
+			return {isArray: true, resources: value};
+		}
+		if (isResource(value)) {
+			return {isArray: false, resources: [value]};
+		}
+		throw new Error(
+			`processEach: a callback may return only resources or an array of resources; ` +
+			`got ${describeValue(value)}`);
 	}
 
 	#selectStepsToRun(entries) {
