@@ -102,10 +102,11 @@ export default class ProjectBuildCache {
 	#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
 
 	// Per-task processEach invocation data (see lib/build/helpers/ProcessEach.js), keyed by task name.
-	// Each value is a Map of key identity -> {reads, dependencyReads, writes} recorded during the last
-	// run. It lets a delta build map a changed input back to the step that read it, fold newly-observed
-	// reads into the task's request graph, and drop outputs a step no longer produces. Loaded lazily
-	// from task_metadata (type "processEach") and persisted alongside the other per-task metadata.
+	// Each value is a Map of key identity -> {reads, dependencyReads, writes, returns} recorded during
+	// the last run. It lets a delta build map a changed input back to the step that read it, fold
+	// newly-observed reads into the task's request graph, drop outputs a step no longer produces, and
+	// rebuild a cached step's returned resource(s) from the CAS. Loaded lazily from task_metadata
+	// (type "processEach") and persisted alongside the other per-task metadata.
 	#processEachInvocationData = new Map();
 
 	/**
@@ -1036,6 +1037,91 @@ export default class ProjectBuildCache {
 	}
 
 	/**
+	 * Returns the CAS-backed store the {@link ProcessEach} driver uses to persist and rebuild callback
+	 * return values. <code>store</code> writes the resources' content to the CAS (deduped, flushed in
+	 * the writeCache transaction) and returns path-aligned descriptors; <code>restore</code> rebuilds a
+	 * resource from such a descriptor on a delta build without re-running the step.
+	 *
+	 * @returns {{store: Function, restore: Function}} The return value store
+	 */
+	getProcessEachReturnValueStore() {
+		return {
+			store: (resources) => this.#storeProcessEachReturns(resources),
+			restore: (descriptor) => this.#restoreProcessEachReturn(descriptor),
+		};
+	}
+
+	/**
+	 * Persists the content of resources a processEach step returned and describes them for later
+	 * reconstruction. Content goes through the same compression and dedup pipeline as stage resources
+	 * and is written to the CAS immediately (its own transaction, mirroring
+	 * {@link #freezeUntransformedSources}); the descriptors are recorded in the step's invocation data.
+	 * The CAS write uses INSERT OR IGNORE, so content shared with a stage output is stored once and a
+	 * build that later fails leaves only harmless orphan content.
+	 *
+	 * @param {@ui5/fs/Resource[]} resources Resources a step returned, in return order
+	 * @returns {Promise<Array<object>>} Descriptors <code>{path, integrity, size, lastModified, inode}</code>
+	 *   aligned to <code>resources</code>
+	 */
+	async #storeProcessEachReturns(resources) {
+		// Reuse the stage-resource pipeline for compression and CAS dedup; a returned resource whose path
+		// collides with a written output is stored once by integrity and rebuilt independently of that
+		// output.
+		const {resourceMetadata, casRows} = await this.#prepareStageResources(resources, "processEachReturn");
+		if (casRows.length) {
+			this.#cacheManager.transaction(() => {
+				for (const {integrity, compressedBuffer} of casRows) {
+					this.#cacheManager.putCompressedContent(integrity, compressedBuffer);
+				}
+			});
+		}
+		this.#collectKnownIntegrities(resourceMetadata);
+		return Promise.all(resources.map(async (res) => ({
+			path: res.getPath(),
+			integrity: await res.getIntegrity(),
+			size: await res.getSize(),
+			lastModified: res.getLastModified(),
+			inode: res.getInode(),
+		})));
+	}
+
+	/**
+	 * Rebuilds a resource a processEach step returned on a previous build, reading its content from the
+	 * CAS by integrity. Mirrors the CAS-backed resources of {@link #createReaderForStageCache}, but
+	 * treats <code>lastModified</code> and <code>inode</code> as optional: returned resources are
+	 * usually fresh build outputs that never had filesystem metadata.
+	 *
+	 * @param {object} descriptor Return descriptor recorded by {@link #storeProcessEachReturns}
+	 * @param {string} descriptor.path Virtual path of the returned resource
+	 * @param {string} descriptor.integrity Content integrity, the CAS lookup key
+	 * @param {number} [descriptor.size] Byte size
+	 * @param {number} [descriptor.lastModified] Last-modified timestamp, if the resource had one
+	 * @param {number} [descriptor.inode] Inode of the original resource, if known
+	 * @returns {@ui5/fs/Resource} The reconstructed resource
+	 */
+	#restoreProcessEachReturn({path, integrity, size, lastModified, inode}) {
+		if (!integrity) {
+			throw new Error(
+				`Incomplete processEach return descriptor for resource ${path} ` +
+				`in project ${this.#project.getName()}: missing integrity`);
+		}
+		return createResource({
+			path,
+			sourceMetadata: {
+				adapter: "CAS_SQLITE",
+				contentModified: false,
+			},
+			createStream: () => Readable.from(this.#cacheManager.readContent(integrity)),
+			createBuffer: () => this.#cacheManager.readContent(integrity),
+			byteSize: size,
+			lastModified,
+			integrity,
+			inode,
+			project: this.#project,
+		});
+	}
+
+	/**
 	 * Re-records a processEach task's complete request set on a delta build and returns the resulting
 	 * [projectSignature, dependencySignature] pair, so {@link #recordTaskResult} can re-key the stage on
 	 * it (see open-gaps §7). The request set fed in already unions the delta's monitored requests with
@@ -1829,7 +1915,6 @@ export default class ProjectBuildCache {
 				}
 			}
 		}
-
 		this.#cacheManager.transaction(() => {
 			for (const {integrity, compressedBuffer} of allCasRows) {
 				this.#cacheManager.putCompressedContent(integrity, compressedBuffer);

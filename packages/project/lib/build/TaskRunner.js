@@ -262,6 +262,7 @@ class TaskRunner {
 								taskUtil: monitoredTaskUtil,
 								cacheInfo: usingCache ? cacheInfo : undefined,
 								previousInvocationData: this._buildCache.getProcessEachInvocationData(taskName),
+								returnValueStore: this._buildCache.getProcessEachReturnValueStore(),
 								signal: this._signal,
 							});
 						}
