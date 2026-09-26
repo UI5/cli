@@ -121,14 +121,25 @@ class MonitoredTaskUtil {
 	 * @param {Function} [parameters.processEach] Per-task <code>processEach</code> implementation the
 	 *   TaskRunner binds to the task's readers and cache state. Exposed as <code>taskUtil.processEach</code>
 	 *   because the recording readers a step needs are per-task, not per-project.
+	 * @param {boolean} [parameters.recordTagOperations=false] Record every <code>getTag</code>,
+	 *   <code>setTag</code> and <code>clearTag</code> the wrapped task performs, drainable via
+	 *   {@link #getTagOperations}. Off for the task-level monitor (tags reach the tag collection and are
+	 *   captured through <code>resource.getTags()</code> like today); on for the per-step monitor the
+	 *   [ProcessEach]{@link @ui5/project/build/helpers/ProcessEach} driver wraps around this one, so a
+	 *   step restored from cache can replay its tag operations without re-running.
 	 */
-	constructor(taskUtil, {processEach} = {}) {
+	constructor(taskUtil, {processEach, recordTagOperations = false} = {}) {
 		// Recorded inputs, keyed by `${type}\0${name}` so repeated reads of the same input collapse
 		// to a single entry (last read wins).
 		const recording = new Map();
 		const record = (type, name, rawValue) => {
 			recording.set(`${type}\0${name}`, {type, name, value: normalizeInputValue(rawValue)});
 		};
+
+		// Tag operations in call order, recorded only when recordTagOperations is set. Order is kept
+		// (rather than collapsed like inputs) so a replay reproduces the exact sequence a step performed,
+		// e.g. a setTag followed by a later clearTag of the same tag.
+		const tagOperations = [];
 
 		// Monitored project readers, split by whether the read targets the project being built
 		// (project requests) or a dependency (dependency requests). Each entry is a MonitoredReader
@@ -231,6 +242,9 @@ class MonitoredTaskUtil {
 				if (prop === "getInputRecording") {
 					return () => Array.from(recording.values());
 				}
+				if (prop === "getTagOperations") {
+					return () => tagOperations.slice();
+				}
 				if (prop === "getResourceRequests") {
 					return () => ({
 						project: mergeResourceRequests(projectReaderMonitors),
@@ -245,6 +259,25 @@ class MonitoredTaskUtil {
 				if (typeof orig !== "function") {
 					// STANDARD_TAGS, resourceFactory, or a member the interface does not provide
 					return orig;
+				}
+				if (recordTagOperations && (prop === "setTag" || prop === "clearTag" || prop === "getTag")) {
+					// Record the operation and delegate to the wrapped taskUtil, so a set/clear still
+					// reaches the project tag collection (captured by recordTaskResult like a task-level
+					// tag) while the per-step attribution a restored step's replay needs is kept. The path
+					// stands in for the resource, since the tag collection keys tags by path and a restored
+					// step has no resource instance to hand back.
+					return function(resource, tag, value) {
+						const result = orig.call(target, resource, tag, value);
+						if (prop === "setTag") {
+							tagOperations.push({op: "set", path: resource.getPath(), tag,
+								value: value === undefined ? true : value});
+						} else if (prop === "clearTag") {
+							tagOperations.push({op: "clear", path: resource.getPath(), tag});
+						} else {
+							tagOperations.push({op: "get", path: resource.getPath(), tag});
+						}
+						return result;
+					};
 				}
 				if (Object.hasOwn(TRACKED_TASK_UTIL_METHODS, prop)) {
 					const type = TRACKED_TASK_UTIL_METHODS[prop];
@@ -283,6 +316,23 @@ class MonitoredTaskUtil {
 	 * @returns {Array<{type: string, name: string, value: string|undefined}>} Recorded input entries
 	 */
 	getInputRecording() {
+		// Implemented via the constructor's Proxy trap; this declaration documents the contract.
+		return [];
+	}
+
+	/**
+	 * Returns the tag operations recorded since this monitor was created, in call order. Empty unless
+	 * the monitor was constructed with <code>recordTagOperations</code> (the per-step monitor).
+	 *
+	 * The [ProcessEach]{@link @ui5/project/build/helpers/ProcessEach} driver persists these per step so a
+	 * step restored from cache on a delta build replays its <code>set</code>/<code>clear</code> operations
+	 * into the tag collection, reproducing tags the step would have set had it run.
+	 *
+	 * @returns {Array<{op: string, path: string, tag: string, value: *}>} Recorded tag operations
+	 *   (<code>op</code> is <code>"set"</code>, <code>"clear"</code> or <code>"get"</code>;
+	 *   <code>value</code> is present only for <code>"set"</code>)
+	 */
+	getTagOperations() {
 		// Implemented via the constructor's Proxy trap; this declaration documents the contract.
 		return [];
 	}

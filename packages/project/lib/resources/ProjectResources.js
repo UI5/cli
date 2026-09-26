@@ -406,6 +406,21 @@ class ProjectResources {
 	 * @throws {Error} If no collection accepts the given tag
 	 */
 	getResourceTagCollection(resource, tag) {
+		return this.#getMonitoredTagCollection(tag, resource);
+	}
+
+	/**
+	 * Returns the monitored tag collection that accepts <code>tag</code>, creating it on first use. The
+	 * routing is by tag alone (project-level tags such as <code>ui5:IsDebugVariant</code> vs. build-level
+	 * tags such as <code>ui5:OmitFromBuildResult</code>); <code>resource</code> is used only to name the
+	 * offending resource when no collection accepts the tag.
+	 *
+	 * @param {string} tag Tag to route
+	 * @param {@ui5/fs/Resource} [resource] Resource the tag is for, for the error message only
+	 * @returns {@ui5/fs/internal/MonitoredResourceTagCollection} The monitored collection
+	 * @throws {Error} If no collection accepts the given tag
+	 */
+	#getMonitoredTagCollection(tag, resource) {
 		this.#applyCachedResourceTags();
 		const projectCollection = this.#getProjectResourceTagCollection();
 		if (!tag || projectCollection.acceptsTag(tag)) {
@@ -421,7 +436,32 @@ class ProjectResources {
 			}
 			return this.#monitoredBuildResourceTagCollection;
 		}
-		throw new Error(`Could not find collection for resource ${resource.getPath()} and tag ${tag}`);
+		throw new Error(
+			`Could not find collection for resource ${resource ? resource.getPath() : "(tag replay)"} and tag ${tag}`);
+	}
+
+	/**
+	 * Replays a set of tag operations recorded by a
+	 * [processEach]{@link @ui5/project/build/helpers/ProcessEach} step into the monitored tag collections,
+	 * routing each by tag and applying it by path. Used when a step is restored from cache on a delta
+	 * build: the step did not run, so its <code>set</code>/<code>clear</code> operations are replayed here
+	 * so its tags reappear in this build's tag operations (captured by {@link #getResourceTagOperations}
+	 * like a step that ran). <code>get</code> operations carry no persistent effect and are skipped.
+	 *
+	 * @param {Array<{op: string, path: string, tag: string, value: *}>} tagOperations Recorded operations
+	 */
+	replayTagOperations(tagOperations) {
+		for (const {op, path, tag, value} of tagOperations) {
+			if (op !== "set" && op !== "clear") {
+				continue;
+			}
+			const collection = this.#getMonitoredTagCollection(tag);
+			if (op === "clear") {
+				collection.clearTag(path, tag);
+			} else {
+				collection.setTag(path, tag, value);
+			}
+		}
 	}
 
 	getResourceTagOperations() {

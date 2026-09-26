@@ -1008,7 +1008,8 @@ export default class ProjectBuildCache {
 	 * lazily from the persistent cache and memoized.
 	 *
 	 * @param {string} taskName Task name
-	 * @returns {Map<string, object>|undefined} Map of key identity to <code>{reads, dependencyReads, writes}</code>
+	 * @returns {Map<string, object>|undefined} Map of key identity to
+	 *   <code>{reads, dependencyReads, writes, inputs, tagOperations, returns}</code>
 	 */
 	getProcessEachInvocationData(taskName) {
 		if (this.#processEachInvocationData.has(taskName)) {
@@ -1030,7 +1031,8 @@ export default class ProjectBuildCache {
 	 * read fold-back of the next build. Persisted by {@link #prepareTaskRequestCache}.
 	 *
 	 * @param {string} taskName Task name
-	 * @param {Map<string, object>} invocationData Map of key identity to <code>{reads, dependencyReads, writes}</code>
+	 * @param {Map<string, object>} invocationData Map of key identity to
+	 *   <code>{reads, dependencyReads, writes, inputs, tagOperations, returns}</code>
 	 */
 	setProcessEachInvocationData(taskName, invocationData) {
 		this.#processEachInvocationData.set(taskName, invocationData);
@@ -1049,6 +1051,18 @@ export default class ProjectBuildCache {
 			store: (resources) => this.#storeProcessEachReturns(resources),
 			restore: (descriptor) => this.#restoreProcessEachReturn(descriptor),
 		};
+	}
+
+	/**
+	 * Returns the resolver the {@link ProcessEach} driver uses to re-derive the current value of a step's
+	 * recorded non-resource input on a delta build (the same resolver the task-level input lookup uses,
+	 * reaching <code>process.env</code> and the current project graph). A step whose input no longer
+	 * resolves to its stored value is re-run. <code>undefined</code> when the cache was built without one.
+	 *
+	 * @returns {function(string, string): (string|undefined)|undefined} The input value resolver
+	 */
+	getResolveInputValue() {
+		return this.#resolveInputValue;
 	}
 
 	/**
