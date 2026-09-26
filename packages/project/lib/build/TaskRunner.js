@@ -35,6 +35,29 @@ function mergeResourceRequests(base, extra = EMPTY_RESOURCE_REQUESTS) {
 }
 
 /**
+ * Merges two recorded input sets, deduping by input type and name.
+ *
+ * <code>base</code> is the task-level monitor's recording (the re-run steps' inputs on a delta build);
+ * <code>extra</code> is the processEach driver's complete per-step input recording (every step's inputs,
+ * including steps served from cache). <code>base</code> takes precedence on overlap, since a re-run step
+ * re-recorded its input fresh this build, but the values agree for a step present in both.
+ *
+ * @param {Array<{type: string, name: string, value: string|undefined}>} base Task-level input recording
+ * @param {Array<{type: string, name: string, value: string|undefined}>} extra Driver input recording
+ * @returns {Array<{type: string, name: string, value: string|undefined}>} Merged, deduped input recording
+ */
+function mergeInputRecordings(base, extra) {
+	const merged = new Map();
+	for (const entry of extra) {
+		merged.set(`${entry.type}\0${entry.name}`, entry);
+	}
+	for (const entry of base) {
+		merged.set(`${entry.type}\0${entry.name}`, entry);
+	}
+	return [...merged.values()];
+}
+
+/**
  * TaskRunner
  *
  * Manages the execution of build tasks for a project, including task composition,
@@ -263,6 +286,9 @@ class TaskRunner {
 								cacheInfo: usingCache ? cacheInfo : undefined,
 								previousInvocationData: this._buildCache.getProcessEachInvocationData(taskName),
 								returnValueStore: this._buildCache.getProcessEachReturnValueStore(),
+								resolveInputValue: this._buildCache.getResolveInputValue(),
+								applyTagOperations: (tagOperations) =>
+									this._project.getProjectResources().replayTagOperations(tagOperations),
 								signal: this._signal,
 							});
 						}
@@ -299,6 +325,7 @@ class TaskRunner {
 				let projectRequests = mergeResourceRequests(workspace.getResourceRequests(), taskUtilRequests.project);
 				let dependencyRequests =
 					mergeResourceRequests(dependencies?.getResourceRequests(), taskUtilRequests.dependencies);
+				let inputRecording = monitoredTaskUtil.getInputRecording();
 
 				// A task that called processEach folds the driver's outcome into the recorded result:
 				// its complete per-step read set (so first-seen reads stay tracked), its stale outputs
@@ -308,15 +335,17 @@ class TaskRunner {
 				if (usedProcessEach) {
 					this._buildCache.setProcessEachInvocationData(taskName, processEachDriver.getInvocationData());
 					if (usingCache) {
-						// Delta build: only some steps re-ran, so the task-level monitor missed the reads of
-						// the steps served from cache. Fold every step's reads (from the driver's persisted
-						// invocation data) into the recorded requests so a first-seen input stays tracked,
-						// and append the driver's stale outputs to the changed paths so they drop from the
-						// carried-forward stage. On a full build every step ran, so the monitor already
-						// captured everything and no fold is needed.
+						// Delta build: only some steps re-ran, so the task-level monitor missed the reads and
+						// non-resource inputs of the steps served from cache. Fold every step's reads and
+						// inputs (from the driver's persisted invocation data) into the recorded requests and
+						// input recording so a first-seen input stays tracked and the re-keyed stage signature
+						// tracks every current input, and append the driver's stale outputs to the changed
+						// paths so they drop from the carried-forward stage. On a full build every step ran,
+						// so the monitor already captured everything and no fold is needed.
 						const driverRequests = processEachDriver.getResourceRequests();
 						projectRequests = mergeResourceRequests(projectRequests, driverRequests.project);
 						dependencyRequests = mergeResourceRequests(dependencyRequests, driverRequests.dependencies);
+						inputRecording = mergeInputRecordings(inputRecording, processEachDriver.getInputRecording());
 						const staleOutputs = processEachDriver.getStaleOutputs();
 						if (staleOutputs.length) {
 							cacheInfo.changedProjectResourcePaths =
@@ -330,7 +359,7 @@ class TaskRunner {
 					dependencyRequests,
 					usingCache ? cacheInfo : undefined,
 					supportsDifferentialBuilds,
-					monitoredTaskUtil.getInputRecording(),
+					inputRecording,
 					taskUtilRequests.root,
 					usedProcessEach);
 				this._log.endTask(taskName, usingCache, writtenResourcePaths);

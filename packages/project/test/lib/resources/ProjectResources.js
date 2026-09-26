@@ -190,3 +190,26 @@ test("Frozen source reader takes priority over filesystem source reader", async 
 	t.is(content, frozenCASContent,
 		"Frozen CAS reader takes priority over filesystem source reader");
 });
+
+test("replayTagOperations routes by tag, applies by path, and skips get operations", (t) => {
+	const {pr} = createProjectResources();
+
+	// A restored processEach step replays these: a project-level and a build-level set, a get (no
+	// persistent effect), and a set-then-clear of the same tag on another path.
+	pr.replayTagOperations([
+		{op: "set", path: "/resources/x.js", tag: "ui5:HasDebugVariant", value: true},
+		{op: "set", path: "/resources/x.js", tag: "ui5:OmitFromBuildResult", value: true},
+		{op: "get", path: "/resources/x.js", tag: "ui5:IsBundle"},
+		{op: "set", path: "/resources/x-dbg.js", tag: "ui5:IsDebugVariant", value: true},
+		{op: "clear", path: "/resources/x-dbg.js", tag: "ui5:IsDebugVariant"},
+	]);
+
+	const {projectTagOperations, buildTagOperations} = pr.getResourceTagOperations();
+
+	t.deepEqual([...projectTagOperations.get("/resources/x.js")], [["ui5:HasDebugVariant", true]],
+		"A project-level tag is routed to the project collection");
+	t.deepEqual([...projectTagOperations.get("/resources/x-dbg.js")], [["ui5:IsDebugVariant", undefined]],
+		"A set followed by a clear of the same tag records the clear");
+	t.deepEqual([...buildTagOperations.get("/resources/x.js")], [["ui5:OmitFromBuildResult", true]],
+		"A build-level tag is routed to the build collection; the skipped get left no operation");
+});

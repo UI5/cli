@@ -1629,3 +1629,90 @@ test("getDependenciesReader: No dependencies required", async (t) => {
 	t.is(res.getName(), "custom reader collection", "Shared (all-)dependency reader returned");
 });
 
+
+// Integration: a standard task built on the real MonitoredTaskUtil + ProcessEach. A per-step non-resource
+// input change (an env var one step reads) must re-run only that step, and a step served from cache must
+// replay its recorded tag operations into the project tag collection.
+test("processEach: a per-step input change re-runs only that step; a restored step replays its tags",
+	async (t) => {
+		const {sinon, projectBuildLogger} = t.context;
+
+		// A mutable environment the step reads per key; the resolver re-derives the current value on the
+		// delta build the same way the real ProjectBuildContext does.
+		const env = {a: "1", b: "1"};
+		const resolveInputValue = (type, name) => (type === "env" ? env[name] : undefined);
+
+		// The taskUtil the per-step MonitoredTaskUtil wraps: getEnv is a tracked input, setTag passes
+		// through to reach the tag collection when a step actually runs.
+		const setTag = sinon.stub();
+		const taskUtil = {
+			isRootProject: sinon.stub().returns(true),
+			getDependencies: sinon.stub().returns([]),
+			getInterface: sinon.stub(),
+			getEnv: (name) => env[name],
+			setTag,
+		};
+		taskUtil.getInterface.returns(taskUtil);
+
+		const ran = [];
+		const taskFunction = async ({taskUtil}) => {
+			await taskUtil.processEach(["a", "b"], async (key, {taskUtil}) => {
+				ran.push(key);
+				taskUtil.getEnv(key);
+				taskUtil.setTag({getPath: () => `/out/${key}`}, "ui5:IsBundle", true);
+			});
+		};
+		const taskDefinitions = {
+			getTaskDefinitions: async () => ({
+				standardTasks: new Map([
+					["stepTask",
+						{requiresDependencies: false, supportsDifferentialBuilds: true, options: {}, taskFunction}],
+				]),
+				customTasks: new Map(),
+			}),
+		};
+
+		let capturedInvocationData;
+		let deltaMode = false;
+		const buildCache = {
+			setTasks: sinon.stub(),
+			prefetchStageCache: sinon.stub(),
+			recordTaskResult: sinon.stub().resolves(),
+			allTasksCompleted: sinon.stub().resolves([]),
+			prepareTaskExecutionAndValidateCache: sinon.stub().callsFake(async () =>
+				(deltaMode ? {changedProjectResourcePaths: [], changedDependencyResourcePaths: []} : false)),
+			getProcessEachInvocationData: sinon.stub().callsFake(() => capturedInvocationData),
+			getProcessEachReturnValueStore: sinon.stub().returns(undefined),
+			getResolveInputValue: sinon.stub().returns(resolveInputValue),
+			setProcessEachInvocationData: sinon.stub().callsFake((name, data) => {
+				capturedInvocationData = data;
+			}),
+		};
+
+		const replayTagOperations = sinon.stub();
+		const project = getMockProject("module");
+		project.getProjectResources = () => ({replayTagOperations});
+
+		const taskRunner = createTaskRunner(t, project, {taskUtil, buildCache, taskDefinitions});
+		await taskRunner._initTasks();
+
+		// Build 1 (full): both steps run and record their env input and tag operation.
+		await taskRunner._tasks["stepTask"].task(projectBuildLogger);
+		t.deepEqual(ran, ["a", "b"], "The full build ran every step");
+		t.is(replayTagOperations.callCount, 0, "A full build restores no step, so nothing is replayed");
+
+		// Build 2 (delta): only env var "a" changed, so step "a" re-runs and step "b" is restored.
+		ran.length = 0;
+		setTag.resetHistory();
+		deltaMode = true;
+		env.a = "2";
+		await taskRunner._tasks["stepTask"].task(projectBuildLogger);
+
+		t.deepEqual(ran, ["a"], "Only the step whose env input changed re-ran on the delta build");
+		t.is(setTag.callCount, 1, "Only the re-run step set its tag live");
+		t.is(setTag.getCall(0).args[0].getPath(), "/out/a", "The re-run step's live setTag targeted its own output");
+		t.is(replayTagOperations.callCount, 1, "The restored step replayed its tag operations");
+		t.deepEqual(replayTagOperations.getCall(0).args[0],
+			[{op: "set", path: "/out/b", tag: "ui5:IsBundle", value: true}],
+			"The restored step's recorded tag operation was replayed, so its tag survives");
+	});

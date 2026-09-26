@@ -31,7 +31,28 @@ function createDependencies(initial = []) {
 	};
 }
 
-// An in-memory stand-in for the CAS-backed return value store the ProjectBuildCache provides. It keeps
+// An in-memory stand-in for the ProjectBuildContext's taskUtil. ProcessEach wraps this in a real
+// per-step MonitoredTaskUtil, so these methods are what the step's non-resource-input and tag recording
+// observes. `env` backs getEnv; tags are stored by path so setTag/getTag/clearTag round-trip.
+function createTaskUtil({env = {}} = {}) {
+	const tags = new Map();
+	return {
+		getEnv: (name) => env[name],
+		getTime: (granularity) => `time-${granularity}`,
+		isRootProject: () => true,
+		setTag: (resource, tag, value = true) => {
+			const path = resource.getPath();
+			if (!tags.has(path)) {
+				tags.set(path, new Map());
+			}
+			tags.get(path).set(tag, value);
+		},
+		getTag: (resource, tag) => tags.get(resource.getPath())?.get(tag),
+		clearTag: (resource, tag) => tags.get(resource.getPath())?.delete(tag),
+		tags,
+	};
+}
+
 // content by integrity so store() and a later restore() round-trip the exact bytes, exactly as the real
 // SQLite CAS does across two builds.
 function createReturnValueStore() {
@@ -383,4 +404,128 @@ test("Restoring a cached return without a store throws a clear error", async (t)
 
 	await t.throwsAsync(processEach.run(["a"], async () => {}),
 		{message: /cannot restore a cached step's returned resources without a return value store/});
+});
+
+test("The per-step taskUtil records a step's non-resource inputs and tag operations", async (t) => {
+	const workspace = createWorkspace();
+	const processEach = new ProcessEach({workspace, taskUtil: createTaskUtil({env: {MODE: "dev"}})});
+
+	await processEach.run(["a"], async (key, {taskUtil}) => {
+		taskUtil.getEnv("MODE");
+		taskUtil.setTag(createResource("/out/a"), "ui5:IsBundle", true);
+	});
+
+	const entry = processEach.getInvocationData().get("string:a");
+	t.deepEqual(entry.inputs, [{type: "env", name: "MODE", value: "dev"}],
+		"The step's getEnv read is attributed to the step");
+	t.deepEqual(entry.tagOperations, [{op: "set", path: "/out/a", tag: "ui5:IsBundle", value: true}],
+		"The step's setTag is attributed to the step");
+});
+
+test("Delta build re-runs only the step whose recorded non-resource input changed", async (t) => {
+	const env = {A: "1", B: "1"};
+	const resolveInputValue = (type, name) => (type === "env" ? env[name] : undefined);
+
+	// Build 1: step "a" reads env A, step "b" reads env B.
+	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: createTaskUtil({env})});
+	await build1.run(["a", "b"], async (key, {taskUtil}) => {
+		taskUtil.getEnv(key.toUpperCase());
+	});
+	const previousInvocationData = build1.getInvocationData();
+
+	// Build 2: only env A changed. Neither step's resource reads changed, so selection turns on the
+	// re-resolved input value alone.
+	env.A = "2";
+	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
+	const build2 = new ProcessEach({
+		workspace: createWorkspace(), taskUtil: createTaskUtil({env}),
+		cacheInfo, previousInvocationData, resolveInputValue,
+	});
+	const ran = [];
+	await build2.run(["a", "b"], async (key, {taskUtil}) => {
+		ran.push(key);
+		taskUtil.getEnv(key.toUpperCase());
+	});
+
+	t.deepEqual(ran, ["a"], "Only the step whose env input changed re-ran");
+});
+
+test("A restored step replays its recorded tag operations, a re-run step's are not replayed", async (t) => {
+	// Build 1: each step reads its input and tags its output.
+	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: createTaskUtil()});
+	await build1.run(["a", "b"], async (key, {workspace, taskUtil}) => {
+		await workspace.byPath(`/in/${key}`);
+		taskUtil.setTag(createResource(`/out/${key}`), "ui5:IsBundle", true);
+	});
+	const previousInvocationData = build1.getInvocationData();
+
+	// Build 2: /in/a changed, so step "a" re-runs and step "b" is restored. Only the restored step's tag
+	// operation is replayed; the re-run step's tag reaches the collection through its live setTag.
+	const replayed = [];
+	const cacheInfo = {changedProjectResourcePaths: ["/in/a"], changedDependencyResourcePaths: []};
+	const build2 = new ProcessEach({
+		workspace: createWorkspace(), taskUtil: createTaskUtil(),
+		cacheInfo, previousInvocationData,
+		applyTagOperations: (ops) => replayed.push(...ops),
+	});
+	const ran = [];
+	await build2.run(["a", "b"], async (key, {workspace, taskUtil}) => {
+		ran.push(key);
+		await workspace.byPath(`/in/${key}`);
+		taskUtil.setTag(createResource(`/out/${key}`), "ui5:IsBundle", true);
+	});
+
+	t.deepEqual(ran, ["a"], "Only the changed step re-ran");
+	t.deepEqual(replayed, [{op: "set", path: "/out/b", tag: "ui5:IsBundle", value: true}],
+		"The restored step's tag operation was replayed; the re-run step's was not");
+});
+
+test("getInputRecording unions every step's inputs, including cached steps on a delta build", async (t) => {
+	const env = {A: "1", B: "1"};
+	const resolveInputValue = (type, name) => (type === "env" ? env[name] : undefined);
+
+	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: createTaskUtil({env})});
+	await build1.run(["a", "b"], async (key, {taskUtil}) => {
+		taskUtil.getEnv(key.toUpperCase());
+	});
+	const previousInvocationData = build1.getInvocationData();
+
+	// Only env A changes, so step "b" is restored (never re-run) this build. Its input must still be in
+	// the folded union, so the re-keyed stage signature keeps tracking it.
+	env.A = "2";
+	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
+	const build2 = new ProcessEach({
+		workspace: createWorkspace(), taskUtil: createTaskUtil({env}),
+		cacheInfo, previousInvocationData, resolveInputValue,
+	});
+	await build2.run(["a", "b"], async (key, {taskUtil}) => {
+		taskUtil.getEnv(key.toUpperCase());
+	});
+
+	t.deepEqual(build2.getInputRecording().sort((x, y) => x.name.localeCompare(y.name)), [
+		{type: "env", name: "A", value: "2"},
+		{type: "env", name: "B", value: "1"},
+	], "The re-run step's fresh input and the cached step's persisted input are both folded in");
+});
+
+test("Without a resolver, a changed non-resource input cannot re-run a step", async (t) => {
+	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: createTaskUtil({env: {A: "1"}})});
+	await build1.run(["a"], async (key, {taskUtil}) => {
+		taskUtil.getEnv("A");
+	});
+	const previousInvocationData = build1.getInvocationData();
+
+	// No resolveInputValue (standalone use): the input cannot be re-derived, so selection falls back to
+	// resource reads alone and the step stays cached.
+	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
+	const build2 = new ProcessEach({
+		workspace: createWorkspace(), taskUtil: createTaskUtil({env: {A: "2"}}),
+		cacheInfo, previousInvocationData,
+	});
+	const ran = [];
+	await build2.run(["a"], async (key) => {
+		ran.push(key);
+	});
+
+	t.deepEqual(ran, [], "Without a resolver the step stays cached despite the changed input");
 });

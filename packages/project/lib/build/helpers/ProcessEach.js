@@ -1,6 +1,7 @@
 import AbstractReader from "@ui5/fs/AbstractReader";
 import AbstractReaderWriter from "@ui5/fs/AbstractReaderWriter";
 import {getLogger} from "@ui5/logger";
+import MonitoredTaskUtil from "./MonitoredTaskUtil.js";
 
 const log = getLogger("build:helpers:ProcessEach");
 
@@ -142,9 +143,12 @@ class RecordingReaderWriter extends AbstractReaderWriter {
  * Per-task driver behind <code>taskUtil.processEach(keys, callback, concurrent)</code>.
  *
  * A task iterates a set of keys, running <code>callback</code> once per key against per-step readers
- * that record what each step reads, writes, and returns. The recording lets a delta build re-run only
- * the steps whose observed inputs changed and drop the outputs of steps that no longer produce them,
- * without any delta bookkeeping in the task itself.
+ * and a per-step [MonitoredTaskUtil]{@link @ui5/project/build/helpers/MonitoredTaskUtil} that record
+ * what each step reads, writes, returns, reads as a non-resource input, and tags. The recording lets a
+ * delta build re-run only the steps whose observed inputs changed and drop the outputs of steps that no
+ * longer produce them, without any delta bookkeeping in the task itself. A step whose recorded
+ * non-resource input (an env var, a dependency version) no longer resolves to its stored value re-runs;
+ * a step served from cache replays its recorded tag operations so its tags reappear this build.
  *
  * A callback may return a resource or an array of resources. Returned resources are stored in the CAS,
  * so a step served from cache on a delta build has its returned resource(s) rebuilt from the CAS
@@ -165,6 +169,8 @@ export default class ProcessEach {
 	#cacheInfo;
 	#previousInvocationData;
 	#returnValueStore;
+	#resolveInputValue;
+	#applyTagOperations;
 	#signal;
 
 	// Populated by run(): the complete per-key invocation data to persist, and the output paths that
@@ -185,15 +191,28 @@ export default class ProcessEach {
 	 *   <code>restore(descriptor)</code> (rebuild a resource from a descriptor). Absent for standalone
 	 *   use without a build cache: return values are then handed back for the current build but not
 	 *   persisted, so a later delta build cannot restore a step that is served from cache.
+	 * @param {function(string, string): (string|undefined)} [parameters.resolveInputValue] Re-derives the
+	 *   current normalized value of a recorded non-resource input (env var, time bucket, dependency
+	 *   version, ...), the same resolver the task-level input lookup uses. A cached step whose recorded
+	 *   input no longer resolves to its stored value is re-run. Absent for standalone use, where no input
+	 *   can be re-resolved and a step is selected on its resource reads alone.
+	 * @param {function(Array<object>): void} [parameters.applyTagOperations] Replays a restored step's
+	 *   recorded tag operations into the project tag collection, so a step served from cache contributes
+	 *   the same tags it would have set had it run. Absent for standalone use, where tags are not persisted.
 	 * @param {AbortSignal} [parameters.signal] Build abort signal, checked between steps
 	 */
-	constructor({workspace, dependencies, taskUtil, cacheInfo, previousInvocationData, returnValueStore, signal}) {
+	constructor({
+		workspace, dependencies, taskUtil, cacheInfo, previousInvocationData, returnValueStore,
+		resolveInputValue, applyTagOperations, signal
+	}) {
 		this.#workspace = workspace;
 		this.#dependencies = dependencies;
 		this.#taskUtil = taskUtil;
 		this.#cacheInfo = cacheInfo;
 		this.#previousInvocationData = previousInvocationData;
 		this.#returnValueStore = returnValueStore;
+		this.#resolveInputValue = resolveInputValue;
+		this.#applyTagOperations = applyTagOperations;
 		this.#signal = signal;
 	}
 
@@ -201,7 +220,10 @@ export default class ProcessEach {
 	 * Runs <code>callback</code> once per key, caching each step's result.
 	 *
 	 * @param {Iterable} keys Resources or strings, as for a <code>map</code>
-	 * @param {Function} callback <code>async (key, {workspace, dependencies, taskUtil}) => resource(s)</code>
+	 * @param {Function} callback <code>async (key, {workspace, dependencies, taskUtil}) => resource(s)</code>,
+	 *   where <code>taskUtil</code> is a per-step [MonitoredTaskUtil]{@link
+	 *   @ui5/project/build/helpers/MonitoredTaskUtil} attributing the step's non-resource inputs and tag
+	 *   operations to the step
 	 * @param {boolean} [concurrent=true] Run steps concurrently (buffered writes flushed in key order)
 	 *   or sequentially (writes visible to later steps immediately)
 	 * @returns {Promise<Array>} Per-key results aligned to <code>keys</code> order. Each entry is what
@@ -226,13 +248,16 @@ export default class ProcessEach {
 		const writeBuffer = concurrent ? new Map() : null;
 
 		// A step served from cache did not run, so its returned resource(s) are rebuilt from the CAS out
-		// of the previous run's recorded return descriptors. Its slots are disjoint from the re-run steps
-		// below, so this can happen before or after they run.
+		// of the previous run's recorded return descriptors, and its recorded tag operations are replayed
+		// so its tags reappear this build. Its slots are disjoint from the re-run steps below, so this can
+		// happen before or after they run.
 		for (const {keyId, index} of entries) {
 			if (toRunIndices.has(index)) {
 				continue;
 			}
-			results[index] = this.#restoreReturn(this.#previousInvocationData?.get(keyId)?.returns);
+			const previous = this.#previousInvocationData?.get(keyId);
+			results[index] = this.#restoreReturn(previous?.returns);
+			this.#replayTagOperations(previous?.tagOperations);
 		}
 
 		const runStep = async ({key, keyId, index}) => {
@@ -241,13 +266,20 @@ export default class ProcessEach {
 			const workspace = new RecordingReaderWriter(this.#workspace, recorder, writeBuffer, index);
 			const dependencies = this.#dependencies ?
 				new RecordingReader(this.#dependencies, recorder) : undefined;
+			// A per-step MonitoredTaskUtil wrapping the task-level one: reads still delegate through the
+			// task-level monitor (so a full build's task-level recording stays the union that keys the
+			// stage), while this wrapper additionally attributes the step's non-resource inputs and tag
+			// operations to the step for per-step selection and restore.
+			const taskUtil = new MonitoredTaskUtil(this.#taskUtil, {recordTagOperations: true});
 
-			const returnValue = await callback(key, {workspace, dependencies, taskUtil: this.#taskUtil});
+			const returnValue = await callback(key, {workspace, dependencies, taskUtil});
 			results[index] = returnValue;
 			currentInvocationData.set(keyId, {
 				reads: [...recorder.projectReads],
 				dependencyReads: [...recorder.dependencyReads],
 				writes: [...recorder.writes],
+				inputs: taskUtil.getInputRecording(),
+				tagOperations: taskUtil.getTagOperations(),
 				returns: await this.#recordReturn(returnValue),
 			});
 		};
@@ -276,8 +308,10 @@ export default class ProcessEach {
 	 * The complete per-key invocation data to persist for the next build.
 	 *
 	 * @returns {Map<string, object>} Map of key identity to
-	 *   <code>{reads, dependencyReads, writes, returns}</code>, where <code>returns</code> is the
-	 *   CAS descriptors for the step's returned resource(s), or <code>null</code> if it returned nothing
+	 *   <code>{reads, dependencyReads, writes, inputs, tagOperations, returns}</code>, where
+	 *   <code>inputs</code> is the step's recorded non-resource inputs, <code>tagOperations</code> its
+	 *   recorded tag operations, and <code>returns</code> the CAS descriptors for the step's returned
+	 *   resource(s), or <code>null</code> if it returned nothing
 	 */
 	getInvocationData() {
 		return this.#invocationData;
@@ -309,6 +343,24 @@ export default class ProcessEach {
 			dependencies.paths.push(...(data.dependencyReads ?? []));
 		}
 		return {project, dependencies};
+	}
+
+	/**
+	 * The union of every step's recorded non-resource inputs, deduped by type and name (last write wins),
+	 * to fold into the task's input recording. Steps not re-run this build contribute their persisted
+	 * inputs, so an input a cached step read stays folded into the re-keyed stage signature even though
+	 * the task-level monitor only observed the re-run steps. Mirrors {@link #getResourceRequests}.
+	 *
+	 * @returns {Array<{type: string, name: string, value: string|undefined}>} Recorded input entries
+	 */
+	getInputRecording() {
+		const merged = new Map();
+		for (const data of this.#invocationData.values()) {
+			for (const input of data.inputs ?? []) {
+				merged.set(`${input.type}\0${input.name}`, input);
+			}
+		}
+		return [...merged.values()];
 	}
 
 	async #resolveEntries(keys) {
@@ -424,9 +476,34 @@ export default class ProcessEach {
 			// A step whose recorded reads intersect the changed paths must re-run: this is the reverse
 			// mapping that re-runs the owner of a changed cross-resource input (a .js whose .js.map
 			// changed, a theme whose gating marker was added or removed).
-			return prev.reads.some((path) => changedProject.has(path)) ||
-				prev.dependencyReads.some((path) => changedDependency.has(path));
+			if (prev.reads.some((path) => changedProject.has(path)) ||
+				prev.dependencyReads.some((path) => changedDependency.has(path))) {
+				return true;
+			}
+			// A step whose recorded non-resource input no longer resolves to its stored value must re-run,
+			// so only the step that read a changed env var, rolled-over time bucket or bumped dependency
+			// version re-runs. Without a resolver (standalone use) an input cannot be re-derived, so the
+			// step is selected on its resource reads alone.
+			if (this.#resolveInputValue && prev.inputs?.some(
+				(input) => this.#resolveInputValue(input.type, input.name) !== input.value)) {
+				return true;
+			}
+			return false;
 		});
+	}
+
+	/**
+	 * Replays a restored step's recorded tag operations into the project tag collection, so a step served
+	 * from cache contributes the same tags it would have set had it run. <code>get</code> operations carry
+	 * no persistent effect and are skipped by the applier. A no-op without an applier (standalone use) or
+	 * when the step recorded no tag operations.
+	 *
+	 * @param {Array<object>} [tagOperations] The step's recorded tag operations
+	 */
+	#replayTagOperations(tagOperations) {
+		if (this.#applyTagOperations && tagOperations?.length) {
+			this.#applyTagOperations(tagOperations);
+		}
 	}
 
 	#mergeInvocationData(current, entries) {
