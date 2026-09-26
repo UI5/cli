@@ -65,6 +65,7 @@ test("Standard build", (t) => {
 		},
 		buildThemes: {
 			requiresDependencies: true,
+			supportsDifferentialBuilds: true,
 			options: {
 				projectName: "project.b",
 				librariesPattern: undefined,
@@ -124,6 +125,7 @@ test("Standard build for non root project", (t) => {
 		},
 		buildThemes: {
 			requiresDependencies: true,
+			supportsDifferentialBuilds: true,
 			options: {
 				projectName: "project.b",
 				librariesPattern: "/resources/**/(*.library|library.js)",
@@ -151,6 +153,7 @@ test("CSS variables enabled", (t) => {
 	const taskDefinition = tasks.get("buildThemes");
 	t.deepEqual(taskDefinition, {
 		requiresDependencies: true,
+		supportsDifferentialBuilds: true,
 		options: {
 			projectName: "project.b",
 			librariesPattern: undefined,

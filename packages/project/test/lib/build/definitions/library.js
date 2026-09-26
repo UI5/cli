@@ -114,6 +114,7 @@ test("Standard build", async (t) => {
 		},
 		buildThemes: {
 			requiresDependencies: true,
+			supportsDifferentialBuilds: true,
 			options: {
 				projectName: "project.b",
 				librariesPattern: undefined,
@@ -252,6 +253,7 @@ test("Standard build with legacy spec version", (t) => {
 		},
 		buildThemes: {
 			requiresDependencies: true,
+			supportsDifferentialBuilds: true,
 			options: {
 				projectName: "project.b",
 				librariesPattern: undefined,
@@ -390,6 +392,7 @@ test("Custom bundles", async (t) => {
 		},
 		buildThemes: {
 			requiresDependencies: true,
+			supportsDifferentialBuilds: true,
 			options: {
 				projectName: "project.b",
 				librariesPattern: undefined,
@@ -634,6 +637,7 @@ test("buildThemes: Project is not root", (t) => {
 	const taskDefinition = tasks.get("buildThemes");
 	t.deepEqual(taskDefinition, {
 		requiresDependencies: true,
+		supportsDifferentialBuilds: true,
 		options: {
 			projectName: "project.b",
 			librariesPattern: "/resources/**/(*.library|library.js)",
@@ -689,6 +693,7 @@ test("buildThemes: CSS Variables enabled", (t) => {
 	const taskDefinition = tasks.get("buildThemes");
 	t.deepEqual(taskDefinition, {
 		requiresDependencies: true,
+		supportsDifferentialBuilds: true,
 		options: {
 			projectName: "project.b",
 			librariesPattern: undefined,
@@ -764,6 +769,7 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 		},
 		buildThemes: {
 			requiresDependencies: true,
+			supportsDifferentialBuilds: true,
 			options: {
 				projectName: "project.b",
 				librariesPattern: undefined,
