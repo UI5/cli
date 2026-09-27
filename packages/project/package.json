@@ -60,7 +60,7 @@
 		"directory": "packages/project"
 	},
 	"dependencies": {
-		"@npmcli/config": "^11.0.1",
+		"@npmcli/config": "^11.1.0",
 		"@parcel/watcher": "^2.6.0",
 		"@ui5/fs": "^5.0.0-alpha.11",
 		"@ui5/logger": "^5.0.0-alpha.11",
