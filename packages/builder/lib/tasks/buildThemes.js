@@ -199,22 +199,23 @@ export default async function({
 
 	if (taskUtil?.processEach) {
 		const themeResources = await workspace.byGlob(inputPattern);
-		await taskUtil.processEach(themeResources, async (themeResource, {workspace, dependencies, taskUtil}) => {
-			// Prioritize workspace over dependencies, as the batch path does. Reads through this combo
-			// are attributed to this step, so the marker probe and import resolution become tracked
-			// inputs of this specific theme.
-			const combo = new ReaderCollectionPrioritized({
-				name: `theme - prioritize workspace over dependencies: ${projectName}`,
-				readers: dependencies ? [workspace, dependencies] : [workspace],
+		await taskUtil.processEach("themes", themeResources,
+			async (themeResource, {workspace, dependencies, taskUtil}) => {
+				// Prioritize workspace over dependencies, as the batch path does. Reads through this combo
+				// are attributed to this step, so the marker probe and import resolution become tracked
+				// inputs of this specific theme.
+				const combo = new ReaderCollectionPrioritized({
+					name: `theme - prioritize workspace over dependencies: ${projectName}`,
+					readers: dependencies ? [workspace, dependencies] : [workspace],
+				});
+				if (!(await isThemeAvailable(themeResource, combo, {librariesPattern, themesPattern}))) {
+					// The gating marker/theme folder is missing: write nothing. The probes above are recorded,
+					// so a later marker creation re-runs this step and builds the theme.
+					return;
+				}
+				const processedResources = await buildThemeResources([themeResource], combo, compress, taskUtil);
+				await Promise.all(processedResources.map((resource) => workspace.write(resource)));
 			});
-			if (!(await isThemeAvailable(themeResource, combo, {librariesPattern, themesPattern}))) {
-				// The gating marker/theme folder is missing: write nothing. The probes above are recorded,
-				// so a later marker creation re-runs this step and builds the theme.
-				return;
-			}
-			const processedResources = await buildThemeResources([themeResource], combo, compress, taskUtil);
-			await Promise.all(processedResources.map((resource) => workspace.write(resource)));
-		});
 		return;
 	}
 

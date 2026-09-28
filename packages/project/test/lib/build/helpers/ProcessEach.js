@@ -73,6 +73,12 @@ function createReturnValueStore() {
 	};
 }
 
+// Most tests exercise a single step group. GROUP names it, `inv` reaches that group's per-key map, and
+// `prev` wraps a flat [keyId, entry] list as the nested per-group previousInvocationData the driver loads.
+const GROUP = "g";
+const inv = (processEach) => processEach.getInvocationData().get(GROUP);
+const prev = (entries) => new Map([[GROUP, new Map(entries)]]);
+
 test("Full build runs every step and records reads, writes and requests", async (t) => {
 	const workspace = createWorkspace();
 	const dependencies = createDependencies([createResource("/dep/marker")]);
@@ -81,7 +87,7 @@ test("Full build runs every step and records reads, writes and requests", async 
 	const keyA = createResource("/a.js");
 	const keyB = createResource("/b.js");
 
-	const results = await processEach.run([keyA, keyB], async (key, {workspace, dependencies}) => {
+	const results = await processEach.run(GROUP, [keyA, keyB], async (key, {workspace, dependencies}) => {
 		await dependencies.byPath("/dep/marker");
 		const out = createResource(`${key.getPath()}.out`);
 		await workspace.write(out);
@@ -92,8 +98,7 @@ test("Full build runs every step and records reads, writes and requests", async 
 	t.true(workspace.store.has("/a.js.out"), "First step's output was written");
 	t.true(workspace.store.has("/b.js.out"), "Second step's output was written");
 
-	const invocationData = processEach.getInvocationData();
-	t.is(invocationData.size, 2, "Invocation data recorded per key");
+	t.is(inv(processEach).size, 2, "Invocation data recorded per key");
 
 	const requests = processEach.getResourceRequests();
 	t.deepEqual(requests.dependencies.paths.sort(), ["/dep/marker", "/dep/marker"],
@@ -105,7 +110,7 @@ test("Sequential mode makes a step's write visible to the next step", async (t) 
 	const processEach = new ProcessEach({workspace, taskUtil: {}});
 
 	let secondStepSawFirstWrite = false;
-	await processEach.run(["first", "second"], async (key, {workspace}) => {
+	await processEach.run(GROUP, ["first", "second"], async (key, {workspace}) => {
 		if (key === "first") {
 			await workspace.write(createResource("/shared.js"));
 		} else {
@@ -126,7 +131,7 @@ test("Concurrent mode buffers writes and flushes them in key order", async (t) =
 	};
 	const processEach = new ProcessEach({workspace, taskUtil: {}});
 
-	await processEach.run(["a", "b", "c"], async (key, {workspace}) => {
+	await processEach.run(GROUP, ["a", "b", "c"], async (key, {workspace}) => {
 		// Reverse the natural completion order so the key-order flush is observable.
 		if (key === "a") {
 			await new Promise((resolve) => setTimeout(resolve, 15));
@@ -142,15 +147,73 @@ test("Concurrent steps writing the same path throw", async (t) => {
 	const workspace = createWorkspace();
 	const processEach = new ProcessEach({workspace, taskUtil: {}});
 
-	await t.throwsAsync(processEach.run(["a", "b"], async (key, {workspace}) => {
+	await t.throwsAsync(processEach.run(GROUP, ["a", "b"], async (key, {workspace}) => {
 		await workspace.write(createResource("/same.js"));
 	}, true), {message: /concurrent steps must not write the same resource path \/same\.js/});
+});
+
+test("The group argument must be a non-empty string", async (t) => {
+	const processEach = new ProcessEach({workspace: createWorkspace(), taskUtil: {}});
+
+	await t.throwsAsync(processEach.run(undefined, ["a"], async () => {}),
+		{message: /first argument must be a non-empty string naming the step group/});
+	await t.throwsAsync(processEach.run("", ["a"], async () => {}),
+		{message: /first argument must be a non-empty string naming the step group/});
+});
+
+test("Running the same group twice for one task throws", async (t) => {
+	const processEach = new ProcessEach({workspace: createWorkspace(), taskUtil: {}});
+
+	await processEach.run("dup", ["a"], async () => {});
+	await t.throwsAsync(processEach.run("dup", ["b"], async () => {}),
+		{message: /group "dup" was already run for this task; each call must use a distinct group/});
+});
+
+test("Two groups record their per-key data under their own group name", async (t) => {
+	const workspace = createWorkspace();
+	const processEach = new ProcessEach({workspace, taskUtil: {}});
+
+	await processEach.run("js", ["a.js"], async (key, {workspace}) => {
+		await workspace.write(createResource(`/out/${key}`));
+	});
+	await processEach.run("css", ["a.css", "b.css"], async (key, {workspace}) => {
+		await workspace.write(createResource(`/out/${key}`));
+	});
+
+	const data = processEach.getInvocationData();
+	t.deepEqual([...data.keys()].sort(), ["css", "js"], "Each group is recorded under its own name");
+	t.is(data.get("js").size, 1, "The js group recorded one key");
+	t.is(data.get("css").size, 2, "The css group recorded two keys");
+});
+
+test("getResourceRequests and getInputRecording fold across all groups", async (t) => {
+	const workspace = createWorkspace();
+	const dependencies = createDependencies([createResource("/dep/m1"), createResource("/dep/m2")]);
+	const processEach = new ProcessEach({
+		workspace, dependencies, taskUtil: createTaskUtil({env: {A: "1", B: "2"}}),
+	});
+
+	await processEach.run("g1", ["a"], async (key, {dependencies, taskUtil}) => {
+		await dependencies.byPath("/dep/m1");
+		taskUtil.getEnv("A");
+	});
+	await processEach.run("g2", ["b"], async (key, {dependencies, taskUtil}) => {
+		await dependencies.byPath("/dep/m2");
+		taskUtil.getEnv("B");
+	});
+
+	t.deepEqual(processEach.getResourceRequests().dependencies.paths.sort(), ["/dep/m1", "/dep/m2"],
+		"Dependency reads from both groups are folded into the request set");
+	t.deepEqual(processEach.getInputRecording().sort((x, y) => x.name.localeCompare(y.name)), [
+		{type: "env", name: "A", value: "1"},
+		{type: "env", name: "B", value: "2"},
+	], "Non-resource inputs from both groups are folded into the input recording");
 });
 
 test("Delta build runs only steps whose reads intersect the changed paths", async (t) => {
 	const workspace = createWorkspace();
 	const dependencies = createDependencies();
-	const previousInvocationData = new Map([
+	const previousInvocationData = prev([
 		["string:a", {reads: ["/in/a"], dependencyReads: [], writes: ["/out/a"]}],
 		["string:b", {reads: ["/in/b"], dependencyReads: [], writes: ["/out/b"]}],
 	]);
@@ -160,7 +223,7 @@ test("Delta build runs only steps whose reads intersect the changed paths", asyn
 	});
 
 	const ran = [];
-	await processEach.run(["a", "b"], async (key) => {
+	await processEach.run(GROUP, ["a", "b"], async (key) => {
 		ran.push(key);
 	});
 
@@ -169,14 +232,14 @@ test("Delta build runs only steps whose reads intersect the changed paths", asyn
 
 test("Delta build runs a new key", async (t) => {
 	const workspace = createWorkspace();
-	const previousInvocationData = new Map([
+	const previousInvocationData = prev([
 		["string:a", {reads: ["/in/a"], dependencyReads: [], writes: ["/out/a"]}],
 	]);
 	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
 	const processEach = new ProcessEach({workspace, taskUtil: {}, cacheInfo, previousInvocationData});
 
 	const ran = [];
-	await processEach.run(["a", "new"], async (key) => {
+	await processEach.run(GROUP, ["a", "new"], async (key) => {
 		ran.push(key);
 	});
 
@@ -185,7 +248,7 @@ test("Delta build runs a new key", async (t) => {
 
 test("Stale outputs cover removed keys and a re-run step's dropped write", async (t) => {
 	const workspace = createWorkspace();
-	const previousInvocationData = new Map([
+	const previousInvocationData = prev([
 		["string:a", {reads: ["/in/a"], dependencyReads: [], writes: ["/out/a1", "/out/a2"]}],
 		["string:b", {reads: ["/in/b"], dependencyReads: [], writes: ["/out/b"]}],
 	]);
@@ -194,7 +257,7 @@ test("Stale outputs cover removed keys and a re-run step's dropped write", async
 
 	// Only key "a" survives this build and, on re-run, writes only /out/a1 (dropping /out/a2). Key "b"
 	// is gone entirely.
-	await processEach.run(["a"], async (key, {workspace}) => {
+	await processEach.run(GROUP, ["a"], async (key, {workspace}) => {
 		await workspace.write(createResource("/out/a1"));
 	});
 
@@ -202,10 +265,31 @@ test("Stale outputs cover removed keys and a re-run step's dropped write", async
 		"Dropped write of a re-run step and all outputs of a removed key are stale");
 });
 
+test("An output a group stopped producing is not stale if another group now produces it", async (t) => {
+	const workspace = createWorkspace();
+	// Previous build: group "a" produced /shared and /only-a for key "k"; group "b" produced nothing.
+	const previousInvocationData = new Map([
+		["a", new Map([["string:k", {reads: [], dependencyReads: [], writes: ["/shared", "/only-a"]}]])],
+		["b", new Map()],
+	]);
+	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
+	const processEach = new ProcessEach({workspace, taskUtil: {}, cacheInfo, previousInvocationData});
+
+	// This build: group "a" no longer has key "k", so its two outputs would be stale; group "b" now
+	// produces /shared. /shared must be rescued across groups, /only-a stays stale.
+	await processEach.run("a", [], async () => {});
+	await processEach.run("b", ["x"], async (key, {workspace}) => {
+		await workspace.write(createResource("/shared"));
+	});
+
+	t.deepEqual(processEach.getStaleOutputs(), ["/only-a"],
+		"A path another group now produces is rescued; the truly-dropped path stays stale");
+});
+
 test("A resource key is identified by path and integrity", async (t) => {
 	const workspace = createWorkspace();
 	// Same path, changed content -> different integrity -> different key identity.
-	const previousInvocationData = new Map([
+	const previousInvocationData = prev([
 		["resource:/x.js\u0000sha256-old", {reads: [], dependencyReads: [], writes: ["/x.js.out"]}],
 	]);
 	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
@@ -213,7 +297,7 @@ test("A resource key is identified by path and integrity", async (t) => {
 
 	const changedKey = createResource("/x.js", "new");
 	const ran = [];
-	await processEach.run([changedKey], async (key) => {
+	await processEach.run(GROUP, [changedKey], async (key) => {
 		ran.push(key.getPath());
 	});
 
@@ -230,11 +314,11 @@ test("Two resources with identical content are distinct keys", async (t) => {
 	// and lose one's output. Path plus integrity keeps them distinct.
 	const one = createResource("/one/library.source.less", "identical");
 	const two = createResource("/two/library.source.less", "identical");
-	await processEach.run([one, two], async (key, {workspace}) => {
+	await processEach.run(GROUP, [one, two], async (key, {workspace}) => {
 		await workspace.write(createResource(`${key.getPath()}.css`));
 	});
 
-	t.is(processEach.getInvocationData().size, 2, "Two same-content resources record two invocations");
+	t.is(inv(processEach).size, 2, "Two same-content resources record two invocations");
 	t.true(workspace.store.has("/one/library.source.less.css") && workspace.store.has("/two/library.source.less.css"),
 		"Both outputs written");
 });
@@ -243,7 +327,7 @@ test("Keys must be resources or strings", async (t) => {
 	const workspace = createWorkspace();
 	const processEach = new ProcessEach({workspace, taskUtil: {}});
 
-	await t.throwsAsync(processEach.run([{notAKey: true}], async () => {}),
+	await t.throwsAsync(processEach.run(GROUP, [{notAKey: true}], async () => {}),
 		{message: /keys must be resources or strings/});
 });
 
@@ -252,7 +336,7 @@ test("Returned resources are handed back and stored in the CAS", async (t) => {
 	const returnValueStore = createReturnValueStore();
 	const processEach = new ProcessEach({workspace, taskUtil: {}, returnValueStore});
 
-	const results = await processEach.run(["a", "b"], async (key, {workspace}) => {
+	const results = await processEach.run(GROUP, ["a", "b"], async (key, {workspace}) => {
 		const out = createResource(`/out/${key}`, `content-${key}`);
 		await workspace.write(out);
 		return out;
@@ -264,8 +348,7 @@ test("Returned resources are handed back and stored in the CAS", async (t) => {
 	t.deepEqual([...returnValueStore.cas.keys()].sort(), ["sha256-content-a", "sha256-content-b"],
 		"Returned content stored in the CAS by integrity");
 
-	const invocationData = processEach.getInvocationData();
-	t.deepEqual(invocationData.get("string:a").returns,
+	t.deepEqual(inv(processEach).get("string:a").returns,
 		{isArray: false, items: [{path: "/out/a", integrity: "sha256-content-a"}]},
 		"Single-resource return recorded as a non-array descriptor");
 });
@@ -275,14 +358,14 @@ test("A step may return an array of resources", async (t) => {
 	const returnValueStore = createReturnValueStore();
 	const processEach = new ProcessEach({workspace, taskUtil: {}, returnValueStore});
 
-	const results = await processEach.run(["a"], async (key) => {
+	const results = await processEach.run(GROUP, ["a"], async (key) => {
 		return [createResource(`/out/${key}.1`, "one"), createResource(`/out/${key}.2`, "two")];
 	});
 
 	t.is(results[0].length, 2, "Array return handed back as an array");
 	t.deepEqual(await Promise.all(results[0].map((r) => r.getString())), ["one", "two"],
 		"Both returned resources handed back in order");
-	t.true(processEach.getInvocationData().get("string:a").returns.isArray,
+	t.true(inv(processEach).get("string:a").returns.isArray,
 		"Array return recorded as an array descriptor");
 });
 
@@ -291,12 +374,12 @@ test("A step returning nothing has an undefined result and a null return descrip
 	const returnValueStore = createReturnValueStore();
 	const processEach = new ProcessEach({workspace, taskUtil: {}, returnValueStore});
 
-	const results = await processEach.run(["a"], async () => {
+	const results = await processEach.run(GROUP, ["a"], async () => {
 		// Writes only, returns nothing.
 	});
 
 	t.is(results[0], undefined, "Result slot is undefined when a step returns nothing");
-	t.is(processEach.getInvocationData().get("string:a").returns, null,
+	t.is(inv(processEach).get("string:a").returns, null,
 		"No return descriptor recorded for a step that returned nothing");
 	t.is(returnValueStore.cas.size, 0, "Nothing stored in the CAS");
 });
@@ -306,9 +389,9 @@ test("Returning a non-resource throws", async (t) => {
 	const returnValueStore = createReturnValueStore();
 	const processEach = new ProcessEach({workspace, taskUtil: {}, returnValueStore});
 
-	await t.throwsAsync(processEach.run(["a"], async () => 42),
+	await t.throwsAsync(processEach.run(GROUP, ["a"], async () => 42),
 		{message: /may return only resources or an array of resources; got a number/});
-	await t.throwsAsync(processEach.run(["a"], async () => [createResource("/ok"), {}]),
+	await t.throwsAsync(processEach.run("g2", ["a"], async () => [createResource("/ok"), {}]),
 		{message: /array entry 1 is a plain object/});
 });
 
@@ -317,7 +400,7 @@ test("A cached step's returned resource is rebuilt from the CAS without re-runni
 
 	// Build 1 (full build): every step runs and its return is stored in the CAS.
 	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: {}, returnValueStore});
-	await build1.run(["a", "b"], async (key) => createResource(`/out/${key}`, `content-${key}`));
+	await build1.run(GROUP, ["a", "b"], async (key) => createResource(`/out/${key}`, `content-${key}`));
 	const previousInvocationData = build1.getInvocationData();
 
 	// Build 2 (unchanged rebuild): no changed paths, so no step re-runs. Every result comes from the CAS.
@@ -326,7 +409,7 @@ test("A cached step's returned resource is rebuilt from the CAS without re-runni
 	const build2 = new ProcessEach({
 		workspace: createWorkspace(), taskUtil: {}, cacheInfo, previousInvocationData, returnValueStore,
 	});
-	const results = await build2.run(["a", "b"], async (key) => {
+	const results = await build2.run(GROUP, ["a", "b"], async (key) => {
 		ran.push(key);
 		return createResource(`/out/${key}`, `content-${key}`);
 	});
@@ -342,7 +425,7 @@ test("Delta build re-runs the changed step fresh and restores the unchanged step
 
 	// Build 1: record reads and returns for two string keys.
 	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: {}, returnValueStore});
-	await build1.run(["a", "b"], async (key, {workspace}) => {
+	await build1.run(GROUP, ["a", "b"], async (key, {workspace}) => {
 		await workspace.byPath(`/in/${key}`); // recorded read, so a change to it re-runs this step
 		return createResource(`/out/${key}`, `content-${key}`);
 	});
@@ -354,7 +437,7 @@ test("Delta build re-runs the changed step fresh and restores the unchanged step
 	const build2 = new ProcessEach({
 		workspace: createWorkspace(), taskUtil: {}, cacheInfo, previousInvocationData, returnValueStore,
 	});
-	const results = await build2.run(["a", "b"], async (key, {workspace}) => {
+	const results = await build2.run(GROUP, ["a", "b"], async (key, {workspace}) => {
 		ran.push(key);
 		await workspace.byPath(`/in/${key}`);
 		return createResource(`/out/${key}`, `fresh-${key}`);
@@ -371,12 +454,12 @@ test("A resource written and returned at the same path is stored and restored in
 	const returnValueStore = createReturnValueStore();
 
 	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: {}, returnValueStore});
-	await build1.run(["a"], async (key, {workspace}) => {
+	await build1.run(GROUP, ["a"], async (key, {workspace}) => {
 		const out = createResource(`/out/${key}`, `content-${key}`);
 		await workspace.write(out);
 		return out; // same path as the written output
 	});
-	const invocation = build1.getInvocationData().get("string:a");
+	const invocation = inv(build1).get("string:a");
 	t.deepEqual(invocation.writes, ["/out/a"], "Output write recorded");
 	t.is(invocation.returns.items[0].path, "/out/a", "Return descriptor recorded for the same path");
 
@@ -386,12 +469,12 @@ test("A resource written and returned at the same path is stored and restored in
 		workspace: createWorkspace(), taskUtil: {}, cacheInfo,
 		previousInvocationData: build1.getInvocationData(), returnValueStore,
 	});
-	const results = await build2.run(["a"], async () => t.fail("Step must not re-run"));
+	const results = await build2.run(GROUP, ["a"], async () => t.fail("Step must not re-run"));
 	t.is(await results[0].getString(), "content-a", "Returned resource rebuilt from the CAS");
 });
 
 test("Restoring a cached return without a store throws a clear error", async (t) => {
-	const previousInvocationData = new Map([
+	const previousInvocationData = prev([
 		["string:a", {
 			reads: [], dependencyReads: [], writes: [],
 			returns: {isArray: false, items: [{path: "/out/a", integrity: "sha256-x"}]},
@@ -402,7 +485,7 @@ test("Restoring a cached return without a store throws a clear error", async (t)
 		workspace: createWorkspace(), taskUtil: {}, cacheInfo, previousInvocationData,
 	});
 
-	await t.throwsAsync(processEach.run(["a"], async () => {}),
+	await t.throwsAsync(processEach.run(GROUP, ["a"], async () => {}),
 		{message: /cannot restore a cached step's returned resources without a return value store/});
 });
 
@@ -410,12 +493,12 @@ test("The per-step taskUtil records a step's non-resource inputs and tag operati
 	const workspace = createWorkspace();
 	const processEach = new ProcessEach({workspace, taskUtil: createTaskUtil({env: {MODE: "dev"}})});
 
-	await processEach.run(["a"], async (key, {taskUtil}) => {
+	await processEach.run(GROUP, ["a"], async (key, {taskUtil}) => {
 		taskUtil.getEnv("MODE");
 		taskUtil.setTag(createResource("/out/a"), "ui5:IsBundle", true);
 	});
 
-	const entry = processEach.getInvocationData().get("string:a");
+	const entry = inv(processEach).get("string:a");
 	t.deepEqual(entry.inputs, [{type: "env", name: "MODE", value: "dev"}],
 		"The step's getEnv read is attributed to the step");
 	t.deepEqual(entry.tagOperations, [{op: "set", path: "/out/a", tag: "ui5:IsBundle", value: true}],
@@ -428,7 +511,7 @@ test("Delta build re-runs only the step whose recorded non-resource input change
 
 	// Build 1: step "a" reads env A, step "b" reads env B.
 	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: createTaskUtil({env})});
-	await build1.run(["a", "b"], async (key, {taskUtil}) => {
+	await build1.run(GROUP, ["a", "b"], async (key, {taskUtil}) => {
 		taskUtil.getEnv(key.toUpperCase());
 	});
 	const previousInvocationData = build1.getInvocationData();
@@ -442,7 +525,7 @@ test("Delta build re-runs only the step whose recorded non-resource input change
 		cacheInfo, previousInvocationData, resolveInputValue,
 	});
 	const ran = [];
-	await build2.run(["a", "b"], async (key, {taskUtil}) => {
+	await build2.run(GROUP, ["a", "b"], async (key, {taskUtil}) => {
 		ran.push(key);
 		taskUtil.getEnv(key.toUpperCase());
 	});
@@ -453,7 +536,7 @@ test("Delta build re-runs only the step whose recorded non-resource input change
 test("A restored step replays its recorded tag operations, a re-run step's are not replayed", async (t) => {
 	// Build 1: each step reads its input and tags its output.
 	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: createTaskUtil()});
-	await build1.run(["a", "b"], async (key, {workspace, taskUtil}) => {
+	await build1.run(GROUP, ["a", "b"], async (key, {workspace, taskUtil}) => {
 		await workspace.byPath(`/in/${key}`);
 		taskUtil.setTag(createResource(`/out/${key}`), "ui5:IsBundle", true);
 	});
@@ -469,7 +552,7 @@ test("A restored step replays its recorded tag operations, a re-run step's are n
 		applyTagOperations: (ops) => replayed.push(...ops),
 	});
 	const ran = [];
-	await build2.run(["a", "b"], async (key, {workspace, taskUtil}) => {
+	await build2.run(GROUP, ["a", "b"], async (key, {workspace, taskUtil}) => {
 		ran.push(key);
 		await workspace.byPath(`/in/${key}`);
 		taskUtil.setTag(createResource(`/out/${key}`), "ui5:IsBundle", true);
@@ -485,7 +568,7 @@ test("getInputRecording unions every step's inputs, including cached steps on a 
 	const resolveInputValue = (type, name) => (type === "env" ? env[name] : undefined);
 
 	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: createTaskUtil({env})});
-	await build1.run(["a", "b"], async (key, {taskUtil}) => {
+	await build1.run(GROUP, ["a", "b"], async (key, {taskUtil}) => {
 		taskUtil.getEnv(key.toUpperCase());
 	});
 	const previousInvocationData = build1.getInvocationData();
@@ -498,7 +581,7 @@ test("getInputRecording unions every step's inputs, including cached steps on a 
 		workspace: createWorkspace(), taskUtil: createTaskUtil({env}),
 		cacheInfo, previousInvocationData, resolveInputValue,
 	});
-	await build2.run(["a", "b"], async (key, {taskUtil}) => {
+	await build2.run(GROUP, ["a", "b"], async (key, {taskUtil}) => {
 		taskUtil.getEnv(key.toUpperCase());
 	});
 
@@ -510,7 +593,7 @@ test("getInputRecording unions every step's inputs, including cached steps on a 
 
 test("Without a resolver, a changed non-resource input cannot re-run a step", async (t) => {
 	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: createTaskUtil({env: {A: "1"}})});
-	await build1.run(["a"], async (key, {taskUtil}) => {
+	await build1.run(GROUP, ["a"], async (key, {taskUtil}) => {
 		taskUtil.getEnv("A");
 	});
 	const previousInvocationData = build1.getInvocationData();
@@ -523,7 +606,7 @@ test("Without a resolver, a changed non-resource input cannot re-run a step", as
 		cacheInfo, previousInvocationData,
 	});
 	const ran = [];
-	await build2.run(["a"], async (key) => {
+	await build2.run(GROUP, ["a"], async (key) => {
 		ran.push(key);
 	});
 

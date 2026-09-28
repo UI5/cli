@@ -79,7 +79,7 @@ export default async function({
 	if (taskUtil?.processEach) {
 		// One cached step per resource, so a delta build re-minifies only the resources whose inputs
 		// changed. The input source map is read through the step's workspace and thus tracked per step.
-		await taskUtil.processEach(resources, async (inputResource, {workspace, taskUtil}) => {
+		await taskUtil.processEach("minify", resources, async (inputResource, {workspace, taskUtil}) => {
 			const [processed] = await minifier({
 				resources: [inputResource],
 				fs: fsInterface(workspace),

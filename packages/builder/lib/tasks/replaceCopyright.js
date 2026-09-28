@@ -58,7 +58,7 @@ export default async function({workspace, taskUtil, options: {copyright, pattern
 
 	if (taskUtil?.processEach) {
 		// One cached step per resource, so a delta build re-processes only the resources that changed.
-		await taskUtil.processEach(resources, async (resource, {workspace}) => {
+		await taskUtil.processEach("replaceCopyright", resources, async (resource, {workspace}) => {
 			const [processed] = await stringReplacer({resources: [resource], options: replacerOptions});
 			if (processed) {
 				await workspace.write(processed);

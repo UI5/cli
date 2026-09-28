@@ -2439,7 +2439,7 @@ test.serial("Integration: processEach return values round-trip through the real 
 	const build1 = new ProcessEach({
 		workspace: createIntegrationWorkspace(), taskUtil: {}, returnValueStore,
 	});
-	const results1 = await build1.run(["a", "b"], callback("content"));
+	const results1 = await build1.run("g", ["a", "b"], callback("content"));
 	t.is(await results1[0].getString(), "content-a", "Build 1 hands back the fresh resource for a");
 	t.is(await results1[1].getString(), "content-b", "Build 1 hands back the fresh resource for b");
 	const invocationData = build1.getInvocationData();
@@ -2451,7 +2451,7 @@ test.serial("Integration: processEach return values round-trip through the real 
 		cacheInfo: {changedProjectResourcePaths: [], changedDependencyResourcePaths: []},
 		previousInvocationData: invocationData,
 	});
-	const results2 = await build2.run(["a", "b"], async (key) => {
+	const results2 = await build2.run("g", ["a", "b"], async (key) => {
 		ran2.push(key);
 		t.fail("No step must re-run on an unchanged rebuild");
 	});
@@ -2466,7 +2466,7 @@ test.serial("Integration: processEach return values round-trip through the real 
 		cacheInfo: {changedProjectResourcePaths: ["/in/a"], changedDependencyResourcePaths: []},
 		previousInvocationData: invocationData,
 	});
-	const results3 = await build3.run(["a", "b"], async (key, ctx) => {
+	const results3 = await build3.run("g", ["a", "b"], async (key, ctx) => {
 		ran3.push(key);
 		return callback("fresh")(key, ctx);
 	});
