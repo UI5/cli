@@ -1640,7 +1640,7 @@ test("processEach: a per-step input change re-runs only that step; a restored st
 
 		const ran = [];
 		const taskFunction = async ({taskUtil}) => {
-			await taskUtil.processEach(["a", "b"], async (key, {taskUtil}) => {
+			await taskUtil.processEach("stepGroup", ["a", "b"], async (key, {taskUtil}) => {
 				ran.push(key);
 				taskUtil.getEnv(key);
 				taskUtil.setTag({getPath: () => `/out/${key}`}, "ui5:IsBundle", true);
@@ -1735,7 +1735,7 @@ test("processEach (custom task): bound at Specification Version 5.0, folds the d
 		const ran = [];
 		const taskFunction = async ({taskUtil}) => {
 			t.is(typeof taskUtil.processEach, "function", "A 5.0 custom task receives taskUtil.processEach");
-			await taskUtil.processEach(["a", "b"], async (key, {taskUtil}) => {
+			await taskUtil.processEach("stepGroup", ["a", "b"], async (key, {taskUtil}) => {
 				ran.push(key);
 				taskUtil.getEnv(key);
 				taskUtil.setTag({getPath: () => `/out/${key}`}, "ui5:IsBundle", true);

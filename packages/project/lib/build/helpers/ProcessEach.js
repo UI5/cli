@@ -140,7 +140,12 @@ class RecordingReaderWriter extends AbstractReaderWriter {
 }
 
 /**
- * Per-task driver behind <code>taskUtil.processEach(keys, callback, concurrent)</code>.
+ * Per-task driver behind <code>taskUtil.processEach(group, keys, callback, concurrent)</code>.
+ *
+ * A task may call <code>processEach</code> more than once, once per <code>group</code>: a mandatory,
+ * non-empty string naming the step group (for example <code>"js"</code> and <code>"css"</code> for a task
+ * that minifies both). Each group's per-key invocation data is persisted and reconciled under its own
+ * name, so the groups track deltas independently. Calling the same group twice for one task throws.
  *
  * A task iterates a set of keys, running <code>callback</code> once per key against per-step readers
  * and a per-step [MonitoredTaskUtil]{@link @ui5/project/build/helpers/MonitoredTaskUtil} that record
@@ -173,10 +178,13 @@ export default class ProcessEach {
 	#applyTagOperations;
 	#signal;
 
-	// Populated by run(): the complete per-key invocation data to persist, and the output paths that
-	// are no longer produced and must be dropped from the carried-forward stage.
-	#invocationData;
-	#staleOutputs = [];
+	// Populated by run(), keyed by group name: each group's complete per-key invocation data to persist.
+	// A task may run several groups; stale outputs are derived across all of them on demand.
+	#invocationData = new Map();
+	// Per-group run bookkeeping (the group's previous data, the steps freshly run this build, and the
+	// keys present this build). getStaleOutputs() folds across every group so a path one group stopped
+	// producing but another group now produces is not falsely dropped.
+	#groupRuns = new Map();
 
 	/**
 	 * @param {object} parameters
@@ -184,8 +192,8 @@ export default class ProcessEach {
 	 * @param {@ui5/fs/AbstractReader} [parameters.dependencies] Task-level monitored dependencies reader
 	 * @param {object} parameters.taskUtil TaskUtil interface passed through to each step's callback
 	 * @param {object} [parameters.cacheInfo] Delta info for a differential build, or falsy for a full build
-	 * @param {Map<string, object>} [parameters.previousInvocationData] Per-key invocation data recorded
-	 *   during the previous run of this task
+	 * @param {Map<string, Map<string, object>>} [parameters.previousInvocationData] Per-group, per-key
+	 *   invocation data recorded during the previous run of this task, keyed by group name
 	 * @param {object} [parameters.returnValueStore] CAS-backed store for callback return values, with
 	 *   <code>store(resources)</code> (persist content, return path-aligned descriptors) and
 	 *   <code>restore(descriptor)</code> (rebuild a resource from a descriptor). Absent for standalone
@@ -219,6 +227,9 @@ export default class ProcessEach {
 	/**
 	 * Runs <code>callback</code> once per key, caching each step's result.
 	 *
+	 * @param {string} group Non-empty string naming this step group. A task may call <code>run</code>
+	 *   more than once as long as every call names a distinct group; each group's per-key data is
+	 *   persisted and reconciled independently. Appears in verbose log messages.
 	 * @param {Iterable} keys Resources or strings, as for a <code>map</code>
 	 * @param {Function} callback <code>async (key, {workspace, dependencies, taskUtil}) => resource(s)</code>,
 	 *   where <code>taskUtil</code> is a per-step [MonitoredTaskUtil]{@link
@@ -230,17 +241,23 @@ export default class ProcessEach {
 	 *   that step returned (a resource, an array of resources, or <code>undefined</code>). A step served
 	 *   from cache contributes its previous run's returned resource(s), rebuilt from the CAS.
 	 */
-	async run(keys, callback, concurrent = true) {
-		if (this.#invocationData) {
-			// A single processEach per task keeps the persisted per-key data unambiguous. Multiple
-			// step groups per task can be supported later by namespacing their persisted entries.
-			throw new Error("processEach may currently be called at most once per task");
+	async run(group, keys, callback, concurrent = true) {
+		if (typeof group !== "string" || !group) {
+			throw new Error("processEach: the first argument must be a non-empty string naming the step group");
+		}
+		if (this.#invocationData.has(group)) {
+			// Each group's per-key data is persisted and reconciled under its own name, so a task may
+			// call processEach several times, but every call must name a distinct group.
+			throw new Error(
+				`processEach: group ${JSON.stringify(group)} was already run for this task; ` +
+				`each call must use a distinct group`);
 		}
 		if (typeof callback !== "function") {
 			throw new Error("processEach: callback must be a function");
 		}
+		const previous = this.#previousInvocationData?.get(group);
 		const entries = await this.#resolveEntries(keys);
-		const toRun = this.#selectStepsToRun(entries);
+		const toRun = this.#selectStepsToRun(entries, previous);
 		const toRunIndices = new Set(toRun.map((entry) => entry.index));
 
 		const currentInvocationData = new Map();
@@ -255,9 +272,9 @@ export default class ProcessEach {
 			if (toRunIndices.has(index)) {
 				continue;
 			}
-			const previous = this.#previousInvocationData?.get(keyId);
-			results[index] = this.#restoreReturn(previous?.returns);
-			this.#replayTagOperations(previous?.tagOperations);
+			const prev = previous?.get(keyId);
+			results[index] = this.#restoreReturn(prev?.returns);
+			this.#replayTagOperations(prev?.tagOperations);
 		}
 
 		const runStep = async ({key, keyId, index}) => {
@@ -293,22 +310,20 @@ export default class ProcessEach {
 			}
 		}
 
-		this.#invocationData = this.#mergeInvocationData(currentInvocationData, entries);
-		this.#staleOutputs = this.#computeStaleOutputs(currentInvocationData, entries);
+		this.#invocationData.set(group, this.#mergeInvocationData(currentInvocationData, entries, previous));
+		this.#groupRuns.set(group, {previous, current: currentInvocationData, entries});
 
 		if (log.isLevelEnabled("verbose")) {
-			log.verbose(
-				`Ran ${toRun.length} of ${entries.length} step(s); ` +
-				`${this.#staleOutputs.length} stale output(s) to drop`);
+			log.verbose(`processEach group '${group}': ran ${toRun.length} of ${entries.length} step(s)`);
 		}
 		return results;
 	}
 
 	/**
-	 * The complete per-key invocation data to persist for the next build.
+	 * The complete per-group, per-key invocation data to persist for the next build.
 	 *
-	 * @returns {Map<string, object>} Map of key identity to
-	 *   <code>{reads, dependencyReads, writes, inputs, tagOperations, returns}</code>, where
+	 * @returns {Map<string, Map<string, object>>} Map of group name to that group's per-key data, where
+	 *   each entry is <code>{reads, dependencyReads, writes, inputs, tagOperations, returns}</code>:
 	 *   <code>inputs</code> is the step's recorded non-resource inputs, <code>tagOperations</code> its
 	 *   recorded tag operations, and <code>returns</code> the CAS descriptors for the step's returned
 	 *   resource(s), or <code>null</code> if it returned nothing
@@ -322,42 +337,80 @@ export default class ProcessEach {
 	 * writes fewer paths, or a key that is gone this build). These must be dropped from the stage that
 	 * is otherwise carried forward from cache, so a removed input leaves no stale output behind.
 	 *
+	 * Computed across every group run this build: a path a group stopped producing is stale only if no
+	 * group produces it this build, so moving an output between groups does not falsely drop it.
+	 *
 	 * @returns {string[]} Paths to drop
 	 */
 	getStaleOutputs() {
-		return this.#staleOutputs;
+		// A path re-written by any group this build is not stale, so collect the union first.
+		const currentWrites = new Set();
+		for (const {current} of this.#groupRuns.values()) {
+			for (const data of current.values()) {
+				data.writes.forEach((path) => currentWrites.add(path));
+			}
+		}
+		const stale = new Set();
+		for (const {previous, current, entries} of this.#groupRuns.values()) {
+			if (!previous) {
+				continue;
+			}
+			const currentKeyIds = new Set(entries.map((entry) => entry.keyId));
+			for (const [keyId, prev] of previous) {
+				const reRun = current.get(keyId);
+				if (!currentKeyIds.has(keyId)) {
+					// Key gone this build: every path it owned is stale.
+					prev.writes.forEach((path) => stale.add(path));
+				} else if (reRun) {
+					// Re-run step: any path it owned but did not re-write is stale.
+					prev.writes.forEach((path) => {
+						if (!reRun.writes.includes(path)) {
+							stale.add(path);
+						}
+					});
+				}
+			}
+		}
+		for (const path of currentWrites) {
+			stale.delete(path);
+		}
+		return [...stale];
 	}
 
 	/**
-	 * The union of every step's reads, as a resource-request set to fold into the task's request index.
-	 * Steps not re-run this build contribute their persisted reads, so an input first seen on a delta
-	 * build (a marker probe, a source map) stays tracked on the next build rather than being lost.
+	 * The union of every group's every step's reads, as a resource-request set to fold into the task's
+	 * request index. Steps not re-run this build contribute their persisted reads, so an input first seen
+	 * on a delta build (a marker probe, a source map) stays tracked on the next build rather than being lost.
 	 *
 	 * @returns {{project: {paths: string[], patterns: string[]}, dependencies: {paths: string[], patterns: string[]}}}
 	 */
 	getResourceRequests() {
 		const project = {paths: [], patterns: []};
 		const dependencies = {paths: [], patterns: []};
-		for (const data of this.#invocationData.values()) {
-			project.paths.push(...data.reads);
-			dependencies.paths.push(...(data.dependencyReads ?? []));
+		for (const groupData of this.#invocationData.values()) {
+			for (const data of groupData.values()) {
+				project.paths.push(...data.reads);
+				dependencies.paths.push(...(data.dependencyReads ?? []));
+			}
 		}
 		return {project, dependencies};
 	}
 
 	/**
-	 * The union of every step's recorded non-resource inputs, deduped by type and name (last write wins),
-	 * to fold into the task's input recording. Steps not re-run this build contribute their persisted
-	 * inputs, so an input a cached step read stays folded into the re-keyed stage signature even though
-	 * the task-level monitor only observed the re-run steps. Mirrors {@link #getResourceRequests}.
+	 * The union of every group's every step's recorded non-resource inputs, deduped by type and name
+	 * (last write wins), to fold into the task's input recording. Steps not re-run this build contribute
+	 * their persisted inputs, so an input a cached step read stays folded into the re-keyed stage signature
+	 * even though the task-level monitor only observed the re-run steps. Mirrors {@link #getResourceRequests}.
 	 *
 	 * @returns {Array<{type: string, name: string, value: string|undefined}>} Recorded input entries
 	 */
 	getInputRecording() {
 		const merged = new Map();
-		for (const data of this.#invocationData.values()) {
-			for (const input of data.inputs ?? []) {
-				merged.set(`${input.type}\0${input.name}`, input);
+		for (const groupData of this.#invocationData.values()) {
+			for (const data of groupData.values()) {
+				for (const input of data.inputs ?? []) {
+					merged.set(`${input.type}\0${input.name}`, input);
+				}
 			}
 		}
 		return [...merged.values()];
@@ -459,10 +512,9 @@ export default class ProcessEach {
 			`got ${describeValue(value)}`);
 	}
 
-	#selectStepsToRun(entries) {
-		const previous = this.#previousInvocationData;
+	#selectStepsToRun(entries, previous) {
 		if (!this.#cacheInfo || !previous) {
-			// Full build: run every step.
+			// Full build, or a group with no previous data: run every step.
 			return entries;
 		}
 		const changedProject = new Set(this.#cacheInfo.changedProjectResourcePaths ?? []);
@@ -506,8 +558,8 @@ export default class ProcessEach {
 		}
 	}
 
-	#mergeInvocationData(current, entries) {
-		if (!this.#cacheInfo || !this.#previousInvocationData) {
+	#mergeInvocationData(current, entries, previous) {
+		if (!this.#cacheInfo || !previous) {
 			return current;
 		}
 		// A delta build re-runs only some steps, so the persisted map must stay the complete set: keep a
@@ -515,7 +567,7 @@ export default class ProcessEach {
 		// let a re-run entry supersede its predecessor.
 		const currentKeyIds = new Set(entries.map((entry) => entry.keyId));
 		const merged = new Map();
-		for (const [keyId, data] of this.#previousInvocationData) {
+		for (const [keyId, data] of previous) {
 			if (!current.has(keyId) && currentKeyIds.has(keyId)) {
 				merged.set(keyId, data);
 			}
@@ -524,33 +576,6 @@ export default class ProcessEach {
 			merged.set(keyId, data);
 		}
 		return merged;
-	}
-
-	#computeStaleOutputs(current, entries) {
-		if (!this.#previousInvocationData) {
-			return [];
-		}
-		const currentKeyIds = new Set(entries.map((entry) => entry.keyId));
-		const stale = new Set();
-		for (const [keyId, prev] of this.#previousInvocationData) {
-			const reRun = current.get(keyId);
-			if (!currentKeyIds.has(keyId)) {
-				// Key gone this build: every path it owned is stale.
-				prev.writes.forEach((path) => stale.add(path));
-			} else if (reRun) {
-				// Re-run step: any path it owned but did not re-write is stale.
-				prev.writes.forEach((path) => {
-					if (!reRun.writes.includes(path)) {
-						stale.add(path);
-					}
-				});
-			}
-		}
-		// A path re-written by any step this build is not stale.
-		for (const data of current.values()) {
-			data.writes.forEach((path) => stale.delete(path));
-		}
-		return [...stale];
 	}
 
 	async #flushWriteBuffer(writeBuffer) {

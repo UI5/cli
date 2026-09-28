@@ -14,7 +14,7 @@ module.exports = async function({workspace, taskUtil, options: {projectNamespace
 	}
 	log.verbose(`process-each-task processing ${srcResources.length} source(s)`);
 
-	await taskUtil.processEach(srcResources, async (srcResource, {workspace, taskUtil}) => {
+	await taskUtil.processEach("procEach", srcResources, async (srcResource, {workspace, taskUtil}) => {
 		const srcPath = srcResource.getPath();
 		const depPath = srcPath.replace(/\.src$/, ".dep");
 		// Read the cross-resource input through the step workspace so it is tracked as this step's input.

@@ -102,11 +102,12 @@ export default class ProjectBuildCache {
 	#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
 
 	// Per-task processEach invocation data (see lib/build/helpers/ProcessEach.js), keyed by task name.
-	// Each value is a Map of key identity -> {reads, dependencyReads, writes, returns} recorded during
-	// the last run. It lets a delta build map a changed input back to the step that read it, fold
-	// newly-observed reads into the task's request graph, drop outputs a step no longer produces, and
-	// rebuild a cached step's returned resource(s) from the CAS. Loaded lazily from task_metadata
-	// (type "processEach") and persisted alongside the other per-task metadata.
+	// Each value is a Map of group name -> Map of key identity -> {reads, dependencyReads, writes,
+	// returns} recorded during the last run (a task may run several step groups). It lets a delta build
+	// map a changed input back to the step that read it, fold newly-observed reads into the task's request
+	// graph, drop outputs a step no longer produces, and rebuild a cached step's returned resource(s) from
+	// the CAS. Loaded lazily from task_metadata (type "processEach") and persisted alongside the other
+	// per-task metadata.
 	#processEachInvocationData = new Map();
 
 	/**
@@ -1007,7 +1008,7 @@ export default class ProjectBuildCache {
 	 * lazily from the persistent cache and memoized.
 	 *
 	 * @param {string} taskName Task name
-	 * @returns {Map<string, object>|undefined} Map of key identity to
+	 * @returns {Map<string, Map<string, object>>|undefined} Map of group name to that group's per-key data
 	 *   <code>{reads, dependencyReads, writes, inputs, tagOperations, returns}</code>
 	 */
 	getProcessEachInvocationData(taskName) {
@@ -1018,8 +1019,9 @@ export default class ProjectBuildCache {
 		const cached = this.#cacheManager?.readTaskMetadata(
 			this.#project.getId(), this.#buildSignature, taskName, "processEach");
 		if (cached) {
-			// Persisted as an array of [keyId, entry] pairs (JSON has no Map).
-			data = new Map(cached);
+			// Persisted as [groupName, [[keyId, entry], ...]] pairs (JSON has no Map), nested one level
+			// so each step group's per-key data reconciles under its own name.
+			data = new Map(cached.map(([group, entries]) => [group, new Map(entries)]));
 		}
 		this.#processEachInvocationData.set(taskName, data);
 		return data;
@@ -1030,8 +1032,8 @@ export default class ProjectBuildCache {
 	 * read fold-back of the next build. Persisted by {@link #prepareTaskRequestCache}.
 	 *
 	 * @param {string} taskName Task name
-	 * @param {Map<string, object>} invocationData Map of key identity to
-	 *   <code>{reads, dependencyReads, writes, inputs, tagOperations, returns}</code>
+	 * @param {Map<string, Map<string, object>>} invocationData Map of group name to that group's per-key
+	 *   data <code>{reads, dependencyReads, writes, inputs, tagOperations, returns}</code>
 	 */
 	setProcessEachInvocationData(taskName, invocationData) {
 		this.#processEachInvocationData.set(taskName, invocationData);
@@ -2181,10 +2183,12 @@ export default class ProjectBuildCache {
 			}
 		}
 		// processEach invocation data is a per-task sidecar (not part of BuildTaskCache), persisted as
-		// an array of [keyId, {reads, dependencyReads, writes}] pairs since JSON has no Map.
+		// [groupName, [[keyId, {reads, dependencyReads, writes, ...}], ...]] pairs since JSON has no Map,
+		// nested one level so each step group reconciles under its own name.
 		for (const [taskName, invocationData] of this.#processEachInvocationData) {
 			if (invocationData && invocationData.size) {
-				out.push({taskName, type: "processEach", metadata: [...invocationData]});
+				out.push({taskName, type: "processEach",
+					metadata: [...invocationData].map(([group, entries]) => [group, [...entries]])});
 			}
 		}
 		return out;
