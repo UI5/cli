@@ -697,13 +697,15 @@ test("Custom task is called correctly", async (t) => {
 		.resolves({getName: () => "dependencies"});
 	await taskRunner._tasks["myTask"].task();
 
-	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
-	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
+	t.is(specVersionGteStub.callCount, 4, "SpecificationVersion#gte got called four times");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
 	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
 		"SpecificationVersion#gte got called with correct arguments on second call (differential updates check)");
+	t.is(specVersionGteStub.getCall(2).args[0], "5.0",
+		"SpecificationVersion#gte got called with correct arguments on third call (processEach availability)");
+	t.is(specVersionGteStub.getCall(3).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on fourth call (task execution)");
 
 	t.is(createDependencyReaderStub.callCount, 1, "getDependenciesReader got called once");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
@@ -919,13 +921,15 @@ test("Custom task with specVersion 3.0", async (t) => {
 		.resolves({getName: () => "dependencies"});
 	await taskRunner._tasks["myTask"].task();
 
-	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
-	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
+	t.is(specVersionGteStub.callCount, 4, "SpecificationVersion#gte got called four times");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
 	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
 		"SpecificationVersion#gte got called with correct arguments on second call (differential updates check)");
+	t.is(specVersionGteStub.getCall(2).args[0], "5.0",
+		"SpecificationVersion#gte got called with correct arguments on third call (processEach availability)");
+	t.is(specVersionGteStub.getCall(3).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on fourth call (task execution)");
 
 	t.is(taskUtil.getInterface.callCount, 2, "taskUtil#getInterface got called twice");
 	t.is(taskUtil.getInterface.getCall(0).args[0], mockSpecVersion,
@@ -985,13 +989,15 @@ test("Custom task with specVersion 3.0 and no requiredDependenciesCallback", asy
 		.resolves({getName: () => "dependencies"});
 	await taskRunner._tasks["myTask"].task();
 
-	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
-	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
+	t.is(specVersionGteStub.callCount, 4, "SpecificationVersion#gte got called four times");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
 	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
 		"SpecificationVersion#gte got called with correct arguments on second call (differential updates check)");
+	t.is(specVersionGteStub.getCall(2).args[0], "5.0",
+		"SpecificationVersion#gte got called with correct arguments on third call (processEach availability)");
+	t.is(specVersionGteStub.getCall(3).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on fourth call (task execution)");
 
 	t.is(taskUtil.getInterface.callCount, 1, "taskUtil#getInterface got called once");
 	t.is(taskUtil.getInterface.getCall(0).args[0], mockSpecVersion,
@@ -1716,3 +1722,138 @@ test("processEach: a per-step input change re-runs only that step; a restored st
 			[{op: "set", path: "/out/b", tag: "ui5:IsBundle", value: true}],
 			"The restored step's recorded tag operation was replayed, so its tag survives");
 	});
+
+// Builds a custom task extension stub whose spec version is driven by the given gte(version) result.
+function createCustomTaskExtension(sinon, {taskFunction, gte, supportsDifferentialBuilds = true}) {
+	return {
+		getName: () => "myCustom",
+		getSpecVersion: () => ({gte}),
+		getTask: async () => taskFunction,
+		getRequiredDependenciesCallback: sinon.stub().resolves(undefined),
+		getSupportsDifferentialBuildsCallback: sinon.stub().resolves(() => supportsDifferentialBuilds),
+	};
+}
+
+// Integration: the custom-task path binds the same real MonitoredTaskUtil + ProcessEach driver as the
+// standard-task path, gated at Specification Version 5.0. A per-step input change (an env var one step
+// reads) re-runs only that step, a restored step replays its tags, and the driver's outcome is folded
+// into recordTaskResult (processEach flag set, invocation data persisted).
+test("processEach (custom task): bound at Specification Version 5.0, folds the driver outcome",
+	async (t) => {
+		const {sinon, projectBuildLogger} = t.context;
+
+		const env = {a: "1", b: "1"};
+		const resolveInputValue = (type, name) => (type === "env" ? env[name] : undefined);
+
+		const setTag = sinon.stub();
+		const taskUtil = {
+			isRootProject: sinon.stub().returns(true),
+			getDependencies: sinon.stub().returns([]),
+			getInterface: sinon.stub(),
+			getEnv: (name) => env[name],
+			setTag,
+		};
+		taskUtil.getInterface.returns(taskUtil);
+
+		const ran = [];
+		const taskFunction = async ({taskUtil}) => {
+			t.is(typeof taskUtil.processEach, "function", "A 5.0 custom task receives taskUtil.processEach");
+			await taskUtil.processEach(["a", "b"], async (key, {taskUtil}) => {
+				ran.push(key);
+				taskUtil.getEnv(key);
+				taskUtil.setTag({getPath: () => `/out/${key}`}, "ui5:IsBundle", true);
+			});
+		};
+
+		const taskDefinitions = {
+			getTaskDefinitions: async () => ({
+				standardTasks: new Map(),
+				customTasks: new Map([
+					["myCustom", {
+						taskDef: {name: "myCustom"},
+						task: createCustomTaskExtension(sinon, {taskFunction, gte: () => true}),
+					}],
+				]),
+			}),
+		};
+
+		let capturedInvocationData;
+		let deltaMode = false;
+		const buildCache = {
+			setTasks: sinon.stub(),
+			prefetchStageCache: sinon.stub(),
+			recordTaskResult: sinon.stub().resolves(),
+			allTasksCompleted: sinon.stub().resolves([]),
+			prepareTaskExecutionAndValidateCache: sinon.stub().callsFake(async () =>
+				(deltaMode ? {changedProjectResourcePaths: [], changedDependencyResourcePaths: []} : false)),
+			getProcessEachInvocationData: sinon.stub().callsFake(() => capturedInvocationData),
+			getProcessEachReturnValueStore: sinon.stub().returns(undefined),
+			getResolveInputValue: sinon.stub().returns(resolveInputValue),
+			setProcessEachInvocationData: sinon.stub().callsFake((name, data) => {
+				capturedInvocationData = data;
+			}),
+		};
+
+		const replayTagOperations = sinon.stub();
+		const project = getMockProject("module");
+		project.getProjectResources = () => ({replayTagOperations});
+
+		const taskRunner = createTaskRunner(t, project, {taskUtil, buildCache, taskDefinitions});
+		await taskRunner._initTasks();
+
+		// Build 1 (full): both steps run; the driver's outcome is folded into recordTaskResult.
+		await taskRunner._tasks["myCustom"].task(projectBuildLogger);
+		t.deepEqual(ran, ["a", "b"], "The full build ran every step");
+		t.is(buildCache.setProcessEachInvocationData.callCount, 1, "The invocation data was persisted");
+		t.is(buildCache.recordTaskResult.getCall(0).args[7], true,
+			"recordTaskResult was told the task used processEach");
+
+		// Build 2 (delta): only env var "a" changed, so step "a" re-runs and step "b" is restored.
+		ran.length = 0;
+		setTag.resetHistory();
+		deltaMode = true;
+		env.a = "2";
+		await taskRunner._tasks["myCustom"].task(projectBuildLogger);
+
+		t.deepEqual(ran, ["a"], "Only the step whose env input changed re-ran on the delta build");
+		t.is(setTag.callCount, 1, "Only the re-run step set its tag live");
+		t.is(setTag.getCall(0).args[0].getPath(), "/out/a", "The re-run step's live setTag targeted its own output");
+		t.is(replayTagOperations.callCount, 1, "The restored step replayed its tag operations");
+		t.deepEqual(replayTagOperations.getCall(0).args[0],
+			[{op: "set", path: "/out/b", tag: "ui5:IsBundle", value: true}],
+			"The restored step's recorded tag operation was replayed, so its tag survives");
+	});
+
+// The gating decision: processEach is available only from Specification Version 5.0. A 4.0 custom task
+// receives a taskUtil interface but no processEach, so taskUtil.processEach is undefined and neither the
+// driver nor its persisted data is touched.
+test("processEach (custom task): not available below Specification Version 5.0", async (t) => {
+	const {sinon, projectBuildLogger} = t.context;
+
+	let observedProcessEach = "unset";
+	const taskFunction = async ({taskUtil}) => {
+		observedProcessEach = taskUtil.processEach;
+	};
+
+	const taskDefinitions = {
+		getTaskDefinitions: async () => ({
+			standardTasks: new Map(),
+			customTasks: new Map([
+				["myCustom", {
+					taskDef: {name: "myCustom"},
+					// 4.0: gte("3.0") is true (an interface is provided), gte("5.0") is false (no processEach).
+					task: createCustomTaskExtension(sinon, {taskFunction, gte: (v) => v === "3.0"}),
+				}],
+			]),
+		}),
+	};
+
+	const project = getMockProject("module");
+	const taskRunner = createTaskRunner(t, project, {taskDefinitions});
+	await taskRunner._initTasks();
+	await taskRunner._tasks["myCustom"].task(projectBuildLogger);
+
+	t.is(observedProcessEach, undefined, "A 4.0 custom task's taskUtil has no processEach");
+	t.is(t.context.buildCache.recordTaskResult.getCall(0).args[7], false,
+		"recordTaskResult records that the task did not use processEach");
+});
