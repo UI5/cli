@@ -290,11 +290,14 @@ module.exports.determineRequiredDependencies = async function({availableDependen
 
 Due to UI5 Builder and UI5 Server supporting **build caches** of task data, custom tasks can opt into this behavior to improve performance. A task participates by splitting its work into per-key steps through [`taskUtil.processEach`](../../api/@ui5_project_build_helpers_TaskUtil.html) (available from Specification Version 5.0). The build cache tracks each step's inputs and re-runs only the steps whose inputs changed on a delta build, restoring the rest from cache. A task that does not call `processEach`, or runs on a Specification Version below 5.0, or has no cache available, processes all resources from scratch.
 
+`processEach` takes the step group name as its first argument: `taskUtil.processEach(group, keys, callback)`. The `group` is a non-empty string naming the set of steps; it appears in verbose build logs and keys the cached per-step data. A task may call `processEach` more than once as long as every call names a distinct group (for example one group for JavaScript resources and another for CSS). A single-group task can use any stable name, such as the task's own name.
+
 There is no separate opt-in: calling `taskUtil.processEach` is the whole contract for per-step delta caching.
 
 ::: info Best Practices for Cache-aware Tasks
 1. **Keep tasks deterministic**: Given the same inputs, always produce the same outputs
 2. **Split work carefully**: Only route work through `taskUtil.processEach` if each step can safely process its resources independently
+3. **Name groups stably**: Reuse the same `group` name for the same set of steps across builds so their cached data is found; give each `processEach` call a distinct group
 :::
 
 ### Examples
@@ -340,7 +343,7 @@ export default async function({dependencies, log, options, taskUtil, workspace})
 
     if (taskUtil?.processEach) {
         // One cached step per Markdown file, so a delta build re-renders only the files that changed.
-        await taskUtil.processEach(resources, (resource, {workspace}) => renderResource(resource, workspace));
+        await taskUtil.processEach("render", resources, (resource, {workspace}) => renderResource(resource, workspace));
         return;
     }
 
@@ -379,7 +382,7 @@ module.exports = async function({dependencies, log, options, taskUtil, workspace
 
     if (taskUtil?.processEach) {
         // One cached step per Markdown file, so a delta build re-renders only the files that changed.
-        await taskUtil.processEach(resources, (resource, {workspace}) => renderResource(resource, workspace));
+        await taskUtil.processEach("render", resources, (resource, {workspace}) => renderResource(resource, workspace));
         return;
     }
 
