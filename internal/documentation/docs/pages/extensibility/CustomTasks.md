@@ -288,46 +288,13 @@ module.exports.determineRequiredDependencies = async function({availableDependen
 
 ### "Cache-aware" Tasks 
 
-Due to UI5 Builder and UI5 Server supporting **build caches** of task data, custom tasks can opt into this behavior to improve performance. To do this, export optional callback functions in your task implementation:
+Due to UI5 Builder and UI5 Server supporting **build caches** of task data, custom tasks can opt into this behavior to improve performance. A task participates by splitting its work into per-key steps through [`taskUtil.processEach`](../../api/@ui5_project_build_helpers_TaskUtil.html) (available from Specification Version 5.0). The build cache tracks each step's inputs and re-runs only the steps whose inputs changed on a delta build, restoring the rest from cache. A task that does not call `processEach`, or runs on a Specification Version below 5.0, or has no cache available, processes all resources from scratch.
 
-#### `supportsDifferentialBuilds()`
-
-::: code-group
-```js [ESM]
-/**
- * Indicates whether the task supports differential builds
- *
- * Tasks that support differential builds can use incremental cache invalidation,
- * processing only changed resources rather than rebuilding from scratch.
- *
- * @public
- * @returns {boolean} True if differential builds are supported
- */
-export function supportsDifferentialBuilds() {
-    return true;
-}
-```
-
-```js [CommonJS]
-/**
- * Indicates whether the task supports differential builds
- *
- * Tasks that support differential builds can use incremental cache invalidation,
- * processing only changed resources rather than rebuilding from scratch.
- *
- * @public
- * @returns {boolean} True if differential builds are supported
- */
-module.exports.supportsDifferentialBuilds = function() {
-    return true;
-}
-```
-
-When this returns `true`, and a build cache is available, the task can split its work into per-key steps through [`taskUtil.processEach`](../../api/@ui5_project_build_helpers_TaskUtil.html) (available from Specification Version 5.0). The build cache tracks each step's inputs and re-runs only the steps whose inputs changed on a delta build, restoring the rest from cache. If this callback isn't provided or returns a falsy value, or no cache is available, the task processes all resources from scratch.
+There is no separate opt-in: calling `taskUtil.processEach` is the whole contract for per-step delta caching.
 
 ::: info Best Practices for Cache-aware Tasks
 1. **Keep tasks deterministic**: Given the same inputs, always produce the same outputs
-2. **Opt into differential builds carefully**: Only set `supportsDifferentialBuilds = true` if your task can safely process files independently
+2. **Split work carefully**: Only route work through `taskUtil.processEach` if each step can safely process its resources independently
 :::
 
 ### Examples
@@ -339,7 +306,7 @@ The following code snippets show examples for custom task implementations.
 This example is making use of the `resourceFactory` [TaskUtil](../../api/@ui5_project_build_helpers_TaskUtil.html)
 API to create new resources based on the output of a third-party module for rendering Markdown files. The created resources are added to the build
 result by writing them into the provided `workspace`.
-In addition, this task supports differential builds, which re-process only changed resources.
+In addition, this task uses `taskUtil.processEach` for per-step delta caching, which re-processes only changed resources.
 
 ::: code-group
 
@@ -380,10 +347,6 @@ export default async function({dependencies, log, options, taskUtil, workspace})
     // Standalone use without the build cache: render every file in one batch.
     await Promise.all(resources.map((resource) => renderResource(resource, workspace)));
 };
-
-export function supportsDifferentialBuilds() {
-    return true;
-}
 ```
 
 ```js [CommonJS]
@@ -423,10 +386,6 @@ module.exports = async function({dependencies, log, options, taskUtil, workspace
     // Standalone use without the build cache: render every file in one batch.
     await Promise.all(resources.map((resource) => renderResource(resource, workspace)));
 };
-
-module.exports.supportsDifferentialBuilds = function() {
-    return true;
-}
 ```
 :::
 

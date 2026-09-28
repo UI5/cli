@@ -992,7 +992,6 @@ export default class ProjectBuildCache {
 	 * @param {@ui5/project/build/cache/BuildTaskCache~ResourceRequests|undefined} dependencyResourceRequests
 	 *   Resource requests for dependency resources
 	 * @param {object} cacheInfo Cache information for differential updates
-	 * @param {boolean} supportsDifferentialBuilds Whether the task supports differential updates
 	 * @param {Array<{type: string, name: string, value: string|undefined}>} [inputRecording]
 	 *   Non-resource inputs (environment variables, TaskUtil interface reads) recorded during task
 	 *   execution
@@ -1162,7 +1161,7 @@ export default class ProjectBuildCache {
 	}
 
 	async recordTaskResult(
-		taskName, projectResourceRequests, dependencyResourceRequests, cacheInfo, supportsDifferentialBuilds,
+		taskName, projectResourceRequests, dependencyResourceRequests, cacheInfo,
 		inputRecording = [], rootResourceRequests, processEach = false
 	) {
 		if (this.#cacheMode === Cache.Off) {
@@ -1172,7 +1171,7 @@ export default class ProjectBuildCache {
 		if (!this.#taskCache.has(taskName)) {
 			// Initialize task cache
 			this.#taskCache.set(taskName,
-				new BuildTaskCache(this.#project.getName(), taskName, supportsDifferentialBuilds));
+				new BuildTaskCache(this.#project.getName(), taskName, processEach));
 		}
 		log.verbose(`Recording results of task ${taskName} in project ${this.#project.getName()}...`);
 		const taskCache = this.#taskCache.get(taskName);
@@ -1779,7 +1778,7 @@ export default class ProjectBuildCache {
 
 			// Import task caches
 			const buildTaskCaches = await Promise.all(
-				indexCache.tasks.map(async ([taskName, supportsDifferentialBuilds]) => {
+				indexCache.tasks.map(async ([taskName, usesProcessEach]) => {
 					const projectRequests = this.#cacheManager.readTaskMetadata(
 						this.#project.getId(), this.#buildSignature, taskName, "project");
 					if (!projectRequests) {
@@ -1804,7 +1803,7 @@ export default class ProjectBuildCache {
 						this.#project.getId(), this.#buildSignature, taskName, "root");
 					const rootNoGitignoreRequests = this.#cacheManager.readTaskMetadata(
 						this.#project.getId(), this.#buildSignature, taskName, "root-no-gitignore");
-					return BuildTaskCache.fromCache(this.#project.getName(), taskName, !!supportsDifferentialBuilds,
+					return BuildTaskCache.fromCache(this.#project.getName(), taskName, !!usesProcessEach,
 						projectRequests, dependencyRequests, inputTree, rootRequests, rootNoGitignoreRequests);
 				})
 			);
@@ -2209,7 +2208,7 @@ export default class ProjectBuildCache {
 		const sourceIndexObject = this.#sourceIndex.toCacheObject();
 		const tasks = [];
 		for (const [taskName, taskCache] of this.#taskCache) {
-			tasks.push([taskName, taskCache.getSupportsDifferentialBuilds() ? 1 : 0]);
+			tasks.push([taskName, taskCache.getUsesProcessEach() ? 1 : 0]);
 		}
 		return {
 			projectId: this.#project.getId(),

@@ -294,7 +294,7 @@ Contract for task authors: read an env var through `taskUtil.getEnv(name)` (not 
 
 The driver (`ProcessEach`) is bound per task by the `TaskRunner` to the task's monitored workspace and dependencies readers, the delta `cacheInfo`, the previous run's invocation data, and the abort signal. It is constructed lazily on first call, so a task that never calls `processEach` neither builds a driver nor reads its persisted data. Only one `processEach` call per task is currently supported.
 
-Both standard and custom tasks get the same driver. `_addTask` binds it unconditionally (standard tasks are internal). `_createCustomTaskWrapper` binds it through the spec-version-limited taskUtil interface, gated at Specification Version 5.0, the same version at which a custom task opts into differential builds (`supportsDifferentialBuilds`). A custom task below 5.0, or one so old it receives no taskUtil at all (spec version <= 2.1), never gets `processEach`, so calling `taskUtil.processEach` on it is a plain "not a function" error rather than a silent no-op. The gating is on the interface alone: a 5.0 task that does not declare `supportsDifferentialBuilds` may still call `processEach`, but then always runs every step (there is no delta `cacheInfo` to select against).
+Both standard and custom tasks get the same driver. `_addTask` binds it unconditionally (standard tasks are internal). `_createCustomTaskWrapper` binds it through the spec-version-limited taskUtil interface, gated at Specification Version 5.0. A custom task below 5.0, or one so old it receives no taskUtil at all (spec version <= 2.1), never gets `processEach`, so calling `taskUtil.processEach` on it is a plain "not a function" error rather than a silent no-op. Differential behavior is driven by whether the task called `processEach`, not by any declared capability: the only gate is interface availability at Specification Version 5.0. A task that calls `processEach` tracks deltas and re-runs only the changed steps on a delta build; a task that does not call it never tracks deltas and runs in full.
 
 Per step, the callback receives its own recording readers (`{workspace, dependencies}`) that delegate to the task-level monitored readers and additionally attribute each read to the step, plus a per-step `MonitoredTaskUtil` (`taskUtil`) wrapping the task-level one. The per-step monitor attributes the step's non-resource inputs (`getEnv`, `getTime`, `getProject(name).getVersion()`, `isRootProject`, `getDependencies`) and its `getTag`/`setTag`/`clearTag` operations to the step, while reads still delegate through the task-level monitor so a full build's task-level recording stays the union that keys the stage. Key identity is content-based: a resource key is identified by its path and its integrity (path distinguishes resources that share content but produce different output; integrity makes a content change a new key that cannot yield a stale hit), a string key by its value. Compound keys are the caller's responsibility to express as a stable string.
 
@@ -535,7 +535,7 @@ Note: Both CAS content and metadata BLOBs are gzip-compressed via thresholds (`C
 The index cache (one row per `(project_id, build_signature, kind="source")`) contains:
 - `indexTimestamp`: creation timestamp (used for racy-git detection)
 - `root`: serialized Merkle tree (TreeNode hierarchy)
-- `tasks`: array of `[taskName, supportsDifferentialBuilds ? 1 : 0]` recording the task execution order and differential build capability
+- `tasks`: array of `[taskName, usesProcessEach ? 1 : 0]` recording the task execution order and whether the task used `processEach` (which drives delta tracking)
 
 #### Stage Metadata Format
 
@@ -551,7 +551,7 @@ Stage metadata stored on disk includes:
 3. **Abort/retry**: File changes abort running builds; projects re-queued automatically
 4. **Structural sharing**: Derived hash trees share unchanged subtrees, reducing memory
 5. **Content-addressed storage**: Resources deduplicated via integrity hashes in custom CAS (synchronous path resolution, gzip-compressed)
-6. **Differential caching**: Tasks track resource requests; delta builds only re-process changed resources. A task opts in with `supportsDifferentialBuilds` and consumes deltas through `taskUtil.processEach` (see "Per-Step Caching (processEach)"), which replaced the older `changedProjectResourcePaths` parameter
+6. **Differential caching**: Tasks track resource requests; delta builds only re-process changed resources. A task participates by calling `taskUtil.processEach` (see "Per-Step Caching (processEach)"), with no separate opt-in; this replaced the older `changedProjectResourcePaths` parameter
 7. **Tag propagation**: Resource tags flow through stages via cached tag operations, included in hash signatures
 8. **Two-tier cache**: Fast in-memory StageCache + persistent filesystem cache via CacheManager
 9. **Two-phase invalidation**: Changes queued via `projectSourcesChanged()` / `dependencyResourcesChanged()` (state -> `REQUIRES_UPDATE`), applied only during `#flushPendingChanges()` at next build start. "Definitely invalidated" only after content comparison confirms actual differences.

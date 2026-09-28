@@ -28,6 +28,3 @@ module.exports = async function({workspace, taskUtil, options: {projectNamespace
 		await workspace.write(outResource);
 	});
 };
-
-// Opt into differential builds so a delta re-runs only the affected steps rather than the whole task.
-module.exports.supportsDifferentialBuilds = () => true;
