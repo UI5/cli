@@ -38,9 +38,16 @@ test("two dates in the same bucket quantize equally, a rolled-over bucket differ
 	t.not(quantizeTime("year", dec31), quantizeTime("year", nextYear), "year boundary -> different bucket");
 });
 
-test("defaults to the current time", (t) => {
-	// Without a date argument the bucket must match one derived from the current local time.
-	t.is(quantizeTime("year"), String(new Date().getFullYear()));
+test("throws when the date argument is missing", (t) => {
+	// The date is mandatory so callers pass the build run's shared timestamp rather than silently
+	// falling back to a fresh new Date().
+	const err = t.throws(() => quantizeTime("year"));
+	t.is(err.message, `Missing or invalid 'date' argument: expected a Date instance`);
+});
+
+test("throws when the date argument is not a Date", (t) => {
+	const err = t.throws(() => quantizeTime("year", 2026));
+	t.is(err.message, `Missing or invalid 'date' argument: expected a Date instance`);
 });
 
 test("throws for an unknown granularity", (t) => {

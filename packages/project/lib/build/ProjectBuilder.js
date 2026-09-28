@@ -412,6 +412,8 @@ class ProjectBuilder {
 			throw new Error("A build is already running");
 		}
 		this.#buildIsRunning = true;
+		// Fix a single timestamp for this run's time quantization (see BuildContext#refreshBuildTime)
+		this._buildContext.refreshBuildTime();
 		let cleanupSigHooks;
 		const pCacheWrites = [];
 		try {
@@ -533,6 +535,8 @@ class ProjectBuilder {
 			throw new Error("A build is already running");
 		}
 		this.#buildIsRunning = true;
+		// Fix a single timestamp for this run's time quantization (see BuildContext#refreshBuildTime)
+		this._buildContext.refreshBuildTime();
 		try {
 			// Initialize (or reuse) the build contexts for the requested projects and their
 			// transitive build-time dependencies, mirroring what #build does. Validation is

@@ -164,7 +164,7 @@ class ProjectBuildContext {
 			if (!TIME_GRANULARITIES.includes(name)) {
 				return undefined;
 			}
-			rawValue = quantizeTime(name);
+			rawValue = quantizeTime(name, this.getBuildTime());
 		} else if (type.startsWith("project.")) {
 			const method = type.slice("project.".length);
 			const project = this.getProject(name);
@@ -216,6 +216,20 @@ class ProjectBuildContext {
 	 */
 	getDependencies(projectName) {
 		return this._buildContext.getGraph().getDependencies(projectName || this._project.getName());
+	}
+
+	/**
+	 * Returns the timestamp of the current build run, used for all time quantization.
+	 *
+	 * Delegates to the overall [BuildContext]{@link @ui5/project/build/helpers/BuildContext}, which
+	 * fixes one timestamp per run. Read live rather than snapshot: this context and its
+	 * [TaskUtil]{@link @ui5/project/build/helpers/TaskUtil} outlive individual runs, while the
+	 * timestamp is refreshed per run.
+	 *
+	 * @returns {Date} The current build run's timestamp
+	 */
+	getBuildTime() {
+		return this._buildContext.getBuildTime();
 	}
 
 	/**

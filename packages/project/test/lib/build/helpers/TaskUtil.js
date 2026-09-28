@@ -258,20 +258,25 @@ test("resourceFactory", (t) => {
 		"resourceFactory function createFlatReader is available");
 });
 
-test("getTime returns the current time quantized to the requested granularity", (t) => {
+test("getTime quantizes the build run's timestamp to the requested granularity", (t) => {
+	// 25 September 2026, 14:07:03 local. getTime must quantize the build run's fixed timestamp
+	// (from getBuildTime), not a fresh new Date(), so assert against that instant's buckets.
+	const buildTime = new Date(2026, 8, 25, 14, 7, 3);
 	const taskUtil = new TaskUtil({
-		projectBuildContext: {}
+		projectBuildContext: {
+			getBuildTime: () => buildTime
+		}
 	});
 
-	// getTime reads the current time, so assert against a value derived the same way rather than a
-	// literal. A "year" bucket is the current calendar year as a string.
-	t.is(taskUtil.getTime("year"), String(new Date().getFullYear()), "year bucket matches the current year");
-	t.regex(taskUtil.getTime("hour"), /^\d{4}-\d{2}-\d{2}T\d{2}$/, "hour bucket has the expected shape");
+	t.is(taskUtil.getTime("year"), "2026", "year bucket derives from the build time");
+	t.is(taskUtil.getTime("hour"), "2026-09-25T14", "hour bucket derives from the build time");
 });
 
 test("getTime throws for an unknown granularity", (t) => {
 	const taskUtil = new TaskUtil({
-		projectBuildContext: {}
+		projectBuildContext: {
+			getBuildTime: () => new Date()
+		}
 	});
 
 	const err = t.throws(() => taskUtil.getTime("second"));
