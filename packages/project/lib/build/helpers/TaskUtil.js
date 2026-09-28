@@ -161,7 +161,11 @@ class TaskUtil {
 	}
 
 	/**
-	 * Reads the current time quantized to a fixed granularity.
+	 * Reads the build's time quantized to a fixed granularity.
+	 *
+	 * The returned value comes from a single timestamp fixed once per build run (shared by every
+	 * project and task in the run), not a fresh <code>Date</code> per call, so all time reads within
+	 * a run agree.
 	 *
 	 * Tasks whose output depends on the current time (for example
 	 * [replaceCopyright]{@link @ui5/builder/tasks/replaceCopyright}, which expands
@@ -188,7 +192,7 @@ class TaskUtil {
 	 * @public
 	 */
 	getTime(granularity) {
-		return quantizeTime(granularity);
+		return quantizeTime(granularity, this._projectBuildContext.getBuildTime());
 	}
 
 	/**

@@ -60,6 +60,34 @@ test("getGraph", (t) => {
 	t.deepEqual(buildContext.getGraph(), graph, "Returned correct value");
 });
 
+test("getBuildTime: defaults to a timestamp at construction", (t) => {
+	const {BuildContext} = t.context;
+	const graph = {getRoot: () => ({getType: () => "library"})};
+	const buildContext = new BuildContext(graph, "taskRepository");
+
+	t.true(buildContext.getBuildTime() instanceof Date, "Returns a Date before any run");
+});
+
+test("getBuildTime: stable until refreshed, advances on refresh", (t) => {
+	const {BuildContext} = t.context;
+	const graph = {getRoot: () => ({getType: () => "library"})};
+	const buildContext = new BuildContext(graph, "taskRepository");
+
+	const clock = sinon.useFakeTimers(new Date(2026, 8, 25, 14, 0, 0).getTime());
+	t.teardown(() => clock.restore());
+
+	buildContext.refreshBuildTime();
+	const first = buildContext.getBuildTime();
+	// A second read within the same run must return the same instant, not a fresh Date.
+	t.is(buildContext.getBuildTime(), first, "Same instance until the next refresh");
+
+	clock.tick(60 * 60 * 1000); // Advance one hour
+	buildContext.refreshBuildTime();
+	const second = buildContext.getBuildTime();
+	t.not(second, first, "A new run gets a fresh timestamp");
+	t.is(second.getTime(), first.getTime() + 60 * 60 * 1000, "Timestamp advanced by the elapsed time");
+});
+
 test("getTaskRepository", (t) => {
 	const {BuildContext} = t.context;
 

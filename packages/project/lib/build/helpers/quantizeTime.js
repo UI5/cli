@@ -28,16 +28,25 @@ function pad(value) {
  * a cache shared across machines in different timezones could disagree at a bucket boundary, which
  * mirrors the existing local-machine assumptions of the dev cache.
  *
+ * The <code>date</code> is mandatory: both callers pass the build run's shared timestamp (from
+ * [BuildContext#getBuildTime]{@link @ui5/project/build/helpers/BuildContext}) so every quantization
+ * in a run resolves against the same instant. Requiring it stops a caller from silently falling back
+ * to a fresh <code>new Date()</code>, which would reintroduce intra-run divergence.
+ *
  * @param {string} granularity One of {@link TIME_GRANULARITIES}
- * @param {Date} [date] Point in time to quantize. Defaults to now.
+ * @param {Date} date Point in time to quantize (typically the build run's shared timestamp)
  * @returns {string} Stable bucket string, e.g. <code>"2026"</code> for <code>"year"</code> or
  *   <code>"2026-09-25T14"</code> for <code>"hour"</code>
- * @throws {Error} If the granularity is not one of {@link TIME_GRANULARITIES}
+ * @throws {Error} If the granularity is not one of {@link TIME_GRANULARITIES}, or if
+ *   <code>date</code> is not a <code>Date</code>
  */
-export function quantizeTime(granularity, date = new Date()) {
+export function quantizeTime(granularity, date) {
 	if (!TIME_GRANULARITIES.includes(granularity)) {
 		throw new Error(
 			`Invalid time granularity "${granularity}". Expected one of: ${TIME_GRANULARITIES.join(", ")}`);
+	}
+	if (!(date instanceof Date)) {
+		throw new Error(`Missing or invalid 'date' argument: expected a Date instance`);
 	}
 	// Buckets nest, so each coarser bucket is a prefix of the next finer one.
 	const year = String(date.getFullYear());
