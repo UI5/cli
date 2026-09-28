@@ -58,13 +58,11 @@ test("Standard build", (t) => {
 			options: {
 				copyright: "copyright", pattern: "/**/*.{js,json}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
 			options: {
 				version: "version", pattern: "/**/*.{js,json}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		minify: {
 			options: {
@@ -73,7 +71,6 @@ test("Standard build", (t) => {
 					"!**/*.support.js",
 				]
 			},
-			supportsDifferentialBuilds: true,
 		},
 		enhanceManifest: {},
 		generateFlexChangesBundle: {},
@@ -141,13 +138,11 @@ test("Standard build with legacy spec version", (t) => {
 			options: {
 				copyright: "copyright", pattern: "/**/*.{js,json}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
 			options: {
 				version: "version", pattern: "/**/*.{js,json}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		minify: {
 			options: {
@@ -156,7 +151,6 @@ test("Standard build with legacy spec version", (t) => {
 					"!**/*.support.js",
 				]
 			},
-			supportsDifferentialBuilds: true,
 		},
 		enhanceManifest: {},
 		generateFlexChangesBundle: {},
@@ -257,13 +251,11 @@ test("Custom bundles", async (t) => {
 			options: {
 				copyright: "copyright", pattern: "/**/*.{js,json}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
 			options: {
 				version: "version", pattern: "/**/*.{js,json}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		minify: {
 			options: {
@@ -272,7 +264,6 @@ test("Custom bundles", async (t) => {
 					"!**/*.support.js",
 				]
 			},
-			supportsDifferentialBuilds: true,
 		},
 		enhanceManifest: {},
 		generateFlexChangesBundle: {},
@@ -406,7 +397,6 @@ test("Minification excludes", (t) => {
 				"!/resources/**.html",
 			]
 		},
-		supportsDifferentialBuilds: true,
 	}, "Correct minify task definition");
 });
 
@@ -432,7 +422,6 @@ test("Minification excludes not applied for legacy specVersion", (t) => {
 				"!**/*.support.js",
 			]
 		},
-		supportsDifferentialBuilds: true,
 	}, "Correct minify task definition");
 });
 

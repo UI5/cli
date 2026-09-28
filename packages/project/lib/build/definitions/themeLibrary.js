@@ -11,7 +11,6 @@
 export default function({project, taskUtil, getTask}) {
 	const tasks = new Map();
 	tasks.set("replaceCopyright", {
-		supportsDifferentialBuilds: true,
 		options: {
 			copyright: project.getCopyright(),
 			pattern: "/resources/**/*.{less,theme}"
@@ -19,7 +18,6 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("replaceVersion", {
-		supportsDifferentialBuilds: true,
 		options: {
 			version: project.getVersion(),
 			pattern: "/resources/**/*.{less,theme}"
@@ -28,7 +26,6 @@ export default function({project, taskUtil, getTask}) {
 
 	tasks.set("buildThemes", {
 		requiresDependencies: true,
-		supportsDifferentialBuilds: true,
 		options: {
 			projectName: project.getName(),
 			librariesPattern: !taskUtil.isRootProject() ? "/resources/**/(*.library|library.js)" : undefined,

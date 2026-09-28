@@ -516,7 +516,7 @@ test.serial("Build application.a (custom task using processEach for per-step del
 	const destPath = fixtureTester.destPath;
 	await fixtureTester._initialize();
 
-	// The custom task "process-each-task" (Specification Version 5.0, supportsDifferentialBuilds) runs
+	// The custom task "process-each-task" (Specification Version 5.0, calls taskUtil.processEach) runs
 	// one cached processEach step per `.src` file. Each step reads its sibling `.dep` through the step
 	// workspace, so that `.dep` is a tracked input of the owning step alone. Changing only `a.dep` must
 	// re-run only a's step and leave b's step served from cache, proving per-step delta caching for a

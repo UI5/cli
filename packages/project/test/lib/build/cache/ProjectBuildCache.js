@@ -434,7 +434,7 @@ test("recordTaskResult: creates task cache", async (t) => {
 	const projectRequests = {paths: new Set(["/input.js"]), patterns: new Set()};
 	const dependencyRequests = {paths: new Set(), patterns: new Set()};
 
-	await cache.recordTaskResult("newTask", projectRequests, dependencyRequests, null, false);
+	await cache.recordTaskResult("newTask", projectRequests, dependencyRequests, null);
 
 	const taskCache = cache.getTaskCache("newTask");
 	t.truthy(taskCache, "Task cache created");
@@ -452,7 +452,7 @@ test("recordTaskResult with empty requests", async (t) => {
 	const projectRequests = {paths: new Set(), patterns: new Set()};
 	const dependencyRequests = {paths: new Set(), patterns: new Set()};
 
-	await cache.recordTaskResult("task1", projectRequests, dependencyRequests, null, false);
+	await cache.recordTaskResult("task1", projectRequests, dependencyRequests, null);
 
 	const taskCache = cache.getTaskCache("task1");
 	t.truthy(taskCache, "Task cache created even with no requests");
@@ -503,7 +503,7 @@ test("recordTaskResult with cacheInfo: merges resources from previous stage, ski
 
 		const projectRequests = {paths: new Set(), patterns: new Set()};
 		const dependencyRequests = {paths: new Set(), patterns: new Set()};
-		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo, false);
+		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo);
 
 		t.is(writeStub.callCount, 2, "Write called for 2 non-overlapping resources");
 		const writtenPaths = writeStub.getCalls().map((call) => call.args[0].getOriginalPath());
@@ -551,7 +551,7 @@ test("recordTaskResult with cacheInfo: calls importTagOperations with previous s
 
 		const projectRequests = {paths: new Set(), patterns: new Set()};
 		const dependencyRequests = {paths: new Set(), patterns: new Set()};
-		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo, false);
+		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo);
 
 		const importStub = project.getProjectResources().importTagOperations;
 		t.true(importStub.calledOnce, "importTagOperations called once");
@@ -610,7 +610,7 @@ test("recordTaskResult with cacheInfo: merges tag operations with current delta 
 
 		const projectRequests = {paths: new Set(), patterns: new Set()};
 		const dependencyRequests = {paths: new Set(), patterns: new Set()};
-		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo, false);
+		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo);
 
 		// Verify merged tags via writeCache -> cacheManager.writeStageCache
 		await cache.writeCache();
@@ -672,7 +672,7 @@ test("recordTaskResult with cacheInfo: uses cacheInfo.newSignature as stage sign
 
 		const projectRequests = {paths: new Set(), patterns: new Set()};
 		const dependencyRequests = {paths: new Set(), patterns: new Set()};
-		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo, false);
+		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo);
 
 		await cache.writeCache();
 
@@ -727,7 +727,7 @@ test("recordTaskResult with cacheInfo: uses getCachedWriter fallback when getWri
 
 		const projectRequests = {paths: new Set(), patterns: new Set()};
 		const dependencyRequests = {paths: new Set(), patterns: new Set()};
-		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo, false);
+		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo);
 
 		t.true(getCachedWriterStub.calledOnce, "getCachedWriter used as fallback");
 		t.is(writeStub.callCount, 1, "Write called for 1 resource from cached writer");
@@ -1200,7 +1200,7 @@ async function buildCacheWithTaskResult(resources, writtenPaths = []) {
 
 	const projectRequests = {paths: new Set(), patterns: new Set()};
 	const dependencyRequests = {paths: new Set(), patterns: new Set()};
-	await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, null, false);
+	await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, null);
 
 	return {cache, project, cacheManager};
 }
@@ -1322,7 +1322,7 @@ test("freezeUntransformedSources: throws when source file not found", async (t) 
 
 	const projectRequests = {paths: new Set(), patterns: new Set()};
 	const dependencyRequests = {paths: new Set(), patterns: new Set()};
-	await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, null, false);
+	await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, null);
 
 	const error = await t.throwsAsync(() => cache.allTasksCompleted());
 	t.true(error.message.includes("not found during CAS freeze"),
@@ -1435,7 +1435,7 @@ async function buildCacheWithWarmCacheAndTaskResult({
 
 	const projectRequests = {paths: new Set(), patterns: new Set()};
 	const dependencyRequests = {paths: new Set(), patterns: new Set()};
-	await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, null, false);
+	await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, null);
 
 	return {cache, project, cacheManager};
 }
@@ -2007,10 +2007,10 @@ function stubStage(project, stageId, {written = [], write} = {}) {
 }
 
 // Records a task result with empty project/dependency request sets.
-function recordEmptyResult(cache, taskName, cacheInfo = null, isDelta = false) {
+function recordEmptyResult(cache, taskName, cacheInfo = null) {
 	return cache.recordTaskResult(
 		taskName, {paths: new Set(), patterns: new Set()},
-		{paths: new Set(), patterns: new Set()}, cacheInfo, isDelta);
+		{paths: new Set(), patterns: new Set()}, cacheInfo);
 }
 
 test("Fail-then-succeed: #writtenResultResourcePaths accumulates across failed attempts (documented behavior)",
@@ -2185,7 +2185,7 @@ test("Fail-then-succeed: delta merge does not resurrect resources from a stage a
 			changedDependencyResourcePaths: [],
 		};
 
-		await recordEmptyResult(cache, "deltaTask", cacheInfo, true);
+		await recordEmptyResult(cache, "deltaTask", cacheInfo);
 
 		// Without the fix, the merge writes every previous resource whose path is not
 		// in the delta's writtenResourcePaths. /b.js is not overlaid, so it gets

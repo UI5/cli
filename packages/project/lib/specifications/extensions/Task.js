@@ -41,13 +41,6 @@ class Task extends Extension {
 	/**
 	* @public
 	*/
-	async getSupportsDifferentialBuildsCallback() {
-		return (await this._getImplementation()).supportsDifferentialBuilds;
-	}
-
-	/**
-	* @public
-	*/
 	async getExpectedOutputCallback() {
 		return (await this._getImplementation()).determineExpectedOutput;
 	}

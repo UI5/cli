@@ -70,20 +70,17 @@ test("Standard build", async (t) => {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceBuildtime: {
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		generateJsdoc: {
 			determineBuildSignature: generateJsdocTaskDefinition.determineBuildSignature,
@@ -103,7 +100,6 @@ test("Standard build", async (t) => {
 					"!**/*.support.js",
 				]
 			},
-			supportsDifferentialBuilds: true,
 		},
 		generateLibraryManifest: {},
 		enhanceManifest: {},
@@ -114,7 +110,6 @@ test("Standard build", async (t) => {
 		},
 		buildThemes: {
 			requiresDependencies: true,
-			supportsDifferentialBuilds: true,
 			options: {
 				projectName: "project.b",
 				librariesPattern: undefined,
@@ -209,20 +204,17 @@ test("Standard build with legacy spec version", (t) => {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceBuildtime: {
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		generateJsdoc: {
 			determineBuildSignature: generateJsdocTaskDefinition.determineBuildSignature,
@@ -242,7 +234,6 @@ test("Standard build with legacy spec version", (t) => {
 					"!**/*.support.js",
 				]
 			},
-			supportsDifferentialBuilds: true,
 		},
 		generateLibraryManifest: {},
 		enhanceManifest: {},
@@ -253,7 +244,6 @@ test("Standard build with legacy spec version", (t) => {
 		},
 		buildThemes: {
 			requiresDependencies: true,
-			supportsDifferentialBuilds: true,
 			options: {
 				projectName: "project.b",
 				librariesPattern: undefined,
@@ -340,20 +330,17 @@ test("Custom bundles", async (t) => {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceBuildtime: {
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		generateJsdoc: {
 			determineBuildSignature: generateJsdocTaskDefinition.determineBuildSignature,
@@ -373,7 +360,6 @@ test("Custom bundles", async (t) => {
 					"!**/*.support.js",
 				]
 			},
-			supportsDifferentialBuilds: true,
 		},
 		generateLibraryManifest: {},
 		enhanceManifest: {},
@@ -392,7 +378,6 @@ test("Custom bundles", async (t) => {
 		},
 		buildThemes: {
 			requiresDependencies: true,
-			supportsDifferentialBuilds: true,
 			options: {
 				projectName: "project.b",
 				librariesPattern: undefined,
@@ -503,7 +488,6 @@ test("Minification excludes", (t) => {
 				"!/resources/**.html",
 			]
 		},
-		supportsDifferentialBuilds: true,
 	}, "Correct minify task definition");
 });
 
@@ -530,7 +514,6 @@ test("Minification excludes not applied for legacy specVersion", (t) => {
 				"!**/*.support.js",
 			]
 		},
-		supportsDifferentialBuilds: true,
 	}, "Correct minify task definition");
 });
 
@@ -637,7 +620,6 @@ test("buildThemes: Project is not root", (t) => {
 	const taskDefinition = tasks.get("buildThemes");
 	t.deepEqual(taskDefinition, {
 		requiresDependencies: true,
-		supportsDifferentialBuilds: true,
 		options: {
 			projectName: "project.b",
 			librariesPattern: "/resources/**/(*.library|library.js)",
@@ -693,7 +675,6 @@ test("buildThemes: CSS Variables enabled", (t) => {
 	const taskDefinition = tasks.get("buildThemes");
 	t.deepEqual(taskDefinition, {
 		requiresDependencies: true,
-		supportsDifferentialBuilds: true,
 		options: {
 			projectName: "project.b",
 			librariesPattern: undefined,
@@ -725,20 +706,17 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceBuildtime: {
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		generateJsdoc: {
 			determineBuildSignature: generateJsdocTaskDefinition.determineBuildSignature,
@@ -758,7 +736,6 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 					"!**/*.support.js",
 				]
 			},
-			supportsDifferentialBuilds: true,
 		},
 		generateLibraryManifest: {},
 		enhanceManifest: {},
@@ -769,7 +746,6 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 		},
 		buildThemes: {
 			requiresDependencies: true,
-			supportsDifferentialBuilds: true,
 			options: {
 				projectName: "project.b",
 				librariesPattern: undefined,

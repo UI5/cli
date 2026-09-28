@@ -54,18 +54,15 @@ test("Standard build", (t) => {
 				copyright: "copyright",
 				pattern: "/resources/**/*.{less,theme}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
 			options: {
 				version: "version",
 				pattern: "/resources/**/*.{less,theme}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		buildThemes: {
 			requiresDependencies: true,
-			supportsDifferentialBuilds: true,
 			options: {
 				projectName: "project.b",
 				librariesPattern: undefined,
@@ -114,18 +111,15 @@ test("Standard build for non root project", (t) => {
 				copyright: "copyright",
 				pattern: "/resources/**/*.{less,theme}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
 			options: {
 				version: "version",
 				pattern: "/resources/**/*.{less,theme}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		buildThemes: {
 			requiresDependencies: true,
-			supportsDifferentialBuilds: true,
 			options: {
 				projectName: "project.b",
 				librariesPattern: "/resources/**/(*.library|library.js)",
@@ -153,7 +147,6 @@ test("CSS variables enabled", (t) => {
 	const taskDefinition = tasks.get("buildThemes");
 	t.deepEqual(taskDefinition, {
 		requiresDependencies: true,
-		supportsDifferentialBuilds: true,
 		options: {
 			projectName: "project.b",
 			librariesPattern: undefined,

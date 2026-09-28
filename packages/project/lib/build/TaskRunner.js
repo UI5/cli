@@ -233,15 +233,13 @@ class TaskRunner {
 	 * @param {object} [parameters] Task parameters
 	 * @param {boolean} [parameters.requiresDependencies=false]
 	 *   Whether the task requires access to project dependencies
-	 * @param {boolean} [parameters.supportsDifferentialBuilds=false]
-	 *   Whether the task supports differential updates using cache
 	 * @param {object} [parameters.options={}] Options to pass to the task
 	 * @param {Function|null} [parameters.taskFunction]
 	 *   Task function to execute, or null to explicitly skip the task
 	 * @returns {void}
 	 */
 	_addTask(taskName, {
-		requiresDependencies = false, supportsDifferentialBuilds = false, options = {}, taskFunction
+		requiresDependencies = false, options = {}, taskFunction
 	} = {}) {
 		if (this._tasks[taskName]) {
 			throw new Error(`Failed to add duplicate task ${taskName} for project ${this._project.getName()}`);
@@ -265,7 +263,6 @@ class TaskRunner {
 					this._log.skipTask(taskName);
 					return;
 				}
-				const usingCache = !!(supportsDifferentialBuilds && cacheInfo);
 				const workspace = createMonitor(this._project.getWorkspace());
 				let dependencies;
 				if (requiresDependencies) {
@@ -283,7 +280,7 @@ class TaskRunner {
 								workspace,
 								dependencies,
 								taskUtil: monitoredTaskUtil,
-								cacheInfo: usingCache ? cacheInfo : undefined,
+								cacheInfo: cacheInfo || undefined,
 								previousInvocationData: this._buildCache.getProcessEachInvocationData(taskName),
 								returnValueStore: this._buildCache.getProcessEachReturnValueStore(),
 								resolveInputValue: this._buildCache.getResolveInputValue(),
@@ -308,7 +305,7 @@ class TaskRunner {
 					const {task} = await this._taskRepository.getTask(taskName);
 					taskFunction = task;
 				}
-				this._log.startTask(taskName, usingCache);
+				this._log.startTask(taskName, !!cacheInfo);
 				this._taskStart = performance.now();
 				await taskFunction(params);
 				if (this._log.isLevelEnabled("perf")) {
@@ -328,7 +325,7 @@ class TaskRunner {
 				const usedProcessEach = !!processEachDriver;
 				if (usedProcessEach) {
 					this._buildCache.setProcessEachInvocationData(taskName, processEachDriver.getInvocationData());
-					if (usingCache) {
+					if (cacheInfo) {
 						// Delta build: only some steps re-ran, so the task-level monitor missed the reads and
 						// non-resource inputs of the steps served from cache. Fold every step's reads and
 						// inputs (from the driver's persisted invocation data) into the recorded requests and
@@ -351,12 +348,11 @@ class TaskRunner {
 				const writtenResourcePaths = await this._buildCache.recordTaskResult(taskName,
 					projectRequests,
 					dependencyRequests,
-					usingCache ? cacheInfo : undefined,
-					supportsDifferentialBuilds,
+					usedProcessEach ? cacheInfo : undefined,
 					inputRecording,
 					taskUtilRequests.root,
 					usedProcessEach);
-				this._log.endTask(taskName, usingCache, writtenResourcePaths);
+				this._log.endTask(taskName, !!cacheInfo, writtenResourcePaths);
 			};
 		}
 		this._tasks[taskName] = {
@@ -395,7 +391,6 @@ class TaskRunner {
 		const requiredDependenciesCallback = await task.getRequiredDependenciesCallback();
 		// const buildSignatureCallback = await task.getBuildSignatureCallback();
 		// const expectedOutputCallback = await task.getExpectedOutputCallback();
-		const supportsDifferentialBuildsCallback = await task.getSupportsDifferentialBuildsCallback();
 		const specVersion = task.getSpecVersion();
 		let requiredDependencies;
 
@@ -458,11 +453,6 @@ class TaskRunner {
 				}
 			});
 		}
-		let supportsDifferentialBuilds = false;
-		if (specVersion.gte("5.0") && supportsDifferentialBuildsCallback && supportsDifferentialBuildsCallback()) {
-			supportsDifferentialBuilds = true;
-		}
-
 		this._tasks[taskName] = {
 			task: this._createCustomTaskWrapper({
 				task,
@@ -471,7 +461,6 @@ class TaskRunner {
 				taskName,
 				taskConfiguration: taskDef.configuration,
 				provideDependenciesReader,
-				supportsDifferentialBuilds,
 				getDependenciesReaderCb: () => {
 					// Create the dependencies reader on-demand
 					return this.getDependenciesReader(requiredDependencies);
@@ -523,15 +512,13 @@ class TaskRunner {
 	 *   Callback to get dependencies reader on-demand
 	 * @param {boolean} parameters.provideDependenciesReader
 	 *   Whether to provide dependencies reader to the task
-	 * @param {boolean} parameters.supportsDifferentialBuilds
-	 *   Whether the task supports differential updates
 	 * @param {@ui5/project/specifications/Extension} parameters.task Task extension instance
 	 * @param {string} parameters.taskName Runtime name of the task (may include suffix)
 	 * @param {object} [parameters.taskConfiguration] Task configuration from ui5.yaml
 	 * @returns {Function} Async wrapper function for the custom task
 	 */
 	_createCustomTaskWrapper({
-		project, taskUtil, getDependenciesReaderCb, provideDependenciesReader, supportsDifferentialBuilds,
+		project, taskUtil, getDependenciesReaderCb, provideDependenciesReader,
 		task, taskName, taskConfiguration
 	}) {
 		return async () => {
@@ -540,7 +527,6 @@ class TaskRunner {
 				this._log.skipTask(taskName);
 				return;
 			}
-			const usingCache = !!(supportsDifferentialBuilds && cacheInfo);
 
 			/* Custom Task Interface
 				Parameters:
@@ -591,8 +577,7 @@ class TaskRunner {
 			let monitoredTaskUtil;
 			if (taskUtilInterface) {
 				const monitoredTaskUtilOptions = {};
-				// processEach becomes available at Specification Version 5.0, the same version at which a
-				// custom task opts into differential builds (see _addCustomTask). The standard-task path
+				// processEach becomes available at Specification Version 5.0. The standard-task path
 				// binds the same driver unconditionally; here it is gated on the spec version the custom
 				// task declared, so an older task calling taskUtil.processEach gets undefined and fails
 				// loudly rather than silently gaining an API its spec version does not include.
@@ -606,7 +591,7 @@ class TaskRunner {
 								workspace,
 								dependencies,
 								taskUtil: monitoredTaskUtil,
-								cacheInfo: usingCache ? cacheInfo : undefined,
+								cacheInfo: cacheInfo || undefined,
 								previousInvocationData: this._buildCache.getProcessEachInvocationData(taskName),
 								returnValueStore: this._buildCache.getProcessEachReturnValueStore(),
 								resolveInputValue: this._buildCache.getResolveInputValue(),
@@ -628,7 +613,7 @@ class TaskRunner {
 				params.log = getLogger(`builder:custom-task:${taskName}`);
 			}
 
-			this._log.startTask(taskName, usingCache);
+			this._log.startTask(taskName, !!cacheInfo);
 			await taskFunction(params);
 			const taskUtilRequests = monitoredTaskUtil?.getResourceRequests();
 			let projectRequests = mergeResourceRequests(workspace.getResourceRequests(), taskUtilRequests?.project);
@@ -643,7 +628,7 @@ class TaskRunner {
 			const usedProcessEach = !!processEachDriver;
 			if (usedProcessEach) {
 				this._buildCache.setProcessEachInvocationData(taskName, processEachDriver.getInvocationData());
-				if (usingCache) {
+				if (cacheInfo) {
 					// Delta build: only some steps re-ran, so the task-level monitor missed the reads and
 					// non-resource inputs of the steps served from cache. Fold every step's reads and inputs
 					// (from the driver's persisted invocation data) into the recorded requests and input
@@ -666,12 +651,11 @@ class TaskRunner {
 			const writtenResourcePaths = await this._buildCache.recordTaskResult(taskName,
 				projectRequests,
 				dependencyRequests,
-				usingCache ? cacheInfo : undefined,
-				supportsDifferentialBuilds,
+				usedProcessEach ? cacheInfo : undefined,
 				inputRecording,
 				taskUtilRequests?.root,
 				usedProcessEach);
-			this._log.endTask(taskName, usingCache, writtenResourcePaths);
+			this._log.endTask(taskName, !!cacheInfo, writtenResourcePaths);
 		};
 	}
 

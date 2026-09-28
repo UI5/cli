@@ -39,7 +39,7 @@ function emptyRequestManagerCache() {
 export default class BuildTaskCache {
 	#projectName;
 	#taskName;
-	#supportsDifferentialBuilds;
+	#usesProcessEach;
 
 	#projectRequestManager;
 	#dependencyRequestManager;
@@ -67,7 +67,7 @@ export default class BuildTaskCache {
 	 * @public
 	 * @param {string} projectName Name of the project this task belongs to
 	 * @param {string} taskName Name of the task this cache manages
-	 * @param {boolean} supportsDifferentialBuilds Whether the task supports differential updates
+	 * @param {boolean} usesProcessEach Whether the task used taskUtil.processEach, driving delta tracking
 	 * @param {ResourceRequestManager} [projectRequestManager] Optional pre-existing project request manager from cache
 	 * @param {ResourceRequestManager} [dependencyRequestManager]
 	 * 	Optional pre-existing dependency request manager from cache
@@ -75,18 +75,18 @@ export default class BuildTaskCache {
 	 * @param {{gitignore: ResourceRequestManager, noGitignore: ResourceRequestManager}} [rootRequestManagers]
 	 * 	Optional pre-existing root request managers from cache, keyed by useGitignore
 	 */
-	constructor(projectName, taskName, supportsDifferentialBuilds, projectRequestManager, dependencyRequestManager,
+	constructor(projectName, taskName, usesProcessEach, projectRequestManager, dependencyRequestManager,
 		inputSet, rootRequestManagers) {
 		this.#projectName = projectName;
 		this.#taskName = taskName;
-		this.#supportsDifferentialBuilds = supportsDifferentialBuilds;
+		this.#usesProcessEach = usesProcessEach;
 		log.verbose(`Initializing BuildTaskCache for task "${taskName}" of project "${this.#projectName}" ` +
-			`(supportsDifferentialBuilds=${supportsDifferentialBuilds})`);
+			`(usesProcessEach=${usesProcessEach})`);
 
 		this.#projectRequestManager = projectRequestManager ??
-			new ResourceRequestManager(projectName, taskName, supportsDifferentialBuilds);
+			new ResourceRequestManager(projectName, taskName, usesProcessEach);
 		this.#dependencyRequestManager = dependencyRequestManager ??
-			new ResourceRequestManager(projectName, taskName, supportsDifferentialBuilds);
+			new ResourceRequestManager(projectName, taskName, usesProcessEach);
 		this.#inputSet = inputSet ?? new TaskInputSet();
 		// Root requests use full-refresh signatures, not differential deltas: a changed root file
 		// re-runs the whole task rather than a differential update.
@@ -105,7 +105,7 @@ export default class BuildTaskCache {
 	 * @public
 	 * @param {string} projectName Name of the project
 	 * @param {string} taskName Name of the task
-	 * @param {boolean} supportsDifferentialBuilds Whether the task supports differential updates
+	 * @param {boolean} usesProcessEach Whether the task used taskUtil.processEach, driving delta tracking
 	 * @param {object} projectRequests Cached project request manager data
 	 * @param {object} dependencyRequests Cached dependency request manager data
 	 * @param {object} [inputSet] Cached task input set data
@@ -113,12 +113,12 @@ export default class BuildTaskCache {
 	 * @param {object} [rootNoGitignoreRequests] Cached useGitignore:false root request manager data
 	 * @returns {BuildTaskCache} Restored task cache instance
 	 */
-	static fromCache(projectName, taskName, supportsDifferentialBuilds, projectRequests, dependencyRequests,
+	static fromCache(projectName, taskName, usesProcessEach, projectRequests, dependencyRequests,
 		inputSet, rootRequests, rootNoGitignoreRequests) {
 		const projectRequestManager = ResourceRequestManager.fromCache(projectName, taskName,
-			supportsDifferentialBuilds, projectRequests);
+			usesProcessEach, projectRequests);
 		const dependencyRequestManager = ResourceRequestManager.fromCache(projectName, taskName,
-			supportsDifferentialBuilds, dependencyRequests);
+			usesProcessEach, dependencyRequests);
 		// Root managers are optional: absent for tasks that made no root reads, and absent in caches
 		// written before root tracking existed. A missing entry restores a clean empty manager (not a
 		// fresh dirty one), so a task without root reads is not needlessly re-persisted.
@@ -129,7 +129,7 @@ export default class BuildTaskCache {
 				projectName, `${taskName}#root-no-gitignore`, false,
 				rootNoGitignoreRequests ?? emptyRequestManagerCache()),
 		};
-		return new BuildTaskCache(projectName, taskName, supportsDifferentialBuilds,
+		return new BuildTaskCache(projectName, taskName, usesProcessEach,
 			projectRequestManager, dependencyRequestManager, TaskInputSet.fromCache(inputSet), rootRequestManagers);
 	}
 
@@ -146,16 +146,16 @@ export default class BuildTaskCache {
 	}
 
 	/**
-	 * Checks whether the task supports differential updates
+	 * Checks whether the task used taskUtil.processEach, which drives per-step delta tracking
 	 *
-	 * Tasks that support differential updates can use incremental cache invalidation,
-	 * processing only changed resources rather than rebuilding from scratch.
+	 * A task that used processEach tracks resource-request deltas, so a later build re-runs only the
+	 * changed steps rather than the whole task.
 	 *
 	 * @public
-	 * @returns {boolean} True if differential updates are supported
+	 * @returns {boolean} True if the task used processEach
 	 */
-	getSupportsDifferentialBuilds() {
-		return this.#supportsDifferentialBuilds;
+	getUsesProcessEach() {
+		return this.#usesProcessEach;
 	}
 
 	/**
