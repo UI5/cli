@@ -71,6 +71,22 @@ test("records getTime reads keyed by granularity", (t) => {
 	]);
 });
 
+test("does not record getBuildTime reads", (t) => {
+	// getBuildTime is an untracked passthrough: unlike getTime it must not fold into the signature,
+	// so a getBuildTime read produces no input recording even though it returns the underlying value.
+	const buildTime = new Date(2026, 8, 25, 14, 7, 3);
+	t.context.taskUtil.getBuildTime = t.context.sinon.stub().returns(buildTime);
+	const monitored = new MonitoredTaskUtil(t.context.taskUtil);
+
+	t.is(monitored.getBuildTime(), buildTime, "returns the underlying Date");
+	// A tracked getTime read still records, so the recording holds only the getTime entry.
+	monitored.getTime("year");
+
+	t.deepEqual(monitored.getInputRecording(), [
+		{type: "time", name: "year", value: "2026"},
+	], "getBuildTime left no entry; only the tracked getTime read was recorded");
+});
+
 test("records isRootProject reads", (t) => {
 	const monitored = new MonitoredTaskUtil(t.context.taskUtil);
 	t.is(monitored.isRootProject(), true);
