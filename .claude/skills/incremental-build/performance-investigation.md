@@ -171,7 +171,7 @@ info › Running task generateLibraryPreload...       ← Full re-execution
 ```
 
 - `✔ Skipping` — exact cache match for this task's signature.
-- `◇ Running` — differential execution (using `changedProjectResourcePaths`).
+- `◇ Running` — differential execution (delta `cacheInfo`, steps selected via `taskUtil.processEach`).
 - `› Running` — full execution (no cache match, no delta available).
 
 After task execution, `recordTaskResult` runs (logged per task):

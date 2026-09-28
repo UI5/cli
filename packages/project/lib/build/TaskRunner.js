@@ -304,12 +304,6 @@ class TaskRunner {
 				if (dependencies) {
 					params.dependencies = dependencies;
 				}
-				if (usingCache) {
-					params.changedProjectResourcePaths = cacheInfo.changedProjectResourcePaths;
-					if (requiresDependencies) {
-						params.changedDependencyResourcePaths = cacheInfo.changedDependencyResourcePaths;
-					}
-				}
 				if (!taskFunction) {
 					const {task} = await this._taskRepository.getTask(taskName);
 					taskFunction = task;
@@ -579,12 +573,6 @@ class TaskRunner {
 					configuration: taskConfiguration,
 				}
 			};
-			if (usingCache) {
-				params.changedProjectResourcePaths = cacheInfo.changedProjectResourcePaths;
-				if (provideDependenciesReader) {
-					params.changedDependencyResourcePaths = cacheInfo.changedDependencyResourcePaths;
-				}
-			}
 
 			// Created before the taskUtil so the processEach driver can bind to it. When the task does
 			// not request dependencies, dependencies stays undefined and the driver records no dependency
