@@ -196,6 +196,32 @@ class TaskUtil {
 	}
 
 	/**
+	 * Returns the build run's shared timestamp as a raw <code>Date</code>.
+	 *
+	 * The value is the single timestamp fixed once per build run (shared by every project and task in
+	 * the run), the same source [getTime]{@link @ui5/project/build/helpers/TaskUtil#getTime} quantizes.
+	 *
+	 * Unlike <code>getTime</code>, this read is deliberately <b>not</b> tracked as a build-cache input:
+	 * the [MonitoredTaskUtil]{@link @ui5/project/build/helpers/MonitoredTaskUtil} passes it through
+	 * untracked, so its value never folds into the task's cache signature. A cached result therefore
+	 * keeps the timestamp it embedded on the build that produced it, rather than re-running because the
+	 * timestamp advanced. That staleness is intended: a build timestamp changes on every build, so
+	 * tracking it would force a cache miss every time and defeat caching for any task that reads it.
+	 * Read through <code>getTime</code> instead when the output should re-run once a time bucket rolls
+	 * over (for example a copyright year).
+	 *
+	 * </br></br>
+	 * This method is only available to custom task extensions defining
+	 * <b>Specification Version 5.0 and above</b>.
+	 *
+	 * @returns {Date} The current build run's timestamp
+	 * @public
+	 */
+	getBuildTime() {
+		return this._projectBuildContext.getBuildTime();
+	}
+
+	/**
 	 * Check whether the project currently being built is the root project.
 	 *
 	 * </br></br>
@@ -404,6 +430,10 @@ class TaskUtil {
 				baseInterface.resourceFactory[factoryFunction] = this.resourceFactory[factoryFunction];
 			});
 		}
+
+		if (specVersion.gte("5.0")) {
+			bindFunctions(this, baseInterface, ["getBuildTime"]);
+		}
 		return baseInterface;
 	}
 
@@ -447,6 +477,10 @@ class TaskUtil {
 			].forEach((factoryFunction) => {
 				baseInterface.resourceFactory[factoryFunction] = this.resourceFactory[factoryFunction];
 			});
+		}
+
+		if (specVersion.gte("5.0")) {
+			bindFunctions(this, baseInterface, ["getBuildTime"]);
 		}
 		return baseInterface;
 	}

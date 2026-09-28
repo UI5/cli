@@ -14,7 +14,9 @@ const TRACKED_PROJECT_METHODS = new Set([
 
 // TaskUtil methods whose return value is a task input, keyed by method name. Each records the read
 // under the given input type. `getProject` and `getDependencies` are handled separately because
-// they need the resolved project name (see the constructor).
+// they need the resolved project name (see the constructor). Deliberately absent: `getBuildTime`,
+// which returns the raw per-run timestamp and is an untracked passthrough (it advances every build,
+// so tracking it would miss the cache every time); contrast the quantized, tracked `getTime`.
 const TRACKED_TASK_UTIL_METHODS = {
 	getEnv: "env",
 	getTime: "time",
