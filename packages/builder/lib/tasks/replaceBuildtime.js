@@ -3,8 +3,7 @@ import stringReplacer from "../processors/stringReplacer.js";
 function pad(v) {
 	return String(v).padStart(2, "0");
 }
-function getTimestamp() {
-	const date = new Date();
+function formatTimestamp(date) {
 	const year = date.getFullYear();
 	const month = pad(date.getMonth() + 1);
 	const day = pad(date.getDate());
@@ -24,9 +23,11 @@ function getTimestamp() {
  *
  * Each matched resource is processed as its own cached step via
  * [taskUtil.processEach]{@link @ui5/project/build/helpers/TaskUtil#processEach}, so a delta build
- * re-processes only the resources whose content changed. The buildtime is read from the wall clock
- * once before the steps run and is not a tracked cache input, preserving the task's existing behavior:
- * a cached step keeps its previous timestamp until its resource content changes.
+ * re-processes only the resources whose content changed. The buildtime comes from the build run's
+ * shared timestamp via [taskUtil.getBuildTime]{@link @ui5/project/build/helpers/TaskUtil#getBuildTime},
+ * which is not a tracked cache input, preserving the task's existing behavior: a cached step keeps its
+ * previous timestamp until its resource content changes. When the task runs without a TaskUtil
+ * (e.g. a direct invocation), it falls back to the wall clock.
  *
  * @public
  * @function default
@@ -41,7 +42,9 @@ function getTimestamp() {
  */
 export default async function({workspace, taskUtil, options: {pattern}}) {
 	const resources = await workspace.byGlob(pattern);
-	const timestamp = getTimestamp();
+	// Source the timestamp from the build run's shared clock so every project and task in the run
+	// agrees. Fall back to a direct Date read when the task runs without a TaskUtil.
+	const timestamp = formatTimestamp(taskUtil?.getBuildTime ? taskUtil.getBuildTime() : new Date());
 
 	const replacerOptions = {
 		pattern: "${buildtime}",
