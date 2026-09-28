@@ -96,6 +96,14 @@ async function generateThemeDotTheming({workspace, combo, themeFolder}) {
 /**
  * Generates resources required for integration with the SAP Theme Designer.
  *
+ * The library-level <code>.theming</code> file is generated once. Each theme's
+ * <code>library.source.less</code> is then processed as its own cached step via
+ * [taskUtil.processEach]{@link @ui5/project/build/helpers/TaskUtil#processEach}: a step generates that
+ * theme's <code>.theming</code> and <code>library.less</code>, reading the core <code>.theming</code>
+ * and the less imports through its own <code>combo</code> so those reads are recorded per step. A delta
+ * build regenerates only the affected theme and leaves the others served from cache. Without a build
+ * cache the task processes all themes in one batch.
+ *
  * @public
  * @function default
  * @static
@@ -103,6 +111,7 @@ async function generateThemeDotTheming({workspace, combo, themeFolder}) {
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
+ * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @param {string} parameters.options.version Project version
@@ -111,7 +120,7 @@ async function generateThemeDotTheming({workspace, combo, themeFolder}) {
  * Omit for type <code>theme-library</code>
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-export default async function({workspace, dependencies, options}) {
+export default async function({workspace, dependencies, taskUtil, options}) {
 	const {projectName, version} = options;
 	const namespace = options.projectNamespace;
 
@@ -172,6 +181,38 @@ export default async function({workspace, dependencies, options}) {
 		return;
 	}
 
+	if (taskUtil?.processEach) {
+		// One cached step per theme, so a delta build regenerates only the affected theme. Each step
+		// builds its own combo from the step readers so the core .theming and less-import reads are
+		// recorded as inputs of that step.
+		await taskUtil.processEach("generateThemeDesignerResources", librarySourceLessResources,
+			async (librarySourceLess, {workspace, dependencies}) => {
+				const combo = new ReaderCollectionPrioritized({
+					name: `generateThemeDesignerResources - prioritize workspace over dependencies: ${projectName}`,
+					readers: dependencies ? [workspace, dependencies] : [workspace]
+				});
+
+				const themeFolder = posixPath.dirname(librarySourceLess.getPath());
+				log.verbose(`Generating .theming for theme ${themeFolder}`);
+
+				// theme .theming file
+				const themeDotThemingResource = await generateThemeDotTheming({workspace, combo, themeFolder});
+				if (themeDotThemingResource) {
+					await workspace.write(themeDotThemingResource);
+				}
+
+				// library.less file
+				const [libraryLessResource] = await libraryLessGenerator({
+					resources: [librarySourceLess],
+					fs: fsInterface(combo),
+				});
+				await workspace.write(libraryLessResource);
+			});
+		return;
+	}
+
+	// Standalone use without the build cache (e.g. a direct task invocation): process all themes in one
+	// batch against a single shared combo.
 	const combo = new ReaderCollectionPrioritized({
 		name: `generateThemeDesignerResources - prioritize workspace over dependencies: ${projectName}`,
 		readers: [workspace, dependencies]
