@@ -504,3 +504,95 @@ builder:
 		}
 	});
 });
+
+// The `.out` a step of the process-each-task fixture writes per `.src` key (see task.process-each.js).
+// procEachOut is the virtual path recorded in writtenResources; procEachDist is the on-disk location,
+// where an application build has dropped the `/resources/id1/` namespace prefix.
+const procEachOut = (name) => `/resources/id1/procEach/${name}.out`;
+const procEachDist = (destPath, name) => `${destPath}/procEach/${name}.out`;
+
+test.serial("Build application.a (custom task using processEach for per-step delta caching)", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+	await fixtureTester._initialize();
+
+	// The custom task "process-each-task" (Specification Version 5.0, supportsDifferentialBuilds) runs
+	// one cached processEach step per `.src` file. Each step reads its sibling `.dep` through the step
+	// workspace, so that `.dep` is a tracked input of the owning step alone. Changing only `a.dep` must
+	// re-run only a's step and leave b's step served from cache, proving per-step delta caching for a
+	// custom task.
+	const procEachDir = `${fixtureTester.fixturePath}/webapp/procEach`;
+	await fs.mkdir(procEachDir, {recursive: true});
+	await fs.writeFile(`${procEachDir}/a.src`, "source-a");
+	await fs.writeFile(`${procEachDir}/b.src`, "source-b");
+	await fs.writeFile(`${procEachDir}/a.dep`, "dep-a-v1");
+	await fs.writeFile(`${procEachDir}/b.dep`, "dep-b-v1");
+
+	// #1 build (no cache): both steps run, so the task writes both `.out` files.
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-processEach.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+				"application.a": {
+					writtenResources: {
+						"process-each-task": [procEachOut("a"), procEachOut("b")],
+					},
+				},
+			},
+		},
+	});
+
+	// Both outputs reflect their v1 dep content.
+	t.is(await fs.readFile(procEachDist(destPath, "a"), {encoding: "utf8"}), "source-a\n// dep: dep-a-v1\n");
+	t.is(await fs.readFile(procEachDist(destPath, "b"), {encoding: "utf8"}), "source-b\n// dep: dep-b-v1\n");
+
+	// Change ONLY a's cross-resource input. a.src is untouched, so a's step re-runs solely because its
+	// recorded read of a.dep changed. b's step reads b.dep (unchanged) and stays cached.
+	await fs.writeFile(`${procEachDir}/a.dep`, "dep-a-v2");
+
+	// #2 build (with cache, with changes): the task re-runs in delta mode and writes ONLY a's `.out`.
+	// Only a.dep changed and only the process-each-task reads `.dep` files, so every standard task is
+	// served from cache and only application.a is rebuilt.
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-processEach.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"escapeNonAsciiCharacters",
+						"replaceCopyright",
+						"enhanceManifest",
+						"generateFlexChangesBundle",
+						"generateVersionInfo",
+						"minify",
+						"replaceVersion",
+						"generateComponentPreload",
+					],
+					writtenResources: {
+						"process-each-task": [procEachOut("a")],
+					},
+				},
+			},
+		},
+	});
+
+	// a's output reflects the new dep; b's output is carried forward from cache unchanged.
+	t.is(await fs.readFile(procEachDist(destPath, "a"), {encoding: "utf8"}), "source-a\n// dep: dep-a-v2\n");
+	t.is(await fs.readFile(procEachDist(destPath, "b"), {encoding: "utf8"}), "source-b\n// dep: dep-b-v1\n");
+
+	// #3 build (with cache, no changes): everything is served from cache, including the custom task.
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-processEach.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+});
+

@@ -585,11 +585,52 @@ class TaskRunner {
 					params.changedDependencyResourcePaths = cacheInfo.changedDependencyResourcePaths;
 				}
 			}
+
+			// Created before the taskUtil so the processEach driver can bind to it. When the task does
+			// not request dependencies, dependencies stays undefined and the driver records no dependency
+			// reads, matching the standard-task path.
+			let dependencies;
+			if (provideDependenciesReader) {
+				dependencies = createMonitor(await getDependenciesReaderCb());
+				params.dependencies = dependencies;
+			}
+
 			const specVersion = task.getSpecVersion();
 			const taskUtilInterface = taskUtil.getInterface(specVersion);
-			// Interface is undefined if specVersion does not support taskUtil
-			const monitoredTaskUtil = taskUtilInterface ? new MonitoredTaskUtil(taskUtilInterface) : undefined;
-			if (monitoredTaskUtil) {
+			// Interface is undefined if specVersion does not support taskUtil (spec version <= 2.1); such
+			// a task never gets processEach and is unaffected by the binding below.
+			let processEachDriver;
+			let monitoredTaskUtil;
+			if (taskUtilInterface) {
+				const monitoredTaskUtilOptions = {};
+				// processEach becomes available at Specification Version 5.0, the same version at which a
+				// custom task opts into differential builds (see _addCustomTask). The standard-task path
+				// binds the same driver unconditionally; here it is gated on the spec version the custom
+				// task declared, so an older task calling taskUtil.processEach gets undefined and fails
+				// loudly rather than silently gaining an API its spec version does not include.
+				if (specVersion.gte("5.0")) {
+					// Bind a processEach driver to this task's readers and cache state, exposed as
+					// taskUtil.processEach. Constructed lazily on first use, so a task that does not call
+					// processEach neither builds a driver nor reads its persisted invocation data.
+					monitoredTaskUtilOptions.processEach = (keys, callback, concurrent) => {
+						if (!processEachDriver) {
+							processEachDriver = new ProcessEach({
+								workspace,
+								dependencies,
+								taskUtil: monitoredTaskUtil,
+								cacheInfo: usingCache ? cacheInfo : undefined,
+								previousInvocationData: this._buildCache.getProcessEachInvocationData(taskName),
+								returnValueStore: this._buildCache.getProcessEachReturnValueStore(),
+								resolveInputValue: this._buildCache.getResolveInputValue(),
+								applyTagOperations: (tagOperations) =>
+									this._project.getProjectResources().replayTagOperations(tagOperations),
+								signal: this._signal,
+							});
+						}
+						return processEachDriver.run(keys, callback, concurrent);
+					};
+				}
+				monitoredTaskUtil = new MonitoredTaskUtil(taskUtilInterface, monitoredTaskUtilOptions);
 				params.taskUtil = monitoredTaskUtil;
 			}
 			const taskFunction = await task.getTask();
@@ -599,21 +640,49 @@ class TaskRunner {
 				params.log = getLogger(`builder:custom-task:${taskName}`);
 			}
 
-			let dependencies;
-			if (provideDependenciesReader) {
-				dependencies = createMonitor(await getDependenciesReaderCb());
-				params.dependencies = dependencies;
-			}
 			this._log.startTask(taskName, usingCache);
 			await taskFunction(params);
 			const taskUtilRequests = monitoredTaskUtil?.getResourceRequests();
+			let projectRequests = mergeResourceRequests(workspace.getResourceRequests(), taskUtilRequests?.project);
+			let dependencyRequests =
+				mergeResourceRequests(dependencies?.getResourceRequests(), taskUtilRequests?.dependencies);
+			let inputRecording = monitoredTaskUtil ? monitoredTaskUtil.getInputRecording() : [];
+
+			// A task that called processEach folds the driver's outcome into the recorded result exactly
+			// as the standard-task path does: its complete per-step read set (so first-seen reads stay
+			// tracked), its stale outputs (dropped from the carried-forward stage via the changed-paths
+			// merge), and its invocation data (persisted for the next delta build).
+			const usedProcessEach = !!processEachDriver;
+			if (usedProcessEach) {
+				this._buildCache.setProcessEachInvocationData(taskName, processEachDriver.getInvocationData());
+				if (usingCache) {
+					// Delta build: only some steps re-ran, so the task-level monitor missed the reads and
+					// non-resource inputs of the steps served from cache. Fold every step's reads and inputs
+					// (from the driver's persisted invocation data) into the recorded requests and input
+					// recording so a first-seen input stays tracked and the re-keyed stage signature tracks
+					// every current input, and append the driver's stale outputs to the changed paths so they
+					// drop from the carried-forward stage. On a full build every step ran, so the monitor
+					// already captured everything and no fold is needed.
+					const driverRequests = processEachDriver.getResourceRequests();
+					projectRequests = mergeResourceRequests(projectRequests, driverRequests.project);
+					dependencyRequests = mergeResourceRequests(dependencyRequests, driverRequests.dependencies);
+					inputRecording = mergeInputRecordings(inputRecording, processEachDriver.getInputRecording());
+					const staleOutputs = processEachDriver.getStaleOutputs();
+					if (staleOutputs.length) {
+						cacheInfo.changedProjectResourcePaths =
+							[...cacheInfo.changedProjectResourcePaths, ...staleOutputs];
+					}
+				}
+			}
+
 			const writtenResourcePaths = await this._buildCache.recordTaskResult(taskName,
-				mergeResourceRequests(workspace.getResourceRequests(), taskUtilRequests?.project),
-				mergeResourceRequests(dependencies?.getResourceRequests(), taskUtilRequests?.dependencies),
+				projectRequests,
+				dependencyRequests,
 				usingCache ? cacheInfo : undefined,
 				supportsDifferentialBuilds,
-				monitoredTaskUtil ? monitoredTaskUtil.getInputRecording() : [],
-				taskUtilRequests?.root);
+				inputRecording,
+				taskUtilRequests?.root,
+				usedProcessEach);
 			this._log.endTask(taskName, usingCache, writtenResourcePaths);
 		};
 	}
