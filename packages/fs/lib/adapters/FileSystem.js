@@ -67,6 +67,10 @@ class FileSystem extends AbstractAdapter {
 			onlyFiles: options.nodir,
 			followSymbolicLinks: false,
 			gitignore: this._useGitignore,
+			// globby >=16 expands a negation-only pattern list (e.g. ["!**/foo"]) to
+			// "everything except", whereas we rely on the pre-16 behavior of matching
+			// nothing when no positive pattern remains. Keep the old semantics.
+			expandNegationOnlyPatterns: false,
 		};
 		trace.globCall();
 
@@ -119,6 +123,7 @@ class FileSystem extends AbstractAdapter {
 							`Failed to resolve virtual path of glob match '${virPath}': Path must start with ` +
 							`the configured virtual base path of the adapter. Base path: '${this._virBasePath}'`);
 						resolve(null);
+						return; // Stop: relPath is null, do not attempt to stat it
 					}
 					const fsPath = this._resolveToFileSystem(relPath);
 

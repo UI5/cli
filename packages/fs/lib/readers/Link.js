@@ -105,7 +105,8 @@ class Link extends AbstractReader {
 					path: this._pathMapping.linkPath + resourcePath.substr(this._pathMapping.targetPath.length)
 				});
 			}
-		});
+			// Drop resources outside the mapped target path instead of leaking an undefined entry
+		}).filter(Boolean);
 	}
 
 	/**

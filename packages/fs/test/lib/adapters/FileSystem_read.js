@@ -296,6 +296,23 @@ test("static excludes: glob library src and test with double negation", async (t
 	], "Found expected test resources");
 });
 
+// Regression: with globby >=16 a negation-only pattern list (positive pattern normalized
+// away, only the negated exclude left) must match nothing, not "everything except".
+// Guarded via expandNegationOnlyPatterns: false in FileSystem._runGlob.
+test("static excludes: query yielding a negation-only pattern list matches nothing", async (t) => {
+	const testReader = createAdapter({
+		fsBasePath: "./test/fixtures/library.l/test",
+		virBasePath: "/test-resources/",
+		excludes: ["/test-resources/**/.library"]
+	});
+
+	// ".library" exists only under /resources, so for this test adapter the positive
+	// pattern drops out and only the negated exclude remains.
+	const testResources = await testReader.byGlob("/resources/**/.library", {nodir: true});
+
+	t.is(testResources.length, 0, "Negation-only pattern list must not expand to all files");
+});
+
 test("static excludes: glob library test with double negation", async (t) => {
 	const excludes = [
 		"/test-resources/**",
