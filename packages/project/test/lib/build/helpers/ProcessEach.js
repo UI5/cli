@@ -110,13 +110,13 @@ test("Sequential mode makes a step's write visible to the next step", async (t) 
 	const processEach = new ProcessEach({workspace, taskUtil: {}});
 
 	let secondStepSawFirstWrite = false;
-	await processEach.run(GROUP, ["first", "second"], async (key, {workspace}) => {
+	await processEach.run(GROUP, ["first", "second"], {sequential: true}, async (key, {workspace}) => {
 		if (key === "first") {
 			await workspace.write(createResource("/shared.js"));
 		} else {
 			secondStepSawFirstWrite = !!(await workspace.byPath("/shared.js"));
 		}
-	}, false);
+	});
 
 	t.true(secondStepSawFirstWrite, "Second step read the first step's write");
 });
@@ -131,13 +131,13 @@ test("Concurrent mode buffers writes and flushes them in key order", async (t) =
 	};
 	const processEach = new ProcessEach({workspace, taskUtil: {}});
 
-	await processEach.run(GROUP, ["a", "b", "c"], async (key, {workspace}) => {
+	await processEach.run(GROUP, ["a", "b", "c"], {sequential: false}, async (key, {workspace}) => {
 		// Reverse the natural completion order so the key-order flush is observable.
 		if (key === "a") {
 			await new Promise((resolve) => setTimeout(resolve, 15));
 		}
 		await workspace.write(createResource(`/${key}.out`));
-	}, true);
+	});
 
 	t.deepEqual(writeOrder, ["/a.out", "/b.out", "/c.out"],
 		"Buffered writes flushed in key order regardless of completion order");
@@ -149,7 +149,7 @@ test("Concurrent steps writing the same path throw", async (t) => {
 
 	await t.throwsAsync(processEach.run(GROUP, ["a", "b"], async (key, {workspace}) => {
 		await workspace.write(createResource("/same.js"));
-	}, true), {message: /concurrent steps must not write the same resource path \/same\.js/});
+	}), {message: /concurrent steps must not write the same resource path \/same\.js/});
 });
 
 test("The group argument must be a non-empty string", async (t) => {
@@ -159,6 +159,13 @@ test("The group argument must be a non-empty string", async (t) => {
 		{message: /first argument must be a non-empty string naming the step group/});
 	await t.throwsAsync(processEach.run("", ["a"], async () => {}),
 		{message: /first argument must be a non-empty string naming the step group/});
+});
+
+test("The options argument must be an object when provided", async (t) => {
+	const processEach = new ProcessEach({workspace: createWorkspace(), taskUtil: {}});
+
+	await t.throwsAsync(processEach.run(GROUP, ["a"], "nope", async () => {}),
+		{message: /options must be an object/});
 });
 
 test("Running the same group twice for one task throws", async (t) => {

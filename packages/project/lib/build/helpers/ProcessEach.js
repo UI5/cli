@@ -129,7 +129,7 @@ class RecordingReaderWriter extends AbstractReaderWriter {
 			if (existing && existing.stepIndex !== this.#stepIndex) {
 				throw new Error(
 					`processEach: concurrent steps must not write the same resource path ${resourcePath}. ` +
-					`Pass concurrent=false if a later step must build on an earlier step's writes.`);
+					`Pass {sequential: true} if a later step must build on an earlier step's writes.`);
 			}
 			this.#writeBuffer.set(resourcePath, {resource, options, stepIndex: this.#stepIndex});
 			return;
@@ -140,7 +140,7 @@ class RecordingReaderWriter extends AbstractReaderWriter {
 }
 
 /**
- * Per-task driver behind <code>taskUtil.processEach(group, keys, callback, concurrent)</code>.
+ * Per-task driver behind <code>taskUtil.processEach(group, keys, options, callback)</code>.
  *
  * A task may call <code>processEach</code> more than once, once per <code>group</code>: a mandatory,
  * non-empty string naming the step group (for example <code>"js"</code> and <code>"css"</code> for a task
@@ -231,29 +231,42 @@ export default class ProcessEach {
 	 *   more than once as long as every call names a distinct group; each group's per-key data is
 	 *   persisted and reconciled independently. Appears in verbose log messages.
 	 * @param {Iterable} keys Resources or strings, as for a <code>map</code>
+	 * @param {object} [options] Optional settings, passed as the third argument ahead of
+	 *   <code>callback</code>. Omit it to call <code>run(group, keys, callback)</code>.
+	 * @param {boolean} [options.sequential=false] Run steps sequentially (writes visible to later steps
+	 *   immediately) or, by default, concurrently (buffered writes flushed in key order). Concurrent steps
+	 *   must be independent: two writing the same path throws.
 	 * @param {Function} callback <code>async (key, {workspace, dependencies, taskUtil}) => resource(s)</code>,
 	 *   where <code>taskUtil</code> is a per-step [MonitoredTaskUtil]{@link
 	 *   @ui5/project/build/helpers/MonitoredTaskUtil} attributing the step's non-resource inputs and tag
 	 *   operations to the step
-	 * @param {boolean} [concurrent=true] Run steps concurrently (buffered writes flushed in key order)
-	 *   or sequentially (writes visible to later steps immediately)
 	 * @returns {Promise<Array>} Per-key results aligned to <code>keys</code> order. Each entry is what
 	 *   that step returned (a resource, an array of resources, or <code>undefined</code>). A step served
 	 *   from cache contributes its previous run's returned resource(s), rebuilt from the CAS.
 	 */
-	async run(group, keys, callback, concurrent = true) {
+	async run(group, keys, options, callback) {
+		if (typeof options === "function") {
+			// Options omitted: run(group, keys, callback).
+			callback = options;
+			options = undefined;
+		}
 		if (typeof group !== "string" || !group) {
 			throw new Error("processEach: the first argument must be a non-empty string naming the step group");
 		}
+		if (typeof callback !== "function") {
+			throw new Error("processEach: callback must be a function");
+		}
+		if (options !== undefined && (typeof options !== "object" || options === null)) {
+			throw new Error("processEach: options must be an object");
+		}
+		const sequential = options?.sequential ?? false;
+		const concurrent = !sequential;
 		if (this.#invocationData.has(group)) {
 			// Each group's per-key data is persisted and reconciled under its own name, so a task may
 			// call processEach several times, but every call must name a distinct group.
 			throw new Error(
 				`processEach: group ${JSON.stringify(group)} was already run for this task; ` +
 				`each call must use a distinct group`);
-		}
-		if (typeof callback !== "function") {
-			throw new Error("processEach: callback must be a function");
 		}
 		const previous = this.#previousInvocationData?.get(group);
 		const entries = await this.#resolveEntries(keys);

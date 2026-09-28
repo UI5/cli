@@ -274,7 +274,7 @@ class TaskRunner {
 				// processEach neither builds a driver nor reads its persisted invocation data.
 				let processEachDriver;
 				const monitoredTaskUtil = new MonitoredTaskUtil(this._taskUtil, {
-					processEach: (group, keys, callback, concurrent) => {
+					processEach: (group, keys, options, callback) => {
 						if (!processEachDriver) {
 							processEachDriver = new ProcessEach({
 								workspace,
@@ -289,7 +289,7 @@ class TaskRunner {
 								signal: this._signal,
 							});
 						}
-						return processEachDriver.run(group, keys, callback, concurrent);
+						return processEachDriver.run(group, keys, options, callback);
 					},
 				});
 
@@ -585,7 +585,7 @@ class TaskRunner {
 					// Bind a processEach driver to this task's readers and cache state, exposed as
 					// taskUtil.processEach. Constructed lazily on first use, so a task that does not call
 					// processEach neither builds a driver nor reads its persisted invocation data.
-					monitoredTaskUtilOptions.processEach = (group, keys, callback, concurrent) => {
+					monitoredTaskUtilOptions.processEach = (group, keys, options, callback) => {
 						if (!processEachDriver) {
 							processEachDriver = new ProcessEach({
 								workspace,
@@ -600,7 +600,7 @@ class TaskRunner {
 								signal: this._signal,
 							});
 						}
-						return processEachDriver.run(group, keys, callback, concurrent);
+						return processEachDriver.run(group, keys, options, callback);
 					};
 				}
 				monitoredTaskUtil = new MonitoredTaskUtil(taskUtilInterface, monitoredTaskUtilOptions);
