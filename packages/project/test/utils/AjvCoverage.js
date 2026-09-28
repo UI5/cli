@@ -111,14 +111,15 @@ class AjvCoverage {
 		if (schemaNameMatch) {
 			fileName = schemaNameMatch[1];
 		} else {
-			// Probably a definition of a schema that is compiled separately
-			// Try to find the schema that is currently compiling
-			const schemas = Object.entries(this.ajv.schemas);
-			const compilingSchemas = schemas.filter(([, schema]) => schema.compiling);
-			if (compilingSchemas.length > 0) {
-				// Last schema is the current one
-				const lastSchemaEntry = compilingSchemas[compilingSchemas.length - 1];
-				fileName = lastSchemaEntry[0] + "-" + hash(originalCode);
+			// No sourceURL in the generated code. This happens for schemas that don't declare an
+			// (absolute) $id, in which case Ajv does not emit a sourceURL comment. Attribute the
+			// code to the schema Ajv is currently compiling: Ajv#_compilations is a stack (Set) of
+			// SchemaEnv objects, the last of which is the one being compiled right now. Its baseId
+			// is the key the schema was registered under (e.g. "specVersion/kind/project.json").
+			const compilations = [...(this.ajv._compilations || [])];
+			const currentSchemaEnv = compilations[compilations.length - 1];
+			if (currentSchemaEnv && currentSchemaEnv.baseId) {
+				fileName = currentSchemaEnv.baseId + "-" + hash(originalCode);
 			} else {
 				fileName = hash(originalCode);
 			}

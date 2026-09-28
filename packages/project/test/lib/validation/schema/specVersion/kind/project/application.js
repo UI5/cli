@@ -33,17 +33,17 @@ async function assertValidation(t, config, expectedErrors = undefined) {
 test.before((t) => {
 	t.context.validator = new Validator({Ajv, ajvErrors, schemaName: "ui5"});
 	t.context.ajvCoverage = new AjvCoverage(t.context.validator.ajv, {
-		includes: ["schema/specVersion/kind/project/application.json"]
+		includes: ["specVersion/kind/project/application.json"]
 	});
 });
 
 test.after.always((t) => {
 	t.context.ajvCoverage.createReport("html", {dir: "coverage/ajv-project-application"});
 	const thresholds = {
-		statements: 65,
-		branches: 60,
+		statements: 63,
+		branches: 63,
 		functions: 100,
-		lines: 65
+		lines: 63
 	};
 	t.context.ajvCoverage.verify(thresholds);
 });

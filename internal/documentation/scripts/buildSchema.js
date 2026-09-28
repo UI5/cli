@@ -4,21 +4,6 @@ import {writeFile, mkdir} from "node:fs/promises";
 import {$RefParser} from "@apidevtools/json-schema-ref-parser";
 import traverse from "traverse";
 
-// @apidevtools/json-schema-ref-parser v15+ resolves relative $ref values against the schema's $id
-// URI (strict RFC 6901) instead of the file system path. Our schemas use non-resolvable $id URLs
-// (http://ui5.sap/...) purely as AJV identifiers, which would make bundle() emit external refs to
-// those URLs instead of a self-contained document. Stripping $id on parse restores file-path-based
-// resolution (the pre-v15 behavior), yielding a fully bundled schema with internal pointers only.
-function stripId(node) {
-	if (Array.isArray(node)) {
-		node.forEach(stripId);
-	} else if (node && typeof node === "object") {
-		delete node.$id;
-		Object.values(node).forEach(stripId);
-	}
-	return node;
-}
-
 // Read the given CLI parameter to determine in which mode to run the script:
 // - workspace (default): Use @ui5/project from local workspace (packages/project)
 // - gh-pages: Use published version of @ui5/project from npm (downloaded via "downloadPackages.sh" beforehand)
@@ -49,20 +34,11 @@ try {
 		);
 
 		const parser = new $RefParser();
-		const schema = await parser.bundle(SOURCE_SCHEMA_PATH, {
-			parse: {
-				json: {
-					order: 1,
-					canParse: ".json",
-					parse: (file) => stripId(JSON.parse(
-						Buffer.isBuffer(file.data) ? file.data.toString() : file.data)),
-				},
-			},
-		});
+		const schema = await parser.bundle(SOURCE_SCHEMA_PATH);
 
-		// Remove $id from all nodes and $schema / $comment from all except the root node.
-		// Defining $id on the root is not required and as the URL will be a different one it might even cause issues.
-		// $schema only needs to be defined once per file.
+		// Remove the root $id (a relative identifier used by AJV; not needed in the bundled schema and,
+		// as the published URL differs, it might even cause issues) and $schema / $comment from all
+		// except the root node ($schema only needs to be defined once per file).
 		traverse(schema).forEach(function(v) {
 			// eslint-disable-next-line no-invalid-this
 			const traverseContext = this;

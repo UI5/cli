@@ -1,6 +1,5 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema",
-	"$id": "http://ui5.sap/schema/specVersion/kind/extension/project-shim.json",
 
 	"type": "object",
 	"required": ["specVersion", "kind", "type", "metadata", "shims"],
