@@ -4,6 +4,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v4.0.6...HEAD).
 
+## [5.0.0-alpha.12](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.11...project-v5.0.0-alpha.12) (2026-09-29)
+
+
+### Features
+
+* **project:** Add "off" mode to UI5_WATCH_MODE to disable file watching ([4b175ff](https://github.com/UI5/cli/commit/4b175ffb48679f58cd8617fefb007fbc8b862498))
+
+
+### Dependencies
+
+* Bump the npm group with 2 updates ([#1612](https://github.com/UI5/cli/issues/1612)) ([191729c](https://github.com/UI5/cli/commit/191729c7b05009c4af4924f84a2d479c19ef922d))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/fs bumped from ^5.0.0-alpha.11 to ^5.0.0-alpha.12
+    * @ui5/logger bumped from ^5.0.0-alpha.11 to ^5.0.0-alpha.12
+  * peerDependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.11 to ^5.0.0-alpha.12
+
 ## [5.0.0-alpha.11](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.10...project-v5.0.0-alpha.11) (2026-09-25)
 
 
