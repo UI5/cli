@@ -17,6 +17,7 @@ function fileExists(filePath) {
 	});
 }
 
+
 test.beforeEach(async (t) => {
 	t.context.devcertSanscache = sinon.stub();
 	t.context.mkdir = sinon.stub().resolves();

@@ -21,6 +21,12 @@ function createSessionStubs() {
 	return {Session, connectStub, postStub};
 }
 
+test.beforeEach(() => {
+	// profile.js logs progress messages via console.log; stub them out so this
+	// intentional output does not clutter the test output (restored in afterEach).
+	sinon.stub(console, "log");
+});
+
 test.afterEach.always(() => {
 	sinon.restore();
 });
