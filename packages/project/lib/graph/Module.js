@@ -2,7 +2,8 @@ import fs from "graceful-fs";
 import path from "node:path";
 import {promisify} from "node:util";
 const readFile = promisify(fs.readFile);
-import {loadAll as jsyamlLoadAll, CORE_SCHEMA as jsyamlCoreSchema} from "js-yaml";
+import {loadAll as jsyamlLoadAll} from "js-yaml";
+import ui5YamlSchema from "./helpers/ui5YamlSchema.js";
 import {createReader} from "@ui5/fs/resourceFactory";
 import Specification from "../specifications/Specification.js";
 import {validate} from "../validation/validator.js";
@@ -318,10 +319,11 @@ class Module {
 		let configs;
 
 		try {
-			// Using loadAll with CORE_SCHEMA (equivalent of v4's DEFAULT_SAFE_SCHEMA) to pass "filename".
+			// Use ui5YamlSchema (CORE_SCHEMA + mergeTag) to preserve v4 DEFAULT_SCHEMA
+			// behaviour.
 			configs = jsyamlLoadAll(configFile, undefined, {
 				filename: configPath,
-				schema: jsyamlCoreSchema
+				schema: ui5YamlSchema
 			});
 		} catch (err) {
 			if (err.name === "YAMLException") {

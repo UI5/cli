@@ -438,6 +438,40 @@ test("Corrupt configuration in file", async (t) => {
 		"Threw with parsing error");
 });
 
+test("Merge keys (<<:) in ui5.yaml are resolved and not left as literal keys", async (t) => {
+	// Regression test: js-yaml v5 CORE_SCHEMA drops merge key ("<<:") and timestamp
+	// support from v4's DEFAULT_SCHEMA. ui5YamlSchema restores both with mergeTag and
+	// timestampTag on top of CORE_SCHEMA.
+	const ui5Module = new Module({
+		id: "application.a.id",
+		version: "1.0.0",
+		modulePath: applicationAPath,
+		configPath: "ui5-merge-keys.yaml"
+	});
+	const {project} = await ui5Module.getSpecifications();
+	const cfg = project.getConfig();
+
+	// --- middleware: anchor defined on middleware-base, merged into middleware-extended ---
+	const mwExtended = cfg.server.customMiddleware[1].configuration;
+	// Keys from anchor must be merged in
+	t.is(mwExtended.debug, true, "Anchor key 'debug' merged into middleware configuration");
+	t.is(mwExtended.port, 3000, "Anchor key 'port' merged into middleware configuration");
+	// Local key overrides anchor value
+	t.is(mwExtended.timeout, 60, "Local 'timeout' overrides merged anchor value");
+	// No literal "<<" key must remain in the parsed object
+	t.false("<<" in mwExtended, "Merge key '<<' is resolved, not left as a literal mapping key");
+
+	// --- tasks: anchor defined on task-base, merged into task-extended ---
+	const taskExtended = cfg.builder.customTasks[1].configuration;
+	t.is(taskExtended.debug, true, "Anchor key 'debug' merged into task configuration");
+	// Local key overrides anchor value
+	t.true(taskExtended.minify, "Local 'minify: true' overrides merged anchor value 'false'");
+	// Extra key added in the local block must also be present
+	t.is(taskExtended.extraKey, "added-by-local-block", "Additional local key is preserved");
+	t.false("<<" in taskExtended, "Merge key '<<' is resolved, not left as a literal mapping key");
+});
+
+
 test("Empty configuration in file", async (t) => {
 	const ui5Module = new Module({
 		id: "application.a.id",

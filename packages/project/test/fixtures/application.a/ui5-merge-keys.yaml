@@ -1,0 +1,33 @@
+---
+specVersion: "4.0"
+metadata:
+  name: application.a
+type: application
+# Shared configuration anchor — used to verify that merge keys (<<:) are parsed
+# correctly by js-yaml v5 with the ui5YamlSchema (CORE_SCHEMA + mergeTag).
+server:
+  customMiddleware:
+    - name: middleware-base
+      afterMiddleware: compression
+      configuration: &sharedCfg
+        debug: true
+        port: 3000
+        timeout: 30
+    - name: middleware-extended
+      afterMiddleware: middleware-base
+      configuration:
+        <<: *sharedCfg
+        timeout: 60
+builder:
+  customTasks:
+    - name: task-base
+      afterTask: replaceVersion
+      configuration: &taskCfg
+        debug: true
+        minify: false
+    - name: task-extended
+      afterTask: task-base
+      configuration:
+        <<: *taskCfg
+        minify: true
+        extraKey: added-by-local-block
