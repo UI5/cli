@@ -2,6 +2,12 @@ import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
 
+test.beforeEach(() => {
+	// The init command writes the generated ui5.yaml to process.stdout; stub it out
+	// so this intentional output does not clutter the test output (restored in afterEach).
+	sinon.stub(process.stdout, "write");
+});
+
 test.afterEach.always((t) => {
 	sinon.restore();
 	esmock.purge(t.context.initCommand);
