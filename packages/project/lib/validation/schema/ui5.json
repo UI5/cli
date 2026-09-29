@@ -1,6 +1,6 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema",
-	"$id": "http://ui5.sap/schema/ui5.json",
+	"$id": "ui5.json",
 	"title": "ui5.yaml",
 	"description": "Schema for UI5 CLI Configuration File (ui5.yaml)",
 	"$comment": "See https://ui5.github.io/cli/",

@@ -33,7 +33,7 @@ async function assertValidation(t, config, expectedErrors = undefined) {
 test.before((t) => {
 	t.context.validator = new Validator({Ajv, ajvErrors, schemaName: "ui5"});
 	t.context.ajvCoverage = new AjvCoverage(t.context.validator.ajv, {
-		includes: ["schema/specVersion/kind/project/module.json"]
+		includes: ["specVersion/kind/project/module.json"]
 	});
 });
 
@@ -41,7 +41,7 @@ test.after.always((t) => {
 	t.context.ajvCoverage.createReport("html", {dir: "coverage/ajv-project-module"});
 	const thresholds = {
 		statements: 55,
-		branches: 55,
+		branches: 58,
 		functions: 100,
 		lines: 55
 	};

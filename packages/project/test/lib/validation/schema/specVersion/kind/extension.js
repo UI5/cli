@@ -26,7 +26,7 @@ async function assertValidation(t, config, expectedErrors = undefined) {
 test.before((t) => {
 	t.context.validator = new Validator({Ajv, ajvErrors, schemaName: "ui5"});
 	t.context.ajvCoverage = new AjvCoverage(t.context.validator.ajv, {
-		includes: ["schema/specVersion/kind/extension.json"]
+		includes: ["specVersion/kind/extension.json"]
 	});
 });
 

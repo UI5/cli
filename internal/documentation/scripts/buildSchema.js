@@ -36,9 +36,9 @@ try {
 		const parser = new $RefParser();
 		const schema = await parser.bundle(SOURCE_SCHEMA_PATH);
 
-		// Remove $id from all nodes and $schema / $comment from all except the root node.
-		// Defining $id on the root is not required and as the URL will be a different one it might even cause issues.
-		// $schema only needs to be defined once per file.
+		// Remove the root $id (a relative identifier used by AJV; not needed in the bundled schema and,
+		// as the published URL differs, it might even cause issues) and $schema / $comment from all
+		// except the root node ($schema only needs to be defined once per file).
 		traverse(schema).forEach(function(v) {
 			// eslint-disable-next-line no-invalid-this
 			const traverseContext = this;
