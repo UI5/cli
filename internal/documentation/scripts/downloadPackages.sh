@@ -44,11 +44,31 @@ download_packages() {
 	done
 }
 
+# Remove $id from downloaded JSON schema files.
+# Since v15, @apidevtools/json-schema-ref-parser honors $id as the base URI for $ref resolution.
+# Published @ui5/project versions may still carry legacy non-resolvable $id URLs (http://ui5.sap/...),
+# which would make buildSchema.js' bundle() attempt to fetch them over the network (ENOTFOUND) instead
+# of resolving $ref against the file system layout. Stripping $id here keeps the downloaded documents
+# bundleable regardless of the published version, without touching the (already fixed) local sources.
+strip_schema_ids() {
+	local schema_dir="$TMP_PACKAGES_DIR/@ui5/project/lib/validation/schema"
+
+	[ -d "$schema_dir" ] || return 0
+
+	echo "Stripping \$id from downloaded schema files in $schema_dir..."
+	find "$schema_dir" -name '*.json' -print0 | while IFS= read -r -d '' schema_file; do
+		local tmp_file
+		tmp_file="$(mktemp)"
+		jq 'del(.. | .["$id"]?)' "$schema_file" > "$tmp_file" && mv "$tmp_file" "$schema_file"
+	done
+}
+
 main() {
 	cd "$DOC_ROOT"
 	echo "Changed directory to $(pwd)"
 
 	download_packages
+	strip_schema_ids
 }
 
 main "$@"
