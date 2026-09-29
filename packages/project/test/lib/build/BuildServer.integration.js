@@ -1606,6 +1606,27 @@ class FixtureTester {
 	}
 
 	_assertBuild(assertions) {
+		/**
+		 * assertions object structure:
+		 * {
+		 *   projects: {
+		 *     "projectName": {
+		 *       executedTasks: ["task1", "task2"],
+		 *       skippedTasks: ["task3", "task4"],
+		 *       writtenResources: {
+		 *         "taskName": ["/resources/path/a", "/resources/path/b"],
+		 *       },
+		 *     },
+		 *     // ...
+		 *   }
+		 * }
+		 *
+		 * writtenResources - optional per project, asserts the exact set of resource paths a task
+		 *   wrote (sourced from the `writtenResourcePaths` field of the `task-end` build-status
+		 *   event). Only tasks listed are asserted; other tasks are ignored. This is the signal for
+		 *   delta-build correctness: it reveals WHAT a task did (which outputs it (re-)wrote), not
+		 *   just whether it ran.
+		 */
 		const {projects = {}} = assertions;
 
 		const projectsInOrder = [];
@@ -1623,16 +1644,19 @@ class FixtureTester {
 			}
 		}
 
-		// Extract task status to identify skipped & executed tasks per project
+		// Extract task status to identify skipped & executed tasks and written resources per project
 		const projectBuildStatusEvents = this._t.context.projectBuildStatusEventStub.args.map((args) => args[0]);
 		for (const event of projectBuildStatusEvents) {
 			if (!tasksByProject[event.projectName]) {
-				tasksByProject[event.projectName] = {executed: [], skipped: []};
+				tasksByProject[event.projectName] = {executed: [], skipped: [], writtenResources: {}};
 			}
 			if (event.status === "task-skip") {
 				tasksByProject[event.projectName].skipped.push(event.taskName);
 			} else if (event.status === "task-start") {
 				tasksByProject[event.projectName].executed.push(event.taskName);
+			} else if (event.status === "task-end") {
+				tasksByProject[event.projectName].writtenResources[event.taskName] =
+					event.writtenResourcePaths;
 			}
 		}
 
@@ -1651,12 +1675,23 @@ class FixtureTester {
 				"Executed tasks for project " + projectName + " do not match expected");
 		}
 
-		// Assert skipped tasks per project
-		for (const [projectName, expectedSkipped] of Object.entries(projects)) {
-			const skippedTasks = expectedSkipped.skippedTasks || [];
+		// Assert skipped tasks and written resources per project
+		for (const [projectName, expected] of Object.entries(projects)) {
+			const skippedTasks = expected.skippedTasks || [];
 			const actualSkipped = (tasksByProject[projectName]?.skipped || []).sort();
 			const expectedArray = skippedTasks.sort();
 			this._t.deepEqual(actualSkipped, expectedArray);
+
+			if (expected.writtenResources) {
+				const actualWritten = tasksByProject[projectName]?.writtenResources || {};
+				for (const [taskName, expectedPaths] of Object.entries(expected.writtenResources)) {
+					this._t.deepEqual(
+						[...(actualWritten[taskName] || [])].sort(),
+						[...expectedPaths].sort(),
+						`Written resources of task '${taskName}' in project '${projectName}' should match expected`
+					);
+				}
+			}
 		}
 	}
 }
