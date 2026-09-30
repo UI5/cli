@@ -166,158 +166,44 @@ async function isThemeAvailable(themeResource, combo, {librariesPattern, themesP
 /**
  * Task to build a library theme.
  *
- * When a build cache is available, each theme's <code>library.source.less</code> is built as its own
- * cached [processEach]{@link @ui5/project/build/helpers/TaskUtil#processEach} step. A step probes only
- * the gating marker and imports of its own theme, so a delta build rebuilds only the affected theme and
- * leaves the others served from cache. Without a build cache the task builds all available themes in one
- * batch.
+ * A step-based task: the default export is a factory returning one map step with a key per theme's
+ * <code>library.source.less</code>. A step probes only the gating marker and imports of its own theme,
+ * so a delta build rebuilds only the affected theme and leaves the others served from cache. Standalone
+ * invocation runs every theme through @ui5/builder's runSteps.
  *
  * @public
  * @function default
  * @static
  *
- * @param {object} parameters Parameters
- * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
- * @param {@ui5/builder/tasks/TaskUtil|object} [parameters.taskUtil] TaskUtil instance.
- *    Required to run buildThemes in parallel execution mode.
- * @param {object} parameters.options Options
- * @param {string} parameters.options.projectName Project name
- * @param {string} parameters.options.inputPattern Search pattern for *.less files to be built
- * @param {string} [parameters.options.librariesPattern] Search pattern for .library files
- * @param {string} [parameters.options.themesPattern] Search pattern for sap.ui.core theme folders
- * @param {boolean} [parameters.options.compress=true]
- * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
+ * @param {object} options Options
+ * @param {string} options.projectName Project name
+ * @param {string} options.inputPattern Search pattern for *.less files to be built
+ * @param {string} [options.librariesPattern] Search pattern for .library files
+ * @param {string} [options.themesPattern] Search pattern for sap.ui.core theme folders
+ * @param {boolean} [options.compress=true]
+ * @returns {object[]} The task's build steps
  */
-export default async function({
-	workspace, dependencies, taskUtil,
-	options: {
-		projectName, inputPattern, librariesPattern, themesPattern, compress,
-	}
-}) {
+export default function build({projectName, inputPattern, librariesPattern, themesPattern, compress}) {
 	compress = compress === undefined ? true : compress;
 
-	if (taskUtil?.processEach) {
-		const themeResources = await workspace.byGlob(inputPattern);
-		await taskUtil.processEach("themes", themeResources,
-			async (themeResource, {workspace, dependencies, taskUtil}) => {
-				// Prioritize workspace over dependencies, as the batch path does. Reads through this combo
-				// are attributed to this step, so the marker probe and import resolution become tracked
-				// inputs of this specific theme.
-				const combo = new ReaderCollectionPrioritized({
-					name: `theme - prioritize workspace over dependencies: ${projectName}`,
-					readers: dependencies ? [workspace, dependencies] : [workspace],
-				});
-				if (!(await isThemeAvailable(themeResource, combo, {librariesPattern, themesPattern}))) {
-					// The gating marker/theme folder is missing: write nothing. The probes above are recorded,
-					// so a later marker creation re-runs this step and builds the theme.
-					return;
-				}
-				const processedResources = await buildThemeResources([themeResource], combo, compress, taskUtil);
-				await Promise.all(processedResources.map((resource) => workspace.write(resource)));
+	return [{
+		name: "buildThemes",
+		// One key per theme's library.source.less, so a delta build rebuilds only the affected theme.
+		keys: async ({workspace}) => workspace.byGlob(inputPattern),
+		each: async (themeResource, {workspace, dependencies, taskUtil}) => {
+			// Prioritize workspace over dependencies. Reads through this combo are attributed to this step,
+			// so the marker probe and import resolution become tracked inputs of this specific theme.
+			const combo = new ReaderCollectionPrioritized({
+				name: `theme - prioritize workspace over dependencies: ${projectName}`,
+				readers: dependencies ? [workspace, dependencies] : [workspace],
 			});
-		return;
-	}
-
-	// Standalone use without a build cache: build all available themes in one batch.
-	const combo = new ReaderCollectionPrioritized({
-		name: `theme - prioritize workspace over dependencies: ${projectName}`,
-		readers: [workspace, dependencies]
-	});
-
-	const pThemeResources = workspace.byGlob(inputPattern);
-	let pAvailableLibraries;
-	let pAvailableThemes;
-	if (librariesPattern) {
-		// If a librariesPattern is given
-		//	we will use it to reduce the set of libraries a theme will be built for
-		pAvailableLibraries = combo.byGlob(librariesPattern);
-	}
-	if (themesPattern) {
-		// If a themesPattern is given
-		//	we will use it to reduce the set of themes that will be built
-		pAvailableThemes = combo.byGlob(themesPattern, {nodir: false});
-	}
-
-	/* Don't try to build themes for libraries that are not available
-	(maybe replace this with something more aware of which dependencies are optional and therefore
-		legitimately missing and which not (fault case))
-		*/
-	let availableLibraries;
-	if (pAvailableLibraries) {
-		availableLibraries = [];
-		(await pAvailableLibraries).forEach((resource) => {
-			const library = path.dirname(resource.getPath());
-			if (!availableLibraries.includes(library)) {
-				availableLibraries.push(library);
+			if (!(await isThemeAvailable(themeResource, combo, {librariesPattern, themesPattern}))) {
+				// The gating marker/theme folder is missing: write nothing. The probes above are recorded,
+				// so a later marker creation re-runs this step and builds the theme.
+				return;
 			}
-		});
-	}
-	let availableThemes;
-	if (pAvailableThemes) {
-		availableThemes = (await pAvailableThemes)
-			.filter((resource) => resource.getStatInfo().isDirectory())
-			.map((resource) => {
-				return path.basename(resource.getPath());
-			});
-	}
-
-	let themeResources = await pThemeResources;
-
-	const isAvailable = function(resource) {
-		let libraryAvailable = false;
-		let themeAvailable = false;
-		const resourcePath = resource.getPath();
-		const themeName = path.basename(path.dirname(resourcePath));
-
-		if (!availableLibraries || availableLibraries.length === 0) {
-			libraryAvailable = true; // If no libraries are found, build themes for all libraries
-		} else {
-			for (let i = availableLibraries.length - 1; i >= 0; i--) {
-				if (resourcePath.startsWith(availableLibraries[i])) {
-					libraryAvailable = true;
-				}
-			}
-		}
-
-		if (!availableThemes || availableThemes.length === 0) {
-			themeAvailable = true; // If no themes are found, build all themes
-		} else {
-			themeAvailable = availableThemes.includes(themeName);
-		}
-
-		if (log.isLevelEnabled("verbose")) {
-			if (!libraryAvailable) {
-				log.silly(`Skipping ${resourcePath}: Library is not available`);
-			}
-			if (!themeAvailable) {
-				log.verbose(`Skipping ${resourcePath}: sap.ui.core theme '${themeName}' is not available. ` +
-				"If you experience missing themes, check whether you have added the corresponding theme " +
-				"library to your projects dependencies and make sure that your custom themes contain " +
-				"resources for the sap.ui.core namespace.");
-			}
-		}
-
-		// Only build if library and theme are available
-		return libraryAvailable && themeAvailable;
-	};
-
-	if (availableLibraries || availableThemes) {
-		if (log.isLevelEnabled("verbose")) {
-			log.verbose("Filtering themes to be built:");
-			if (availableLibraries) {
-				log.verbose(`Available libraries: ${availableLibraries.join(", ")}`);
-			}
-			if (availableThemes) {
-				log.verbose(`Available sap.ui.core themes: ${availableThemes.join(", ")}`);
-			}
-		}
-		themeResources = themeResources.filter(isAvailable);
-	}
-
-	const processedResources = await buildThemeResources(themeResources, combo, compress, taskUtil);
-
-	await Promise.all(processedResources.map((resource) => {
-		return workspace.write(resource);
-	}));
+			const processedResources = await buildThemeResources([themeResource], combo, compress, taskUtil);
+			await Promise.all(processedResources.map((resource) => workspace.write(resource)));
+		},
+	}];
 }

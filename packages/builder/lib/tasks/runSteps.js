@@ -31,7 +31,9 @@ class BufferedWriter extends AbstractReaderWriter {
 		return this.#workspace.byPath(virPath, options);
 	}
 
-	async _write(resource, options) {
+	// Override the public write (rather than _write) so the caller's exact arguments are preserved: the
+	// base class would default options to an object, which the key-order flush would then re-pass.
+	async write(resource, ...args) {
 		// Real resources are keyed and deduplicated by their virtual path; a value without getPath
 		// (a test fake) is keyed by identity so it still buffers and flushes in insertion order.
 		const key = typeof resource.getPath === "function" ? resource.getPath() : resource;
@@ -41,7 +43,7 @@ class BufferedWriter extends AbstractReaderWriter {
 				`Concurrent map-step keys must not write the same resource path ${key}. ` +
 				`Pass {sequential: true} if a later key must build on an earlier key's writes.`);
 		}
-		this.#buffer.set(key, {resource, options, index: this.#index});
+		this.#buffer.set(key, {resource, args, index: this.#index});
 	}
 }
 
@@ -104,8 +106,8 @@ export default async function runSteps(build, {workspace, dependencies, taskUtil
 			const buffer = new Map();
 			const results = await Promise.all(keys.map((key, index) =>
 				step.each(key, {...context, workspace: new BufferedWriter(workspace, buffer, index)})));
-			for (const {resource, options: writeOptions} of [...buffer.values()].sort((a, b) => a.index - b.index)) {
-				await workspace.write(resource, writeOptions);
+			for (const {resource, args} of [...buffer.values()].sort((a, b) => a.index - b.index)) {
+				await workspace.write(resource, ...args);
 			}
 			returns.set(step.name, results);
 		}

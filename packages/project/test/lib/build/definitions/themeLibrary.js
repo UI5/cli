@@ -64,6 +64,7 @@ test("Standard build", (t) => {
 			},
 		},
 		buildThemes: {
+			stepBased: true,
 			requiresDependencies: true,
 			options: {
 				projectName: "project.b",
@@ -123,6 +124,7 @@ test("Standard build for non root project", (t) => {
 			},
 		},
 		buildThemes: {
+			stepBased: true,
 			requiresDependencies: true,
 			options: {
 				projectName: "project.b",
@@ -150,6 +152,7 @@ test("CSS variables enabled", (t) => {
 
 	const taskDefinition = tasks.get("buildThemes");
 	t.deepEqual(taskDefinition, {
+		stepBased: true,
 		requiresDependencies: true,
 		options: {
 			projectName: "project.b",

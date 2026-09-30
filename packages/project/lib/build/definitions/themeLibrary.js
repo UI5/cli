@@ -27,6 +27,7 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("buildThemes", {
+		stepBased: true,
 		requiresDependencies: true,
 		options: {
 			projectName: project.getName(),

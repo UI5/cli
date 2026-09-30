@@ -114,6 +114,7 @@ test("Standard build", async (t) => {
 			}
 		},
 		buildThemes: {
+			stepBased: true,
 			requiresDependencies: true,
 			options: {
 				projectName: "project.b",
@@ -253,6 +254,7 @@ test("Standard build with legacy spec version", (t) => {
 			}
 		},
 		buildThemes: {
+			stepBased: true,
 			requiresDependencies: true,
 			options: {
 				projectName: "project.b",
@@ -392,6 +394,7 @@ test("Custom bundles", async (t) => {
 			taskFunction: generateBundleTaskDefinition.taskFunction
 		},
 		buildThemes: {
+			stepBased: true,
 			requiresDependencies: true,
 			options: {
 				projectName: "project.b",
@@ -636,6 +639,7 @@ test("buildThemes: Project is not root", (t) => {
 
 	const taskDefinition = tasks.get("buildThemes");
 	t.deepEqual(taskDefinition, {
+		stepBased: true,
 		requiresDependencies: true,
 		options: {
 			projectName: "project.b",
@@ -691,6 +695,7 @@ test("buildThemes: CSS Variables enabled", (t) => {
 
 	const taskDefinition = tasks.get("buildThemes");
 	t.deepEqual(taskDefinition, {
+		stepBased: true,
 		requiresDependencies: true,
 		options: {
 			projectName: "project.b",
@@ -767,6 +772,7 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 			}
 		},
 		buildThemes: {
+			stepBased: true,
 			requiresDependencies: true,
 			options: {
 				projectName: "project.b",
