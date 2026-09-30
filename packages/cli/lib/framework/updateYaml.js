@@ -1,6 +1,7 @@
 import path from "node:path";
 import {readFile, writeFile} from "node:fs/promises";
 import {loadAll, dump} from "js-yaml";
+import ui5YamlSchema from "./ui5YamlSchema.js";
 import {fromYaml, getPosition, getValue, getKind} from "data-with-position";
 import {getLogger} from "@ui5/logger";
 
@@ -8,7 +9,8 @@ const log = getLogger("cli:framework:updateYaml");
 
 function getProjectYamlDocument({project, configFile, configPath}) {
 	const configs = loadAll(configFile, undefined, {
-		filename: configPath
+		filename: configPath,
+		schema: ui5YamlSchema
 	});
 
 	const projectDocumentIndex = configs.findIndex((config) => {
@@ -277,7 +279,7 @@ export default async function({project, configPathOverride, data}) {
 
 	// Validate content before writing
 	try {
-		loadAll(adoptedYaml);
+		loadAll(adoptedYaml, undefined, {schema: ui5YamlSchema});
 	} catch (err) {
 		const error = new Error("Failed to update YAML file: " + err.message);
 		error.name = "FrameworkUpdateYamlFailed";

@@ -74,7 +74,8 @@ async function readWorkspaceConfigFile(filePath) {
 	} = await import("graceful-fs");
 	const {promisify} = await import("node:util");
 	const readFile = promisify(fs.readFile);
-	const jsyaml = await import("js-yaml");
+	const {loadAll: jsyamlLoadAll} = await import("js-yaml");
+	const {default: ui5YamlSchema} = await import("./ui5YamlSchema.js");
 
 	let fileContent;
 	try {
@@ -87,8 +88,9 @@ async function readWorkspaceConfigFile(filePath) {
 	}
 	let configs;
 	try {
-		configs = jsyaml.loadAll(fileContent, undefined, {
+		configs = jsyamlLoadAll(fileContent, undefined, {
 			filename: filePath,
+			schema: ui5YamlSchema
 		});
 	} catch (err) {
 		throw new Error(`Failed to parse workspace configuration at ${filePath}\nError: ${err.message}`);

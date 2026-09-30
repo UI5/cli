@@ -1,4 +1,4 @@
-import yaml from "js-yaml";
+import {load as yamlLoad} from "js-yaml";
 import Configuration from "./benchmark/Configuration.js";
 
 /**
@@ -37,7 +37,7 @@ export default class ConfigurationLoader {
 
 		let parsedYaml;
 		try {
-			parsedYaml = yaml.load(fileContents);
+			parsedYaml = yamlLoad(fileContents);
 		} catch (error) {
 			throw new Error(`Failed to parse YAML configuration: ${error.message}`);
 		}

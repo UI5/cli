@@ -199,6 +199,7 @@ const utils = {
 		const {promisify} = await import("util");
 		const readFile = promisify(fs.readFile);
 		const parseYaml =(await import("js-yaml")).load;
+		const {default: ui5YamlSchema} = await import("./helpers/ui5YamlSchema.js");
 
 		filePath = utils.resolveConfigPath(cwd, filePath);
 
@@ -206,7 +207,8 @@ const utils = {
 		try {
 			const contents = await readFile(filePath, {encoding: "utf-8"});
 			dependencyTree = parseYaml(contents, {
-				filename: filePath
+				filename: filePath,
+				schema: ui5YamlSchema
 			});
 			utils.resolveProjectPaths(cwd, dependencyTree);
 		} catch (err) {
