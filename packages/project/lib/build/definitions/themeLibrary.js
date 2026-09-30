@@ -39,6 +39,7 @@ export default function({project, taskUtil, getTask}) {
 
 	if (project.isFrameworkProject()) {
 		tasks.set("generateThemeDesignerResources", {
+			stepBased: true,
 			requiresDependencies: true,
 			options: {
 				version: project.getVersion()

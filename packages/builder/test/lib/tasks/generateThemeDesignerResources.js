@@ -1,6 +1,7 @@
 import test from "ava";
 import sinonGlobal from "sinon";
 import esmock from "esmock";
+import runSteps from "../../../lib/tasks/runSteps.js";
 
 test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
@@ -72,9 +73,16 @@ test.serial("generateThemeDesignerResources: Library", async (t) => {
 	const libraryLessResource2 = {};
 	const libraryLessResource3 = {};
 
-	libraryLessGeneratorStub.resolves([libraryLessResource1, libraryLessResource2, libraryLessResource3]);
+	// One step per theme, so libraryLessGenerator is called once per theme; return a distinct resource
+	// per input theme so concurrent writes stay independent.
+	const lessByTheme = new Map([
+		[librarySourceLessResource1, libraryLessResource1],
+		[librarySourceLessResource2, libraryLessResource2],
+		[librarySourceLessResource3, libraryLessResource3],
+	]);
+	libraryLessGeneratorStub.callsFake(async ({resources}) => [lessByTheme.get(resources[0])]);
 
-	await generateThemeDesignerResources({
+	await runSteps(generateThemeDesignerResources, {
 		workspace,
 		dependencies,
 		options: {
@@ -84,87 +92,69 @@ test.serial("generateThemeDesignerResources: Library", async (t) => {
 		}
 	});
 
-	t.is(t.context.ReaderCollectionPrioritizedStub.callCount, 1, "ReaderCollectionPrioritized should be created once");
-	t.deepEqual(t.context.ReaderCollectionPrioritizedStub.getCall(0).args, [{
-		name: `generateThemeDesignerResources - prioritize workspace over dependencies: sap.ui.demo.lib`,
-		readers: [workspace, dependencies]
-	}]);
+	// A combo is created per theme; its first reader is the step's (recording) workspace, the second the
+	// dependencies reader.
+	t.is(t.context.ReaderCollectionPrioritizedStub.callCount, 3, "ReaderCollectionPrioritized created per theme");
+	const rcpArgs = t.context.ReaderCollectionPrioritizedStub.getCall(0).args[0];
+	t.is(rcpArgs.name, `generateThemeDesignerResources - prioritize workspace over dependencies: sap.ui.demo.lib`);
+	t.is(rcpArgs.readers.length, 2, "combo has a workspace and a dependencies reader");
+	t.is(rcpArgs.readers[1], dependencies, "second combo reader is the dependencies reader");
 	const combo = t.context.ReaderCollectionPrioritizedStub.getCall(0).returnValue;
 
-	t.is(fsInterfaceStub.callCount, 1, "fsInterface should be created once");
-	t.deepEqual(fsInterfaceStub.getCall(0).args, [combo], "fsInterface should be created for 'combo'");
+	t.is(fsInterfaceStub.callCount, 3, "fsInterface created per theme");
+	t.is(fsInterfaceStub.getCall(0).args[0], combo, "fsInterface should be created for 'combo'");
 	const fs = fsInterfaceStub.getCall(0).returnValue;
 
-	t.is(libraryLessGeneratorStub.callCount, 1);
+	t.is(libraryLessGeneratorStub.callCount, 3, "libraryLessGenerator called per theme");
+	const lessInputs = libraryLessGeneratorStub.getCalls().map((call) => call.args[0].resources[0]);
+	t.true(lessInputs.includes(librarySourceLessResource1), "base theme processed");
+	t.true(lessInputs.includes(librarySourceLessResource2), "my_theme processed");
+	t.true(lessInputs.includes(librarySourceLessResource3), "sap_fiori_3 processed");
+	libraryLessGeneratorStub.getCalls().forEach((call) =>
+		t.is(call.args[0].fs, fs, "libraryLessGenerator called with the combo's fs"));
 
-	t.deepEqual(libraryLessGeneratorStub.getCall(0).args[0], {
-		resources: [librarySourceLessResource1, librarySourceLessResource2, librarySourceLessResource3],
-		fs,
-	}, "libraryLessGenerator processor should be called with expected arguments");
-
+	// new Resource is created for the library .theming and for the generated base/my_theme .theming;
+	// sap_fiori_3 is cloned from the core theme instead. Order across the concurrent themes is not
+	// guaranteed, so assert membership.
 	t.is(ResourceStub.callCount, 3);
 	t.true(ResourceStub.alwaysCalledWithNew());
-
-	t.deepEqual(ResourceStub.getCall(0).args, [{
-		path: "/resources/sap/ui/demo/lib/.theming",
-		string: JSON.stringify({
+	const resourceArgs = ResourceStub.getCalls().map((call) => call.args[0]);
+	t.true(resourceArgs.some((args) =>
+		args.path === "/resources/sap/ui/demo/lib/.theming" &&
+		args.string === JSON.stringify({
 			sEntity: "Library",
 			sId: "sap/ui/demo/lib",
 			sVersion: "1.2.3"
-		}, null, 2)
-	}]);
-	const libraryDotTheming = ResourceStub.getCall(0).returnValue;
-
-	t.deepEqual(ResourceStub.getCall(1).args, [{
-		path: "/resources/sap/ui/demo/lib/themes/base/.theming",
-		string: JSON.stringify({
+		}, null, 2)), "library .theming created");
+	t.true(resourceArgs.some((args) =>
+		args.path === "/resources/sap/ui/demo/lib/themes/base/.theming" &&
+		args.string === JSON.stringify({
 			sEntity: "Theme",
 			sId: "base",
 			sVendor: "SAP"
-		}, null, 2)
-	}]);
-	const baseThemeDotTheming = ResourceStub.getCall(1).returnValue;
-
-	t.deepEqual(ResourceStub.getCall(2).args, [{
-		path: "/resources/sap/ui/demo/lib/themes/my_theme/.theming",
-		string: JSON.stringify({
+		}, null, 2)), "base theme .theming created");
+	t.true(resourceArgs.some((args) =>
+		args.path === "/resources/sap/ui/demo/lib/themes/my_theme/.theming" &&
+		args.string === JSON.stringify({
 			sEntity: "Theme",
 			sId: "my_theme",
 			sVendor: "SAP",
 			oExtends: "base"
-		}, null, 2)
-	}]);
-	const myThemeDotTheming = ResourceStub.getCall(2).returnValue;
+		}, null, 2)), "my_theme .theming created");
 
 	t.is(clonedCoreBaseDotThemingResourceStub.setPath.callCount, 1);
 	t.deepEqual(clonedCoreBaseDotThemingResourceStub.setPath.getCall(0).args,
 		["/resources/sap/ui/demo/lib/themes/sap_fiori_3/.theming"]);
 
-	t.is(workspace.write.callCount, 7);
-	t.is(workspace.write.getCall(0).args.length, 1,
-		"workspace.write for libraryDotTheming should be called with 1 argument");
-	t.is(workspace.write.getCall(0).args[0], libraryDotTheming,
-		"workspace.write should be called with libraryDotTheming");
-	t.is(workspace.write.getCall(1).args.length, 1,
-		"workspace.write for baseThemeDotTheming should be called with 1 argument");
-	t.is(workspace.write.getCall(1).args[0], baseThemeDotTheming,
-		"workspace.write should be called with baseThemeDotTheming");
-	t.is(workspace.write.getCall(2).args.length, 1,
-		"workspace.write for myThemeDotTheming should be called with 1 argument");
-	t.is(workspace.write.getCall(2).args[0], myThemeDotTheming,
-		"workspace.write should be called with myThemeDotTheming");
-	t.is(workspace.write.getCall(3).args.length, 1,
-		"workspace.write for clonedCoreBaseDotThemingResourceStub should be called with 1 argument");
-	t.is(workspace.write.getCall(3).args[0], clonedCoreBaseDotThemingResourceStub,
-		"workspace.write should be called with clonedCoreBaseDotThemingResourceStub");
-	t.is(workspace.write.getCall(4).args.length, 1,
-		"workspace.write for libraryLessResource1 should be called with 1 argument");
-	t.is(workspace.write.getCall(4).args[0], libraryLessResource1,
-		"workspace.write should be called with libraryLessResource1");
-	t.is(workspace.write.getCall(5).args.length, 1,
-		"workspace.write for libraryLessResource2 should be called with 1 argument");
-	t.is(workspace.write.getCall(5).args[0], libraryLessResource2,
-		"workspace.write should be called with libraryLessResource2");
+	// Written: the library .theming, the three theme .theming (two created, sap_fiori_3 cloned), and the
+	// three library.less resources.
+	const written = workspace.write.getCalls().map((call) => call.args[0]);
+	t.is(written.length, 7, "workspace.write called for every produced resource");
+	ResourceStub.getCalls().forEach((call) =>
+		t.true(written.includes(call.returnValue), "each created .theming was written"));
+	t.true(written.includes(clonedCoreBaseDotThemingResourceStub), "the cloned sap_fiori_3 .theming was written");
+	[libraryLessResource1, libraryLessResource2, libraryLessResource3].forEach((resource) =>
+		t.true(written.includes(resource), "each library.less was written"));
 });
 
 test.serial("generateThemeDesignerResources: Library sap.ui.core", async (t) => {
@@ -197,7 +187,7 @@ test.serial("generateThemeDesignerResources: Library sap.ui.core", async (t) => 
 
 	libraryLessGeneratorStub.resolves([libraryLessResource]);
 
-	await generateThemeDesignerResources({
+	await runSteps(generateThemeDesignerResources, {
 		workspace,
 		dependencies,
 		options: {
@@ -208,10 +198,10 @@ test.serial("generateThemeDesignerResources: Library sap.ui.core", async (t) => 
 	});
 
 	t.is(t.context.ReaderCollectionPrioritizedStub.callCount, 1, "ReaderCollectionPrioritized should be created once");
-	t.deepEqual(t.context.ReaderCollectionPrioritizedStub.getCall(0).args, [{
-		name: `generateThemeDesignerResources - prioritize workspace over dependencies: sap.ui.core`,
-		readers: [workspace, dependencies]
-	}]);
+	const rcpArgs = t.context.ReaderCollectionPrioritizedStub.getCall(0).args[0];
+	t.is(rcpArgs.name, `generateThemeDesignerResources - prioritize workspace over dependencies: sap.ui.core`);
+	t.is(rcpArgs.readers.length, 2, "combo has a workspace and a dependencies reader");
+	t.is(rcpArgs.readers[1], dependencies, "second combo reader is the dependencies reader");
 	const combo = t.context.ReaderCollectionPrioritizedStub.getCall(0).returnValue;
 
 	t.is(fsInterfaceStub.callCount, 1, "fsInterface should be created once");
@@ -296,7 +286,7 @@ test.serial("generateThemeDesignerResources: Library sap.ui.core with existing l
 
 	libraryLessGeneratorStub.resolves([libraryLessResource]);
 
-	await generateThemeDesignerResources({
+	await runSteps(generateThemeDesignerResources, {
 		workspace,
 		dependencies,
 		options: {
@@ -307,10 +297,10 @@ test.serial("generateThemeDesignerResources: Library sap.ui.core with existing l
 	});
 
 	t.is(t.context.ReaderCollectionPrioritizedStub.callCount, 1, "ReaderCollectionPrioritized should be created once");
-	t.deepEqual(t.context.ReaderCollectionPrioritizedStub.getCall(0).args, [{
-		name: `generateThemeDesignerResources - prioritize workspace over dependencies: sap.ui.core`,
-		readers: [workspace, dependencies]
-	}]);
+	const rcpArgs = t.context.ReaderCollectionPrioritizedStub.getCall(0).args[0];
+	t.is(rcpArgs.name, `generateThemeDesignerResources - prioritize workspace over dependencies: sap.ui.core`);
+	t.is(rcpArgs.readers.length, 2, "combo has a workspace and a dependencies reader");
+	t.is(rcpArgs.readers[1], dependencies, "second combo reader is the dependencies reader");
 	const combo = t.context.ReaderCollectionPrioritizedStub.getCall(0).returnValue;
 
 	t.is(fsInterfaceStub.callCount, 1, "fsInterface should be created once");
@@ -387,7 +377,7 @@ test.serial("generateThemeDesignerResources: Library sap.ui.core without themes,
 
 	libraryLessGeneratorStub.resolves([libraryLessResource]);
 
-	await generateThemeDesignerResources({
+	await runSteps(generateThemeDesignerResources, {
 		workspace,
 		dependencies,
 		options: {
@@ -456,7 +446,7 @@ test.serial("generateThemeDesignerResources: Library sap.ui.core with existing i
 
 	libraryLessGeneratorStub.resolves([libraryLessResource]);
 
-	await t.throwsAsync(generateThemeDesignerResources({
+	await t.throwsAsync(runSteps(generateThemeDesignerResources, {
 		workspace,
 		dependencies,
 		options: {
@@ -489,7 +479,7 @@ test.serial("generateThemeDesignerResources: Library sap.ui.documentation is ski
 		write: sinon.stub()
 	};
 
-	await generateThemeDesignerResources({
+	await runSteps(generateThemeDesignerResources, {
 		workspace: {},
 		dependencies: {},
 		options: {
@@ -517,7 +507,7 @@ test.serial("generateThemeDesignerResources: Library without themes", async (t) 
 		write: sinon.stub()
 	};
 
-	await generateThemeDesignerResources({
+	await runSteps(generateThemeDesignerResources, {
 		workspace,
 		dependencies: {},
 		options: {
@@ -575,7 +565,7 @@ test.serial("generateThemeDesignerResources: Theme-Library", async (t) => {
 
 	libraryLessGeneratorStub.resolves([libraryLessResource]);
 
-	await generateThemeDesignerResources({
+	await runSteps(generateThemeDesignerResources, {
 		workspace,
 		dependencies,
 		options: {
@@ -585,10 +575,10 @@ test.serial("generateThemeDesignerResources: Theme-Library", async (t) => {
 	});
 
 	t.is(t.context.ReaderCollectionPrioritizedStub.callCount, 1, "ReaderCollectionPrioritized should be created once");
-	t.deepEqual(t.context.ReaderCollectionPrioritizedStub.getCall(0).args, [{
-		name: `generateThemeDesignerResources - prioritize workspace over dependencies: sap.ui.demo.lib`,
-		readers: [workspace, dependencies]
-	}]);
+	const rcpArgs = t.context.ReaderCollectionPrioritizedStub.getCall(0).args[0];
+	t.is(rcpArgs.name, `generateThemeDesignerResources - prioritize workspace over dependencies: sap.ui.demo.lib`);
+	t.is(rcpArgs.readers.length, 2, "combo has a workspace and a dependencies reader");
+	t.is(rcpArgs.readers[1], dependencies, "second combo reader is the dependencies reader");
 	const combo = t.context.ReaderCollectionPrioritizedStub.getCall(0).returnValue;
 
 	t.is(fsInterfaceStub.callCount, 1, "fsInterface should be created once");
@@ -653,7 +643,7 @@ test.serial("generateThemeDesignerResources: .theming file missing in sap.ui.cor
 
 	libraryLessGeneratorStub.resolves([libraryLessResource]);
 
-	await t.throwsAsync(generateThemeDesignerResources({
+	await t.throwsAsync(runSteps(generateThemeDesignerResources, {
 		workspace,
 		dependencies,
 		options: {
@@ -708,7 +698,7 @@ test.serial("generateThemeDesignerResources: Failed to extract library name from
 	};
 	const dependencies = {};
 
-	await t.throwsAsync(generateThemeDesignerResources({
+	await t.throwsAsync(runSteps(generateThemeDesignerResources, {
 		workspace,
 		dependencies,
 		options: {

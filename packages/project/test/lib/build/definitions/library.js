@@ -179,6 +179,7 @@ test("Standard build (framework project)", (t) => {
 	});
 
 	t.deepEqual(tasks.get("generateThemeDesignerResources"), {
+		stepBased: true,
 		requiresDependencies: true, options: {
 			version: "version"
 		}
