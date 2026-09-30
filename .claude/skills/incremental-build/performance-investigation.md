@@ -352,6 +352,10 @@ When cache writes are deferred (CLI mode), `#writeTaskStageCache` + `#writeSourc
 
 When diagnosing slow `writeStageResources`, check the `CAS skipped` vs `CAS written` counts in the log. If most resources are being written (not skipped), `#knownCasIntegrities` is not being populated from one of these sources — trace which source is missing for the scenario.
 
+### 11. Do not parallelize `isResourceUnchanged` with `Promise.all`
+
+`HashTree.upsertResources` and `TreeRegistry.flush` call `isResourceUnchanged` (`utils.js`) per resource, which checks `lastModified`/`size` (sync) first and only reads and hashes the file (`getIntegrity()`) when that fast path fails (see the tiered comparison in `architecture.md`). On an incremental build most resources are unchanged, so the common path is synchronous. Wrapping these calls in `Promise.all` either forces `getIntegrity()` for every resource (a regression) or adds promise overhead to hundreds of synchronously-resolving checks (no gain). Initial builds already parallelize through `createResourceIndex`. Before parallelizing I/O here, confirm the short-circuit does not already make the common path synchronous, and benchmark before and after.
+
 ## Investigation Workflow
 
 1. **Establish a baseline.** Run the build 2-3 times to get stable warm-cache timings. Note the total time and per-phase breakdown.
