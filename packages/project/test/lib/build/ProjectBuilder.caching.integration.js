@@ -22,9 +22,9 @@ function themeOutputs(namespace) {
 // namespaces (`lib/one`, `lib/two`), each gated by its own `library.js` marker. Adding/removing a
 // marker changes which single theme should be (re)built, and the others must stay served from cache.
 //
-// buildThemes builds each theme as a processEach step (CPOUI5FOUNDATION-1363), so adding a marker now
+// buildThemes builds each theme as a map-step unit (CPOUI5FOUNDATION-1363), so adding a marker now
 // rebuilds only the newly enabled theme, and removing a marker rebuilds nothing: the removed input
-// yields a delta (ResourceRequestManager.getDeltas includes removed paths), the owning step drops out,
+// yields a delta (ResourceRequestManager.getDeltas includes removed paths), the owning unit drops out,
 // and its stale output is dropped from the carried-forward stage while the other theme stays cached.
 
 test.serial(

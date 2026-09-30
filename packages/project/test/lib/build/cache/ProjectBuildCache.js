@@ -7,7 +7,7 @@ import ProjectBuildCache from "../../../../lib/build/cache/ProjectBuildCache.js"
 import ResourceRequestManager from "../../../../lib/build/cache/ResourceRequestManager.js";
 import Cache from "../../../../lib/build/cache/Cache.js";
 import CacheManager from "../../../../lib/build/cache/CacheManager.js";
-import ProcessEach from "../../../../lib/build/helpers/ProcessEach.js";
+import StepRunner from "../../../../lib/build/helpers/StepRunner.js";
 
 const INTEGRATION_TEST_DIR = path.join(import.meta.dirname, "..", "..", "..", "tmp", "ProjectBuildCache");
 
@@ -2404,9 +2404,10 @@ test("validateCache: dependency-set change is general, not specific to the build
 			"dependency index must refresh for any dependency-globbing task, not just buildThemes");
 	});
 
-// Integration: CAS-backed processEach return values through a real SQLite CacheManager. Proves a
-// returned resource is correct after a full build (stored), an unchanged rebuild (every step restored
-// from CAS), and a delta build (the changed step re-runs, the others restore from CAS).
+// Integration: CAS-backed step return values through a real SQLite CacheManager. Proves a returned
+// resource is correct after a full build (stored), an unchanged rebuild (every unit restored from CAS),
+// and a delta build (the changed unit re-runs, the others restore from CAS). The map step's reassembled
+// returns are observed through a needs consumer, since runSteps() itself returns nothing.
 function createIntegrationWorkspace(sources = []) {
 	const store = new Map(sources.map((res) => [res.getPath(), res]));
 	return {
@@ -2419,8 +2420,8 @@ function createIntegrationWorkspace(sources = []) {
 	};
 }
 
-test.serial("Integration: processEach return values round-trip through the real CAS", async (t) => {
-	const testDir = path.join(INTEGRATION_TEST_DIR, `pe-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+test.serial("Integration: step return values round-trip through the real CAS", async (t) => {
+	const testDir = path.join(INTEGRATION_TEST_DIR, `steps-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 	const cacheManager = new CacheManager(path.join(testDir, "buildCache"));
 	t.teardown(() => cacheManager.close());
 
@@ -2428,49 +2429,62 @@ test.serial("Integration: processEach return values round-trip through the real 
 	const buildCache = new ProjectBuildCache(project, "build-sig", cacheManager, Cache.Default);
 	const returnValueStore = buildCache.getStepReturnValueStore();
 
-	// The callback reads its per-key input so a change to that input re-runs the owning step, then
-	// returns a freshly-built resource. Two keys: "a" and "b".
-	const callback = (marker) => async (key, {workspace}) => {
-		await workspace.byPath(`/in/${key}`);
-		return createResource({path: `/out/${key}.js`, string: `${marker}-${key}`});
-	};
+	// A producer map step over keys "a" and "b": each unit reads its per-key input (so a change to that
+	// input re-runs the owning unit) and returns a freshly-built resource. A consumer scalar step captures
+	// the producer's reassembled returns via needs, the observable route now that runSteps returns nothing.
+	let captured;
+	const buildSteps = (marker, ran) => [
+		{
+			name: "g",
+			keys: async () => ["a", "b"],
+			each: async (key, {workspace}) => {
+				ran?.push(key);
+				await workspace.byPath(`/in/${key}`);
+				return createResource({path: `/out/${key}.js`, string: `${marker}-${key}`});
+			},
+		},
+		{
+			name: "check",
+			needs: ["g"],
+			run: async ({needs}) => {
+				captured = needs.g;
+			},
+		},
+	];
 
-	// Build 1: full build. Every step runs; returns are stored in the CAS.
-	const build1 = new ProcessEach({
-		workspace: createIntegrationWorkspace(), taskUtil: {}, returnValueStore,
+	// Build 1: full build. Every unit runs; returns are stored in the CAS.
+	const build1 = new StepRunner({
+		steps: buildSteps("content"), workspace: createIntegrationWorkspace(), taskUtil: {}, returnValueStore,
 	});
-	const results1 = await build1.run("g", ["a", "b"], callback("content"));
-	t.is(await results1[0].getString(), "content-a", "Build 1 hands back the fresh resource for a");
-	t.is(await results1[1].getString(), "content-b", "Build 1 hands back the fresh resource for b");
-	const invocationData = build1.getInvocationData();
+	await build1.runSteps();
+	t.is(await captured[0].getString(), "content-a", "Build 1 hands back the fresh resource for a");
+	t.is(await captured[1].getString(), "content-b", "Build 1 hands back the fresh resource for b");
 
-	// Build 2: unchanged rebuild. No changed paths, so no step re-runs; both results come from the CAS.
+	// Only the producer's persisted data is carried forward, so the consumer has no previous data and
+	// re-runs every build to capture the reassembled returns.
+	const producerData = new Map([["g", build1.getInvocationData().get("g")]]);
+
+	// Build 2: unchanged rebuild. No changed paths, so no producer unit re-runs; both returns come from CAS.
 	const ran2 = [];
-	const build2 = new ProcessEach({
-		workspace: createIntegrationWorkspace(), taskUtil: {}, returnValueStore,
+	const build2 = new StepRunner({
+		steps: buildSteps("content", ran2), workspace: createIntegrationWorkspace(), taskUtil: {}, returnValueStore,
 		cacheInfo: {changedProjectResourcePaths: [], changedDependencyResourcePaths: []},
-		previousInvocationData: invocationData,
+		previousInvocationData: producerData,
 	});
-	const results2 = await build2.run("g", ["a", "b"], async (key) => {
-		ran2.push(key);
-		t.fail("No step must re-run on an unchanged rebuild");
-	});
-	t.deepEqual(ran2, [], "No step re-ran on the unchanged rebuild");
-	t.is(await results2[0].getString(), "content-a", "Unchanged rebuild restored a from the CAS");
-	t.is(await results2[1].getString(), "content-b", "Unchanged rebuild restored b from the CAS");
+	await build2.runSteps();
+	t.deepEqual(ran2, [], "No producer unit re-ran on the unchanged rebuild");
+	t.is(await captured[0].getString(), "content-a", "Unchanged rebuild restored a from the CAS");
+	t.is(await captured[1].getString(), "content-b", "Unchanged rebuild restored b from the CAS");
 
-	// Build 3: delta build. Only /in/a changed, so step "a" re-runs (fresh) while "b" restores from CAS.
+	// Build 3: delta build. Only /in/a changed, so unit "a" re-runs (fresh) while "b" restores from CAS.
 	const ran3 = [];
-	const build3 = new ProcessEach({
-		workspace: createIntegrationWorkspace(), taskUtil: {}, returnValueStore,
+	const build3 = new StepRunner({
+		steps: buildSteps("fresh", ran3), workspace: createIntegrationWorkspace(), taskUtil: {}, returnValueStore,
 		cacheInfo: {changedProjectResourcePaths: ["/in/a"], changedDependencyResourcePaths: []},
-		previousInvocationData: invocationData,
+		previousInvocationData: producerData,
 	});
-	const results3 = await build3.run("g", ["a", "b"], async (key, ctx) => {
-		ran3.push(key);
-		return callback("fresh")(key, ctx);
-	});
-	t.deepEqual(ran3, ["a"], "Delta build re-ran only the step whose input changed");
-	t.is(await results3[0].getString(), "fresh-a", "Delta build handed back the re-run step's fresh return");
-	t.is(await results3[1].getString(), "content-b", "Delta build restored the unchanged step b from the CAS");
+	await build3.runSteps();
+	t.deepEqual(ran3, ["a"], "Delta build re-ran only the unit whose input changed");
+	t.is(await captured[0].getString(), "fresh-a", "Delta build handed back the re-run unit's fresh return");
+	t.is(await captured[1].getString(), "content-b", "Delta build restored the unchanged unit b from the CAS");
 });

@@ -194,7 +194,7 @@ test("Frozen source reader takes priority over filesystem source reader", async 
 test("replayTagOperations routes by tag, applies by path, and skips get operations", (t) => {
 	const {pr} = createProjectResources();
 
-	// A restored processEach step replays these: a project-level and a build-level set, a get (no
+	// A restored step replays these: a project-level and a build-level set, a get (no
 	// persistent effect), and a set-then-clear of the same tag on another path.
 	pr.replayTagOperations([
 		{op: "set", path: "/resources/x.js", tag: "ui5:HasDebugVariant", value: true},

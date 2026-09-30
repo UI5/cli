@@ -505,22 +505,21 @@ builder:
 	});
 });
 
-// The `.out` a step of the process-each-task fixture writes per `.src` key (see task.process-each.js).
+// The `.out` a unit of the step-based custom task fixture writes per `.src` key (see task.process-each.js).
 // procEachOut is the virtual path recorded in writtenResources; procEachDist is the on-disk location,
 // where an application build has dropped the `/resources/id1/` namespace prefix.
 const procEachOut = (name) => `/resources/id1/procEach/${name}.out`;
 const procEachDist = (destPath, name) => `${destPath}/procEach/${name}.out`;
 
-test.serial("Build application.a (custom task using processEach for per-step delta caching)", async (t) => {
+test.serial("Build application.a (step-based custom task with per-step delta caching)", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
 	await fixtureTester._initialize();
 
-	// The custom task "process-each-task" (Specification Version 5.0, calls taskUtil.processEach) runs
-	// one cached processEach step per `.src` file. Each step reads its sibling `.dep` through the step
-	// workspace, so that `.dep` is a tracked input of the owning step alone. Changing only `a.dep` must
-	// re-run only a's step and leave b's step served from cache, proving per-step delta caching for a
-	// custom task.
+	// The custom task "process-each-task" (Specification Version 5.0, a step-based factory) runs one
+	// cached map-step unit per `.src` file. Each unit reads its sibling `.dep` through the step workspace,
+	// so that `.dep` is a tracked input of the owning unit alone. Changing only `a.dep` must re-run only
+	// a's unit and leave b's unit served from cache, proving per-step delta caching for a custom task.
 	const procEachDir = `${fixtureTester.fixturePath}/webapp/procEach`;
 	await fs.mkdir(procEachDir, {recursive: true});
 	await fs.writeFile(`${procEachDir}/a.src`, "source-a");
@@ -530,7 +529,7 @@ test.serial("Build application.a (custom task using processEach for per-step del
 
 	// #1 build (no cache): both steps run, so the task writes both `.out` files.
 	await fixtureTester.buildProject({
-		graphConfig: {rootConfigPath: "ui5-customTask-processEach.yaml"},
+		graphConfig: {rootConfigPath: "ui5-customTask-stepBased.yaml"},
 		config: {destPath, cleanDest: true},
 		assertions: {
 			projects: {
@@ -559,7 +558,7 @@ test.serial("Build application.a (custom task using processEach for per-step del
 	// Only a.dep changed and only the process-each-task reads `.dep` files, so every standard task is
 	// served from cache and only application.a is rebuilt.
 	await fixtureTester.buildProject({
-		graphConfig: {rootConfigPath: "ui5-customTask-processEach.yaml"},
+		graphConfig: {rootConfigPath: "ui5-customTask-stepBased.yaml"},
 		config: {destPath, cleanDest: true},
 		assertions: {
 			projects: {
@@ -588,7 +587,7 @@ test.serial("Build application.a (custom task using processEach for per-step del
 
 	// #3 build (with cache, no changes): everything is served from cache, including the custom task.
 	await fixtureTester.buildProject({
-		graphConfig: {rootConfigPath: "ui5-customTask-processEach.yaml"},
+		graphConfig: {rootConfigPath: "ui5-customTask-stepBased.yaml"},
 		config: {destPath, cleanDest: true},
 		assertions: {
 			projects: {}

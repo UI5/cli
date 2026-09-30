@@ -105,9 +105,8 @@ async function buildThemeResources(themeResources, combo, compress, taskUtil) {
 
 /**
  * Determines whether a single theme should be built, probing the gating marker and sap.ui.core theme
- * folder for exactly this theme through <code>combo</code>. Mirrors the batch <code>isAvailable</code>
- * check below, reduced to one theme and using targeted <code>byPath</code> probes so the probed paths
- * are recorded as inputs of the owning processEach step: an absent marker created later, or a present
+ * folder for exactly this theme through <code>combo</code>. Uses targeted <code>byPath</code> probes so
+ * the probed paths are recorded as inputs of the owning step: an absent marker created later, or a present
  * marker removed, invalidates exactly this theme's step on a delta build.
  *
  * @param {@ui5/fs/Resource} themeResource The <code>library.source.less</code> resource of the theme

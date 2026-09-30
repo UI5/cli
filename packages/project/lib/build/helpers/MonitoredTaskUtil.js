@@ -120,18 +120,14 @@ class MonitoredTaskUtil {
 	 * @param {@ui5/project/build/helpers/TaskUtil|object} taskUtil TaskUtil instance or a
 	 *   spec-version interface returned by {@link @ui5/project/build/helpers/TaskUtil#getInterface}
 	 * @param {object} [parameters]
-	 * @param {Function} [parameters.processEach] Per-task <code>processEach(group, keys, options,
-	 *   callback)</code> implementation the TaskRunner binds to the task's readers and cache state.
-	 *   Exposed as <code>taskUtil.processEach</code> because the recording readers a step needs are
-	 *   per-task, not per-project.
 	 * @param {boolean} [parameters.recordTagOperations=false] Record every <code>getTag</code>,
 	 *   <code>setTag</code> and <code>clearTag</code> the wrapped task performs, drainable via
 	 *   {@link #getTagOperations}. Off for the task-level monitor (tags reach the tag collection and are
 	 *   captured through <code>resource.getTags()</code> like today); on for the per-step monitor the
-	 *   [ProcessEach]{@link @ui5/project/build/helpers/ProcessEach} driver wraps around this one, so a
-	 *   step restored from cache can replay its tag operations without re-running.
+	 *   [StepRunner]{@link @ui5/project/build/helpers/StepRunner} wraps around this one, so a step
+	 *   restored from cache can replay its tag operations without re-running.
 	 */
-	constructor(taskUtil, {processEach, recordTagOperations = false} = {}) {
+	constructor(taskUtil, {recordTagOperations = false} = {}) {
 		// Recorded inputs, keyed by `${type}\0${name}` so repeated reads of the same input collapse
 		// to a single entry (last read wins).
 		const recording = new Map();
@@ -238,10 +234,6 @@ class MonitoredTaskUtil {
 
 		return new Proxy(taskUtil, {
 			get(target, prop) {
-				if (prop === "processEach") {
-					// Injected by the TaskRunner, bound to this task's readers and cache state.
-					return processEach;
-				}
 				if (prop === "getInputRecording") {
 					return () => Array.from(recording.values());
 				}
@@ -327,7 +319,7 @@ class MonitoredTaskUtil {
 	 * Returns the tag operations recorded since this monitor was created, in call order. Empty unless
 	 * the monitor was constructed with <code>recordTagOperations</code> (the per-step monitor).
 	 *
-	 * The [ProcessEach]{@link @ui5/project/build/helpers/ProcessEach} driver persists these per step so a
+	 * The [StepRunner]{@link @ui5/project/build/helpers/StepRunner} persists these per step so a
 	 * step restored from cache on a delta build replays its <code>set</code>/<code>clear</code> operations
 	 * into the tag collection, reproducing tags the step would have set had it run.
 	 *

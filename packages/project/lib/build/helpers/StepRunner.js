@@ -178,10 +178,6 @@ class RecordingReaderWriter extends AbstractReaderWriter {
  * change a new key that cannot yield a stale hit), a string key by its value. A compound key is the
  * caller's responsibility to express as a stable string.
  *
- * The legacy group method {@link #run} (<code>run(group, keys, options, callback)</code>) drives one map
- * step imperatively; it backs the transitional <code>taskUtil.processEach</code> binding and is removed
- * once every task uses the factory API.
- *
  * @private
  */
 export default class StepRunner {
@@ -293,43 +289,6 @@ export default class StepRunner {
 			this.#returnSignatures.set(step.name,
 				this.#computeStepReturnSignature(step.name, entries, isScalar));
 		}
-	}
-
-	/**
-	 * Legacy group entry point backing the transitional <code>taskUtil.processEach</code> binding: runs one
-	 * map step named <code>group</code> imperatively. Removed once every task uses the factory API.
-	 *
-	 * @param {string} group Non-empty string naming this step group
-	 * @param {Iterable} keys Resources or strings
-	 * @param {object} [options] Optional settings; omit to call <code>run(group, keys, callback)</code>
-	 * @param {boolean} [options.sequential=false] Run keys sequentially or, by default, concurrently
-	 * @param {Function} callback <code>async (key, {workspace, dependencies, taskUtil}) => resource(s)</code>
-	 * @returns {Promise<Array>} Per-key results aligned to <code>keys</code> order
-	 */
-	async run(group, keys, options, callback) {
-		if (typeof options === "function") {
-			// Options omitted: run(group, keys, callback).
-			callback = options;
-			options = undefined;
-		}
-		if (typeof group !== "string" || !group) {
-			throw new Error("processEach: the first argument must be a non-empty string naming the step group");
-		}
-		if (typeof callback !== "function") {
-			throw new Error("processEach: callback must be a function");
-		}
-		if (options !== undefined && (typeof options !== "object" || options === null)) {
-			throw new Error("processEach: options must be an object");
-		}
-		if (this.#invocationData.has(group)) {
-			// Each group's per-key data is persisted and reconciled under its own name, so a task may
-			// call processEach several times, but every call must name a distinct group.
-			throw new Error(
-				`processEach: group ${JSON.stringify(group)} was already run for this task; ` +
-				`each call must use a distinct group`);
-		}
-		const entries = await this.#resolveEntries(keys);
-		return this.#runGroup(group, entries, options, callback, {});
 	}
 
 	/**

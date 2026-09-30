@@ -523,7 +523,7 @@ class ResourceRequestManager {
 	 * Gets all delta entries for differential cache updates
 	 *
 	 * Returns a map of signature transitions and their associated changed resource paths.
-	 * A removed resource is included as a changed path: a processEach step that read the removed
+	 * A removed resource is included as a changed path: a step that read the removed
 	 * input then re-runs (or, for a gone key, drops out), and its stale output is dropped from the
 	 * carried-forward stage via the changed-paths merge in ProjectBuildCache.recordTaskResult.
 	 *

@@ -442,7 +442,7 @@ class ProjectResources {
 
 	/**
 	 * Replays a set of tag operations recorded by a
-	 * [processEach]{@link @ui5/project/build/helpers/ProcessEach} step into the monitored tag collections,
+	 * [StepRunner]{@link @ui5/project/build/helpers/StepRunner} step into the monitored tag collections,
 	 * routing each by tag and applying it by path. Used when a step is restored from cache on a delta
 	 * build: the step did not run, so its <code>set</code>/<code>clear</code> operations are replayed here
 	 * so its tags reappear in this build's tag operations (captured by {@link #getResourceTagOperations}
