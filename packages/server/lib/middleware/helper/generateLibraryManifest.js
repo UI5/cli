@@ -2,7 +2,7 @@ import createManifestProcessor from "@ui5/builder/processors/manifestCreator";
 
 export default async function generateLibraryManifest(middlewareUtil, dotLibResource) {
 	const project = dotLibResource.getProject();
-	const libResources = await project.getReader().byGlob(
+	const libResources = await project.getSourceReader().byGlob(
 		`/resources/**/*.{js,json,library,less,css,theming,theme,properties}`);
 
 	const res = await createManifestProcessor({

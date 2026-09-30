@@ -129,7 +129,7 @@ function createDepWorkspace(names, oOptions = {
 	}, oOptions);
 	const workspace = resourceFactory.createAdapter(oOptions);
 	// Connect the project back to the created workspace, this allows for accessing the reader via a resources project
-	project.getReader = () => workspace;
+	project.getSourceReader = () => workspace;
 	return workspace;
 }
 
