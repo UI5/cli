@@ -1,7 +1,7 @@
 import os from "node:os";
+import net from "node:net";
 import http from "node:http";
 import https from "node:https";
-import portscanner from "portscanner";
 
 /**
  * HTTP-listener helpers used by the {@link Supervisor}, which binds the port once and
@@ -40,6 +40,63 @@ export function createServer({https: useHttps, key, cert}, requestHandler) {
  * @returns {Promise<object>} Resolves with the bound <code>port</code> and the <code>server</code> instance
  * @private
  */
+// Timeout (ms) for a single port probe. On localhost a port either accepts or refuses the
+// connection immediately, so this only guards against a probe that hangs indefinitely.
+const PORT_PROBE_TIMEOUT = 400;
+
+/**
+ * Probes whether something is accepting TCP connections on the given host/port.
+ *
+ * Mirrors the connect-probe semantics of the previously used <code>portscanner</code> dependency:
+ * a successful connection means the port is in use; a refused connection or a timeout means it is
+ * free. Any other socket error (e.g. an unreachable host) is treated as a scan failure and rejects,
+ * so unexpected problems surface to the caller instead of being silently reported as "free".
+ *
+ * @param {string} host Host to probe
+ * @param {number} port Port to probe
+ * @returns {Promise<boolean>} Resolves <code>true</code> if the port is in use, <code>false</code> if free
+ * @private
+ */
+function isPortInUse(host, port) {
+	return new Promise(function(resolve, reject) {
+		const socket = new net.Socket();
+		const finish = function(settle, value) {
+			socket.destroy();
+			settle(value);
+		};
+		socket.setTimeout(PORT_PROBE_TIMEOUT);
+		socket.once("connect", () => finish(resolve, true));
+		socket.once("timeout", () => finish(resolve, false));
+		socket.once("error", function(err) {
+			if (err.code === "ECONNREFUSED") {
+				finish(resolve, false);
+			} else {
+				finish(reject, err);
+			}
+		});
+		socket.connect(port, host);
+	});
+}
+
+/**
+ * Scans the inclusive port range <code>[port, portMax]</code> on the given host and returns the
+ * first port not in use, or <code>null</code> if every port in the range is taken.
+ *
+ * @param {number} port First port of the range
+ * @param {number} portMax Last port of the range (inclusive)
+ * @param {string} host Host to scan
+ * @returns {Promise<number|null>} The first free port, or <code>null</code> if none is available
+ * @private
+ */
+async function findAPortNotInUse(port, portMax, host) {
+	for (let candidate = port; candidate <= portMax; candidate++) {
+		if (!await isPortInUse(host, candidate)) {
+			return candidate;
+		}
+	}
+	return null;
+}
+
 export function listen(server, port, changePortIfInUse, acceptRemoteConnections) {
 	return new Promise(function(resolve, reject) {
 		const options = {};
@@ -52,13 +109,8 @@ export function listen(server, port, changePortIfInUse, acceptRemoteConnections)
 		const portScanHost = options.host || "127.0.0.1";
 		const portMax = changePortIfInUse ? port + 30 : port;
 
-		portscanner.findAPortNotInUse(port, portMax, portScanHost, function(error, foundPort) {
-			if (error) {
-				reject(error);
-				return;
-			}
-
-			if (!foundPort) {
+		findAPortNotInUse(port, portMax, portScanHost).then(function(foundPort) {
+			if (foundPort === null) {
 				const err = new Error(changePortIfInUse ?
 					`EADDRINUSE: Could not find available ports between ${port} and ${portMax}.` :
 					`EADDRINUSE: Port ${port} is already in use.`);
@@ -78,7 +130,7 @@ export function listen(server, port, changePortIfInUse, acceptRemoteConnections)
 			server.on("error", function(err) {
 				reject(err);
 			});
-		});
+		}, reject);
 	});
 }
 
