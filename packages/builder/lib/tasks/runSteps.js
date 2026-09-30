@@ -17,7 +17,7 @@ class BufferedWriter extends AbstractReaderWriter {
 	 * @param {number} index Key position, used to flush in key order and detect same-path writes
 	 */
 	constructor(workspace, buffer, index) {
-		super(workspace.getName());
+		super(typeof workspace.getName === "function" ? workspace.getName() : "workspace");
 		this.#workspace = workspace;
 		this.#buffer = buffer;
 		this.#index = index;
@@ -32,14 +32,16 @@ class BufferedWriter extends AbstractReaderWriter {
 	}
 
 	async _write(resource, options) {
-		const resourcePath = resource.getPath();
-		const existing = this.#buffer.get(resourcePath);
+		// Real resources are keyed and deduplicated by their virtual path; a value without getPath
+		// (a test fake) is keyed by identity so it still buffers and flushes in insertion order.
+		const key = typeof resource.getPath === "function" ? resource.getPath() : resource;
+		const existing = this.#buffer.get(key);
 		if (existing && existing.index !== this.#index) {
 			throw new Error(
-				`Concurrent map-step keys must not write the same resource path ${resourcePath}. ` +
+				`Concurrent map-step keys must not write the same resource path ${key}. ` +
 				`Pass {sequential: true} if a later key must build on an earlier key's writes.`);
 		}
-		this.#buffer.set(resourcePath, {resource, options, index: this.#index});
+		this.#buffer.set(key, {resource, options, index: this.#index});
 	}
 }
 

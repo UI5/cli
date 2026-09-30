@@ -45,6 +45,7 @@ export default function({project, taskUtil, getTask}) {
 		}
 	}
 	tasks.set("minify", {
+		stepBased: true,
 		options: {
 			pattern: minificationPattern
 		}

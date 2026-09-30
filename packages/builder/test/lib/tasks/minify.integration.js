@@ -1,6 +1,7 @@
 import test from "ava";
 import sinonGlobal from "sinon";
 import minify from "../../../lib/tasks/minify.js";
+import runSteps from "../../../lib/tasks/runSteps.js";
 import * as resourceFactory from "@ui5/fs/resourceFactory";
 import DuplexCollection from "@ui5/fs/DuplexCollection";
 
@@ -31,6 +32,7 @@ test.afterEach.always((t) => {
 
 test.serial("integration: minify omitSourceMapResources=true", async (t) => {
 	const taskUtil = {
+		getEnv: (name) => process.env[name],
 		setTag: t.context.sinon.stub(),
 		getTag: t.context.sinon.stub().returns(false),
 		STANDARD_TAGS: {
@@ -53,7 +55,7 @@ test();`;
 	});
 	await reader.write(testResource);
 
-	await minify({
+	await runSteps(minify, {
 		workspace,
 		taskUtil,
 		options: {
@@ -110,6 +112,7 @@ test();`;
 
 test.serial("integration: minify omitSourceMapResources=false", async (t) => {
 	const taskUtil = {
+		getEnv: (name) => process.env[name],
 		setTag: t.context.sinon.stub(),
 		getTag: t.context.sinon.stub().returns(false),
 		STANDARD_TAGS: {
@@ -132,7 +135,7 @@ test();`;
 	});
 	await reader.write(testResource);
 
-	await minify({
+	await runSteps(minify, {
 		workspace,
 		taskUtil,
 		options: {
@@ -197,7 +200,7 @@ test();`;
 	});
 	await reader.write(testResource);
 
-	await minify({
+	await runSteps(minify, {
 		workspace,
 		options: {
 			pattern: "/test.js",
@@ -244,7 +247,7 @@ test();`;
 	});
 	await reader.write(testResource);
 
-	await minify({
+	await runSteps(minify, {
 		workspace,
 		options: {
 			pattern: "/test.js",
@@ -280,6 +283,7 @@ ${SOURCE_MAPPING_URL}=test.js.map`;
 
 test.serial("integration: minify error", async (t) => {
 	const taskUtil = {
+		getEnv: (name) => process.env[name],
 		setTag: t.context.sinon.stub(),
 		getTag: t.context.sinon.stub().returns(false),
 		STANDARD_TAGS: {
@@ -300,7 +304,7 @@ return;`;
 	await reader.write(testResource);
 
 	await t.throwsAsync(() => {
-		return minify({
+		return runSteps(minify, {
 			workspace,
 			taskUtil,
 			options: {
@@ -332,7 +336,7 @@ return;`;
 	await reader.write(testResource);
 
 	await t.throwsAsync(() => {
-		return minify({
+		return runSteps(minify, {
 			workspace,
 			options: {
 				pattern: "/resources/my/namespace/test.js",
@@ -367,6 +371,7 @@ test.serial("integration: minify with taskUtil and resources tagged with OmitFro
 	await reader.write(testResource2);
 
 	const taskUtil = {
+		getEnv: (name) => process.env[name],
 		STANDARD_TAGS: {
 			HasDebugVariant: "1️⃣",
 			IsDebugVariant: "2️⃣",
@@ -383,7 +388,7 @@ test.serial("integration: minify with taskUtil and resources tagged with OmitFro
 		registerCleanupTask: t.context.sinon.stub()
 	};
 
-	await minify({
+	await runSteps(minify, {
 		workspace,
 		taskUtil,
 		options: {

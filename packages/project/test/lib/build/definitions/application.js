@@ -68,6 +68,7 @@ test("Standard build", (t) => {
 			},
 		},
 		minify: {
+			stepBased: true,
 			options: {
 				pattern: [
 					"/**/*.js",
@@ -151,6 +152,7 @@ test("Standard build with legacy spec version", (t) => {
 			},
 		},
 		minify: {
+			stepBased: true,
 			options: {
 				pattern: [
 					"/**/*.js",
@@ -267,6 +269,7 @@ test("Custom bundles", async (t) => {
 			},
 		},
 		minify: {
+			stepBased: true,
 			options: {
 				pattern: [
 					"/**/*.js",
@@ -399,6 +402,7 @@ test("Minification excludes", (t) => {
 
 	const taskDefinition = tasks.get("minify");
 	t.deepEqual(taskDefinition, {
+		stepBased: true,
 		options: {
 			pattern: [
 				"/**/*.js",
@@ -425,6 +429,7 @@ test("Minification excludes not applied for legacy specVersion", (t) => {
 
 	const taskDefinition = tasks.get("minify");
 	t.deepEqual(taskDefinition, {
+		stepBased: true,
 		options: {
 			pattern: [
 				"/**/*.js",
