@@ -39,7 +39,7 @@ function emptyRequestManagerCache() {
 export default class BuildTaskCache {
 	#projectName;
 	#taskName;
-	#usesProcessEach;
+	#stepBased;
 
 	#projectRequestManager;
 	#dependencyRequestManager;
@@ -67,7 +67,7 @@ export default class BuildTaskCache {
 	 * @public
 	 * @param {string} projectName Name of the project this task belongs to
 	 * @param {string} taskName Name of the task this cache manages
-	 * @param {boolean} usesProcessEach Whether the task used taskUtil.processEach, driving delta tracking
+	 * @param {boolean} stepBased Whether the task ran the step runner, driving per-step delta tracking
 	 * @param {ResourceRequestManager} [projectRequestManager] Optional pre-existing project request manager from cache
 	 * @param {ResourceRequestManager} [dependencyRequestManager]
 	 * 	Optional pre-existing dependency request manager from cache
@@ -75,18 +75,18 @@ export default class BuildTaskCache {
 	 * @param {{gitignore: ResourceRequestManager, noGitignore: ResourceRequestManager}} [rootRequestManagers]
 	 * 	Optional pre-existing root request managers from cache, keyed by useGitignore
 	 */
-	constructor(projectName, taskName, usesProcessEach, projectRequestManager, dependencyRequestManager,
+	constructor(projectName, taskName, stepBased, projectRequestManager, dependencyRequestManager,
 		inputSet, rootRequestManagers) {
 		this.#projectName = projectName;
 		this.#taskName = taskName;
-		this.#usesProcessEach = usesProcessEach;
+		this.#stepBased = stepBased;
 		log.verbose(`Initializing BuildTaskCache for task "${taskName}" of project "${this.#projectName}" ` +
-			`(usesProcessEach=${usesProcessEach})`);
+			`(stepBased=${stepBased})`);
 
 		this.#projectRequestManager = projectRequestManager ??
-			new ResourceRequestManager(projectName, taskName, usesProcessEach);
+			new ResourceRequestManager(projectName, taskName, stepBased);
 		this.#dependencyRequestManager = dependencyRequestManager ??
-			new ResourceRequestManager(projectName, taskName, usesProcessEach);
+			new ResourceRequestManager(projectName, taskName, stepBased);
 		this.#inputSet = inputSet ?? new TaskInputSet();
 		// Root requests use full-refresh signatures, not differential deltas: a changed root file
 		// re-runs the whole task rather than a differential update.
@@ -105,7 +105,7 @@ export default class BuildTaskCache {
 	 * @public
 	 * @param {string} projectName Name of the project
 	 * @param {string} taskName Name of the task
-	 * @param {boolean} usesProcessEach Whether the task used taskUtil.processEach, driving delta tracking
+	 * @param {boolean} stepBased Whether the task ran the step runner, driving per-step delta tracking
 	 * @param {object} projectRequests Cached project request manager data
 	 * @param {object} dependencyRequests Cached dependency request manager data
 	 * @param {object} [inputSet] Cached task input set data
@@ -113,12 +113,12 @@ export default class BuildTaskCache {
 	 * @param {object} [rootNoGitignoreRequests] Cached useGitignore:false root request manager data
 	 * @returns {BuildTaskCache} Restored task cache instance
 	 */
-	static fromCache(projectName, taskName, usesProcessEach, projectRequests, dependencyRequests,
+	static fromCache(projectName, taskName, stepBased, projectRequests, dependencyRequests,
 		inputSet, rootRequests, rootNoGitignoreRequests) {
 		const projectRequestManager = ResourceRequestManager.fromCache(projectName, taskName,
-			usesProcessEach, projectRequests);
+			stepBased, projectRequests);
 		const dependencyRequestManager = ResourceRequestManager.fromCache(projectName, taskName,
-			usesProcessEach, dependencyRequests);
+			stepBased, dependencyRequests);
 		// Root managers are optional: absent for tasks that made no root reads, and absent in caches
 		// written before root tracking existed. A missing entry restores a clean empty manager (not a
 		// fresh dirty one), so a task without root reads is not needlessly re-persisted.
@@ -129,7 +129,7 @@ export default class BuildTaskCache {
 				projectName, `${taskName}#root-no-gitignore`, false,
 				rootNoGitignoreRequests ?? emptyRequestManagerCache()),
 		};
-		return new BuildTaskCache(projectName, taskName, usesProcessEach,
+		return new BuildTaskCache(projectName, taskName, stepBased,
 			projectRequestManager, dependencyRequestManager, TaskInputSet.fromCache(inputSet), rootRequestManagers);
 	}
 
@@ -146,16 +146,16 @@ export default class BuildTaskCache {
 	}
 
 	/**
-	 * Checks whether the task used taskUtil.processEach, which drives per-step delta tracking
+	 * Checks whether the task ran the step runner, which drives per-step delta tracking
 	 *
-	 * A task that used processEach tracks resource-request deltas, so a later build re-runs only the
+	 * A step-based task tracks resource-request deltas per step, so a later build re-runs only the
 	 * changed steps rather than the whole task.
 	 *
 	 * @public
-	 * @returns {boolean} True if the task used processEach
+	 * @returns {boolean} True if the task ran the step runner
 	 */
-	getUsesProcessEach() {
-		return this.#usesProcessEach;
+	getStepBased() {
+		return this.#stepBased;
 	}
 
 	/**

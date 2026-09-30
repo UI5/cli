@@ -112,6 +112,7 @@ test.beforeEach(async (t) => {
 			};
 		},
 		getRequiredDependenciesCallback: t.context.getRequiredDependenciesCallbackStub,
+		getStepBased: async () => false,
 	};
 
 	t.context.graph = {
@@ -678,6 +679,7 @@ test("Custom task is called correctly", async (t) => {
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getStepBased: async () => false,
 	});
 	t.context.taskUtil.getInterface.returns({isTaskUtilInterface: true});
 	const project = getMockProject("module");
@@ -695,13 +697,15 @@ test("Custom task is called correctly", async (t) => {
 		.resolves({getName: () => "dependencies"});
 	await taskRunner._tasks["myTask"].task();
 
-	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
+	t.is(specVersionGteStub.callCount, 4, "SpecificationVersion#gte got called four times");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
 	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
-		"SpecificationVersion#gte got called with correct arguments on second call (processEach availability)");
-	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
+		"SpecificationVersion#gte got called with correct arguments on second call (step-based opt-in)");
+	t.is(specVersionGteStub.getCall(2).args[0], "5.0",
+		"SpecificationVersion#gte got called with correct arguments on third call (processEach availability)");
+	t.is(specVersionGteStub.getCall(3).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on fourth call (task execution)");
 
 	t.is(createDependencyReaderStub.callCount, 1, "getDependenciesReader got called once");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
@@ -736,6 +740,7 @@ test("Custom task with legacy spec version", async (t) => {
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getStepBased: async () => false,
 	});
 	t.context.taskUtil.getInterface.returns(undefined); // simulating no taskUtil for old specVersion
 	const project = getMockProject("module");
@@ -754,11 +759,13 @@ test("Custom task with legacy spec version", async (t) => {
 		.resolves({getName: () => "dependencies"});
 	await taskRunner._tasks["myTask"].task();
 
-	t.is(specVersionGteStub.callCount, 2, "SpecificationVersion#gte got called twice");
-	t.is(specVersionGteStub.getCall(1).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on second call (task execution)");
+	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
+	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
+		"SpecificationVersion#gte got called with correct arguments on second call (step-based opt-in)");
+	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
 
 	t.is(createDependencyReaderStub.callCount, 1, "getDependenciesReader got called once");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
@@ -793,6 +800,7 @@ test("Custom task with legacy spec version and requiredDependenciesCallback", as
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getStepBased: async () => false,
 	});
 	t.context.taskUtil.getInterface.returns(undefined); // simulating no taskUtil for old specVersion
 	const project = getMockProject("module");
@@ -822,11 +830,13 @@ test("Custom task with legacy spec version and requiredDependenciesCallback", as
 		.resolves({getName: () => "dependencies"});
 	await taskRunner._tasks["myTask"].task();
 
-	t.is(specVersionGteStub.callCount, 2, "SpecificationVersion#gte got called twice");
-	t.is(specVersionGteStub.getCall(1).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on second call (task execution)");
+	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
+	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
+		"SpecificationVersion#gte got called with correct arguments on second call (step-based opt-in)");
+	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
 
 	t.is(createDependencyReaderStub.callCount, 1, "getDependenciesReader got called once");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
@@ -864,6 +874,7 @@ test("Custom task with specVersion 3.0", async (t) => {
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getStepBased: async () => false,
 	});
 
 	const project = getMockProject("module");
@@ -910,13 +921,15 @@ test("Custom task with specVersion 3.0", async (t) => {
 		.resolves({getName: () => "dependencies"});
 	await taskRunner._tasks["myTask"].task();
 
-	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
+	t.is(specVersionGteStub.callCount, 4, "SpecificationVersion#gte got called four times");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
 	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
-		"SpecificationVersion#gte got called with correct arguments on second call (processEach availability)");
-	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
+		"SpecificationVersion#gte got called with correct arguments on second call (step-based opt-in)");
+	t.is(specVersionGteStub.getCall(2).args[0], "5.0",
+		"SpecificationVersion#gte got called with correct arguments on third call (processEach availability)");
+	t.is(specVersionGteStub.getCall(3).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on fourth call (task execution)");
 
 	t.is(taskUtil.getInterface.callCount, 2, "taskUtil#getInterface got called twice");
 	t.is(taskUtil.getInterface.getCall(0).args[0], mockSpecVersion,
@@ -958,6 +971,7 @@ test("Custom task with specVersion 3.0 and no requiredDependenciesCallback", asy
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getStepBased: async () => false,
 	});
 
 	const project = getMockProject("module");
@@ -975,13 +989,15 @@ test("Custom task with specVersion 3.0 and no requiredDependenciesCallback", asy
 		.resolves({getName: () => "dependencies"});
 	await taskRunner._tasks["myTask"].task();
 
-	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
+	t.is(specVersionGteStub.callCount, 4, "SpecificationVersion#gte got called four times");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
 	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
-		"SpecificationVersion#gte got called with correct arguments on second call (processEach availability)");
-	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
+		"SpecificationVersion#gte got called with correct arguments on second call (step-based opt-in)");
+	t.is(specVersionGteStub.getCall(2).args[0], "5.0",
+		"SpecificationVersion#gte got called with correct arguments on third call (processEach availability)");
+	t.is(specVersionGteStub.getCall(3).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on fourth call (task execution)");
 
 	t.is(taskUtil.getInterface.callCount, 1, "taskUtil#getInterface got called once");
 	t.is(taskUtil.getInterface.getCall(0).args[0], mockSpecVersion,
@@ -1035,24 +1051,28 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 		getTask: () => taskStubA,
 		getSpecVersion: () => mockSpecVersionA,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getStepBased: async () => false,
 	});
 	graph.getExtension.onSecondCall().returns({
 		getName: () => "Task Name B",
 		getTask: () => taskStubB,
 		getSpecVersion: () => mockSpecVersionB,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getStepBased: async () => false,
 	});
 	graph.getExtension.onThirdCall().returns({
 		getName: () => "Task Name C",
 		getTask: () => taskStubC,
 		getSpecVersion: () => mockSpecVersionC,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getStepBased: async () => false,
 	});
 	graph.getExtension.onCall(3).returns({
 		getName: () => "Task Name D",
 		getTask: () => taskStubD,
 		getSpecVersion: () => mockSpecVersionD,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getStepBased: async () => false,
 	});
 	const project = getMockProject("module");
 	project.getCustomTasks = () => [
@@ -1209,6 +1229,7 @@ test("Custom task: requiredDependenciesCallback returns unknown dependency", asy
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getStepBased: async () => false,
 	});
 
 	const project = getMockProject("module");
@@ -1244,6 +1265,7 @@ test("Custom task: requiredDependenciesCallback returns Array instead of Set", a
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getStepBased: async () => false,
 	});
 
 	const project = getMockProject("module");
@@ -1665,10 +1687,10 @@ test("processEach: a per-step input change re-runs only that step; a restored st
 			allTasksCompleted: sinon.stub().resolves([]),
 			prepareTaskExecutionAndValidateCache: sinon.stub().callsFake(async () =>
 				(deltaMode ? {changedProjectResourcePaths: [], changedDependencyResourcePaths: []} : false)),
-			getProcessEachInvocationData: sinon.stub().callsFake(() => capturedInvocationData),
-			getProcessEachReturnValueStore: sinon.stub().returns(undefined),
+			getStepInvocationData: sinon.stub().callsFake(() => capturedInvocationData),
+			getStepReturnValueStore: sinon.stub().returns(undefined),
 			getResolveInputValue: sinon.stub().returns(resolveInputValue),
-			setProcessEachInvocationData: sinon.stub().callsFake((name, data) => {
+			setStepInvocationData: sinon.stub().callsFake((name, data) => {
 				capturedInvocationData = data;
 			}),
 		};
@@ -1708,6 +1730,7 @@ function createCustomTaskExtension(sinon, {taskFunction, gte}) {
 		getSpecVersion: () => ({gte}),
 		getTask: async () => taskFunction,
 		getRequiredDependenciesCallback: sinon.stub().resolves(undefined),
+		getStepBased: async () => false,
 	};
 }
 
@@ -1763,10 +1786,10 @@ test("processEach (custom task): bound at Specification Version 5.0, folds the d
 			allTasksCompleted: sinon.stub().resolves([]),
 			prepareTaskExecutionAndValidateCache: sinon.stub().callsFake(async () =>
 				(deltaMode ? {changedProjectResourcePaths: [], changedDependencyResourcePaths: []} : false)),
-			getProcessEachInvocationData: sinon.stub().callsFake(() => capturedInvocationData),
-			getProcessEachReturnValueStore: sinon.stub().returns(undefined),
+			getStepInvocationData: sinon.stub().callsFake(() => capturedInvocationData),
+			getStepReturnValueStore: sinon.stub().returns(undefined),
 			getResolveInputValue: sinon.stub().returns(resolveInputValue),
-			setProcessEachInvocationData: sinon.stub().callsFake((name, data) => {
+			setStepInvocationData: sinon.stub().callsFake((name, data) => {
 				capturedInvocationData = data;
 			}),
 		};
@@ -1781,7 +1804,7 @@ test("processEach (custom task): bound at Specification Version 5.0, folds the d
 		// Build 1 (full): both steps run; the driver's outcome is folded into recordTaskResult.
 		await taskRunner._tasks["myCustom"].task(projectBuildLogger);
 		t.deepEqual(ran, ["a", "b"], "The full build ran every step");
-		t.is(buildCache.setProcessEachInvocationData.callCount, 1, "The invocation data was persisted");
+		t.is(buildCache.setStepInvocationData.callCount, 1, "The invocation data was persisted");
 		t.is(buildCache.recordTaskResult.getCall(0).args[6], true,
 			"recordTaskResult was told the task used processEach");
 

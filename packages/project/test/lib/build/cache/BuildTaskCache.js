@@ -45,13 +45,13 @@ test("Create BuildTaskCache instance", (t) => {
 
 	t.truthy(cache, "BuildTaskCache instance created");
 	t.is(cache.getTaskName(), "testTask", "Task name matches");
-	t.is(cache.getUsesProcessEach(), false, "Differential updates disabled");
+	t.is(cache.getStepBased(), false, "Differential updates disabled");
 });
 
 test("Create with differential updates enabled", (t) => {
 	const cache = new BuildTaskCache("test.project", "testTask", true);
 
-	t.is(cache.getUsesProcessEach(), true, "Differential updates enabled");
+	t.is(cache.getStepBased(), true, "Differential updates enabled");
 });
 
 test("fromCache: restore BuildTaskCache from cached data", (t) => {
@@ -80,7 +80,7 @@ test("fromCache: restore BuildTaskCache from cached data", (t) => {
 
 	t.truthy(cache, "Cache restored from cached data");
 	t.is(cache.getTaskName(), "testTask", "Task name preserved");
-	t.is(cache.getUsesProcessEach(), false, "Differential updates setting preserved");
+	t.is(cache.getStepBased(), false, "Differential updates setting preserved");
 });
 
 // ===== METADATA ACCESS TESTS =====
@@ -91,12 +91,12 @@ test("getTaskName: returns task name", (t) => {
 	t.is(cache.getTaskName(), "myTask", "Task name returned");
 });
 
-test("getUsesProcessEach: returns correct value", (t) => {
+test("getStepBased: returns correct value", (t) => {
 	const cache1 = new BuildTaskCache("test.project", "task1", false);
 	const cache2 = new BuildTaskCache("test.project", "task2", true);
 
-	t.false(cache1.getUsesProcessEach(), "Returns false when disabled");
-	t.true(cache2.getUsesProcessEach(), "Returns true when enabled");
+	t.false(cache1.getStepBased(), "Returns false when disabled");
+	t.true(cache2.getStepBased(), "Returns true when enabled");
 });
 
 test("hasNewOrModifiedCacheEntries: initially true for new instance", (t) => {

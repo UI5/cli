@@ -2426,7 +2426,7 @@ test.serial("Integration: processEach return values round-trip through the real 
 
 	const project = {getName: () => "test.project", getId: () => "test-project-id"};
 	const buildCache = new ProjectBuildCache(project, "build-sig", cacheManager, Cache.Default);
-	const returnValueStore = buildCache.getProcessEachReturnValueStore();
+	const returnValueStore = buildCache.getStepReturnValueStore();
 
 	// The callback reads its per-key input so a change to that input re-runs the owning step, then
 	// returns a freshly-built resource. Two keys: "a" and "b".

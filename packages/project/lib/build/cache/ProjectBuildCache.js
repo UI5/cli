@@ -101,14 +101,14 @@ export default class ProjectBuildCache {
 	#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
 	#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
 
-	// Per-task processEach invocation data (see lib/build/helpers/ProcessEach.js), keyed by task name.
+	// Per-task step-runner invocation data (see lib/build/helpers/StepRunner.js), keyed by task name.
 	// Each value is a Map of group name -> Map of key identity -> {reads, dependencyReads, writes,
 	// returns} recorded during the last run (a task may run several step groups). It lets a delta build
 	// map a changed input back to the step that read it, fold newly-observed reads into the task's request
 	// graph, drop outputs a step no longer produces, and rebuild a cached step's returned resource(s) from
-	// the CAS. Loaded lazily from task_metadata (type "processEach") and persisted alongside the other
+	// the CAS. Loaded lazily from task_metadata (type "steps") and persisted alongside the other
 	// per-task metadata.
-	#processEachInvocationData = new Map();
+	#stepInvocationData = new Map();
 
 	/**
 	 * Creates a new ProjectBuildCache instance
@@ -1003,59 +1003,59 @@ export default class ProjectBuildCache {
 	 *   or <code>undefined</code> if caching is disabled
 	 */
 	/**
-	 * Returns the processEach invocation data recorded for a task on its previous run, or
-	 * <code>undefined</code> if the task has none (first build, or no processEach usage). Loaded
+	 * Returns the step-runner invocation data recorded for a task on its previous run, or
+	 * <code>undefined</code> if the task has none (first build, or a task that ran no steps). Loaded
 	 * lazily from the persistent cache and memoized.
 	 *
 	 * @param {string} taskName Task name
 	 * @returns {Map<string, Map<string, object>>|undefined} Map of group name to that group's per-key data
 	 *   <code>{reads, dependencyReads, writes, inputs, tagOperations, returns}</code>
 	 */
-	getProcessEachInvocationData(taskName) {
-		if (this.#processEachInvocationData.has(taskName)) {
-			return this.#processEachInvocationData.get(taskName);
+	getStepInvocationData(taskName) {
+		if (this.#stepInvocationData.has(taskName)) {
+			return this.#stepInvocationData.get(taskName);
 		}
 		let data;
 		const cached = this.#cacheManager?.readTaskMetadata(
-			this.#project.getId(), this.#buildSignature, taskName, "processEach");
+			this.#project.getId(), this.#buildSignature, taskName, "steps");
 		if (cached) {
 			// Persisted as [groupName, [[keyId, entry], ...]] pairs (JSON has no Map), nested one level
 			// so each step group's per-key data reconciles under its own name.
 			data = new Map(cached.map(([group, entries]) => [group, new Map(entries)]));
 		}
-		this.#processEachInvocationData.set(taskName, data);
+		this.#stepInvocationData.set(taskName, data);
 		return data;
 	}
 
 	/**
-	 * Stores the processEach invocation data a task recorded on this build, for the delta selection and
+	 * Stores the step-runner invocation data a task recorded on this build, for the delta selection and
 	 * read fold-back of the next build. Persisted by {@link #prepareTaskRequestCache}.
 	 *
 	 * @param {string} taskName Task name
 	 * @param {Map<string, Map<string, object>>} invocationData Map of group name to that group's per-key
 	 *   data <code>{reads, dependencyReads, writes, inputs, tagOperations, returns}</code>
 	 */
-	setProcessEachInvocationData(taskName, invocationData) {
-		this.#processEachInvocationData.set(taskName, invocationData);
+	setStepInvocationData(taskName, invocationData) {
+		this.#stepInvocationData.set(taskName, invocationData);
 	}
 
 	/**
-	 * Returns the CAS-backed store the {@link ProcessEach} driver uses to persist and rebuild callback
+	 * Returns the CAS-backed store the {@link StepRunner} driver uses to persist and rebuild callback
 	 * return values. <code>store</code> writes the resources' content to the CAS (deduped, flushed in
 	 * the writeCache transaction) and returns path-aligned descriptors; <code>restore</code> rebuilds a
 	 * resource from such a descriptor on a delta build without re-running the step.
 	 *
 	 * @returns {{store: Function, restore: Function}} The return value store
 	 */
-	getProcessEachReturnValueStore() {
+	getStepReturnValueStore() {
 		return {
-			store: (resources) => this.#storeProcessEachReturns(resources),
-			restore: (descriptor) => this.#restoreProcessEachReturn(descriptor),
+			store: (resources) => this.#storeStepReturns(resources),
+			restore: (descriptor) => this.#restoreStepReturn(descriptor),
 		};
 	}
 
 	/**
-	 * Returns the resolver the {@link ProcessEach} driver uses to re-derive the current value of a step's
+	 * Returns the resolver the {@link StepRunner} driver uses to re-derive the current value of a step's
 	 * recorded non-resource input on a delta build (the same resolver the task-level input lookup uses,
 	 * reaching <code>process.env</code> and the current project graph). A step whose input no longer
 	 * resolves to its stored value is re-run. <code>undefined</code> when the cache was built without one.
@@ -1067,7 +1067,7 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Persists the content of resources a processEach step returned and describes them for later
+	 * Persists the content of resources a step returned and describes them for later
 	 * reconstruction. Content goes through the same compression and dedup pipeline as stage resources
 	 * and is written to the CAS immediately (its own transaction, mirroring
 	 * {@link #freezeUntransformedSources}); the descriptors are recorded in the step's invocation data.
@@ -1078,11 +1078,11 @@ export default class ProjectBuildCache {
 	 * @returns {Promise<Array<object>>} Descriptors <code>{path, integrity, size, lastModified, inode}</code>
 	 *   aligned to <code>resources</code>
 	 */
-	async #storeProcessEachReturns(resources) {
+	async #storeStepReturns(resources) {
 		// Reuse the stage-resource pipeline for compression and CAS dedup; a returned resource whose path
 		// collides with a written output is stored once by integrity and rebuilt independently of that
 		// output.
-		const {resourceMetadata, casRows} = await this.#prepareStageResources(resources, "processEachReturn");
+		const {resourceMetadata, casRows} = await this.#prepareStageResources(resources, "stepReturn");
 		if (casRows.length) {
 			this.#cacheManager.transaction(() => {
 				for (const {integrity, compressedBuffer} of casRows) {
@@ -1101,12 +1101,12 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Rebuilds a resource a processEach step returned on a previous build, reading its content from the
+	 * Rebuilds a resource a step returned on a previous build, reading its content from the
 	 * CAS by integrity. Mirrors the CAS-backed resources of {@link #createReaderForStageCache}, but
 	 * treats <code>lastModified</code> and <code>inode</code> as optional: returned resources are
 	 * usually fresh build outputs that never had filesystem metadata.
 	 *
-	 * @param {object} descriptor Return descriptor recorded by {@link #storeProcessEachReturns}
+	 * @param {object} descriptor Return descriptor recorded by {@link #storeStepReturns}
 	 * @param {string} descriptor.path Virtual path of the returned resource
 	 * @param {string} descriptor.integrity Content integrity, the CAS lookup key
 	 * @param {number} [descriptor.size] Byte size
@@ -1114,10 +1114,10 @@ export default class ProjectBuildCache {
 	 * @param {number} [descriptor.inode] Inode of the original resource, if known
 	 * @returns {@ui5/fs/Resource} The reconstructed resource
 	 */
-	#restoreProcessEachReturn({path, integrity, size, lastModified, inode}) {
+	#restoreStepReturn({path, integrity, size, lastModified, inode}) {
 		if (!integrity) {
 			throw new Error(
-				`Incomplete processEach return descriptor for resource ${path} ` +
+				`Incomplete step return descriptor for resource ${path} ` +
 				`in project ${this.#project.getName()}: missing integrity`);
 		}
 		return createResource({
@@ -1137,7 +1137,7 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Re-records a processEach task's complete request set on a delta build and returns the resulting
+	 * Re-records a step-based task's complete request set on a delta build and returns the resulting
 	 * [projectSignature, dependencySignature] pair, so {@link #recordTaskResult} can re-key the stage on
 	 * it (see open-gaps §7). The request set fed in already unions the delta's monitored requests with
 	 * every step's persisted reads (assembled by the driver and the TaskRunner), so recording it keys
@@ -1151,7 +1151,7 @@ export default class ProjectBuildCache {
 	 * @param {object} rootResourceRequests Recorded root requests
 	 * @returns {Promise<string[]>} The [projectSignature, dependencySignature] pair
 	 */
-	async #foldProcessEachReads(
+	async #foldStepReads(
 		taskName, taskCache, projectResourceRequests, dependencyResourceRequests, inputRecording, rootResourceRequests
 	) {
 		const [projectSig, dependencySig, inputSig, rootSig] = await taskCache.recordRequests(
@@ -1164,7 +1164,7 @@ export default class ProjectBuildCache {
 
 	async recordTaskResult(
 		taskName, projectResourceRequests, dependencyResourceRequests, cacheInfo,
-		inputRecording = [], rootResourceRequests, processEach = false
+		inputRecording = [], rootResourceRequests, stepBased = false
 	) {
 		if (this.#cacheMode === Cache.Off) {
 			return;
@@ -1173,7 +1173,7 @@ export default class ProjectBuildCache {
 		if (!this.#taskCache.has(taskName)) {
 			// Initialize task cache
 			this.#taskCache.set(taskName,
-				new BuildTaskCache(this.#project.getName(), taskName, processEach));
+				new BuildTaskCache(this.#project.getName(), taskName, stepBased));
 		}
 		log.verbose(`Recording results of task ${taskName} in project ${this.#project.getName()}...`);
 		const taskCache = this.#taskCache.get(taskName);
@@ -1256,14 +1256,14 @@ export default class ProjectBuildCache {
 					`${droppedCount} dropped)`);
 			}
 
-			if (processEach) {
+			if (stepBased) {
 				// The delta merge above carried unaffected steps' output forward and dropped stale
 				// output (their paths arrive via changedProjectResourcePaths). But cacheInfo.newSignature
 				// keys the stage on the delta's partial request node, which does not track a read first
 				// observed on this build (a marker probe, a source map pulled in by a re-run step). Re-key
 				// on the complete read set instead, exactly as the full-build branch does, so the next
 				// build looks the stage up under a signature that tracks every current input (open-gaps §7).
-				const foldedSignaturePair = await this.#foldProcessEachReads(
+				const foldedSignaturePair = await this.#foldStepReads(
 					taskName, taskCache, projectResourceRequests, dependencyResourceRequests,
 					inputRecording, rootResourceRequests);
 				this.#currentStageSignatures.set(this.#getStageNameForTask(taskName), foldedSignaturePair);
@@ -1780,7 +1780,7 @@ export default class ProjectBuildCache {
 
 			// Import task caches
 			const buildTaskCaches = await Promise.all(
-				indexCache.tasks.map(async ([taskName, usesProcessEach]) => {
+				indexCache.tasks.map(async ([taskName, stepBased]) => {
 					const projectRequests = this.#cacheManager.readTaskMetadata(
 						this.#project.getId(), this.#buildSignature, taskName, "project");
 					if (!projectRequests) {
@@ -1805,7 +1805,7 @@ export default class ProjectBuildCache {
 						this.#project.getId(), this.#buildSignature, taskName, "root");
 					const rootNoGitignoreRequests = this.#cacheManager.readTaskMetadata(
 						this.#project.getId(), this.#buildSignature, taskName, "root-no-gitignore");
-					return BuildTaskCache.fromCache(this.#project.getName(), taskName, !!usesProcessEach,
+					return BuildTaskCache.fromCache(this.#project.getName(), taskName, !!stepBased,
 						projectRequests, dependencyRequests, inputTree, rootRequests, rootNoGitignoreRequests);
 				})
 			);
@@ -2182,12 +2182,12 @@ export default class ProjectBuildCache {
 				out.push({taskName, type: "root-no-gitignore", metadata: rootNoGitignoreRequests});
 			}
 		}
-		// processEach invocation data is a per-task sidecar (not part of BuildTaskCache), persisted as
+		// step-runner invocation data is a per-task sidecar (not part of BuildTaskCache), persisted as
 		// [groupName, [[keyId, {reads, dependencyReads, writes, ...}], ...]] pairs since JSON has no Map,
 		// nested one level so each step group reconciles under its own name.
-		for (const [taskName, invocationData] of this.#processEachInvocationData) {
+		for (const [taskName, invocationData] of this.#stepInvocationData) {
 			if (invocationData && invocationData.size) {
-				out.push({taskName, type: "processEach",
+				out.push({taskName, type: "steps",
 					metadata: [...invocationData].map(([group, entries]) => [group, [...entries]])});
 			}
 		}
@@ -2212,7 +2212,7 @@ export default class ProjectBuildCache {
 		const sourceIndexObject = this.#sourceIndex.toCacheObject();
 		const tasks = [];
 		for (const [taskName, taskCache] of this.#taskCache) {
-			tasks.push([taskName, taskCache.getUsesProcessEach() ? 1 : 0]);
+			tasks.push([taskName, taskCache.getStepBased() ? 1 : 0]);
 		}
 		return {
 			projectId: this.#project.getId(),
