@@ -11,7 +11,7 @@ test("Generate library manifest", async (t) => {
 	const project = {
 		getNamespace: () => "sap/foo",
 		getVersion: () => "1.0.0",
-		getReader: () => reader
+		getSourceReader: () => reader
 	};
 	const middlewareUtilMock = {
 		getProject: () => project
@@ -92,7 +92,7 @@ test("Expected manifestCreator parameters", async (t) => {
 	const project = {
 		getNamespace: () => "sap/foo",
 		getVersion: () => "1.0.0",
-		getReader: () => adapter
+		getSourceReader: () => adapter
 	};
 	const middlewareUtilMock = {
 		getProject: () => project
