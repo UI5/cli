@@ -1,0 +1,111 @@
+import AbstractReaderWriter from "@ui5/fs/AbstractReaderWriter";
+
+/**
+ * Buffers the writes of one concurrent map-step key and delegates reads to the underlying workspace, so
+ * a map step's writes can be flushed in key order after all keys finish. Mirrors the cached step runner's
+ * write buffering (minus the cache recording), including the same-path guard that keeps concurrent keys
+ * independent.
+ */
+class BufferedWriter extends AbstractReaderWriter {
+	#workspace;
+	#buffer;
+	#index;
+
+	/**
+	 * @param {@ui5/fs/AbstractReaderWriter} workspace Underlying workspace
+	 * @param {Map<string, object>} buffer Shared write buffer, keyed by resource path
+	 * @param {number} index Key position, used to flush in key order and detect same-path writes
+	 */
+	constructor(workspace, buffer, index) {
+		super(workspace.getName());
+		this.#workspace = workspace;
+		this.#buffer = buffer;
+		this.#index = index;
+	}
+
+	_byGlob(virPattern, options) {
+		return this.#workspace.byGlob(virPattern, options);
+	}
+
+	_byPath(virPath, options) {
+		return this.#workspace.byPath(virPath, options);
+	}
+
+	async _write(resource, options) {
+		const resourcePath = resource.getPath();
+		const existing = this.#buffer.get(resourcePath);
+		if (existing && existing.index !== this.#index) {
+			throw new Error(
+				`Concurrent map-step keys must not write the same resource path ${resourcePath}. ` +
+				`Pass {sequential: true} if a later key must build on an earlier key's writes.`);
+		}
+		this.#buffer.set(resourcePath, {resource, options, index: this.#index});
+	}
+}
+
+/**
+ * Runs a step-based task's steps without a build cache.
+ *
+ * A step-based task default-exports a factory <code>build(options) => Step[]</code>. This runner is the
+ * no-cache counterpart to the cached step runner in <code>@ui5/project</code> (which
+ * <code>@ui5/builder</code> cannot import, the dependency direction being
+ * <code>@ui5/cli -> @ui5/project -> @ui5/builder</code>): it runs every step in order, fans out every
+ * map step's <code>keys</code> set, threads <code>needs</code> returns in memory, and buffers a
+ * concurrent map step's writes so they flush in key order. It replaces the per-task batch fallback tasks
+ * used to hand-write for standalone (direct or programmatic) invocation of <code>@ui5/builder</code>.
+ *
+ * Delta selection, CAS-backed returns, tag replay and signature computation are cache concerns and are
+ * absent here; every step runs.
+ *
+ * @public
+ * @module @ui5/builder/tasks/runSteps
+ * @param {Function} build Task factory <code>build(options) => Step[]</code>
+ * @param {object} parameters
+ * @param {@ui5/fs/DuplexCollection} parameters.workspace Workspace to read and write files
+ * @param {@ui5/fs/AbstractReader} [parameters.dependencies] Reader to read dependency files
+ * @param {@ui5/builder/tasks/TaskUtil|object} [parameters.taskUtil] TaskUtil, passed through to each step
+ * @param {object} [parameters.options] Task options, passed to the factory and each step
+ * @returns {Promise<undefined>} Resolves once all steps have run and their writes are flushed
+ */
+export default async function runSteps(build, {workspace, dependencies, taskUtil, options} = {}) {
+	const steps = await build(options);
+	// Each step's return, so a later step's needs can consume it. A scalar step's return is its single
+	// value; a map step's is the array of its per-key returns in key order.
+	const returns = new Map();
+
+	for (const step of steps) {
+		const needs = {};
+		if (step.needs) {
+			for (const name of step.needs) {
+				needs[name] = returns.get(name);
+			}
+		}
+		const context = {needs, workspace, dependencies, taskUtil, options};
+
+		if (typeof step.run === "function") {
+			// Scalar step: run once, writes go straight to the workspace so a later step sees them.
+			returns.set(step.name, await step.run(context));
+			continue;
+		}
+
+		// Map step: enumerate keys, then run each key.
+		const keys = [...((await step.keys(context)) ?? [])];
+		if (step.sequential) {
+			// Writes persist immediately, so a later key reads what an earlier key wrote.
+			const results = [];
+			for (const key of keys) {
+				results.push(await step.each(key, context));
+			}
+			returns.set(step.name, results);
+		} else {
+			// Concurrent keys: buffer writes and flush them in key order once all keys finish.
+			const buffer = new Map();
+			const results = await Promise.all(keys.map((key, index) =>
+				step.each(key, {...context, workspace: new BufferedWriter(workspace, buffer, index)})));
+			for (const {resource, options: writeOptions} of [...buffer.values()].sort((a, b) => a.index - b.index)) {
+				await workspace.write(resource, writeOptions);
+			}
+			returns.set(step.name, results);
+		}
+	}
+}
