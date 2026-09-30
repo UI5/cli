@@ -306,6 +306,51 @@ A scalar step is a one-key group (a single implicit unit); a map step is a multi
 
 **`needs` wiring.** A step lists earlier step names in `needs`; those steps' returns arrive as `needs.<name>` in its context (both `keys` and `each` for a map step). A step may reference only earlier steps, so array order is always a valid execution order. Because steps share `needs` state in memory, `StepRunner` remains the per-task driver that runs all of a task's steps in order — it just drives one stage per step (see below) instead of folding them into one.
 
+**Authoring a step-based task (the DSL).** A task module default-exports the `build(options)` factory and returns the step array. The reference shape is `generateThemeDesignerResources` (`packages/builder/lib/tasks/generateThemeDesignerResources.js`), a scalar producer feeding a scalar consumer and a map step:
+
+```js
+export default function build(options) {
+	const {version} = options;
+	const namespace = options.projectNamespace;
+	if (namespace === "sap/ui/documentation") {
+		return []; // not offered in Theme Designer, so the factory emits no steps
+	}
+	const pattern = namespace ?
+		`/resources/${namespace}/themes/*/library.source.less` :
+		`/resources/**/themes/*/library.source.less`;
+
+	const steps = [{
+		name: "scan",
+		run: async ({workspace}) => ({hasThemes: (await workspace.byGlob(pattern)).length > 0}),
+	}];
+
+	if (namespace) { // only a library (which has a namespace) gets a library .theming file
+		steps.push({
+			name: "libraryTheming",
+			needs: ["scan"],
+			run: async ({needs, workspace}) => {
+				// write /resources/<namespace>/.theming from needs.scan.hasThemes, namespace, version
+			},
+		});
+	}
+
+	steps.push({
+		name: "themes",
+		needs: ["scan"],
+		keys: async ({needs, workspace}) => needs.scan.hasThemes ? workspace.byGlob(pattern) : [],
+		each: async (librarySourceLess, {workspace, dependencies}) => {
+			// build one theme's .theming and library.less
+		},
+	});
+
+	return steps;
+}
+```
+
+Two DSL rules make the per-step recording honest, and both are visible here. The factory is pure over `options`: it may branch on `namespace`, precompute `pattern`, and include or omit steps, all from values that are part of the build signature. And no `run`/`keys`/`each` body closes over a reader or `taskUtil`; every input arrives as a callback argument (`workspace`, `dependencies`, `taskUtil`, `needs`, `options`), so a read cannot escape the step it belongs to.
+
+**How these steps become stages.** The factory above produces up to three stages, one per returned step: `task/generateThemeDesignerResources::step/scan`, `.../step/libraryTheming` (present only when `namespace` is set, so the stage set follows the factory's branching and is known before execution), and `.../step/themes` (one stage carrying the per-theme key delta, since keys are discovered at runtime and never become stages). `libraryTheming` is keyed on `scan`'s return through `needs`, so it stays cached while `hasThemes` holds even as individual `library.source.less` files change; the `themes` map step regenerates only the themes whose keys changed. `TaskRunner` calls the factory once at plan time (pure over `options`) to collect the step names for `setTasks`, so `ProjectBuildCache` creates these stages in step order before the build runs.
+
 **Returns.** A step may return resources (stored in the CAS by integrity, as before) or a JSON-serializable value (persisted inline with the unit's invocation data). Either is injected into a consumer via `needs.<name>`, and the return's signature (resource integrities, or the serialized value) folds into the consumer's per-unit selection so a changed producer return re-runs the consumer. A step returning nothing has a `null` return descriptor. A returned value that is neither resources nor JSON-serializable throws.
 
 **The `stepBased` opt-in.** A task is step-based only when it declares it; absent, the default export is a legacy task body and runs unchanged. A standard task sets `stepBased: true` in its build-definition entry (`definitions/*.js`), read by `_addTask`. A custom task declares a static `stepBased` export on its task module, surfaced by `Task#getStepBased` and honored from Specification Version 5.0 (`_addCustomTask` computes `specVersion.gte("5.0") && (await getStepBased()) === true`); a `stepBased` export below 5.0 is ignored and the task runs as a legacy body. There is no shape-sniffing: both legacy and factory are default-export functions, disambiguated by the flag.

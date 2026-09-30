@@ -171,7 +171,7 @@ info › Running task generateLibraryPreload...       ← Full re-execution
 ```
 
 - `✔ Skipping` — exact cache match for this task's signature.
-- `◇ Running` — differential execution (delta `cacheInfo`, steps selected via `taskUtil.processEach`).
+- `◇ Running` — a step-based task where at least one step re-ran (`StepRunner` selects the changed steps/keys), or a legacy task running a delta (`cacheInfo`).
 - `› Running` — full execution (no cache match, no delta available).
 
 After task execution, `recordTaskResult` runs (logged per task):
@@ -361,7 +361,7 @@ When diagnosing slow `writeStageResources`, check the `CAS skipped` vs `CAS writ
 3. **Find the dominant phase.** In the perf log, look for the largest times:
    - Source index init? → Check `fromCacheWithDelta` vs total to see if it's I/O or hash-bound
    - Dependency index flush? → Check "changed paths" count and "cache misses"
-   - Task execution? → Check which tasks run and whether they support differential builds (◇ vs ›)
+   - Task execution? → Check which tasks run and whether they run as a delta (◇, a step-based task with a re-run step or a legacy delta) or a full re-execution (›)
    - `allTasksCompleted`? → Check `#revalidateSourceIndex` and `#freezeUntransformedSources` sub-timings
    - Cache write? → Check the sub-operation breakdown
 
