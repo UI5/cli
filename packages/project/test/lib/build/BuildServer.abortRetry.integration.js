@@ -52,14 +52,12 @@ test.serial("Aborted initial build must not leak in-memory StageCache to retry",
 				project, "/resources/library/d/some.js", false);
 		}
 	};
-	process.on("ui5.project-build-status", abortHandler);
 
-	try {
-		// byPath returns once the retry succeeds, so all events for both attempts are captured.
-		await fixtureTester._reader.byPath("/resources/library/d/some.js");
-	} finally {
-		process.off("ui5.project-build-status", abortHandler);
-	}
+	// requestResource returns once the retry succeeds, so all events for both attempts are captured.
+	await fixtureTester.requestResource({
+		resource: "/resources/library/d/some.js",
+		onBuildStatus: abortHandler,
+	});
 
 	t.true(aborted, "Test setup precondition: abort trigger should have fired");
 
@@ -99,13 +97,11 @@ test.serial(
 					project, "/resources/library/d/some.js", false);
 			}
 		};
-		process.on("ui5.project-build-status", abortHandler);
 
-		try {
-			await fixtureTester._reader.byPath("/resources/library/d/some.js");
-		} finally {
-			process.off("ui5.project-build-status", abortHandler);
-		}
+		await fixtureTester.requestResource({
+			resource: "/resources/library/d/some.js",
+			onBuildStatus: abortHandler,
+		});
 
 		t.true(aborted, "Test setup precondition: abort trigger should have fired");
 
@@ -175,16 +171,13 @@ test.serial("Source change during second build retries cleanly without no_cache 
 			appendFileSync(changedFilePath, "\n// mid-build-2 change\n");
 		}
 	};
-	process.on("ui5.project-build-status", handler);
 
-	let resource;
-	try {
-		// Without the fix this rejects with
-		// "Unexpected result cache state after restoring dependency indices for project XYZ: no_cache".
-		resource = await fixtureTester._reader.byPath("/resources/library/d/some.js");
-	} finally {
-		process.off("ui5.project-build-status", handler);
-	}
+	// Without the fix this rejects with
+	// "Unexpected result cache state after restoring dependency indices for project XYZ: no_cache".
+	const resource = await fixtureTester.requestResource({
+		resource: "/resources/library/d/some.js",
+		onBuildStatus: handler,
+	});
 
 	t.true(triggered, "Test setup precondition: source change handler fired during build 2");
 
@@ -194,3 +187,114 @@ test.serial("Source change during second build retries cleanly without no_cache 
 	t.true(servedContent.includes("mid-build-2 change"),
 		"Retry served content reflecting the mid-build-2 change");
 });
+
+// CPOUI5FOUNDATION-1363 (abort/retry delta over-write — OPTIMIZATION, not a correctness bug):
+// A delta rebuild only re-processes the files that actually changed. When such a rebuild is aborted
+// mid-flight and restarted, the retry re-processes ALL files the task handles instead of just the
+// changed one. The served output is still correct — the retry writes the same bytes — so this only
+// wastes work. Closing the gap would let the retry write the same reduced delta as the aborted
+// attempt.
+//
+// The `replaceCopyright` task substitutes the `${copyright}` token in every file that contains it.
+// The library.d fixture has two such files: `some.js` and `.library`. In a delta rebuild that
+// changed only `some.js`, the task writes only `some.js`. This test first proves that a *clean*
+// (non-aborted) delta rebuild already writes only `some.js` today, then drives an aborted+retried
+// delta rebuild and checks the retry still writes only `some.js` — today it writes `.library` too,
+// because the reused in-memory state loses the delta and re-globs all files. The clean delta phase
+// isolates the abort as the sole cause of the over-write.
+//
+// Recipe:
+//   1. Build once so the caches are warm.
+//   2. Change only `some.js`. This clean delta rebuild writes only `some.js` for replaceCopyright
+//      (asserted — passes today).
+//   3. Change only `some.js` again, and change it a THIRD time mid-build so the build aborts and
+//      restarts. The retry should again write only `some.js`, but today it also re-writes `.library`
+//      (asserted — fails today).
+//
+// Marked test.serial.failing: AVA reports it as a pass while it fails and as an error once it
+// starts passing, so it keeps CI green today and turns into a signal once the retry is optimized
+// (then drop the `.failing`). The clean delta assertion in step 2 already passes; the test as a
+// whole still fails on step 3 until the retry is optimized.
+test.serial.failing(
+	"Aborted delta build should re-process only the changed file on retry (optimization)", async (t) => {
+		const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "library.d");
+
+		await fixtureTester.serveProject({config: {excludedTasks: ["minify"]}});
+		const project = fixtureTester.graph.getProject("library.d");
+		const somePath = `${fixtureTester.fixturePath}/main/src/library/d/some.js`;
+		const originalSome = await fs.readFile(somePath, {encoding: "utf8"});
+
+		// #1 initial build populates the caches and records each task's inputs.
+		await fixtureTester.requestResource({resource: "/resources/library/d/some.js"});
+
+		// #2 clean delta rebuild (no abort). Change ONLY some.js and notify the watcher. This is the
+		// baseline the aborted retry must match: replaceCopyright writes only some.js, never .library.
+		// This assertion already succeeds in the current codebase.
+		await fs.writeFile(somePath, `${originalSome}\n// v2\n`);
+		await fixtureTester.fireWatcherEvent("update", somePath);
+		await fixtureTester.requestResource({
+			resource: "/resources/library/d/some.js",
+			assertions: {
+				projects: {
+					"library.d": {
+						skippedTasks: [
+							"buildThemes", "enhanceManifest", "escapeNonAsciiCharacters", "replaceBuildtime",
+						],
+						writtenResources: {
+							replaceCopyright: ["/resources/library/d/some.js"],
+						},
+					},
+				},
+			},
+		});
+
+		// #3 aborted delta rebuild. Change ONLY some.js and notify the watcher, then abort mid-build.
+		await fs.writeFile(somePath, `${originalSome}\n// v3\n`);
+		await fixtureTester.fireWatcherEvent("update", somePath);
+
+		// One-shot abort trigger: when `replaceCopyright` ends during the delta rebuild, change
+		// `some.js` AGAIN on disk and route the change through _projectResourceChanged. This
+		// invalidates the project, aborts the running build at the next signal check, and
+		// re-enqueues it against the newest source.
+		let aborted = false;
+		const abortHandler = (event) => {
+			if (
+				!aborted &&
+				event.projectName === "library.d" &&
+				event.status === "task-end" &&
+				event.taskName === "replaceCopyright"
+			) {
+				aborted = true;
+				fs.writeFile(somePath, `${originalSome}\n// v4\n`);
+				fixtureTester.buildServer._projectResourceChanged(
+					project, "/resources/library/d/some.js", false);
+			}
+		};
+
+		// requestResource returns once the retry succeeds, so all events for both attempts are
+		// captured. The retry should write only the changed file's delta for replaceCopyright:
+		// only some.js changed, so the delta must not include the unchanged .library file. The
+		// writtenResources assertion checks the LAST task-end for the task (i.e. the retry's).
+		// The skippedTasks set is identical to the clean delta #2, so this build differs from the
+		// passing baseline ONLY in the replaceCopyright written set — isolating the abort as the
+		// sole cause. This is the assertion that fails today.
+		await fixtureTester.requestResource({
+			resource: "/resources/library/d/some.js",
+			onBuildStatus: abortHandler,
+			assertions: {
+				projects: {
+					"library.d": {
+						skippedTasks: [
+							"buildThemes", "enhanceManifest", "escapeNonAsciiCharacters", "replaceBuildtime",
+						],
+						writtenResources: {
+							replaceCopyright: ["/resources/library/d/some.js"],
+						},
+					},
+				},
+			},
+		});
+
+		t.true(aborted, "Test setup precondition: abort trigger fired mid-build");
+	}
+);
