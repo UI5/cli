@@ -1,5 +1,5 @@
 import test from "ava";
-import ProcessEach from "../../../../lib/build/helpers/ProcessEach.js";
+import StepRunner from "../../../../lib/build/helpers/StepRunner.js";
 
 function createResource(resourcePath, content = resourcePath) {
 	return {
@@ -31,7 +31,7 @@ function createDependencies(initial = []) {
 	};
 }
 
-// An in-memory stand-in for the ProjectBuildContext's taskUtil. ProcessEach wraps this in a real
+// An in-memory stand-in for the ProjectBuildContext's taskUtil. StepRunner wraps this in a real
 // per-step MonitoredTaskUtil, so these methods are what the step's non-resource-input and tag recording
 // observes. `env` backs getEnv; tags are stored by path so setTag/getTag/clearTag round-trip.
 function createTaskUtil({env = {}} = {}) {
@@ -82,7 +82,7 @@ const prev = (entries) => new Map([[GROUP, new Map(entries)]]);
 test("Full build runs every step and records reads, writes and requests", async (t) => {
 	const workspace = createWorkspace();
 	const dependencies = createDependencies([createResource("/dep/marker")]);
-	const processEach = new ProcessEach({workspace, dependencies, taskUtil: {}});
+	const processEach = new StepRunner({workspace, dependencies, taskUtil: {}});
 
 	const keyA = createResource("/a.js");
 	const keyB = createResource("/b.js");
@@ -107,7 +107,7 @@ test("Full build runs every step and records reads, writes and requests", async 
 
 test("Sequential mode makes a step's write visible to the next step", async (t) => {
 	const workspace = createWorkspace();
-	const processEach = new ProcessEach({workspace, taskUtil: {}});
+	const processEach = new StepRunner({workspace, taskUtil: {}});
 
 	let secondStepSawFirstWrite = false;
 	await processEach.run(GROUP, ["first", "second"], {sequential: true}, async (key, {workspace}) => {
@@ -129,7 +129,7 @@ test("Concurrent mode buffers writes and flushes them in key order", async (t) =
 		writeOrder.push(resource.getPath());
 		return originalWrite(resource);
 	};
-	const processEach = new ProcessEach({workspace, taskUtil: {}});
+	const processEach = new StepRunner({workspace, taskUtil: {}});
 
 	await processEach.run(GROUP, ["a", "b", "c"], {sequential: false}, async (key, {workspace}) => {
 		// Reverse the natural completion order so the key-order flush is observable.
@@ -145,15 +145,15 @@ test("Concurrent mode buffers writes and flushes them in key order", async (t) =
 
 test("Concurrent steps writing the same path throw", async (t) => {
 	const workspace = createWorkspace();
-	const processEach = new ProcessEach({workspace, taskUtil: {}});
+	const processEach = new StepRunner({workspace, taskUtil: {}});
 
 	await t.throwsAsync(processEach.run(GROUP, ["a", "b"], async (key, {workspace}) => {
 		await workspace.write(createResource("/same.js"));
-	}), {message: /concurrent steps must not write the same resource path \/same\.js/});
+	}), {message: /must not write the same resource path \/same\.js/});
 });
 
 test("The group argument must be a non-empty string", async (t) => {
-	const processEach = new ProcessEach({workspace: createWorkspace(), taskUtil: {}});
+	const processEach = new StepRunner({workspace: createWorkspace(), taskUtil: {}});
 
 	await t.throwsAsync(processEach.run(undefined, ["a"], async () => {}),
 		{message: /first argument must be a non-empty string naming the step group/});
@@ -162,14 +162,14 @@ test("The group argument must be a non-empty string", async (t) => {
 });
 
 test("The options argument must be an object when provided", async (t) => {
-	const processEach = new ProcessEach({workspace: createWorkspace(), taskUtil: {}});
+	const processEach = new StepRunner({workspace: createWorkspace(), taskUtil: {}});
 
 	await t.throwsAsync(processEach.run(GROUP, ["a"], "nope", async () => {}),
 		{message: /options must be an object/});
 });
 
 test("Running the same group twice for one task throws", async (t) => {
-	const processEach = new ProcessEach({workspace: createWorkspace(), taskUtil: {}});
+	const processEach = new StepRunner({workspace: createWorkspace(), taskUtil: {}});
 
 	await processEach.run("dup", ["a"], async () => {});
 	await t.throwsAsync(processEach.run("dup", ["b"], async () => {}),
@@ -178,7 +178,7 @@ test("Running the same group twice for one task throws", async (t) => {
 
 test("Two groups record their per-key data under their own group name", async (t) => {
 	const workspace = createWorkspace();
-	const processEach = new ProcessEach({workspace, taskUtil: {}});
+	const processEach = new StepRunner({workspace, taskUtil: {}});
 
 	await processEach.run("js", ["a.js"], async (key, {workspace}) => {
 		await workspace.write(createResource(`/out/${key}`));
@@ -196,7 +196,7 @@ test("Two groups record their per-key data under their own group name", async (t
 test("getResourceRequests and getInputRecording fold across all groups", async (t) => {
 	const workspace = createWorkspace();
 	const dependencies = createDependencies([createResource("/dep/m1"), createResource("/dep/m2")]);
-	const processEach = new ProcessEach({
+	const processEach = new StepRunner({
 		workspace, dependencies, taskUtil: createTaskUtil({env: {A: "1", B: "2"}}),
 	});
 
@@ -225,7 +225,7 @@ test("Delta build runs only steps whose reads intersect the changed paths", asyn
 		["string:b", {reads: ["/in/b"], dependencyReads: [], writes: ["/out/b"]}],
 	]);
 	const cacheInfo = {changedProjectResourcePaths: ["/in/a"], changedDependencyResourcePaths: []};
-	const processEach = new ProcessEach({
+	const processEach = new StepRunner({
 		workspace, dependencies, taskUtil: {}, cacheInfo, previousInvocationData,
 	});
 
@@ -243,7 +243,7 @@ test("Delta build runs a new key", async (t) => {
 		["string:a", {reads: ["/in/a"], dependencyReads: [], writes: ["/out/a"]}],
 	]);
 	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
-	const processEach = new ProcessEach({workspace, taskUtil: {}, cacheInfo, previousInvocationData});
+	const processEach = new StepRunner({workspace, taskUtil: {}, cacheInfo, previousInvocationData});
 
 	const ran = [];
 	await processEach.run(GROUP, ["a", "new"], async (key) => {
@@ -260,7 +260,7 @@ test("Stale outputs cover removed keys and a re-run step's dropped write", async
 		["string:b", {reads: ["/in/b"], dependencyReads: [], writes: ["/out/b"]}],
 	]);
 	const cacheInfo = {changedProjectResourcePaths: ["/in/a"], changedDependencyResourcePaths: []};
-	const processEach = new ProcessEach({workspace, taskUtil: {}, cacheInfo, previousInvocationData});
+	const processEach = new StepRunner({workspace, taskUtil: {}, cacheInfo, previousInvocationData});
 
 	// Only key "a" survives this build and, on re-run, writes only /out/a1 (dropping /out/a2). Key "b"
 	// is gone entirely.
@@ -280,7 +280,7 @@ test("An output a group stopped producing is not stale if another group now prod
 		["b", new Map()],
 	]);
 	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
-	const processEach = new ProcessEach({workspace, taskUtil: {}, cacheInfo, previousInvocationData});
+	const processEach = new StepRunner({workspace, taskUtil: {}, cacheInfo, previousInvocationData});
 
 	// This build: group "a" no longer has key "k", so its two outputs would be stale; group "b" now
 	// produces /shared. /shared must be rescued across groups, /only-a stays stale.
@@ -300,7 +300,7 @@ test("A resource key is identified by path and integrity", async (t) => {
 		["resource:/x.js\u0000sha256-old", {reads: [], dependencyReads: [], writes: ["/x.js.out"]}],
 	]);
 	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
-	const processEach = new ProcessEach({workspace, taskUtil: {}, cacheInfo, previousInvocationData});
+	const processEach = new StepRunner({workspace, taskUtil: {}, cacheInfo, previousInvocationData});
 
 	const changedKey = createResource("/x.js", "new");
 	const ran = [];
@@ -315,7 +315,7 @@ test("A resource key is identified by path and integrity", async (t) => {
 
 test("Two resources with identical content are distinct keys", async (t) => {
 	const workspace = createWorkspace();
-	const processEach = new ProcessEach({workspace, taskUtil: {}});
+	const processEach = new StepRunner({workspace, taskUtil: {}});
 
 	// Same content (same integrity), different paths: keying on integrity alone would collapse them
 	// and lose one's output. Path plus integrity keeps them distinct.
@@ -332,7 +332,7 @@ test("Two resources with identical content are distinct keys", async (t) => {
 
 test("Keys must be resources or strings", async (t) => {
 	const workspace = createWorkspace();
-	const processEach = new ProcessEach({workspace, taskUtil: {}});
+	const processEach = new StepRunner({workspace, taskUtil: {}});
 
 	await t.throwsAsync(processEach.run(GROUP, [{notAKey: true}], async () => {}),
 		{message: /keys must be resources or strings/});
@@ -341,7 +341,7 @@ test("Keys must be resources or strings", async (t) => {
 test("Returned resources are handed back and stored in the CAS", async (t) => {
 	const workspace = createWorkspace();
 	const returnValueStore = createReturnValueStore();
-	const processEach = new ProcessEach({workspace, taskUtil: {}, returnValueStore});
+	const processEach = new StepRunner({workspace, taskUtil: {}, returnValueStore});
 
 	const results = await processEach.run(GROUP, ["a", "b"], async (key, {workspace}) => {
 		const out = createResource(`/out/${key}`, `content-${key}`);
@@ -356,14 +356,14 @@ test("Returned resources are handed back and stored in the CAS", async (t) => {
 		"Returned content stored in the CAS by integrity");
 
 	t.deepEqual(inv(processEach).get("string:a").returns,
-		{isArray: false, items: [{path: "/out/a", integrity: "sha256-content-a"}]},
+		{kind: "resources", isArray: false, items: [{path: "/out/a", integrity: "sha256-content-a"}]},
 		"Single-resource return recorded as a non-array descriptor");
 });
 
 test("A step may return an array of resources", async (t) => {
 	const workspace = createWorkspace();
 	const returnValueStore = createReturnValueStore();
-	const processEach = new ProcessEach({workspace, taskUtil: {}, returnValueStore});
+	const processEach = new StepRunner({workspace, taskUtil: {}, returnValueStore});
 
 	const results = await processEach.run(GROUP, ["a"], async (key) => {
 		return [createResource(`/out/${key}.1`, "one"), createResource(`/out/${key}.2`, "two")];
@@ -379,7 +379,7 @@ test("A step may return an array of resources", async (t) => {
 test("A step returning nothing has an undefined result and a null return descriptor", async (t) => {
 	const workspace = createWorkspace();
 	const returnValueStore = createReturnValueStore();
-	const processEach = new ProcessEach({workspace, taskUtil: {}, returnValueStore});
+	const processEach = new StepRunner({workspace, taskUtil: {}, returnValueStore});
 
 	const results = await processEach.run(GROUP, ["a"], async () => {
 		// Writes only, returns nothing.
@@ -391,29 +391,29 @@ test("A step returning nothing has an undefined result and a null return descrip
 	t.is(returnValueStore.cas.size, 0, "Nothing stored in the CAS");
 });
 
-test("Returning a non-resource throws", async (t) => {
+test("Returning a value that JSON cannot represent throws", async (t) => {
 	const workspace = createWorkspace();
 	const returnValueStore = createReturnValueStore();
-	const processEach = new ProcessEach({workspace, taskUtil: {}, returnValueStore});
+	const processEach = new StepRunner({workspace, taskUtil: {}, returnValueStore});
 
-	await t.throwsAsync(processEach.run(GROUP, ["a"], async () => 42),
-		{message: /may return only resources or an array of resources; got a number/});
+	await t.throwsAsync(processEach.run(GROUP, ["a"], async () => () => {}),
+		{message: /may return resources or a JSON-serializable value; got a function/});
 	await t.throwsAsync(processEach.run("g2", ["a"], async () => [createResource("/ok"), {}]),
-		{message: /array entry 1 is a plain object/});
+		{message: /returned array must contain only resources; array entry 1 is a plain object/});
 });
 
 test("A cached step's returned resource is rebuilt from the CAS without re-running", async (t) => {
 	const returnValueStore = createReturnValueStore();
 
 	// Build 1 (full build): every step runs and its return is stored in the CAS.
-	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: {}, returnValueStore});
+	const build1 = new StepRunner({workspace: createWorkspace(), taskUtil: {}, returnValueStore});
 	await build1.run(GROUP, ["a", "b"], async (key) => createResource(`/out/${key}`, `content-${key}`));
 	const previousInvocationData = build1.getInvocationData();
 
 	// Build 2 (unchanged rebuild): no changed paths, so no step re-runs. Every result comes from the CAS.
 	const ran = [];
 	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
-	const build2 = new ProcessEach({
+	const build2 = new StepRunner({
 		workspace: createWorkspace(), taskUtil: {}, cacheInfo, previousInvocationData, returnValueStore,
 	});
 	const results = await build2.run(GROUP, ["a", "b"], async (key) => {
@@ -431,7 +431,7 @@ test("Delta build re-runs the changed step fresh and restores the unchanged step
 	const returnValueStore = createReturnValueStore();
 
 	// Build 1: record reads and returns for two string keys.
-	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: {}, returnValueStore});
+	const build1 = new StepRunner({workspace: createWorkspace(), taskUtil: {}, returnValueStore});
 	await build1.run(GROUP, ["a", "b"], async (key, {workspace}) => {
 		await workspace.byPath(`/in/${key}`); // recorded read, so a change to it re-runs this step
 		return createResource(`/out/${key}`, `content-${key}`);
@@ -441,7 +441,7 @@ test("Delta build re-runs the changed step fresh and restores the unchanged step
 	// Build 2: only /in/a changed, so step "a" re-runs (fresh) and step "b" is restored from the CAS.
 	const ran = [];
 	const cacheInfo = {changedProjectResourcePaths: ["/in/a"], changedDependencyResourcePaths: []};
-	const build2 = new ProcessEach({
+	const build2 = new StepRunner({
 		workspace: createWorkspace(), taskUtil: {}, cacheInfo, previousInvocationData, returnValueStore,
 	});
 	const results = await build2.run(GROUP, ["a", "b"], async (key, {workspace}) => {
@@ -460,7 +460,7 @@ test("Delta build re-runs the changed step fresh and restores the unchanged step
 test("A resource written and returned at the same path is stored and restored independently", async (t) => {
 	const returnValueStore = createReturnValueStore();
 
-	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: {}, returnValueStore});
+	const build1 = new StepRunner({workspace: createWorkspace(), taskUtil: {}, returnValueStore});
 	await build1.run(GROUP, ["a"], async (key, {workspace}) => {
 		const out = createResource(`/out/${key}`, `content-${key}`);
 		await workspace.write(out);
@@ -472,7 +472,7 @@ test("A resource written and returned at the same path is stored and restored in
 
 	// The return is rebuilt from the CAS on a cached rebuild, independent of the workspace output.
 	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
-	const build2 = new ProcessEach({
+	const build2 = new StepRunner({
 		workspace: createWorkspace(), taskUtil: {}, cacheInfo,
 		previousInvocationData: build1.getInvocationData(), returnValueStore,
 	});
@@ -488,17 +488,17 @@ test("Restoring a cached return without a store throws a clear error", async (t)
 		}],
 	]);
 	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
-	const processEach = new ProcessEach({
+	const processEach = new StepRunner({
 		workspace: createWorkspace(), taskUtil: {}, cacheInfo, previousInvocationData,
 	});
 
 	await t.throwsAsync(processEach.run(GROUP, ["a"], async () => {}),
-		{message: /cannot restore a cached step's returned resources without a return value store/});
+		{message: /annot restore a cached step's returned resources without a return value store/});
 });
 
 test("The per-step taskUtil records a step's non-resource inputs and tag operations", async (t) => {
 	const workspace = createWorkspace();
-	const processEach = new ProcessEach({workspace, taskUtil: createTaskUtil({env: {MODE: "dev"}})});
+	const processEach = new StepRunner({workspace, taskUtil: createTaskUtil({env: {MODE: "dev"}})});
 
 	await processEach.run(GROUP, ["a"], async (key, {taskUtil}) => {
 		taskUtil.getEnv("MODE");
@@ -517,7 +517,7 @@ test("Delta build re-runs only the step whose recorded non-resource input change
 	const resolveInputValue = (type, name) => (type === "env" ? env[name] : undefined);
 
 	// Build 1: step "a" reads env A, step "b" reads env B.
-	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: createTaskUtil({env})});
+	const build1 = new StepRunner({workspace: createWorkspace(), taskUtil: createTaskUtil({env})});
 	await build1.run(GROUP, ["a", "b"], async (key, {taskUtil}) => {
 		taskUtil.getEnv(key.toUpperCase());
 	});
@@ -527,7 +527,7 @@ test("Delta build re-runs only the step whose recorded non-resource input change
 	// re-resolved input value alone.
 	env.A = "2";
 	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
-	const build2 = new ProcessEach({
+	const build2 = new StepRunner({
 		workspace: createWorkspace(), taskUtil: createTaskUtil({env}),
 		cacheInfo, previousInvocationData, resolveInputValue,
 	});
@@ -542,7 +542,7 @@ test("Delta build re-runs only the step whose recorded non-resource input change
 
 test("A restored step replays its recorded tag operations, a re-run step's are not replayed", async (t) => {
 	// Build 1: each step reads its input and tags its output.
-	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: createTaskUtil()});
+	const build1 = new StepRunner({workspace: createWorkspace(), taskUtil: createTaskUtil()});
 	await build1.run(GROUP, ["a", "b"], async (key, {workspace, taskUtil}) => {
 		await workspace.byPath(`/in/${key}`);
 		taskUtil.setTag(createResource(`/out/${key}`), "ui5:IsBundle", true);
@@ -553,7 +553,7 @@ test("A restored step replays its recorded tag operations, a re-run step's are n
 	// operation is replayed; the re-run step's tag reaches the collection through its live setTag.
 	const replayed = [];
 	const cacheInfo = {changedProjectResourcePaths: ["/in/a"], changedDependencyResourcePaths: []};
-	const build2 = new ProcessEach({
+	const build2 = new StepRunner({
 		workspace: createWorkspace(), taskUtil: createTaskUtil(),
 		cacheInfo, previousInvocationData,
 		applyTagOperations: (ops) => replayed.push(...ops),
@@ -574,7 +574,7 @@ test("getInputRecording unions every step's inputs, including cached steps on a 
 	const env = {A: "1", B: "1"};
 	const resolveInputValue = (type, name) => (type === "env" ? env[name] : undefined);
 
-	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: createTaskUtil({env})});
+	const build1 = new StepRunner({workspace: createWorkspace(), taskUtil: createTaskUtil({env})});
 	await build1.run(GROUP, ["a", "b"], async (key, {taskUtil}) => {
 		taskUtil.getEnv(key.toUpperCase());
 	});
@@ -584,7 +584,7 @@ test("getInputRecording unions every step's inputs, including cached steps on a 
 	// the folded union, so the re-keyed stage signature keeps tracking it.
 	env.A = "2";
 	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
-	const build2 = new ProcessEach({
+	const build2 = new StepRunner({
 		workspace: createWorkspace(), taskUtil: createTaskUtil({env}),
 		cacheInfo, previousInvocationData, resolveInputValue,
 	});
@@ -599,7 +599,7 @@ test("getInputRecording unions every step's inputs, including cached steps on a 
 });
 
 test("Without a resolver, a changed non-resource input cannot re-run a step", async (t) => {
-	const build1 = new ProcessEach({workspace: createWorkspace(), taskUtil: createTaskUtil({env: {A: "1"}})});
+	const build1 = new StepRunner({workspace: createWorkspace(), taskUtil: createTaskUtil({env: {A: "1"}})});
 	await build1.run(GROUP, ["a"], async (key, {taskUtil}) => {
 		taskUtil.getEnv("A");
 	});
@@ -608,7 +608,7 @@ test("Without a resolver, a changed non-resource input cannot re-run a step", as
 	// No resolveInputValue (standalone use): the input cannot be re-derived, so selection falls back to
 	// resource reads alone and the step stays cached.
 	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
-	const build2 = new ProcessEach({
+	const build2 = new StepRunner({
 		workspace: createWorkspace(), taskUtil: createTaskUtil({env: {A: "2"}}),
 		cacheInfo, previousInvocationData,
 	});
@@ -618,4 +618,295 @@ test("Without a resolver, a changed non-resource input cannot re-run a step", as
 	});
 
 	t.deepEqual(ran, [], "Without a resolver the step stays cached despite the changed input");
+});
+
+// --- Step-factory API (runSteps) ---
+
+test("runSteps runs a scalar step once and records its single unit", async (t) => {
+	const workspace = createWorkspace();
+	const runner = new StepRunner({
+		workspace, taskUtil: {}, steps: [
+			{name: "s", run: async ({workspace}) => {
+				await workspace.write(createResource("/out"));
+			}},
+		],
+	});
+
+	await runner.runSteps();
+
+	t.true(workspace.store.has("/out"), "Scalar step's write persisted");
+	t.is(runner.getInvocationData().get("s").size, 1, "Scalar step recorded one implicit unit");
+});
+
+test("runSteps runs a map step's each once per enumerated key", async (t) => {
+	const workspace = createWorkspace();
+	const ran = [];
+	const runner = new StepRunner({
+		workspace, taskUtil: {}, steps: [
+			{name: "m", keys: async () => ["a", "b"], each: async (key, {workspace}) => {
+				ran.push(key);
+				await workspace.write(createResource(`/out/${key}`));
+			}},
+		],
+	});
+
+	await runner.runSteps();
+
+	t.deepEqual(ran.sort(), ["a", "b"], "each ran once per key");
+	t.is(runner.getInvocationData().get("m").size, 2, "Map step recorded one unit per key");
+	t.true(workspace.store.has("/out/a") && workspace.store.has("/out/b"), "Both keys' writes persisted");
+});
+
+test("A step must be either scalar or map", async (t) => {
+	const runner = new StepRunner({workspace: createWorkspace(), taskUtil: {}, steps: [{name: "bad"}]});
+	await t.throwsAsync(runner.runSteps(),
+		{message: /Step 'bad' must be either a scalar step .* or a map step/});
+
+	const both = new StepRunner({
+		workspace: createWorkspace(), taskUtil: {},
+		steps: [{name: "bad", run: async () => {}, keys: async () => [], each: async () => {}}],
+	});
+	await t.throwsAsync(both.runSteps(),
+		{message: /Step 'bad' must be either a scalar step .* or a map step/});
+});
+
+test("A step's needs may only reference an earlier step", async (t) => {
+	const runner = new StepRunner({
+		workspace: createWorkspace(), taskUtil: {},
+		steps: [{name: "a", needs: ["later"], run: async () => {}}, {name: "later", run: async () => {}}],
+	});
+	await t.throwsAsync(runner.runSteps(),
+		{message: /Step 'a' needs 'later', which is not an earlier step/});
+});
+
+test("A scalar producer's serializable return is injected into a consumer via needs", async (t) => {
+	let seen;
+	const runner = new StepRunner({
+		workspace: createWorkspace(), taskUtil: {}, steps: [
+			{name: "scan", run: async () => ({hasThemes: true})},
+			{name: "use", needs: ["scan"], run: async ({needs}) => {
+				seen = needs.scan;
+			}},
+		],
+	});
+
+	await runner.runSteps();
+
+	t.deepEqual(seen, {hasThemes: true}, "The producer's return arrived as needs.scan");
+});
+
+test("A producer return reaches a map step's keys and each via needs", async (t) => {
+	const workspace = createWorkspace();
+	const keysSaw = [];
+	const eachSaw = [];
+	const runner = new StepRunner({
+		workspace, taskUtil: {}, steps: [
+			{name: "scan", run: async () => ({wanted: ["x", "y"]})},
+			{name: "build", needs: ["scan"], keys: async ({needs}) => {
+				keysSaw.push(needs.scan);
+				return needs.scan.wanted;
+			}, each: async (key, {needs}) => {
+				eachSaw.push([key, needs.scan.wanted.length]);
+			}},
+		],
+	});
+
+	await runner.runSteps();
+
+	t.deepEqual(keysSaw, [{wanted: ["x", "y"]}], "keys saw the producer return");
+	t.deepEqual(eachSaw.sort(), [["x", 2], ["y", 2]], "each saw the producer return per key");
+});
+
+test("A resource return is injected into a consumer and stored in the CAS", async (t) => {
+	const returnValueStore = createReturnValueStore();
+	let consumed;
+	const runner = new StepRunner({
+		workspace: createWorkspace(), taskUtil: {}, returnValueStore, steps: [
+			{name: "make", run: async () => createResource("/made", "made-content")},
+			{name: "use", needs: ["make"], run: async ({needs}) => {
+				consumed = await needs.make.getString();
+			}},
+		],
+	});
+
+	await runner.runSteps();
+
+	t.is(consumed, "made-content", "The producer's returned resource arrived as needs.make");
+	t.deepEqual([...returnValueStore.cas.keys()], ["sha256-made-content"],
+		"The returned resource's content was stored in the CAS");
+});
+
+test("Delta build re-runs only the map key whose recorded read changed", async (t) => {
+	const steps = () => [
+		{name: "m", keys: async () => ["a", "b"], each: async (key, {workspace}) => {
+			await workspace.byPath(`/in/${key}`); // recorded read
+			await workspace.write(createResource(`/out/${key}`));
+		}},
+	];
+	const build1 = new StepRunner({workspace: createWorkspace(), taskUtil: {}, steps: steps()});
+	await build1.runSteps();
+
+	const ran = [];
+	const cacheInfo = {changedProjectResourcePaths: ["/in/a"], changedDependencyResourcePaths: []};
+	const build2 = new StepRunner({
+		workspace: createWorkspace(), taskUtil: {}, cacheInfo,
+		previousInvocationData: build1.getInvocationData(),
+		steps: [
+			{name: "m", keys: async () => ["a", "b"], each: async (key, {workspace}) => {
+				ran.push(key);
+				await workspace.byPath(`/in/${key}`);
+				await workspace.write(createResource(`/out/${key}`));
+			}},
+		],
+	});
+	await build2.runSteps();
+
+	t.deepEqual(ran, ["a"], "Only the key whose recorded read changed re-ran");
+});
+
+test("Delta build re-runs a consumer when its producer's return changed", async (t) => {
+	const stepsFor = (ran) => [
+		{name: "scan", run: async ({workspace}) => {
+			const res = await workspace.byPath("/in");
+			return {v: res ? await res.getString() : "none"};
+		}},
+		{name: "use", needs: ["scan"], run: async ({needs, workspace}) => {
+			ran.push("use");
+			await workspace.write(createResource("/use.out", JSON.stringify(needs.scan)));
+		}},
+	];
+
+	const ws1 = createWorkspace([createResource("/in", "old")]);
+	const build1 = new StepRunner({workspace: ws1, taskUtil: {}, steps: stepsFor([])});
+	await build1.runSteps();
+
+	const ran = [];
+	const ws2 = createWorkspace([createResource("/in", "new")]);
+	const cacheInfo = {changedProjectResourcePaths: ["/in"], changedDependencyResourcePaths: []};
+	const build2 = new StepRunner({
+		workspace: ws2, taskUtil: {}, cacheInfo,
+		previousInvocationData: build1.getInvocationData(), steps: stepsFor(ran),
+	});
+	await build2.runSteps();
+
+	t.deepEqual(ran, ["use"], "The consumer re-ran because the producer's return changed");
+});
+
+test("Delta build keeps a consumer cached when its producer is restored unchanged", async (t) => {
+	const stepsFor = (ran) => [
+		{name: "scan", run: async ({workspace}) => {
+			const res = await workspace.byPath("/in");
+			ran.push("scan");
+			return {v: res ? await res.getString() : "none"};
+		}},
+		{name: "use", needs: ["scan"], run: async ({needs, workspace}) => {
+			ran.push("use");
+			await workspace.write(createResource("/use.out", JSON.stringify(needs.scan)));
+		}},
+	];
+
+	const build1 = new StepRunner({
+		workspace: createWorkspace([createResource("/in", "v")]), taskUtil: {}, steps: stepsFor([]),
+	});
+	await build1.runSteps();
+
+	const ran = [];
+	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
+	const build2 = new StepRunner({
+		workspace: createWorkspace([createResource("/in", "v")]), taskUtil: {}, cacheInfo,
+		previousInvocationData: build1.getInvocationData(), steps: stepsFor(ran),
+	});
+	await build2.runSteps();
+
+	t.deepEqual(ran, [], "Neither the restored producer nor its consumer re-ran");
+});
+
+test("A map step honors sequential so a later key reads an earlier key's write", async (t) => {
+	const workspace = createWorkspace();
+	let secondSawFirst = false;
+	const runner = new StepRunner({
+		workspace, taskUtil: {}, steps: [
+			{name: "m", sequential: true, keys: async () => ["first", "second"], each: async (key, {workspace}) => {
+				if (key === "first") {
+					await workspace.write(createResource("/shared"));
+				} else {
+					secondSawFirst = !!(await workspace.byPath("/shared"));
+				}
+			}},
+		],
+	});
+
+	await runner.runSteps();
+
+	t.true(secondSawFirst, "Sequential map step made the first key's write visible to the second");
+});
+
+test("A later step sees an earlier step's write", async (t) => {
+	const workspace = createWorkspace();
+	let laterSaw = false;
+	const runner = new StepRunner({
+		workspace, taskUtil: {}, steps: [
+			{name: "first", run: async ({workspace}) => {
+				await workspace.write(createResource("/from-first"));
+			}},
+			{name: "second", run: async ({workspace}) => {
+				laterSaw = !!(await workspace.byPath("/from-first"));
+			}},
+		],
+	});
+
+	await runner.runSteps();
+
+	t.true(laterSaw, "The second step read the first step's write through the stage");
+});
+
+test("A removed map key's output is reported stale", async (t) => {
+	const build1 = new StepRunner({
+		workspace: createWorkspace(), taskUtil: {}, steps: [
+			{name: "m", keys: async () => ["a", "b"], each: async (key, {workspace}) => {
+				await workspace.write(createResource(`/out/${key}`));
+			}},
+		],
+	});
+	await build1.runSteps();
+
+	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
+	const build2 = new StepRunner({
+		workspace: createWorkspace(), taskUtil: {}, cacheInfo,
+		previousInvocationData: build1.getInvocationData(), steps: [
+			{name: "m", keys: async () => ["a"], each: async (key, {workspace}) => {
+				await workspace.write(createResource(`/out/${key}`));
+			}},
+		],
+	});
+	await build2.runSteps();
+
+	t.deepEqual(build2.getStaleOutputs(), ["/out/b"], "The dropped key's output is stale");
+});
+
+test("runSteps over an empty step list does nothing", async (t) => {
+	const runner = new StepRunner({workspace: createWorkspace(), taskUtil: {}, steps: []});
+	await runner.runSteps();
+	t.is(runner.getInvocationData().size, 0, "No invocation data recorded");
+	t.deepEqual(runner.getStaleOutputs(), [], "No stale outputs");
+});
+
+test("options passed to the runner reaches each step's context", async (t) => {
+	let seenScalar;
+	let seenEach;
+	const runner = new StepRunner({
+		workspace: createWorkspace(), taskUtil: {}, options: {pattern: "/**/*.js"}, steps: [
+			{name: "s", run: async ({options}) => {
+				seenScalar = options;
+			}},
+			{name: "m", keys: async ({options}) => [options.pattern], each: async (key, {options}) => {
+				seenEach = options;
+			}},
+		],
+	});
+
+	await runner.runSteps();
+
+	t.deepEqual(seenScalar, {pattern: "/**/*.js"}, "Scalar step received the task options");
+	t.deepEqual(seenEach, {pattern: "/**/*.js"}, "Map step received the task options");
 });

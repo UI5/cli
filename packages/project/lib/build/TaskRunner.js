@@ -1,7 +1,7 @@
 import {getLogger} from "@ui5/logger";
 import composeTaskList from "./helpers/composeTaskList.js";
 import MonitoredTaskUtil from "./helpers/MonitoredTaskUtil.js";
-import ProcessEach from "./helpers/ProcessEach.js";
+import StepRunner from "./helpers/StepRunner.js";
 import {createReaderCollection, createMonitor} from "@ui5/fs/resourceFactory";
 
 const EMPTY_RESOURCE_REQUESTS = {paths: [], patterns: []};
@@ -276,7 +276,7 @@ class TaskRunner {
 				const monitoredTaskUtil = new MonitoredTaskUtil(this._taskUtil, {
 					processEach: (group, keys, options, callback) => {
 						if (!processEachDriver) {
-							processEachDriver = new ProcessEach({
+							processEachDriver = new StepRunner({
 								workspace,
 								dependencies,
 								taskUtil: monitoredTaskUtil,
@@ -587,7 +587,7 @@ class TaskRunner {
 					// processEach neither builds a driver nor reads its persisted invocation data.
 					monitoredTaskUtilOptions.processEach = (group, keys, options, callback) => {
 						if (!processEachDriver) {
-							processEachDriver = new ProcessEach({
+							processEachDriver = new StepRunner({
 								workspace,
 								dependencies,
 								taskUtil: monitoredTaskUtil,
