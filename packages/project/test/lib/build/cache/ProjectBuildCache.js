@@ -241,7 +241,7 @@ test("setTasks initializes project stages", async (t) => {
 	const cache = new ProjectBuildCache(project, "sig", cacheManager);
 	await cache.initSourceIndex();
 
-	cache.setTasks(["task1", "task2", "task3"]);
+	cache.setTasks([{taskName: "task1"}, {taskName: "task2"}, {taskName: "task3"}]);
 
 	t.true(project.getProjectResources().initStages.calledOnce, "initStages called once");
 	t.deepEqual(
@@ -403,7 +403,7 @@ test("prepareTaskExecutionAndValidateCache: task needs execution when no cache e
 	const cache = new ProjectBuildCache(project, "sig", cacheManager);
 	await cache.initSourceIndex();
 
-	cache.setTasks(["myTask"]);
+	cache.setTasks([{taskName: "myTask"}]);
 	const canUseCache = await cache.prepareTaskExecutionAndValidateCache("myTask");
 
 	t.false(canUseCache, "Task cannot use cache");
@@ -416,7 +416,7 @@ test("prepareTaskExecutionAndValidateCache: switches project to correct stage", 
 	const cache = new ProjectBuildCache(project, "sig", cacheManager);
 	await cache.initSourceIndex();
 
-	cache.setTasks(["task1", "task2"]);
+	cache.setTasks([{taskName: "task1"}, {taskName: "task2"}]);
 	await cache.prepareTaskExecutionAndValidateCache("task2");
 
 	t.true(project.getProjectResources().useStage.calledWith("task/task2"), "Switched to task2 stage");
@@ -428,7 +428,7 @@ test("recordTaskResult: creates task cache", async (t) => {
 	const cache = new ProjectBuildCache(project, "sig", cacheManager);
 	await cache.initSourceIndex();
 
-	cache.setTasks(["newTask"]);
+	cache.setTasks([{taskName: "newTask"}]);
 	await cache.prepareTaskExecutionAndValidateCache("newTask");
 
 	const projectRequests = {paths: new Set(["/input.js"]), patterns: new Set()};
@@ -446,7 +446,7 @@ test("recordTaskResult with empty requests", async (t) => {
 	const cache = new ProjectBuildCache(project, "sig", cacheManager);
 	await cache.initSourceIndex();
 
-	cache.setTasks(["task1"]);
+	cache.setTasks([{taskName: "task1"}]);
 	await cache.prepareTaskExecutionAndValidateCache("task1");
 
 	const projectRequests = {paths: new Set(), patterns: new Set()};
@@ -467,7 +467,7 @@ test("recordTaskResult with cacheInfo: merges resources from previous stage, ski
 		const cache = new ProjectBuildCache(project, "sig", cacheManager);
 		await cache.initSourceIndex();
 
-		cache.setTasks(["myTask"]);
+		cache.setTasks([{taskName: "myTask"}]);
 		await cache.prepareTaskExecutionAndValidateCache("myTask");
 
 		// Resources written by the delta execution
@@ -519,7 +519,7 @@ test("recordTaskResult with cacheInfo: calls importTagOperations with previous s
 		const cache = new ProjectBuildCache(project, "sig", cacheManager);
 		await cache.initSourceIndex();
 
-		cache.setTasks(["myTask"]);
+		cache.setTasks([{taskName: "myTask"}]);
 		await cache.prepareTaskExecutionAndValidateCache("myTask");
 
 		const writeStub = sinon.stub().resolves();
@@ -568,7 +568,7 @@ test("recordTaskResult with cacheInfo: merges tag operations with current delta 
 		const cache = new ProjectBuildCache(project, "sig", cacheManager);
 		await cache.initSourceIndex();
 
-		cache.setTasks(["myTask"]);
+		cache.setTasks([{taskName: "myTask"}]);
 		await cache.prepareTaskExecutionAndValidateCache("myTask");
 
 		// Delta execution's own tag operations — /a.js IsDebugVariant overrides previous value
@@ -642,7 +642,7 @@ test("recordTaskResult with cacheInfo: uses cacheInfo.newSignature as stage sign
 		const cache = new ProjectBuildCache(project, "sig", cacheManager);
 		await cache.initSourceIndex();
 
-		cache.setTasks(["myTask"]);
+		cache.setTasks([{taskName: "myTask"}]);
 		await cache.prepareTaskExecutionAndValidateCache("myTask");
 
 		const writtenRes = createMockResource("/a.js", "hash-a", 2000, 200, 2);
@@ -691,7 +691,7 @@ test("recordTaskResult with cacheInfo: uses getCachedWriter fallback when getWri
 		const cache = new ProjectBuildCache(project, "sig", cacheManager);
 		await cache.initSourceIndex();
 
-		cache.setTasks(["myTask"]);
+		cache.setTasks([{taskName: "myTask"}]);
 		await cache.prepareTaskExecutionAndValidateCache("myTask");
 
 		const writeStub = sinon.stub().resolves();
@@ -1184,7 +1184,7 @@ async function buildCacheWithTaskResult(resources, writtenPaths = []) {
 	await cache.initSourceIndex();
 
 	// Set up and execute a task
-	cache.setTasks(["myTask"]);
+	cache.setTasks([{taskName: "myTask"}]);
 	await cache.prepareTaskExecutionAndValidateCache("myTask");
 
 	// Simulate task writing some resources
@@ -1310,7 +1310,7 @@ test("freezeUntransformedSources: throws when source file not found", async (t) 
 
 	const cache = new ProjectBuildCache(project, "test-sig", cacheManager);
 	await cache.initSourceIndex();
-	cache.setTasks(["myTask"]);
+	cache.setTasks([{taskName: "myTask"}]);
 	await cache.prepareTaskExecutionAndValidateCache("myTask");
 
 	project.getProjectResources().getStage.returns({
@@ -1419,7 +1419,7 @@ async function buildCacheWithWarmCacheAndTaskResult({
 	await cache.initSourceIndex();
 
 	// Set up and execute a task
-	cache.setTasks(["myTask"]);
+	cache.setTasks([{taskName: "myTask"}]);
 	await cache.prepareTaskExecutionAndValidateCache("myTask");
 
 	// Simulate task writing some resources
@@ -2045,7 +2045,7 @@ test("Fail-then-succeed: #writtenResultResourcePaths accumulates across failed a
 		};
 
 		// Failed build attempt: taskA runs successfully and writes /a.js.
-		cache.setTasks(["taskA", "taskB"]);
+		cache.setTasks([{taskName: "taskA"}, {taskName: "taskB"}]);
 		await cache.prepareTaskExecutionAndValidateCache("taskA");
 
 		const writtenA = createMockResource("/a.js", "hash-a-built", 2000, 200, 1);
@@ -2061,7 +2061,7 @@ test("Fail-then-succeed: #writtenResultResourcePaths accumulates across failed a
 
 		// The retry claims taskA again. Currently /a.js is passed as a "changed"
 		// path to updateProjectIndices even though it did not change on disk.
-		cache.setTasks(["taskA", "taskB"]);
+		cache.setTasks([{taskName: "taskA"}, {taskName: "taskB"}]);
 		const updateProjectIndicesStub = sinon.stub(
 			cache.getTaskCache("taskA"), "updateProjectIndices").resolves();
 
@@ -2106,7 +2106,7 @@ test("Fail-then-succeed: #currentStageSignatures from failed attempt does not li
 		await cache.validateCache(mockDependencyReader, {prepareForBuild: true});
 
 		// Failed attempt: taskA records with a distinctive signature.
-		cache.setTasks(["taskA", "taskB"]);
+		cache.setTasks([{taskName: "taskA"}, {taskName: "taskB"}]);
 		await cache.prepareTaskExecutionAndValidateCache("taskA");
 		stubStage(project, "task/taskA");
 		await recordEmptyResult(cache, "taskA");
@@ -2115,7 +2115,7 @@ test("Fail-then-succeed: #currentStageSignatures from failed attempt does not li
 
 		// Retry.
 		await cache.validateCache(mockDependencyReader, {prepareForBuild: true});
-		cache.setTasks(["taskA", "taskB"]);
+		cache.setTasks([{taskName: "taskA"}, {taskName: "taskB"}]);
 
 		await cache.prepareTaskExecutionAndValidateCache("taskA");
 		stubStage(project, "task/taskA");
@@ -2154,7 +2154,7 @@ test("Fail-then-succeed: delta merge does not resurrect resources from a stage a
 		const cache = new ProjectBuildCache(project, "sig", cacheManager);
 		await cache.initSourceIndex();
 
-		cache.setTasks(["deltaTask"]);
+		cache.setTasks([{taskName: "deltaTask"}]);
 		await cache.prepareTaskExecutionAndValidateCache("deltaTask");
 
 		// The retry's delta task writes only the changed /a.js.
@@ -2452,38 +2452,54 @@ test.serial("Integration: step return values round-trip through the real CAS", a
 		},
 	];
 
+	// Drive a StepRunner with in-memory per-stage hooks, keeping the real
+	// CAS-backed returnValueStore so returns genuinely round-trip through SQLite. `verdicts` gives each
+	// step's cache verdict (false = full run, true = fully cached, or a delta cacheInfo); `previousData`
+	// carries each step's per-key invocation data forward; `captureInvocation` records it back out.
+	function runBuild({marker, ran, verdicts = {}, previousData = new Map(), captureInvocation}) {
+		const workspace = createIntegrationWorkspace();
+		return new StepRunner({
+			steps: buildSteps(marker, ran),
+			returnValueStore,
+			prepareStage: async (step) => (step in verdicts ? verdicts[step] : false),
+			getPreviousInvocationData: (step) => previousData.get(step),
+			createStageContext: () => ({workspace, taskUtil: {}, monitoredTaskUtil: {}}),
+			recordStage: async (step, outcome) => {
+				captureInvocation?.(step, outcome.invocationData);
+				return [];
+			},
+		}).runSteps();
+	}
+
 	// Build 1: full build. Every unit runs; returns are stored in the CAS.
-	const build1 = new StepRunner({
-		steps: buildSteps("content"), workspace: createIntegrationWorkspace(), taskUtil: {}, returnValueStore,
-	});
-	await build1.runSteps();
+	let producerData;
+	await runBuild({marker: "content", captureInvocation: (step, data) => {
+		if (step === "g") {
+			producerData = data;
+		}
+	}});
 	t.is(await captured[0].getString(), "content-a", "Build 1 hands back the fresh resource for a");
 	t.is(await captured[1].getString(), "content-b", "Build 1 hands back the fresh resource for b");
 
-	// Only the producer's persisted data is carried forward, so the consumer has no previous data and
-	// re-runs every build to capture the reassembled returns.
-	const producerData = new Map([["g", build1.getInvocationData().get("g")]]);
-
 	// Build 2: unchanged rebuild. No changed paths, so no producer unit re-runs; both returns come from CAS.
+	// Only the producer's persisted data is carried forward; the consumer re-runs to capture the returns.
 	const ran2 = [];
-	const build2 = new StepRunner({
-		steps: buildSteps("content", ran2), workspace: createIntegrationWorkspace(), taskUtil: {}, returnValueStore,
-		cacheInfo: {changedProjectResourcePaths: [], changedDependencyResourcePaths: []},
-		previousInvocationData: producerData,
+	await runBuild({
+		marker: "content", ran: ran2,
+		verdicts: {g: {changedProjectResourcePaths: [], changedDependencyResourcePaths: []}},
+		previousData: new Map([["g", producerData]]),
 	});
-	await build2.runSteps();
 	t.deepEqual(ran2, [], "No producer unit re-ran on the unchanged rebuild");
 	t.is(await captured[0].getString(), "content-a", "Unchanged rebuild restored a from the CAS");
 	t.is(await captured[1].getString(), "content-b", "Unchanged rebuild restored b from the CAS");
 
 	// Build 3: delta build. Only /in/a changed, so unit "a" re-runs (fresh) while "b" restores from CAS.
 	const ran3 = [];
-	const build3 = new StepRunner({
-		steps: buildSteps("fresh", ran3), workspace: createIntegrationWorkspace(), taskUtil: {}, returnValueStore,
-		cacheInfo: {changedProjectResourcePaths: ["/in/a"], changedDependencyResourcePaths: []},
-		previousInvocationData: producerData,
+	await runBuild({
+		marker: "fresh", ran: ran3,
+		verdicts: {g: {changedProjectResourcePaths: ["/in/a"], changedDependencyResourcePaths: []}},
+		previousData: new Map([["g", producerData]]),
 	});
-	await build3.runSteps();
 	t.deepEqual(ran3, ["a"], "Delta build re-ran only the unit whose input changed");
 	t.is(await captured[0].getString(), "fresh-a", "Delta build handed back the re-run unit's fresh return");
 	t.is(await captured[1].getString(), "content-b", "Delta build restored the unchanged unit b from the CAS");

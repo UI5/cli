@@ -183,38 +183,45 @@ class RecordingReaderWriter extends AbstractReaderWriter {
 export default class StepRunner {
 	#steps;
 	#options;
-	#workspace;
-	#dependencies;
-	#taskUtil;
-	#cacheInfo;
-	#previousInvocationData;
+	#prepareStage;
+	#recordStage;
+	#createStageContext;
+	#getPreviousInvocationData;
 	#returnValueStore;
 	#resolveInputValue;
 	#applyTagOperations;
 	#signal;
 
-	// Populated by runSteps()/run(), keyed by step (group) name: each step's complete per-key invocation
-	// data to persist. Stale outputs are derived across all of them on demand.
-	#invocationData = new Map();
-	// Per-step run bookkeeping (the step's previous data, the keys freshly run this build, and the keys
-	// present this build). getStaleOutputs() folds across every step so a path one step stopped producing
-	// but another step now produces is not falsely dropped.
-	#groupRuns = new Map();
 	// Each step's return value and return signature, filled as steps run so a later step's needs can pull
 	// them. Only populated on the factory (runSteps) path.
 	#returns = new Map();
 	#returnSignatures = new Map();
 
 	/**
+	 * The StepRunner drives one pipeline stage per step: before a step it calls
+	 * <code>prepareStage(step)</code> (which switches the project to the step's own stage and returns the
+	 * stage's cache verdict), runs or restores the step against a fresh per-stage context, then calls
+	 * <code>recordStage(step, ...)</code> to record that stage. A map step's single stage still carries an
+	 * internal per-key delta; a scalar step is a one-key stage. There is no cross-step fold: each step's
+	 * stage records only its own reads, inputs, and stale outputs.
+	 *
 	 * @param {object} parameters
 	 * @param {object[]} [parameters.steps] Ordered step list from the task factory (factory path)
 	 * @param {object} [parameters.options] Task options, passed through to each step's context
-	 * @param {@ui5/fs/AbstractReaderWriter} parameters.workspace Task-level monitored workspace
-	 * @param {@ui5/fs/AbstractReader} [parameters.dependencies] Task-level monitored dependencies reader
-	 * @param {object} parameters.taskUtil TaskUtil interface passed through to each step
-	 * @param {object} [parameters.cacheInfo] Delta info for a differential build, or falsy for a full build
-	 * @param {Map<string, Map<string, object>>} [parameters.previousInvocationData] Per-step, per-key
-	 *   invocation data recorded during the previous run of this task, keyed by step name
+	 * @param {function(string): Promise<(object|boolean)>} [parameters.prepareStage] Switches the project to
+	 *   the named step's stage and returns its cache verdict: <code>true</code> (fully cached, do not run),
+	 *   an object (delta cacheInfo for the map step's internal key-delta), or a falsy value (run every unit).
+	 *   Absent for standalone use (no cache): every unit runs.
+	 * @param {function(string, object): Promise<void>} [parameters.recordStage] Records the named step's
+	 *   stage from the run outcome <code>{projectRequests, dependencyRequests, inputRecording,
+	 *   rootRequests, cacheInfo, invocationData, staleOutputs}</code>. Absent for standalone use.
+	 * @param {function(): {workspace, dependencies, taskUtil, monitoredTaskUtil, getResourceRequests,
+	 *   getInputRecording}} parameters.createStageContext Returns a fresh per-stage context bound to the
+	 *   stage the last <code>prepareStage</code> switched to: the monitored workspace/dependencies readers,
+	 *   the pass-through <code>taskUtil</code> the step units wrap per key, and drains for the monitored
+	 *   task-level requests and inputs. Called once per step that runs.
+	 * @param {function(string): (Map<string, object>|undefined)} [parameters.getPreviousInvocationData]
+	 *   Returns the named step's stage's previous per-key invocation data, or undefined on a first build.
 	 * @param {object} [parameters.returnValueStore] CAS-backed store for resource return values, with
 	 *   <code>store(resources)</code> (persist content, return path-aligned descriptors) and
 	 *   <code>restore(descriptor)</code> (rebuild a resource from a descriptor). Absent for standalone
@@ -232,16 +239,15 @@ export default class StepRunner {
 	 * @param {AbortSignal} [parameters.signal] Build abort signal, checked between units
 	 */
 	constructor({
-		steps, options, workspace, dependencies, taskUtil, cacheInfo, previousInvocationData, returnValueStore,
-		resolveInputValue, applyTagOperations, signal
+		steps, options, prepareStage, recordStage, createStageContext, getPreviousInvocationData,
+		returnValueStore, resolveInputValue, applyTagOperations, signal
 	}) {
 		this.#steps = steps;
 		this.#options = options;
-		this.#workspace = workspace;
-		this.#dependencies = dependencies;
-		this.#taskUtil = taskUtil;
-		this.#cacheInfo = cacheInfo;
-		this.#previousInvocationData = previousInvocationData;
+		this.#prepareStage = prepareStage;
+		this.#recordStage = recordStage;
+		this.#createStageContext = createStageContext;
+		this.#getPreviousInvocationData = getPreviousInvocationData;
 		this.#returnValueStore = returnValueStore;
 		this.#resolveInputValue = resolveInputValue;
 		this.#applyTagOperations = applyTagOperations;
@@ -260,15 +266,65 @@ export default class StepRunner {
 	 */
 	async runSteps() {
 		const seen = new Set();
+		let anyStepExecuted = false;
+		const writtenResourcePaths = [];
+
+		// A step-based task with no steps (e.g. replaceCopyright with no copyright configured) still has a
+		// single stage that must participate in caching: prepare it, and if it is not a cache hit, record an
+		// empty result so the empty stage caches and a later build reports it as skipped. Its stage id is
+		// task/{taskName} (stepName undefined), matching the single stage setTasks created for it.
+		if (this.#steps.length === 0) {
+			if (!this.#prepareStage) {
+				return {anyStepExecuted: true, writtenResourcePaths};
+			}
+			const cacheInfo = await this.#prepareStage(undefined);
+			if (cacheInfo === true) {
+				return {anyStepExecuted: false, writtenResourcePaths};
+			}
+			const ctx = this.#createStageContext();
+			if (this.#recordStage) {
+				await this.#recordStage(undefined, {ctx, cacheInfo, invocationData: new Map(), staleOutputs: []});
+			}
+			return {anyStepExecuted: true, writtenResourcePaths};
+		}
+
 		for (const step of this.#steps) {
 			this.#signal?.throwIfAborted();
 			this.#validateStep(step, seen);
 			seen.add(step.name);
 
+			// Switch the project to this step's own stage and get its cache verdict. Standalone use (no
+			// prepareStage) always runs every unit.
+			const cacheInfo = this.#prepareStage ? await this.#prepareStage(step.name) : false;
+			const previous = this.#getPreviousInvocationData ?
+				this.#getPreviousInvocationData(step.name) : undefined;
+
 			const needs = this.#buildNeeds(step.needs);
 			const needsSignatures = this.#collectNeedsSignatures(step.needs);
 
 			const isScalar = typeof step.run === "function";
+
+			if (cacheInfo === true) {
+				// Fully cached stage: the step does not run. Rebuild its return from the persisted per-key
+				// invocation data (in key order) so later steps' needs still resolve, and replay each key's
+				// tag operations so its tags reappear this build (the stage writer was already restored).
+				const {results, invocationData, entries} =
+					this.#restoreCachedStage(previous, isScalar);
+				this.#returns.set(step.name, isScalar ? results[0] : results);
+				this.#returnSignatures.set(step.name,
+					this.#computeStepReturnSignature(invocationData, entries, isScalar));
+				continue;
+			}
+
+			// A step past the fully-cached short-circuit executes its stage (fresh recording), even if it
+			// enumerates zero units this build (an empty map step). This is "the task ran" for reporting,
+			// distinct from a stage served entirely from cache.
+			anyStepExecuted = true;
+
+			// Fresh per-stage context bound to the stage prepareStage just switched to. Created before key
+			// enumeration so the keys() enumerator's reads are captured by the stage's monitored readers.
+			const ctx = this.#createStageContext();
+
 			let entries;
 			let callback;
 			let options;
@@ -276,68 +332,91 @@ export default class StepRunner {
 				// A scalar step is a single implicit unit; writes persist immediately (sequential) so the
 				// step reads back its own writes and later steps see them.
 				entries = [{key: undefined, index: 0, keyId: SCALAR_KEY_ID}];
-				callback = (key, ctx) => step.run(ctx);
+				callback = (key, unitCtx) => step.run(unitCtx);
 				options = {sequential: true};
 			} else {
-				entries = await this.#enumerateKeys(step, needs);
-				callback = (key, ctx) => step.each(key, ctx);
+				entries = await this.#enumerateKeys(step, needs, ctx);
+				callback = (key, unitCtx) => step.each(key, unitCtx);
 				options = step.sequential ? {sequential: true} : undefined;
 			}
 
-			const results = await this.#runGroup(step.name, entries, options, callback, {needs, needsSignatures});
+			const {results, invocationData} = await this.#runGroup(
+				step.name, entries, options, callback, {needs, needsSignatures, cacheInfo, previous, ctx});
+
 			this.#returns.set(step.name, isScalar ? results[0] : results);
 			this.#returnSignatures.set(step.name,
-				this.#computeStepReturnSignature(step.name, entries, isScalar));
+				this.#computeStepReturnSignature(invocationData, entries, isScalar));
+
+			// Record this step's stage. There is no cross-step fold, but the stage still folds its
+			// own keys' reads and inputs — including keys restored from cache on a delta build, whose reads
+			// and inputs the stage-level monitor never saw — so the stage re-keys on its complete input set.
+			if (this.#recordStage) {
+				const staleOutputs = this.#computeStaleOutputs(previous, invocationData, entries);
+				const {reads, inputs} = this.#foldStageKeys(invocationData);
+				const stageWritten = await this.#recordStage(step.name, {
+					ctx, cacheInfo, invocationData, staleOutputs, foldedReads: reads, foldedInputs: inputs,
+				});
+				if (stageWritten) {
+					writtenResourcePaths.push(...stageWritten);
+				}
+			}
 		}
+		return {anyStepExecuted, writtenResourcePaths};
 	}
 
 	/**
-	 * The complete per-step, per-key invocation data to persist for the next build.
+	 * Rebuilds a fully-cached stage's per-key results without running the step: each key's return is
+	 * restored from its persisted descriptor (in key order) and its recorded tag operations are replayed,
+	 * so later steps' <code>needs</code> resolve and the cached tags reappear this build.
 	 *
-	 * @returns {Map<string, Map<string, object>>} Map of step name to that step's per-key data, where each
-	 *   entry is <code>{reads, dependencyReads, writes, inputs, needsInputs, tagOperations, returns}</code>
+	 * @param {Map<string, object>|undefined} previous The stage's previous per-key invocation data
+	 * @param {boolean} isScalar Whether the step is scalar
+	 * @returns {{results: Array, invocationData: Map<string, object>, entries: Array<{keyId: string}>}}
 	 */
-	getInvocationData() {
-		return this.#invocationData;
+	#restoreCachedStage(previous, isScalar) {
+		const invocationData = previous ?? new Map();
+		const entries = [...invocationData.keys()].map((keyId, index) => ({keyId, index}));
+		const results = new Array(entries.length);
+		for (const {keyId, index} of entries) {
+			const prev = invocationData.get(keyId);
+			results[index] = this.#restoreReturn(prev?.returns);
+			this.#replayTagOperations(prev?.tagOperations);
+		}
+		return {results, invocationData, entries};
 	}
 
 	/**
-	 * Output paths that a unit produced on a previous build but no longer produces (a re-run unit that
-	 * writes fewer paths, or a key that is gone this build). These must be dropped from the stage that is
-	 * otherwise carried forward from cache, so a removed input leaves no stale output behind.
+	 * Output paths a stage produced on a previous build but no longer produces (a re-run unit that writes
+	 * fewer paths, or a key gone this build), so they can be dropped from the carried-forward stage. Scoped
+	 * to this one stage: a stage owns its outputs, so a path it stops producing is stale for it.
 	 *
-	 * Computed across every step run this build: a path a step stopped producing is stale only if no step
-	 * produces it this build, so moving an output between steps does not falsely drop it.
-	 *
+	 * @param {Map<string, object>|undefined} previous The stage's previous per-key invocation data
+	 * @param {Map<string, object>} current This build's per-key invocation data (re-run units only)
+	 * @param {Array<{keyId: string}>} entries The stage's key entries this build
 	 * @returns {string[]} Paths to drop
 	 */
-	getStaleOutputs() {
-		// A path re-written by any step this build is not stale, so collect the union first.
-		const currentWrites = new Set();
-		for (const {current} of this.#groupRuns.values()) {
-			for (const data of current.values()) {
-				data.writes.forEach((path) => currentWrites.add(path));
-			}
+	#computeStaleOutputs(previous, current, entries) {
+		if (!previous) {
+			return [];
 		}
+		const currentWrites = new Set();
+		for (const data of current.values()) {
+			data.writes.forEach((path) => currentWrites.add(path));
+		}
+		const currentKeyIds = new Set(entries.map((entry) => entry.keyId));
 		const stale = new Set();
-		for (const {previous, current, entries} of this.#groupRuns.values()) {
-			if (!previous) {
-				continue;
-			}
-			const currentKeyIds = new Set(entries.map((entry) => entry.keyId));
-			for (const [keyId, prev] of previous) {
-				const reRun = current.get(keyId);
-				if (!currentKeyIds.has(keyId)) {
-					// Key gone this build: every path it owned is stale.
-					prev.writes.forEach((path) => stale.add(path));
-				} else if (reRun) {
-					// Re-run unit: any path it owned but did not re-write is stale.
-					prev.writes.forEach((path) => {
-						if (!reRun.writes.includes(path)) {
-							stale.add(path);
-						}
-					});
-				}
+		for (const [keyId, prev] of previous) {
+			const reRun = current.get(keyId);
+			if (!currentKeyIds.has(keyId)) {
+				// Key gone this build: every path it owned is stale.
+				prev.writes.forEach((path) => stale.add(path));
+			} else if (reRun) {
+				// Re-run unit: any path it owned but did not re-write is stale.
+				prev.writes.forEach((path) => {
+					if (!reRun.writes.includes(path)) {
+						stale.add(path);
+					}
+				});
 			}
 		}
 		for (const path of currentWrites) {
@@ -347,47 +426,33 @@ export default class StepRunner {
 	}
 
 	/**
-	 * The union of every step's every unit's reads, as a resource-request set to fold into the task's
-	 * request index. Units not re-run this build contribute their persisted reads, so an input first seen
-	 * on a delta build (a marker probe, a source map) stays tracked on the next build rather than being lost.
+	 * Folds a stage's every key's reads and non-resource inputs into one request set and one input set,
+	 * from the stage's complete per-key invocation data. This includes keys served from cache on a delta
+	 * build (whose reads and inputs the stage-level monitor never observed), so the stage re-keys on its
+	 * full input set and a first-seen or cached-key input stays tracked. This is the map step's internal
+	 * key-delta fold (kept for the map step); it does NOT fold across steps.
 	 *
-	 * @returns {{project: {paths: string[], patterns: string[]}, dependencies: {paths: string[], patterns: string[]}}}
+	 * The <code>needs</code> returns a key consumes are deliberately excluded (tracked separately in
+	 * <code>needsInputs</code> for per-key selection only): they are re-derived from producer reads/inputs
+	 * that are themselves tracked, so folding one into the stage signature would permanently miss the cache.
+	 *
+	 * @param {Map<string, object>} invocationData The stage's complete per-key invocation data
+	 * @returns {{reads: {project: {paths: string[], patterns: string[]},
+	 *   dependencies: {paths: string[], patterns: string[]}},
+	 *   inputs: Array<{type: string, name: string, value: string|undefined}>}} Folded reads and inputs
 	 */
-	getResourceRequests() {
+	#foldStageKeys(invocationData) {
 		const project = {paths: [], patterns: []};
 		const dependencies = {paths: [], patterns: []};
-		for (const groupData of this.#invocationData.values()) {
-			for (const data of groupData.values()) {
-				project.paths.push(...data.reads);
-				dependencies.paths.push(...(data.dependencyReads ?? []));
+		const mergedInputs = new Map();
+		for (const data of invocationData.values()) {
+			project.paths.push(...(data.reads ?? []));
+			dependencies.paths.push(...(data.dependencyReads ?? []));
+			for (const input of data.inputs ?? []) {
+				mergedInputs.set(`${input.type}\0${input.name}`, input);
 			}
 		}
-		return {project, dependencies};
-	}
-
-	/**
-	 * The union of every step's every unit's recorded non-resource inputs, deduped by type and name (last
-	 * write wins), to fold into the task's input recording. Units not re-run this build contribute their
-	 * persisted inputs, so an input a cached unit read stays folded into the re-keyed stage signature even
-	 * though the task-level monitor only observed the re-run units. Mirrors {@link #getResourceRequests}.
-	 *
-	 * The <code>needs</code> returns a unit consumes are deliberately excluded: they drive per-unit
-	 * selection only (see {@link #selectStepsToRun}) and are re-derived from producer reads/inputs that are
-	 * themselves tracked, so folding an unresolvable <code>needs</code> input into the task-level signature
-	 * would permanently miss the stage cache.
-	 *
-	 * @returns {Array<{type: string, name: string, value: string|undefined}>} Recorded input entries
-	 */
-	getInputRecording() {
-		const merged = new Map();
-		for (const groupData of this.#invocationData.values()) {
-			for (const data of groupData.values()) {
-				for (const input of data.inputs ?? []) {
-					merged.set(`${input.type}\0${input.name}`, input);
-				}
-			}
-		}
-		return [...merged.values()];
+		return {reads: {project, dependencies}, inputs: [...mergedInputs.values()]};
 	}
 
 	/**
@@ -465,12 +530,22 @@ export default class StepRunner {
 	 * @param {object} needs The step's needs object
 	 * @returns {Promise<Array<{key: *, index: number, keyId: string}>>} Resolved key entries
 	 */
-	async #enumerateKeys(step, needs) {
+	/**
+	 * Runs a map step's <code>keys</code> enumerator through the stage's recording readers so its reads and
+	 * inputs are captured into the stage's request set (the enumerator runs every build, so its reads are
+	 * part of the stage's tracked inputs).
+	 *
+	 * @param {object} step The map step
+	 * @param {object} needs The step's needs object
+	 * @param {object} ctx The per-stage context ({workspace, dependencies, taskUtil})
+	 * @returns {Promise<Array<{key: *, index: number, keyId: string}>>} Resolved key entries
+	 */
+	async #enumerateKeys(step, needs, ctx) {
 		const recorder = new StepRecorder();
-		const workspace = new RecordingReaderWriter(this.#workspace, recorder, null, 0);
-		const dependencies = this.#dependencies ?
-			new RecordingReader(this.#dependencies, recorder) : undefined;
-		const taskUtil = new MonitoredTaskUtil(this.#taskUtil, {recordTagOperations: true});
+		const workspace = new RecordingReaderWriter(ctx.workspace, recorder, null, 0);
+		const dependencies = ctx.dependencies ?
+			new RecordingReader(ctx.dependencies, recorder) : undefined;
+		const taskUtil = new MonitoredTaskUtil(ctx.taskUtil, {recordTagOperations: true});
 		const keys = await step.keys({needs, workspace, dependencies, taskUtil, options: this.#options});
 		if (!keys) {
 			return [];
@@ -483,14 +558,14 @@ export default class StepRunner {
 	 * producer return. A scalar step's signature is its single unit's return signature; a map step's is the
 	 * ordered list of its units' return signatures.
 	 *
-	 * @param {string} group Step name
+	 * @param {Map<string, object>} invocationData The step's per-key invocation data this build
 	 * @param {Array<{keyId: string}>} entries The step's key entries this build, in key order
 	 * @param {boolean} isScalar Whether the step is scalar
 	 * @returns {string} The step's return signature
 	 */
-	#computeStepReturnSignature(group, entries, isScalar) {
-		const groupData = this.#invocationData.get(group);
-		const signatures = entries.map(({keyId}) => this.#returnDescriptorSignature(groupData?.get(keyId)?.returns));
+	#computeStepReturnSignature(invocationData, entries, isScalar) {
+		const signatures = entries.map(
+			({keyId}) => this.#returnDescriptorSignature(invocationData?.get(keyId)?.returns));
 		return isScalar ? (signatures[0] ?? "none") : JSON.stringify(signatures);
 	}
 
@@ -621,13 +696,13 @@ export default class StepRunner {
 		return {kind: "value", value};
 	}
 
-	#selectStepsToRun(entries, previous, needsSignatures) {
-		if (!this.#cacheInfo || !previous) {
+	#selectStepsToRun(entries, previous, needsSignatures, cacheInfo) {
+		if (!cacheInfo || !previous) {
 			// Full build, or a step with no previous data: run every unit.
 			return entries;
 		}
-		const changedProject = new Set(this.#cacheInfo.changedProjectResourcePaths ?? []);
-		const changedDependency = new Set(this.#cacheInfo.changedDependencyResourcePaths ?? []);
+		const changedProject = new Set(cacheInfo.changedProjectResourcePaths ?? []);
+		const changedDependency = new Set(cacheInfo.changedDependencyResourcePaths ?? []);
 		return entries.filter(({keyId}) => {
 			const prev = previous.get(keyId);
 			if (!prev) {
@@ -674,8 +749,8 @@ export default class StepRunner {
 		}
 	}
 
-	#mergeInvocationData(current, entries, previous) {
-		if (!this.#cacheInfo || !previous) {
+	#mergeInvocationData(current, entries, previous, cacheInfo) {
+		if (!cacheInfo || !previous) {
 			return current;
 		}
 		// A delta build re-runs only some units, so the persisted map must stay the complete set: keep a
@@ -694,33 +769,36 @@ export default class StepRunner {
 		return merged;
 	}
 
-	async #flushWriteBuffer(writeBuffer) {
+	async #flushWriteBuffer(writeBuffer, workspace) {
 		const buffered = [...writeBuffer.values()].sort((a, b) => a.stepIndex - b.stepIndex);
 		for (const {resource, options} of buffered) {
-			await this.#workspace.write(resource, options);
+			await workspace.write(resource, options);
 		}
 	}
 
 	/**
-	 * Runs one step group (a scalar step's implicit unit, or a map step's keys): selects the units to run,
-	 * restores the rest from cache, records each unit's reads/writes/inputs/tags/return, and merges the
-	 * result into the persisted invocation data.
+	 * Runs one step's stage (a scalar step's implicit unit, or a map step's keys): selects the units to
+	 * run, restores the rest from cache, records each unit's reads/writes/inputs/tags/return, and merges
+	 * the result into the stage's persisted invocation data.
 	 *
 	 * @param {string} group Step name
 	 * @param {Array<{key: *, index: number, keyId: string}>} entries Resolved key entries
 	 * @param {object} [options] Optional settings ({sequential})
-	 * @param {Function} callback <code>async (key, ctx) => value?</code>
+	 * @param {Function} callback <code>async (key, unitCtx) => value?</code>
 	 * @param {object} context
 	 * @param {object} [context.needs] The step's needs object, injected into each unit's context
 	 * @param {Map<string, string>} [context.needsSignatures] Current producer return signatures, recorded
 	 *   with each unit for the next build's selection
-	 * @returns {Promise<Array>} Per-key results aligned to <code>entries</code> order
+	 * @param {object|boolean} [context.cacheInfo] The stage's delta cache verdict (map step internal key-delta)
+	 * @param {Map<string, object>} [context.previous] The stage's previous per-key invocation data
+	 * @param {object} context.ctx The per-stage context ({workspace, dependencies, taskUtil})
+	 * @returns {Promise<{results: Array, invocationData: Map<string, object>}>} Per-key results aligned to
+	 *   <code>entries</code> order, and the stage's complete per-key invocation data
 	 */
-	async #runGroup(group, entries, options, callback, {needs, needsSignatures}) {
+	async #runGroup(group, entries, options, callback, {needs, needsSignatures, cacheInfo, previous, ctx}) {
 		const sequential = options?.sequential ?? false;
 		const concurrent = !sequential;
-		const previous = this.#previousInvocationData?.get(group);
-		const toRun = this.#selectStepsToRun(entries, previous, needsSignatures);
+		const toRun = this.#selectStepsToRun(entries, previous, needsSignatures, cacheInfo);
 		const toRunIndices = new Set(toRun.map((entry) => entry.index));
 
 		const currentInvocationData = new Map();
@@ -744,14 +822,13 @@ export default class StepRunner {
 		const runStep = async ({key, keyId, index}) => {
 			this.#signal?.throwIfAborted();
 			const recorder = new StepRecorder();
-			const workspace = new RecordingReaderWriter(this.#workspace, recorder, writeBuffer, index);
-			const dependencies = this.#dependencies ?
-				new RecordingReader(this.#dependencies, recorder) : undefined;
-			// A per-step MonitoredTaskUtil wrapping the task-level one: reads still delegate through the
-			// task-level monitor (so a full build's task-level recording stays the union that keys the
-			// stage), while this wrapper additionally attributes the unit's non-resource inputs and tag
-			// operations to the unit for per-unit selection and restore.
-			const taskUtil = new MonitoredTaskUtil(this.#taskUtil, {recordTagOperations: true});
+			const workspace = new RecordingReaderWriter(ctx.workspace, recorder, writeBuffer, index);
+			const dependencies = ctx.dependencies ?
+				new RecordingReader(ctx.dependencies, recorder) : undefined;
+			// A per-unit MonitoredTaskUtil wrapping the stage's taskUtil: it attributes the unit's
+			// non-resource inputs and tag operations to the unit for per-unit selection and restore, while
+			// reads still delegate through the stage's monitored readers.
+			const taskUtil = new MonitoredTaskUtil(ctx.taskUtil, {recordTagOperations: true});
 
 			const returnValue = await callback(key, {workspace, dependencies, taskUtil, needs, options: this.#options});
 			results[index] = returnValue;
@@ -768,19 +845,20 @@ export default class StepRunner {
 
 		if (concurrent) {
 			await Promise.all(toRun.map(runStep));
-			await this.#flushWriteBuffer(writeBuffer);
+			await this.#flushWriteBuffer(writeBuffer, ctx.workspace);
 		} else {
 			for (const entry of toRun) {
 				await runStep(entry);
 			}
 		}
 
-		this.#invocationData.set(group, this.#mergeInvocationData(currentInvocationData, entries, previous));
-		this.#groupRuns.set(group, {previous, current: currentInvocationData, entries});
+		const invocationData = this.#mergeInvocationData(currentInvocationData, entries, previous, cacheInfo);
 
 		if (log.isLevelEnabled("verbose")) {
 			log.verbose(`step '${group}': ran ${toRun.length} of ${entries.length} unit(s)`);
 		}
-		return results;
+		return {results, invocationData, ranCount: toRun.length};
 	}
 }
+
+

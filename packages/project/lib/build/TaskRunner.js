@@ -35,23 +35,19 @@ function mergeResourceRequests(base, extra = EMPTY_RESOURCE_REQUESTS) {
 }
 
 /**
- * Merges two recorded input sets, deduping by input type and name.
+ * Merges two recorded non-resource input sets, deduping by input type and name (the second argument's
+ * entries win on overlap; equal inputs agree either way).
  *
- * <code>base</code> is the task-level monitor's recording (the re-run steps' inputs on a delta build);
- * <code>extra</code> is the step runner's complete per-step input recording (every step's inputs,
- * including steps served from cache). <code>base</code> takes precedence on overlap, since a re-run step
- * re-recorded its input fresh this build, but the values agree for a step present in both.
- *
- * @param {Array<{type: string, name: string, value: string|undefined}>} base Task-level input recording
- * @param {Array<{type: string, name: string, value: string|undefined}>} extra Driver input recording
+ * @param {Array<{type: string, name: string, value: string|undefined}>} base First input recording
+ * @param {Array<{type: string, name: string, value: string|undefined}>} extra Second input recording
  * @returns {Array<{type: string, name: string, value: string|undefined}>} Merged, deduped input recording
  */
 function mergeInputRecordings(base, extra) {
 	const merged = new Map();
-	for (const entry of extra) {
+	for (const entry of base) {
 		merged.set(`${entry.type}\0${entry.name}`, entry);
 	}
-	for (const entry of base) {
+	for (const entry of extra) {
 		merged.set(`${entry.type}\0${entry.name}`, entry);
 	}
 	return [...merged.values()];
@@ -165,15 +161,26 @@ class TaskRunner {
 		});
 
 		this._log.setTasks(allTasks);
-		this._buildCache.setTasks(allTasks);
+
+		// Expand step-based tasks into their per-step stages: each step is its own stage, so the
+		// stage list must enumerate a step-based task's step names in step order. The factory is pure over
+		// options (it may not read readers/taskUtil), so calling it here to discover step names is safe.
+		const stageTasks = await Promise.all(allTasks.map(async (taskName) => {
+			const taskDef = this._tasks[taskName];
+			if (!taskDef.stepBased) {
+				return {taskName};
+			}
+			const factory = await taskDef.stepFactory();
+			const steps = await factory(taskDef.options);
+			return {taskName, stepNames: steps.map((step) => step.name)};
+		}));
+		this._buildCache.setTasks(stageTasks);
+
 		for (let i = 0; i < allTasks.length; i++) {
 			signal?.throwIfAborted();
 			const taskName = allTasks[i];
 			const taskFunction = this._tasks[taskName].task;
 
-			if (i + 1 < allTasks.length) {
-				this._buildCache.prefetchStageCache(allTasks[i + 1]);
-			}
 			if (typeof taskFunction === "function") {
 				await this._executeTask(taskName, taskFunction);
 			}
@@ -261,6 +268,45 @@ class TaskRunner {
 				options.projectName = this._project.getName();
 				options.projectNamespace = this._project.getNamespace();
 
+				if (!taskFunction) {
+					const {task} = await this._taskRepository.getTask(taskName);
+					taskFunction = task;
+				}
+
+				if (stepBased) {
+					// Step-based task: the default export is a factory build(options) => Step[]. Each step is
+					// its own pipeline stage; the step runner drives one stage per step via the
+					// per-stage hooks below. Every input a step reads arrives through its arguments, so no
+					// task body closes over the readers or taskUtil.
+					const steps = await taskFunction(options);
+					this._taskStart = performance.now();
+					const stepDriver = new StepRunner({
+						steps,
+						options,
+						...this.#createStepStageHooks(taskName, requiresDependencies),
+						returnValueStore: this._buildCache.getStepReturnValueStore(),
+						resolveInputValue: this._buildCache.getResolveInputValue(),
+						applyTagOperations: (tagOperations) =>
+							this._project.getProjectResources().replayTagOperations(tagOperations),
+						signal: this._signal,
+					});
+					const {anyStepExecuted, writtenResourcePaths} = await stepDriver.runSteps();
+					if (this._log.isLevelEnabled("perf")) {
+						this._log.perf(
+							`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
+					}
+					// Report the task as skipped when every step was served from cache, else as executed,
+					// preserving the task-level reporting contract now that caching is per step.
+					if (anyStepExecuted) {
+						this._log.startTask(taskName, true);
+						this._log.endTask(taskName, true, writtenResourcePaths);
+					} else {
+						this._log.skipTask(taskName);
+					}
+					return;
+				}
+
+				// Legacy task: the default export is a task body, not a step factory. It has a single stage.
 				const cacheInfo = await this._buildCache.prepareTaskExecutionAndValidateCache(taskName);
 				if (cacheInfo === true) {
 					this._log.skipTask(taskName);
@@ -271,104 +317,51 @@ class TaskRunner {
 				if (requiresDependencies) {
 					dependencies = createMonitor(this._cachedDependenciesReader);
 				}
-				if (!taskFunction) {
-					const {task} = await this._taskRepository.getTask(taskName);
-					taskFunction = task;
-				}
+				const monitoredTaskUtil = new MonitoredTaskUtil(this._taskUtil);
 
-				// The step runner, produced only for a step-based task. A legacy task runs a plain body and
-				// produces none. Drives the outcome fold below.
-				let stepDriver;
-				let monitoredTaskUtil;
-				if (stepBased) {
-					// Step-based task: the default export is a factory build(options) => Step[]. Run the
-					// returned steps through the step runner; every input a step reads arrives through its
-					// arguments, so no task body closes over the readers or taskUtil.
-					monitoredTaskUtil = new MonitoredTaskUtil(this._taskUtil);
-					const steps = await taskFunction(options);
-					stepDriver = new StepRunner({
-						steps,
-						options,
-						workspace,
-						dependencies,
-						taskUtil: monitoredTaskUtil,
-						cacheInfo: cacheInfo || undefined,
-						previousInvocationData: this._buildCache.getStepInvocationData(taskName),
-						returnValueStore: this._buildCache.getStepReturnValueStore(),
-						resolveInputValue: this._buildCache.getResolveInputValue(),
-						applyTagOperations: (tagOperations) =>
-							this._project.getProjectResources().replayTagOperations(tagOperations),
-						signal: this._signal,
-					});
-					this._log.startTask(taskName, !!cacheInfo);
-					this._taskStart = performance.now();
-					await stepDriver.runSteps();
-				} else {
-					// Legacy task: the default export is a task body, not a step factory. It never runs the
-					// step runner, so its result is a full skip or a full run with no per-step delta.
-					monitoredTaskUtil = new MonitoredTaskUtil(this._taskUtil);
-
-					const params = {
-						workspace,
-						taskUtil: monitoredTaskUtil,
-						options,
-					};
-					if (dependencies) {
-						params.dependencies = dependencies;
-					}
-					this._log.startTask(taskName, !!cacheInfo);
-					this._taskStart = performance.now();
-					await taskFunction(params);
+				const params = {
+					workspace,
+					taskUtil: monitoredTaskUtil,
+					options,
+				};
+				if (dependencies) {
+					params.dependencies = dependencies;
 				}
+				this._log.startTask(taskName, !!cacheInfo);
+				this._taskStart = performance.now();
+				await taskFunction(params);
 				if (this._log.isLevelEnabled("perf")) {
 					this._log.perf(
 						`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
 				}
 				const taskUtilRequests = monitoredTaskUtil.getResourceRequests();
-				let projectRequests = mergeResourceRequests(workspace.getResourceRequests(), taskUtilRequests.project);
-				let dependencyRequests =
+				const projectRequests =
+					mergeResourceRequests(workspace.getResourceRequests(), taskUtilRequests.project);
+				const dependencyRequests =
 					mergeResourceRequests(dependencies?.getResourceRequests(), taskUtilRequests.dependencies);
-				let inputRecording = monitoredTaskUtil.getInputRecording();
-
-				// A task that ran the step runner folds the driver's outcome into the recorded result:
-				// its complete per-step read set (so first-seen reads stay tracked), its stale outputs
-				// (dropped from the carried-forward stage via the changed-paths merge), and its
-				// invocation data (persisted for the next delta build).
-				const usedStepDriver = !!stepDriver;
-				if (usedStepDriver) {
-					this._buildCache.setStepInvocationData(taskName, stepDriver.getInvocationData());
-					if (cacheInfo) {
-						// Delta build: only some steps re-ran, so the task-level monitor missed the reads and
-						// non-resource inputs of the steps served from cache. Fold every step's reads and
-						// inputs (from the driver's persisted invocation data) into the recorded requests and
-						// input recording so a first-seen input stays tracked and the re-keyed stage signature
-						// tracks every current input, and append the driver's stale outputs to the changed
-						// paths so they drop from the carried-forward stage. On a full build every step ran,
-						// so the monitor already captured everything and no fold is needed.
-						const driverRequests = stepDriver.getResourceRequests();
-						projectRequests = mergeResourceRequests(projectRequests, driverRequests.project);
-						dependencyRequests = mergeResourceRequests(dependencyRequests, driverRequests.dependencies);
-						inputRecording = mergeInputRecordings(inputRecording, stepDriver.getInputRecording());
-						const staleOutputs = stepDriver.getStaleOutputs();
-						if (staleOutputs.length) {
-							cacheInfo.changedProjectResourcePaths =
-								[...cacheInfo.changedProjectResourcePaths, ...staleOutputs];
-						}
-					}
-				}
+				const inputRecording = monitoredTaskUtil.getInputRecording();
 
 				const writtenResourcePaths = await this._buildCache.recordTaskResult(taskName,
 					projectRequests,
 					dependencyRequests,
-					usedStepDriver ? cacheInfo : undefined,
+					undefined,
 					inputRecording,
-					taskUtilRequests.root,
-					usedStepDriver);
+					taskUtilRequests.root);
 				this._log.endTask(taskName, !!cacheInfo, writtenResourcePaths);
 			};
 		}
 		this._tasks[taskName] = {
 			task,
+			stepBased,
+			// Lazily resolves the task factory so runTasks can enumerate a step-based task's step names for
+			// setTasks (called only for tasks that actually run). A legacy task keeps this undefined.
+			stepFactory: stepBased ? (async () => {
+				if (!taskFunction) {
+					taskFunction = (await this._taskRepository.getTask(taskName)).task;
+				}
+				return taskFunction;
+			}) : undefined,
+			options,
 			requiredDependencies: requiresDependencies ? this._directDependencies : new Set()
 		};
 		this._taskExecutionOrder.push(taskName);
@@ -468,6 +461,14 @@ class TaskRunner {
 		// A custom task opts into the step-factory API with a static `stepBased` export, honored from
 		// Specification Version 5.0. Below 5.0 the export is ignored and the task runs as a legacy body.
 		const stepBased = specVersion.gte("5.0") && (await task.getStepBased()) === true;
+		// Options the factory is called with, both for step-name discovery (runTasks) and execution. The
+		// factory is pure over options, so discovering step names by calling it early is safe.
+		const stepOptions = stepBased ? {
+			projectName: project.getName(),
+			projectNamespace: project.getNamespace(),
+			configuration: taskDef.configuration,
+			...(specVersion.gte("3.0") ? {taskName} : {}),
+		} : undefined;
 		this._tasks[taskName] = {
 			task: this._createCustomTaskWrapper({
 				task,
@@ -482,6 +483,9 @@ class TaskRunner {
 					return this.getDependenciesReader(requiredDependencies);
 				},
 			}),
+			stepBased,
+			stepFactory: stepBased ? (async () => task.getTask()) : undefined,
+			options: stepOptions,
 			requiredDependencies
 		};
 
@@ -540,12 +544,6 @@ class TaskRunner {
 		task, taskName, taskConfiguration
 	}) {
 		return async () => {
-			const cacheInfo = await this._buildCache.prepareTaskExecutionAndValidateCache(taskName);
-			if (cacheInfo === true) {
-				this._log.skipTask(taskName);
-				return;
-			}
-
 			/* Custom Task Interface
 				Parameters:
 					{Object} parameters Parameters
@@ -568,117 +566,175 @@ class TaskRunner {
 				Returns:
 					{Promise<undefined>} Promise resolving with undefined once data has been written
 			*/
-			const workspace = createMonitor(this._project.getWorkspace());
-			const params = {
-				workspace,
-				options: {
-					projectName: project.getName(),
-					projectNamespace: project.getNamespace(),
-					configuration: taskConfiguration,
-				}
-			};
-
-			// Created before the taskUtil so the step runner can bind to it. When the task does not
-			// request dependencies, dependencies stays undefined and the runner records no dependency
-			// reads, matching the standard-task path.
-			let dependencies;
-			if (provideDependenciesReader) {
-				dependencies = createMonitor(await getDependenciesReaderCb());
-				params.dependencies = dependencies;
-			}
-
 			const specVersion = task.getSpecVersion();
 			const taskUtilInterface = taskUtil.getInterface(specVersion);
 			const taskFunction = await task.getTask();
+			const isSpec3 = specVersion.gte("3.0");
 
-			// The step runner, produced only for a step-based custom task. A legacy custom task runs a plain
-			// body and produces none. Drives the outcome fold below.
-			let stepDriver;
-			let monitoredTaskUtil;
+			const options = {
+				projectName: project.getName(),
+				projectNamespace: project.getNamespace(),
+				configuration: taskConfiguration,
+			};
+			if (isSpec3) {
+				options.taskName = taskName;
+			}
+
 			if (stepBased) {
 				// Step-based custom task: gated at Specification Version 5.0 in _addCustomTask, which always
 				// provides a taskUtil interface. The default export is a factory build(options) => Step[];
-				// run the returned steps through the step runner.
-				monitoredTaskUtil = new MonitoredTaskUtil(taskUtilInterface);
-				params.taskUtil = monitoredTaskUtil;
-				if (specVersion.gte("3.0")) {
-					params.options.taskName = taskName;
-					params.log = getLogger(`builder:custom-task:${taskName}`);
-				}
-				const steps = await taskFunction(params.options);
-				stepDriver = new StepRunner({
+				// each step is its own pipeline stage, driven by the step runner via per-stage
+				// hooks. The factory receives options only.
+				const steps = await taskFunction(options);
+				const stepDriver = new StepRunner({
 					steps,
-					options: params.options,
-					workspace,
-					dependencies,
-					taskUtil: monitoredTaskUtil,
-					cacheInfo: cacheInfo || undefined,
-					previousInvocationData: this._buildCache.getStepInvocationData(taskName),
+					options,
+					...this.#createStepStageHooks(taskName, provideDependenciesReader, taskUtilInterface),
 					returnValueStore: this._buildCache.getStepReturnValueStore(),
 					resolveInputValue: this._buildCache.getResolveInputValue(),
 					applyTagOperations: (tagOperations) =>
 						this._project.getProjectResources().replayTagOperations(tagOperations),
 					signal: this._signal,
 				});
-				this._log.startTask(taskName, !!cacheInfo);
-				await stepDriver.runSteps();
-			} else {
-				// Legacy custom task: the default export is a task body, not a step factory. The interface
-				// is undefined for a task that does not support taskUtil (spec version <= 2.1).
-				if (taskUtilInterface) {
-					monitoredTaskUtil = new MonitoredTaskUtil(taskUtilInterface);
-					params.taskUtil = monitoredTaskUtil;
+				const {anyStepExecuted, writtenResourcePaths} = await stepDriver.runSteps();
+				// Report the task as skipped when every step was served from cache, else as executed.
+				if (anyStepExecuted) {
+					this._log.startTask(taskName, true);
+					this._log.endTask(taskName, true, writtenResourcePaths);
+				} else {
+					this._log.skipTask(taskName);
 				}
-
-				if (specVersion.gte("3.0")) {
-					params.options.taskName = taskName;
-					params.log = getLogger(`builder:custom-task:${taskName}`);
-				}
-
-				this._log.startTask(taskName, !!cacheInfo);
-				await taskFunction(params);
+				return;
 			}
+
+			// Legacy custom task: the default export is a task body, not a step factory. It has a single stage.
+			const cacheInfo = await this._buildCache.prepareTaskExecutionAndValidateCache(taskName);
+			if (cacheInfo === true) {
+				this._log.skipTask(taskName);
+				return;
+			}
+
+			const workspace = createMonitor(this._project.getWorkspace());
+			const params = {workspace, options};
+
+			let dependencies;
+			if (provideDependenciesReader) {
+				dependencies = createMonitor(await getDependenciesReaderCb());
+				params.dependencies = dependencies;
+			}
+
+			// The interface is undefined for a task that does not support taskUtil (spec version <= 2.1).
+			let monitoredTaskUtil;
+			if (taskUtilInterface) {
+				monitoredTaskUtil = new MonitoredTaskUtil(taskUtilInterface);
+				params.taskUtil = monitoredTaskUtil;
+			}
+			if (isSpec3) {
+				params.log = getLogger(`builder:custom-task:${taskName}`);
+			}
+
+			this._log.startTask(taskName, !!cacheInfo);
+			await taskFunction(params);
+
 			const taskUtilRequests = monitoredTaskUtil?.getResourceRequests();
-			let projectRequests = mergeResourceRequests(workspace.getResourceRequests(), taskUtilRequests?.project);
-			let dependencyRequests =
+			const projectRequests = mergeResourceRequests(workspace.getResourceRequests(), taskUtilRequests?.project);
+			const dependencyRequests =
 				mergeResourceRequests(dependencies?.getResourceRequests(), taskUtilRequests?.dependencies);
-			let inputRecording = monitoredTaskUtil ? monitoredTaskUtil.getInputRecording() : [];
-
-			// A task that ran the step runner folds the driver's outcome into the recorded result exactly
-			// as the standard-task path does: its complete per-step read set (so first-seen reads stay
-			// tracked), its stale outputs (dropped from the carried-forward stage via the changed-paths
-			// merge), and its invocation data (persisted for the next delta build).
-			const usedStepDriver = !!stepDriver;
-			if (usedStepDriver) {
-				this._buildCache.setStepInvocationData(taskName, stepDriver.getInvocationData());
-				if (cacheInfo) {
-					// Delta build: only some steps re-ran, so the task-level monitor missed the reads and
-					// non-resource inputs of the steps served from cache. Fold every step's reads and inputs
-					// (from the driver's persisted invocation data) into the recorded requests and input
-					// recording so a first-seen input stays tracked and the re-keyed stage signature tracks
-					// every current input, and append the driver's stale outputs to the changed paths so they
-					// drop from the carried-forward stage. On a full build every step ran, so the monitor
-					// already captured everything and no fold is needed.
-					const driverRequests = stepDriver.getResourceRequests();
-					projectRequests = mergeResourceRequests(projectRequests, driverRequests.project);
-					dependencyRequests = mergeResourceRequests(dependencyRequests, driverRequests.dependencies);
-					inputRecording = mergeInputRecordings(inputRecording, stepDriver.getInputRecording());
-					const staleOutputs = stepDriver.getStaleOutputs();
-					if (staleOutputs.length) {
-						cacheInfo.changedProjectResourcePaths =
-							[...cacheInfo.changedProjectResourcePaths, ...staleOutputs];
-					}
-				}
-			}
+			const inputRecording = monitoredTaskUtil ? monitoredTaskUtil.getInputRecording() : [];
 
 			const writtenResourcePaths = await this._buildCache.recordTaskResult(taskName,
 				projectRequests,
 				dependencyRequests,
-				usedStepDriver ? cacheInfo : undefined,
+				undefined,
 				inputRecording,
-				taskUtilRequests?.root,
-				usedStepDriver);
+				taskUtilRequests?.root);
 			this._log.endTask(taskName, !!cacheInfo, writtenResourcePaths);
+		};
+	}
+
+	/**
+	 * Builds the per-stage hooks the {@link StepRunner} uses to drive one pipeline stage per step of a
+	 * step-based task. Shared by the standard-task and custom-task paths.
+	 *
+	 * <ul>
+	 *   <li><code>prepareStage(stepName)</code> switches the project to the step's own stage and returns
+	 *     its cache verdict (true = fully cached, an object = map-step internal key-delta, false = run).</li>
+	 *   <li><code>getPreviousInvocationData(stepName)</code> returns that stage's previous per-key data.</li>
+	 *   <li><code>createStageContext()</code> builds fresh monitored workspace/dependencies readers and a
+	 *     MonitoredTaskUtil bound to the stage <code>prepareStage</code> just switched to.</li>
+	 *   <li><code>recordStage(stepName, outcome)</code> records the step's stage from its own monitored
+	 *     requests, inputs and stale outputs — no cross-step fold.</li>
+	 * </ul>
+	 *
+	 * @param {string} taskName Task name
+	 * @param {boolean} requiresDependencies Whether the task's steps read dependencies
+	 * @param {object} [taskUtilInterface] TaskUtil interface for a custom task; defaults to the standard
+	 *   task util
+	 * @returns {object} The step-stage hooks
+	 */
+	#createStepStageHooks(taskName, requiresDependencies, taskUtilInterface = this._taskUtil) {
+		return {
+			prepareStage: async (stepName) => {
+				const cacheInfo = await this._buildCache.prepareTaskExecutionAndValidateCache(taskName, stepName);
+				if (cacheInfo === true) {
+					this._log.verbose(`Step ${taskName}/${stepName} served from cache`);
+				}
+				return cacheInfo;
+			},
+			getPreviousInvocationData: (stepName) =>
+				this._buildCache.getStepInvocationData(this._buildCache.getStageId(taskName, stepName)),
+			createStageContext: () => {
+				// Built after prepareStage switched the stage, so the monitored readers reflect the
+				// cumulative output of all earlier stages (the reader stack) with this stage's writer on top.
+				const workspace = createMonitor(this._project.getWorkspace());
+				const dependencies = requiresDependencies ?
+					createMonitor(this._cachedDependenciesReader) : undefined;
+				const monitoredTaskUtil = new MonitoredTaskUtil(taskUtilInterface);
+				return {workspace, dependencies, taskUtil: monitoredTaskUtil, monitoredTaskUtil};
+			},
+			recordStage: async (stepName, outcome) => {
+				const {ctx, cacheInfo, invocationData, staleOutputs, foldedReads, foldedInputs} = outcome;
+				const {workspace, dependencies, monitoredTaskUtil} = ctx;
+				const taskUtilRequests = monitoredTaskUtil.getResourceRequests();
+				let projectRequests =
+					mergeResourceRequests(workspace.getResourceRequests(), taskUtilRequests.project);
+				let dependencyRequests =
+					mergeResourceRequests(dependencies?.getResourceRequests(), taskUtilRequests.dependencies);
+				let inputRecording = monitoredTaskUtil.getInputRecording();
+
+				// Fold the stage's complete per-key reads and inputs (from its invocation data) into the
+				// stage-level monitored requests. This covers keys served from cache on a delta build, whose
+				// reads and inputs the stage-level monitor never observed, so the stage re-keys on its full
+				// input set. On a full build the monitor already saw everything, so the fold is a no-op union.
+				if (foldedReads) {
+					projectRequests = mergeResourceRequests(projectRequests, foldedReads.project);
+					dependencyRequests = dependencies ?
+						mergeResourceRequests(dependencyRequests, foldedReads.dependencies) : dependencyRequests;
+				}
+				if (foldedInputs) {
+					inputRecording = mergeInputRecordings(inputRecording, foldedInputs);
+				}
+
+				this._buildCache.setStepInvocationData(
+					this._buildCache.getStageId(taskName, stepName), invocationData);
+
+				// A map step's stage served a partial (key-delta) run: append its stale outputs to the
+				// delta's changed paths so recordTaskResult drops the outputs its not-re-run keys no longer
+				// produce from the carried-forward stage.
+				if (cacheInfo && staleOutputs.length) {
+					cacheInfo.changedProjectResourcePaths =
+						[...(cacheInfo.changedProjectResourcePaths ?? []), ...staleOutputs];
+				}
+
+				return this._buildCache.recordTaskResult(taskName,
+					projectRequests,
+					dependencyRequests,
+					cacheInfo || undefined,
+					inputRecording,
+					taskUtilRequests.root,
+					true,
+					stepName);
+			},
 		};
 	}
 

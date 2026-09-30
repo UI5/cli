@@ -42,12 +42,55 @@ function createReturnValueStore() {
 	};
 }
 
+// Drives a StepRunner with in-memory per-stage hooks, mirroring what the TaskRunner wires around a real
+// build cache. The harness owns the fakes so tests can inspect what each
+// stage recorded (its per-key invocationData, folded reads/inputs, stale outputs) without the StepRunner
+// exposing task-level fold accessors anymore.
+//
+// - prepareStage(step): returns the stage's cache verdict. Defaults to false (full run) for every step;
+//   pass `cacheVerdicts` to return `true` (fully cached) or a delta cacheInfo object for named steps.
+// - getPreviousInvocationData(step): returns the step's previous per-key data from `previousData`.
+// - createStageContext(): fresh recording context around a shared workspace/dependencies/taskUtil.
+// - recordStage(step, outcome): captures the outcome under `recorded[step]` and returns the stage's
+//   written paths (the union of its keys' writes), which runSteps aggregates.
+function makeDriver({
+	steps, options, workspace = createWorkspace(), dependencies, taskUtil = {}, returnValueStore,
+	resolveInputValue, applyTagOperations, signal, cacheVerdicts = {}, previousData = new Map(),
+}) {
+	const recorded = new Map();
+	const runner = new StepRunner({
+		steps,
+		options,
+		returnValueStore,
+		resolveInputValue,
+		applyTagOperations,
+		signal,
+		prepareStage: async (step) => (step in cacheVerdicts ? cacheVerdicts[step] : false),
+		getPreviousInvocationData: (step) => previousData.get(step),
+		createStageContext: () => ({workspace, dependencies, taskUtil, monitoredTaskUtil: taskUtil}),
+		recordStage: async (step, outcome) => {
+			recorded.set(step, outcome);
+			const written = new Set();
+			for (const data of outcome.invocationData.values()) {
+				(data.writes ?? []).forEach((path) => written.add(path));
+			}
+			return [...written];
+		},
+	});
+	return {runner, recorded, workspace};
+}
+
+// The per-key invocation data a stage recorded this build (the map keyed by keyId), for the assertions
+// that previously inspected runner.getInvocationData().get(step).
+function invocationDataOf(recorded, step) {
+	return recorded.get(step)?.invocationData;
+}
+
 // --- Step-factory API (runSteps) ---
 
 test("runSteps runs a scalar step once and records its single unit", async (t) => {
-	const workspace = createWorkspace();
-	const runner = new StepRunner({
-		workspace, taskUtil: {}, steps: [
+	const {runner, recorded, workspace} = makeDriver({
+		steps: [
 			{name: "s", run: async ({workspace}) => {
 				await workspace.write(createResource("/out"));
 			}},
@@ -57,14 +100,13 @@ test("runSteps runs a scalar step once and records its single unit", async (t) =
 	await runner.runSteps();
 
 	t.true(workspace.store.has("/out"), "Scalar step's write persisted");
-	t.is(runner.getInvocationData().get("s").size, 1, "Scalar step recorded one implicit unit");
+	t.is(invocationDataOf(recorded, "s").size, 1, "Scalar step recorded one implicit unit");
 });
 
 test("runSteps runs a map step's each once per enumerated key", async (t) => {
-	const workspace = createWorkspace();
 	const ran = [];
-	const runner = new StepRunner({
-		workspace, taskUtil: {}, steps: [
+	const {runner, recorded, workspace} = makeDriver({
+		steps: [
 			{name: "m", keys: async () => ["a", "b"], each: async (key, {workspace}) => {
 				ran.push(key);
 				await workspace.write(createResource(`/out/${key}`));
@@ -75,17 +117,16 @@ test("runSteps runs a map step's each once per enumerated key", async (t) => {
 	await runner.runSteps();
 
 	t.deepEqual(ran.sort(), ["a", "b"], "each ran once per key");
-	t.is(runner.getInvocationData().get("m").size, 2, "Map step recorded one unit per key");
+	t.is(invocationDataOf(recorded, "m").size, 2, "Map step recorded one unit per key");
 	t.true(workspace.store.has("/out/a") && workspace.store.has("/out/b"), "Both keys' writes persisted");
 });
 
 test("A step must be either scalar or map", async (t) => {
-	const runner = new StepRunner({workspace: createWorkspace(), taskUtil: {}, steps: [{name: "bad"}]});
+	const {runner} = makeDriver({steps: [{name: "bad"}]});
 	await t.throwsAsync(runner.runSteps(),
 		{message: /Step 'bad' must be either a scalar step .* or a map step/});
 
-	const both = new StepRunner({
-		workspace: createWorkspace(), taskUtil: {},
+	const {runner: both} = makeDriver({
 		steps: [{name: "bad", run: async () => {}, keys: async () => [], each: async () => {}}],
 	});
 	await t.throwsAsync(both.runSteps(),
@@ -93,8 +134,7 @@ test("A step must be either scalar or map", async (t) => {
 });
 
 test("A step's needs may only reference an earlier step", async (t) => {
-	const runner = new StepRunner({
-		workspace: createWorkspace(), taskUtil: {},
+	const {runner} = makeDriver({
 		steps: [{name: "a", needs: ["later"], run: async () => {}}, {name: "later", run: async () => {}}],
 	});
 	await t.throwsAsync(runner.runSteps(),
@@ -103,8 +143,8 @@ test("A step's needs may only reference an earlier step", async (t) => {
 
 test("A scalar producer's serializable return is injected into a consumer via needs", async (t) => {
 	let seen;
-	const runner = new StepRunner({
-		workspace: createWorkspace(), taskUtil: {}, steps: [
+	const {runner} = makeDriver({
+		steps: [
 			{name: "scan", run: async () => ({hasThemes: true})},
 			{name: "use", needs: ["scan"], run: async ({needs}) => {
 				seen = needs.scan;
@@ -118,11 +158,10 @@ test("A scalar producer's serializable return is injected into a consumer via ne
 });
 
 test("A producer return reaches a map step's keys and each via needs", async (t) => {
-	const workspace = createWorkspace();
 	const keysSaw = [];
 	const eachSaw = [];
-	const runner = new StepRunner({
-		workspace, taskUtil: {}, steps: [
+	const {runner} = makeDriver({
+		steps: [
 			{name: "scan", run: async () => ({wanted: ["x", "y"]})},
 			{name: "build", needs: ["scan"], keys: async ({needs}) => {
 				keysSaw.push(needs.scan);
@@ -142,8 +181,9 @@ test("A producer return reaches a map step's keys and each via needs", async (t)
 test("A resource return is injected into a consumer and stored in the CAS", async (t) => {
 	const returnValueStore = createReturnValueStore();
 	let consumed;
-	const runner = new StepRunner({
-		workspace: createWorkspace(), taskUtil: {}, returnValueStore, steps: [
+	const {runner} = makeDriver({
+		returnValueStore,
+		steps: [
 			{name: "make", run: async () => createResource("/made", "made-content")},
 			{name: "use", needs: ["make"], run: async ({needs}) => {
 				consumed = await needs.make.getString();
@@ -159,20 +199,21 @@ test("A resource return is injected into a consumer and stored in the CAS", asyn
 });
 
 test("Delta build re-runs only the map key whose recorded read changed", async (t) => {
-	const steps = () => [
-		{name: "m", keys: async () => ["a", "b"], each: async (key, {workspace}) => {
-			await workspace.byPath(`/in/${key}`); // recorded read
-			await workspace.write(createResource(`/out/${key}`));
-		}},
-	];
-	const build1 = new StepRunner({workspace: createWorkspace(), taskUtil: {}, steps: steps()});
-	await build1.runSteps();
+	const build1 = makeDriver({
+		steps: [
+			{name: "m", keys: async () => ["a", "b"], each: async (key, {workspace}) => {
+				await workspace.byPath(`/in/${key}`); // recorded read
+				await workspace.write(createResource(`/out/${key}`));
+			}},
+		],
+	});
+	await build1.runner.runSteps();
 
 	const ran = [];
 	const cacheInfo = {changedProjectResourcePaths: ["/in/a"], changedDependencyResourcePaths: []};
-	const build2 = new StepRunner({
-		workspace: createWorkspace(), taskUtil: {}, cacheInfo,
-		previousInvocationData: build1.getInvocationData(),
+	const build2 = makeDriver({
+		cacheVerdicts: {m: cacheInfo},
+		previousData: new Map([["m", invocationDataOf(build1.recorded, "m")]]),
 		steps: [
 			{name: "m", keys: async () => ["a", "b"], each: async (key, {workspace}) => {
 				ran.push(key);
@@ -181,7 +222,7 @@ test("Delta build re-runs only the map key whose recorded read changed", async (
 			}},
 		],
 	});
-	await build2.runSteps();
+	await build2.runner.runSteps();
 
 	t.deepEqual(ran, ["a"], "Only the key whose recorded read changed re-ran");
 });
@@ -198,18 +239,25 @@ test("Delta build re-runs a consumer when its producer's return changed", async 
 		}},
 	];
 
-	const ws1 = createWorkspace([createResource("/in", "old")]);
-	const build1 = new StepRunner({workspace: ws1, taskUtil: {}, steps: stepsFor([])});
-	await build1.runSteps();
+	const build1 = makeDriver({
+		workspace: createWorkspace([createResource("/in", "old")]), steps: stepsFor([]),
+	});
+	await build1.runner.runSteps();
 
 	const ran = [];
-	const ws2 = createWorkspace([createResource("/in", "new")]);
+	// scan re-runs because its recorded read /in changed, so its return advances; use re-runs because the
+	// producer return it consumed changed.
 	const cacheInfo = {changedProjectResourcePaths: ["/in"], changedDependencyResourcePaths: []};
-	const build2 = new StepRunner({
-		workspace: ws2, taskUtil: {}, cacheInfo,
-		previousInvocationData: build1.getInvocationData(), steps: stepsFor(ran),
+	const build2 = makeDriver({
+		workspace: createWorkspace([createResource("/in", "new")]),
+		cacheVerdicts: {scan: cacheInfo, use: cacheInfo},
+		previousData: new Map([
+			["scan", invocationDataOf(build1.recorded, "scan")],
+			["use", invocationDataOf(build1.recorded, "use")],
+		]),
+		steps: stepsFor(ran),
 	});
-	await build2.runSteps();
+	await build2.runner.runSteps();
 
 	t.deepEqual(ran, ["use"], "The consumer re-ran because the producer's return changed");
 });
@@ -227,27 +275,33 @@ test("Delta build keeps a consumer cached when its producer is restored unchange
 		}},
 	];
 
-	const build1 = new StepRunner({
-		workspace: createWorkspace([createResource("/in", "v")]), taskUtil: {}, steps: stepsFor([]),
+	const build1 = makeDriver({
+		workspace: createWorkspace([createResource("/in", "v")]), steps: stepsFor([]),
 	});
-	await build1.runSteps();
+	await build1.runner.runSteps();
 
 	const ran = [];
+	// scan is fully cached (verdict true), so it restores its return unchanged; use is a delta with no
+	// changed paths, so it stays cached because the producer return did not change.
 	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
-	const build2 = new StepRunner({
-		workspace: createWorkspace([createResource("/in", "v")]), taskUtil: {}, cacheInfo,
-		previousInvocationData: build1.getInvocationData(), steps: stepsFor(ran),
+	const build2 = makeDriver({
+		workspace: createWorkspace([createResource("/in", "v")]),
+		cacheVerdicts: {scan: true, use: cacheInfo},
+		previousData: new Map([
+			["scan", invocationDataOf(build1.recorded, "scan")],
+			["use", invocationDataOf(build1.recorded, "use")],
+		]),
+		steps: stepsFor(ran),
 	});
-	await build2.runSteps();
+	await build2.runner.runSteps();
 
 	t.deepEqual(ran, [], "Neither the restored producer nor its consumer re-ran");
 });
 
 test("A map step honors sequential so a later key reads an earlier key's write", async (t) => {
-	const workspace = createWorkspace();
 	let secondSawFirst = false;
-	const runner = new StepRunner({
-		workspace, taskUtil: {}, steps: [
+	const {runner} = makeDriver({
+		steps: [
 			{name: "m", sequential: true, keys: async () => ["first", "second"], each: async (key, {workspace}) => {
 				if (key === "first") {
 					await workspace.write(createResource("/shared"));
@@ -264,10 +318,11 @@ test("A map step honors sequential so a later key reads an earlier key's write",
 });
 
 test("A later step sees an earlier step's write", async (t) => {
-	const workspace = createWorkspace();
+	// The stages share one workspace here (the harness's single fake); in the real pipeline a later
+	// stage reads an earlier stage's writer through the prioritized reader stack.
 	let laterSaw = false;
-	const runner = new StepRunner({
-		workspace, taskUtil: {}, steps: [
+	const {runner} = makeDriver({
+		steps: [
 			{name: "first", run: async ({workspace}) => {
 				await workspace.write(createResource("/from-first"));
 			}},
@@ -283,41 +338,53 @@ test("A later step sees an earlier step's write", async (t) => {
 });
 
 test("A removed map key's output is reported stale", async (t) => {
-	const build1 = new StepRunner({
-		workspace: createWorkspace(), taskUtil: {}, steps: [
+	const build1 = makeDriver({
+		steps: [
 			{name: "m", keys: async () => ["a", "b"], each: async (key, {workspace}) => {
 				await workspace.write(createResource(`/out/${key}`));
 			}},
 		],
 	});
-	await build1.runSteps();
+	await build1.runner.runSteps();
 
 	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
-	const build2 = new StepRunner({
-		workspace: createWorkspace(), taskUtil: {}, cacheInfo,
-		previousInvocationData: build1.getInvocationData(), steps: [
+	const build2 = makeDriver({
+		cacheVerdicts: {m: cacheInfo},
+		previousData: new Map([["m", invocationDataOf(build1.recorded, "m")]]),
+		steps: [
 			{name: "m", keys: async () => ["a"], each: async (key, {workspace}) => {
 				await workspace.write(createResource(`/out/${key}`));
 			}},
 		],
 	});
-	await build2.runSteps();
+	await build2.runner.runSteps();
 
-	t.deepEqual(build2.getStaleOutputs(), ["/out/b"], "The dropped key's output is stale");
+	t.deepEqual(build2.recorded.get("m").staleOutputs, ["/out/b"], "The dropped key's output is stale");
 });
 
 test("runSteps over an empty step list does nothing", async (t) => {
-	const runner = new StepRunner({workspace: createWorkspace(), taskUtil: {}, steps: []});
-	await runner.runSteps();
-	t.is(runner.getInvocationData().size, 0, "No invocation data recorded");
-	t.deepEqual(runner.getStaleOutputs(), [], "No stale outputs");
+	// An empty step list still drives the task's single stage (prepareStage/recordStage with undefined),
+	// so the empty stage caches; nothing is recorded per key.
+	const {runner, recorded} = makeDriver({steps: []});
+	const {anyStepExecuted} = await runner.runSteps();
+	t.true(anyStepExecuted, "An empty step list ran its stage (nothing cached to skip)");
+	t.is(invocationDataOf(recorded, undefined).size, 0, "No per-key invocation data recorded");
+	t.deepEqual(recorded.get(undefined).staleOutputs, [], "No stale outputs");
+});
+
+test("An empty step list served from cache reports the task as skipped", async (t) => {
+	const {runner, recorded} = makeDriver({steps: [], cacheVerdicts: {undefined: true}});
+	const {anyStepExecuted} = await runner.runSteps();
+	t.false(anyStepExecuted, "A fully-cached empty stage counts as skipped");
+	t.is(recorded.size, 0, "Nothing recorded when the empty stage is served from cache");
 });
 
 test("options passed to the runner reaches each step's context", async (t) => {
 	let seenScalar;
 	let seenEach;
-	const runner = new StepRunner({
-		workspace: createWorkspace(), taskUtil: {}, options: {pattern: "/**/*.js"}, steps: [
+	const {runner} = makeDriver({
+		options: {pattern: "/**/*.js"},
+		steps: [
 			{name: "s", run: async ({options}) => {
 				seenScalar = options;
 			}},

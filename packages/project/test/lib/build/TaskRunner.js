@@ -150,6 +150,8 @@ test.beforeEach(async (t) => {
 		getStepReturnValueStore: sinon.stub().returns(undefined),
 		getResolveInputValue: sinon.stub().returns(undefined),
 		setStepInvocationData: sinon.stub(),
+		getStageId: sinon.stub().callsFake((taskName, stepName) =>
+			stepName === undefined ? `task/${taskName}` : `task/${taskName}::step/${stepName}`),
 	};
 
 	t.context.resourceFactory = {
@@ -1688,6 +1690,8 @@ test("Step-based task: a per-step input change re-runs only that step; a restore
 			prefetchStageCache: sinon.stub(),
 			recordTaskResult: sinon.stub().resolves(),
 			allTasksCompleted: sinon.stub().resolves([]),
+			getStageId: (taskName, stepName) =>
+				stepName === undefined ? `task/${taskName}` : `task/${taskName}::step/${stepName}`,
 			prepareTaskExecutionAndValidateCache: sinon.stub().callsFake(async () =>
 				(deltaMode ? {changedProjectResourcePaths: [], changedDependencyResourcePaths: []} : false)),
 			getStepInvocationData: sinon.stub().callsFake(() => capturedInvocationData),
@@ -1789,6 +1793,8 @@ test("Step-based custom task: bound at Specification Version 5.0, folds the runn
 			prefetchStageCache: sinon.stub(),
 			recordTaskResult: sinon.stub().resolves(),
 			allTasksCompleted: sinon.stub().resolves([]),
+			getStageId: (taskName, stepName) =>
+				stepName === undefined ? `task/${taskName}` : `task/${taskName}::step/${stepName}`,
 			prepareTaskExecutionAndValidateCache: sinon.stub().callsFake(async () =>
 				(deltaMode ? {changedProjectResourcePaths: [], changedDependencyResourcePaths: []} : false)),
 			getStepInvocationData: sinon.stub().callsFake(() => capturedInvocationData),
@@ -1860,6 +1866,6 @@ test("Step-based custom task: the step-based export is ignored below Specificati
 	await taskRunner._tasks["myCustom"].task(projectBuildLogger);
 
 	t.true(ran, "The legacy task body ran");
-	t.is(t.context.buildCache.recordTaskResult.getCall(0).args[6], false,
+	t.falsy(t.context.buildCache.recordTaskResult.getCall(0).args[6],
 		"The step-based export is ignored below 5.0, so the task did not run the step runner");
 });
