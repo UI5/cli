@@ -50,16 +50,19 @@ test("Standard build", (t) => {
 
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
+			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
+			stepBased: true,
 			options: {
 				copyright: "copyright", pattern: "/**/*.{js,json}"
 			},
 		},
 		replaceVersion: {
+			stepBased: true,
 			options: {
 				version: "version", pattern: "/**/*.{js,json}"
 			},
@@ -72,7 +75,7 @@ test("Standard build", (t) => {
 				]
 			},
 		},
-		enhanceManifest: {},
+		enhanceManifest: {stepBased: true},
 		generateFlexChangesBundle: {},
 		generateComponentPreload: {
 			options: {
@@ -130,16 +133,19 @@ test("Standard build with legacy spec version", (t) => {
 
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
+			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
+			stepBased: true,
 			options: {
 				copyright: "copyright", pattern: "/**/*.{js,json}"
 			},
 		},
 		replaceVersion: {
+			stepBased: true,
 			options: {
 				version: "version", pattern: "/**/*.{js,json}"
 			},
@@ -152,7 +158,7 @@ test("Standard build with legacy spec version", (t) => {
 				]
 			},
 		},
-		enhanceManifest: {},
+		enhanceManifest: {stepBased: true},
 		generateFlexChangesBundle: {},
 		generateComponentPreload: {
 			options: {
@@ -243,16 +249,19 @@ test("Custom bundles", async (t) => {
 
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
+			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
+			stepBased: true,
 			options: {
 				copyright: "copyright", pattern: "/**/*.{js,json}"
 			},
 		},
 		replaceVersion: {
+			stepBased: true,
 			options: {
 				version: "version", pattern: "/**/*.{js,json}"
 			},
@@ -265,7 +274,7 @@ test("Custom bundles", async (t) => {
 				]
 			},
 		},
-		enhanceManifest: {},
+		enhanceManifest: {stepBased: true},
 		generateFlexChangesBundle: {},
 		generateComponentPreload: {
 			options: {

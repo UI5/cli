@@ -61,23 +61,27 @@ test("Standard build", async (t) => {
 	const generateJsdocTaskDefinition = tasks.get("generateJsdoc");
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
+			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
+			stepBased: true,
 			options: {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
 			},
 		},
 		replaceVersion: {
+			stepBased: true,
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
 		},
 		replaceBuildtime: {
+			stepBased: true,
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
 			},
@@ -102,7 +106,7 @@ test("Standard build", async (t) => {
 			},
 		},
 		generateLibraryManifest: {},
-		enhanceManifest: {},
+		enhanceManifest: {stepBased: true},
 		generateLibraryPreload: {
 			options: {
 				excludes: [], skipBundles: []
@@ -195,23 +199,27 @@ test("Standard build with legacy spec version", (t) => {
 	const generateJsdocTaskDefinition = tasks.get("generateJsdoc");
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
+			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
+			stepBased: true,
 			options: {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
 			},
 		},
 		replaceVersion: {
+			stepBased: true,
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
 		},
 		replaceBuildtime: {
+			stepBased: true,
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
 			},
@@ -236,7 +244,7 @@ test("Standard build with legacy spec version", (t) => {
 			},
 		},
 		generateLibraryManifest: {},
-		enhanceManifest: {},
+		enhanceManifest: {stepBased: true},
 		generateLibraryPreload: {
 			options: {
 				excludes: [], skipBundles: []
@@ -321,23 +329,27 @@ test("Custom bundles", async (t) => {
 
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
+			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
+			stepBased: true,
 			options: {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
 			},
 		},
 		replaceVersion: {
+			stepBased: true,
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
 		},
 		replaceBuildtime: {
+			stepBased: true,
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
 			},
@@ -362,7 +374,7 @@ test("Custom bundles", async (t) => {
 			},
 		},
 		generateLibraryManifest: {},
-		enhanceManifest: {},
+		enhanceManifest: {stepBased: true},
 		generateLibraryPreload: {
 			options: {
 				excludes: [],
@@ -697,23 +709,27 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 	const generateJsdocTaskDefinition = tasks.get("generateJsdoc");
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
+			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
+			stepBased: true,
 			options: {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
 			},
 		},
 		replaceVersion: {
+			stepBased: true,
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
 		},
 		replaceBuildtime: {
+			stepBased: true,
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
 			},
@@ -738,7 +754,7 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 			},
 		},
 		generateLibraryManifest: {},
-		enhanceManifest: {},
+		enhanceManifest: {stepBased: true},
 		generateLibraryPreload: {
 			options: {
 				excludes: [], skipBundles: []

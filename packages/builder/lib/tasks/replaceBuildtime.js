@@ -21,52 +21,37 @@ function formatTimestamp(date) {
 /**
  * Task to replace the buildtime <code>${buildtime}</code>.
  *
- * Each matched resource is processed as its own cached step via
- * [taskUtil.processEach]{@link @ui5/project/build/helpers/TaskUtil#processEach}, so a delta build
- * re-processes only the resources whose content changed. The buildtime comes from the build run's
- * shared timestamp via [taskUtil.getBuildTime]{@link @ui5/project/build/helpers/TaskUtil#getBuildTime},
- * which is not a tracked cache input, preserving the task's existing behavior: a cached step keeps its
- * previous timestamp until its resource content changes. When the task runs without a TaskUtil
- * (e.g. a direct invocation), it falls back to the wall clock.
+ * A step-based task: the default export is a factory returning one map step with a key per matched
+ * resource, so a delta build re-processes only the resources whose content changed. The buildtime comes
+ * from the build run's shared timestamp via
+ * [taskUtil.getBuildTime]{@link @ui5/project/build/helpers/TaskUtil#getBuildTime}, which is not a tracked
+ * cache input: a cached step keeps its previous timestamp until its resource content changes. Without a
+ * TaskUtil (e.g. a direct invocation) the step falls back to the wall clock.
  *
  * @public
  * @function default
  * @static
  *
- * @param {object} parameters Parameters
- * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
- * @param {object} parameters.options Options
- * @param {string} parameters.options.pattern Pattern to locate the files to be processed
- * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
+ * @param {object} options Options
+ * @param {string} options.pattern Pattern to locate the files to be processed
+ * @returns {object[]} The task's build steps
  */
-export default async function({workspace, taskUtil, options: {pattern}}) {
-	const resources = await workspace.byGlob(pattern);
-	// Source the timestamp from the build run's shared clock so every project and task in the run
-	// agrees. Fall back to a direct Date read when the task runs without a TaskUtil.
-	const timestamp = formatTimestamp(taskUtil?.getBuildTime ? taskUtil.getBuildTime() : new Date());
-
-	const replacerOptions = {
-		pattern: "${buildtime}",
-		replacement: timestamp
-	};
-
-	if (taskUtil?.processEach) {
-		// One cached step per resource, so a delta build re-processes only the resources that changed.
-		await taskUtil.processEach("replaceBuildtime", resources, async (resource, {workspace}) => {
-			const [processed] = await stringReplacer({resources: [resource], options: replacerOptions});
+export default function build({pattern}) {
+	return [{
+		name: "replaceBuildtime",
+		// One key per matched resource, so a delta build re-processes only the resources that changed.
+		keys: async ({workspace}) => workspace.byGlob(pattern),
+		each: async (resource, {workspace, taskUtil}) => {
+			// Source the timestamp from the build run's shared clock so every project and task in the run
+			// agrees. Fall back to a direct Date read when the task runs without a TaskUtil.
+			const timestamp = formatTimestamp(taskUtil?.getBuildTime ? taskUtil.getBuildTime() : new Date());
+			const [processed] = await stringReplacer({
+				resources: [resource],
+				options: {pattern: "${buildtime}", replacement: timestamp}
+			});
 			if (processed) {
 				await workspace.write(processed);
 			}
-		});
-		return;
-	}
-
-	// Standalone use without the build cache (e.g. a direct task invocation): replace in one batch.
-	const processedResources = await stringReplacer({resources, options: replacerOptions});
-	return Promise.all(processedResources.map((resource) => {
-		if (resource) {
-			return workspace.write(resource);
-		}
-	}));
+		},
+	}];
 }

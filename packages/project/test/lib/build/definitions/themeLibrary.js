@@ -50,12 +50,14 @@ test("Standard build", (t) => {
 	const generateThemeDesignerResourcesTaskFunction = tasks.get("generateThemeDesignerResources");
 	t.deepEqual(Object.fromEntries(tasks), {
 		replaceCopyright: {
+			stepBased: true,
 			options: {
 				copyright: "copyright",
 				pattern: "/resources/**/*.{less,theme}"
 			},
 		},
 		replaceVersion: {
+			stepBased: true,
 			options: {
 				version: "version",
 				pattern: "/resources/**/*.{less,theme}"
@@ -107,12 +109,14 @@ test("Standard build for non root project", (t) => {
 	});
 	t.deepEqual(Object.fromEntries(tasks), {
 		replaceCopyright: {
+			stepBased: true,
 			options: {
 				copyright: "copyright",
 				pattern: "/resources/**/*.{less,theme}"
 			},
 		},
 		replaceVersion: {
+			stepBased: true,
 			options: {
 				version: "version",
 				pattern: "/resources/**/*.{less,theme}"

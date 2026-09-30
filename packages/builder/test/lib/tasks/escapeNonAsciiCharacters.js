@@ -1,4 +1,5 @@
 import test from "ava";
+import runSteps from "../../../lib/tasks/runSteps.js";
 import escapeNonAsciiCharacters from "../../../lib/tasks/escapeNonAsciiCharacters.js";
 import {createAdapter, createResource} from "@ui5/fs/resourceFactory";
 import DuplexCollection from "@ui5/fs/DuplexCollection";
@@ -32,7 +33,7 @@ city=Ort:`;
 	});
 
 	await workspace.write(resource);
-	await escapeNonAsciiCharacters({
+	await runSteps(escapeNonAsciiCharacters, {
 		workspace,
 		options: {
 			encoding: "UTF-8",
@@ -79,7 +80,7 @@ city=Ort:`;
 	});
 
 	await workspace.write(resource);
-	await escapeNonAsciiCharacters({
+	await runSteps(escapeNonAsciiCharacters, {
 		workspace,
 		options: {
 			encoding: "ISO-8859-1",
@@ -97,39 +98,17 @@ city=Ort:`;
 });
 
 test("integration: escape non ascii characters source encoding being empty", async (t) => {
-	const reader = createAdapter({
-		virBasePath: "/"
-	});
-	const writer = createAdapter({
-		virBasePath: "/"
-	});
-	const workspace = new DuplexCollection({reader, writer});
-
-	const error = await t.throwsAsync(escapeNonAsciiCharacters({
-		workspace,
-		options: {
-			encoding: "",
-			pattern: "/**/*.properties"
-		}
+	const error = t.throws(() => escapeNonAsciiCharacters({
+		encoding: "",
+		pattern: "/**/*.properties"
 	}));
 	return t.is(error.message, "[escapeNonAsciiCharacters] Mandatory option 'encoding' not provided");
 });
 
 test("integration: escape non ascii characters source encoding being UTF-16", async (t) => {
-	const reader = createAdapter({
-		virBasePath: "/"
-	});
-	const writer = createAdapter({
-		virBasePath: "/"
-	});
-	const workspace = new DuplexCollection({reader, writer});
-
-	const error = await t.throwsAsync(escapeNonAsciiCharacters({
-		workspace,
-		options: {
-			encoding: "utf16le",
-			pattern: "/**/*.properties"
-		}
+	const error = t.throws(() => escapeNonAsciiCharacters({
+		encoding: "utf16le",
+		pattern: "/**/*.properties"
 	}));
 	return t.is(error.message, `Encoding "utf16le" is not supported. Only UTF-8, ISO-8859-1 are allowed values`);
 });

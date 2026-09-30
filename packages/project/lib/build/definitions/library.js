@@ -14,6 +14,7 @@ import {enhanceBundlesWithDefaults} from "../../validation/validator.js";
 export default function({project, taskUtil, getTask}) {
 	const tasks = new Map();
 	tasks.set("escapeNonAsciiCharacters", {
+		stepBased: true,
 		options: {
 			encoding: project.getPropertiesFileSourceEncoding(),
 			pattern: "/**/*.properties"
@@ -21,6 +22,7 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("replaceCopyright", {
+		stepBased: true,
 		options: {
 			copyright: project.getCopyright(),
 			pattern: "/**/*.{js,library,css,less,theme,html}"
@@ -28,6 +30,7 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("replaceVersion", {
+		stepBased: true,
 		options: {
 			version: project.getVersion(),
 			pattern: "/**/*.{js,json,library,css,less,theme,html}"
@@ -35,6 +38,7 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("replaceBuildtime", {
+		stepBased: true,
 		options: {
 			pattern: "/resources/sap/ui/{Global,core/Core}.js"
 		}
@@ -98,7 +102,7 @@ export default function({project, taskUtil, getTask}) {
 		tasks.set("generateLibraryManifest", {taskFunction: null});
 	}
 
-	tasks.set("enhanceManifest", {});
+	tasks.set("enhanceManifest", {stepBased: true});
 
 	const bundles = project.getBundles();
 	const existingBundleDefinitionNames =

@@ -1,4 +1,5 @@
 import test from "ava";
+import runSteps from "../../../lib/tasks/runSteps.js";
 import replaceBuildtime from "../../../lib/tasks/replaceBuildtime.js";
 import {createAdapter, createResource} from "@ui5/fs/resourceFactory";
 import DuplexCollection from "@ui5/fs/DuplexCollection";
@@ -22,7 +23,7 @@ test("integration: replace version", async (t) => {
 
 	const workspace = new DuplexCollection({reader, writer});
 	await reader.write(resource);
-	await replaceBuildtime({
+	await runSteps(replaceBuildtime, {
 		workspace,
 		options: {
 			pattern: "/test.js"
@@ -63,7 +64,7 @@ test("integration: buildtime is sourced from taskUtil.getBuildTime", async (t) =
 	});
 	await reader.write(resource);
 
-	await replaceBuildtime({
+	await runSteps(replaceBuildtime, {
 		workspace,
 		taskUtil: {getBuildTime: () => buildTime},
 		options: {

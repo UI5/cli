@@ -1,4 +1,5 @@
 import test from "ava";
+import runSteps from "../../../lib/tasks/runSteps.js";
 import sinon from "sinon";
 import replaceCopyright from "../../../lib/tasks/replaceCopyright.js";
 import {createAdapter, createResource} from "@ui5/fs/resourceFactory";
@@ -39,7 +40,7 @@ console.log('HelloWorld');`;
 
 	await workspace.write(resource);
 
-	await replaceCopyright({
+	await runSteps(replaceCopyright, {
 		workspace,
 		options: {
 			copyright: copyright,
@@ -90,7 +91,7 @@ console.log('HelloWorld');`;
 
 	await workspace.write(resource);
 
-	await replaceCopyright({
+	await runSteps(replaceCopyright, {
 		workspace,
 		taskUtil: {getTime},
 		options: {
@@ -138,7 +139,7 @@ test("test.xml: replace @copyright@", async (t) => {
 	});
 
 	await reader.write(resource);
-	await replaceCopyright({
+	await runSteps(replaceCopyright, {
 		workspace,
 		options: {
 			pattern: "/**/*.xml",
