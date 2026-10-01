@@ -56,6 +56,7 @@ function createReturnValueStore() {
 function makeDriver({
 	steps, options, workspace = createWorkspace(), dependencies, taskUtil = {}, returnValueStore,
 	resolveInputValue, applyTagOperations, signal, cacheVerdicts = {}, previousData = new Map(),
+	notifyStepExecution,
 }) {
 	const recorded = new Map();
 	const runner = new StepRunner({
@@ -65,6 +66,7 @@ function makeDriver({
 		resolveInputValue,
 		applyTagOperations,
 		signal,
+		notifyStepExecution,
 		prepareStage: async (step) => (step in cacheVerdicts ? cacheVerdicts[step] : false),
 		getPreviousInvocationData: (step) => previousData.get(step),
 		// Mirrors the TaskRunner hook: reopens the stage with a live writer and demotes the full hit to a
@@ -481,3 +483,56 @@ test("options passed to the runner reaches each step's context", async (t) => {
 	t.deepEqual(seenScalar, {pattern: "/**/*.js"}, "Scalar step received the task options");
 	t.deepEqual(seenEach, {pattern: "/**/*.js"}, "Map step received the task options");
 });
+
+test("A re-run key's dropped output is stale while a cached key's output is kept", async (t) => {
+	const stepsFor = (paths) => [
+		{name: "m", keys: async () => ["a", "b"], each: async (key, {workspace}) => {
+			await workspace.byPath(`/in/${key}`); // recorded read
+			for (const path of paths[key]) {
+				await workspace.write(createResource(path));
+			}
+		}},
+	];
+
+	const build1 = makeDriver({steps: stepsFor({a: ["/out/a", "/out/a.extra"], b: ["/out/b"]})});
+	await build1.runner.runSteps();
+
+	// Only key 'a' re-runs, and it writes one path less than before. Key 'b' is served from cache, so its
+	// output must survive even though this build never wrote it.
+	const cacheInfo = {changedProjectResourcePaths: ["/in/a"], changedDependencyResourcePaths: []};
+	const build2 = makeDriver({
+		cacheVerdicts: {m: cacheInfo},
+		previousData: new Map([["m", invocationDataOf(build1.recorded, "m")]]),
+		steps: stepsFor({a: ["/out/a"], b: ["/out/b"]}),
+	});
+	await build2.runner.runSteps();
+
+	t.deepEqual(build2.recorded.get("m").staleOutputs, ["/out/a.extra"],
+		"Only the path the re-run key stopped writing is stale");
+});
+
+test("A removed key's output stays when a cached key still writes it", async (t) => {
+	const stepsFor = (keys) => [
+		{name: "m", sequential: true, keys: async () => keys, each: async (key, {workspace}) => {
+			await workspace.write(createResource("/out/shared", "shared"));
+			await workspace.write(createResource(`/out/${key}`));
+		}},
+	];
+
+	const build1 = makeDriver({steps: stepsFor(["a", "b"])});
+	await build1.runner.runSteps();
+
+	// Key 'b' is gone and key 'a' is served from cache, so '/out/shared' is written by nobody this build.
+	// It is still owned by the cached key, so dropping key 'b' must not take it down.
+	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
+	const build2 = makeDriver({
+		cacheVerdicts: {m: cacheInfo},
+		previousData: new Map([["m", invocationDataOf(build1.recorded, "m")]]),
+		steps: stepsFor(["a"]),
+	});
+	await build2.runner.runSteps();
+
+	t.deepEqual(build2.recorded.get("m").staleOutputs, ["/out/b"],
+		"Only the removed key's exclusive output is stale");
+});
+

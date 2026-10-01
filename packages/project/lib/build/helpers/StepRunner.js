@@ -362,7 +362,7 @@ export default class StepRunner {
 				options = step.sequential ? {sequential: true} : undefined;
 			}
 
-			const {results, invocationData} = await this.#runGroup(
+			const {results, invocationData, freshInvocationData} = await this.#runGroup(
 				step.name, entries, options, callback, {needs, needsSignatures, cacheInfo, previous, ctx});
 
 			this.#returns.set(step.name, isScalar ? results[0] : results);
@@ -373,7 +373,8 @@ export default class StepRunner {
 			// own keys' reads and inputs — including keys restored from cache on a delta build, whose reads
 			// and inputs the stage-level monitor never saw — so the stage re-keys on its complete input set.
 			if (this.#recordStage) {
-				const staleOutputs = this.#computeStaleOutputs(previous, invocationData, entries);
+				const staleOutputs = this.#computeStaleOutputs(
+					previous, invocationData, entries, freshInvocationData);
 				const {reads, inputs} = this.#foldStageKeys(invocationData);
 				const stageWritten = await this.#recordStage(step.name, {
 					ctx, cacheInfo, invocationData, staleOutputs, foldedReads: reads, foldedInputs: inputs,
@@ -436,27 +437,37 @@ export default class StepRunner {
 	 * fewer paths, or a key gone this build), so they can be dropped from the carried-forward stage. Scoped
 	 * to this one stage: a stage owns its outputs, so a path it stops producing is stale for it.
 	 *
+	 * A path is only dropped when nothing in the stage claims it this build, so the writes of every key
+	 * present this build are subtracted, including those of a key served from cache (which still owns the
+	 * paths it wrote on an earlier build). The re-run comparison, in contrast, runs over the units that
+	 * actually executed: a cached unit's entry is carried over from <code>previous</code> unchanged, so
+	 * comparing it against itself could never report a dropped path anyway.
+	 *
 	 * @param {Map<string, object>|undefined} previous The stage's previous per-key invocation data
-	 * @param {Map<string, object>} current This build's per-key invocation data (re-run units only)
+	 * @param {Map<string, object>} invocationData The stage's complete per-key invocation data this build
+	 *   (re-run units merged over the carried-over cached ones)
 	 * @param {Array<{keyId: string}>} entries The stage's key entries this build
+	 * @param {Map<string, object>} freshInvocationData The per-key data of the units that ran this build
 	 * @returns {string[]} Paths to drop
 	 */
-	#computeStaleOutputs(previous, current, entries) {
+	#computeStaleOutputs(previous, invocationData, entries, freshInvocationData) {
 		if (!previous) {
 			return [];
 		}
 		const currentWrites = new Set();
-		for (const data of current.values()) {
+		for (const data of invocationData.values()) {
 			data.writes.forEach((path) => currentWrites.add(path));
 		}
 		const currentKeyIds = new Set(entries.map((entry) => entry.keyId));
 		const stale = new Set();
 		for (const [keyId, prev] of previous) {
-			const reRun = current.get(keyId);
 			if (!currentKeyIds.has(keyId)) {
 				// Key gone this build: every path it owned is stale.
 				prev.writes.forEach((path) => stale.add(path));
-			} else if (reRun) {
+				continue;
+			}
+			const reRun = freshInvocationData.get(keyId);
+			if (reRun) {
 				// Re-run unit: any path it owned but did not re-write is stale.
 				prev.writes.forEach((path) => {
 					if (!reRun.writes.includes(path)) {
@@ -838,8 +849,10 @@ export default class StepRunner {
 	 * @param {object|boolean} [context.cacheInfo] The stage's delta cache verdict (map step internal key-delta)
 	 * @param {Map<string, object>} [context.previous] The stage's previous per-key invocation data
 	 * @param {object} context.ctx The per-stage context ({workspace, dependencies, taskUtil})
-	 * @returns {Promise<{results: Array, invocationData: Map<string, object>}>} Per-key results aligned to
-	 *   <code>entries</code> order, and the stage's complete per-key invocation data
+	 * @returns {Promise<{results: Array, invocationData: Map<string, object>,
+	 *   freshInvocationData: Map<string, object>}>} Per-key results aligned to <code>entries</code> order,
+	 *   the stage's complete per-key invocation data, and the subset of it recorded by the units that
+	 *   actually ran this build
 	 */
 	async #runGroup(group, entries, options, callback, {needs, needsSignatures, cacheInfo, previous, ctx}) {
 		const sequential = options?.sequential ?? false;
@@ -903,7 +916,7 @@ export default class StepRunner {
 		if (log.isLevelEnabled("verbose")) {
 			log.verbose(`step '${group}': ran ${toRun.length} of ${entries.length} unit(s)`);
 		}
-		return {results, invocationData, ranCount: toRun.length};
+		return {results, invocationData, freshInvocationData: currentInvocationData, ranCount: toRun.length};
 	}
 }
 
