@@ -813,6 +813,23 @@ export default class ProjectBuildCache {
 	}
 
 	/**
+	 * Reopens a step's stage with a fresh live writer so it can be re-run after a full cache hit that the
+	 * {@link StepRunner} determined must re-execute (a consumed <code>needs</code> return changed). The
+	 * full hit had installed the cached read-only stage via {@link #findStageCache} +
+	 * <code>setStage</code>; this swaps in a writable stage. The re-run records through the normal
+	 * {@link #recordTaskResult} full path, which recomputes the stage signature and overwrites the
+	 * eagerly-stored full-hit signature.
+	 *
+	 * @public
+	 * @param {string} taskName Name of the task
+	 * @param {string} [stepName] Name of the step, for a step-based task's per-step stage
+	 */
+	reopenStageForRerun(taskName, stepName) {
+		const stageName = this.#getStageNameForTask(taskName, stepName);
+		this.#project.getProjectResources().reopenStage(stageName);
+	}
+
+	/**
 	 * Pre-fetches stage cache metadata from persistent storage for the given task.
 	 * Results are stored internally and consumed by #findStageCache when called later.
 	 *

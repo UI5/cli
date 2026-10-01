@@ -67,6 +67,9 @@ function makeDriver({
 		signal,
 		prepareStage: async (step) => (step in cacheVerdicts ? cacheVerdicts[step] : false),
 		getPreviousInvocationData: (step) => previousData.get(step),
+		// Mirrors the TaskRunner hook: reopens the stage with a live writer and demotes the full hit to a
+		// full re-run. The harness workspace is always writable, so reopening is a no-op here.
+		reopenStage: async () => false,
 		createStageContext: () => ({workspace, dependencies, taskUtil, monitoredTaskUtil: taskUtil}),
 		recordStage: async (step, outcome) => {
 			recorded.set(step, outcome);
@@ -296,6 +299,85 @@ test("Delta build keeps a consumer cached when its producer is restored unchange
 	await build2.runner.runSteps();
 
 	t.deepEqual(ran, [], "Neither the restored producer nor its consumer re-ran");
+});
+
+test("Full stage-cache hit re-runs a consumer when its producer's return changed", async (t) => {
+	// A consumer that reads no resources has a constant stage signature, so its stage is a full cache hit
+	// (verdict true) even when a producer it needs re-ran with a changed return. The needs return is
+	// excluded from the stage signature, so nothing in the stage lookup catches the change; the full-hit
+	// path must check needs itself and re-run rather than serve stale cached output.
+	const stepsFor = (ran) => [
+		{name: "scan", run: async ({workspace}) => {
+			const res = await workspace.byPath("/in");
+			return {v: res ? await res.getString() : "none"};
+		}},
+		{name: "use", needs: ["scan"], run: async ({needs, workspace}) => {
+			ran.push("use");
+			await workspace.write(createResource("/use.out", JSON.stringify(needs.scan)));
+		}},
+	];
+
+	const build1 = makeDriver({
+		workspace: createWorkspace([createResource("/in", "old")]), steps: stepsFor([]),
+	});
+	await build1.runner.runSteps();
+
+	const ran = [];
+	// scan re-runs on a delta because its recorded read /in changed, advancing its return signature.
+	// use's own stage signature is unchanged (it reads nothing), so its verdict is a full hit (true).
+	const cacheInfo = {changedProjectResourcePaths: ["/in"], changedDependencyResourcePaths: []};
+	const build2 = makeDriver({
+		workspace: createWorkspace([createResource("/in", "new")]),
+		cacheVerdicts: {scan: cacheInfo, use: true},
+		previousData: new Map([
+			["scan", invocationDataOf(build1.recorded, "scan")],
+			["use", invocationDataOf(build1.recorded, "use")],
+		]),
+		steps: stepsFor(ran),
+	});
+	await build2.runner.runSteps();
+
+	t.deepEqual(ran, ["use"],
+		"The consumer re-ran despite a full stage-cache hit because the producer's return changed");
+	t.is(build2.workspace.store.get("/use.out") &&
+		await build2.workspace.store.get("/use.out").getString(), JSON.stringify({v: "new"}),
+	"The re-run consumer wrote the fresh producer return, not stale output");
+});
+
+test("Full stage-cache hit stays cached when the producer's return is unchanged", async (t) => {
+	// The complement of the previous test: a full-hit consumer whose producer restored unchanged must
+	// NOT re-run, so the fast path is preserved for the common case.
+	const stepsFor = (ran) => [
+		{name: "scan", run: async ({workspace}) => {
+			const res = await workspace.byPath("/in");
+			return {v: res ? await res.getString() : "none"};
+		}},
+		{name: "use", needs: ["scan"], run: async ({needs, workspace}) => {
+			ran.push("use");
+			await workspace.write(createResource("/use.out", JSON.stringify(needs.scan)));
+		}},
+	];
+
+	const build1 = makeDriver({
+		workspace: createWorkspace([createResource("/in", "v")]), steps: stepsFor([]),
+	});
+	await build1.runner.runSteps();
+
+	const ran = [];
+	// scan restores unchanged (full hit, no change), use is a full hit too. The producer return did not
+	// change, so use stays cached.
+	const build2 = makeDriver({
+		workspace: createWorkspace([createResource("/in", "v")]),
+		cacheVerdicts: {scan: true, use: true},
+		previousData: new Map([
+			["scan", invocationDataOf(build1.recorded, "scan")],
+			["use", invocationDataOf(build1.recorded, "use")],
+		]),
+		steps: stepsFor(ran),
+	});
+	await build2.runner.runSteps();
+
+	t.deepEqual(ran, [], "A full-hit consumer stays cached when its producer's return is unchanged");
 });
 
 test("A map step honors sequential so a later key reads an earlier key's write", async (t) => {

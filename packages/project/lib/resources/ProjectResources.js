@@ -388,6 +388,39 @@ class ProjectResources {
 		return true; // Indicate that the stored stage has changed
 	}
 
+	/**
+	 * Reopen a stage with a fresh, empty live writer, discarding any cached read-only stage a prior
+	 * {@link #setStage} installed for it.
+	 *
+	 * Used when a step-based task's stage was a full cache hit that must be re-run after all (a consumed
+	 * producer <code>needs</code> return changed): the fast-path restore had swapped in a read-only cached
+	 * stage via {@link #setStage}, so the stage has no writer, and re-running its units needs a writable
+	 * one. The reopened stage reads all previous stages exactly as {@link #useStage} does; the re-run's
+	 * output goes into the fresh writer.
+	 *
+	 * @public
+	 * @param {string} stageId The ID of the stage to reopen
+	 * @throws {Error} If the stage does not exist
+	 */
+	reopenStage(stageId) {
+		const stageIdx = this.#stages.findIndex((s) => s.getId() === stageId);
+		if (stageIdx === -1) {
+			throw new Error(`Stage '${stageId}' does not exist in project ${this.#getName()}`);
+		}
+		const newStage = new Stage(stageId, this.#createWriter(stageId));
+		this.#stages[stageIdx] = newStage;
+		this.#currentStage = newStage;
+		this.#currentStageId = stageId;
+		this.#currentStageReadIndex = stageIdx - 1; // Read from all previous stages
+
+		// Unset "current" reader/writer caches. They will be recreated on demand
+		this.#currentStageReaders = new Map();
+		this.#currentStageWorkspace = null;
+
+		this.#monitoredProjectResourceTagCollection = null;
+		this.#monitoredBuildResourceTagCollection = null;
+	}
+
 	buildFinished() {
 		// Clear build resource tag collections. They must not be provided to dependent projects
 		this.#buildResourceTagCollection = null;

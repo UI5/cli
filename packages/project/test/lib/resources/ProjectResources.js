@@ -40,6 +40,32 @@ test("setFrozenSourceReader: frozen reader is included in getReader chain", (t) 
 	t.truthy(reader, "Reader returned successfully");
 });
 
+test("reopenStage: swaps a cached read-only stage back to a writable one", (t) => {
+	const {pr, writer} = createProjectResources();
+	pr.initStages(["task/a", "task/b"]);
+	pr.useStage("task/b");
+
+	// A full cache hit installs a read-only cached stage: it has a cached writer, no live writer.
+	const cachedWriter = {byGlob: sinon.stub().resolves([]), name: "cached-reader"};
+	pr.setStage("task/b", cachedWriter, new Map(), new Map());
+	t.is(pr.getStage().getWriter(), undefined, "Cached stage has no live writer");
+	t.is(pr.getStage().getCachedWriter(), cachedWriter, "Cached stage carries the cached reader");
+
+	// Reopening restores a fresh live writer so the stage can be re-run.
+	pr.reopenStage("task/b");
+	t.is(pr.getStage().getId(), "task/b", "Still on the reopened stage");
+	t.is(pr.getStage().getWriter(), writer, "Reopened stage has a live writer");
+	t.is(pr.getStage().getCachedWriter(), undefined, "Reopened stage dropped the cached reader");
+	t.notThrows(() => pr.getWorkspace(), "The reopened stage yields a writable workspace");
+});
+
+test("reopenStage: throws for an unknown stage", (t) => {
+	const {pr} = createProjectResources();
+	pr.initStages(["task/a"]);
+	t.throws(() => pr.reopenStage("task/missing"),
+		{message: /Stage 'task\/missing' does not exist in project test\.project/});
+});
+
 test("setFrozenSourceReader: invalidates cached readers", (t) => {
 	const {pr} = createProjectResources();
 

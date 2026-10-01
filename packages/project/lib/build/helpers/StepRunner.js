@@ -184,6 +184,7 @@ export default class StepRunner {
 	#steps;
 	#options;
 	#prepareStage;
+	#reopenStage;
 	#recordStage;
 	#createStageContext;
 	#getPreviousInvocationData;
@@ -212,6 +213,11 @@ export default class StepRunner {
 	 *   the named step's stage and returns its cache verdict: <code>true</code> (fully cached, do not run),
 	 *   an object (delta cacheInfo for the map step's internal key-delta), or a falsy value (run every unit).
 	 *   Absent for standalone use (no cache): every unit runs.
+	 * @param {function(string): Promise<(object|boolean)>} [parameters.reopenStage] Reopens the named step's
+	 *   stage with a fresh live writer after a full cache hit that must be re-run (a consumed
+	 *   <code>needs</code> return changed), and returns the cache verdict to run it under (a falsy value for
+	 *   a full re-run). The full-hit restore had installed a read-only cached stage; re-running needs a
+	 *   writable one. Absent for standalone use, where a full hit never occurs.
 	 * @param {function(string, object): Promise<void>} [parameters.recordStage] Records the named step's
 	 *   stage from the run outcome <code>{projectRequests, dependencyRequests, inputRecording,
 	 *   rootRequests, cacheInfo, invocationData, staleOutputs}</code>. Absent for standalone use.
@@ -240,11 +246,12 @@ export default class StepRunner {
 	 */
 	constructor({
 		steps, options, prepareStage, recordStage, createStageContext, getPreviousInvocationData,
-		returnValueStore, resolveInputValue, applyTagOperations, signal
+		returnValueStore, resolveInputValue, applyTagOperations, signal, reopenStage
 	}) {
 		this.#steps = steps;
 		this.#options = options;
 		this.#prepareStage = prepareStage;
+		this.#reopenStage = reopenStage;
 		this.#recordStage = recordStage;
 		this.#createStageContext = createStageContext;
 		this.#getPreviousInvocationData = getPreviousInvocationData;
@@ -295,7 +302,7 @@ export default class StepRunner {
 
 			// Switch the project to this step's own stage and get its cache verdict. Standalone use (no
 			// prepareStage) always runs every unit.
-			const cacheInfo = this.#prepareStage ? await this.#prepareStage(step.name) : false;
+			let cacheInfo = this.#prepareStage ? await this.#prepareStage(step.name) : false;
 			const previous = this.#getPreviousInvocationData ?
 				this.#getPreviousInvocationData(step.name) : undefined;
 
@@ -305,15 +312,30 @@ export default class StepRunner {
 			const isScalar = typeof step.run === "function";
 
 			if (cacheInfo === true) {
-				// Fully cached stage: the step does not run. Rebuild its return from the persisted per-key
-				// invocation data (in key order) so later steps' needs still resolve, and replay each key's
-				// tag operations so its tags reappear this build (the stage writer was already restored).
-				const {results, invocationData, entries} =
-					this.#restoreCachedStage(previous, isScalar);
-				this.#returns.set(step.name, isScalar ? results[0] : results);
-				this.#returnSignatures.set(step.name,
-					this.#computeStepReturnSignature(invocationData, entries, isScalar));
-				continue;
+				// Full stage-cache hit: the step's own stage signature matched. A consumed needs return is
+				// deliberately excluded from the stage signature (see #foldStageKeys), so a full hit can
+				// occur even though a producer this step needs re-ran this build with a changed return. The
+				// delta path catches that via needsInputs in #selectStepsToRun, but a full hit never runs
+				// #selectStepsToRun. Check it here: when a consumed return changed, reopen the stage with a
+				// live writer and re-run it rather than serving stale cached output.
+				if (!this.#needsReturnChanged(previous, needsSignatures)) {
+					// Fully cached stage: the step does not run. Rebuild its return from the persisted
+					// per-key invocation data (in key order) so later steps' needs still resolve, and replay
+					// each key's tag operations so its tags reappear this build (the stage writer was already
+					// restored).
+					const {results, invocationData, entries} =
+						this.#restoreCachedStage(previous, isScalar);
+					this.#returns.set(step.name, isScalar ? results[0] : results);
+					this.#returnSignatures.set(step.name,
+						this.#computeStepReturnSignature(invocationData, entries, isScalar));
+					continue;
+				}
+				log.verbose(
+					`step '${step.name}': a consumed needs return changed, re-running despite a full ` +
+					`stage-cache hit`);
+				// Reopen the stage (fresh writer) and demote the verdict to the re-run verdict the hook
+				// returns (a falsy value for a full re-run). Standalone use has no hook and no full hit.
+				cacheInfo = this.#reopenStage ? await this.#reopenStage(step.name) : false;
 			}
 
 			// A step past the fully-cached short-circuit executes its stage (fresh recording), even if it
@@ -362,6 +384,30 @@ export default class StepRunner {
 			}
 		}
 		return {anyStepExecuted, writtenResourcePaths};
+	}
+
+	/**
+	 * Whether any of a fully-cached stage's keys consumed a <code>needs</code> return whose current
+	 * signature differs from the value it recorded on its previous run. Mirrors the needs check in
+	 * {@link #selectStepsToRun}, applied to the full-hit path where that selection never runs. A stage with
+	 * no previous data, no <code>needs</code>, or unchanged returns reports <code>false</code>, so the
+	 * full-hit fast path is preserved for the common case.
+	 *
+	 * @param {Map<string, object>|undefined} previous The stage's previous per-key invocation data
+	 * @param {Map<string, string>} [needsSignatures] Current producer return signatures by producer name
+	 * @returns {boolean} <code>true</code> if a consumed return changed
+	 */
+	#needsReturnChanged(previous, needsSignatures) {
+		if (!previous || !needsSignatures || needsSignatures.size === 0) {
+			return false;
+		}
+		for (const data of previous.values()) {
+			if (data.needsInputs?.some(
+				(needed) => needsSignatures.get(needed.name) !== needed.value)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

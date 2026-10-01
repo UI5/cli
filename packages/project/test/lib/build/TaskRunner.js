@@ -1742,6 +1742,91 @@ function createCustomTaskExtension(sinon, {taskFunction, gte, stepBased = false}
 	};
 }
 
+test("Step-based task: a full stage-cache hit re-runs a read-free consumer when its producer's return " +
+	"changed", async (t) => {
+	const {sinon, projectBuildLogger} = t.context;
+
+	// A mutable env the producer reads; the resolver re-derives its current value on the delta build.
+	const env = {x: "1"};
+	const resolveInputValue = (type, name) => (type === "env" ? env[name] : undefined);
+	const taskUtil = {
+		isRootProject: sinon.stub().returns(true),
+		getDependencies: sinon.stub().returns([]),
+		getInterface: sinon.stub(),
+		getEnv: (name) => env[name],
+	};
+	taskUtil.getInterface.returns(taskUtil);
+
+	const ran = [];
+	// A scalar producer 'scan' reads env x and returns it; a read-free scalar consumer 'use' consumes the
+	// producer return via needs and writes nothing observable to a reader. 'use' has a constant stage
+	// signature, so its verdict is a full hit even when 'scan' re-ran with a changed return.
+	const build = () => [
+		{name: "scan", run: async ({taskUtil}) => ({v: taskUtil.getEnv("x")})},
+		{name: "use", needs: ["scan"], run: async ({needs}) => {
+			ran.push(`use:${needs.scan.v}`);
+		}},
+	];
+	const taskDefinitions = {
+		getTaskDefinitions: async () => ({
+			standardTasks: new Map([
+				["stepTask", {requiresDependencies: false, stepBased: true, options: {}, taskFunction: build}],
+			]),
+			customTasks: new Map(),
+		}),
+	};
+
+	// Per-stage invocation data, keyed by stage id so 'scan' and 'use' carry their own data forward.
+	const invocationByStage = new Map();
+	const getStageId = (taskName, stepName) =>
+		stepName === undefined ? `task/${taskName}` : `task/${taskName}::step/${stepName}`;
+	// Build-2 verdicts per step: 'scan' is a delta (so its recorded env input re-selects it), 'use' is a
+	// full stage-cache hit.
+	let verdicts = {};
+	const buildCache = {
+		setTasks: sinon.stub(),
+		prefetchStageCache: sinon.stub(),
+		recordTaskResult: sinon.stub().resolves(),
+		allTasksCompleted: sinon.stub().resolves([]),
+		getStageId,
+		prepareTaskExecutionAndValidateCache: sinon.stub().callsFake(async (taskName, stepName) =>
+			(stepName in verdicts ? verdicts[stepName] : false)),
+		getStepInvocationData: sinon.stub().callsFake((stageId) => invocationByStage.get(stageId)),
+		getStepReturnValueStore: sinon.stub().returns(undefined),
+		getResolveInputValue: sinon.stub().returns(resolveInputValue),
+		setStepInvocationData: sinon.stub().callsFake((stageId, data) => {
+			invocationByStage.set(stageId, data);
+		}),
+		reopenStageForRerun: sinon.stub(),
+	};
+
+	const project = getMockProject("module");
+	project.getProjectResources = () => ({replayTagOperations: sinon.stub()});
+
+	const taskRunner = createTaskRunner(t, project, {taskUtil, buildCache, taskDefinitions});
+	await taskRunner._initTasks();
+
+	// Build 1 (full): both steps run; scan returns {v:"1"}, use records scan's return signature.
+	await taskRunner._tasks["stepTask"].task(projectBuildLogger);
+	t.deepEqual(ran, ["use:1"], "The full build ran the consumer with the producer's initial return");
+
+	// Build 2: env x changed, so scan re-runs via delta and its return advances to {v:"2"}. use is a full
+	// stage-cache hit, but its consumed needs return changed, so it must re-run.
+	ran.length = 0;
+	env.x = "2";
+	verdicts = {
+		scan: {changedProjectResourcePaths: [], changedDependencyResourcePaths: []},
+		use: true,
+	};
+	await taskRunner._tasks["stepTask"].task(projectBuildLogger);
+
+	t.deepEqual(ran, ["use:2"],
+		"The read-free consumer re-ran despite a full stage-cache hit, with the producer's fresh return");
+	t.is(buildCache.reopenStageForRerun.callCount, 1, "The consumer's stage was reopened for the re-run");
+	t.deepEqual(buildCache.reopenStageForRerun.getCall(0).args, ["stepTask", "use"],
+		"reopenStageForRerun targeted the consumer step's stage");
+});
+
 // Integration: the custom-task path drives the same real MonitoredTaskUtil + StepRunner as the standard-task
 // path, gated at Specification Version 5.0 via the static stepBased export. A per-step input change (an env
 // var one step reads) re-runs only that step, a restored step replays its tags, and the runner's outcome is

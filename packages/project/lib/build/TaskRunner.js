@@ -683,6 +683,13 @@ class TaskRunner {
 			},
 			getPreviousInvocationData: (stepName) =>
 				this._buildCache.getStepInvocationData(this._buildCache.getStageId(taskName, stepName)),
+			reopenStage: async (stepName) => {
+				// A full stage-cache hit whose consumed needs return changed must re-run. Reopen the stage
+				// with a fresh live writer (the full hit had installed the cached read-only stage) and run
+				// it as a full execution, so its output reflects the changed producer return.
+				this._buildCache.reopenStageForRerun(taskName, stepName);
+				return false;
+			},
 			createStageContext: () => {
 				// Built after prepareStage switched the stage, so the monitored readers reflect the
 				// cumulative output of all earlier stages (the reader stack) with this stage's writer on top.
