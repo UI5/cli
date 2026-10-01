@@ -290,6 +290,7 @@ class TaskRunner {
 					const steps = await taskFunction(options);
 					this.#assertDiscoveredStepNames(taskName, steps);
 					this._taskStart = performance.now();
+					const taskReport = this.#createTaskExecutionReport(taskName);
 					const stepDriver = new StepRunner({
 						steps,
 						options,
@@ -298,6 +299,7 @@ class TaskRunner {
 						resolveInputValue: this._buildCache.getResolveInputValue(),
 						applyTagOperations: (tagOperations) =>
 							this._project.getProjectResources().replayTagOperations(tagOperations),
+						notifyStepExecution: taskReport.started,
 						signal: this._signal,
 					});
 					const {anyStepExecuted, writtenResourcePaths} = await stepDriver.runSteps();
@@ -305,11 +307,11 @@ class TaskRunner {
 						this._log.perf(
 							`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
 					}
-					// Report the task as skipped when every step was served from cache, else as executed,
-					// preserving the task-level reporting contract now that caching is per step.
+					// Report the task as skipped when every step was served from cache, else as finished,
+					// preserving the task-level reporting contract now that caching is per step. The
+					// matching task-start was emitted by the step runner's notification, before the work.
 					if (anyStepExecuted) {
-						this._log.startTask(taskName, true);
-						this._log.endTask(taskName, true, writtenResourcePaths);
+						taskReport.finished(writtenResourcePaths);
 					} else {
 						this._log.skipTask(taskName);
 					}
@@ -638,6 +640,7 @@ class TaskRunner {
 				const factoryOptions = stepOptions ?? options;
 				const steps = await taskFunction(factoryOptions);
 				this.#assertDiscoveredStepNames(taskName, steps);
+				const taskReport = this.#createTaskExecutionReport(taskName);
 				const stepDriver = new StepRunner({
 					steps,
 					options: factoryOptions,
@@ -646,13 +649,14 @@ class TaskRunner {
 					resolveInputValue: this._buildCache.getResolveInputValue(),
 					applyTagOperations: (tagOperations) =>
 						this._project.getProjectResources().replayTagOperations(tagOperations),
+					notifyStepExecution: taskReport.started,
 					signal: this._signal,
 				});
 				const {anyStepExecuted, writtenResourcePaths} = await stepDriver.runSteps();
-				// Report the task as skipped when every step was served from cache, else as executed.
+				// Report the task as skipped when every step was served from cache, else as finished. The
+				// matching task-start was emitted by the step runner's notification, before the work.
 				if (anyStepExecuted) {
-					this._log.startTask(taskName, true);
-					this._log.endTask(taskName, true, writtenResourcePaths);
+					taskReport.finished(writtenResourcePaths);
 				} else {
 					this._log.skipTask(taskName);
 				}
@@ -701,6 +705,45 @@ class TaskRunner {
 				inputRecording,
 				taskUtilRequests?.root);
 			this._log.endTask(taskName, !!cacheInfo, writtenResourcePaths);
+		};
+	}
+
+	/**
+	 * Builds the start/end reporting pair for one execution of a step-based task.
+	 *
+	 * A step-based task's skip verdict is only known once every stage has been driven, so the task cannot
+	 * be announced up front like a legacy task. The [StepRunner]{@link StepRunner} instead calls
+	 * <code>started</code> from the first stage that stops being a pure cache hit, before that stage runs
+	 * anything, so <code>task-start</code> ("Running task ...") precedes the work it announces and a
+	 * <code>project-build-status</code> consumer sees the task as running while it runs. A task whose
+	 * every stage was served from cache never calls it and is reported skipped instead.
+	 *
+	 * <code>isDifferentialBuild</code> is taken from the first executing stage's cache verdict, matching
+	 * the legacy path's <code>!!cacheInfo</code>, and is latched for the <code>endTask</code> report so
+	 * both ends of one execution agree.
+	 *
+	 * @param {string} taskName Task name
+	 * @returns {{started: function(boolean): void, finished: function(string[]): void}} Reporting pair
+	 */
+	#createTaskExecutionReport(taskName) {
+		let hasStarted = false;
+		let isDifferentialBuild = false;
+		const started = (differential) => {
+			if (hasStarted) {
+				return;
+			}
+			hasStarted = true;
+			isDifferentialBuild = !!differential;
+			this._log.startTask(taskName, isDifferentialBuild);
+		};
+		return {
+			started,
+			finished: (writtenResourcePaths) => {
+				// A task reported as executed always announced itself first; the guard keeps the logger's
+				// start/end pairing intact even if a future caller reports a finish without a start.
+				started(isDifferentialBuild);
+				this._log.endTask(taskName, isDifferentialBuild, writtenResourcePaths);
+			},
 		};
 	}
 

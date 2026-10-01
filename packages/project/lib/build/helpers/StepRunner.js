@@ -191,6 +191,7 @@ export default class StepRunner {
 	#returnValueStore;
 	#resolveInputValue;
 	#applyTagOperations;
+	#notifyStepExecution;
 	#signal;
 
 	// Each step's return value and return signature, filled as steps run so a later step's needs can pull
@@ -242,11 +243,15 @@ export default class StepRunner {
 	 * @param {function(Array<object>): void} [parameters.applyTagOperations] Replays a restored unit's
 	 *   recorded tag operations into the project tag collection, so a unit served from cache contributes
 	 *   the same tags it would have set had it run. Absent for standalone use, where tags are not persisted.
+	 * @param {function(boolean): void} [parameters.notifyStepExecution] Called once, before the first step
+	 *   that actually executes runs anything, with whether that step's stage carries a delta verdict. The
+	 *   TaskRunner reports the task started from it, so <code>task-start</code> precedes the work it
+	 *   announces. Not called when every step is served from cache (the task is reported skipped instead).
 	 * @param {AbortSignal} [parameters.signal] Build abort signal, checked between units
 	 */
 	constructor({
 		steps, options, prepareStage, recordStage, createStageContext, getPreviousInvocationData,
-		returnValueStore, resolveInputValue, applyTagOperations, signal, reopenStage
+		returnValueStore, resolveInputValue, applyTagOperations, notifyStepExecution, signal, reopenStage
 	}) {
 		this.#steps = steps;
 		this.#options = options;
@@ -258,6 +263,7 @@ export default class StepRunner {
 		this.#returnValueStore = returnValueStore;
 		this.#resolveInputValue = resolveInputValue;
 		this.#applyTagOperations = applyTagOperations;
+		this.#notifyStepExecution = notifyStepExecution;
 		this.#signal = signal;
 	}
 
@@ -276,18 +282,31 @@ export default class StepRunner {
 		let anyStepExecuted = false;
 		const writtenResourcePaths = [];
 
+		// Marks the task as executing. Called from the one place a stage stops being a pure cache hit, so
+		// the "task started" report and the anyStepExecuted verdict cannot drift apart: the TaskRunner
+		// emits task-start from the notification, before the stage does any work. Only the first executing
+		// stage notifies, since the later stages of one task are not separate executions to report.
+		const markStageExecuting = (cacheInfo) => {
+			if (!anyStepExecuted) {
+				this.#notifyStepExecution?.(!!cacheInfo);
+			}
+			anyStepExecuted = true;
+		};
+
 		// A step-based task with no steps (e.g. replaceCopyright with no copyright configured) still has a
 		// single stage that must participate in caching: prepare it, and if it is not a cache hit, record an
 		// empty result so the empty stage caches and a later build reports it as skipped. Its stage id is
 		// task/{taskName} (stepName undefined), matching the single stage setTasks created for it.
 		if (this.#steps.length === 0) {
 			if (!this.#prepareStage) {
+				markStageExecuting(false);
 				return {anyStepExecuted: true, writtenResourcePaths};
 			}
 			const cacheInfo = await this.#prepareStage(undefined);
 			if (cacheInfo === true) {
 				return {anyStepExecuted: false, writtenResourcePaths};
 			}
+			markStageExecuting(cacheInfo);
 			const ctx = this.#createStageContext();
 			if (this.#recordStage) {
 				await this.#recordStage(undefined, {ctx, cacheInfo, invocationData: new Map(), staleOutputs: []});
@@ -341,7 +360,7 @@ export default class StepRunner {
 			// A step past the fully-cached short-circuit executes its stage (fresh recording), even if it
 			// enumerates zero units this build (an empty map step). This is "the task ran" for reporting,
 			// distinct from a stage served entirely from cache.
-			anyStepExecuted = true;
+			markStageExecuting(cacheInfo);
 
 			// Fresh per-stage context bound to the stage prepareStage just switched to. Created before key
 			// enumeration so the keys() enumerator's reads are captured by the stage's monitored readers.

@@ -2068,3 +2068,73 @@ test("Step-based custom task: the step-based export is ignored below Specificati
 	t.falsy(t.context.buildCache.recordTaskResult.getCall(0).args[6],
 		"The step-based export is ignored below 5.0, so the task did not run the step runner");
 });
+
+// Builds the fixture both step-based paths share for the reporting-order tests: a two-step task whose
+// bodies append to `order`, next to a projectBuildLogger whose start/end/skip reports append to the same
+// log. `fullyCached` makes every stage a cache hit, so the task must be reported skipped.
+function createStepReportingFixture(t, {stepBased, fullyCached = false}) {
+	const {sinon, projectBuildLogger} = t.context;
+	const order = [];
+	for (const method of ["startTask", "endTask", "skipTask"]) {
+		projectBuildLogger[method].callsFake((taskName) => order.push(`${method}:${taskName}`));
+	}
+
+	const taskName = stepBased === "custom" ? "myCustom" : "stepTask";
+	const build = () => ["s1", "s2"].map((name) => ({
+		name,
+		run: async () => {
+			order.push(`run:${name}`);
+		},
+	}));
+
+	const standardTasks = stepBased === "custom" ? new Map() : new Map([
+		["stepTask", {requiresDependencies: false, stepBased: true, options: {}, taskFunction: build}],
+	]);
+	const customTasks = stepBased === "custom" ? new Map([
+		["myCustom", {
+			taskDef: {name: "myCustom"},
+			task: createCustomTaskExtension(sinon, {taskFunction: build, gte: () => true, stepBased: true}),
+		}],
+	]) : new Map();
+	const taskDefinitions = {getTaskDefinitions: async () => ({standardTasks, customTasks})};
+
+	const buildCache = {
+		...t.context.buildCache,
+		getStageId: (taskName, stepName) =>
+			stepName === undefined ? `task/${taskName}` : `task/${taskName}::step/${stepName}`,
+		prepareTaskExecutionAndValidateCache: sinon.stub().resolves(fullyCached),
+		getStepInvocationData: sinon.stub().returns(undefined),
+		getStepReturnValueStore: sinon.stub().returns(undefined),
+		getResolveInputValue: sinon.stub().returns(() => undefined),
+		setStepInvocationData: sinon.stub(),
+	};
+
+	const project = getMockProject("module");
+	project.getProjectResources = () => ({replayTagOperations: sinon.stub()});
+	return {order, taskName, taskRunner: createTaskRunner(t, project, {buildCache, taskDefinitions})};
+}
+
+// The reporting contract a project-build-status consumer depends on: task-start announces work that is
+// about to happen. A step-based task only learns its skip verdict while driving its stages, so it reports
+// from the first stage that stops being a cache hit, before that stage runs anything.
+for (const path of ["standard", "custom"]) {
+	test(`Step-based ${path} task: reports itself started before its first step runs`, async (t) => {
+		const {order, taskName, taskRunner} = createStepReportingFixture(t, {stepBased: path});
+		await taskRunner._initTasks();
+
+		await taskRunner._tasks[taskName].task(t.context.projectBuildLogger);
+
+		t.deepEqual(order, [`startTask:${taskName}`, "run:s1", "run:s2", `endTask:${taskName}`],
+			"The task was announced once, before any step ran, and closed after the last step");
+	});
+
+	test(`Step-based ${path} task: a fully cached task is reported skipped, not started`, async (t) => {
+		const {order, taskName, taskRunner} =
+			createStepReportingFixture(t, {stepBased: path, fullyCached: true});
+		await taskRunner._initTasks();
+
+		await taskRunner._tasks[taskName].task(t.context.projectBuildLogger);
+
+		t.deepEqual(order, [`skipTask:${taskName}`], "A task whose every stage was cached only reports a skip");
+	});
+}

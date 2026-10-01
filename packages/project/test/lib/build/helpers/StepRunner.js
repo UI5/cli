@@ -565,3 +565,77 @@ test("A step's needs is frozen, so one unit cannot leak into its siblings", asyn
 		"Every unit sees the producer's return, unaffected by its siblings");
 });
 
+test("notifyStepExecution fires before the first executing step does any work", async (t) => {
+	const order = [];
+	const {runner} = makeDriver({
+		notifyStepExecution: (isDifferentialBuild) => order.push(`notify:${isDifferentialBuild}`),
+		steps: [
+			{name: "s1", run: async () => {
+				order.push("s1");
+			}},
+			{name: "s2", run: async () => {
+				order.push("s2");
+			}},
+		],
+	});
+
+	await runner.runSteps();
+
+	t.deepEqual(order, ["notify:false", "s1", "s2"],
+		"The task is announced once, before the first step runs");
+});
+
+test("notifyStepExecution reports the first executing stage's delta verdict", async (t) => {
+	const build1 = makeDriver({
+		steps: [
+			{name: "s1", run: async ({workspace}) => {
+				await workspace.write(createResource("/out/1"));
+			}},
+			{name: "s2", run: async ({workspace}) => {
+				await workspace.byPath("/in");
+				await workspace.write(createResource("/out/2"));
+			}},
+		],
+	});
+	await build1.runner.runSteps();
+
+	const notified = [];
+	const build2 = makeDriver({
+		notifyStepExecution: (isDifferentialBuild) => notified.push(isDifferentialBuild),
+		// s1 is served from cache entirely, so the first stage that executes is the delta stage s2.
+		cacheVerdicts: {
+			s1: true,
+			s2: {changedProjectResourcePaths: ["/in"], changedDependencyResourcePaths: []},
+		},
+		previousData: new Map([["s2", invocationDataOf(build1.recorded, "s2")]]),
+		steps: [
+			{name: "s1", run: async ({workspace}) => {
+				await workspace.write(createResource("/out/1"));
+			}},
+			{name: "s2", run: async ({workspace}) => {
+				await workspace.byPath("/in");
+				await workspace.write(createResource("/out/2"));
+			}},
+		],
+	});
+	await build2.runner.runSteps();
+
+	t.deepEqual(notified, [true], "Reported once, as a differential build");
+});
+
+test("notifyStepExecution is not called when every step is served from cache", async (t) => {
+	let notified = 0;
+	const {runner} = makeDriver({
+		notifyStepExecution: () => notified++,
+		cacheVerdicts: {s1: true, s2: true},
+		steps: [
+			{name: "s1", run: async () => undefined},
+			{name: "s2", run: async () => undefined},
+		],
+	});
+
+	const {anyStepExecuted} = await runner.runSteps();
+
+	t.false(anyStepExecuted, "A fully cached task counts as skipped");
+	t.is(notified, 0, "A skipped task is never announced as running");
+});
