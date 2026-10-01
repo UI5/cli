@@ -165,6 +165,8 @@ class TaskRunner {
 		// Expand step-based tasks into their per-step stages: each step is its own stage, so the
 		// stage list must enumerate a step-based task's step names in step order. The factory is pure over
 		// options (it may not read readers/taskUtil), so calling it here to discover step names is safe.
+		// The discovered names are remembered on the task so the execution-time factory call can be checked
+		// against them (see #assertDiscoveredStepNames).
 		const stageTasks = await Promise.all(allTasks.map(async (taskName) => {
 			const taskDef = this._tasks[taskName];
 			if (!taskDef.stepBased) {
@@ -172,7 +174,9 @@ class TaskRunner {
 			}
 			const factory = await taskDef.stepFactory();
 			const steps = await factory(taskDef.options);
-			return {taskName, stepNames: steps.map((step) => step.name)};
+			const stepNames = steps.map((step) => step.name);
+			taskDef.stepNames = stepNames;
+			return {taskName, stepNames};
 		}));
 		this._buildCache.setTasks(stageTasks);
 
@@ -259,15 +263,20 @@ class TaskRunner {
 				`It has already been scheduled for execution`);
 		}
 
+		// Complete the options before the task is registered, not when it runs. runTasks calls a step-based
+		// task's factory at plan time to discover its step names, and the factory may branch on
+		// projectNamespace (generateThemeDesignerResources emits its libraryTheming step only for a
+		// namespace). Assigning these at execution time left the plan-time call reading an incomplete
+		// options object, so the discovered step set missed a stage the step runner then asked for.
+		options.projectName = this._project.getName();
+		options.projectNamespace = this._project.getNamespace();
+
 		let task;
 		if (taskFunction === null) {
 			this._log.verbose(`Task ${taskName} is set to be explicitly skipped in definitions.`);
 			task = null;
 		} else {
 			task = async (log) => {
-				options.projectName = this._project.getName();
-				options.projectNamespace = this._project.getNamespace();
-
 				if (!taskFunction) {
 					const {task} = await this._taskRepository.getTask(taskName);
 					taskFunction = task;
@@ -279,6 +288,7 @@ class TaskRunner {
 					// per-stage hooks below. Every input a step reads arrives through its arguments, so no
 					// task body closes over the readers or taskUtil.
 					const steps = await taskFunction(options);
+					this.#assertDiscoveredStepNames(taskName, steps);
 					this._taskStart = performance.now();
 					const stepDriver = new StepRunner({
 						steps,
@@ -365,6 +375,41 @@ class TaskRunner {
 			requiredDependencies: requiresDependencies ? this._directDependencies : new Set()
 		};
 		this._taskExecutionOrder.push(taskName);
+	}
+
+	/**
+	 * Checks the steps a factory returned at execution time against the step names
+	 * {@link #runTasks} discovered before the build.
+	 *
+	 * A step's pipeline stage is created from the discovered list, so a factory that returns a different
+	 * step set on its second call drives stages that were never created. {@link ProjectResources#useStage}
+	 * then throws a message naming only the missing stage, which does not point at the factory.
+	 * This check reports the divergence at its origin and names both step lists.
+	 *
+	 * The factory contract is purity over <code>options</code>. Reads of the environment or the clock in a
+	 * factory body are untracked, so an impure factory is not caught by the build cache either.
+	 *
+	 * @param {string} taskName Task name
+	 * @param {object[]} steps Steps the factory returned for execution
+	 * @returns {void}
+	 */
+	#assertDiscoveredStepNames(taskName, steps) {
+		const discoveredStepNames = this._tasks[taskName]?.stepNames;
+		if (!discoveredStepNames) {
+			// No discovery ran, so there is nothing to compare against. This is the case when a task is
+			// invoked directly rather than through runTasks.
+			return;
+		}
+		const stepNames = steps.map((step) => step.name);
+		if (discoveredStepNames.length === stepNames.length &&
+			discoveredStepNames.every((stepName, i) => stepName === stepNames[i])) {
+			return;
+		}
+		throw new Error(
+			`Step factory of task ${taskName} for project ${this._project.getName()} returned different ` +
+			`steps than during step discovery: expected [${discoveredStepNames.join(", ")}] ` +
+			`but got [${stepNames.join(", ")}]. A step factory must be pure over its options, since its ` +
+			`steps are promoted to pipeline stages before the build runs`);
 	}
 
 	/**
@@ -478,6 +523,7 @@ class TaskRunner {
 				taskConfiguration: taskDef.configuration,
 				provideDependenciesReader,
 				stepBased,
+				stepOptions,
 				getDependenciesReaderCb: () => {
 					// Create the dependencies reader on-demand
 					return this.getDependenciesReader(requiredDependencies);
@@ -534,13 +580,16 @@ class TaskRunner {
 	 *   Whether to provide dependencies reader to the task
 	 * @param {boolean} parameters.stepBased
 	 *   Whether the task's default export is a step factory (honored from Specification Version 5.0)
+	 * @param {object} [parameters.stepOptions]
+	 *   The options object a step factory is called with. The same object the step-name discovery in
+	 *   {@link #runTasks} used, so both calls observe identical options
 	 * @param {@ui5/project/specifications/Extension} parameters.task Task extension instance
 	 * @param {string} parameters.taskName Runtime name of the task (may include suffix)
 	 * @param {object} [parameters.taskConfiguration] Task configuration from ui5.yaml
 	 * @returns {Function} Async wrapper function for the custom task
 	 */
 	_createCustomTaskWrapper({
-		project, taskUtil, getDependenciesReaderCb, provideDependenciesReader, stepBased,
+		project, taskUtil, getDependenciesReaderCb, provideDependenciesReader, stepBased, stepOptions,
 		task, taskName, taskConfiguration
 	}) {
 		return async () => {
@@ -584,11 +633,14 @@ class TaskRunner {
 				// Step-based custom task: gated at Specification Version 5.0 in _addCustomTask, which always
 				// provides a taskUtil interface. The default export is a factory build(options) => Step[];
 				// each step is its own pipeline stage, driven by the step runner via per-stage
-				// hooks. The factory receives options only.
-				const steps = await taskFunction(options);
+				// hooks. The factory receives options only, and receives the very object step-name discovery
+				// used, so both calls cannot diverge on differing option values.
+				const factoryOptions = stepOptions ?? options;
+				const steps = await taskFunction(factoryOptions);
+				this.#assertDiscoveredStepNames(taskName, steps);
 				const stepDriver = new StepRunner({
 					steps,
-					options,
+					options: factoryOptions,
 					...this.#createStepStageHooks(taskName, provideDependenciesReader, taskUtilInterface),
 					returnValueStore: this._buildCache.getStepReturnValueStore(),
 					resolveInputValue: this._buildCache.getResolveInputValue(),

@@ -1827,6 +1827,120 @@ test("Step-based task: a full stage-cache hit re-runs a read-free consumer when 
 		"reopenStageForRerun targeted the consumer step's stage");
 });
 
+// runTasks calls a step-based task's factory to discover its step names, and the factory is called again to
+// execute. A factory may branch on options.projectNamespace (generateThemeDesignerResources emits its
+// libraryTheming step only for a namespace), so both calls have to see a complete options object. Otherwise
+// discovery misses a stage that the step runner then asks for, and the build fails on the missing stage.
+test("Step-based task: step discovery sees the same options as execution", async (t) => {
+	const {sinon, taskUtil} = t.context;
+
+	const factoryOptions = [];
+	// Mirrors the generateThemeDesignerResources shape: a step that only exists for a namespace.
+	const build = (options) => {
+		factoryOptions.push({...options});
+		const steps = [{name: "scan", run: async () => undefined}];
+		if (options.projectNamespace) {
+			steps.push({name: "namespaced", run: async () => undefined});
+		}
+		return steps;
+	};
+	const taskDefinitions = {
+		getTaskDefinitions: async () => ({
+			standardTasks: new Map([
+				["stepTask",
+					{requiresDependencies: false, stepBased: true, options: {}, taskFunction: build}],
+			]),
+			customTasks: new Map(),
+		}),
+	};
+
+	// Only stages that setTasks created can be prepared, as in ProjectResources#useStage.
+	const createdStages = new Set();
+	const buildCache = {
+		...t.context.buildCache,
+		setTasks: sinon.stub().callsFake((tasks) => {
+			for (const {taskName, stepNames} of tasks) {
+				for (const stepName of stepNames ?? [undefined]) {
+					createdStages.add(buildCache.getStageId(taskName, stepName));
+				}
+			}
+		}),
+		prepareTaskExecutionAndValidateCache: sinon.stub().callsFake(async (taskName, stepName) => {
+			const stageId = buildCache.getStageId(taskName, stepName);
+			if (!createdStages.has(stageId)) {
+				throw new Error(`Stage '${stageId}' does not exist`);
+			}
+			return false;
+		}),
+	};
+
+	const project = getMockProject("module");
+	project.getProjectResources = () => ({replayTagOperations: sinon.stub()});
+
+	const taskRunner = createTaskRunner(t, project, {taskUtil, buildCache, taskDefinitions});
+	sinon.stub(taskRunner, "getDependenciesReader").resolves({getName: () => "dependencies"});
+
+	await t.notThrowsAsync(taskRunner.runTasks(),
+		"The step the factory emits for a namespace has a stage, so preparing it succeeds");
+
+	t.is(factoryOptions.length, 2, "The factory was called for discovery and for execution");
+	t.deepEqual(factoryOptions[0], factoryOptions[1],
+		"Both calls received the same options, so they cannot return different steps");
+	t.is(factoryOptions[0].projectNamespace, "project/b",
+		"Step discovery already saw the project namespace");
+	t.deepEqual(buildCache.setTasks.firstCall.firstArg,
+		[{taskName: "stepTask", stepNames: ["scan", "namespaced"]}],
+		"A stage was created for every step the factory emits");
+});
+
+// A step factory is required to be pure over its options. Nothing tracks an environment or clock read in a
+// factory body, so an impure factory can return a different step set at execution time than at discovery.
+// The stages come from the discovered set, so the mismatch has to be reported where it originates.
+test("Step-based task: an impure factory returning different steps is rejected", async (t) => {
+	const {sinon, projectBuildLogger, taskUtil} = t.context;
+
+	let extraStep = false;
+	const build = () => {
+		const steps = [{name: "scan", run: async () => undefined}];
+		if (extraStep) {
+			steps.push({name: "sneaked", run: async () => undefined});
+		}
+		return steps;
+	};
+	const taskDefinitions = {
+		getTaskDefinitions: async () => ({
+			standardTasks: new Map([
+				["stepTask",
+					{requiresDependencies: false, stepBased: true, options: {}, taskFunction: build}],
+			]),
+			customTasks: new Map(),
+		}),
+	};
+
+	const project = getMockProject("module");
+	project.getProjectResources = () => ({replayTagOperations: sinon.stub()});
+
+	const taskRunner = createTaskRunner(t, project, {taskUtil, taskDefinitions});
+	sinon.stub(taskRunner, "getDependenciesReader").resolves({getName: () => "dependencies"});
+	await taskRunner._initTasks();
+
+	// Discovery observes ["scan"], the execution call then adds a step whose stage was never created.
+	const discovery = taskRunner.runTasks;
+	const origTask = taskRunner._tasks["stepTask"].task;
+	taskRunner._tasks["stepTask"].task = async (log) => {
+		extraStep = true;
+		return origTask(log);
+	};
+
+	await t.throwsAsync(discovery.call(taskRunner), {
+		message: "Step factory of task stepTask for project project.b returned different steps than " +
+			"during step discovery: expected [scan] but got [scan, sneaked]. A step factory must be pure " +
+			"over its options, since its steps are promoted to pipeline stages before the build runs",
+	}, "The divergence is reported against the factory, naming both step lists");
+
+	t.is(projectBuildLogger.skipTask.callCount, 0, "No step was driven after the mismatch");
+});
+
 // Integration: the custom-task path drives the same real MonitoredTaskUtil + StepRunner as the standard-task
 // path, gated at Specification Version 5.0 via the static stepBased export. A per-step input change (an env
 // var one step reads) re-runs only that step, a restored step replays its tags, and the runner's outcome is
