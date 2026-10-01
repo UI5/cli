@@ -937,7 +937,7 @@ export default class StepRunner {
 		if (log.isLevelEnabled("verbose")) {
 			log.verbose(`step '${group}': ran ${toRun.length} of ${entries.length} unit(s)`);
 		}
-		return {results, invocationData, freshInvocationData: currentInvocationData, ranCount: toRun.length};
+		return {results, invocationData, freshInvocationData: currentInvocationData};
 	}
 }
 

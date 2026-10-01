@@ -145,7 +145,6 @@ test.beforeEach(async (t) => {
 		prepareTaskExecutionAndValidateCache: sinon.stub().resolves(false),
 		recordTaskResult: sinon.stub().resolves(),
 		allTasksCompleted: sinon.stub().resolves([]),
-		prefetchStageCache: sinon.stub(),
 		getStepInvocationData: sinon.stub().returns(undefined),
 		getStepReturnValueStore: sinon.stub().returns(undefined),
 		getResolveInputValue: sinon.stub().returns(undefined),
@@ -1687,7 +1686,6 @@ test("Step-based task: a per-step input change re-runs only that step; a restore
 		let deltaMode = false;
 		const buildCache = {
 			setTasks: sinon.stub(),
-			prefetchStageCache: sinon.stub(),
 			recordTaskResult: sinon.stub().resolves(),
 			allTasksCompleted: sinon.stub().resolves([]),
 			getStageId: (taskName, stepName) =>
@@ -1785,7 +1783,6 @@ test("Step-based task: a full stage-cache hit re-runs a read-free consumer when 
 	let verdicts = {};
 	const buildCache = {
 		setTasks: sinon.stub(),
-		prefetchStageCache: sinon.stub(),
 		recordTaskResult: sinon.stub().resolves(),
 		allTasksCompleted: sinon.stub().resolves([]),
 		getStageId,
@@ -1989,7 +1986,6 @@ test("Step-based custom task: bound at Specification Version 5.0, folds the runn
 		let deltaMode = false;
 		const buildCache = {
 			setTasks: sinon.stub(),
-			prefetchStageCache: sinon.stub(),
 			recordTaskResult: sinon.stub().resolves(),
 			allTasksCompleted: sinon.stub().resolves([]),
 			getStageId: (taskName, stepName) =>
