@@ -22,4 +22,5 @@ export default {
 		suppressLog
 	],
 	workerThreads: false,
+	timeout: "2m",
 };
