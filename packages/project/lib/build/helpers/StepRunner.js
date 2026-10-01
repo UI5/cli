@@ -604,18 +604,13 @@ export default class StepRunner {
 	}
 
 	/**
-	 * Runs a map step's <code>keys</code> enumerator through recording readers so its reads and inputs
-	 * delegate to the task-level monitor (and thus fold into the task signature; the enumerator runs every
-	 * build, so no per-key persistence is needed).
+	 * Runs a map step's <code>keys</code> enumerator against the stage's own context.
 	 *
-	 * @param {object} step The map step
-	 * @param {object} needs The step's needs object
-	 * @returns {Promise<Array<{key: *, index: number, keyId: string}>>} Resolved key entries
-	 */
-	/**
-	 * Runs a map step's <code>keys</code> enumerator through the stage's recording readers so its reads and
-	 * inputs are captured into the stage's request set (the enumerator runs every build, so its reads are
-	 * part of the stage's tracked inputs).
+	 * The enumerator owns no key, so there is no per-key invocation entry to attribute its activity to,
+	 * and none is needed: it runs whenever the stage runs, so its reads and non-resource inputs are
+	 * captured by the stage's monitored readers and MonitoredTaskUtil and fold into the stage signature,
+	 * and the tags it sets reach the project tag collection and are recorded as the stage's tag
+	 * operations, which a fully cached stage restores along with its writer.
 	 *
 	 * @param {object} step The map step
 	 * @param {object} needs The step's needs object
@@ -623,12 +618,13 @@ export default class StepRunner {
 	 * @returns {Promise<Array<{key: *, index: number, keyId: string}>>} Resolved key entries
 	 */
 	async #enumerateKeys(step, needs, ctx) {
-		const recorder = new StepRecorder();
-		const workspace = new RecordingReaderWriter(ctx.workspace, recorder, null, 0);
-		const dependencies = ctx.dependencies ?
-			new RecordingReader(ctx.dependencies, recorder) : undefined;
-		const taskUtil = new MonitoredTaskUtil(ctx.taskUtil, {recordTagOperations: true});
-		const keys = await step.keys({needs, workspace, dependencies, taskUtil, options: this.#options});
+		const keys = await step.keys({
+			needs,
+			workspace: ctx.workspace,
+			dependencies: ctx.dependencies,
+			taskUtil: ctx.taskUtil,
+			options: this.#options,
+		});
 		if (!keys) {
 			return [];
 		}

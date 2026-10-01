@@ -595,3 +595,45 @@ test.serial("Build application.a (step-based custom task with per-step delta cac
 	});
 });
 
+
+// A map step's keys() enumerator owns no key of its own, so anything it does is attributed to the stage
+// rather than to a unit. For resource tags that matters across a fully cached stage: the enumerator does
+// not run at all, and the tag has to come back from the stage's recorded tag operations.
+test.serial("Build application.a (step-based custom task: a tag set in keys() survives a cached stage)",
+	async (t) => {
+		const fixtureTester = new FixtureTester(t, "application.a");
+		const destPath = fixtureTester.destPath;
+		await fixtureTester._initialize();
+
+		// The fixture's keys() enumerator tags every `.omitme` file with OmitFromBuildResult while it
+		// globs for `.src` keys, so `keep.omitme` must never reach the build result.
+		const procEachDir = `${fixtureTester.fixturePath}/webapp/procEach`;
+		await fs.mkdir(procEachDir, {recursive: true});
+		await fs.writeFile(`${procEachDir}/a.src`, "source-a");
+		await fs.writeFile(`${procEachDir}/a.dep`, "dep-a-v1");
+		await fs.writeFile(`${procEachDir}/keep.omitme`, "should not reach the build result");
+
+		// #1 build (no cache): the enumerator runs and sets the tag live.
+		await fixtureTester.buildProject({
+			graphConfig: {rootConfigPath: "ui5-customTask-stepBased.yaml"},
+			config: {destPath, cleanDest: true},
+		});
+		await t.throwsAsync(fs.readFile(`${destPath}/procEach/keep.omitme`, {encoding: "utf8"}),
+			undefined, "#1 build: the tagged resource was omitted from the build result");
+
+		// #2 build: an unrelated source file changed, so application.a rebuilds, but nothing the step read
+		// changed. Its stage is a full cache hit, which means keys() never runs and the tag can only come
+		// from the restored stage.
+		await fs.writeFile(`${fixtureTester.fixturePath}/webapp/unrelated.js`, "console.log(\"unrelated\");");
+		await fixtureTester.buildProject({
+			graphConfig: {rootConfigPath: "ui5-customTask-stepBased.yaml"},
+			config: {destPath, cleanDest: true},
+		});
+		const skippedTasks = t.context.projectBuildStatusEventStub.args.map(([event]) => event)
+			.filter((event) => event.projectName === "application.a" && event.status === "task-skip")
+			.map((event) => event.taskName);
+		t.true(skippedTasks.includes("process-each-task"),
+			`#2 build: the step's stage was served from cache (skipped: ${skippedTasks})`);
+		await t.throwsAsync(fs.readFile(`${destPath}/procEach/keep.omitme`, {encoding: "utf8"}),
+			undefined, "#2 build (stage served from cache): the tagged resource is still omitted");
+	});

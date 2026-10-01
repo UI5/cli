@@ -10,7 +10,14 @@ const log = Logger.getLogger("builder:tasks:stepBasedTask");
 module.exports = function build() {
 	return [{
 		name: "procEach",
-		keys: async ({workspace, options: {projectNamespace}}) => {
+		keys: async ({workspace, taskUtil, options: {projectNamespace}}) => {
+			// Tag from the enumerator, not from a unit: the enumerator runs whenever the stage runs, but
+			// it owns no key, so its tags have no per-key invocation entry to be replayed from. They
+			// survive a fully cached stage through the stage's own recorded tag operations.
+			const omittedResources = await workspace.byGlob(`/resources/${projectNamespace}/procEach/*.omitme`);
+			for (const omittedResource of omittedResources) {
+				taskUtil.setTag(omittedResource, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
+			}
 			const srcResources = await workspace.byGlob(`/resources/${projectNamespace}/procEach/*.src`);
 			log.verbose(`step-based-task processing ${srcResources.length} source(s)`);
 			return srcResources;
