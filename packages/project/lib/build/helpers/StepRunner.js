@@ -549,8 +549,14 @@ export default class StepRunner {
 	 * Assembles the <code>needs</code> object passed to a step from the recorded returns of the steps it
 	 * names.
 	 *
+	 * One object is shared by the step's <code>keys</code> enumerator and all of its units, so it is
+	 * frozen: a unit assigning to <code>needs.&lt;producer&gt;</code> would otherwise leak into its
+	 * siblings and into the recorded <code>needsInputs</code> of whichever unit ran next, making a delta
+	 * build's per-unit selection depend on execution order. The freeze is shallow, since a producer may
+	 * return resources whose own state must stay writable; a step that needs a mutable copy makes one.
+	 *
 	 * @param {string[]} [names] Names of earlier steps this step needs
-	 * @returns {object} <code>{[name]: return}</code>
+	 * @returns {object} Frozen <code>{[name]: return}</code>
 	 */
 	#buildNeeds(names) {
 		const needs = {};
@@ -559,7 +565,7 @@ export default class StepRunner {
 				needs[name] = this.#returns.get(name);
 			}
 		}
-		return needs;
+		return Object.freeze(needs);
 	}
 
 	/**

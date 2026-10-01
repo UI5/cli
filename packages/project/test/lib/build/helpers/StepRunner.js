@@ -536,3 +536,32 @@ test("A removed key's output stays when a cached key still writes it", async (t)
 		"Only the removed key's exclusive output is stale");
 });
 
+test("A step's needs is frozen, so one unit cannot leak into its siblings", async (t) => {
+	const seen = [];
+	let keysError;
+	let eachError;
+	const {runner} = makeDriver({
+		steps: [
+			{name: "produce", run: async () => ({v: "original"})},
+			{name: "consume", needs: ["produce"], keys: async ({needs}) => {
+				keysError = t.throws(() => {
+					needs.produce = {v: "from keys"};
+				}, {instanceOf: TypeError});
+				return ["a", "b"];
+			}, sequential: true, each: async (key, {needs}) => {
+				seen.push([key, needs.produce.v]);
+				eachError ??= t.throws(() => {
+					needs.produce = {v: `from ${key}`};
+				}, {instanceOf: TypeError});
+			}},
+		],
+	});
+
+	await runner.runSteps();
+
+	t.truthy(keysError, "Assigning to needs from the keys enumerator throws");
+	t.truthy(eachError, "Assigning to needs from a unit throws");
+	t.deepEqual(seen, [["a", "original"], ["b", "original"]],
+		"Every unit sees the producer's return, unaffected by its siblings");
+});
+

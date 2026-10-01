@@ -84,6 +84,10 @@ export default async function runSteps(build, {workspace, dependencies, taskUtil
 				needs[name] = returns.get(name);
 			}
 		}
+		// Shared by the step's keys enumerator and all of its units, so frozen like in the cached step
+		// runner: a unit assigning to needs.<producer> would otherwise leak into its siblings. The freeze
+		// is shallow, since a producer may return resources whose own state must stay writable.
+		Object.freeze(needs);
 		const context = {needs, workspace, dependencies, taskUtil, options};
 
 		if (typeof step.run === "function") {
