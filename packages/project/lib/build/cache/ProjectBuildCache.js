@@ -56,6 +56,9 @@ export default class ProjectBuildCache {
 	#taskCache = new Map();
 	#stageCache = new StageCache();
 	#prefetchedStageReads;
+	// Stage ids in execution order, as established by setTasks. Drives the one-stage lookahead in
+	// #prefetchNextStageCache.
+	#stageOrder = [];
 
 	#project;
 	#buildSignature;
@@ -671,6 +674,10 @@ export default class ProjectBuildCache {
 		// Switch project to new stage
 		this.#project.getProjectResources().useStage(stageName);
 		log.verbose(`Preparing execution for stage ${stageName} in project ${this.#project.getName()}...`);
+		// Read the next stage's cache metadata now, so its database reads happen while this stage executes
+		// rather than when that stage is prepared. The stage order comes from setTasks, so this covers a
+		// legacy task's single stage and a step-based task's per-step stages alike.
+		this.#prefetchNextStageCache(stageName);
 		if (!taskCache) {
 			log.verbose(`No stage cache found`);
 			return false;
@@ -827,6 +834,25 @@ export default class ProjectBuildCache {
 	reopenStageForRerun(taskName, stepName) {
 		const stageName = this.#getStageNameForTask(taskName, stepName);
 		this.#project.getProjectResources().reopenStage(stageName);
+	}
+
+	/**
+	 * Pre-fetches the stage cache metadata of the stage following the given one in the stage order
+	 * {@link #setTasks} established.
+	 *
+	 * The lookahead is one stage, so the read happens while the given stage executes. The last stage has
+	 * no successor and prefetches nothing.
+	 *
+	 * @param {string} stageId Stage id currently being prepared
+	 * @returns {void}
+	 */
+	#prefetchNextStageCache(stageId) {
+		const stageIdx = this.#stageOrder.indexOf(stageId);
+		const nextStageId = stageIdx === -1 ? undefined : this.#stageOrder[stageIdx + 1];
+		if (!nextStageId) {
+			return;
+		}
+		this.prefetchStageCache(nextStageId);
 	}
 
 	/**
@@ -1433,6 +1459,8 @@ export default class ProjectBuildCache {
 			}
 		}
 		this.#project.getProjectResources().initStages(stageNames);
+		// Remember the order so each prepared stage can prefetch its successor's cache metadata.
+		this.#stageOrder = stageNames;
 
 		// TODO: Rename function? We simply use it to have a point in time right before the project is built
 	}
