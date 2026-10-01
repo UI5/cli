@@ -387,6 +387,42 @@ test("discardIncrementalState clears the retained result signature and resets Pr
 		"cache is no longer fresh, so the retained result signature can't serve stale stages");
 });
 
+test("discardIncrementalState drops the failed build's partial step invocation data", async (t) => {
+	// A step-based task records its per-key invocation data in-memory via setStepInvocationData as it
+	// runs, but that data is only persisted in writeCache on a successful build. A build that throws
+	// mid-execution leaves the partial data memoized in #stepInvocationData. discardIncrementalState
+	// restores #taskCache from the last good persisted state; it must do the same for the step data,
+	// or getStepInvocationData keeps returning the failed build's partial map (memoized, never
+	// re-fetched). On a long-lived consumer (ui5 serve) that partial data then pairs with the older
+	// persisted stage state on the next rebuild, corrupting #selectStepsToRun / #computeStaleOutputs.
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+
+	const stageId = "task/minify::step/minify";
+	// The last good state persisted by a previous successful build, as the [[keyId, entry], ...] pairs
+	// getStepInvocationData reconstructs into a Map.
+	const goodPersisted = [["/good.js", {reads: [], writes: ["/good.js"]}]];
+	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, requestedStageId, type) =>
+		(requestedStageId === stageId && type === "steps") ? goodPersisted : null);
+
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+
+	// A failed build records partial in-memory data for the stage.
+	const partial = new Map([["/partial.js", {reads: [], writes: ["/partial.js"]}]]);
+	cache.setStepInvocationData(stageId, partial);
+	t.is(cache.getStepInvocationData(stageId), partial,
+		"the partial data is memoized in-memory while the failed build is still live");
+
+	cache.discardIncrementalState();
+
+	const afterDiscard = cache.getStepInvocationData(stageId);
+	t.not(afterDiscard, partial,
+		"discardIncrementalState dropped the failed build's partial step invocation data");
+	t.deepEqual(afterDiscard, new Map(goodPersisted),
+		"getStepInvocationData re-fetches the last good persisted state instead of the partial map");
+});
+
 test("discardIncrementalState is a no-op in Cache.Off mode", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();

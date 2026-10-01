@@ -1677,6 +1677,13 @@ export default class ProjectBuildCache {
 		// source tree from scratch. See the initSourceIndex guard.
 		this.#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
 		this.#taskCache.clear();
+		// Step invocation data is only persisted on a successful build (#prepareTaskRequestCache in
+		// writeCache); mid-build it lives only here, memoized and never re-fetched. A failed build leaves
+		// its partial per-key data behind. Clear it alongside #taskCache so getStepInvocationData falls
+		// back to the last good persisted state, matching the task cache the re-scan restores. Without
+		// this, a long-lived consumer (ui5 serve) pairs the partial data with the older persisted stage
+		// state on the next rebuild, corrupting step selection and stale-output derivation.
+		this.#stepInvocationData.clear();
 		// Reset the result cache state. A prior validateCache may have left it at NO_CACHE or
 		// FRESH_AND_IN_USE, but the next build asserts PENDING_VALIDATION after restoring the
 		// dependency index.
