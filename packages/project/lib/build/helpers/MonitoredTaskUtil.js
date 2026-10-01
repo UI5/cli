@@ -31,9 +31,13 @@ const NAME_ARG_METHODS = new Set(["getEnv", "getTime"]);
 // Root-reader subtrees excluded from tracking by default. A wide glob (e.g. "/**") over the project
 // root would otherwise pull the whole dependency install and the git database into the build-cache
 // signature. A recorded glob only reaches these when it targets them explicitly (see
-// `augmentRootPatterns`), so a bundler that wants a third-party package under `node_modules` opts in
+// `augmentRootPattern`), so a bundler that wants a third-party package under `node_modules` opts in
 // with `getRootReader({useGitignore: false}).byGlob("/node_modules/<pkg>/**")`.
 const ROOT_IGNORE_PREFIXES = ["/node_modules", "/.git"];
+
+// Negation globs for the ignored subtrees, applied to a recorded glob that does not opt into one
+// explicitly. Derived once from ROOT_IGNORE_PREFIXES so the two stay in sync.
+const ROOT_IGNORE_NEGATIONS = ROOT_IGNORE_PREFIXES.map((prefix) => `!${prefix}/**`);
 
 /**
  * Whether a single glob pattern targets one of the default-ignored root subtrees explicitly.
@@ -68,7 +72,7 @@ function augmentRootPattern(pattern) {
 	if (patterns.some(patternEntersIgnoredSubtree)) {
 		return pattern;
 	}
-	return [...patterns, "!/node_modules/**", "!/.git/**"];
+	return [...patterns, ...ROOT_IGNORE_NEGATIONS];
 }
 
 /**
