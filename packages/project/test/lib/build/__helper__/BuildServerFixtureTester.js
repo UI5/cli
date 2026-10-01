@@ -223,9 +223,23 @@ class FixtureTester {
 		this._reader = this.buildServer.getReader();
 	}
 
-	async requestResource({resource, notFound = false, assertions}) {
+	// `onBuildStatus`, when provided, is attached to the `ui5.project-build-status` process event for
+	// the duration of the `byPath` call and detached in a `finally`. It lets a test inject a change
+	// mid-build (e.g. to drive an abort/retry) without hand-rolling the process.on/off dance around
+	// the request. The handler is registered AFTER resetHistory so it never sees stale events.
+	async requestResource({resource, notFound = false, assertions, onBuildStatus}) {
 		this._sinon.resetHistory();
-		const res = await this._reader.byPath(resource);
+		if (onBuildStatus) {
+			process.on("ui5.project-build-status", onBuildStatus);
+		}
+		let res;
+		try {
+			res = await this._reader.byPath(resource);
+		} finally {
+			if (onBuildStatus) {
+				process.off("ui5.project-build-status", onBuildStatus);
+			}
+		}
 		if (notFound) {
 			this._t.is(res, null, `Resource '${resource}' must not be served`);
 		} else {
@@ -335,7 +349,9 @@ class FixtureTester {
 		// Assert skipped tasks and written resources per project
 		for (const [projectName, expected] of Object.entries(projects)) {
 			const skippedTasks = expected.skippedTasks || [];
-			const actualSkipped = (tasksByProject[projectName]?.skipped || []).sort();
+			// Dedupe: an abort+retry within a single request window emits a task-skip event per
+			// attempt, so the same task can appear twice. "Skipped" is a set — assert it as one.
+			const actualSkipped = [...new Set(tasksByProject[projectName]?.skipped || [])].sort();
 			const expectedArray = skippedTasks.sort();
 			this._t.deepEqual(actualSkipped, expectedArray);
 
