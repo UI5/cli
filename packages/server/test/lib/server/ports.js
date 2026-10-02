@@ -108,6 +108,7 @@ test.serial("listen - Port scan fails with a generic error", async (t) => {
 			err.code = "EHOSTUNREACH";
 			queueMicrotask(() => this._handlers.error(err));
 		}
+		removeAllListeners() {}
 		destroy() {}
 	}
 	const httpListener = await esmock("../../../lib/serve/httpListener.js", {

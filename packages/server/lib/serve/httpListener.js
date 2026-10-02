@@ -61,6 +61,7 @@ function isPortInUse(host, port) {
 	return new Promise(function(resolve, reject) {
 		const socket = new net.Socket();
 		const finish = function(settle, value) {
+			socket.removeAllListeners();
 			socket.destroy();
 			settle(value);
 		};
