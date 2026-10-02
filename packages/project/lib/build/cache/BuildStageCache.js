@@ -3,25 +3,25 @@ import crypto from "node:crypto";
 import ResourceRequestManager from "./ResourceRequestManager.js";
 import TaskInputSet from "./index/TaskInputSet.js";
 import {createStageSignature} from "./stageSignature.js";
-const log = getLogger("build:cache:BuildTaskCache");
+const log = getLogger("build:cache:BuildStageCache");
 
 // Serialized form of an empty, unmodified request manager. Restoring a root manager from this (rather
-// than constructing a fresh one) marks it clean, so a task that recorded no root reads is not
+// than constructing a fresh one) marks it clean, so a stage that recorded no root reads is not
 // re-persisted on every build.
 function emptyRequestManagerCache() {
 	return {requestSetGraph: {nodes: [], nextId: 1}, rootIndices: [], deltaIndices: [], unusedAtLeastOnce: false};
 }
 
 /**
- * @typedef {object} @ui5/project/build/cache/BuildTaskCache~ResourceRequests
+ * @typedef {object} @ui5/project/build/cache/BuildStageCache~ResourceRequests
  * @property {Set<string>} paths Specific resource paths that were accessed
  * @property {Set<string>} patterns Glob patterns used to access resources
  */
 
 /**
- * Manages the build cache for a single task
+ * Manages the build cache for a single stage
  *
- * This class tracks all resources accessed by a task (both project and dependency resources)
+ * This class tracks all resources accessed by a stage (both project and dependency resources)
  * and maintains a graph of resource request sets. Each request set represents a unique
  * combination of resource accesses, enabling efficient cache invalidation and reuse.
  *
@@ -32,14 +32,14 @@ function emptyRequestManagerCache() {
  * - Provides cache invalidation based on changed resources
  * - Serializes/deserializes cache metadata for persistence
  *
- * The request graph allows derived request sets (when a task reads additional resources)
+ * The request graph allows derived request sets (when a stage reads additional resources)
  * to reuse existing resource indices, optimizing both memory and computation.
  *
  * @class
  */
-export default class BuildTaskCache {
+export default class BuildStageCache {
 	#projectName;
-	#taskName;
+	#stageId;
 	#stepBased;
 
 	#projectRequestManager;
@@ -63,12 +63,12 @@ export default class BuildTaskCache {
 	#inputSetModified = false;
 
 	/**
-	 * Creates a new BuildTaskCache instance
+	 * Creates a new BuildStageCache instance
 	 *
 	 * @public
-	 * @param {string} projectName Name of the project this task belongs to
-	 * @param {string} taskName Name of the task this cache manages
-	 * @param {boolean} stepBased Whether the task ran the step runner, driving per-step delta tracking
+	 * @param {string} projectName Name of the project this stage belongs to
+	 * @param {string} stageId Id of the stage this cache manages
+	 * @param {boolean} stepBased Whether the stage ran the step runner, driving per-step delta tracking
 	 * @param {ResourceRequestManager} [projectRequestManager] Optional pre-existing project request manager from cache
 	 * @param {ResourceRequestManager} [dependencyRequestManager]
 	 * 	Optional pre-existing dependency request manager from cache
@@ -76,84 +76,84 @@ export default class BuildTaskCache {
 	 * @param {{gitignore: ResourceRequestManager, noGitignore: ResourceRequestManager}} [rootRequestManagers]
 	 * 	Optional pre-existing root request managers from cache, keyed by useGitignore
 	 */
-	constructor(projectName, taskName, stepBased, projectRequestManager, dependencyRequestManager,
+	constructor(projectName, stageId, stepBased, projectRequestManager, dependencyRequestManager,
 		inputSet, rootRequestManagers) {
 		this.#projectName = projectName;
-		this.#taskName = taskName;
+		this.#stageId = stageId;
 		this.#stepBased = stepBased;
-		log.verbose(`Initializing BuildTaskCache for task "${taskName}" of project "${this.#projectName}" ` +
+		log.verbose(`Initializing BuildStageCache for stage "${stageId}" of project "${this.#projectName}" ` +
 			`(stepBased=${stepBased})`);
 
 		this.#projectRequestManager = projectRequestManager ??
-			new ResourceRequestManager(projectName, taskName, stepBased);
+			new ResourceRequestManager(projectName, stageId, stepBased);
 		this.#dependencyRequestManager = dependencyRequestManager ??
-			new ResourceRequestManager(projectName, taskName, stepBased);
+			new ResourceRequestManager(projectName, stageId, stepBased);
 		this.#inputSet = inputSet ?? new TaskInputSet();
 		// Root requests use full-refresh signatures, not differential deltas: a changed root file
-		// re-runs the whole task rather than a differential update.
+		// re-runs the whole stage rather than a differential update.
 		this.#rootRequestManagers = rootRequestManagers ?? {
-			gitignore: new ResourceRequestManager(projectName, `${taskName}#root`, false),
-			noGitignore: new ResourceRequestManager(projectName, `${taskName}#root-no-gitignore`, false),
+			gitignore: new ResourceRequestManager(projectName, `${stageId}#root`, false),
+			noGitignore: new ResourceRequestManager(projectName, `${stageId}#root-no-gitignore`, false),
 		};
 	}
 
 	/**
-	 * Factory method to restore a BuildTaskCache from cached data
+	 * Factory method to restore a BuildStageCache from cached data
 	 *
 	 * Deserializes previously cached request managers for both project and dependency resources,
-	 * allowing the task cache to resume from a prior build state.
+	 * allowing the stage cache to resume from a prior build state.
 	 *
 	 * @public
 	 * @param {string} projectName Name of the project
-	 * @param {string} taskName Name of the task
-	 * @param {boolean} stepBased Whether the task ran the step runner, driving per-step delta tracking
+	 * @param {string} stageId Id of the stage
+	 * @param {boolean} stepBased Whether the stage ran the step runner, driving per-step delta tracking
 	 * @param {object} projectRequests Cached project request manager data
 	 * @param {object} dependencyRequests Cached dependency request manager data
 	 * @param {object} [inputSet] Cached task input set data
 	 * @param {object} [rootRequests] Cached useGitignore:true root request manager data
 	 * @param {object} [rootNoGitignoreRequests] Cached useGitignore:false root request manager data
-	 * @returns {BuildTaskCache} Restored task cache instance
+	 * @returns {BuildStageCache} Restored stage cache instance
 	 */
-	static fromCache(projectName, taskName, stepBased, projectRequests, dependencyRequests,
+	static fromCache(projectName, stageId, stepBased, projectRequests, dependencyRequests,
 		inputSet, rootRequests, rootNoGitignoreRequests) {
-		const projectRequestManager = ResourceRequestManager.fromCache(projectName, taskName,
+		const projectRequestManager = ResourceRequestManager.fromCache(projectName, stageId,
 			stepBased, projectRequests);
-		const dependencyRequestManager = ResourceRequestManager.fromCache(projectName, taskName,
+		const dependencyRequestManager = ResourceRequestManager.fromCache(projectName, stageId,
 			stepBased, dependencyRequests);
-		// Root managers are optional: absent for tasks that made no root reads, and absent in caches
+		// Root managers are optional: absent for stages that made no root reads, and absent in caches
 		// written before root tracking existed. A missing entry restores a clean empty manager (not a
-		// fresh dirty one), so a task without root reads is not needlessly re-persisted.
+		// fresh dirty one), so a stage without root reads is not needlessly re-persisted.
 		const rootRequestManagers = {
 			gitignore: ResourceRequestManager.fromCache(
-				projectName, `${taskName}#root`, false, rootRequests ?? emptyRequestManagerCache()),
+				projectName, `${stageId}#root`, false, rootRequests ?? emptyRequestManagerCache()),
 			noGitignore: ResourceRequestManager.fromCache(
-				projectName, `${taskName}#root-no-gitignore`, false,
+				projectName, `${stageId}#root-no-gitignore`, false,
 				rootNoGitignoreRequests ?? emptyRequestManagerCache()),
 		};
-		return new BuildTaskCache(projectName, taskName, stepBased,
+		return new BuildStageCache(projectName, stageId, stepBased,
 			projectRequestManager, dependencyRequestManager, TaskInputSet.fromCache(inputSet), rootRequestManagers);
 	}
 
 	// ===== METADATA ACCESS =====
 
 	/**
-	 * Gets the name of the task
+	 * Gets the id of the stage
 	 *
 	 * @public
-	 * @returns {string} Task name
+	 * @returns {string} Stage id
 	 */
-	getTaskName() {
-		return this.#taskName;
+	getStageId() {
+		return this.#stageId;
 	}
 
 	/**
-	 * Checks whether the task ran the step runner, which drives per-step delta tracking
+	 * Checks whether the stage ran the step runner, which drives per-step delta tracking
 	 *
 	 * A step-based task tracks resource-request deltas per step, so a later build re-runs only the
 	 * changed steps rather than the whole task.
 	 *
 	 * @public
-	 * @returns {boolean} True if the task ran the step runner
+	 * @returns {boolean} True if the stage ran the step runner
 	 */
 	getStepBased() {
 		return this.#stepBased;
@@ -405,17 +405,17 @@ export default class BuildTaskCache {
 	 * content, enabling cache lookup for previously executed task results.
 	 *
 	 * @public
-	 * @param {@ui5/project/build/cache/BuildTaskCache~ResourceRequests} projectRequestRecording
+	 * @param {@ui5/project/build/cache/BuildStageCache~ResourceRequests} projectRequestRecording
 	 *   Project resource requests (paths and patterns)
-	 * @param {@ui5/project/build/cache/BuildTaskCache~ResourceRequests|undefined} dependencyRequestRecording
+	 * @param {@ui5/project/build/cache/BuildStageCache~ResourceRequests|undefined} dependencyRequestRecording
 	 *   Dependency resource requests (paths and patterns)
 	 * @param {module:@ui5/fs.AbstractReader} projectReader Reader for accessing project resources
 	 * @param {module:@ui5/fs.AbstractReader} dependencyReader Reader for accessing dependency resources
 	 * @param {Array<{type: string, name: string, value: string|undefined}>} [inputRecording]
 	 *   Non-resource inputs (environment variables, TaskUtil interface reads) recorded during task
 	 *   execution
-	 * @param {{gitignore: @ui5/project/build/cache/BuildTaskCache~ResourceRequests,
-	 *   noGitignore: @ui5/project/build/cache/BuildTaskCache~ResourceRequests}} [rootRequestRecording]
+	 * @param {{gitignore: @ui5/project/build/cache/BuildStageCache~ResourceRequests,
+	 *   noGitignore: @ui5/project/build/cache/BuildStageCache~ResourceRequests}} [rootRequestRecording]
 	 *   Root resource requests, keyed by the useGitignore flag they were read with
 	 * @param {function(boolean): module:@ui5/fs.AbstractReader} [getRootReader]
 	 *   Factory returning a project root reader for the given useGitignore flag

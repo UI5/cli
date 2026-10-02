@@ -142,8 +142,8 @@ test.beforeEach(async (t) => {
 
 	t.context.buildCache = {
 		setTasks: sinon.stub(),
-		prepareTaskExecutionAndValidateCache: sinon.stub().resolves(false),
-		recordTaskResult: sinon.stub().resolves(),
+		prepareStageExecutionAndValidateCache: sinon.stub().resolves(false),
+		recordStageResult: sinon.stub().resolves(),
 		allTasksCompleted: sinon.stub().resolves([]),
 		getStepInvocationData: sinon.stub().returns(undefined),
 		getStepReturnValueStore: sinon.stub().returns(undefined),
@@ -1440,7 +1440,7 @@ test.serial("Folds taskUtil project-reader reads into the recorded resource requ
 	await taskRunner._tasks["standardTask"].task();
 
 	t.is(taskStub.callCount, 1, "task executed");
-	const [, projectResourceRequests, dependencyResourceRequests] = buildCache.recordTaskResult.getCall(0).args;
+	const [, projectResourceRequests, dependencyResourceRequests] = buildCache.recordStageResult.getCall(0).args;
 	t.deepEqual(projectResourceRequests, {
 		paths: ["/resources/project/b/own.js"],
 		patterns: [],
@@ -1686,11 +1686,11 @@ test("Step-based task: a per-step input change re-runs only that step; a restore
 		let deltaMode = false;
 		const buildCache = {
 			setTasks: sinon.stub(),
-			recordTaskResult: sinon.stub().resolves(),
+			recordStageResult: sinon.stub().resolves(),
 			allTasksCompleted: sinon.stub().resolves([]),
 			getStageId: (taskName, stepName) =>
 				stepName === undefined ? `task/${taskName}` : `task/${taskName}::step/${stepName}`,
-			prepareTaskExecutionAndValidateCache: sinon.stub().callsFake(async () =>
+			prepareStageExecutionAndValidateCache: sinon.stub().callsFake(async () =>
 				(deltaMode ? {changedProjectResourcePaths: [], changedDependencyResourcePaths: []} : false)),
 			getStepInvocationData: sinon.stub().callsFake(() => capturedInvocationData),
 			getStepReturnValueStore: sinon.stub().returns(undefined),
@@ -1783,10 +1783,10 @@ test("Step-based task: a full stage-cache hit re-runs a read-free consumer when 
 	let verdicts = {};
 	const buildCache = {
 		setTasks: sinon.stub(),
-		recordTaskResult: sinon.stub().resolves(),
+		recordStageResult: sinon.stub().resolves(),
 		allTasksCompleted: sinon.stub().resolves([]),
 		getStageId,
-		prepareTaskExecutionAndValidateCache: sinon.stub().callsFake(async (taskName, stepName) =>
+		prepareStageExecutionAndValidateCache: sinon.stub().callsFake(async (taskName, stepName) =>
 			(stepName in verdicts ? verdicts[stepName] : false)),
 		getStepInvocationData: sinon.stub().callsFake((stageId) => invocationByStage.get(stageId)),
 		getStepReturnValueStore: sinon.stub().returns(undefined),
@@ -1862,7 +1862,7 @@ test("Step-based task: step discovery sees the same options as execution", async
 				}
 			}
 		}),
-		prepareTaskExecutionAndValidateCache: sinon.stub().callsFake(async (taskName, stepName) => {
+		prepareStageExecutionAndValidateCache: sinon.stub().callsFake(async (taskName, stepName) => {
 			const stageId = buildCache.getStageId(taskName, stepName);
 			if (!createdStages.has(stageId)) {
 				throw new Error(`Stage '${stageId}' does not exist`);
@@ -1941,7 +1941,7 @@ test("Step-based task: an impure factory returning different steps is rejected",
 // Integration: the custom-task path drives the same real MonitoredTaskUtil + StepRunner as the standard-task
 // path, gated at Specification Version 5.0 via the static stepBased export. A per-step input change (an env
 // var one step reads) re-runs only that step, a restored step replays its tags, and the runner's outcome is
-// folded into recordTaskResult (step-based flag set, invocation data persisted).
+// folded into recordStageResult (step-based flag set, invocation data persisted).
 test("Step-based custom task: bound at Specification Version 5.0, folds the runner outcome",
 	async (t) => {
 		const {sinon, projectBuildLogger} = t.context;
@@ -1986,11 +1986,11 @@ test("Step-based custom task: bound at Specification Version 5.0, folds the runn
 		let deltaMode = false;
 		const buildCache = {
 			setTasks: sinon.stub(),
-			recordTaskResult: sinon.stub().resolves(),
+			recordStageResult: sinon.stub().resolves(),
 			allTasksCompleted: sinon.stub().resolves([]),
 			getStageId: (taskName, stepName) =>
 				stepName === undefined ? `task/${taskName}` : `task/${taskName}::step/${stepName}`,
-			prepareTaskExecutionAndValidateCache: sinon.stub().callsFake(async () =>
+			prepareStageExecutionAndValidateCache: sinon.stub().callsFake(async () =>
 				(deltaMode ? {changedProjectResourcePaths: [], changedDependencyResourcePaths: []} : false)),
 			getStepInvocationData: sinon.stub().callsFake(() => capturedInvocationData),
 			getStepReturnValueStore: sinon.stub().returns(undefined),
@@ -2007,12 +2007,12 @@ test("Step-based custom task: bound at Specification Version 5.0, folds the runn
 		const taskRunner = createTaskRunner(t, project, {taskUtil, buildCache, taskDefinitions});
 		await taskRunner._initTasks();
 
-		// Build 1 (full): both steps run; the runner's outcome is folded into recordTaskResult.
+		// Build 1 (full): both steps run; the runner's outcome is folded into recordStageResult.
 		await taskRunner._tasks["myCustom"].task(projectBuildLogger);
 		t.deepEqual(ran, ["a", "b"], "The full build ran every step");
 		t.is(buildCache.setStepInvocationData.callCount, 1, "The invocation data was persisted");
-		t.is(buildCache.recordTaskResult.getCall(0).args[6], true,
-			"recordTaskResult was told the task ran the step runner");
+		t.is(buildCache.recordStageResult.getCall(0).args[6], true,
+			"recordStageResult was told the task ran the step runner");
 
 		// Build 2 (delta): only env var "a" changed, so step "a" re-runs and step "b" is restored.
 		ran.length = 0;
@@ -2032,7 +2032,7 @@ test("Step-based custom task: bound at Specification Version 5.0, folds the runn
 
 // The gating decision: the step-based opt-in is honored only from Specification Version 5.0. A 4.0 custom
 // task declaring stepBased still runs as a legacy body, so the step runner is never driven and the runner
-// outcome is not folded into recordTaskResult.
+// outcome is not folded into recordStageResult.
 test("Step-based custom task: the step-based export is ignored below Specification Version 5.0", async (t) => {
 	const {sinon, projectBuildLogger} = t.context;
 
@@ -2061,7 +2061,7 @@ test("Step-based custom task: the step-based export is ignored below Specificati
 	await taskRunner._tasks["myCustom"].task(projectBuildLogger);
 
 	t.true(ran, "The legacy task body ran");
-	t.falsy(t.context.buildCache.recordTaskResult.getCall(0).args[6],
+	t.falsy(t.context.buildCache.recordStageResult.getCall(0).args[6],
 		"The step-based export is ignored below 5.0, so the task did not run the step runner");
 });
 
@@ -2098,7 +2098,7 @@ function createStepReportingFixture(t, {stepBased, fullyCached = false}) {
 		...t.context.buildCache,
 		getStageId: (taskName, stepName) =>
 			stepName === undefined ? `task/${taskName}` : `task/${taskName}::step/${stepName}`,
-		prepareTaskExecutionAndValidateCache: sinon.stub().resolves(fullyCached),
+		prepareStageExecutionAndValidateCache: sinon.stub().resolves(fullyCached),
 		getStepInvocationData: sinon.stub().returns(undefined),
 		getStepReturnValueStore: sinon.stub().returns(undefined),
 		getResolveInputValue: sinon.stub().returns(() => undefined),

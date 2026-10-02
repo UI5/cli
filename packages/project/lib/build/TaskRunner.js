@@ -15,7 +15,7 @@ const EMPTY_RESOURCE_REQUESTS = {paths: [], patterns: []};
  *
  * When <code>base</code> is undefined (no reader was provided to the task) the result stays undefined
  * unless the task read resources through the taskUtil, preserving the "intentionally requested no
- * dependencies" signal that recordTaskResult distinguishes from an empty request set.
+ * dependencies" signal that recordStageResult distinguishes from an empty request set.
  *
  * @param {{paths: string[], patterns: string[]}|undefined} base Requests from a monitored reader
  * @param {{paths: string[], patterns: string[]}} [extra] Requests recorded via the taskUtil
@@ -319,7 +319,7 @@ class TaskRunner {
 				}
 
 				// Legacy task: the default export is a task body, not a step factory. It has a single stage.
-				const cacheInfo = await this._buildCache.prepareTaskExecutionAndValidateCache(taskName);
+				const cacheInfo = await this._buildCache.prepareStageExecutionAndValidateCache(taskName);
 				if (cacheInfo === true) {
 					this._log.skipTask(taskName);
 					return;
@@ -353,7 +353,7 @@ class TaskRunner {
 					mergeResourceRequests(dependencies?.getResourceRequests(), taskUtilRequests.dependencies);
 				const inputRecording = monitoredTaskUtil.getInputRecording();
 
-				const writtenResourcePaths = await this._buildCache.recordTaskResult(taskName,
+				const writtenResourcePaths = await this._buildCache.recordStageResult(taskName,
 					projectRequests,
 					dependencyRequests,
 					undefined,
@@ -664,7 +664,7 @@ class TaskRunner {
 			}
 
 			// Legacy custom task: the default export is a task body, not a step factory. It has a single stage.
-			const cacheInfo = await this._buildCache.prepareTaskExecutionAndValidateCache(taskName);
+			const cacheInfo = await this._buildCache.prepareStageExecutionAndValidateCache(taskName);
 			if (cacheInfo === true) {
 				this._log.skipTask(taskName);
 				return;
@@ -698,7 +698,7 @@ class TaskRunner {
 				mergeResourceRequests(dependencies?.getResourceRequests(), taskUtilRequests?.dependencies);
 			const inputRecording = monitoredTaskUtil ? monitoredTaskUtil.getInputRecording() : [];
 
-			const writtenResourcePaths = await this._buildCache.recordTaskResult(taskName,
+			const writtenResourcePaths = await this._buildCache.recordStageResult(taskName,
 				projectRequests,
 				dependencyRequests,
 				undefined,
@@ -770,7 +770,7 @@ class TaskRunner {
 	#createStepStageHooks(taskName, requiresDependencies, taskUtilInterface = this._taskUtil) {
 		return {
 			prepareStage: async (stepName) => {
-				const cacheInfo = await this._buildCache.prepareTaskExecutionAndValidateCache(taskName, stepName);
+				const cacheInfo = await this._buildCache.prepareStageExecutionAndValidateCache(taskName, stepName);
 				if (cacheInfo === true) {
 					this._log.verbose(`Step ${taskName}/${stepName} served from cache`);
 				}
@@ -821,14 +821,14 @@ class TaskRunner {
 					this._buildCache.getStageId(taskName, stepName), invocationData);
 
 				// A map step's stage served a partial (key-delta) run: append its stale outputs to the
-				// delta's changed paths so recordTaskResult drops the outputs its not-re-run keys no longer
+				// delta's changed paths so recordStageResult drops the outputs its not-re-run keys no longer
 				// produce from the carried-forward stage.
 				if (cacheInfo && staleOutputs.length) {
 					cacheInfo.changedProjectResourcePaths =
 						[...(cacheInfo.changedProjectResourcePaths ?? []), ...staleOutputs];
 				}
 
-				return this._buildCache.recordTaskResult(taskName,
+				return this._buildCache.recordStageResult(taskName,
 					projectRequests,
 					dependencyRequests,
 					cacheInfo || undefined,

@@ -677,7 +677,7 @@ test.serial(
 // getContentBundleDefinition). The env var is therefore a genuine input of the task's output.
 //
 // But the incremental build tracks only RESOURCE inputs: a task's stage signature is derived from the
-// content hashes of the project/dependency resources it reads (BuildTaskCache.recordRequests ->
+// content hashes of the project/dependency resources it reads (BuildStageCache.recordRequests ->
 // ResourceRequestManager), and the project build signature (getBuildSignature.js `getProjectSignature`)
 // folds in only build config, task option signatures, project id/config and tool versions. No
 // process.env value feeds either. So flipping UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD between builds,

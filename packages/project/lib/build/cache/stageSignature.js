@@ -1,6 +1,6 @@
 /**
  * Stage-signature tuple format, shared by {@link @ui5/project/build/cache/ProjectBuildCache} and
- * {@link @ui5/project/build/cache/BuildTaskCache}.
+ * {@link @ui5/project/build/cache/BuildStageCache}.
  *
  * A stage signature is an explicit tuple of four independent components joined by
  * {@link STAGE_SIGNATURE_SEPARATOR}, in order: project resources, dependency resources, non-resource

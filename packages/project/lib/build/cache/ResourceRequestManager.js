@@ -42,7 +42,7 @@ function serializeUnresolvedRequests(entry, unresolvedRequests) {
  * @class
  */
 class ResourceRequestManager {
-	#taskName;
+	#ownerId;
 	#projectName;
 	#requestGraph;
 
@@ -61,14 +61,14 @@ class ResourceRequestManager {
 	 * Creates a new ResourceRequestManager instance
 	 *
 	 * @param {string} projectName Name of the project
-	 * @param {string} taskName Name of the task
+	 * @param {string} ownerId Identifier of the request owner (a stage id, or a stage's root-reads label)
 	 * @param {boolean} useDifferentialUpdate Whether to track differential updates
 	 * @param {ResourceRequestGraph} [requestGraph] Optional pre-existing request graph from cache
-	 * @param {boolean} [unusedAtLeastOnce=false] Whether the task has been unused at least once
+	 * @param {boolean} [unusedAtLeastOnce=false] Whether the request owner has been unused at least once
 	 */
-	constructor(projectName, taskName, useDifferentialUpdate, requestGraph, unusedAtLeastOnce = false) {
+	constructor(projectName, ownerId, useDifferentialUpdate, requestGraph, unusedAtLeastOnce = false) {
 		this.#projectName = projectName;
-		this.#taskName = taskName;
+		this.#ownerId = ownerId;
 		this.#useDifferentialUpdate = useDifferentialUpdate;
 		this.#unusedAtLeastOnce = unusedAtLeastOnce;
 		if (requestGraph) {
@@ -87,7 +87,7 @@ class ResourceRequestManager {
 	 * including both root indices and delta indices for differential updates.
 	 *
 	 * @param {string} projectName Name of the project
-	 * @param {string} taskName Name of the task
+	 * @param {string} ownerId Identifier of the request owner (a stage id, or a stage's root-reads label)
 	 * @param {boolean} useDifferentialUpdate Whether to track differential updates
 	 * @param {object} cacheData Cached metadata object
 	 * @param {object} cacheData.requestSetGraph Serialized request graph
@@ -96,12 +96,12 @@ class ResourceRequestManager {
 	 * @param {boolean} [cacheData.unusedAtLeastOnce] Whether the task has been unused
 	 * @returns {ResourceRequestManager} Restored manager instance
 	 */
-	static fromCache(projectName, taskName, useDifferentialUpdate, {
+	static fromCache(projectName, ownerId, useDifferentialUpdate, {
 		requestSetGraph, rootIndices, deltaIndices, unusedAtLeastOnce
 	}) {
 		const requestGraph = ResourceRequestGraph.fromCache(requestSetGraph);
 		const resourceRequestManager = new ResourceRequestManager(
-			projectName, taskName, useDifferentialUpdate, requestGraph, unusedAtLeastOnce);
+			projectName, ownerId, useDifferentialUpdate, requestGraph, unusedAtLeastOnce);
 		const registries = new Map();
 		// Restore root resource indices
 		for (const {nodeId, resourceIndex: serializedIndex, unresolvedRequests} of rootIndices) {
@@ -119,7 +119,7 @@ class ResourceRequestManager {
 				const registry = registries.get(node.getParentId());
 				if (!registry) {
 					throw new Error(`Missing tree registry for parent of node ID ${nodeId} of task ` +
-					`'${taskName}' of project '${projectName}'`);
+					`'${ownerId}' of project '${projectName}'`);
 				}
 				const resourceIndex = parentResourceIndex.deriveTreeWithIndex(addedResourceIndex);
 
@@ -205,7 +205,7 @@ class ResourceRequestManager {
 		}));
 		if (log.isLevelEnabled("perf")) {
 			log.perf(
-				`refreshIndices for task '${this.#taskName}' of project '${this.#projectName}' ` +
+				`refreshIndices for '${this.#ownerId}' of project '${this.#projectName}' ` +
 				`completed in ${(performance.now() - refreshStart).toFixed(2)} ms: ` +
 				`${totalResourcesFetched} resources fetched, ${totalResourcesRemoved} resources removed`);
 		}
@@ -288,7 +288,7 @@ class ResourceRequestManager {
 		}
 		if (log.isLevelEnabled("perf")) {
 			log.perf(
-				`updateIndices for task '${this.#taskName}' of project '${this.#projectName}' ` +
+				`updateIndices for '${this.#ownerId}' of project '${this.#projectName}' ` +
 				`resource fetch completed in ${(performance.now() - fetchStart).toFixed(2)} ms: ` +
 				`${cacheHits} cache hits, ${cacheMisses} cache misses`);
 		}
@@ -462,7 +462,7 @@ class ResourceRequestManager {
 		const results = await Promise.all(this.#treeRegistries.map((registry) => registry.flush()));
 		if (log.isLevelEnabled("perf")) {
 			log.perf(
-				`#flushTreeChanges for task '${this.#taskName}' of project '${this.#projectName}' ` +
+				`#flushTreeChanges for '${this.#ownerId}' of project '${this.#projectName}' ` +
 				`completed in ${(performance.now() - flushStart).toFixed(2)} ms ` +
 				`across ${this.#treeRegistries.length} registries`);
 		}
@@ -525,7 +525,7 @@ class ResourceRequestManager {
 	 * Returns a map of signature transitions and their associated changed resource paths.
 	 * A removed resource is included as a changed path: a step that read the removed
 	 * input then re-runs (or, for a gone key, drops out), and its stale output is dropped from the
-	 * carried-forward stage via the changed-paths merge in ProjectBuildCache.recordTaskResult.
+	 * carried-forward stage via the changed-paths merge in ProjectBuildCache.recordStageResult.
 	 *
 	 * @public
 	 * @returns {Map<string, object>} Map from original signature to delta information
@@ -626,7 +626,7 @@ class ResourceRequestManager {
 				const addedRequests = requestSet.getAddedRequests();
 				const resourcesToAdd =
 					await this.#getResourcesForRequests(addedRequests, reader);
-				log.verbose(`Task '${this.#taskName}' of project '${this.#projectName}' ` +
+				log.verbose(`Request owner '${this.#ownerId}' of project '${this.#projectName}' ` +
 					`created derived resource index for request set ID ${setId} ` +
 					`based on parent ID ${parentId} with ${resourcesToAdd.length} additional resources`);
 				resourceIndex = await parentResourceIndex.deriveTree(resourcesToAdd);

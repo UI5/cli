@@ -4,7 +4,7 @@ import {gzip} from "node:zlib";
 import {Readable} from "node:stream";
 import crypto from "node:crypto";
 import os from "node:os";
-import BuildTaskCache from "./BuildTaskCache.js";
+import BuildStageCache from "./BuildStageCache.js";
 import StageCache from "./StageCache.js";
 import ResourceIndex from "./index/ResourceIndex.js";
 import {createStageSignature, splitStageSignature, STAGE_SIG_DEPENDENCY_INDEX} from "./stageSignature.js";
@@ -54,7 +54,7 @@ export const RESULT_CACHE_STATES = Object.freeze({
  */
 
 export default class ProjectBuildCache {
-	#taskCache = new Map();
+	#stageCaches = new Map();
 	#stageCache = new StageCache();
 	#prefetchedStageReads;
 	// Stage ids in execution order, as established by setTasks. Drives the one-stage lookahead in
@@ -179,7 +179,7 @@ export default class ProjectBuildCache {
 	 * project build: discards any in-memory StageCache entries left over from a prior aborted
 	 * build (successful builds flush the queue in writeCache, so this is a no-op in the common
 	 * case) and captures the current project and dependency readers for later use by
-	 * recordTaskResult.
+	 * recordStageResult.
 	 *
 	 * @public
 	 * @param {@ui5/fs/AbstractReader} dependencyReader Reader for dependency resources, used to
@@ -337,10 +337,10 @@ export default class ProjectBuildCache {
 		let depIndicesChanged = false;
 		if (this.#changedDependencyResourcePaths.length) {
 			const depStart = performance.now();
-			const tasksWithDepRequests = Array.from(this.#taskCache.values())
-				.filter((taskCache) => taskCache.hasDependencyRequests());
-			await Promise.all(tasksWithDepRequests.map(async (taskCache) => {
-				const changed = await taskCache
+			const tasksWithDepRequests = Array.from(this.#stageCaches.values())
+				.filter((stageCache) => stageCache.hasDependencyRequests());
+			await Promise.all(tasksWithDepRequests.map(async (stageCache) => {
+				const changed = await stageCache
 					.updateDependencyIndices(dependencyReader, this.#changedDependencyResourcePaths);
 				if (changed) {
 					depIndicesChanged = true;
@@ -351,7 +351,7 @@ export default class ProjectBuildCache {
 					`#flushPendingChanges updateDependencyIndices for project ${this.#project.getName()} ` +
 					`completed in ${(performance.now() - depStart).toFixed(2)} ms ` +
 					`(${this.#changedDependencyResourcePaths.length} changed paths, ` +
-					`${tasksWithDepRequests.length}/${this.#taskCache.size} tasks, changed=${depIndicesChanged})`);
+					`${tasksWithDepRequests.length}/${this.#stageCaches.size} tasks, changed=${depIndicesChanged})`);
 			}
 		}
 
@@ -376,10 +376,10 @@ export default class ProjectBuildCache {
 	 * @returns {Promise<void>}
 	 */
 	async _refreshDependencyIndices(dependencyReader) {
-		const tasksWithDepRequests = Array.from(this.#taskCache.values())
-			.filter((taskCache) => taskCache.hasDependencyRequests());
-		await Promise.all(tasksWithDepRequests.map(async (taskCache) => {
-			await taskCache.refreshDependencyIndices(dependencyReader);
+		const tasksWithDepRequests = Array.from(this.#stageCaches.values())
+			.filter((stageCache) => stageCache.hasDependencyRequests());
+		await Promise.all(tasksWithDepRequests.map(async (stageCache) => {
+			await stageCache.refreshDependencyIndices(dependencyReader);
 		}));
 		// Reset pending dependency changes since indices are fresh now anyways
 		this.#changedDependencyResourcePaths = [];
@@ -471,23 +471,23 @@ export default class ProjectBuildCache {
 	/**
 	 * Imports cached stages and sets them in the project
 	 *
-	 * @param {Object<string, string>} stageSignatures Map of stage names to their signatures
+	 * @param {Object<string, string>} stageSignatures Map of stage ids to their signatures
 	 * @returns {string[]} Array of resource paths written by all imported stages
 	 */
 	#importStages(stageSignatures) {
-		const stageNames = Object.keys(stageSignatures);
+		const stageIds = Object.keys(stageSignatures);
 		if (this.#project.getProjectResources().getStage()?.getId() === "initial") {
 			// Only initialize stages once
-			this.#project.getProjectResources().initStages(stageNames);
+			this.#project.getProjectResources().initStages(stageIds);
 		}
-		const importedStages = stageNames.map((stageName) => {
-			const stageSignature = stageSignatures[stageName];
-			const stageCache = this.#findStageCache(stageName, [stageSignature]);
+		const importedStages = stageIds.map((stageId) => {
+			const stageSignature = stageSignatures[stageId];
+			const stageCache = this.#findStageCache(stageId, [stageSignature]);
 			if (!stageCache) {
 				throw new Error(`Inconsistent result cache: Could not find cached stage ` +
-					`${stageName} with signature ${stageSignature} for project ${this.#project.getName()}`);
+					`${stageId} with signature ${stageSignature} for project ${this.#project.getName()}`);
 			}
-			return [stageName, stageCache];
+			return [stageId, stageCache];
 		});
 		this.#project.getProjectResources().useResultStage();
 
@@ -498,16 +498,16 @@ export default class ProjectBuildCache {
 		const isInitialImport = this.#currentStageSignatures.size === 0;
 
 		const writtenResourcePaths = new Set();
-		for (const [stageName, stageCache] of importedStages) {
+		for (const [stageId, stageCache] of importedStages) {
 			// Check whether the stage differs form the one currently in use
-			const currentStageTuple = this.#currentStageSignatures.get(stageName);
+			const currentStageTuple = this.#currentStageSignatures.get(stageId);
 			if ((currentStageTuple && createStageSignature(currentStageTuple)) !== stageCache.signature) {
 				// Set stage
-				this.#project.getProjectResources().setStage(stageName, stageCache.stage,
+				this.#project.getProjectResources().setStage(stageId, stageCache.stage,
 					stageCache.projectTagOperations, stageCache.buildTagOperations);
 
 				// Store signature for later use in result stage signature calculation
-				this.#currentStageSignatures.set(stageName, splitStageSignature(stageCache.signature));
+				this.#currentStageSignatures.set(stageId, splitStageSignature(stageCache.signature));
 
 				if (!isInitialImport) {
 					// Cached stage differs from the previous one
@@ -547,13 +547,13 @@ export default class ProjectBuildCache {
 		// createDependencySignature is positional and length-sensitive, so a divergence here would store
 		// a result signature no later lookup could reproduce (F2).
 		const taskDependencySignatures = this.#stageOrder.map((stageId) => {
-			const taskCache = this.#taskCache.get(stageId);
-			if (!taskCache) {
+			const stageCache = this.#stageCaches.get(stageId);
+			if (!stageCache) {
 				throw new Error(
 					`Inconsistent stage state in project ${this.#project.getName()}: stage ${stageId} is ` +
 					`in the stage order but has no task cache`);
 			}
-			return taskCache.getDependencyIndexSignatures();
+			return stageCache.getDependencyIndexSignatures();
 		});
 		const dependencySignaturesCombinations = cartesianProduct(taskDependencySignatures);
 
@@ -612,8 +612,8 @@ export default class ProjectBuildCache {
 	 */
 	#getAggregatedInputSignature() {
 		const inputSignatures = [];
-		for (const taskCache of this.#taskCache.values()) {
-			inputSignatures.push(taskCache.getInputSignature(this.#resolveInputValue));
+		for (const stageCache of this.#stageCaches.values()) {
+			inputSignatures.push(stageCache.getInputSignature(this.#resolveInputValue));
 		}
 		return crypto.createHash("sha256").update(inputSignatures.sort().join("\0")).digest("hex");
 	}
@@ -635,8 +635,8 @@ export default class ProjectBuildCache {
 	 * @returns {boolean}
 	 */
 	#anyTaskHasRootRequests() {
-		for (const taskCache of this.#taskCache.values()) {
-			if (taskCache.hasRootRequests()) {
+		for (const stageCache of this.#stageCaches.values()) {
+			if (stageCache.hasRootRequests()) {
 				return true;
 			}
 		}
@@ -651,9 +651,9 @@ export default class ProjectBuildCache {
 	 */
 	async #refreshRootIndices() {
 		const getRootReader = this.#getRootReaderFactory();
-		await Promise.all(Array.from(this.#taskCache.values())
-			.filter((taskCache) => taskCache.hasRootRequests())
-			.map((taskCache) => taskCache.refreshRootIndices(getRootReader)));
+		await Promise.all(Array.from(this.#stageCaches.values())
+			.filter((stageCache) => stageCache.hasRootRequests())
+			.map((stageCache) => stageCache.refreshRootIndices(getRootReader)));
 	}
 
 	/**
@@ -664,8 +664,8 @@ export default class ProjectBuildCache {
 	 */
 	#getAggregatedRootSignature() {
 		const rootSignatures = [];
-		for (const taskCache of this.#taskCache.values()) {
-			rootSignatures.push(taskCache.getRootSignature());
+		for (const stageCache of this.#stageCaches.values()) {
+			rootSignatures.push(stageCache.getRootSignature());
 		}
 		return crypto.createHash("sha256").update(rootSignatures.sort().join("\0")).digest("hex");
 	}
@@ -691,75 +691,75 @@ export default class ProjectBuildCache {
 	 *   True if the stage can use cache, false if it needs execution,
 	 *   or an object with cache information for differential updates
 	 */
-	async prepareTaskExecutionAndValidateCache(taskName, stepName) {
-		const stageName = this.#getStageNameForTask(taskName, stepName);
-		const taskCache = this.#taskCache.get(stageName);
-		// Store current project reader (= state of the previous stage) for later use (e.g. in recordTaskResult)
+	async prepareStageExecutionAndValidateCache(taskName, stepName) {
+		const stageId = this.#stageIdFor(taskName, stepName);
+		const stageCache = this.#stageCaches.get(stageId);
+		// Store current project reader (= state of the previous stage) for later use (e.g. in recordStageResult)
 		this.#currentProjectReader = this.#project.getReader();
 		// Switch project to new stage
-		this.#project.getProjectResources().useStage(stageName);
-		log.verbose(`Preparing execution for stage ${stageName} in project ${this.#project.getName()}...`);
+		this.#project.getProjectResources().useStage(stageId);
+		log.verbose(`Preparing execution for stage ${stageId} in project ${this.#project.getName()}...`);
 		// Read the next stage's cache metadata now, so its database reads happen while this stage executes
 		// rather than when that stage is prepared. The stage order comes from setTasks, so this covers a
 		// legacy task's single stage and a step-based task's per-step stages alike.
-		this.#prefetchNextStageCache(stageName);
-		if (!taskCache) {
+		this.#prefetchNextStageCache(stageId);
+		if (!stageCache) {
 			log.verbose(`No stage cache found`);
 			return false;
 		}
 		if (this.#writtenResultResourcePaths.length) {
-			// Update task indices based on source changes and changes from by previous tasks
+			// Update stage indices based on source changes and changes from previous stages
 			const updateProjectIndicesStart = performance.now();
-			await taskCache.updateProjectIndices(this.#currentProjectReader, this.#writtenResultResourcePaths);
+			await stageCache.updateProjectIndices(this.#currentProjectReader, this.#writtenResultResourcePaths);
 			if (log.isLevelEnabled("perf")) {
 				log.perf(
-					`Updated project indices for task ${taskName} in project ${this.#project.getName()} ` +
+					`Updated project indices for stage ${stageId} in project ${this.#project.getName()} ` +
 					`in ${(performance.now() - updateProjectIndicesStart).toFixed(2)} ms`);
 			}
 		}
 
 		// TODO: Implement:
 		// After index update, try to find cached stages for the new signatures
-		// let stageSignatures = taskCache.getAffiliatedSignaturePairs();
+		// let stageSignatures = stageCache.getAffiliatedSignaturePairs();
 
 		// A stage signature is the [project, dependency, input, root] tuple. The exact-match candidates
 		// are the cartesian product of the recorded project and dependency index signatures, each paired
-		// with the current input and root signatures (BuildTaskCache.getStageSignatures). The input and
+		// with the current input and root signatures (BuildStageCache.getStageSignatures). The input and
 		// root signatures are re-evaluated against the current environment, graph, and project root, so a
 		// changed input or root file misses the cached stage. Root indices were refreshed in validateCache
 		// before this build's tasks run.
-		const inputSignature = taskCache.getInputSignature(this.#resolveInputValue);
-		const rootSignature = taskCache.getRootSignature();
-		const stageSignatures = taskCache.getStageSignatures(this.#resolveInputValue);
+		const inputSignature = stageCache.getInputSignature(this.#resolveInputValue);
+		const rootSignature = stageCache.getRootSignature();
+		const stageSignatures = stageCache.getStageSignatures(this.#resolveInputValue);
 
-		const stageCache = this.#findStageCache(stageName, stageSignatures);
-		const oldStageTuple = this.#currentStageSignatures.get(stageName);
+		const cachedStage = this.#findStageCache(stageId, stageSignatures);
+		const oldStageTuple = this.#currentStageSignatures.get(stageId);
 		const oldStageSig = oldStageTuple && createStageSignature(oldStageTuple);
-		if (stageCache) {
-			this.#project.getProjectResources().setStage(stageName, stageCache.stage,
-				stageCache.projectTagOperations, stageCache.buildTagOperations);
+		if (cachedStage) {
+			this.#project.getProjectResources().setStage(stageId, cachedStage.stage,
+				cachedStage.projectTagOperations, cachedStage.buildTagOperations);
 
 			// Skip propagation when the cached stage matches the previous one
-			if (stageCache.signature !== oldStageSig) {
+			if (cachedStage.signature !== oldStageSig) {
 				// Store new stage signature for later use in result stage signature calculation
-				this.#currentStageSignatures.set(stageName, splitStageSignature(stageCache.signature));
+				this.#currentStageSignatures.set(stageId, splitStageSignature(cachedStage.signature));
 
 				// Cached stage likely differs from the previous one (if any)
 				// Add all resources written by the cached stage to the set of written/potentially changed resources
-				for (const resourcePath of stageCache.writtenResourcePaths) {
+				for (const resourcePath of cachedStage.writtenResourcePaths) {
 					if (!this.#writtenResultResourcePaths.includes(resourcePath)) {
 						this.#writtenResultResourcePaths.push(resourcePath);
 					}
 				}
 			}
-			return true; // No need to execute the task
+			return true; // No need to execute the stage
 		} else {
-			log.verbose(`No cached stage found for task ${taskName} in project ${this.#project.getName()}. ` +
+			log.verbose(`No cached stage found for stage ${stageId} in project ${this.#project.getName()}. ` +
 				`Attempting to find delta cached stage...`);
-			const projectDeltas = taskCache.getProjectIndexDeltas();
-			const depDeltas = taskCache.getDependencyIndexDeltas();
-			const projectSignatures = taskCache.getProjectIndexSignatures();
-			const dependencySignatures = taskCache.getDependencyIndexSignatures();
+			const projectDeltas = stageCache.getProjectIndexDeltas();
+			const depDeltas = stageCache.getDependencyIndexDeltas();
+			const projectSignatures = stageCache.getProjectIndexSignatures();
+			const dependencySignatures = stageCache.getDependencyIndexSignatures();
 
 			// Build the delta candidates and carry each one's provenance alongside it: the resolved new
 			// project and dependency components and the changed-path lists. The winner is looked up by its
@@ -798,7 +798,7 @@ export default class ProjectBuildCache {
 				}
 			}
 
-			const deltaStageCache = this.#findStageCache(stageName, deltaSignatures);
+			const deltaStageCache = this.#findStageCache(stageId, deltaSignatures);
 			if (deltaStageCache) {
 				const provenance = provenanceBySignature.get(deltaStageCache.signature);
 
@@ -819,10 +819,10 @@ export default class ProjectBuildCache {
 				const newStageTuple =
 					[provenance.newProjectSig, provenance.newDependencySig, inputSignature, rootSignature];
 				const newSignature = createStageSignature(newStageTuple);
-				this.#currentStageSignatures.set(stageName, newStageTuple);
+				this.#currentStageSignatures.set(stageId, newStageTuple);
 
 				log.verbose(
-					`Using delta cached stage for task ${taskName} in project ${this.#project.getName()} ` +
+					`Using delta cached stage for stage ${stageId} in project ${this.#project.getName()} ` +
 					`with original signature ${deltaStageCache.signature} (now ${newSignature}) ` +
 					`and ${provenance.changedProjectResourcePaths.length} changed project resource paths and ` +
 					`${provenance.changedDependencyResourcePaths.length} changed dependency resource paths.`);
@@ -843,7 +843,7 @@ export default class ProjectBuildCache {
 	 * {@link StepRunner} determined must re-execute (a consumed <code>needs</code> return changed). The
 	 * full hit had installed the cached read-only stage via {@link #findStageCache} +
 	 * <code>setStage</code>; this swaps in a writable stage. The re-run records through the normal
-	 * {@link #recordTaskResult} full path, which recomputes the stage signature and overwrites the
+	 * {@link #recordStageResult} full path, which recomputes the stage signature and overwrites the
 	 * eagerly-stored full-hit signature.
 	 *
 	 * @public
@@ -851,8 +851,8 @@ export default class ProjectBuildCache {
 	 * @param {string} [stepName] Name of the step, for a step-based task's per-step stage
 	 */
 	reopenStageForRerun(taskName, stepName) {
-		const stageName = this.#getStageNameForTask(taskName, stepName);
-		this.#project.getProjectResources().reopenStage(stageName);
+		const stageId = this.#stageIdFor(taskName, stepName);
+		this.#project.getProjectResources().reopenStage(stageId);
 	}
 
 	/**
@@ -882,14 +882,14 @@ export default class ProjectBuildCache {
 	 * @param {string} stageId Stage id to prefetch cache for
 	 */
 	prefetchStageCache(stageId) {
-		const taskCache = this.#taskCache.get(stageId);
-		if (!taskCache) {
+		const stageCache = this.#stageCaches.get(stageId);
+		if (!stageCache) {
 			return;
 		}
 
 		// Compute the exact-match stage signatures from the current index state, matching how stages are
-		// recorded and looked up in prepareTaskExecutionAndValidateCache.
-		const stageSignatures = taskCache.getStageSignatures(this.#resolveInputValue);
+		// recorded and looked up in prepareStageExecutionAndValidateCache.
+		const stageSignatures = stageCache.getStageSignatures(this.#resolveInputValue);
 
 		if (!stageSignatures.length) {
 			return;
@@ -927,35 +927,35 @@ export default class ProjectBuildCache {
 	 * Checks both in-memory stage cache and persistent cache storage for a matching
 	 * stage signature. Returns the first matching cached stage found.
 	 *
-	 * @param {string} stageName Name of the stage to find
+	 * @param {string} stageId Name of the stage to find
 	 * @param {string[]} stageSignatures Possible signatures for the stage
 	 * @returns {@ui5/project/build/cache/ProjectBuildCache~StageCacheEntry|undefined}
 	 *   Cached stage entry or undefined if not found
 	 */
-	#findStageCache(stageName, stageSignatures) {
+	#findStageCache(stageId, stageSignatures) {
 		if (!stageSignatures.length) {
 			return;
 		}
 		// Check cache exists and ensure it's still valid before using it
-		log.verbose(`Looking for cached stage for task ${stageName} in project ${this.#project.getName()} ` +
+		log.verbose(`Looking for cached stage for stage  in project ${this.#project.getName()} ` +
 			`with ${stageSignatures.length} possible signatures:\n - ${stageSignatures.join("\n - ")}`);
 		for (const stageSignature of stageSignatures) {
-			const stageCache = this.#stageCache.getCacheForSignature(stageName, stageSignature);
+			const stageCache = this.#stageCache.getCacheForSignature(stageId, stageSignature);
 			if (stageCache) {
 				return stageCache;
 			}
 		}
 
 		// Check prefetched data
-		const prefetchMap = this.#prefetchedStageReads?.get(stageName);
+		const prefetchMap = this.#prefetchedStageReads?.get(stageId);
 		if (prefetchMap) {
-			this.#prefetchedStageReads.delete(stageName);
+			this.#prefetchedStageReads.delete(stageId);
 			for (const stageSignature of stageSignatures) {
 				const stageMetadata = prefetchMap.get(stageSignature);
 				if (stageMetadata) {
-					log.verbose(`Found prefetched cached stage for task ${stageName} ` +
+					log.verbose(`Found prefetched cached stage for stage  ` +
 						`with signature ${stageSignature}`);
-					return this.#processStageCacheMetadata(stageName, stageSignature, stageMetadata);
+					return this.#processStageCacheMetadata(stageId, stageSignature, stageMetadata);
 				}
 			}
 			// Filter out already-checked signatures from disk lookup
@@ -967,29 +967,29 @@ export default class ProjectBuildCache {
 
 		// Batch-check which signatures exist, then read only the first match
 		const existingSignatures = this.#cacheManager.findExistingStageSignatures(
-			this.#project.getId(), this.#buildSignature, stageName, stageSignatures);
+			this.#project.getId(), this.#buildSignature, stageId, stageSignatures);
 		if (!existingSignatures.length) {
 			return;
 		}
 		const stageSignature = existingSignatures[0];
 		const stageMetadata = this.#cacheManager.readStageCache(
-			this.#project.getId(), this.#buildSignature, stageName, stageSignature);
+			this.#project.getId(), this.#buildSignature, stageId, stageSignature);
 		if (!stageMetadata) {
 			return;
 		}
-		log.verbose(`Found cached stage for task ${stageName} with signature ${stageSignature}`);
-		return this.#processStageCacheMetadata(stageName, stageSignature, stageMetadata);
+		log.verbose(`Found cached stage for stage  with signature ${stageSignature}`);
+		return this.#processStageCacheMetadata(stageId, stageSignature, stageMetadata);
 	}
 
 	/**
 	 * Processes stage cache metadata into a stage cache entry
 	 *
-	 * @param {string} stageName Name of the stage
+	 * @param {string} stageId Name of the stage
 	 * @param {string} stageSignature Signature of the stage
 	 * @param {object} stageMetadata Raw metadata from cache
 	 * @returns {object} Stage cache entry
 	 */
-	#processStageCacheMetadata(stageName, stageSignature, stageMetadata) {
+	#processStageCacheMetadata(stageId, stageSignature, stageMetadata) {
 		const {resourceMapping, resourceMetadata, projectTagOperations, buildTagOperations} = stageMetadata;
 		let writtenResourcePaths;
 		let stageReader;
@@ -999,7 +999,7 @@ export default class ProjectBuildCache {
 			const readers = resourceMetadata.map((metadata) => {
 				writtenResourcePaths.push(...Object.keys(metadata));
 				return this.#createReaderForStageCache(
-					stageName, stageSignature, metadata);
+					stageId, stageSignature, metadata);
 			});
 
 			const writerMapping = Object.create(null);
@@ -1012,12 +1012,12 @@ export default class ProjectBuildCache {
 			}
 
 			stageReader = createWriterCollection({
-				name: `Restored cached stage ${stageName} for project ${this.#project.getName()}`,
+				name: `Restored cached stage ${stageId} for project ${this.#project.getName()}`,
 				writerMapping,
 			});
 		} else {
 			writtenResourcePaths = Object.keys(resourceMetadata);
-			stageReader = this.#createReaderForStageCache(stageName, stageSignature, resourceMetadata);
+			stageReader = this.#createReaderForStageCache(stageId, stageSignature, resourceMetadata);
 		}
 
 		this.#collectKnownIntegrities(resourceMetadata);
@@ -1042,16 +1042,16 @@ export default class ProjectBuildCache {
 	 *
 	 * @public
 	 * @param {string} taskName Name of the executed task
-	 * @param {@ui5/project/build/cache/BuildTaskCache~ResourceRequests} projectResourceRequests
+	 * @param {@ui5/project/build/cache/BuildStageCache~ResourceRequests} projectResourceRequests
 	 *   Resource requests for project resources
-	 * @param {@ui5/project/build/cache/BuildTaskCache~ResourceRequests|undefined} dependencyResourceRequests
+	 * @param {@ui5/project/build/cache/BuildStageCache~ResourceRequests|undefined} dependencyResourceRequests
 	 *   Resource requests for dependency resources
 	 * @param {object} cacheInfo Cache information for differential updates
 	 * @param {Array<{type: string, name: string, value: string|undefined}>} [inputRecording]
 	 *   Non-resource inputs (environment variables, TaskUtil interface reads) recorded during task
 	 *   execution
-	 * @param {{gitignore: @ui5/project/build/cache/BuildTaskCache~ResourceRequests,
-	 *   noGitignore: @ui5/project/build/cache/BuildTaskCache~ResourceRequests}} [rootResourceRequests]
+	 * @param {{gitignore: @ui5/project/build/cache/BuildStageCache~ResourceRequests,
+	 *   noGitignore: @ui5/project/build/cache/BuildStageCache~ResourceRequests}} [rootResourceRequests]
 	 *   Resource requests read through the project's root reader, keyed by useGitignore
 	 * @returns {Promise<string[]|undefined>} The resource paths written by the task,
 	 *   or <code>undefined</code> if caching is disabled
@@ -1084,7 +1084,7 @@ export default class ProjectBuildCache {
 
 	/**
 	 * Stores the step-runner invocation data a step's stage recorded on this build, for the delta
-	 * selection and read fold-back of the next build. Persisted by {@link #prepareTaskRequestCache}.
+	 * selection and read fold-back of the next build. Persisted by {@link #prepareStageRequestCache}.
 	 *
 	 * @param {string} stageId Stage id
 	 * @param {Map<string, object>} invocationData That stage's per-key data
@@ -1193,13 +1193,13 @@ export default class ProjectBuildCache {
 
 	/**
 	 * Re-records a map step's stage complete request set on a delta build and returns the resulting
-	 * [projectSignature, dependencySignature] pair, so {@link #recordTaskResult} can re-key the stage on
+	 * [projectSignature, dependencySignature] pair, so {@link #recordStageResult} can re-key the stage on
 	 * it (see open-gaps §7). The request set fed in already unions the delta's monitored requests with
 	 * every key's persisted reads (assembled by the driver and the TaskRunner), so recording it keys
 	 * the stage exactly as a full build would.
 	 *
 	 * @param {string} stageId Executed stage id
-	 * @param {@ui5/project/build/cache/BuildTaskCache} taskCache The stage's cache
+	 * @param {@ui5/project/build/cache/BuildStageCache} stageCache The stage's cache
 	 * @param {object} projectResourceRequests Complete project requests (paths + patterns)
 	 * @param {object} dependencyResourceRequests Complete dependency requests, if the stage reads dependencies
 	 * @param {Array<object>} inputRecording Recorded non-resource inputs
@@ -1207,15 +1207,15 @@ export default class ProjectBuildCache {
 	 * @returns {Promise<string[]>} The [project, dependency, input, root] stage-signature tuple
 	 */
 	async #foldStepReads(
-		stageId, taskCache, projectResourceRequests, dependencyResourceRequests, inputRecording, rootResourceRequests
+		stageId, stageCache, projectResourceRequests, dependencyResourceRequests, inputRecording, rootResourceRequests
 	) {
-		return taskCache.recordRequests(
+		return stageCache.recordRequests(
 			projectResourceRequests, dependencyResourceRequests,
 			this.#currentProjectReader, this.#currentDependencyReader,
 			inputRecording, rootResourceRequests, this.#getRootReaderFactory());
 	}
 
-	async recordTaskResult(
+	async recordStageResult(
 		taskName, projectResourceRequests, dependencyResourceRequests, cacheInfo,
 		inputRecording = [], rootResourceRequests, stepBased = false, stepName
 	) {
@@ -1223,14 +1223,14 @@ export default class ProjectBuildCache {
 			return;
 		}
 		const recordStart = performance.now();
-		const stageId = this.#getStageNameForTask(taskName, stepName);
-		if (!this.#taskCache.has(stageId)) {
+		const stageId = this.#stageIdFor(taskName, stepName);
+		if (!this.#stageCaches.has(stageId)) {
 			// Initialize stage cache
-			this.#taskCache.set(stageId,
-				new BuildTaskCache(this.#project.getName(), stageId, stepBased));
+			this.#stageCaches.set(stageId,
+				new BuildStageCache(this.#project.getName(), stageId, stepBased));
 		}
 		log.verbose(`Recording results of stage ${stageId} in project ${this.#project.getName()}...`);
-		const taskCache = this.#taskCache.get(stageId);
+		const stageCache = this.#stageCaches.get(stageId);
 
 		// Identify resources written by task
 		const stage = this.#project.getProjectResources().getStage();
@@ -1303,7 +1303,7 @@ export default class ProjectBuildCache {
 			}
 			if (log.isLevelEnabled("perf")) {
 				log.perf(
-					`recordTaskResult delta merge for task ${taskName} ` +
+					`recordStageResult delta merge for task ${taskName} ` +
 					`in project ${this.#project.getName()} completed in ` +
 					`${(performance.now() - mergeStart).toFixed(2)} ms ` +
 					`(${previousWrittenResources.length} previous, ${mergedCount} merged, ` +
@@ -1318,7 +1318,7 @@ export default class ProjectBuildCache {
 				// stage's complete read set instead, exactly as the full-build branch does, so the next
 				// build looks the stage up under a signature that tracks every current input (open-gaps §7).
 				const foldedStageTuple = await this.#foldStepReads(
-					stageId, taskCache, projectResourceRequests, dependencyResourceRequests,
+					stageId, stageCache, projectResourceRequests, dependencyResourceRequests,
 					inputRecording, rootResourceRequests);
 				this.#currentStageSignatures.set(stageId, foldedStageTuple);
 				stageSignature = createStageSignature(foldedStageTuple);
@@ -1326,7 +1326,7 @@ export default class ProjectBuildCache {
 		} else {
 			// Calculate signature for executed stage
 			const recordReqStart = performance.now();
-			const stageSignatureTuple = await taskCache.recordRequests(
+			const stageSignatureTuple = await stageCache.recordRequests(
 				projectResourceRequests,
 				dependencyResourceRequests,
 				this.#currentProjectReader,
@@ -1337,7 +1337,7 @@ export default class ProjectBuildCache {
 			);
 			if (log.isLevelEnabled("perf")) {
 				log.perf(
-					`recordTaskResult recordRequests for stage ${stageId} ` +
+					`recordStageResult recordRequests for stage ${stageId} ` +
 					`in project ${this.#project.getName()} completed in ` +
 					`${(performance.now() - recordReqStart).toFixed(2)} ms`);
 			}
@@ -1366,7 +1366,7 @@ export default class ProjectBuildCache {
 		this.#currentProjectReader = null;
 		if (log.isLevelEnabled("perf")) {
 			log.perf(
-				`recordTaskResult for task ${taskName} in project ${this.#project.getName()} ` +
+				`recordStageResult for task ${taskName} in project ${this.#project.getName()} ` +
 				`completed in ${(performance.now() - recordStart).toFixed(2)} ms ` +
 				`(${writtenResourcePaths.length} written resources, delta=${!!cacheInfo})`);
 		}
@@ -1379,13 +1379,13 @@ export default class ProjectBuildCache {
 	 * @public
 	 * @param {string} taskName Name of the task (a legacy task's single stage), or a full stage id
 	 * @param {string} [stepName] Name of the step, for a step-based task's per-step stage
-	 * @returns {@ui5/project/build/cache/BuildTaskCache|undefined}
+	 * @returns {@ui5/project/build/cache/BuildStageCache|undefined}
 	 *   The stage cache or undefined if not found
 	 */
-	getTaskCache(taskName, stepName) {
+	getStageCache(taskName, stepName) {
 		// Accept either a bare task name (resolved to its stage id) or a full stage id passed directly.
-		return this.#taskCache.get(this.#getStageNameForTask(taskName, stepName)) ??
-			this.#taskCache.get(taskName);
+		return this.#stageCaches.get(this.#stageIdFor(taskName, stepName)) ??
+			this.#stageCaches.get(taskName);
 	}
 
 	/**
@@ -1433,7 +1433,7 @@ export default class ProjectBuildCache {
 	/**
 	 * Initializes project stages for the given tasks
 	 *
-	 * Creates stage names for each task and initializes them in the project.
+	 * Creates stage ids for each task and initializes them in the project.
 	 * This must be called before task execution begins.
 	 *
 	/**
@@ -1448,19 +1448,19 @@ export default class ProjectBuildCache {
 	 *   execution order. <code>stepNames</code> (in step order) is present for a step-based task.
 	 */
 	setTasks(tasks) {
-		const stageNames = [];
+		const stageIds = [];
 		for (const {taskName, stepNames} of tasks) {
 			if (stepNames && stepNames.length) {
 				for (const stepName of stepNames) {
-					stageNames.push(this.#getStageNameForTask(taskName, stepName));
+					stageIds.push(this.#stageIdFor(taskName, stepName));
 				}
 			} else {
-				stageNames.push(this.#getStageNameForTask(taskName));
+				stageIds.push(this.#stageIdFor(taskName));
 			}
 		}
-		this.#project.getProjectResources().initStages(stageNames);
+		this.#project.getProjectResources().initStages(stageIds);
 		// Remember the order so each prepared stage can prefetch its successor's cache metadata.
-		this.#stageOrder = stageNames;
+		this.#stageOrder = stageIds;
 
 		// TODO: Rename function? We simply use it to have a point in time right before the project is built
 	}
@@ -1475,7 +1475,7 @@ export default class ProjectBuildCache {
 	 * @returns {string} Stage id
 	 */
 	getStageId(taskName, stepName) {
-		return this.#getStageNameForTask(taskName, stepName);
+		return this.#stageIdFor(taskName, stepName);
 	}
 
 	/**
@@ -1704,10 +1704,10 @@ export default class ProjectBuildCache {
 		// Makes the next build re-run initSourceIndex (before validateCache), which re-globs the
 		// source tree from scratch. See the initSourceIndex guard.
 		this.#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
-		this.#taskCache.clear();
-		// Step invocation data is only persisted on a successful build (#prepareTaskRequestCache in
+		this.#stageCaches.clear();
+		// Step invocation data is only persisted on a successful build (#prepareStageRequestCache in
 		// writeCache); mid-build it lives only here, memoized and never re-fetched. A failed build leaves
-		// its partial per-key data behind. Clear it alongside #taskCache so getStepInvocationData falls
+		// its partial per-key data behind. Clear it alongside #stageCaches so getStepInvocationData falls
 		// back to the last good persisted state, matching the task cache the re-scan restores. Without
 		// this, a long-lived consumer (ui5 serve) pairs the partial data with the older persisted stage
 		// state on the next rebuild, corrupting step selection and stale-output derivation.
@@ -1825,7 +1825,7 @@ export default class ProjectBuildCache {
 	 * @param {string} [stepName] Name of the step, for a step-based task's per-step stage
 	 * @returns {string} Stage id
 	 */
-	#getStageNameForTask(taskName, stepName) {
+	#stageIdFor(taskName, stepName) {
 		return stepName === undefined ? `task/${taskName}` : `task/${taskName}::step/${stepName}`;
 	}
 
@@ -1875,7 +1875,7 @@ export default class ProjectBuildCache {
 
 			// Import stage caches (one entry per stage: a legacy task's single stage, or a step-based
 			// task's per-step stages).
-			const buildTaskCaches = await Promise.all(
+			const buildStageCaches = await Promise.all(
 				indexCache.tasks.map(async ([stageId, stepBased]) => {
 					const projectRequests = this.#cacheManager.readTaskMetadata(
 						this.#project.getId(), this.#buildSignature, stageId, "project");
@@ -1901,13 +1901,13 @@ export default class ProjectBuildCache {
 						this.#project.getId(), this.#buildSignature, stageId, "root");
 					const rootNoGitignoreRequests = this.#cacheManager.readTaskMetadata(
 						this.#project.getId(), this.#buildSignature, stageId, "root-no-gitignore");
-					return BuildTaskCache.fromCache(this.#project.getName(), stageId, !!stepBased,
+					return BuildStageCache.fromCache(this.#project.getName(), stageId, !!stepBased,
 						projectRequests, dependencyRequests, inputTree, rootRequests, rootNoGitignoreRequests);
 				})
 			);
-			// Ensure taskCache is filled in the order of stage execution
-			for (const buildTaskCache of buildTaskCaches) {
-				this.#taskCache.set(buildTaskCache.getTaskName(), buildTaskCache);
+			// Ensure stageCache is filled in the order of stage execution
+			for (const buildStageCache of buildStageCaches) {
+				this.#stageCaches.set(buildStageCache.getStageId(), buildStageCache);
 			}
 			// Capture the restored stage order so the result-signature functions have the single source of
 			// truth available before this build's setTasks runs (result-cache validation happens first).
@@ -2013,9 +2013,9 @@ export default class ProjectBuildCache {
 		const cacheWriteStart = performance.now();
 
 		// Gather all cache data before opening any transactions
-		const stagePrepared = await this.#prepareTaskStageCache();
+		const stagePrepared = await this.#prepareStageCache();
 		const resultPrepared = this.#prepareResultCache();
-		const taskRequestPrepared = this.#prepareTaskRequestCache();
+		const stageRequestPrepared = this.#prepareStageRequestCache();
 		const sourceIndexPrepared = this.#prepareSourceIndex();
 
 		// Calculate CAS rows - dedupe across stages (identical integrity produced by two stages writes once)
@@ -2043,9 +2043,9 @@ export default class ProjectBuildCache {
 					this.#project.getId(), this.#buildSignature,
 					stageId, stageSignature, metadata);
 			}
-			for (const {taskName, type, metadata} of taskRequestPrepared) {
+			for (const {stageId, type, metadata} of stageRequestPrepared) {
 				this.#cacheManager.writeTaskMetadata(
-					this.#project.getId(), this.#buildSignature, taskName, type, metadata);
+					this.#project.getId(), this.#buildSignature, stageId, type, metadata);
 			}
 			if (sourceIndexPrepared) {
 				this.#cacheManager.writeIndexCache(
@@ -2075,8 +2075,8 @@ export default class ProjectBuildCache {
 		log.verbose(`Preparing result metadata for project ${this.#project.getName()} ` +
 			`using result stage signature ${stageSignature}`);
 		const stageSignatures = Object.create(null);
-		for (const [stageName, stageSigs] of this.#currentStageSignatures.entries()) {
-			stageSignatures[stageName] = createStageSignature(stageSigs);
+		for (const [stageId, stageSigs] of this.#currentStageSignatures.entries()) {
+			stageSignatures[stageId] = createStageSignature(stageSigs);
 		}
 
 		return {
@@ -2105,7 +2105,7 @@ export default class ProjectBuildCache {
 	 *   casRows: Array<{integrity: string, compressedBuffer: Buffer}>
 	 * }>>}
 	 */
-	async #prepareTaskStageCache() {
+	async #prepareStageCache() {
 		if (!this.#stageCache.hasPendingCacheQueue()) {
 			return [];
 		}
@@ -2252,41 +2252,41 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Builds task-request metadata payloads for all stages with new or modified entries.
+	 * Builds stage-request metadata payloads for all stages with new or modified entries.
 	 *
-	 * @returns {Array<{taskName: string, type: string, metadata: object}>}
+	 * @returns {Array<{stageId: string, type: string, metadata: object}>}
 	 */
-	#prepareTaskRequestCache() {
+	#prepareStageRequestCache() {
 		const out = [];
-		for (const [stageId, taskCache] of this.#taskCache) {
-			if (!taskCache.hasNewOrModifiedCacheEntries()) {
+		for (const [stageId, stageCache] of this.#stageCaches) {
+			if (!stageCache.hasNewOrModifiedCacheEntries()) {
 				continue;
 			}
 			const [projectRequests, dependencyRequests, inputTree, rootRequests, rootNoGitignoreRequests] =
-				taskCache.toCacheObjects();
+				stageCache.toCacheObjects();
 			log.verbose(`Preparing cache metadata for stage ${stageId} in project ${this.#project.getName()}`);
 			if (projectRequests) {
-				out.push({taskName: stageId, type: "project", metadata: projectRequests});
+				out.push({stageId, type: "project", metadata: projectRequests});
 			}
 			if (dependencyRequests) {
-				out.push({taskName: stageId, type: "dependencies", metadata: dependencyRequests});
+				out.push({stageId, type: "dependencies", metadata: dependencyRequests});
 			}
 			if (inputTree) {
-				out.push({taskName: stageId, type: "input", metadata: inputTree});
+				out.push({stageId, type: "input", metadata: inputTree});
 			}
 			if (rootRequests) {
-				out.push({taskName: stageId, type: "root", metadata: rootRequests});
+				out.push({stageId, type: "root", metadata: rootRequests});
 			}
 			if (rootNoGitignoreRequests) {
-				out.push({taskName: stageId, type: "root-no-gitignore", metadata: rootNoGitignoreRequests});
+				out.push({stageId, type: "root-no-gitignore", metadata: rootNoGitignoreRequests});
 			}
 		}
-		// step-runner invocation data is a per-stage sidecar (not part of BuildTaskCache), persisted as
+		// step-runner invocation data is a per-stage sidecar (not part of BuildStageCache), persisted as
 		// [[keyId, {reads, dependencyReads, writes, ...}], ...] pairs since JSON has no Map. Each stage owns
 		// exactly one step's per-key data.
 		for (const [stageId, invocationData] of this.#stepInvocationData) {
 			if (invocationData && invocationData.size) {
-				out.push({taskName: stageId, type: "steps", metadata: [...invocationData]});
+				out.push({stageId, type: "steps", metadata: [...invocationData]});
 			}
 		}
 		return out;
@@ -2311,8 +2311,8 @@ export default class ProjectBuildCache {
 		// One entry per stage in execution order: a legacy task's single stage, or a step-based task's
 		// per-step stages. The stage id is the metadata key everything else is stored under.
 		const tasks = [];
-		for (const [stageId, taskCache] of this.#taskCache) {
-			tasks.push([stageId, taskCache.getStepBased() ? 1 : 0]);
+		for (const [stageId, stageCache] of this.#stageCaches) {
+			tasks.push([stageId, stageCache.getStepBased() ? 1 : 0]);
 		}
 		return {
 			projectId: this.#project.getId(),
@@ -2340,7 +2340,7 @@ export default class ProjectBuildCache {
 	#createReaderForStageCache(stageId, stageSignature, resourceMetadata) {
 		const allResourcePaths = Object.keys(resourceMetadata);
 		return createProxy({
-			name: `Cache reader for task ${stageId} in project ${this.#project.getName()}`,
+			name: `Cache reader for stage  in project ${this.#project.getName()}`,
 			listResourcePaths: () => {
 				return allResourcePaths;
 			},
@@ -2351,7 +2351,7 @@ export default class ProjectBuildCache {
 				const {lastModified, size, integrity, inode} = resourceMetadata[virPath];
 				if (size === undefined || lastModified === undefined ||
 					integrity === undefined) {
-					throw new Error(`Incomplete metadata for resource ${virPath} of task ${stageId} ` +
+					throw new Error(`Incomplete metadata for resource  of stage  ` +
 						`in project ${this.#project.getName()}`);
 				}
 
@@ -2405,7 +2405,7 @@ function cartesianProduct(arrays) {
 
 /**
  * A stage signature is an explicit tuple of four independent SHA-256 hex components. The tuple format
- * and its join/split primitives live in ./stageSignature.js, shared with BuildTaskCache so the two
+ * and its join/split primitives live in ./stageSignature.js, shared with BuildStageCache so the two
  * classes compose and decompose a signature the same way.
  */
 

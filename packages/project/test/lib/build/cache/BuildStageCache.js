@@ -1,6 +1,6 @@
 import test from "ava";
 import sinon from "sinon";
-import BuildTaskCache from "../../../../lib/build/cache/BuildTaskCache.js";
+import BuildStageCache from "../../../../lib/build/cache/BuildStageCache.js";
 
 // Helper to create mock readers
 function createMockReader(resources = []) {
@@ -40,21 +40,21 @@ test.afterEach.always(() => {
 
 // ===== CREATION AND INITIALIZATION TESTS =====
 
-test("Create BuildTaskCache instance", (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+test("Create BuildStageCache instance", (t) => {
+	const cache = new BuildStageCache("test.project", "testTask", false);
 
-	t.truthy(cache, "BuildTaskCache instance created");
-	t.is(cache.getTaskName(), "testTask", "Task name matches");
+	t.truthy(cache, "BuildStageCache instance created");
+	t.is(cache.getStageId(), "testTask", "Stage id matches");
 	t.is(cache.getStepBased(), false, "Differential updates disabled");
 });
 
 test("Create with differential updates enabled", (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", true);
+	const cache = new BuildStageCache("test.project", "testTask", true);
 
 	t.is(cache.getStepBased(), true, "Differential updates enabled");
 });
 
-test("fromCache: restore BuildTaskCache from cached data", (t) => {
+test("fromCache: restore BuildStageCache from cached data", (t) => {
 	const projectRequests = {
 		requestSetGraph: {
 			nodes: [],
@@ -75,39 +75,39 @@ test("fromCache: restore BuildTaskCache from cached data", (t) => {
 		unusedAtLeastOnce: false
 	};
 
-	const cache = BuildTaskCache.fromCache("test.project", "testTask", false,
+	const cache = BuildStageCache.fromCache("test.project", "testTask", false,
 		projectRequests, dependencyRequests);
 
 	t.truthy(cache, "Cache restored from cached data");
-	t.is(cache.getTaskName(), "testTask", "Task name preserved");
+	t.is(cache.getStageId(), "testTask", "Stage id preserved");
 	t.is(cache.getStepBased(), false, "Differential updates setting preserved");
 });
 
 // ===== METADATA ACCESS TESTS =====
 
-test("getTaskName: returns task name", (t) => {
-	const cache = new BuildTaskCache("test.project", "myTask", false);
+test("getStageId: returns stage id", (t) => {
+	const cache = new BuildStageCache("test.project", "myTask", false);
 
-	t.is(cache.getTaskName(), "myTask", "Task name returned");
+	t.is(cache.getStageId(), "myTask", "Stage id returned");
 });
 
 test("getStepBased: returns correct value", (t) => {
-	const cache1 = new BuildTaskCache("test.project", "task1", false);
-	const cache2 = new BuildTaskCache("test.project", "task2", true);
+	const cache1 = new BuildStageCache("test.project", "task1", false);
+	const cache2 = new BuildStageCache("test.project", "task2", true);
 
 	t.false(cache1.getStepBased(), "Returns false when disabled");
 	t.true(cache2.getStepBased(), "Returns true when enabled");
 });
 
 test("hasNewOrModifiedCacheEntries: initially true for new instance", (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 
 	// A new instance has new entries that need to be written
 	t.true(cache.hasNewOrModifiedCacheEntries(), "New instance has entries to write");
 });
 
 test("hasNewOrModifiedCacheEntries: true after recording requests", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 
 	const resource = createMockResource("/test.js");
 	const projectReader = createMockReader([resource]);
@@ -126,7 +126,7 @@ test("hasNewOrModifiedCacheEntries: true after recording requests", async (t) =>
 // ===== SIGNATURE TESTS =====
 
 test("getProjectIndexSignatures: returns signatures after recording", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 
 	const resource = createMockResource("/test.js");
 	const projectReader = createMockReader([resource]);
@@ -147,7 +147,7 @@ test("getProjectIndexSignatures: returns signatures after recording", async (t) 
 });
 
 test("getDependencyIndexSignatures: returns signatures after recording", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 
 	const projectResource = createMockResource("/test.js");
 	const depResource = createMockResource("/dep.js");
@@ -176,7 +176,7 @@ test("getDependencyIndexSignatures: returns signatures after recording", async (
 // ===== REQUEST RECORDING TESTS =====
 
 test("recordRequests: handles project requests only", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 
 	const resource = createMockResource("/test.js");
 	const projectReader = createMockReader([resource]);
@@ -197,7 +197,7 @@ test("recordRequests: handles project requests only", async (t) => {
 });
 
 test("recordRequests: handles both project and dependency requests", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 
 	const projectResource = createMockResource("/test.js");
 	const depResource = createMockResource("/dep.js");
@@ -222,7 +222,7 @@ test("recordRequests: handles both project and dependency requests", async (t) =
 });
 
 test("recordRequests: handles glob patterns", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 
 	const resource1 = createMockResource("/src/test1.js");
 	const resource2 = createMockResource("/src/test2.js");
@@ -242,7 +242,7 @@ test("recordRequests: handles glob patterns", async (t) => {
 });
 
 test("recordRequests: handles empty requests", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 
 	const projectReader = createMockReader([]);
 	const dependencyReader = createMockReader([]);
@@ -262,7 +262,7 @@ test("recordRequests: handles empty requests", async (t) => {
 // ===== INDEX UPDATE TESTS =====
 
 test("updateProjectIndices: processes changed resources", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 
 	// First, record some requests
 	const resource = createMockResource("/test.js", "initial content");
@@ -286,7 +286,7 @@ test("updateProjectIndices: processes changed resources", async (t) => {
 });
 
 test("updateDependencyIndices: processes changed dependencies", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 
 	// First, record some requests
 	const projectResource = createMockResource("/test.js");
@@ -316,7 +316,7 @@ test("updateDependencyIndices: processes changed dependencies", async (t) => {
 });
 
 test("refreshDependencyIndices: refreshes all dependency indices", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 
 	// First, record some requests
 	const projectResource = createMockResource("/test.js");
@@ -345,7 +345,7 @@ test("refreshDependencyIndices: refreshes all dependency indices", async (t) => 
 // ===== DELTA TESTS (for differential updates) =====
 
 test("getProjectIndexDeltas: returns deltas when enabled", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", true);
+	const cache = new BuildStageCache("test.project", "testTask", true);
 
 	const resource = createMockResource("/test.js");
 	const projectReader = createMockReader([resource]);
@@ -364,7 +364,7 @@ test("getProjectIndexDeltas: returns deltas when enabled", async (t) => {
 });
 
 test("getDependencyIndexDeltas: returns deltas when enabled", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", true);
+	const cache = new BuildStageCache("test.project", "testTask", true);
 
 	const projectResource = createMockResource("/test.js");
 	const depResource = createMockResource("/dep.js");
@@ -391,7 +391,7 @@ test("getDependencyIndexDeltas: returns deltas when enabled", async (t) => {
 // ===== STAGE SIGNATURE TESTS =====
 
 test("getStageSignatures: composes the [project, dependency, input, root] tuple", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 	const projectResource = createMockResource("/test.js");
 	const depResource = createMockResource("/dep.js");
 	const projectReader = createMockReader([projectResource]);
@@ -413,7 +413,7 @@ test("getStageSignatures: empty-input and empty-root components are the stable e
 		// A stage that reads only resources, with no non-resource inputs and no root reads: the input and
 		// root slots must still carry the empty-set digests getInputSignature()/getRootSignature() return,
 		// so a later lookup recomposes the same signature.
-		const cache = new BuildTaskCache("test.project", "testTask", false);
+		const cache = new BuildStageCache("test.project", "testTask", false);
 		const projectReader = createMockReader([createMockResource("/test.js")]);
 		const dependencyReader = createMockReader([createMockResource("/dep.js")]);
 
@@ -433,7 +433,7 @@ test("getStageSignatures: one signature per project x dependency index-signature
 	async (t) => {
 		// With a single project request set and a single dependency request set the cartesian product is
 		// one signature. The product grows only as additional request sets are recorded.
-		const cache = new BuildTaskCache("test.project", "testTask", false);
+		const cache = new BuildStageCache("test.project", "testTask", false);
 		const projectReader = createMockReader([createMockResource("/test.js")]);
 		const dependencyReader = createMockReader([createMockResource("/dep.js")]);
 
@@ -449,7 +449,7 @@ test("getStageSignatures: one signature per project x dependency index-signature
 // ===== SERIALIZATION TESTS =====
 
 test("toCacheObjects: returns cache objects", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 
 	const resource = createMockResource("/test.js");
 	const projectReader = createMockReader([resource]);
@@ -471,7 +471,7 @@ test("toCacheObjects: returns cache objects", async (t) => {
 });
 
 test("toCacheObjects: can restore from serialized data", async (t) => {
-	const cache1 = new BuildTaskCache("test.project", "testTask", false);
+	const cache1 = new BuildStageCache("test.project", "testTask", false);
 
 	const resource = createMockResource("/test.js");
 	const projectReader = createMockReader([resource]);
@@ -487,24 +487,24 @@ test("toCacheObjects: can restore from serialized data", async (t) => {
 	const [projectCache, dependencyCache] = cache1.toCacheObjects();
 
 	// Restore from cache
-	const cache2 = BuildTaskCache.fromCache("test.project", "testTask", false,
+	const cache2 = BuildStageCache.fromCache("test.project", "testTask", false,
 		projectCache, dependencyCache);
 
 	t.truthy(cache2, "Cache restored");
-	t.is(cache2.getTaskName(), "testTask", "Task name preserved");
+	t.is(cache2.getStageId(), "testTask", "Stage id preserved");
 });
 
 // ===== EDGE CASES =====
 
 test("Create with empty project name", (t) => {
-	const cache = new BuildTaskCache("", "testTask", false);
+	const cache = new BuildStageCache("", "testTask", false);
 
 	t.truthy(cache, "Cache created with empty project name");
-	t.is(cache.getTaskName(), "testTask", "Task name still accessible");
+	t.is(cache.getStageId(), "testTask", "Stage id still accessible");
 });
 
 test("Multiple recordRequests calls accumulate", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 
 	const resource1 = createMockResource("/test1.js");
 	const resource2 = createMockResource("/test2.js");
@@ -535,7 +535,7 @@ test("Multiple recordRequests calls accumulate", async (t) => {
 });
 
 test("Handles non-existent resource paths", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 
 	const projectReader = createMockReader([]);
 	const dependencyReader = createMockReader([]);
@@ -556,7 +556,7 @@ test("recordRequests with unresolved probe in delta position returns a distinct 
 	// Shape observed in OpenUI5 after a branch switch: the first recording anchors
 	// a resolvable parent request set, then a subsequent recording adds a byPath
 	// probe for a file that no longer exists.
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 
 	const projectReader = createMockReader([
 		createMockResource("/a.js"),
@@ -586,7 +586,7 @@ test("recordRequests with unresolved probe in delta position returns a distinct 
 // ===== NON-RESOURCE INPUT TRACKING =====
 
 test("recordRequests: returns an input signature and flags a modified input set", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 	const projectReader = createMockReader([createMockResource("/test.js")]);
 	const dependencyReader = createMockReader([]);
 	const projectRequests = {paths: new Set(["/test.js"]), patterns: new Set()};
@@ -600,7 +600,7 @@ test("recordRequests: returns an input signature and flags a modified input set"
 });
 
 test("getInputSignature: re-evaluates recorded inputs via the resolver", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 	const projectReader = createMockReader([createMockResource("/test.js")]);
 	const projectRequests = {paths: new Set(["/test.js"]), patterns: new Set()};
 
@@ -613,7 +613,7 @@ test("getInputSignature: re-evaluates recorded inputs via the resolver", async (
 });
 
 test("toCacheObjects: includes an input cache object only when inputs were recorded", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 	const projectReader = createMockReader([createMockResource("/test.js")]);
 	const projectRequests = {paths: new Set(["/test.js"]), patterns: new Set()};
 
@@ -628,7 +628,7 @@ test("toCacheObjects: includes an input cache object only when inputs were recor
 });
 
 test("fromCache: restores recorded inputs and re-evaluates them on lookup", async (t) => {
-	const cache1 = new BuildTaskCache("test.project", "testTask", false);
+	const cache1 = new BuildStageCache("test.project", "testTask", false);
 	const projectReader = createMockReader([createMockResource("/test.js")]);
 	const projectRequests = {paths: new Set(["/test.js"]), patterns: new Set()};
 
@@ -636,7 +636,7 @@ test("fromCache: restores recorded inputs and re-evaluates them on lookup", asyn
 		[{type: "project.getVersion", name: "sap.ui.core", value: "1.120.0"}]);
 	const [projectCache, dependencyCache, inputCache] = cache1.toCacheObjects();
 
-	const cache2 = BuildTaskCache.fromCache("test.project", "testTask", false,
+	const cache2 = BuildStageCache.fromCache("test.project", "testTask", false,
 		projectCache, dependencyCache, inputCache);
 
 	// Restored set carries only names; the resolver decides the value.
@@ -654,7 +654,7 @@ const ROOT_REQUESTS = {
 };
 
 test("recordRequests: records root requests and reflects them in the root signature", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 	const projectReader = createMockReader([createMockResource("/test.js")]);
 	const rootReader = createMockReader([createMockResource("/tsconfig.json", "{}")]);
 	const projectRequests = {paths: new Set(["/test.js"]), patterns: new Set()};
@@ -673,8 +673,8 @@ test("recordRequests: records root requests and reflects them in the root signat
 });
 
 test("getRootSignature: is stable and empty when no root requests were recorded", async (t) => {
-	const a = new BuildTaskCache("test.project", "testTask", false);
-	const b = new BuildTaskCache("other.project", "otherTask", false);
+	const a = new BuildStageCache("test.project", "testTask", false);
+	const b = new BuildStageCache("other.project", "otherTask", false);
 	const reader = createMockReader([createMockResource("/test.js")]);
 	// Record only project requests, leaving the root managers untouched.
 	await a.recordRequests({paths: new Set(["/test.js"]), patterns: new Set()},
@@ -686,7 +686,7 @@ test("getRootSignature: is stable and empty when no root requests were recorded"
 });
 
 test("recordRequests: an empty root bucket leaves the manager clean", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 	const projectReader = createMockReader([createMockResource("/test.js")]);
 	await cache.recordRequests(
 		{paths: new Set(["/test.js"]), patterns: new Set()}, undefined, projectReader, createMockReader([]), [],
@@ -699,7 +699,7 @@ test("recordRequests: an empty root bucket leaves the manager clean", async (t) 
 });
 
 test("refreshRootIndices: a changed root file changes the root signature", async (t) => {
-	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const cache = new BuildStageCache("test.project", "testTask", false);
 	const projectReader = createMockReader([createMockResource("/test.js")]);
 
 	await cache.recordRequests(
@@ -716,7 +716,7 @@ test("refreshRootIndices: a changed root file changes the root signature", async
 });
 
 test("toCacheObjects/fromCache: round-trips recorded root requests", async (t) => {
-	const cache1 = new BuildTaskCache("test.project", "testTask", false);
+	const cache1 = new BuildStageCache("test.project", "testTask", false);
 	const projectReader = createMockReader([createMockResource("/test.js")]);
 	const rootReader = () => createMockReader([createMockResource("/tsconfig.json", "{}", "hash-root")]);
 
@@ -729,7 +729,7 @@ test("toCacheObjects/fromCache: round-trips recorded root requests", async (t) =
 	t.truthy(rootCache, "useGitignore:true root cache object present");
 	t.is(rootNoGitignoreCache, undefined, "useGitignore:false bucket was empty, so nothing to persist");
 
-	const cache2 = BuildTaskCache.fromCache("test.project", "testTask", false,
+	const cache2 = BuildStageCache.fromCache("test.project", "testTask", false,
 		projectCache, dependencyCache, inputCache, rootCache, rootNoGitignoreCache);
 
 	t.true(cache2.hasRootRequests(), "Restored cache carries the root requests");
@@ -740,7 +740,7 @@ test("toCacheObjects/fromCache: round-trips recorded root requests", async (t) =
 
 test("fromCache: a task without root metadata restores clean root managers", (t) => {
 	const emptyRequests = {requestSetGraph: {nodes: [], nextId: 1}, rootIndices: [], deltaIndices: []};
-	const cache = BuildTaskCache.fromCache("test.project", "testTask", false, emptyRequests, emptyRequests);
+	const cache = BuildStageCache.fromCache("test.project", "testTask", false, emptyRequests, emptyRequests);
 
 	t.false(cache.hasRootRequests(), "No root requests restored");
 	t.false(cache.hasNewOrModifiedCacheEntries(),

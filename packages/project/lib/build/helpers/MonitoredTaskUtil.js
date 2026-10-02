@@ -261,7 +261,7 @@ class MonitoredTaskUtil {
 				}
 				if (recordTagOperations && (prop === "setTag" || prop === "clearTag" || prop === "getTag")) {
 					// Record the operation and delegate to the wrapped taskUtil, so a set/clear still
-					// reaches the project tag collection (captured by recordTaskResult like a task-level
+					// reaches the project tag collection (captured by recordStageResult like a task-level
 					// tag) while the per-step attribution a restored step's replay needs is kept. The path
 					// stands in for the resource, since the tag collection keys tags by path and a restored
 					// step has no resource instance to hand back.

@@ -829,9 +829,9 @@ test("ResourceRequestManager: fully empty root recording gets a distinguished si
 			"Distinct root recordings with all-unresolved reads produce distinct signatures");
 	});
 
-test("ResourceRequestManager: BuildTaskCache-shape flow with unresolved probe (integration-ish)",
+test("ResourceRequestManager: BuildStageCache-shape flow with unresolved probe (integration-ish)",
 	async (t) => {
-		// Mirrors what BuildTaskCache.recordRequests does with two consecutive
+		// Mirrors what BuildStageCache.recordRequests does with two consecutive
 		// addRequests recordings that share a parent but differ by one probed path.
 		const readerBefore = createMockReader(new Map([
 			["/a.js", createMockResource("/a.js", "hash-a")],
