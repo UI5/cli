@@ -165,7 +165,7 @@ test("Create with existing index cache", async (t) => {
 				}
 			}
 		},
-		tasks: [["task1", false]]
+		tasks: [["task/task1", false]]
 	};
 
 	// Mock task metadata responses
@@ -231,6 +231,20 @@ test("getStageCache returns undefined for non-existent stage", async (t) => {
 	await cache.initSourceIndex();
 
 	t.is(cache.getStageCache("nonexistent"), undefined, "Returns undefined");
+});
+
+test("getStageCache throws when a stage id is passed in place of a task name", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+
+	const error = t.throws(() => cache.getStageCache("task/task1"),
+		{instanceOf: Error}, "Throws for a composed stage id");
+	t.true(error.message.includes("task/task1"),
+		"Error names the offending stage id");
+	t.true(error.message.includes("expects a task name"),
+		"Error states the expected argument");
 });
 
 // ===== TASK MANAGEMENT TESTS =====
@@ -1197,7 +1211,7 @@ test("_refreshDependencyIndices: updates dependency indices", async (t) => {
 				}
 			}
 		},
-		tasks: [["task1", false]]
+		tasks: [["task/task1", false]]
 	};
 
 	// Mock task metadata responses
@@ -1561,7 +1575,7 @@ async function buildCacheWithWarmCacheAndTaskResult({
 				children
 			}
 		},
-		tasks: [["myTask", 0]]
+		tasks: [["task/myTask", 0]]
 	};
 
 	// Mock task metadata for the cached task
@@ -1776,7 +1790,7 @@ test("restoreFrozenSources: cache miss skips gracefully", async (t) => {
 				}
 			}
 		},
-		tasks: [["task1", false]]
+		tasks: [["task/task1", false]]
 	};
 	cacheManager.readIndexCache.returns(indexCache);
 	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, stageId, type) => {
@@ -1863,7 +1877,7 @@ test("restoreFrozenSources: cache hit creates CAS reader", async (t) => {
 				}
 			}
 		},
-		tasks: [["task1", false]]
+		tasks: [["task/task1", false]]
 	};
 	cacheManager.readIndexCache.returns(indexCache);
 	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, stageId, type) => {
@@ -2472,7 +2486,7 @@ async function createCacheWithDependencyGlob({
 				},
 			},
 		},
-		tasks: [[taskName, false]],
+		tasks: [[`task/${taskName}`, false]],
 		// Persisted dependency-set identity from the previous build. validateCache compares the
 		// identity passed at the next build against this; a mismatch forces the refresh.
 		availableDependencies: oldDependencySetIdentity,

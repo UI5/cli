@@ -1374,18 +1374,27 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Returns the stage cache for a specific stage
+	 * Returns the stage cache for a task's stage, or a step's stage for a step-based task.
+	 *
+	 * The parameter is a task name (plus optional step name), resolved to its stage id via the same
+	 * mapping the rest of the cache uses. Passing an already-composed stage id (one in the
+	 * <code>task/</code> namespace) is a caller mistake and throws, rather than being silently accepted.
+	 * A task name with no recorded stage returns <code>undefined</code>.
 	 *
 	 * @public
-	 * @param {string} taskName Name of the task (a legacy task's single stage), or a full stage id
+	 * @param {string} taskName Name of the task
 	 * @param {string} [stepName] Name of the step, for a step-based task's per-step stage
 	 * @returns {@ui5/project/build/cache/BuildStageCache|undefined}
 	 *   The stage cache or undefined if not found
+	 * @throws {Error} If a composed stage id is passed in place of a task name
 	 */
 	getStageCache(taskName, stepName) {
-		// Accept either a bare task name (resolved to its stage id) or a full stage id passed directly.
-		return this.#stageCaches.get(this.#stageIdFor(taskName, stepName)) ??
-			this.#stageCaches.get(taskName);
+		if (taskName.startsWith("task/")) {
+			throw new Error(
+				`getStageCache expects a task name, but received the stage id '${taskName}'. ` +
+				`Pass the task name (and optional step name) instead.`);
+		}
+		return this.#stageCaches.get(this.#stageIdFor(taskName, stepName));
 	}
 
 	/**
