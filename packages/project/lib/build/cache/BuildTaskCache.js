@@ -2,6 +2,7 @@ import {getLogger} from "@ui5/logger";
 import crypto from "node:crypto";
 import ResourceRequestManager from "./ResourceRequestManager.js";
 import TaskInputSet from "./index/TaskInputSet.js";
+import {createStageSignature} from "./stageSignature.js";
 const log = getLogger("build:cache:BuildTaskCache");
 
 // Serialized form of an empty, unmodified request manager. Restoring a root manager from this (rather
@@ -358,6 +359,36 @@ export default class BuildTaskCache {
 	 */
 	getDependencyIndexDeltas() {
 		return this.#dependencyRequestManager.getDeltas();
+	}
+
+	/**
+	 * Builds this stage's exact-match signatures from the current index state: the cartesian product of
+	 * the recorded project-request signatures with the recorded dependency-request signatures, each
+	 * paired with the stage's current non-resource input signature and root signature into a full
+	 * [project, dependency, input, root] tuple.
+	 *
+	 * This is the single definition of the stage-signature composition. The delta path in
+	 * {@link @ui5/project/build/cache/ProjectBuildCache} pairs a changed project/dependency signature
+	 * with the same input and root signatures; see {@link #getInputSignature} and
+	 * {@link #getRootSignature} for how those two are re-evaluated against the current environment and
+	 * project root.
+	 *
+	 * @public
+	 * @param {function(string, string, (string|undefined)): (string|undefined)} [resolveInputValue]
+	 *   Resolver for the current value of a recorded non-resource input (see {@link #getInputSignature})
+	 * @returns {string[]} Exact-match stage signatures for the current index state
+	 */
+	getStageSignatures(resolveInputValue) {
+		const inputSignature = this.getInputSignature(resolveInputValue);
+		const rootSignature = this.getRootSignature();
+		const signatures = [];
+		for (const projectSignature of this.getProjectIndexSignatures()) {
+			for (const dependencySignature of this.getDependencyIndexSignatures()) {
+				signatures.push(createStageSignature(
+					[projectSignature, dependencySignature, inputSignature, rootSignature]));
+			}
+		}
+		return signatures;
 	}
 
 	/**

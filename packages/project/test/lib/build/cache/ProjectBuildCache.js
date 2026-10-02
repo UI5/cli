@@ -793,6 +793,121 @@ test("recordTaskResult with cacheInfo: uses getCachedWriter fallback when getWri
 			"Resource /e.js merged from getCachedWriter");
 	});
 
+// ===== STAGE / RESULT SIGNATURE INVARIANT TESTS =====
+
+// B1 regression. On a dependency-only delta (the dependency moved, the project's own sources did not)
+// the delta verdict's newSignature must pair the UNCHANGED project component as recorded with the new
+// dependency component, so the next build's exact lookup recomputes it. The defect reverse-mapped the
+// already-combined project component and combined it a second time, yielding a signature no later build
+// produces. Delta tracking is only active for step-based stages, so the stage here is step-based; the
+// assertion reads the newSignature's components back out and compares them to the raw current index
+// signatures (available on the task cache before and after the fix). Before the fix the project
+// component is a doubly-combined hash, not the raw project index signature.
+test("prepareTaskExecutionAndValidateCache: a dependency-only delta keys the stage on the raw project " +
+	"signature, not a re-combined one (B1 regression)", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+
+	const projectResource = createMockResource("/test.js", "proj-hash", 1000, 100, 1);
+	const projectReader = {
+		byGlob: sinon.stub().resolves([projectResource]),
+		byPath: sinon.stub().callsFake((p) => Promise.resolve(p === "/test.js" ? projectResource : null)),
+	};
+	project.getReader.callsFake(() => projectReader);
+	project.getSourceReader.callsFake(() => ({
+		byGlob: sinon.stub().resolves([projectResource]),
+		byPath: sinon.stub().callsFake((p) => Promise.resolve(p === "/test.js" ? projectResource : null)),
+	}));
+
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+
+	// validateCache sets the project and dependency readers recordTaskResult records against.
+	const depResourceV0 = createMockResource("/dep.js", "dep-v0", 1000, 100, 2);
+	const depReaderV0 = {
+		byGlob: sinon.stub().resolves([depResourceV0]),
+		byPath: sinon.stub().callsFake((p) => Promise.resolve(p === "/dep.js" ? depResourceV0 : null)),
+	};
+	await cache.validateCache(depReaderV0, {prepareForBuild: true});
+
+	// A step-based stage: differential (delta) tracking is active only for step-based stages.
+	cache.setTasks([{taskName: "stepTask", stepNames: ["s"]}]);
+
+	project.getProjectResources().getStage.returns({
+		getId: () => "task/stepTask::step/s",
+		getWriter: sinon.stub().returns({byGlob: sinon.stub().resolves([])}),
+	});
+
+	// Build #1: full execution records the stage over /test.js (project) and /dep.js@dep-v0 (dependency).
+	t.is(await cache.prepareTaskExecutionAndValidateCache("stepTask", "s"), false, "Build #1 has no cache");
+	await cache.recordTaskResult("stepTask",
+		{paths: new Set(["/test.js"]), patterns: new Set()},
+		{paths: new Set(["/dep.js"]), patterns: new Set()}, null, [], undefined, true, "s");
+
+	// A dependency resource changed while the project's sources did not: move the stage's dependency
+	// index to a delta (dep-v0 -> dep-v1). The changed resource differs in size and mtime so
+	// isResourceUnchanged does not short-circuit it as unchanged.
+	const depResourceV1 = createMockResource("/dep.js", "dep-v1", 2000, 200, 2);
+	const depReaderV1 = {
+		byGlob: sinon.stub().resolves([depResourceV1]),
+		byPath: sinon.stub().callsFake((p) => Promise.resolve(p === "/dep.js" ? depResourceV1 : null)),
+	};
+	const taskCache = cache.getTaskCache("stepTask", "s");
+	await taskCache.updateDependencyIndices(depReaderV1, ["/dep.js"]);
+
+	// Build #2: exact lookup misses (dependency moved), the dependency-only delta hits.
+	const cacheInfo = await cache.prepareTaskExecutionAndValidateCache("stepTask", "s");
+	t.truthy(cacheInfo, "Build #2 finds the stage via the dependency-only delta");
+	t.not(cacheInfo, true, "Build #2 is a delta, not a full hit");
+	t.deepEqual(cacheInfo.changedProjectResourcePaths, [],
+		"A dependency-only delta reports no changed project resources");
+
+	// The delta's newSignature is the [project, dependency, input, root] tuple. Its project component
+	// must be the raw project index signature (unchanged this build), and its dependency component the
+	// new dependency index signature, so the next build's exact lookup reproduces it.
+	const [projectComponent, dependencyComponent] = cacheInfo.newSignature.split("-");
+	t.is(projectComponent, taskCache.getProjectIndexSignatures()[0],
+		"newSignature's project component is the raw project index signature, not a re-combined hash");
+	t.is(dependencyComponent, taskCache.getDependencyIndexSignatures()[0],
+		"newSignature's dependency component is the updated dependency index signature");
+});
+
+// F2 invariant. The result signature's dependency component is positional, so the candidate list
+// (#getPossibleResultStageSignatures) and the stored signature (#getResultStageSignature) must cover
+// the same stages in the same order. Deriving both from the single stage order turns a stage that is
+// declared but never recorded into a loud failure instead of a silently shortened, never-matching
+// dependency list. Before the fix allTasksCompleted computed a result signature over whichever stages
+// happened to be in #currentStageSignatures and did not throw.
+test("allTasksCompleted throws when a declared stage never received a signature (F2 invariant)",
+	async (t) => {
+		const project = createMockProject();
+		const cacheManager = createMockCacheManager();
+
+		const resource = createMockResource("/test.js", "hash1", 1000, 100, 1);
+		project.getSourceReader.callsFake(() => ({
+			byGlob: sinon.stub().resolves([resource]),
+			byPath: sinon.stub().callsFake((p) => Promise.resolve(p === "/test.js" ? resource : null)),
+		}));
+
+		const cache = new ProjectBuildCache(project, "sig", cacheManager);
+		await cache.initSourceIndex();
+
+		// Two stages are declared, but only the first is prepared and recorded. The second never receives
+		// a #currentStageSignatures entry.
+		cache.setTasks([{taskName: "taskA"}, {taskName: "taskB"}]);
+		await cache.prepareTaskExecutionAndValidateCache("taskA");
+		project.getProjectResources().getStage.returns({
+			getId: () => "task/taskA",
+			getWriter: sinon.stub().returns({byGlob: sinon.stub().resolves([])}),
+		});
+		await cache.recordTaskResult("taskA", {paths: new Set(), patterns: new Set()},
+			{paths: new Set(), patterns: new Set()}, null);
+
+		const error = await t.throwsAsync(() => cache.allTasksCompleted());
+		t.regex(error.message, /stage task\/taskB has no current stage signature/,
+			"Fails loudly instead of storing a result signature no later lookup could reproduce");
+	});
+
 // ===== RESOURCE CHANGE TRACKING TESTS =====
 
 test("projectSourcesChanged: marks cache as requiring validation", async (t) => {

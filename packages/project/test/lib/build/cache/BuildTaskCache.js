@@ -388,6 +388,64 @@ test("getDependencyIndexDeltas: returns deltas when enabled", async (t) => {
 	t.true(deltas instanceof Map, "Returns Map");
 });
 
+// ===== STAGE SIGNATURE TESTS =====
+
+test("getStageSignatures: composes the [project, dependency, input, root] tuple", async (t) => {
+	const cache = new BuildTaskCache("test.project", "testTask", false);
+	const projectResource = createMockResource("/test.js");
+	const depResource = createMockResource("/dep.js");
+	const projectReader = createMockReader([projectResource]);
+	const dependencyReader = createMockReader([depResource]);
+
+	const [projectSig, dependencySig, inputSig, rootSig] = await cache.recordRequests(
+		{paths: new Set(["/test.js"]), patterns: new Set()},
+		{paths: new Set(["/dep.js"]), patterns: new Set()},
+		projectReader, dependencyReader);
+
+	const stageSignatures = cache.getStageSignatures();
+
+	t.deepEqual(stageSignatures, [`${projectSig}-${dependencySig}-${inputSig}-${rootSig}`],
+		"The single exact-match signature is the four components joined in tuple order");
+});
+
+test("getStageSignatures: empty-input and empty-root components are the stable empty-set digests",
+	async (t) => {
+		// A stage that reads only resources, with no non-resource inputs and no root reads: the input and
+		// root slots must still carry the empty-set digests getInputSignature()/getRootSignature() return,
+		// so a later lookup recomposes the same signature.
+		const cache = new BuildTaskCache("test.project", "testTask", false);
+		const projectReader = createMockReader([createMockResource("/test.js")]);
+		const dependencyReader = createMockReader([createMockResource("/dep.js")]);
+
+		await cache.recordRequests(
+			{paths: new Set(["/test.js"]), patterns: new Set()},
+			{paths: new Set(["/dep.js"]), patterns: new Set()},
+			projectReader, dependencyReader);
+
+		const [signature] = cache.getStageSignatures();
+		const [, , inputComponent, rootComponent] = signature.split("-");
+
+		t.is(inputComponent, cache.getInputSignature(), "Input slot is the empty-input digest");
+		t.is(rootComponent, cache.getRootSignature(), "Root slot is the empty-root digest");
+	});
+
+test("getStageSignatures: one signature per project x dependency index-signature combination",
+	async (t) => {
+		// With a single project request set and a single dependency request set the cartesian product is
+		// one signature. The product grows only as additional request sets are recorded.
+		const cache = new BuildTaskCache("test.project", "testTask", false);
+		const projectReader = createMockReader([createMockResource("/test.js")]);
+		const dependencyReader = createMockReader([createMockResource("/dep.js")]);
+
+		await cache.recordRequests(
+			{paths: new Set(["/test.js"]), patterns: new Set()},
+			{paths: new Set(["/dep.js"]), patterns: new Set()},
+			projectReader, dependencyReader);
+
+		t.is(cache.getStageSignatures().length, 1,
+			"One project signature times one dependency signature yields one stage signature");
+	});
+
 // ===== SERIALIZATION TESTS =====
 
 test("toCacheObjects: returns cache objects", async (t) => {
