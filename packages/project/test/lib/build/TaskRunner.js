@@ -1440,7 +1440,8 @@ test.serial("Folds taskUtil project-reader reads into the recorded resource requ
 	await taskRunner._tasks["standardTask"].task();
 
 	t.is(taskStub.callCount, 1, "task executed");
-	const [, projectResourceRequests, dependencyResourceRequests] = buildCache.recordStageResult.getCall(0).args;
+	const {projectResourceRequests, dependencyResourceRequests} =
+		buildCache.recordStageResult.getCall(0).args[0];
 	t.deepEqual(projectResourceRequests, {
 		paths: ["/resources/project/b/own.js"],
 		patterns: [],
@@ -2011,7 +2012,7 @@ test("Step-based custom task: bound at Specification Version 5.0, folds the runn
 		await taskRunner._tasks["myCustom"].task(projectBuildLogger);
 		t.deepEqual(ran, ["a", "b"], "The full build ran every step");
 		t.is(buildCache.setStepInvocationData.callCount, 1, "The invocation data was persisted");
-		t.is(buildCache.recordStageResult.getCall(0).args[6], true,
+		t.is(buildCache.recordStageResult.getCall(0).args[0].stepBased, true,
 			"recordStageResult was told the task ran the step runner");
 
 		// Build 2 (delta): only env var "a" changed, so step "a" re-runs and step "b" is restored.
@@ -2030,7 +2031,87 @@ test("Step-based custom task: bound at Specification Version 5.0, folds the runn
 			"The restored step's recorded tag operation was replayed, so its tag survives");
 	});
 
-// The gating decision: the step-based opt-in is honored only from Specification Version 5.0. A 4.0 custom
+// The TaskRunner's recordStage hook must not mutate the stage's delta verdict: the StepRunner still
+// holds it and #selectStepsToRun already read its changed paths before recordStage runs. The extended
+// changed-path list (the verdict's own paths plus the stage's stale outputs) is handed to
+// recordStageResult as an explicit field instead. Freezing the verdict pins the contract: the former
+// in-place assignment would throw on the frozen object in strict mode.
+test("Step-based task: recordStage passes stale outputs without mutating the delta verdict", async (t) => {
+	const {sinon, projectBuildLogger} = t.context;
+
+	const frozenVerdict = Object.freeze({
+		changedProjectResourcePaths: Object.freeze(["/changed.js"]),
+		changedDependencyResourcePaths: Object.freeze([]),
+	});
+	const staleOutputs = ["/stale.js"];
+
+	// Fake StepRunner: drive the real recordStage hook once with the frozen verdict and a non-empty
+	// stale-output list, the exact condition under which the old code mutated the verdict.
+	class FakeStepRunner {
+		constructor(opts) {
+			this._opts = opts;
+		}
+		async runSteps() {
+			const ctx = this._opts.createStageContext();
+			await this._opts.recordStage("s", {
+				ctx,
+				cacheInfo: frozenVerdict,
+				invocationData: new Map(),
+				staleOutputs,
+				foldedReads: undefined,
+				foldedInputs: undefined,
+			});
+			return {anyStepExecuted: true, writtenResourcePaths: []};
+		}
+	}
+
+	const build = () => [{name: "s", keys: async () => [], each: async () => {}}];
+	const taskDefinitions = {
+		getTaskDefinitions: async () => ({
+			standardTasks: new Map([
+				["stepTask", {requiresDependencies: false, stepBased: true, options: {}, taskFunction: build}],
+			]),
+			customTasks: new Map(),
+		}),
+	};
+	const buildCache = {
+		setTasks: sinon.stub(),
+		recordStageResult: sinon.stub().resolves([]),
+		allTasksCompleted: sinon.stub().resolves([]),
+		getStageId: (taskName, stepName) =>
+			stepName === undefined ? `task/${taskName}` : `task/${taskName}::step/${stepName}`,
+		prepareStageExecutionAndValidateCache: sinon.stub().resolves(false),
+		getStepInvocationData: sinon.stub().returns(undefined),
+		setStepInvocationData: sinon.stub(),
+		getStepReturnValueStore: sinon.stub().returns(undefined),
+		getResolveInputValue: sinon.stub().returns(undefined),
+	};
+	const project = getMockProject("module");
+	project.getProjectResources = () => ({replayTagOperations: sinon.stub()});
+
+	t.context.TaskRunner = await esmock("../../../lib/build/TaskRunner.js", {
+		"@ui5/logger": t.context.logger,
+		"@ui5/fs/resourceFactory": t.context.resourceFactory,
+		"../../../lib/build/helpers/StepRunner.js": {default: FakeStepRunner},
+	});
+
+	const taskRunner = createTaskRunner(t, project, {taskUtil: t.context.taskUtil, buildCache, taskDefinitions});
+	await taskRunner._initTasks();
+
+	// Completing without throwing already proves the frozen verdict was not written to.
+	await t.notThrowsAsync(taskRunner._tasks["stepTask"].task(projectBuildLogger),
+		"the step path completes without mutating the frozen verdict");
+
+	t.deepEqual(frozenVerdict.changedProjectResourcePaths, ["/changed.js"],
+		"the verdict's changed-path list is left untouched");
+
+	const options = buildCache.recordStageResult.getCall(0).args[0];
+	t.is(options.cacheInfo, frozenVerdict, "the same verdict object is forwarded, unmutated");
+	t.deepEqual(options.changedProjectResourcePaths, ["/changed.js", "/stale.js"],
+		"the stale outputs are appended to the verdict's changed paths and passed as an explicit field");
+});
+
+
 // task declaring stepBased still runs as a legacy body, so the step runner is never driven and the runner
 // outcome is not folded into recordStageResult.
 test("Step-based custom task: the step-based export is ignored below Specification Version 5.0", async (t) => {
@@ -2061,7 +2142,7 @@ test("Step-based custom task: the step-based export is ignored below Specificati
 	await taskRunner._tasks["myCustom"].task(projectBuildLogger);
 
 	t.true(ran, "The legacy task body ran");
-	t.falsy(t.context.buildCache.recordStageResult.getCall(0).args[6],
+	t.falsy(t.context.buildCache.recordStageResult.getCall(0).args[0].stepBased,
 		"The step-based export is ignored below 5.0, so the task did not run the step runner");
 });
 

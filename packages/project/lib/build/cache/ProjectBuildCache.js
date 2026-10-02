@@ -1209,16 +1209,48 @@ export default class ProjectBuildCache {
 	async #foldStepReads(
 		stageId, stageCache, projectResourceRequests, dependencyResourceRequests, inputRecording, rootResourceRequests
 	) {
-		return stageCache.recordRequests(
-			projectResourceRequests, dependencyResourceRequests,
-			this.#currentProjectReader, this.#currentDependencyReader,
-			inputRecording, rootResourceRequests, this.#getRootReaderFactory());
+		return stageCache.recordRequests({
+			projectRequestRecording: projectResourceRequests,
+			dependencyRequestRecording: dependencyResourceRequests,
+			projectReader: this.#currentProjectReader,
+			dependencyReader: this.#currentDependencyReader,
+			inputRecording,
+			rootRequestRecording: rootResourceRequests,
+			getRootReader: this.#getRootReaderFactory(),
+		});
 	}
 
-	async recordStageResult(
+	/**
+	 * Records the result of a stage execution and updates the cache.
+	 *
+	 * @public
+	 * @param {object} options
+	 * @param {string} options.taskName Name of the executed task
+	 * @param {@ui5/project/build/cache/BuildStageCache~ResourceRequests} options.projectResourceRequests
+	 *   Resource requests for project resources
+	 * @param {@ui5/project/build/cache/BuildStageCache~ResourceRequests|undefined}
+	 *   options.dependencyResourceRequests Resource requests for dependency resources
+	 * @param {object} [options.cacheInfo] Delta cache verdict for differential updates, or undefined for a
+	 *   full execution. Treated as read-only: the effective changed-path list is passed separately via
+	 *   <code>changedProjectResourcePaths</code> rather than mutated onto this object.
+	 * @param {Array<{type: string, name: string, value: string|undefined}>} [options.inputRecording]
+	 *   Non-resource inputs (environment variables, TaskUtil interface reads) recorded during execution
+	 * @param {{gitignore: @ui5/project/build/cache/BuildStageCache~ResourceRequests,
+	 *   noGitignore: @ui5/project/build/cache/BuildStageCache~ResourceRequests}} [options.rootResourceRequests]
+	 *   Resource requests read through the project's root reader, keyed by useGitignore
+	 * @param {boolean} [options.stepBased=false] Whether the stage ran the step runner
+	 * @param {string} [options.stepName] Name of the step, for a step-based task's per-step stage
+	 * @param {string[]} [options.changedProjectResourcePaths] On a delta merge, the project resource paths
+	 *   to drop from the carried-forward stage: the verdict's own changed paths plus any stale outputs the
+	 *   caller derived. Defaults to the verdict's <code>changedProjectResourcePaths</code>.
+	 * @returns {Promise<string[]|undefined>} The resource paths written by the stage,
+	 *   or <code>undefined</code> if caching is disabled
+	 */
+	async recordStageResult({
 		taskName, projectResourceRequests, dependencyResourceRequests, cacheInfo,
-		inputRecording = [], rootResourceRequests, stepBased = false, stepName
-	) {
+		inputRecording = [], rootResourceRequests, stepBased = false, stepName,
+		changedProjectResourcePaths,
+	}) {
 		if (this.#cacheMode === Cache.Off) {
 			return;
 		}
@@ -1278,8 +1310,11 @@ export default class ProjectBuildCache {
 			}
 			// Paths flagged changed but not re-emitted by the delta task: their source
 			// is gone or excluded, so replaying the previous stage's copy would
-			// resurrect content that no longer belongs in the output.
-			const changedProjectResourcePaths = new Set(cacheInfo.changedProjectResourcePaths ?? []);
+			// resurrect content that no longer belongs in the output. The caller passes the effective
+			// list (the verdict's changed paths plus any stale outputs it derived); fall back to the
+			// verdict's own list when the caller passes none.
+			const changedPathSet = new Set(
+				changedProjectResourcePaths ?? cacheInfo.changedProjectResourcePaths ?? []);
 			// Set form for the membership check below; the array is retained for the
 			// ordered downstream uses (recordStageCache, verbose counts).
 			const writtenResourcePathSet = new Set(writtenResourcePaths);
@@ -1292,7 +1327,7 @@ export default class ProjectBuildCache {
 				if (writtenResourcePathSet.has(path)) {
 					continue; // Delta re-emitted this path; skip
 				}
-				if (changedProjectResourcePaths.has(path)) {
+				if (changedPathSet.has(path)) {
 					// Flagged changed but not written back by the delta task.
 					// Drop the stale copy from the merge.
 					droppedCount++;
@@ -1326,15 +1361,15 @@ export default class ProjectBuildCache {
 		} else {
 			// Calculate signature for executed stage
 			const recordReqStart = performance.now();
-			const stageSignatureTuple = await stageCache.recordRequests(
-				projectResourceRequests,
-				dependencyResourceRequests,
-				this.#currentProjectReader,
-				this.#currentDependencyReader,
+			const stageSignatureTuple = await stageCache.recordRequests({
+				projectRequestRecording: projectResourceRequests,
+				dependencyRequestRecording: dependencyResourceRequests,
+				projectReader: this.#currentProjectReader,
+				dependencyReader: this.#currentDependencyReader,
 				inputRecording,
-				rootResourceRequests,
-				this.#getRootReaderFactory()
-			);
+				rootRequestRecording: rootResourceRequests,
+				getRootReader: this.#getRootReaderFactory(),
+			});
 			if (log.isLevelEnabled("perf")) {
 				log.perf(
 					`recordStageResult recordRequests for stage ${stageId} ` +
@@ -1910,8 +1945,16 @@ export default class ProjectBuildCache {
 						this.#project.getId(), this.#buildSignature, stageId, "root");
 					const rootNoGitignoreRequests = this.#cacheManager.readTaskMetadata(
 						this.#project.getId(), this.#buildSignature, stageId, "root-no-gitignore");
-					return BuildStageCache.fromCache(this.#project.getName(), stageId, !!stepBased,
-						projectRequests, dependencyRequests, inputTree, rootRequests, rootNoGitignoreRequests);
+					return BuildStageCache.fromCache({
+						projectName: this.#project.getName(),
+						stageId,
+						stepBased: !!stepBased,
+						projectRequests,
+						dependencyRequests,
+						inputSet: inputTree,
+						rootRequests,
+						rootNoGitignoreRequests,
+					});
 				})
 			);
 			// Ensure stageCache is filled in the order of stage execution

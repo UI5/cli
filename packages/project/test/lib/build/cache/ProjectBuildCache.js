@@ -506,7 +506,12 @@ test("recordStageResult: creates stage cache", async (t) => {
 	const projectRequests = {paths: new Set(["/input.js"]), patterns: new Set()};
 	const dependencyRequests = {paths: new Set(), patterns: new Set()};
 
-	await cache.recordStageResult("newTask", projectRequests, dependencyRequests, null);
+	await cache.recordStageResult({
+		taskName: "newTask",
+		projectResourceRequests: projectRequests,
+		dependencyResourceRequests: dependencyRequests,
+		cacheInfo: null,
+	});
 
 	const stageCache = cache.getStageCache("newTask");
 	t.truthy(stageCache, "Stage cache created");
@@ -524,7 +529,12 @@ test("recordStageResult with empty requests", async (t) => {
 	const projectRequests = {paths: new Set(), patterns: new Set()};
 	const dependencyRequests = {paths: new Set(), patterns: new Set()};
 
-	await cache.recordStageResult("task1", projectRequests, dependencyRequests, null);
+	await cache.recordStageResult({
+		taskName: "task1",
+		projectResourceRequests: projectRequests,
+		dependencyResourceRequests: dependencyRequests,
+		cacheInfo: null,
+	});
 
 	const stageCache = cache.getStageCache("task1");
 	t.truthy(stageCache, "Stage cache created even with no requests");
@@ -575,7 +585,12 @@ test("recordStageResult with cacheInfo: merges resources from previous stage, sk
 
 		const projectRequests = {paths: new Set(), patterns: new Set()};
 		const dependencyRequests = {paths: new Set(), patterns: new Set()};
-		await cache.recordStageResult("myTask", projectRequests, dependencyRequests, cacheInfo);
+		await cache.recordStageResult({
+			taskName: "myTask",
+			projectResourceRequests: projectRequests,
+			dependencyResourceRequests: dependencyRequests,
+			cacheInfo,
+		});
 
 		t.is(writeStub.callCount, 2, "Write called for 2 non-overlapping resources");
 		const writtenPaths = writeStub.getCalls().map((call) => call.args[0].getOriginalPath());
@@ -623,7 +638,12 @@ test("recordStageResult with cacheInfo: calls importTagOperations with previous 
 
 		const projectRequests = {paths: new Set(), patterns: new Set()};
 		const dependencyRequests = {paths: new Set(), patterns: new Set()};
-		await cache.recordStageResult("myTask", projectRequests, dependencyRequests, cacheInfo);
+		await cache.recordStageResult({
+			taskName: "myTask",
+			projectResourceRequests: projectRequests,
+			dependencyResourceRequests: dependencyRequests,
+			cacheInfo,
+		});
 
 		const importStub = project.getProjectResources().importTagOperations;
 		t.true(importStub.calledOnce, "importTagOperations called once");
@@ -682,7 +702,12 @@ test("recordStageResult with cacheInfo: merges tag operations with current delta
 
 		const projectRequests = {paths: new Set(), patterns: new Set()};
 		const dependencyRequests = {paths: new Set(), patterns: new Set()};
-		await cache.recordStageResult("myTask", projectRequests, dependencyRequests, cacheInfo);
+		await cache.recordStageResult({
+			taskName: "myTask",
+			projectResourceRequests: projectRequests,
+			dependencyResourceRequests: dependencyRequests,
+			cacheInfo,
+		});
 
 		// Verify merged tags via writeCache -> cacheManager.writeStageCache
 		await cache.writeCache();
@@ -744,7 +769,12 @@ test("recordStageResult with cacheInfo: uses cacheInfo.newSignature as stage sig
 
 		const projectRequests = {paths: new Set(), patterns: new Set()};
 		const dependencyRequests = {paths: new Set(), patterns: new Set()};
-		await cache.recordStageResult("myTask", projectRequests, dependencyRequests, cacheInfo);
+		await cache.recordStageResult({
+			taskName: "myTask",
+			projectResourceRequests: projectRequests,
+			dependencyResourceRequests: dependencyRequests,
+			cacheInfo,
+		});
 
 		await cache.writeCache();
 
@@ -799,7 +829,12 @@ test("recordStageResult with cacheInfo: uses getCachedWriter fallback when getWr
 
 		const projectRequests = {paths: new Set(), patterns: new Set()};
 		const dependencyRequests = {paths: new Set(), patterns: new Set()};
-		await cache.recordStageResult("myTask", projectRequests, dependencyRequests, cacheInfo);
+		await cache.recordStageResult({
+			taskName: "myTask",
+			projectResourceRequests: projectRequests,
+			dependencyResourceRequests: dependencyRequests,
+			cacheInfo,
+		});
 
 		t.true(getCachedWriterStub.calledOnce, "getCachedWriter used as fallback");
 		t.is(writeStub.callCount, 1, "Write called for 1 resource from cached writer");
@@ -854,9 +889,14 @@ test("prepareStageExecutionAndValidateCache: a dependency-only delta keys the st
 
 	// Build #1: full execution records the stage over /test.js (project) and /dep.js@dep-v0 (dependency).
 	t.is(await cache.prepareStageExecutionAndValidateCache("stepTask", "s"), false, "Build #1 has no cache");
-	await cache.recordStageResult("stepTask",
-		{paths: new Set(["/test.js"]), patterns: new Set()},
-		{paths: new Set(["/dep.js"]), patterns: new Set()}, null, [], undefined, true, "s");
+	await cache.recordStageResult({
+		taskName: "stepTask",
+		projectResourceRequests: {paths: new Set(["/test.js"]), patterns: new Set()},
+		dependencyResourceRequests: {paths: new Set(["/dep.js"]), patterns: new Set()},
+		cacheInfo: null,
+		stepBased: true,
+		stepName: "s",
+	});
 
 	// A dependency resource changed while the project's sources did not: move the stage's dependency
 	// index to a delta (dep-v0 -> dep-v1). The changed resource differs in size and mtime so
@@ -914,8 +954,12 @@ test("allTasksCompleted throws when a declared stage never received a signature 
 			getId: () => "task/taskA",
 			getWriter: sinon.stub().returns({byGlob: sinon.stub().resolves([])}),
 		});
-		await cache.recordStageResult("taskA", {paths: new Set(), patterns: new Set()},
-			{paths: new Set(), patterns: new Set()}, null);
+		await cache.recordStageResult({
+			taskName: "taskA",
+			projectResourceRequests: {paths: new Set(), patterns: new Set()},
+			dependencyResourceRequests: {paths: new Set(), patterns: new Set()},
+			cacheInfo: null,
+		});
 
 		const error = await t.throwsAsync(() => cache.allTasksCompleted());
 		t.regex(error.message, /stage task\/taskB has no current stage signature/,
@@ -1387,7 +1431,12 @@ async function buildCacheWithTaskResult(resources, writtenPaths = []) {
 
 	const projectRequests = {paths: new Set(), patterns: new Set()};
 	const dependencyRequests = {paths: new Set(), patterns: new Set()};
-	await cache.recordStageResult("myTask", projectRequests, dependencyRequests, null);
+	await cache.recordStageResult({
+		taskName: "myTask",
+		projectResourceRequests: projectRequests,
+		dependencyResourceRequests: dependencyRequests,
+		cacheInfo: null,
+	});
 
 	return {cache, project, cacheManager};
 }
@@ -1509,7 +1558,12 @@ test("freezeUntransformedSources: throws when source file not found", async (t) 
 
 	const projectRequests = {paths: new Set(), patterns: new Set()};
 	const dependencyRequests = {paths: new Set(), patterns: new Set()};
-	await cache.recordStageResult("myTask", projectRequests, dependencyRequests, null);
+	await cache.recordStageResult({
+		taskName: "myTask",
+		projectResourceRequests: projectRequests,
+		dependencyResourceRequests: dependencyRequests,
+		cacheInfo: null,
+	});
 
 	const error = await t.throwsAsync(() => cache.allTasksCompleted());
 	t.true(error.message.includes("not found during CAS freeze"),
@@ -1622,7 +1676,12 @@ async function buildCacheWithWarmCacheAndTaskResult({
 
 	const projectRequests = {paths: new Set(), patterns: new Set()};
 	const dependencyRequests = {paths: new Set(), patterns: new Set()};
-	await cache.recordStageResult("myTask", projectRequests, dependencyRequests, null);
+	await cache.recordStageResult({
+		taskName: "myTask",
+		projectResourceRequests: projectRequests,
+		dependencyResourceRequests: dependencyRequests,
+		cacheInfo: null,
+	});
 
 	return {cache, project, cacheManager};
 }
@@ -2195,9 +2254,12 @@ function stubStage(project, stageId, {written = [], write} = {}) {
 
 // Records a task result with empty project/dependency request sets.
 function recordEmptyResult(cache, taskName, cacheInfo = null) {
-	return cache.recordStageResult(
-		taskName, {paths: new Set(), patterns: new Set()},
-		{paths: new Set(), patterns: new Set()}, cacheInfo);
+	return cache.recordStageResult({
+		taskName,
+		projectResourceRequests: {paths: new Set(), patterns: new Set()},
+		dependencyResourceRequests: {paths: new Set(), patterns: new Set()},
+		cacheInfo,
+	});
 }
 
 test("Fail-then-succeed: #writtenResultResourcePaths accumulates across failed attempts (documented behavior)",

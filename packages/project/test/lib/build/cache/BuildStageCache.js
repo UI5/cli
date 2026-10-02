@@ -75,8 +75,13 @@ test("fromCache: restore BuildStageCache from cached data", (t) => {
 		unusedAtLeastOnce: false
 	};
 
-	const cache = BuildStageCache.fromCache("test.project", "testTask", false,
-		projectRequests, dependencyRequests);
+	const cache = BuildStageCache.fromCache({
+		projectName: "test.project",
+		stageId: "testTask",
+		stepBased: false,
+		projectRequests,
+		dependencyRequests,
+	});
 
 	t.truthy(cache, "Cache restored from cached data");
 	t.is(cache.getStageId(), "testTask", "Stage id preserved");
@@ -118,7 +123,11 @@ test("hasNewOrModifiedCacheEntries: true after recording requests", async (t) =>
 		patterns: new Set()
 	};
 
-	await cache.recordRequests(projectRequests, undefined, projectReader, dependencyReader);
+	await cache.recordRequests({
+		projectRequestRecording: projectRequests,
+		projectReader,
+		dependencyReader,
+	});
 
 	t.true(cache.hasNewOrModifiedCacheEntries(), "Has new entries after recording");
 });
@@ -137,7 +146,11 @@ test("getProjectIndexSignatures: returns signatures after recording", async (t) 
 		patterns: new Set()
 	};
 
-	await cache.recordRequests(projectRequests, undefined, projectReader, dependencyReader);
+	await cache.recordRequests({
+		projectRequestRecording: projectRequests,
+		projectReader,
+		dependencyReader,
+	});
 
 	const signatures = cache.getProjectIndexSignatures();
 
@@ -164,7 +177,12 @@ test("getDependencyIndexSignatures: returns signatures after recording", async (
 		patterns: new Set()
 	};
 
-	await cache.recordRequests(projectRequests, dependencyRequests, projectReader, dependencyReader);
+	await cache.recordRequests({
+		projectRequestRecording: projectRequests,
+		dependencyRequestRecording: dependencyRequests,
+		projectReader,
+		dependencyReader,
+	});
 
 	const signatures = cache.getDependencyIndexSignatures();
 
@@ -187,8 +205,11 @@ test("recordRequests: handles project requests only", async (t) => {
 		patterns: new Set()
 	};
 
-	const [projectSig, depSig] = await cache.recordRequests(
-		projectRequests, undefined, projectReader, dependencyReader);
+	const [projectSig, depSig] = await cache.recordRequests({
+		projectRequestRecording: projectRequests,
+		projectReader,
+		dependencyReader,
+	});
 
 	t.is(typeof projectSig, "string", "Project signature returned");
 	t.is(typeof depSig, "string", "Dependency signature returned");
@@ -214,8 +235,12 @@ test("recordRequests: handles both project and dependency requests", async (t) =
 		patterns: new Set()
 	};
 
-	const [projectSig, depSig] = await cache.recordRequests(
-		projectRequests, dependencyRequests, projectReader, dependencyReader);
+	const [projectSig, depSig] = await cache.recordRequests({
+		projectRequestRecording: projectRequests,
+		dependencyRequestRecording: dependencyRequests,
+		projectReader,
+		dependencyReader,
+	});
 
 	t.is(typeof projectSig, "string", "Project signature returned");
 	t.is(typeof depSig, "string", "Dependency signature returned");
@@ -234,8 +259,11 @@ test("recordRequests: handles glob patterns", async (t) => {
 		patterns: new Set(["/src/**/*.js"])
 	};
 
-	const [projectSig, depSig] = await cache.recordRequests(
-		projectRequests, undefined, projectReader, dependencyReader);
+	const [projectSig, depSig] = await cache.recordRequests({
+		projectRequestRecording: projectRequests,
+		projectReader,
+		dependencyReader,
+	});
 
 	t.is(typeof projectSig, "string", "Project signature returned");
 	t.is(typeof depSig, "string", "Dependency signature returned");
@@ -252,8 +280,11 @@ test("recordRequests: handles empty requests", async (t) => {
 		patterns: new Set()
 	};
 
-	const [projectSig, depSig] = await cache.recordRequests(
-		projectRequests, undefined, projectReader, dependencyReader);
+	const [projectSig, depSig] = await cache.recordRequests({
+		projectRequestRecording: projectRequests,
+		projectReader,
+		dependencyReader,
+	});
 
 	t.is(typeof projectSig, "string", "Project signature returned");
 	t.is(typeof depSig, "string", "Dependency signature returned");
@@ -274,7 +305,11 @@ test("updateProjectIndices: processes changed resources", async (t) => {
 		patterns: new Set()
 	};
 
-	await cache.recordRequests(projectRequests, undefined, projectReader, dependencyReader);
+	await cache.recordRequests({
+		projectRequestRecording: projectRequests,
+		projectReader,
+		dependencyReader,
+	});
 
 	// Now update with changed resource
 	const updatedResource = createMockResource("/test.js", "updated content", "new-hash");
@@ -304,7 +339,12 @@ test("updateDependencyIndices: processes changed dependencies", async (t) => {
 		patterns: new Set()
 	};
 
-	await cache.recordRequests(projectRequests, dependencyRequests, projectReader, dependencyReader);
+	await cache.recordRequests({
+		projectRequestRecording: projectRequests,
+		dependencyRequestRecording: dependencyRequests,
+		projectReader,
+		dependencyReader,
+	});
 
 	// Now update with changed dependency
 	const updatedDepResource = createMockResource("/dep.js", "updated", "new-dep-hash");
@@ -334,7 +374,12 @@ test("refreshDependencyIndices: refreshes all dependency indices", async (t) => 
 		patterns: new Set()
 	};
 
-	await cache.recordRequests(projectRequests, dependencyRequests, projectReader, dependencyReader);
+	await cache.recordRequests({
+		projectRequestRecording: projectRequests,
+		dependencyRequestRecording: dependencyRequests,
+		projectReader,
+		dependencyReader,
+	});
 
 	// Refresh all indices - returns undefined when processing changes, or false if no requests
 	const result = await cache.refreshDependencyIndices(dependencyReader);
@@ -356,7 +401,11 @@ test("getProjectIndexDeltas: returns deltas when enabled", async (t) => {
 		patterns: new Set()
 	};
 
-	await cache.recordRequests(projectRequests, undefined, projectReader, dependencyReader);
+	await cache.recordRequests({
+		projectRequestRecording: projectRequests,
+		projectReader,
+		dependencyReader,
+	});
 
 	const deltas = cache.getProjectIndexDeltas();
 
@@ -381,7 +430,12 @@ test("getDependencyIndexDeltas: returns deltas when enabled", async (t) => {
 		patterns: new Set()
 	};
 
-	await cache.recordRequests(projectRequests, dependencyRequests, projectReader, dependencyReader);
+	await cache.recordRequests({
+		projectRequestRecording: projectRequests,
+		dependencyRequestRecording: dependencyRequests,
+		projectReader,
+		dependencyReader,
+	});
 
 	const deltas = cache.getDependencyIndexDeltas();
 
@@ -397,10 +451,12 @@ test("getStageSignatures: composes the [project, dependency, input, root] tuple"
 	const projectReader = createMockReader([projectResource]);
 	const dependencyReader = createMockReader([depResource]);
 
-	const [projectSig, dependencySig, inputSig, rootSig] = await cache.recordRequests(
-		{paths: new Set(["/test.js"]), patterns: new Set()},
-		{paths: new Set(["/dep.js"]), patterns: new Set()},
-		projectReader, dependencyReader);
+	const [projectSig, dependencySig, inputSig, rootSig] = await cache.recordRequests({
+		projectRequestRecording: {paths: new Set(["/test.js"]), patterns: new Set()},
+		dependencyRequestRecording: {paths: new Set(["/dep.js"]), patterns: new Set()},
+		projectReader,
+		dependencyReader,
+	});
 
 	const stageSignatures = cache.getStageSignatures();
 
@@ -417,10 +473,12 @@ test("getStageSignatures: empty-input and empty-root components are the stable e
 		const projectReader = createMockReader([createMockResource("/test.js")]);
 		const dependencyReader = createMockReader([createMockResource("/dep.js")]);
 
-		await cache.recordRequests(
-			{paths: new Set(["/test.js"]), patterns: new Set()},
-			{paths: new Set(["/dep.js"]), patterns: new Set()},
-			projectReader, dependencyReader);
+		await cache.recordRequests({
+			projectRequestRecording: {paths: new Set(["/test.js"]), patterns: new Set()},
+			dependencyRequestRecording: {paths: new Set(["/dep.js"]), patterns: new Set()},
+			projectReader,
+			dependencyReader,
+		});
 
 		const [signature] = cache.getStageSignatures();
 		const [, , inputComponent, rootComponent] = signature.split("-");
@@ -437,10 +495,12 @@ test("getStageSignatures: one signature per project x dependency index-signature
 		const projectReader = createMockReader([createMockResource("/test.js")]);
 		const dependencyReader = createMockReader([createMockResource("/dep.js")]);
 
-		await cache.recordRequests(
-			{paths: new Set(["/test.js"]), patterns: new Set()},
-			{paths: new Set(["/dep.js"]), patterns: new Set()},
-			projectReader, dependencyReader);
+		await cache.recordRequests({
+			projectRequestRecording: {paths: new Set(["/test.js"]), patterns: new Set()},
+			dependencyRequestRecording: {paths: new Set(["/dep.js"]), patterns: new Set()},
+			projectReader,
+			dependencyReader,
+		});
 
 		t.is(cache.getStageSignatures().length, 1,
 			"One project signature times one dependency signature yields one stage signature");
@@ -460,7 +520,11 @@ test("toCacheObjects: returns cache objects", async (t) => {
 		patterns: new Set()
 	};
 
-	await cache.recordRequests(projectRequests, undefined, projectReader, dependencyReader);
+	await cache.recordRequests({
+		projectRequestRecording: projectRequests,
+		projectReader,
+		dependencyReader,
+	});
 
 	const [projectCache, dependencyCache] = cache.toCacheObjects();
 
@@ -482,13 +546,22 @@ test("toCacheObjects: can restore from serialized data", async (t) => {
 		patterns: new Set()
 	};
 
-	await cache1.recordRequests(projectRequests, undefined, projectReader, dependencyReader);
+	await cache1.recordRequests({
+		projectRequestRecording: projectRequests,
+		projectReader,
+		dependencyReader,
+	});
 
 	const [projectCache, dependencyCache] = cache1.toCacheObjects();
 
 	// Restore from cache
-	const cache2 = BuildStageCache.fromCache("test.project", "testTask", false,
-		projectCache, dependencyCache);
+	const cache2 = BuildStageCache.fromCache({
+		projectName: "test.project",
+		stageId: "testTask",
+		stepBased: false,
+		projectRequests: projectCache,
+		dependencyRequests: dependencyCache,
+	});
 
 	t.truthy(cache2, "Cache restored");
 	t.is(cache2.getStageId(), "testTask", "Stage id preserved");
@@ -517,7 +590,11 @@ test("Multiple recordRequests calls accumulate", async (t) => {
 		patterns: new Set()
 	};
 
-	await cache.recordRequests(projectRequests1, undefined, projectReader, dependencyReader);
+	await cache.recordRequests({
+		projectRequestRecording: projectRequests1,
+		projectReader,
+		dependencyReader,
+	});
 
 	const sigsBefore = cache.getProjectIndexSignatures();
 
@@ -527,7 +604,11 @@ test("Multiple recordRequests calls accumulate", async (t) => {
 		patterns: new Set()
 	};
 
-	await cache.recordRequests(projectRequests2, undefined, projectReader, dependencyReader);
+	await cache.recordRequests({
+		projectRequestRecording: projectRequests2,
+		projectReader,
+		dependencyReader,
+	});
 
 	const sigsAfter = cache.getProjectIndexSignatures();
 
@@ -545,8 +626,11 @@ test("Handles non-existent resource paths", async (t) => {
 		patterns: new Set()
 	};
 
-	const [projectSig, depSig] = await cache.recordRequests(
-		projectRequests, undefined, projectReader, dependencyReader);
+	const [projectSig, depSig] = await cache.recordRequests({
+		projectRequestRecording: projectRequests,
+		projectReader,
+		dependencyReader,
+	});
 
 	t.is(typeof projectSig, "string", "Still returns signature");
 	t.is(typeof depSig, "string", "Still returns dependency signature");
@@ -567,15 +651,21 @@ test("recordRequests with unresolved probe in delta position returns a distinct 
 		paths: new Set(["/a.js"]),
 		patterns: new Set(),
 	};
-	const [firstProjSig] = await cache.recordRequests(
-		firstRequests, undefined, projectReader, dependencyReader);
+	const [firstProjSig] = await cache.recordRequests({
+		projectRequestRecording: firstRequests,
+		projectReader,
+		dependencyReader,
+	});
 
 	const probingRequests = {
 		paths: new Set(["/a.js", "/optional.json"]),
 		patterns: new Set(),
 	};
-	const [probingProjSig] = await cache.recordRequests(
-		probingRequests, undefined, projectReader, dependencyReader);
+	const [probingProjSig] = await cache.recordRequests({
+		projectRequestRecording: probingRequests,
+		projectReader,
+		dependencyReader,
+	});
 
 	t.is(typeof probingProjSig, "string",
 		"Probing recording completes without throwing");
@@ -591,9 +681,12 @@ test("recordRequests: returns an input signature and flags a modified input set"
 	const dependencyReader = createMockReader([]);
 	const projectRequests = {paths: new Set(["/test.js"]), patterns: new Set()};
 
-	const [, , inputSig] = await cache.recordRequests(
-		projectRequests, undefined, projectReader, dependencyReader,
-		[{type: "env", name: "FLAG", value: "on"}]);
+	const [, , inputSig] = await cache.recordRequests({
+		projectRequestRecording: projectRequests,
+		projectReader,
+		dependencyReader,
+		inputRecording: [{type: "env", name: "FLAG", value: "on"}],
+	});
 
 	t.is(typeof inputSig, "string", "Input signature returned");
 	t.true(cache.hasNewOrModifiedCacheEntries(), "Recording an input flags the set as modified");
@@ -604,8 +697,12 @@ test("getInputSignature: re-evaluates recorded inputs via the resolver", async (
 	const projectReader = createMockReader([createMockResource("/test.js")]);
 	const projectRequests = {paths: new Set(["/test.js"]), patterns: new Set()};
 
-	await cache.recordRequests(projectRequests, undefined, projectReader, createMockReader([]),
-		[{type: "project.getVersion", name: "sap.ui.core", value: "1.120.0"}]);
+	await cache.recordRequests({
+		projectRequestRecording: projectRequests,
+		projectReader,
+		dependencyReader: createMockReader([]),
+		inputRecording: [{type: "project.getVersion", name: "sap.ui.core", value: "1.120.0"}],
+	});
 
 	const sameVersion = cache.getInputSignature(() => "1.120.0");
 	const bumpedVersion = cache.getInputSignature(() => "2.0.0");
@@ -617,11 +714,19 @@ test("toCacheObjects: includes an input cache object only when inputs were recor
 	const projectReader = createMockReader([createMockResource("/test.js")]);
 	const projectRequests = {paths: new Set(["/test.js"]), patterns: new Set()};
 
-	await cache.recordRequests(projectRequests, undefined, projectReader, createMockReader([]));
+	await cache.recordRequests({
+		projectRequestRecording: projectRequests,
+		projectReader,
+		dependencyReader: createMockReader([]),
+	});
 	t.is(cache.toCacheObjects()[2], undefined, "No input cache object without recorded inputs");
 
-	await cache.recordRequests(projectRequests, undefined, projectReader, createMockReader([]),
-		[{type: "env", name: "FLAG", value: "on"}]);
+	await cache.recordRequests({
+		projectRequestRecording: projectRequests,
+		projectReader,
+		dependencyReader: createMockReader([]),
+		inputRecording: [{type: "env", name: "FLAG", value: "on"}],
+	});
 	const inputCache = cache.toCacheObjects()[2];
 	t.truthy(inputCache, "Input cache object present after recording an input");
 	t.deepEqual(inputCache.entries, [{type: "env", name: "FLAG"}], "Only type/name persisted");
@@ -632,12 +737,22 @@ test("fromCache: restores recorded inputs and re-evaluates them on lookup", asyn
 	const projectReader = createMockReader([createMockResource("/test.js")]);
 	const projectRequests = {paths: new Set(["/test.js"]), patterns: new Set()};
 
-	await cache1.recordRequests(projectRequests, undefined, projectReader, createMockReader([]),
-		[{type: "project.getVersion", name: "sap.ui.core", value: "1.120.0"}]);
+	await cache1.recordRequests({
+		projectRequestRecording: projectRequests,
+		projectReader,
+		dependencyReader: createMockReader([]),
+		inputRecording: [{type: "project.getVersion", name: "sap.ui.core", value: "1.120.0"}],
+	});
 	const [projectCache, dependencyCache, inputCache] = cache1.toCacheObjects();
 
-	const cache2 = BuildStageCache.fromCache("test.project", "testTask", false,
-		projectCache, dependencyCache, inputCache);
+	const cache2 = BuildStageCache.fromCache({
+		projectName: "test.project",
+		stageId: "testTask",
+		stepBased: false,
+		projectRequests: projectCache,
+		dependencyRequests: dependencyCache,
+		inputSet: inputCache,
+	});
 
 	// Restored set carries only names; the resolver decides the value.
 	t.is(cache2.getInputSignature(() => "1.120.0"), cache1.getInputSignature(() => "1.120.0"),
@@ -662,9 +777,14 @@ test("recordRequests: records root requests and reflects them in the root signat
 	t.false(cache.hasRootRequests(), "No root requests before recording");
 	const emptyRootSig = cache.getRootSignature();
 
-	const [, , , rootSig] = await cache.recordRequests(
-		projectRequests, undefined, projectReader, createMockReader([]), [],
-		ROOT_REQUESTS, () => rootReader);
+	const [, , , rootSig] = await cache.recordRequests({
+		projectRequestRecording: projectRequests,
+		projectReader,
+		dependencyReader: createMockReader([]),
+		inputRecording: [],
+		rootRequestRecording: ROOT_REQUESTS,
+		getRootReader: () => rootReader,
+	});
 
 	t.true(cache.hasRootRequests(), "Root requests recorded");
 	t.is(typeof rootSig, "string");
@@ -677,8 +797,11 @@ test("getRootSignature: is stable and empty when no root requests were recorded"
 	const b = new BuildStageCache("other.project", "otherTask", false);
 	const reader = createMockReader([createMockResource("/test.js")]);
 	// Record only project requests, leaving the root managers untouched.
-	await a.recordRequests({paths: new Set(["/test.js"]), patterns: new Set()},
-		undefined, reader, createMockReader([]));
+	await a.recordRequests({
+		projectRequestRecording: {paths: new Set(["/test.js"]), patterns: new Set()},
+		projectReader: reader,
+		dependencyReader: createMockReader([]),
+	});
 
 	t.false(a.hasRootRequests(), "A task with no root reads reports no root requests");
 	t.is(a.getRootSignature(), b.getRootSignature(),
@@ -688,9 +811,14 @@ test("getRootSignature: is stable and empty when no root requests were recorded"
 test("recordRequests: an empty root bucket leaves the manager clean", async (t) => {
 	const cache = new BuildStageCache("test.project", "testTask", false);
 	const projectReader = createMockReader([createMockResource("/test.js")]);
-	await cache.recordRequests(
-		{paths: new Set(["/test.js"]), patterns: new Set()}, undefined, projectReader, createMockReader([]), [],
-		{gitignore: {paths: [], patterns: []}, noGitignore: {paths: [], patterns: []}}, () => createMockReader([]));
+	await cache.recordRequests({
+		projectRequestRecording: {paths: new Set(["/test.js"]), patterns: new Set()},
+		projectReader,
+		dependencyReader: createMockReader([]),
+		inputRecording: [],
+		rootRequestRecording: {gitignore: {paths: [], patterns: []}, noGitignore: {paths: [], patterns: []}},
+		getRootReader: () => createMockReader([]),
+	});
 
 	t.false(cache.hasRootRequests(), "An empty root recording records no requests");
 	const [, , , rootCache, rootNoGitignoreCache] = cache.toCacheObjects();
@@ -702,10 +830,14 @@ test("refreshRootIndices: a changed root file changes the root signature", async
 	const cache = new BuildStageCache("test.project", "testTask", false);
 	const projectReader = createMockReader([createMockResource("/test.js")]);
 
-	await cache.recordRequests(
-		{paths: new Set(["/test.js"]), patterns: new Set()}, undefined, projectReader,
-		createMockReader([]), [], ROOT_REQUESTS,
-		() => createMockReader([createMockResource("/tsconfig.json", "{}", "hash-v1")]));
+	await cache.recordRequests({
+		projectRequestRecording: {paths: new Set(["/test.js"]), patterns: new Set()},
+		projectReader,
+		dependencyReader: createMockReader([]),
+		inputRecording: [],
+		rootRequestRecording: ROOT_REQUESTS,
+		getRootReader: () => createMockReader([createMockResource("/tsconfig.json", "{}", "hash-v1")]),
+	});
 	const before = cache.getRootSignature();
 
 	// A later build sees tsconfig.json with different content.
@@ -720,17 +852,30 @@ test("toCacheObjects/fromCache: round-trips recorded root requests", async (t) =
 	const projectReader = createMockReader([createMockResource("/test.js")]);
 	const rootReader = () => createMockReader([createMockResource("/tsconfig.json", "{}", "hash-root")]);
 
-	await cache1.recordRequests(
-		{paths: new Set(["/test.js"]), patterns: new Set()}, undefined, projectReader,
-		createMockReader([]), [], ROOT_REQUESTS, rootReader);
+	await cache1.recordRequests({
+		projectRequestRecording: {paths: new Set(["/test.js"]), patterns: new Set()},
+		projectReader,
+		dependencyReader: createMockReader([]),
+		inputRecording: [],
+		rootRequestRecording: ROOT_REQUESTS,
+		getRootReader: rootReader,
+	});
 	const [projectCache, dependencyCache, inputCache, rootCache, rootNoGitignoreCache] =
 		cache1.toCacheObjects();
 
 	t.truthy(rootCache, "useGitignore:true root cache object present");
 	t.is(rootNoGitignoreCache, undefined, "useGitignore:false bucket was empty, so nothing to persist");
 
-	const cache2 = BuildStageCache.fromCache("test.project", "testTask", false,
-		projectCache, dependencyCache, inputCache, rootCache, rootNoGitignoreCache);
+	const cache2 = BuildStageCache.fromCache({
+		projectName: "test.project",
+		stageId: "testTask",
+		stepBased: false,
+		projectRequests: projectCache,
+		dependencyRequests: dependencyCache,
+		inputSet: inputCache,
+		rootRequests: rootCache,
+		rootNoGitignoreRequests: rootNoGitignoreCache,
+	});
 
 	t.true(cache2.hasRootRequests(), "Restored cache carries the root requests");
 	await cache2.refreshRootIndices(rootReader);
@@ -740,7 +885,13 @@ test("toCacheObjects/fromCache: round-trips recorded root requests", async (t) =
 
 test("fromCache: a task without root metadata restores clean root managers", (t) => {
 	const emptyRequests = {requestSetGraph: {nodes: [], nextId: 1}, rootIndices: [], deltaIndices: []};
-	const cache = BuildStageCache.fromCache("test.project", "testTask", false, emptyRequests, emptyRequests);
+	const cache = BuildStageCache.fromCache({
+		projectName: "test.project",
+		stageId: "testTask",
+		stepBased: false,
+		projectRequests: emptyRequests,
+		dependencyRequests: emptyRequests,
+	});
 
 	t.false(cache.hasRootRequests(), "No root requests restored");
 	t.false(cache.hasNewOrModifiedCacheEntries(),

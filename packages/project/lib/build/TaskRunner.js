@@ -353,12 +353,13 @@ class TaskRunner {
 					mergeResourceRequests(dependencies?.getResourceRequests(), taskUtilRequests.dependencies);
 				const inputRecording = monitoredTaskUtil.getInputRecording();
 
-				const writtenResourcePaths = await this._buildCache.recordStageResult(taskName,
-					projectRequests,
-					dependencyRequests,
-					undefined,
+				const writtenResourcePaths = await this._buildCache.recordStageResult({
+					taskName,
+					projectResourceRequests: projectRequests,
+					dependencyResourceRequests: dependencyRequests,
 					inputRecording,
-					taskUtilRequests.root);
+					rootResourceRequests: taskUtilRequests.root,
+				});
 				this._log.endTask(taskName, !!cacheInfo, writtenResourcePaths);
 			};
 		}
@@ -698,12 +699,13 @@ class TaskRunner {
 				mergeResourceRequests(dependencies?.getResourceRequests(), taskUtilRequests?.dependencies);
 			const inputRecording = monitoredTaskUtil ? monitoredTaskUtil.getInputRecording() : [];
 
-			const writtenResourcePaths = await this._buildCache.recordStageResult(taskName,
-				projectRequests,
-				dependencyRequests,
-				undefined,
+			const writtenResourcePaths = await this._buildCache.recordStageResult({
+				taskName,
+				projectResourceRequests: projectRequests,
+				dependencyResourceRequests: dependencyRequests,
 				inputRecording,
-				taskUtilRequests?.root);
+				rootResourceRequests: taskUtilRequests?.root,
+			});
 			this._log.endTask(taskName, !!cacheInfo, writtenResourcePaths);
 		};
 	}
@@ -820,22 +822,25 @@ class TaskRunner {
 				this._buildCache.setStepInvocationData(
 					this._buildCache.getStageId(taskName, stepName), invocationData);
 
-				// A map step's stage served a partial (key-delta) run: append its stale outputs to the
+				// A map step's stage served a partial (key-delta) run: pass its stale outputs alongside the
 				// delta's changed paths so recordStageResult drops the outputs its not-re-run keys no longer
-				// produce from the carried-forward stage.
-				if (cacheInfo && staleOutputs.length) {
-					cacheInfo.changedProjectResourcePaths =
-						[...(cacheInfo.changedProjectResourcePaths ?? []), ...staleOutputs];
-				}
+				// produce from the carried-forward stage. The verdict object is left unmutated here: the
+				// StepRunner still holds it and #selectStepsToRun already read its changed paths before this
+				// point, so the extended list is handed over as an explicit field instead.
+				const changedProjectResourcePaths = cacheInfo ?
+					[...(cacheInfo.changedProjectResourcePaths ?? []), ...staleOutputs] : undefined;
 
-				return this._buildCache.recordStageResult(taskName,
-					projectRequests,
-					dependencyRequests,
-					cacheInfo || undefined,
+				return this._buildCache.recordStageResult({
+					taskName,
+					projectResourceRequests: projectRequests,
+					dependencyResourceRequests: dependencyRequests,
+					cacheInfo: cacheInfo || undefined,
 					inputRecording,
-					taskUtilRequests.root,
-					true,
-					stepName);
+					rootResourceRequests: taskUtilRequests.root,
+					stepBased: true,
+					stepName,
+					changedProjectResourcePaths,
+				});
 			},
 		};
 	}

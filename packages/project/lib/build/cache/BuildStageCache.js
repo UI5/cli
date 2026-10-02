@@ -104,18 +104,21 @@ export default class BuildStageCache {
 	 * allowing the stage cache to resume from a prior build state.
 	 *
 	 * @public
-	 * @param {string} projectName Name of the project
-	 * @param {string} stageId Id of the stage
-	 * @param {boolean} stepBased Whether the stage ran the step runner, driving per-step delta tracking
-	 * @param {object} projectRequests Cached project request manager data
-	 * @param {object} dependencyRequests Cached dependency request manager data
-	 * @param {object} [inputSet] Cached task input set data
-	 * @param {object} [rootRequests] Cached useGitignore:true root request manager data
-	 * @param {object} [rootNoGitignoreRequests] Cached useGitignore:false root request manager data
+	 * @param {object} options
+	 * @param {string} options.projectName Name of the project
+	 * @param {string} options.stageId Id of the stage
+	 * @param {boolean} options.stepBased Whether the stage ran the step runner, driving per-step delta tracking
+	 * @param {object} options.projectRequests Cached project request manager data
+	 * @param {object} options.dependencyRequests Cached dependency request manager data
+	 * @param {object} [options.inputSet] Cached task input set data
+	 * @param {object} [options.rootRequests] Cached useGitignore:true root request manager data
+	 * @param {object} [options.rootNoGitignoreRequests] Cached useGitignore:false root request manager data
 	 * @returns {BuildStageCache} Restored stage cache instance
 	 */
-	static fromCache(projectName, stageId, stepBased, projectRequests, dependencyRequests,
-		inputSet, rootRequests, rootNoGitignoreRequests) {
+	static fromCache({
+		projectName, stageId, stepBased, projectRequests, dependencyRequests,
+		inputSet, rootRequests, rootNoGitignoreRequests,
+	}) {
 		const projectRequestManager = ResourceRequestManager.fromCache(projectName, stageId,
 			stepBased, projectRequests);
 		const dependencyRequestManager = ResourceRequestManager.fromCache(projectName, stageId,
@@ -392,7 +395,7 @@ export default class BuildStageCache {
 	}
 
 	/**
-	 * Records resource requests and calculates signatures for the task
+	 * Records resource requests and calculates signatures for the stage
 	 *
 	 * This method:
 	 * 1. Processes project and dependency resource requests
@@ -402,28 +405,31 @@ export default class BuildStageCache {
 	 * 5. Uses tree derivation when possible to reuse parent indices
 	 *
 	 * The returned signatures uniquely identify the set of resources accessed and their
-	 * content, enabling cache lookup for previously executed task results.
+	 * content, enabling cache lookup for previously executed stage results.
 	 *
 	 * @public
-	 * @param {@ui5/project/build/cache/BuildStageCache~ResourceRequests} projectRequestRecording
+	 * @param {object} options
+	 * @param {@ui5/project/build/cache/BuildStageCache~ResourceRequests} options.projectRequestRecording
 	 *   Project resource requests (paths and patterns)
-	 * @param {@ui5/project/build/cache/BuildStageCache~ResourceRequests|undefined} dependencyRequestRecording
-	 *   Dependency resource requests (paths and patterns)
-	 * @param {module:@ui5/fs.AbstractReader} projectReader Reader for accessing project resources
-	 * @param {module:@ui5/fs.AbstractReader} dependencyReader Reader for accessing dependency resources
-	 * @param {Array<{type: string, name: string, value: string|undefined}>} [inputRecording]
-	 *   Non-resource inputs (environment variables, TaskUtil interface reads) recorded during task
+	 * @param {@ui5/project/build/cache/BuildStageCache~ResourceRequests|undefined}
+	 *   options.dependencyRequestRecording Dependency resource requests (paths and patterns)
+	 * @param {module:@ui5/fs.AbstractReader} options.projectReader Reader for accessing project resources
+	 * @param {module:@ui5/fs.AbstractReader} options.dependencyReader Reader for accessing dependency resources
+	 * @param {Array<{type: string, name: string, value: string|undefined}>} [options.inputRecording]
+	 *   Non-resource inputs (environment variables, TaskUtil interface reads) recorded during stage
 	 *   execution
 	 * @param {{gitignore: @ui5/project/build/cache/BuildStageCache~ResourceRequests,
-	 *   noGitignore: @ui5/project/build/cache/BuildStageCache~ResourceRequests}} [rootRequestRecording]
+	 *   noGitignore: @ui5/project/build/cache/BuildStageCache~ResourceRequests}} [options.rootRequestRecording]
 	 *   Root resource requests, keyed by the useGitignore flag they were read with
-	 * @param {function(boolean): module:@ui5/fs.AbstractReader} [getRootReader]
+	 * @param {function(boolean): module:@ui5/fs.AbstractReader} [options.getRootReader]
 	 *   Factory returning a project root reader for the given useGitignore flag
 	 * @returns {Promise<string[]>}
 	 *   Array containing [projectSignature, dependencySignature, inputSignature, rootSignature]
 	 */
-	async recordRequests(projectRequestRecording, dependencyRequestRecording, projectReader, dependencyReader,
-		inputRecording = [], rootRequestRecording, getRootReader) {
+	async recordRequests({
+		projectRequestRecording, dependencyRequestRecording, projectReader, dependencyReader,
+		inputRecording = [], rootRequestRecording, getRootReader,
+	}) {
 		const {
 			setId: projectReqSetId, signature: projectReqSignature
 		} = await this.#projectRequestManager.addRequests(projectRequestRecording, projectReader);
