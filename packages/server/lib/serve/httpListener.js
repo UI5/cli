@@ -97,40 +97,45 @@ async function findAPortNotInUse(port, portMax, host) {
 	return null;
 }
 
-export function listen(server, port, changePortIfInUse, acceptRemoteConnections) {
+export async function listen(server, port, changePortIfInUse, acceptRemoteConnections) {
+	// Unless remote connections are allowed, bind to the IPv4 loopback address. Otherwise leave
+	// host unset so the server listens on all supported interfaces.
+	const host = acceptRemoteConnections ? undefined : "127.0.0.1";
+	const portScanHost = host ?? "127.0.0.1";
+	const portMax = changePortIfInUse ? port + 30 : port;
+
+	const foundPort = await findAPortNotInUse(port, portMax, portScanHost);
+	if (foundPort === null) {
+		const err = new Error(changePortIfInUse ?
+			`EADDRINUSE: Could not find available ports between ${port} and ${portMax}.` :
+			`EADDRINUSE: Port ${port} is already in use.`);
+		err.code = "EADDRINUSE";
+		err.errno = "EADDRINUSE";
+		err.address = portScanHost;
+		err.port = portMax;
+		throw err;
+	}
+
+	await listenOnce(server, {host, port: foundPort});
+	return {port: foundPort, server};
+}
+
+// server.listen signals success via a 'listening' event and failure via an 'error' event.
+// Bridge both into a single promise, detaching the losing listener once one fires (the old code
+// left the error listener attached on every successful bind).
+function listenOnce(server, options) {
 	return new Promise(function(resolve, reject) {
-		const options = {};
-
-		if (!acceptRemoteConnections) {
-			// Unless remote connections are allowed, bind to the IPv4 loopback address
-			options.host = "127.0.0.1";
-		} // If remote connections are allowed, do not set host so the server listens on all supported interfaces
-
-		const portScanHost = options.host || "127.0.0.1";
-		const portMax = changePortIfInUse ? port + 30 : port;
-
-		findAPortNotInUse(port, portMax, portScanHost).then(function(foundPort) {
-			if (foundPort === null) {
-				const err = new Error(changePortIfInUse ?
-					`EADDRINUSE: Could not find available ports between ${port} and ${portMax}.` :
-					`EADDRINUSE: Port ${port} is already in use.`);
-				err.code = "EADDRINUSE";
-				err.errno = "EADDRINUSE";
-				err.address = portScanHost;
-				err.port = portMax;
-				reject(err);
-				return;
-			}
-
-			options.port = foundPort;
-			server.listen(options, function() {
-				resolve({port: options.port, server});
-			});
-
-			server.on("error", function(err) {
-				reject(err);
-			});
-		}, reject);
+		const onError = function(err) {
+			server.removeListener("listening", onListening);
+			reject(err);
+		};
+		const onListening = function() {
+			server.removeListener("error", onError);
+			resolve();
+		};
+		server.once("error", onError);
+		server.once("listening", onListening);
+		server.listen(options);
 	});
 }
 
