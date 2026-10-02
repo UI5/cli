@@ -473,3 +473,16 @@ test("Missing parameters", (t) => {
 		message: "Could not create Workspace: Missing or empty parameter 'configuration'"
 	}, "Threw with expected error message");
 });
+
+test("Basic validation of workspace with specified configPath for dependency", (t) => {
+	// TODO: add test which passes the following yaml example:
+	// specVersion: workspace/1.1
+	// metadata:
+	// name: default
+	// dependencyManagement:
+	// resolutions:
+	// 	- path: ../my-reuse-library
+	// 	configPath: ui5-mock.yaml
+
+
+});
