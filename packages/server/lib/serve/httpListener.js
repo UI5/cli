@@ -1,7 +1,7 @@
 import os from "node:os";
+import net from "node:net";
 import http from "node:http";
 import https from "node:https";
-import portscanner from "portscanner";
 
 /**
  * HTTP-listener helpers used by the {@link Supervisor}, which binds the port once and
@@ -40,45 +40,103 @@ export function createServer({https: useHttps, key, cert}, requestHandler) {
  * @returns {Promise<object>} Resolves with the bound <code>port</code> and the <code>server</code> instance
  * @private
  */
-export function listen(server, port, changePortIfInUse, acceptRemoteConnections) {
+// Timeout (ms) for a single port probe. On localhost a port either accepts or refuses the
+// connection immediately, so this only guards against a probe that hangs indefinitely.
+const PORT_PROBE_TIMEOUT = 400;
+
+/**
+ * Probes whether something is accepting TCP connections on the given host/port.
+ *
+ * Mirrors the connect-probe semantics of the previously used <code>portscanner</code> dependency:
+ * a successful connection means the port is in use; a refused connection or a timeout means it is
+ * free. Any other socket error (e.g. an unreachable host) is treated as a scan failure and rejects,
+ * so unexpected problems surface to the caller instead of being silently reported as "free".
+ *
+ * @param {string} host Host to probe
+ * @param {number} port Port to probe
+ * @returns {Promise<boolean>} Resolves <code>true</code> if the port is in use, <code>false</code> if free
+ * @private
+ */
+function isPortInUse(host, port) {
 	return new Promise(function(resolve, reject) {
-		const options = {};
-
-		if (!acceptRemoteConnections) {
-			// Unless remote connections are allowed, bind to the IPv4 loopback address
-			options.host = "127.0.0.1";
-		} // If remote connections are allowed, do not set host so the server listens on all supported interfaces
-
-		const portScanHost = options.host || "127.0.0.1";
-		const portMax = changePortIfInUse ? port + 30 : port;
-
-		portscanner.findAPortNotInUse(port, portMax, portScanHost, function(error, foundPort) {
-			if (error) {
-				reject(error);
-				return;
+		const socket = new net.Socket();
+		const finish = function(settle, value) {
+			socket.removeAllListeners();
+			socket.destroy();
+			settle(value);
+		};
+		socket.setTimeout(PORT_PROBE_TIMEOUT);
+		socket.once("connect", () => finish(resolve, true));
+		socket.once("timeout", () => finish(resolve, false));
+		socket.once("error", function(err) {
+			if (err.code === "ECONNREFUSED") {
+				finish(resolve, false);
+			} else {
+				finish(reject, err);
 			}
-
-			if (!foundPort) {
-				const err = new Error(changePortIfInUse ?
-					`EADDRINUSE: Could not find available ports between ${port} and ${portMax}.` :
-					`EADDRINUSE: Port ${port} is already in use.`);
-				err.code = "EADDRINUSE";
-				err.errno = "EADDRINUSE";
-				err.address = portScanHost;
-				err.port = portMax;
-				reject(err);
-				return;
-			}
-
-			options.port = foundPort;
-			server.listen(options, function() {
-				resolve({port: options.port, server});
-			});
-
-			server.on("error", function(err) {
-				reject(err);
-			});
 		});
+		socket.connect(port, host);
+	});
+}
+
+/**
+ * Scans the inclusive port range <code>[port, portMax]</code> on the given host and returns the
+ * first port not in use, or <code>null</code> if every port in the range is taken.
+ *
+ * @param {number} port First port of the range
+ * @param {number} portMax Last port of the range (inclusive)
+ * @param {string} host Host to scan
+ * @returns {Promise<number|null>} The first free port, or <code>null</code> if none is available
+ * @private
+ */
+async function findAPortNotInUse(port, portMax, host) {
+	for (let candidate = port; candidate <= portMax; candidate++) {
+		if (!await isPortInUse(host, candidate)) {
+			return candidate;
+		}
+	}
+	return null;
+}
+
+export async function listen(server, port, changePortIfInUse, acceptRemoteConnections) {
+	// Unless remote connections are allowed, bind to the IPv4 loopback address. Otherwise leave
+	// host unset so the server listens on all supported interfaces.
+	const host = acceptRemoteConnections ? undefined : "127.0.0.1";
+	const portScanHost = host ?? "127.0.0.1";
+	const portMax = changePortIfInUse ? port + 30 : port;
+
+	const foundPort = await findAPortNotInUse(port, portMax, portScanHost);
+	if (foundPort === null) {
+		const err = new Error(changePortIfInUse ?
+			`EADDRINUSE: Could not find available ports between ${port} and ${portMax}.` :
+			`EADDRINUSE: Port ${port} is already in use.`);
+		err.code = "EADDRINUSE";
+		err.errno = "EADDRINUSE";
+		err.address = portScanHost;
+		err.port = portMax;
+		throw err;
+	}
+
+	await listenOnce(server, {host, port: foundPort});
+	return {port: foundPort, server};
+}
+
+// server.listen signals success via a 'listening' event and failure via an 'error' event.
+// Bridge both into a single promise, detaching the losing listener once one fires (the old code
+// left the error listener attached on every successful bind).
+function listenOnce(server, options) {
+	return new Promise(function(resolve, reject) {
+		const onError = function(err) {
+			server.removeListener("listening", onListening);
+			reject(err);
+		};
+		const onListening = function() {
+			server.removeListener("error", onError);
+			resolve();
+		};
+		server.once("error", onError);
+		server.once("listening", onListening);
+		server.listen(options);
 	});
 }
 
