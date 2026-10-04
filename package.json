@@ -42,7 +42,7 @@
 		"url": "git+ssh://git@github.com/UI5/cli.git"
 	},
 	"devDependencies": {
-		"@commitlint/cli": "^20.5.3",
+		"@commitlint/cli": "^21.2.3",
 		"@commitlint/config-conventional": "^21.2.3",
 		"@eslint/js": "^10.0.1",
 		"audit-ci": "^7.1.0",
