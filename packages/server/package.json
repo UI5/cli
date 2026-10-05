@@ -100,7 +100,7 @@
 		"mime-types": "^3.0.2",
 		"parseurl": "^1.3.3",
 		"router": "^2.2.0",
-		"ws": "^8.21.3"
+		"ws": "^8.22.0"
 	},
 	"devDependencies": {
 		"@istanbuljs/esm-loader-hook": "^0.3.0",
