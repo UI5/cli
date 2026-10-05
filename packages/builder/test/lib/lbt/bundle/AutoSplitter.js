@@ -341,6 +341,31 @@ test("_calcMinSize: properties resource", async (t) => {
 	t.is(await autoSplitter._calcMinSize("mymodule.properties"), 10, "length of 1234\\u00df");
 });
 
+test("_calcMinSize: properties resource with UTF-8 BOM does not count the BOM", async (t) => {
+	const pool = {
+		findResourceWithInfo: function() {
+			let content = "\uFEFFKEY=val";
+			return {
+				buffer: async () => Buffer.from(content, "utf8"),
+				resource: {
+					setString: (string) => {
+						content = string;
+					},
+					getBuffer: async () => Buffer.from(content, "utf8")
+				},
+				getProject: () => {
+					return {
+						getPropertiesFileSourceEncoding: () => "UTF-8"
+					};
+				}
+			};
+		}
+	};
+	const autoSplitter = new AutoSplitter(pool);
+	t.is(await autoSplitter._calcMinSize("mymodule.properties"), "KEY=val".length,
+		"leading BOM is stripped and not counted in the size");
+});
+
 test("_calcMinSize: xml view resource", async (t) => {
 	const pool = {
 		findResourceWithInfo: function() {
@@ -353,6 +378,22 @@ test("_calcMinSize: xml view resource", async (t) => {
 	const autoSplitter = new AutoSplitter(pool);
 	autoSplitter.optimizeXMLViews = true;
 	t.is(await autoSplitter._calcMinSize("mymodule.view.xml"), 5);
+});
+
+test("_calcMinSize: xml view resource with UTF-8 BOM does not count BOM bytes in size", async (t) => {
+	const xmlContent = "<xml/>";
+	const pool = {
+		findResourceWithInfo: function() {
+			return {
+				buffer: async () => Buffer.from("\uFEFF" + xmlContent, "utf8"),
+				getProject: () => undefined
+			};
+		}
+	};
+	const autoSplitter = new AutoSplitter(pool);
+	autoSplitter.optimizeXMLViews = true;
+	t.is(await autoSplitter._calcMinSize("mymodule.view.xml"), xmlContent.length,
+		"the 3 BOM bytes are stripped and not counted");
 });
 
 test("_calcMinSize: xml view resource without optimizeXMLViews", async (t) => {

@@ -74,6 +74,54 @@ test.serial("writePreloadModule: with invalid json content", async (t) => {
 	t.is(writeStub.callCount, 1, "Writer is called once");
 });
 
+test.serial("writePreloadModule: XML saved with UTF-8 BOM does not keep the BOM in the literal", async (t) => {
+	const writeStub = sinon.stub();
+	const {BuilderWithStub} = t.context;
+
+	const BOM = "\uFEFF";
+	const xmlContent = `<mvc:View xmlns:mvc="sap.ui.core.mvc"></mvc:View>`;
+
+	const builder = new BuilderWithStub({});
+	builder.optimize = false;
+	builder.outW = {
+		write: writeStub
+	};
+	const xmlResource = {
+		buffer: async () => Buffer.from(BOM + xmlContent, "utf8")
+	};
+	const result = await builder.writePreloadModule("my/app/view/App.view.xml", undefined, xmlResource);
+
+	t.true(result, "result is true");
+	t.is(writeStub.callCount, 1, "Writer is called once");
+	const writtenLiteral = writeStub.getCall(0).args[0];
+	t.false(writtenLiteral.includes(BOM), "the written literal does not contain a BOM character");
+	t.is(writtenLiteral, `'${xmlContent}'`, "the literal starts directly with the XML content");
+});
+
+test.serial("writePreloadModule: JSON saved with UTF-8 BOM is stripped before parsing/optimizing", async (t) => {
+	const writeStub = sinon.stub();
+	const {BuilderWithStub, verboseLogStub} = t.context;
+
+	const BOM = "\uFEFF";
+	const jsonContent = `{\n\t"a": 1\n}`;
+
+	const builder = new BuilderWithStub({});
+	builder.optimize = true; // triggers JSON.parse, which itself rejects a leading BOM
+	builder.outW = {
+		write: writeStub
+	};
+	const jsonResource = {
+		buffer: async () => Buffer.from(BOM + jsonContent, "utf8")
+	};
+	const result = await builder.writePreloadModule("my/app/data.json", undefined, jsonResource);
+
+	t.true(result, "result is true");
+	t.is(verboseLogStub.callCount, 0, "no parse error was logged (BOM did not break JSON.parse)");
+	const writtenLiteral = writeStub.getCall(0).args[0];
+	t.false(writtenLiteral.includes(BOM), "the written literal does not contain a BOM character");
+	t.is(writtenLiteral, `'{"a":1}'`, "BOM removed and JSON minified");
+});
+
 test("integration: createBundle with exposedGlobals", async (t) => {
 	const pool = new ResourcePool();
 	pool.addResource({

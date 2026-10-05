@@ -11,7 +11,7 @@ import {
 	MODULE__UI5LOADER, MODULE__UI5LOADER_AUTOCONFIG,
 	MODULE__JQUERY_SAP_GLOBAL, MODULE__SAP_UI_CORE_CORE} from "../UI5ClientConstants.js";
 import escapePropertiesFile from "../utils/escapePropertiesFile.js";
-import {makeStringLiteral, removeHashbang} from "../utils/stringUtils.js";
+import {makeStringLiteral, removeHashbang, stripBOM} from "../utils/stringUtils.js";
 import BundleResolver from "./Resolver.js";
 import BundleSplitter from "./AutoSplitter.js";
 import {SectionType} from "./BundleDefinition.js";
@@ -489,10 +489,10 @@ class BundleBuilder {
 			}
 			outW.write( makeStringLiteral(moduleContent) );
 		} else if ( /\.html$/.test(moduleName) ) {
-			const fileContent = (await resource.buffer()).toString();
+			const fileContent = stripBOM((await resource.buffer()).toString());
 			outW.write( makeStringLiteral( fileContent ) );
 		} else if ( /\.json$/.test(moduleName) ) {
-			let fileContent = (await resource.buffer()).toString();
+			let fileContent = stripBOM((await resource.buffer()).toString());
 			if ( this.optimize ) {
 				try {
 					fileContent = JSON.stringify( JSON.parse( fileContent) );
@@ -503,7 +503,7 @@ class BundleBuilder {
 			}
 			outW.write(makeStringLiteral(fileContent));
 		} else if ( /\.xml$/.test(moduleName) ) {
-			let fileContent = (await resource.buffer()).toString();
+			let fileContent = stripBOM((await resource.buffer()).toString());
 			if ( this.optimize ) {
 				// For XML we use the pretty data
 				// Do not minify if XML(View) contains an <*:pre> tag,

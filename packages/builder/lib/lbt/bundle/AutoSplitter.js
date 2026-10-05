@@ -3,7 +3,7 @@ import {pd} from "pretty-data";
 import {toRequireJSName} from "../utils/ModuleName.js";
 import {SectionType} from "./BundleDefinition.js";
 import escapePropertiesFile from "../utils/escapePropertiesFile.js";
-import {makeStringLiteral} from "../utils/stringUtils.js";
+import {makeStringLiteral, stripBOM} from "../utils/stringUtils.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("lbt:bundle:AutoSplitter");
 
@@ -312,19 +312,22 @@ class AutoSplitter {
 				return fileContent.length;
 			} else if ( this.optimizeXMLViews && /\.view.xml$/.test(module) ) {
 				// needs to be activated when it gets activated in JSMergedModuleBuilderExt
-				let fileContent = await resource.buffer();
+				let fileContent = stripBOM((await resource.buffer()).toString());
 				if ( this.optimize ) {
 					// For XML we use the pretty data
 					// Do not minify if XML(View) contains an <*:pre> tag because whitespace of
 					//	HTML <pre> should be preserved (should only happen rarely)
-					if (!xmlHtmlPrePattern.test(fileContent.toString())) {
-						fileContent = pd.xmlmin(fileContent.toString(), false);
+					if (!xmlHtmlPrePattern.test(fileContent)) {
+						fileContent = pd.xmlmin(fileContent, false);
 					}
 				}
 				return fileContent.length;
 			}
 
 			// if there is no precompiled information about the resource, just determine its length
+			// Note: this is a rough size estimate used only for split-point selection, so (unlike the
+			// Builder and the optimizeXMLViews branch above) it does not strip a leading UTF-8 BOM.
+			// A BOM'd resource is therefore counted ~3 bytes larger here, which is immaterial.
 			if ( !resource.info && /\.(js|json|xml)$/.test(module) ) {
 				const fileContent = await resource.buffer();
 				return fileContent.length;
