@@ -1,5 +1,6 @@
 import test from "ava";
 import sinon from "sinon";
+import crypto from "node:crypto";
 import BuildStageCache from "../../../../lib/build/cache/BuildStageCache.js";
 
 // Helper to create mock readers
@@ -52,6 +53,16 @@ test("Create with differential updates enabled", (t) => {
 	const cache = new BuildStageCache("test.project", "testTask", true);
 
 	t.is(cache.getStepBased(), true, "Differential updates enabled");
+});
+
+test("getRootSignature: no recorded root requests returns the sha256 of an empty list", (t) => {
+	// A stage with no root requests short-circuits to a precomputed constant. It must equal the digest
+	// the previous code produced for an empty, sorted, NUL-joined signature list, so a standard build's
+	// stages (none read through getRootReader) keep the same root component in their stage signature.
+	const cache = new BuildStageCache("test.project", "testTask", false);
+	const expected = crypto.createHash("sha256").update("").digest("hex");
+	t.is(cache.getRootSignature(), expected,
+		"empty root signature equals the digest of the empty join the hash loop produced");
 });
 
 test("fromCache: restore BuildStageCache from cached data", (t) => {

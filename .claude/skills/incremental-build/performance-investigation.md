@@ -429,6 +429,32 @@ A one-stage-ahead prefetch (`#prefetchNextStageCache`, `prefetchStageCache`, `#p
 
 Cold has nothing cached to prefetch. The warm no-change build is served by the project-level result cache before any per-stage `prepareStageExecutionAndValidateCache` runs, so the prefetch never fires. The delta path is the only one that prefetches, and 5 of its 8 prefetched maps missed the lookup (the stale-signature and over-read effects above). A hyperfine A/B (prefetch on vs a `UI5_NO_PREFETCH` early return, warmup 3 / runs 10) found no win: cold 21.91 s vs 21.88 s and warm 2.43 s vs 2.52 s are within noise, and on the delta path prefetch-off was marginally faster (4.654 s vs 4.753 s, 1.02x). The mechanism was removed; `#findStageCache` keeps the in-memory `StageCache` fast path and the single-row disk read.
 
+### 17. Per-stage hot-path micro-costs: one real cold-build win, the rest within noise
+
+A set of small inefficiencies in paths that now run once per stage was reviewed as a possible contributor to the branch building slower than `main`. Measured on `sap.m` (with its three built dependencies, working-tree CLI via `UI5_CLI_NO_LOCAL`, isolated `UI5_DATA_DIR`), only one moves wall-clock, and only on a cold build.
+
+Applied unconditionally, all behavior-preserving:
+- **`#writtenResultResourcePaths` accumulation.** Three sites appended to this ordered list behind an `Array.includes` membership test. The list grows to the project's full written-resource count and is appended to once per written resource per stage, so the membership scan is O(n squared) per stage. A parallel `Set` now backs the membership check; the ordered list stays for `updateProjectIndices`. This is largest on a **cold** build, where every one of `sap.m`'s ~12k written resources is checked against a growing array across every stage.
+- **Empty input and root signatures.** `TaskInputSet.#computeSignature` and `BuildStageCache.getRootSignature` each built a sha256 over an empty list on every call, producing a known constant. Both lists are empty for every stage of a standard build (no shipped task records inputs at the stage level or reads through `getRootReader`). Each now returns a module-level constant for the empty case, equal to the digest the loop produced (covered by unit tests).
+- **Input-set sort.** `TaskInputSet.getEntries()` sorted by `(type + "\0" + name).localeCompare(...)`, running ICU collation on ASCII identifiers on every `getInputSignature()` call. It now uses a plain code-point comparison on the composite `type\0name` key and memoizes the sorted array (the map is populated only in the constructor). A unit test asserts the code-point order equals the previous `localeCompare` order for the recorded input shapes, so no stage signature moves.
+
+Left as-is after analysis:
+- **`updateProjectIndices` input.** The list passed per stage is the paths accumulated so far this build (source changes plus earlier stages' writes), not the whole build's final set, and it grows as stages run, so stage N already receives only the changes from stages 0..N-1. A finer per-stage delta is not safely derivable: this stage's cached index baseline is the previous build's final state, so it must see every change since then. `updateIndices` also early-exits when the stage recorded no requests. Documented at the call site.
+- **Linear stage lookup.** The per-stage `#stageOrder.indexOf(stageId)` the review flagged lived in the one-stage-ahead prefetch, which was already removed (§16). No lookup remains.
+
+Skipped after measurement (no win in any scenario):
+- **Write-buffer flush.** `StepRunner.#flushWriteBuffer` drains a map step's buffered writes with a sequential `await` loop. The duplicate-path rejection is enforced at buffer insertion, not flush, so the flush is a pure replay of distinct-path writes to the in-memory stage workspace, and the buffer already holds every write before the flush, so parallelizing does not cut peak memory. Instrumented totals: on a **stale** one-file build no flush batch exceeds 50 writes (sub-millisecond); on a **cold** build the flush totals ~147 ms across the whole ~21 s build (largest single batch 2565 writes in ~40 ms, ~15 µs/write, consistent with memory-adapter writes). Parallelizing would save a fraction of that against a real write-ordering risk, so the sequential loop stays.
+- **Per-unit `MonitoredTaskUtil` proxy.** The proxy allocates a wrapper closure per tracked-method access. Counting `get`-trap invocations across a whole build: ~4,973 on a stale one-file build, ~183,261 on a cold build (every unit runs). At tens of nanoseconds per short-lived closure this is a few milliseconds on a ~21 s cold build and negligible on stale, so caching bound methods on the per-unit proxy (against the deliberate per-unit isolation) was not worth it.
+
+**Aggregate before/after (hyperfine, isolated `UI5_DATA_DIR`):**
+
+| Scenario | Before | After |
+|---|---|---|
+| Stale (one file appended to `Button.js`, warmup 2 / runs 8) | 4.630 s ± 0.067 | 4.723 s ± 0.086 |
+| Cold (empty cache, warmup 1 / runs 3) | 21.438 s ± 0.165 | 20.598 s ± 0.195 |
+
+Stale is within noise (the ranges overlap; these edits barely execute when few units run). Cold is ~0.8 s faster (~4%), consistent with the O(n squared) accumulation removal being largest where ~12k resources are written. The headline is correctness and hygiene, with a measurable cold-build improvement and no stale regression.
+
 ## Investigation Workflow
 
 1. **Establish a baseline.** Run the build 2-3 times to get stable warm-cache timings. Note the total time and per-phase breakdown.

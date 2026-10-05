@@ -5,6 +5,11 @@ import TaskInputSet from "./index/TaskInputSet.js";
 import {createStageSignature} from "./stageSignature.js";
 const log = getLogger("build:cache:BuildStageCache");
 
+// Root signature of a stage with no recorded root requests: the sha256 digest of an empty signature
+// list. Both root request sets are empty for every stage of a standard build (no shipped builder task
+// reads through getRootReader), so getRootSignature returns this constant instead of re-hashing.
+const EMPTY_ROOT_SIGNATURE = crypto.createHash("sha256").update("").digest("hex");
+
 // Serialized form of an empty, unmodified request manager. Restoring a root manager from this (rather
 // than constructing a fresh one) marks it clean, so a stage that recorded no root reads is not
 // re-persisted on every build.
@@ -250,6 +255,9 @@ export default class BuildStageCache {
 			...this.#rootRequestManagers.gitignore.getIndexSignatures(),
 			...this.#rootRequestManagers.noGitignore.getIndexSignatures(),
 		];
+		if (signatures.length === 0) {
+			return EMPTY_ROOT_SIGNATURE;
+		}
 		return crypto.createHash("sha256").update(signatures.sort().join("\0")).digest("hex");
 	}
 

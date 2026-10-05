@@ -1,5 +1,10 @@
 import crypto from "node:crypto";
 
+// Signature of a set with zero recorded entries: the sha256 digest of no input. Every stage of a
+// standard build has an empty input set, so #computeSignature returns this precomputed constant
+// instead of hashing nothing on each getSignature/getSignatureWithCurrentValues call.
+const EMPTY_SIGNATURE = crypto.createHash("sha256").digest("hex");
+
 /**
  * @typedef {object} @ui5/project/build/cache/index/TaskInputSet~InputEntry
  * @property {string} type Input type, e.g. "env" for an environment variable or "project.getVersion"
@@ -76,6 +81,9 @@ export function normalizeInputValue(rawValue) {
 export default class TaskInputSet {
 	// Map key: `${type}\0${name}` -> InputEntry
 	#entries = new Map();
+	// Memoized result of getEntries(). The map is populated only in the constructor and never mutated
+	// afterward, so the sorted array stays valid for the instance's lifetime (no invalidation needed).
+	#sortedEntries = null;
 
 	/**
 	 * @param {@ui5/project/build/cache/index/TaskInputSet~InputEntry[]} [entries]
@@ -111,8 +119,20 @@ export default class TaskInputSet {
 	 * @returns {@ui5/project/build/cache/index/TaskInputSet~InputEntry[]}
 	 */
 	getEntries() {
-		return Array.from(this.#entries.values())
-			.sort((a, b) => (a.type + "\0" + a.name).localeCompare(b.type + "\0" + b.name));
+		if (!this.#sortedEntries) {
+			// Sort by the composite `type\0name` key with a plain relational comparison. Types and names
+			// are ASCII identifiers, so code-point order matches the previous localeCompare order (covered
+			// by the sort-order equivalence test) while avoiding ICU collation on this hot signature path.
+			this.#sortedEntries = Array.from(this.#entries.values()).sort((a, b) => {
+				const keyA = TaskInputSet.#key(a.type, a.name);
+				const keyB = TaskInputSet.#key(b.type, b.name);
+				if (keyA < keyB) {
+					return -1;
+				}
+				return keyA > keyB ? 1 : 0;
+			});
+		}
+		return this.#sortedEntries;
 	}
 
 	/**
@@ -153,6 +173,9 @@ export default class TaskInputSet {
 	 * @private
 	 */
 	#computeSignature(getValue) {
+		if (this.#entries.size === 0) {
+			return EMPTY_SIGNATURE;
+		}
 		const hash = crypto.createHash("sha256");
 		// Entries are hashed in stable (type, name) order. Fields are NUL-separated: types are known
 		// identifiers, names and values are arbitrary strings, but none may contain a NUL byte, so the

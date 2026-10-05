@@ -89,7 +89,11 @@ export default class ProjectBuildCache {
 	// Pending changes
 	#changedProjectSourcePaths = [];
 	#changedDependencyResourcePaths = [];
+	// Written result paths, consumed in insertion order by updateProjectIndices. The parallel Set is
+	// the membership index: the list grows to the project's full written-resource count and is appended
+	// to once per written resource per stage, so an Array.includes membership test would be O(n squared).
 	#writtenResultResourcePaths = [];
+	#writtenResultResourcePathSet = new Set();
 
 	// Set of integrity hashes known to already exist in CAS from restored stage metadata.
 	// Populated during the restore phase, consulted during writes to skip redundant CAS lookups.
@@ -711,7 +715,16 @@ export default class ProjectBuildCache {
 			return false;
 		}
 		if (this.#writtenResultResourcePaths.length) {
-			// Update stage indices based on source changes and changes from previous stages
+			// Update stage indices based on source changes and changes from previous stages.
+			//
+			// The list passed here is the paths accumulated so far this build (source changes plus every
+			// earlier stage's writes), not the whole build's final written set: it grows as stages run,
+			// so stage N receives exactly the changes from stages 0..N-1. A finer per-stage delta (only
+			// the increment since the previous stage) is not safely derivable, because this stage's cached
+			// index baseline is the previous build's final state, so it must see every change since then,
+			// not only the last stage's. updateIndices early-exits when the stage recorded no requests and
+			// otherwise matches only the paths its recorded requests cover, so the accumulated list is not
+			// re-scanned in full for stages that read little.
 			const updateProjectIndicesStart = performance.now();
 			await stageCache.updateProjectIndices(this.#currentProjectReader, this.#writtenResultResourcePaths);
 			if (log.isLevelEnabled("perf")) {
@@ -750,9 +763,7 @@ export default class ProjectBuildCache {
 				// Cached stage likely differs from the previous one (if any)
 				// Add all resources written by the cached stage to the set of written/potentially changed resources
 				for (const resourcePath of cachedStage.writtenResourcePaths) {
-					if (!this.#writtenResultResourcePaths.includes(resourcePath)) {
-						this.#writtenResultResourcePaths.push(resourcePath);
-					}
+					this.#addWrittenResultResourcePath(resourcePath);
 				}
 			}
 			return true; // No need to execute the stage
@@ -810,9 +821,7 @@ export default class ProjectBuildCache {
 					// Cached stage likely differs from the previous one (if any)
 					// Add all resources written by the cached stage to the set of written/potentially changed resources
 					for (const resourcePath of deltaStageCache.writtenResourcePaths) {
-						if (!this.#writtenResultResourcePaths.includes(resourcePath)) {
-							this.#writtenResultResourcePaths.push(resourcePath);
-						}
+						this.#addWrittenResultResourcePath(resourcePath);
 					}
 				}
 
@@ -1332,9 +1341,7 @@ export default class ProjectBuildCache {
 		log.verbose(`Stage ${stageId} produced ${writtenResourcePaths.length} resources`);
 
 		for (const resourcePath of writtenResourcePaths) {
-			if (!this.#writtenResultResourcePaths.includes(resourcePath)) {
-				this.#writtenResultResourcePaths.push(resourcePath);
-			}
+			this.#addWrittenResultResourcePath(resourcePath);
 		}
 		// Reset current project reader
 		this.#currentProjectReader = null;
@@ -1787,7 +1794,7 @@ export default class ProjectBuildCache {
 		this.#currentResultSignature = this.#getResultStageSignature();
 
 		// Reset updated resource paths
-		this.#writtenResultResourcePaths = [];
+		this.#setWrittenResultResourcePaths([]);
 		if (log.isLevelEnabled("perf")) {
 			log.perf(
 				`allTasksCompleted for project ${this.#project.getName()} ` +
@@ -1799,6 +1806,29 @@ export default class ProjectBuildCache {
 
 	buildFinished() {
 		this.#project.getProjectResources().buildFinished();
+	}
+
+	/**
+	 * Appends a written result resource path, keeping the parallel membership Set in sync. A path
+	 * already recorded is ignored, so the ordered list stays free of duplicates without an O(n) scan.
+	 *
+	 * @param {string} resourcePath Resource path written by a stage or detected as a source change
+	 */
+	#addWrittenResultResourcePath(resourcePath) {
+		if (!this.#writtenResultResourcePathSet.has(resourcePath)) {
+			this.#writtenResultResourcePathSet.add(resourcePath);
+			this.#writtenResultResourcePaths.push(resourcePath);
+		}
+	}
+
+	/**
+	 * Replaces the written result resource paths and rebuilds the parallel membership Set from them.
+	 *
+	 * @param {string[]} paths New written result resource paths. The array is adopted by reference.
+	 */
+	#setWrittenResultResourcePaths(paths) {
+		this.#writtenResultResourcePaths = paths;
+		this.#writtenResultResourcePathSet = new Set(paths);
 	}
 
 	/**
@@ -1925,7 +1955,7 @@ export default class ProjectBuildCache {
 			}
 			this.#sourceIndex = resourceIndex;
 			// Since all source files are part of the result, declare any detected changes as newly written resources
-			this.#writtenResultResourcePaths = changedPaths;
+			this.#setWrittenResultResourcePaths(changedPaths);
 			// Now awaiting initialization of dependency indices
 			this.#combinedIndexState = INDEX_STATES.RESTORING_DEPENDENCY_INDICES;
 		} else {
@@ -1971,9 +2001,7 @@ export default class ProjectBuildCache {
 			const changedPaths = [...removed, ...added, ...updated];
 			// Since all source files are part of the result, declare any detected changes as newly written resources
 			for (const resourcePath of changedPaths) {
-				if (!this.#writtenResultResourcePaths.includes(resourcePath)) {
-					this.#writtenResultResourcePaths.push(resourcePath);
-				}
+				this.#addWrittenResultResourcePath(resourcePath);
 			}
 			return true;
 		}

@@ -1,4 +1,5 @@
 import test from "ava";
+import crypto from "node:crypto";
 import TaskInputSet, {normalizeInputValue} from "../../../../../lib/build/cache/index/TaskInputSet.js";
 
 test("normalizeInputValue: passes strings through", (t) => {
@@ -79,6 +80,38 @@ test("getSignature: empty set is a stable, fixed digest", (t) => {
 	t.is(new TaskInputSet().getSignature(), new TaskInputSet().getSignature());
 	t.not(new TaskInputSet().getSignature(),
 		new TaskInputSet([{type: "env", name: "FOO", value: "bar"}]).getSignature());
+});
+
+test("getSignature: empty set returns the sha256 of no input", (t) => {
+	// The empty-set short-circuit must return the exact digest the hash loop produced for zero entries,
+	// so a stage that recorded no inputs keeps the same signature it had before the short-circuit.
+	const expected = crypto.createHash("sha256").digest("hex");
+	t.is(new TaskInputSet().getSignature(), expected,
+		"getSignature on an empty set equals the digest of zero hashed entries");
+	t.is(new TaskInputSet().getSignatureWithCurrentValues(() => "x"), expected,
+		"getSignatureWithCurrentValues on an empty set returns the same empty digest");
+});
+
+test("getEntries: relational sort order matches the previous localeCompare order for recorded shapes", (t) => {
+	// The sort switched from String.localeCompare (ICU collation) to a plain code-point comparison on
+	// the composite `type\0name` key. For the ASCII type/name identifiers the recorder stores, the two
+	// orders must agree; otherwise the input signature would move and miss the cache on first run.
+	const entries = [
+		{type: "project.getVersion", name: "sap.ui.unified", value: "1"},
+		{type: "env", name: "UI5_TASK_INPUT", value: "1"},
+		{type: "env", name: "NODE_ENV", value: "1"},
+		{type: "time", name: "", value: "1"},
+		{type: "isRootProject", name: "", value: "1"},
+		{type: "getDependencies", name: "sap.m", value: "1"},
+		{type: "project.getVersion", name: "sap.ui.core", value: "1"},
+		{type: "getDependencies", name: "", value: "1"},
+	];
+	const relational = new TaskInputSet(entries).getEntries().map((e) => `${e.type}\0${e.name}`);
+	const localeOrder = entries
+		.map((e) => `${e.type}\0${e.name}`)
+		.sort((a, b) => a.localeCompare(b));
+	t.deepEqual(relational, localeOrder,
+		"code-point order equals localeCompare order for the stored type/name shapes");
 });
 
 test("getSignature: unset value does not collide with empty string", (t) => {
