@@ -1825,11 +1825,12 @@ test("Step-based task: a full stage-cache hit re-runs a read-free consumer when 
 		"reopenStageForRerun targeted the consumer step's stage");
 });
 
-// runTasks calls a step-based task's factory to discover its step names, and the factory is called again to
-// execute. A factory may branch on options.projectNamespace (generateThemeDesignerResources emits its
-// libraryTheming step only for a namespace), so both calls have to see a complete options object. Otherwise
-// discovery misses a stage that the step runner then asks for, and the build fails on the missing stage.
-test("Step-based task: step discovery sees the same options as execution", async (t) => {
+// runTasks calls a step-based task's factory once, at discovery, to enumerate its step names for setTasks,
+// and keeps the returned step array on the task so execution reuses it instead of calling the factory again.
+// A factory may branch on options.projectNamespace (generateThemeDesignerResources emits its libraryTheming
+// step only for a namespace), so discovery has to see a complete options object. Otherwise it misses a stage
+// that the step runner then asks for, and the build fails on the missing stage.
+test("Step-based task: the factory runs once per build and its steps are reused for execution", async (t) => {
 	const {sinon, taskUtil} = t.context;
 
 	const factoryOptions = [];
@@ -1881,9 +1882,8 @@ test("Step-based task: step discovery sees the same options as execution", async
 	await t.notThrowsAsync(taskRunner.runTasks(),
 		"The step the factory emits for a namespace has a stage, so preparing it succeeds");
 
-	t.is(factoryOptions.length, 2, "The factory was called for discovery and for execution");
-	t.deepEqual(factoryOptions[0], factoryOptions[1],
-		"Both calls received the same options, so they cannot return different steps");
+	t.is(factoryOptions.length, 1,
+		"The factory was called once at discovery; execution reused the discovered step array");
 	t.is(factoryOptions[0].projectNamespace, "project/b",
 		"Step discovery already saw the project namespace");
 	t.deepEqual(buildCache.setTasks.firstCall.firstArg,
@@ -1891,16 +1891,20 @@ test("Step-based task: step discovery sees the same options as execution", async
 		"A stage was created for every step the factory emits");
 });
 
-// A step factory is required to be pure over its options. Nothing tracks an environment or clock read in a
-// factory body, so an impure factory can return a different step set at execution time than at discovery.
-// The stages come from the discovered set, so the mismatch has to be reported where it originates.
-test("Step-based task: an impure factory returning different steps is rejected", async (t) => {
+// The factory is called once per build, so discovery and execution share one step array by construction.
+// There is no second call for an impure factory (an untracked environment or clock read in its body) to
+// diverge on: the discovered steps are the ones that run. This records the deliberate removal of the former
+// discovery-versus-execution check, which only ever caught a divergence between two calls.
+test("Step-based task: the factory is called once, so discovery and execution cannot diverge", async (t) => {
 	const {sinon, projectBuildLogger, taskUtil} = t.context;
 
-	let extraStep = false;
+	let callCount = 0;
+	// An impure factory that would add a step on a second call. With one call per build, the second output
+	// never happens, so the step runner only ever sees the discovered ["scan"].
 	const build = () => {
+		callCount++;
 		const steps = [{name: "scan", run: async () => undefined}];
-		if (extraStep) {
+		if (callCount > 1) {
 			steps.push({name: "sneaked", run: async () => undefined});
 		}
 		return steps;
@@ -1915,28 +1919,101 @@ test("Step-based task: an impure factory returning different steps is rejected",
 		}),
 	};
 
+	const createdStages = new Set();
+	const buildCache = {
+		...t.context.buildCache,
+		setTasks: sinon.stub().callsFake((tasks) => {
+			for (const {taskName, stepNames} of tasks) {
+				for (const stepName of stepNames ?? [undefined]) {
+					createdStages.add(buildCache.getStageId(taskName, stepName));
+				}
+			}
+		}),
+		prepareStageExecutionAndValidateCache: sinon.stub().callsFake(async (taskName, stepName) => {
+			const stageId = buildCache.getStageId(taskName, stepName);
+			if (!createdStages.has(stageId)) {
+				throw new Error(`Stage '${stageId}' does not exist`);
+			}
+			return false;
+		}),
+	};
+
 	const project = getMockProject("module");
 	project.getProjectResources = () => ({replayTagOperations: sinon.stub()});
 
-	const taskRunner = createTaskRunner(t, project, {taskUtil, taskDefinitions});
+	const taskRunner = createTaskRunner(t, project, {taskUtil, buildCache, taskDefinitions});
 	sinon.stub(taskRunner, "getDependenciesReader").resolves({getName: () => "dependencies"});
-	await taskRunner._initTasks();
 
-	// Discovery observes ["scan"], the execution call then adds a step whose stage was never created.
-	const discovery = taskRunner.runTasks;
-	const origTask = taskRunner._tasks["stepTask"].task;
-	taskRunner._tasks["stepTask"].task = async (log) => {
-		extraStep = true;
-		return origTask(log);
+	await t.notThrowsAsync(taskRunner.runTasks(),
+		"No stage is ever asked for that discovery did not create, because the factory runs once");
+	t.is(callCount, 1, "The factory was called exactly once, so no second call could return a different set");
+	t.deepEqual(buildCache.setTasks.firstCall.firstArg,
+		[{taskName: "stepTask", stepNames: ["scan"]}],
+		"Only the discovered step produced a stage; the would-be second-call step never appeared");
+	t.is(projectBuildLogger.skipTask.callCount, 0, "The discovered step ran rather than being skipped");
+});
+
+// The discovered step array is kept on the task, frozen so a custom task cannot mutate the shared value, and
+// re-derived on the next build so a surviving TaskRunner (reused across ui5 serve rebuilds) never serves a
+// stale array. Options are fixed for a TaskRunner's lifetime (a changed ui5.yaml rebuilds the whole stack),
+// so re-deriving per build keeps the steps in step with the options without any explicit invalidation.
+test("Step-based task: the kept step array is frozen and re-derived on each build", async (t) => {
+	const {sinon, taskUtil} = t.context;
+
+	let callCount = 0;
+	const build = () => {
+		callCount++;
+		return [{name: "scan", run: async () => undefined}];
+	};
+	const taskDefinitions = {
+		getTaskDefinitions: async () => ({
+			standardTasks: new Map([
+				["stepTask",
+					{requiresDependencies: false, stepBased: true, options: {}, taskFunction: build}],
+			]),
+			customTasks: new Map(),
+		}),
 	};
 
-	await t.throwsAsync(discovery.call(taskRunner), {
-		message: "Step factory of task stepTask for project project.b returned different steps than " +
-			"during step discovery: expected [scan] but got [scan, sneaked]. A step factory must be pure " +
-			"over its options, since its steps are promoted to pipeline stages before the build runs",
-	}, "The divergence is reported against the factory, naming both step lists");
+	const createdStages = new Set();
+	const buildCache = {
+		...t.context.buildCache,
+		setTasks: sinon.stub().callsFake((tasks) => {
+			for (const {taskName, stepNames} of tasks) {
+				for (const stepName of stepNames ?? [undefined]) {
+					createdStages.add(buildCache.getStageId(taskName, stepName));
+				}
+			}
+		}),
+		prepareStageExecutionAndValidateCache: sinon.stub().callsFake(async (taskName, stepName) => {
+			const stageId = buildCache.getStageId(taskName, stepName);
+			if (!createdStages.has(stageId)) {
+				throw new Error(`Stage '${stageId}' does not exist`);
+			}
+			return false;
+		}),
+	};
 
-	t.is(projectBuildLogger.skipTask.callCount, 0, "No step was driven after the mismatch");
+	const project = getMockProject("module");
+	project.getProjectResources = () => ({replayTagOperations: sinon.stub()});
+
+	const taskRunner = createTaskRunner(t, project, {taskUtil, buildCache, taskDefinitions});
+	sinon.stub(taskRunner, "getDependenciesReader").resolves({getName: () => "dependencies"});
+
+	// First build: one factory call, the kept array is frozen.
+	await taskRunner.runTasks();
+	t.is(callCount, 1, "The factory ran once for the first build");
+	const firstSteps = taskRunner._tasks["stepTask"].steps;
+	t.true(Object.isFrozen(firstSteps), "The kept step array is frozen");
+	t.throws(() => firstSteps.push({name: "injected"}), undefined,
+		"A custom task cannot mutate the frozen step array");
+
+	// Second build through the same TaskRunner: the factory runs again and the kept array is a fresh one.
+	await taskRunner.runTasks();
+	t.is(callCount, 2, "The factory ran once more for the second build (re-derived, not reused across builds)");
+	const secondSteps = taskRunner._tasks["stepTask"].steps;
+	t.not(secondSteps, firstSteps, "The second build keeps a fresh step array, not the previous one");
+	t.true(Object.isFrozen(secondSteps), "The re-derived array is frozen too");
 });
 
 // Integration: the custom-task path drives the same real MonitoredTaskUtil + StepRunner as the standard-task

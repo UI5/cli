@@ -201,19 +201,20 @@ class TaskRunner {
 
 		// Expand step-based tasks into their per-step stages: each step is its own stage, so the
 		// stage list must enumerate a step-based task's step names in step order. The factory is pure over
-		// options (it may not read readers/taskUtil), so calling it here to discover step names is safe.
-		// The discovered names are remembered on the task so the execution-time factory call can be checked
-		// against them (see #assertDiscoveredStepNames).
+		// options (it may not read readers/taskUtil) and options are fixed for this build, so one factory
+		// call produces the steps that both create the stages here and run at execution. Keep the step array
+		// on the task so the execution path reuses it instead of calling the factory a second time. Freeze it
+		// so a custom task cannot mutate the shared value between the two uses; discovery re-derives it on the
+		// next build, so a surviving TaskRunner never serves a stale array.
 		const stageTasks = await Promise.all(allTasks.map(async (taskName) => {
 			const taskDef = this._tasks[taskName];
 			if (!taskDef.stepBased) {
 				return {taskName};
 			}
 			const factory = await taskDef.stepFactory();
-			const steps = await factory(taskDef.options);
-			const stepNames = steps.map((step) => step.name);
-			taskDef.stepNames = stepNames;
-			return {taskName, stepNames};
+			const steps = Object.freeze(await factory(taskDef.options));
+			taskDef.steps = steps;
+			return {taskName, stepNames: steps.map((step) => step.name)};
 		}));
 		this._buildCache.setTasks(stageTasks);
 
@@ -320,12 +321,15 @@ class TaskRunner {
 				}
 
 				if (stepBased) {
-					// Step-based task: the default export is a factory build(options) => Step[]. Each step is
-					// its own pipeline stage; the step runner drives one stage per step via the
-					// per-stage hooks below. Every input a step reads arrives through its arguments, so no
-					// task body closes over the readers or taskUtil.
-					const steps = await taskFunction(options);
-					this.#assertDiscoveredStepNames(taskName, steps);
+					// Step-based task: the default export is a factory build(options) => Step[]. runTasks
+					// already called the factory at discovery and kept the returned step array on the task, so
+					// reuse it here instead of calling the factory a second time. The factory is pure over
+					// options, so one call per build is the single source of truth for both the stage list and
+					// execution. Fall back to a direct call for a task invoked outside runTasks, where no
+					// discovery ran. Each step is its own pipeline stage; the step runner drives one stage per
+					// step via the per-stage hooks below. Every input a step reads arrives through its
+					// arguments, so no task body closes over the readers or taskUtil.
+					const steps = this._tasks[taskName].steps ?? await taskFunction(options);
 					this._taskStart = performance.now();
 					const taskReport = this.#createTaskExecutionReport(taskName);
 					const stepDriver = new StepRunner({
@@ -415,41 +419,6 @@ class TaskRunner {
 			requiredDependencies: requiresDependencies ? this._directDependencies : new Set()
 		};
 		this._taskExecutionOrder.push(taskName);
-	}
-
-	/**
-	 * Checks the steps a factory returned at execution time against the step names
-	 * {@link #runTasks} discovered before the build.
-	 *
-	 * A step's pipeline stage is created from the discovered list, so a factory that returns a different
-	 * step set on its second call drives stages that were never created. {@link ProjectResources#useStage}
-	 * then throws a message naming only the missing stage, which does not point at the factory.
-	 * This check reports the divergence at its origin and names both step lists.
-	 *
-	 * The factory contract is purity over <code>options</code>. Reads of the environment or the clock in a
-	 * factory body are untracked, so an impure factory is not caught by the build cache either.
-	 *
-	 * @param {string} taskName Task name
-	 * @param {object[]} steps Steps the factory returned for execution
-	 * @returns {void}
-	 */
-	#assertDiscoveredStepNames(taskName, steps) {
-		const discoveredStepNames = this._tasks[taskName]?.stepNames;
-		if (!discoveredStepNames) {
-			// No discovery ran, so there is nothing to compare against. This is the case when a task is
-			// invoked directly rather than through runTasks.
-			return;
-		}
-		const stepNames = steps.map((step) => step.name);
-		if (discoveredStepNames.length === stepNames.length &&
-			discoveredStepNames.every((stepName, i) => stepName === stepNames[i])) {
-			return;
-		}
-		throw new Error(
-			`Step factory of task ${taskName} for project ${this._project.getName()} returned different ` +
-			`steps than during step discovery: expected [${discoveredStepNames.join(", ")}] ` +
-			`but got [${stepNames.join(", ")}]. A step factory must be pure over its options, since its ` +
-			`steps are promoted to pipeline stages before the build runs`);
 	}
 
 	/**
@@ -546,8 +515,9 @@ class TaskRunner {
 		// A custom task opts into the step-factory API with a static `stepBased` export, honored from
 		// Specification Version 5.0. Below 5.0 the export is ignored and the task runs as a legacy body.
 		const stepBased = specVersion.gte("5.0") && (await task.getStepBased()) === true;
-		// Options the factory is called with, both for step-name discovery (runTasks) and execution. The
-		// factory is pure over options, so discovering step names by calling it early is safe.
+		// Options the factory is called with at step-name discovery (runTasks). The factory is pure over
+		// options, so discovering step names by calling it early is safe, and the step array it returns is
+		// kept on the task and reused for execution rather than calling the factory again.
 		const stepOptions = stepBased ? {
 			projectName: project.getName(),
 			projectNamespace: project.getNamespace(),
@@ -621,8 +591,8 @@ class TaskRunner {
 	 * @param {boolean} parameters.stepBased
 	 *   Whether the task's default export is a step factory (honored from Specification Version 5.0)
 	 * @param {object} [parameters.stepOptions]
-	 *   The options object a step factory is called with. The same object the step-name discovery in
-	 *   {@link #runTasks} used, so both calls observe identical options
+	 *   The options object a step factory is called with at discovery in {@link #runTasks}. Kept so the
+	 *   fallback path (a task invoked outside runTasks) calls the factory with the same options
 	 * @param {@ui5/project/specifications/Extension} parameters.task Task extension instance
 	 * @param {string} parameters.taskName Runtime name of the task (may include suffix)
 	 * @param {object} [parameters.taskConfiguration] Task configuration from ui5.yaml
@@ -672,12 +642,12 @@ class TaskRunner {
 			if (stepBased) {
 				// Step-based custom task: gated at Specification Version 5.0 in _addCustomTask, which always
 				// provides a taskUtil interface. The default export is a factory build(options) => Step[];
-				// each step is its own pipeline stage, driven by the step runner via per-stage
-				// hooks. The factory receives options only, and receives the very object step-name discovery
-				// used, so both calls cannot diverge on differing option values.
+				// each step is its own pipeline stage, driven by the step runner via per-stage hooks. The
+				// factory receives options only. runTasks already called it at discovery and kept the step
+				// array on the task, so reuse it instead of calling the factory a second time (see the
+				// standard-task path). Fall back to a direct call for a task invoked outside runTasks.
 				const factoryOptions = stepOptions ?? options;
-				const steps = await taskFunction(factoryOptions);
-				this.#assertDiscoveredStepNames(taskName, steps);
+				const steps = this._tasks[taskName].steps ?? await taskFunction(factoryOptions);
 				const taskReport = this.#createTaskExecutionReport(taskName);
 				const stepDriver = new StepRunner({
 					steps,
