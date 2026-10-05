@@ -2112,6 +2112,87 @@ test("Step-based task: recordStage passes stale outputs without mutating the del
 });
 
 
+// The recordStage hook folds the stage's per-key reads into the stage-level monitored requests via
+// foldReadsInto: it dedups fold paths against the monitored paths (and against each other) rather than
+// concatenating duplicates that only collapse later in the request graph. This keeps the request set that
+// keys the stage minimal without moving its signature (a dropped entry was an already-present path).
+test("Step-based task: recordStage dedups the fold against the monitored requests", async (t) => {
+	const {sinon, projectBuildLogger} = t.context;
+
+	// A monitored workspace that reports one explicit path and a glob pattern, as a stage-level byPath and
+	// the keys() enumerator would. The fold then adds: a path already requested explicitly (/already.js), a
+	// genuinely new path (/new.js) carried twice, and a path matching the monitored pattern (kept: the
+	// trimmed foldReadsInto only dedups exact paths, it does not reason about pattern coverage).
+	t.context.resourceFactory.createMonitor = sinon.stub().callsFake((resource) => ({
+		constructor: {name: "MonitoredReader"},
+		getName: () => (resource?.getName ? resource.getName() : "workspace"),
+		getResourceRequests: () => ({paths: ["/already.js"], patterns: [["/resources/x/**"]]}),
+	}));
+
+	class FakeStepRunner {
+		constructor(opts) {
+			this._opts = opts;
+		}
+		async runSteps() {
+			const ctx = this._opts.createStageContext();
+			await this._opts.recordStage("s", {
+				ctx,
+				cacheInfo: false,
+				invocationData: new Map(),
+				staleOutputs: [],
+				foldedReads: {
+					project: {paths: ["/already.js", "/new.js", "/new.js", "/resources/x/a.js"], patterns: []},
+					dependencies: {paths: [], patterns: []},
+				},
+				foldedInputs: [],
+			});
+			return {anyStepExecuted: true, writtenResourcePaths: []};
+		}
+	}
+
+	const build = () => [{name: "s", keys: async () => [], each: async () => {}}];
+	const taskDefinitions = {
+		getTaskDefinitions: async () => ({
+			standardTasks: new Map([
+				["stepTask", {requiresDependencies: false, stepBased: true, options: {}, taskFunction: build}],
+			]),
+			customTasks: new Map(),
+		}),
+	};
+	const buildCache = {
+		setTasks: sinon.stub(),
+		recordStageResult: sinon.stub().resolves([]),
+		allTasksCompleted: sinon.stub().resolves([]),
+		getStageId: (taskName, stepName) =>
+			stepName === undefined ? `task/${taskName}` : `task/${taskName}::step/${stepName}`,
+		prepareStageExecutionAndValidateCache: sinon.stub().resolves(false),
+		getStepInvocationData: sinon.stub().returns(undefined),
+		setStepInvocationData: sinon.stub(),
+		getStepReturnValueStore: sinon.stub().returns(undefined),
+		getResolveInputValue: sinon.stub().returns(undefined),
+	};
+	const project = getMockProject("module");
+	project.getProjectResources = () => ({replayTagOperations: sinon.stub()});
+
+	t.context.TaskRunner = await esmock("../../../lib/build/TaskRunner.js", {
+		"@ui5/logger": t.context.logger,
+		"@ui5/fs/resourceFactory": t.context.resourceFactory,
+		"../../../lib/build/helpers/StepRunner.js": {default: FakeStepRunner},
+	});
+
+	const taskRunner = createTaskRunner(t, project, {taskUtil: t.context.taskUtil, buildCache, taskDefinitions});
+	await taskRunner._initTasks();
+	await taskRunner._tasks["stepTask"].task(projectBuildLogger);
+
+	const {projectResourceRequests} = buildCache.recordStageResult.getCall(0).args[0];
+	t.deepEqual(projectResourceRequests.patterns, [["/resources/x/**"]],
+		"The monitored pattern is preserved");
+	t.deepEqual(projectResourceRequests.paths, ["/already.js", "/new.js", "/resources/x/a.js"],
+		"The already-requested path is not repeated and the duplicate is collapsed; the new paths are added " +
+		"once each (a pattern-covered path is kept, not reasoned about)");
+});
+
+
 // task declaring stepBased still runs as a legacy body, so the step runner is never driven and the runner
 // outcome is not folded into recordStageResult.
 test("Step-based custom task: the step-based export is ignored below Specification Version 5.0", async (t) => {

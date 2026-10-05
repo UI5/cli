@@ -514,23 +514,41 @@ export default class StepRunner {
 	 * <code>needsInputs</code> for per-key selection only): they are re-derived from producer reads/inputs
 	 * that are themselves tracked, so folding one into the stage signature would permanently miss the cache.
 	 *
+	 * The recorder stores resolved paths (not patterns), and the same path is commonly read by more than one
+	 * key (a shared marker probe, a dependency a map step's keys each resolve), so the raw concatenation held
+	 * one entry per read. The duplicates collapse downstream (the request graph keys on a Set), but carrying
+	 * them inflates the recording the TaskRunner folds onto the stage monitor and the request-key set the
+	 * request graph's exact-match lookup rebuilds, so the fold dedups per read bucket into a Set here (and
+	 * the TaskRunner's <code>foldReadsInto</code> dedups again against the monitored paths). Deduplication
+	 * does not move the resulting signature.
+	 *
 	 * @param {Map<string, object>} invocationData The stage's complete per-key invocation data
 	 * @returns {{reads: {project: {paths: string[], patterns: string[]},
 	 *   dependencies: {paths: string[], patterns: string[]}},
 	 *   inputs: Array<{type: string, name: string, value: string|undefined}>}} Folded reads and inputs
 	 */
 	#foldStageKeys(invocationData) {
-		const project = {paths: [], patterns: []};
-		const dependencies = {paths: [], patterns: []};
+		const projectPaths = new Set();
+		const dependencyPaths = new Set();
 		const mergedInputs = new Map();
 		for (const data of invocationData.values()) {
-			project.paths.push(...(data.reads ?? []));
-			dependencies.paths.push(...(data.dependencyReads ?? []));
+			for (const path of data.reads ?? []) {
+				projectPaths.add(path);
+			}
+			for (const path of data.dependencyReads ?? []) {
+				dependencyPaths.add(path);
+			}
 			for (const input of data.inputs ?? []) {
 				mergedInputs.set(`${input.type}\0${input.name}`, input);
 			}
 		}
-		return {reads: {project, dependencies}, inputs: [...mergedInputs.values()]};
+		return {
+			reads: {
+				project: {paths: [...projectPaths], patterns: []},
+				dependencies: {paths: [...dependencyPaths], patterns: []},
+			},
+			inputs: [...mergedInputs.values()],
+		};
 	}
 
 	/**

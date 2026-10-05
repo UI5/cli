@@ -372,6 +372,24 @@ When diagnosing slow `writeStageResources`, check the `CAS skipped` vs `CAS writ
 
 `#resolveEntries` across the two broad-glob steps dropped from ~420–600 ms (first-run fs-cache-cold spike at the top of the range) to ~6 ms — the per-key `ssri.fromData` disappears from the stale-cache critical path. Total stale-cache sap.m build time: ~3.2 s → ~2.4 s. Warm cache is unaffected (the result cache is valid, so `#resolveEntries` is never reached), and cold cache is unaffected (integrity is already computed during indexing).
 
+### 13. The delta-build step fold is already cheap; dedup is hygiene, not a speedup
+
+The step fold on the delta path (`StepRunner.#foldStageKeys` → `recordStage`'s `foldReadsInto` → `ProjectBuildCache.#foldStepReads` → `BuildStageCache.recordRequests` → `ResourceRequestManager.addRequests`) was reviewed as a suspected delta-path cost: a `minify` fold of ~4,400 duplicated per-key paths, and a `findExactMatch` iterating every node and re-resolving every path on a miss. **Measured at HEAD (2026-10, stale-cache sap.m), that cost does not materialize**, because an earlier branch commit stopped the broad map steps from recording per-key reads: `minify`/`replaceCopyright`/`replaceVersion` operate on the key resource `keys()` hands them, not via `workspace.byPath`, so each key records **zero** reads and the fold is empty. The only standard step that folds real per-key reads is `buildThemes` (its `each` reads dependencies per theme), and only when a theme source changes.
+
+Instrumenting `#foldStageKeys` (raw vs unique paths), `#foldStepReads` (per-stage timing), `findExactMatch` (calls, request keys built, reuse vs miss) and `#prepareStageRequestCache` (dirty vs clean stages, spurious reuse-dirty flags):
+
+| Scenario (one file edited) | fold per stage | `findExactMatch` | request keys built | stages re-serialized |
+|---|---|---|---|---|
+| JS file (`Button.js`) | ~0.1 ms, 0 fold paths | 5 calls, 5 iterations, **0 misses** | 7 → 7 (no change) | unchanged |
+| Theme file (`base/Bar.less`, drives `buildThemes`) | ~0.4 ms, 2 dup / 443 paths | 5 calls, 5 iterations, **0 misses** | **647 → 454** | **1 fewer** |
+
+Findings:
+- **Every `findExactMatch` is a reused hit (0 misses).** The feared miss path (`#getResourcesForRequests` resolving each recorded path through the reader stack and rebuilding the hash tree) is never reached on this corpus, so there is no path-resolution cost to shrink today. Dedup only shrinks the input *to* a miss, which does not occur here.
+- **Dedup win is request-key string building only.** `#foldStageKeys` deduping into `Set`s plus `foldReadsInto` dropping fold paths the stage monitor already requested cut the keys `findExactMatch` rebuilds from 647 to 454 on a theme change (`buildThemes`' ~2 duplicate reads plus the per-key paths double-counted against the stage monitor). This is microseconds; it does not move wall-clock on a ~2.4 s build.
+- **The dirty-flag fix (W5) is the one with latent value.** `ResourceRequestManager.#addRequestSet` previously flagged the manager dirty on *every* call, so a request set reused byte-identical still forced the whole request graph + resource indices to be re-serialized. The common case for a step-based stage is recording the same set every delta build; measured `spuriousReuseDirty=1` on the theme scenario (one stage's request cache needlessly rewritten), 0 after the fix. In CLI mode this is a deferred background write off the critical path; it matters more in **BuildServer mode, where cache writes are awaited** (Phase 4), so cutting re-serialized stages directly shortens the awaited write.
+
+**Verdict: no measurable build-time speedup on the common path.** The value is correctness/hygiene (reused-unchanged no longer marks dirty; the fold is a clean deduped `Set` union, not an array concat the review's "no-op union" comment misdescribed) plus headroom for custom step-based tasks whose `each` reads per key (where the fold would otherwise carry key-count × reads-per-key duplicates) and for the awaited-write BuildServer path. The scope was deliberately kept to dedup + the dirty-flag fix (C8 answered: not worth an incrementally-maintained union); `foldReadsInto` dedups exact paths only and does not reason about pattern coverage (a dropped-pattern-coverage variant was prototyped — ~629 → ~442 on the theme change — then dropped as unjustified complexity for a sub-ms win). The larger latent lever (avoiding the per-path `byPath` on a `findExactMatch` miss) is untouched and out of scope.
+
 ## Investigation Workflow
 
 1. **Establish a baseline.** Run the build 2-3 times to get stable warm-cache timings. Note the total time and per-phase breakdown.

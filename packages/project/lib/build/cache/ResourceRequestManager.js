@@ -602,19 +602,24 @@ class ResourceRequestManager {
 	 * @returns {Promise<object>} Object containing setId and signature of the resource index
 	 */
 	async #addRequestSet(requests, reader) {
-		this.#hasNewOrModifiedCacheEntries = true;
 		// Try to find an existing request set that we can reuse
 		let setId = this.#requestGraph.findExactMatch(requests);
 		let resourceIndex;
 		let unresolvedRequests;
 		if (setId) {
 			// Reuse existing resource index.
-			// Note: This index has already been updated before the task executed, so no update is necessary here
+			// Note: This index has already been updated before the task executed, so no update is necessary
+			// here, and nothing in the persisted request graph changed: the manager stays clean so the whole
+			// request graph is not needlessly re-serialized to SQLite. (A tree update that moved the index's
+			// signature flags the manager dirty itself in updateIndices.) Recording the same request set on
+			// every delta build is the common case for a step-based stage, so leaving the flag untouched here
+			// is what keeps a one-file-changed build from rewriting every stage's request cache.
 			const existingMetadata = this.#requestGraph.getMetadata(setId);
 			resourceIndex = existingMetadata.resourceIndex;
 			unresolvedRequests = existingMetadata.unresolvedRequests;
 		} else {
 			// New request set, check whether we can create a delta
+			this.#hasNewOrModifiedCacheEntries = true;
 			const metadata = {}; // Will populate with resourceIndex below
 			setId = this.#requestGraph.addRequestSet(requests, metadata);
 

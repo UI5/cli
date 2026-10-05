@@ -804,3 +804,103 @@ test("notifyStepExecution is not called when every step is served from cache", a
 	t.false(anyStepExecuted, "A fully cached task counts as skipped");
 	t.is(notified, 0, "A skipped task is never announced as running");
 });
+
+test("The stage fold deduplicates reads shared across keys", async (t) => {
+	// Two keys each read the same shared path plus one of their own. The recorder stores resolved paths, so a
+	// path read by both keys would otherwise appear once per key in the fold. The fold must collapse it: the
+	// request graph keys on a Set, so a duplicated path is wasted work (an inflated recording the TaskRunner
+	// concatenates and the request-key set rebuilds), never a signature difference.
+	const {runner, recorded} = makeDriver({
+		steps: [
+			{name: "m", keys: async () => ["a", "b"], each: async (key, {workspace, dependencies}) => {
+				await workspace.byPath("/shared"); // read by every key
+				await workspace.byPath(`/in/${key}`); // read by this key only
+				await dependencies.byPath("/dep/shared"); // dependency read by every key
+			}},
+		],
+		dependencies: {
+			getName: () => "dependencies",
+			byPath: async () => null,
+			byGlob: async () => [],
+		},
+	});
+
+	await runner.runSteps();
+
+	const {foldedReads} = recorded.get("m");
+	t.deepEqual(foldedReads.project.paths.slice().sort(), ["/in/a", "/in/b", "/shared"],
+		"Each project path appears exactly once, across the union of both keys' reads");
+	t.deepEqual(foldedReads.dependencies.paths, ["/dep/shared"],
+		"The shared dependency read is folded once, not once per key");
+	t.is(foldedReads.project.paths.length, new Set(foldedReads.project.paths).size,
+		"The folded project paths carry no duplicates");
+});
+
+test("Deduplicating the fold does not change the set of reads it represents", async (t) => {
+	// The signature downstream is a function of the SET of folded paths (the request graph dedups anyway), so
+	// deduplication must preserve that set exactly: every path any key read is present, and nothing else is.
+	// Compare the deduplicated fold against the union assembled by hand from the per-key invocation data.
+	const {runner, recorded} = makeDriver({
+		steps: [
+			{name: "m", keys: async () => ["a", "b", "c"], each: async (key, {workspace}) => {
+				await workspace.byPath("/common"); // all three keys
+				await workspace.byPath(key === "c" ? "/common" : `/in/${key}`); // c reads /common twice
+			}},
+		],
+	});
+
+	await runner.runSteps();
+
+	const invocationData = invocationDataOf(recorded, "m");
+	const expected = new Set();
+	for (const data of invocationData.values()) {
+		for (const path of data.reads) {
+			expected.add(path);
+		}
+	}
+	const {foldedReads} = recorded.get("m");
+	t.deepEqual(new Set(foldedReads.project.paths), expected,
+		"The deduplicated fold represents exactly the union of every key's reads");
+	t.is(foldedReads.project.paths.length, expected.size, "with one entry per unique path");
+});
+
+test("A cached key's read, unseen by the stage monitor, stays in the stage fold on a delta build", async (t) => {
+	// The property the fold exists to preserve: on a delta build only the re-run keys read through the
+	// stage-level monitored readers, so a key served from cache contributes nothing the monitor sees. Its
+	// recorded read must still key the stage, or the next build looks the stage up under a signature missing
+	// that read and never finds it. The fold recovers it from the stage's complete per-key invocation data.
+	//
+	// Removing #foldStageKeys (so recordStage receives no foldedReads) makes this fail: foldedReads.project
+	// would not carry /in/b, the cached key's read.
+	const build1 = makeDriver({
+		steps: [
+			{name: "m", keys: async () => ["a", "b"], each: async (key, {workspace}) => {
+				await workspace.byPath(`/in/${key}`); // each key reads its own input
+				await workspace.write(createResource(`/out/${key}`));
+			}},
+		],
+	});
+	await build1.runner.runSteps();
+
+	// A delta that re-runs only key 'a' (its input changed). Key 'b' is served from cache: it does not run, so
+	// the stage monitor never observes its read of /in/b.
+	const cacheInfo = {changedProjectResourcePaths: ["/in/a"], changedDependencyResourcePaths: []};
+	const build2 = makeDriver({
+		cacheVerdicts: {m: cacheInfo},
+		previousData: new Map([["m", invocationDataOf(build1.recorded, "m")]]),
+		steps: [
+			{name: "m", keys: async () => ["a", "b"], each: async (key, {workspace}) => {
+				await workspace.byPath(`/in/${key}`);
+				await workspace.write(createResource(`/out/${key}`));
+			}},
+		],
+	});
+	await build2.runner.runSteps();
+
+	const {foldedReads} = build2.recorded.get("m");
+	t.true(foldedReads.project.paths.includes("/in/b"),
+		"The cached key's read is folded into the stage's reads, though the monitor never saw it this build");
+	t.true(foldedReads.project.paths.includes("/in/a"),
+		"The re-run key's read is folded in too");
+});
+

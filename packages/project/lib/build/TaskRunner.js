@@ -54,6 +54,43 @@ function mergeInputRecordings(base, extra) {
 }
 
 /**
+ * Folds a stage's per-key reads (the {@link StepRunner} fold, paths only) into the stage-level monitored
+ * requests, deduping against the paths the base recording already requests.
+ *
+ * The recorder stores resolved paths, and a path is commonly read by more than one key (a shared marker
+ * probe, a dependency each key resolves) and also recorded at the stage level, so a plain concatenation
+ * carried duplicates that only collapse later in the request graph (which keys on a Set). Deduping here
+ * keeps the recording the request graph rebuilds minimal; it does not move the stage signature, since the
+ * dropped entries are paths already present.
+ *
+ * @param {{paths: string[], patterns: string[]}|undefined} base Stage-level monitored requests
+ * @param {{paths: string[], patterns: string[]}} fold The stage's folded per-key reads (patterns always
+ *   empty: the recorder stores resolved paths)
+ * @returns {{paths: string[], patterns: string[]}|undefined} The base requests with the not-yet-present
+ *   fold paths added, or <code>undefined</code> when there was nothing to record (preserving the "requested
+ *   nothing" signal {@link #recordStageResult} distinguishes from an empty request set)
+ */
+function foldReadsInto(base, fold) {
+	const basePaths = base ? base.paths : [];
+	const covered = new Set(basePaths);
+	const newPaths = [];
+	for (const path of fold.paths) {
+		if (covered.has(path)) {
+			continue; // already requested (by the stage monitor or an earlier fold entry)
+		}
+		covered.add(path);
+		newPaths.push(path);
+	}
+	if (!base) {
+		if (!newPaths.length) {
+			return undefined;
+		}
+		return {paths: newPaths, patterns: []};
+	}
+	return {paths: [...basePaths, ...newPaths], patterns: [...base.patterns]};
+}
+
+/**
  * TaskRunner
  *
  * Manages the execution of build tasks for a project, including task composition,
@@ -809,11 +846,14 @@ class TaskRunner {
 				// Fold the stage's complete per-key reads and inputs (from its invocation data) into the
 				// stage-level monitored requests. This covers keys served from cache on a delta build, whose
 				// reads and inputs the stage-level monitor never observed, so the stage re-keys on its full
-				// input set. On a full build the monitor already saw everything, so the fold is a no-op union.
+				// input set. On a full build the monitor already saw every path (through the enumerator's own
+				// glob or the keys' individual reads), so the fold adds nothing new: foldReadsInto dedups the
+				// fold against the monitored paths rather than concatenating duplicates that only collapse
+				// later in the request graph.
 				if (foldedReads) {
-					projectRequests = mergeResourceRequests(projectRequests, foldedReads.project);
+					projectRequests = foldReadsInto(projectRequests, foldedReads.project);
 					dependencyRequests = dependencies ?
-						mergeResourceRequests(dependencyRequests, foldedReads.dependencies) : dependencyRequests;
+						foldReadsInto(dependencyRequests, foldedReads.dependencies) : dependencyRequests;
 				}
 				if (foldedInputs) {
 					inputRecording = mergeInputRecordings(inputRecording, foldedInputs);
