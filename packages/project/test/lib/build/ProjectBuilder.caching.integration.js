@@ -1197,3 +1197,127 @@ test.serial(
 				{encoding: "utf8"}),
 			undefined, "The removed theme is no longer built");
 	});
+
+// task.root-conditional reads /tsconfig.json through the project root reader only while /toggle.js
+// exists in the workspace. Removing /toggle.js is a source change that re-runs the stage; on that
+// re-run the task reads no root resource, so its previously recorded root request is cleared and the
+// emptied request set is re-persisted. A later change to /tsconfig.json must then NOT invalidate the
+// task, because the stage no longer reads that file. Without clearing, the stale root request survives
+// in the cache, keeps folding /tsconfig.json into the stage signature, and every edit to it rebuilds
+// application.a.
+test.serial(
+	"Build application.a (a stage that stops reading a root file stops being invalidated by it)",
+	async (t) => {
+		const fixtureTester = new FixtureTester(t, "application.a");
+		const destPath = fixtureTester.destPath;
+		await fixtureTester._initialize();
+
+		const tsconfigPath = `${fixtureTester.fixturePath}/tsconfig.json`;
+		const togglePath = `${fixtureTester.fixturePath}/webapp/toggle.js`;
+		const digestPath = `${destPath}/rootConditionalDigest.js`;
+		const graphConfig = {rootConfigPath: "ui5-customTask-root-conditional.yaml"};
+		await fs.writeFile(tsconfigPath, `{"compilerOptions":{"target":"es2022"}}`);
+		await fs.writeFile(togglePath, `sap.ui.define([], () => {});\n`);
+
+		// #1 build (no cache): /toggle.js is present, so the task reads and records /tsconfig.json.
+		await fixtureTester.buildProject({graphConfig, config: {destPath, cleanDest: true}});
+		t.true((await fs.readFile(digestPath, {encoding: "utf8"})).includes("es2022"),
+			"Output embeds the tsconfig content while the root read is active");
+
+		// Remove /toggle.js. Its deletion re-runs the root-conditional stage, and on that re-run the
+		// task reads no root resource.
+		await fs.rm(togglePath);
+
+		// #2 build (cache, toggle removed): the stage re-runs, records no root read, so its stale root
+		// request is cleared and the emptied set is persisted.
+		await fixtureTester.buildProject({graphConfig, config: {destPath, cleanDest: true}});
+		t.is(await fs.readFile(digestPath, {encoding: "utf8"}),
+			`export const content = "root-not-read";\n`,
+			"Output no longer embeds the tsconfig content once the root read stopped");
+
+		// Change only /tsconfig.json. The task no longer reads it.
+		await fs.writeFile(tsconfigPath, `{"compilerOptions":{"target":"es2015"}}`);
+
+		// #3 build (cache, tsconfig changed, toggle still absent): application.a is a full result-cache
+		// hit and nothing rebuilds. Without the fix the stale root request would still fold tsconfig.json
+		// into the stage signature, invalidating application.a and rebuilding it.
+		await fixtureTester.buildProject({
+			graphConfig, config: {destPath, cleanDest: true},
+			assertions: {projects: {}},
+		});
+	});
+
+// Two custom tasks read the project root: task.root-config reads /tsconfig.json by path with the default
+// gitignore filter (useGitignore:true), task.root-glob globs /rootcfg/**/*.json with the filter disabled
+// (useGitignore:false, recorded against the second root manager). Each task's root reads fold into its own
+// stage's root signature, and the per-stage root signatures aggregate at the result-cache level, so a
+// change to one task's root input re-runs only that task. Adding or removing a file matching root-glob's
+// glob invalidates root-glob (root indices refresh by re-globbing), while root-config stays cached.
+const ROOT_MULTI_SKIPPED_SOURCE_TASKS = [
+	"enhanceManifest", "escapeNonAsciiCharacters", "generateComponentPreload",
+	"generateFlexChangesBundle", "generateVersionInfo", "minify", "replaceCopyright", "replaceVersion",
+];
+test.serial(
+	"Build application.a (root reads across two stages invalidate independently; glob + useGitignore:false)",
+	async (t) => {
+		const fixtureTester = new FixtureTester(t, "application.a");
+		const destPath = fixtureTester.destPath;
+		await fixtureTester._initialize();
+
+		const tsconfigPath = `${fixtureTester.fixturePath}/tsconfig.json`;
+		const cfgDir = `${fixtureTester.fixturePath}/rootcfg`;
+		const globDigestPath = `${destPath}/rootGlobDigest.js`;
+		const graphConfig = {rootConfigPath: "ui5-customTask-root-multi.yaml"};
+		await fs.writeFile(tsconfigPath, `{"compilerOptions":{"target":"es2022"}}`);
+		await fs.mkdir(cfgDir, {recursive: true});
+		await fs.writeFile(`${cfgDir}/a.json`, `{"a":1}`);
+		await fs.writeFile(`${cfgDir}/b.json`, `{"b":2}`);
+
+		// #1 build (no cache): both tasks read and record their root reads.
+		await fixtureTester.buildProject({graphConfig, config: {destPath, cleanDest: true}});
+		let globDigest = await fs.readFile(globDigestPath, {encoding: "utf8"});
+		t.true(globDigest.includes("a.json") && globDigest.includes("b.json"),
+			"root-glob output lists both matching root files");
+
+		// #2 build (cache, no changes): full result-cache hit.
+		await fixtureTester.buildProject({graphConfig, config: {destPath, cleanDest: true},
+			assertions: {projects: {}}});
+
+		// Delete a matching root file (a novel state, never cached): root-glob must re-run, root-config
+		// stays cached.
+		await fs.rm(`${cfgDir}/b.json`);
+		await fixtureTester.buildProject({
+			graphConfig, config: {destPath, cleanDest: true},
+			assertions: {projects: {"application.a": {
+				skippedTasks: [...ROOT_MULTI_SKIPPED_SOURCE_TASKS, "root-config"],
+				writtenResources: {"root-glob": ["/rootGlobDigest.js"]},
+			}}},
+		});
+		globDigest = await fs.readFile(globDigestPath, {encoding: "utf8"});
+		t.false(globDigest.includes("b.json"), "root-glob output drops the removed root file");
+
+		// Add a matching root file (again a novel state): root-glob must re-run, root-config stays cached.
+		await fs.writeFile(`${cfgDir}/c.json`, `{"c":3}`);
+		await fixtureTester.buildProject({
+			graphConfig, config: {destPath, cleanDest: true},
+			assertions: {projects: {"application.a": {
+				skippedTasks: [...ROOT_MULTI_SKIPPED_SOURCE_TASKS, "root-config"],
+				writtenResources: {"root-glob": ["/rootGlobDigest.js"]},
+			}}},
+		});
+		globDigest = await fs.readFile(globDigestPath, {encoding: "utf8"});
+		t.true(globDigest.includes("a.json") && globDigest.includes("c.json"),
+			"root-glob output lists the newly added root file");
+
+		// Change only /tsconfig.json: now root-config must re-run, root-glob stays cached. This also shows
+		// the per-stage root signatures aggregate independently, so one task's root change does not re-run
+		// the other.
+		await fs.writeFile(tsconfigPath, `{"compilerOptions":{"target":"es2015"}}`);
+		await fixtureTester.buildProject({
+			graphConfig, config: {destPath, cleanDest: true},
+			assertions: {projects: {"application.a": {
+				skippedTasks: [...ROOT_MULTI_SKIPPED_SOURCE_TASKS, "root-glob"],
+				writtenResources: {"root-config": ["/tsconfigDigest.js"]},
+			}}},
+		});
+	});

@@ -883,6 +883,57 @@ test("toCacheObjects/fromCache: round-trips recorded root requests", async (t) =
 		"Restored root managers reproduce the root signature for unchanged content");
 });
 
+test("recordRequests: a stage that stops reading root clears and persists the emptied manager", async (t) => {
+	const cache = new BuildStageCache("test.project", "testTask", false);
+	const projectReader = createMockReader([createMockResource("/test.js")]);
+	const projectRequestRecording = {paths: new Set(["/test.js"]), patterns: new Set()};
+	const emptyRootSig = cache.getRootSignature();
+
+	// First build: the stage reads /tsconfig.json through the root reader.
+	await cache.recordRequests({
+		projectRequestRecording,
+		projectReader,
+		dependencyReader: createMockReader([]),
+		inputRecording: [],
+		rootRequestRecording: ROOT_REQUESTS,
+		getRootReader: () => createMockReader([createMockResource("/tsconfig.json", "{}")]),
+	});
+	t.true(cache.hasRootRequests(), "Root request recorded on the first build");
+	t.not(cache.getRootSignature(), emptyRootSig, "Root signature folds in the recorded root read");
+
+	// Second build: the stage no longer reads any root resource.
+	const [, , , rootSig] = await cache.recordRequests({
+		projectRequestRecording,
+		projectReader,
+		dependencyReader: createMockReader([]),
+		inputRecording: [],
+		rootRequestRecording: {gitignore: {paths: [], patterns: []}, noGitignore: {paths: [], patterns: []}},
+		getRootReader: () => createMockReader([]),
+	});
+
+	t.false(cache.hasRootRequests(), "The stale root request set is cleared");
+	t.is(cache.getRootSignature(), emptyRootSig,
+		"Root signature no longer folds in a resource the stage no longer reads");
+	t.is(rootSig, emptyRootSig, "recordRequests returns the empty-root digest");
+
+	// The emptied manager is persisted so the stored (stale) request set is overwritten, not left
+	// behind for the next build to restore and keep folding into the signature.
+	const [, , , rootCache] = cache.toCacheObjects();
+	t.truthy(rootCache, "The cleared gitignore bucket is persisted to overwrite the stored request set");
+
+	const restored = BuildStageCache.fromCache({
+		projectName: "test.project",
+		stageId: "testTask",
+		stepBased: false,
+		projectRequests: {requestSetGraph: {nodes: [], nextId: 1}, rootIndices: [], deltaIndices: []},
+		dependencyRequests: {requestSetGraph: {nodes: [], nextId: 1}, rootIndices: [], deltaIndices: []},
+		rootRequests: rootCache,
+	});
+	t.false(restored.hasRootRequests(), "Restoring the persisted empty manager carries no root requests");
+	t.is(restored.getRootSignature(), emptyRootSig,
+		"The restored manager reproduces the empty-root digest, so the stale read is gone for good");
+});
+
 test("fromCache: a task without root metadata restores clean root managers", (t) => {
 	const emptyRequests = {requestSetGraph: {nodes: [], nextId: 1}, rootIndices: [], deltaIndices: []};
 	const cache = BuildStageCache.fromCache({

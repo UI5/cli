@@ -56,6 +56,7 @@ class ResourceRequestManager {
 	#hasNewOrModifiedCacheEntries;
 	#useDifferentialUpdate;
 	#unusedAtLeastOnce;
+	#clearedExistingRequests = false;
 
 	/**
 	 * Creates a new ResourceRequestManager instance
@@ -588,6 +589,39 @@ class ResourceRequestManager {
 		}
 		this.#unusedAtLeastOnce = true;
 		return "X"; // Signature for when no requests were made
+	}
+
+	/**
+	 * Clears all recorded resource requests, resetting the manager to an empty state.
+	 *
+	 * Marks the manager modified and remembers that it previously held requests, so the now-empty
+	 * state is persisted (overwriting the stored request set) rather than skipped the way a
+	 * never-used manager is. Used when a stage recorded reads on an earlier build but records none
+	 * now, so its signature stops folding resources it no longer reads.
+	 *
+	 * @public
+	 */
+	clear() {
+		this.#requestGraph = new ResourceRequestGraph();
+		this.#treeRegistries = [];
+		this.#treeUpdateDeltas = new Map();
+		this.#deltaOriginalComposite = new Map();
+		this.#unusedAtLeastOnce = false;
+		this.#hasNewOrModifiedCacheEntries = true;
+		this.#clearedExistingRequests = true;
+	}
+
+	/**
+	 * Whether clear() emptied a manager that previously held requests
+	 *
+	 * Distinguishes a manager cleared this build, whose now-empty state must be persisted to
+	 * overwrite the stored request set, from a manager that was always empty and is not persisted.
+	 *
+	 * @public
+	 * @returns {boolean}
+	 */
+	wasCleared() {
+		return this.#clearedExistingRequests;
 	}
 
 	/**

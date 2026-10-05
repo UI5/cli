@@ -938,3 +938,29 @@ test("ResourceRequestManager: Serialization round-trip with multiple request set
 	t.true(manager2.hasNewOrModifiedCacheEntries(), "Restored manager has new entries");
 });
 
+
+test("ResourceRequestManager: clear() empties the manager and flags it for re-persistence", async (t) => {
+	const manager = new ResourceRequestManager("test.project", "myStage#root", false);
+	const reader = createMockReader(new Map([["/tsconfig.json", createMockResource("/tsconfig.json")]]));
+	await manager.addRequests({paths: ["/tsconfig.json"], patterns: []}, reader);
+
+	t.true(manager.hasRequests(), "Manager has requests after recording");
+	t.true(manager.getIndexSignatures().length > 0, "A recorded request yields a signature");
+	t.false(manager.wasCleared(), "A manager that recorded requests was not cleared");
+
+	manager.clear();
+
+	t.false(manager.hasRequests(), "clear() empties the manager");
+	t.deepEqual(manager.getIndexSignatures(), [], "No signatures remain after clear()");
+	t.true(manager.wasCleared(), "wasCleared() reports the manager was cleared");
+	t.true(manager.hasNewOrModifiedCacheEntries(), "A cleared manager is marked for re-persistence");
+	t.truthy(manager.toCacheObject(), "A cleared manager serializes its now-empty state to overwrite the stored one");
+});
+
+test("ResourceRequestManager: wasCleared() is false for a fresh and a restored manager", (t) => {
+	t.false(new ResourceRequestManager("test.project", "myStage#root", false).wasCleared(),
+		"A fresh manager was not cleared");
+	const restored = ResourceRequestManager.fromCache("test.project", "myStage#root", false,
+		{requestSetGraph: {nodes: [], nextId: 1}, rootIndices: [], deltaIndices: []});
+	t.false(restored.wasCleared(), "A restored manager was not cleared");
+});

@@ -89,8 +89,13 @@ export default class BuildStageCache {
 		this.#dependencyRequestManager = dependencyRequestManager ??
 			new ResourceRequestManager(projectName, stageId, stepBased);
 		this.#inputSet = inputSet ?? new TaskInputSet();
-		// Root requests use full-refresh signatures, not differential deltas: a changed root file
-		// re-runs the whole stage rather than a differential update.
+		// Root requests use full-refresh signatures, not the differential deltas project and dependency
+		// requests use: a changed root file re-runs the whole stage rather than a differential update.
+		// This fits the current use case, tracking a few root config files such as tsconfig.json. A
+		// future use case, bundling many files from outside the UI5 dirs (e.g. node_modules) into the
+		// build result, would want per-file delta re-runs like project/dependency; that needs a
+		// changed-root-path signal, list-valued root signatures in the stage delta candidates, and root
+		// reads threaded into step unit selection, and is left as a separate change.
 		this.#rootRequestManagers = rootRequestManagers ?? {
 			gitignore: new ResourceRequestManager(projectName, `${stageId}#root`, false),
 			noGitignore: new ResourceRequestManager(projectName, `${stageId}#root-no-gitignore`, false),
@@ -455,12 +460,21 @@ export default class BuildStageCache {
 		}
 		this.#inputSet = newInputSet;
 
-		// Record root requests against a root reader built with the matching useGitignore flag. Skip a
-		// bucket with no reads so its manager stays empty (and clean), keeping hasRootRequests accurate.
+		// Record root requests against a root reader built with the matching useGitignore flag. A bucket
+		// with reads records them. A bucket that recorded reads on an earlier build but has none now is
+		// cleared, so getRootSignature stops folding resources the stage no longer reads and the emptied
+		// manager is persisted (overwriting the stored request set). A bucket that was always empty is
+		// left untouched, so a stage without root reads writes no root metadata.
 		if (rootRequestRecording && getRootReader) {
-			const recordBucket = (manager, recording, useGitignore) =>
-				recording && (recording.paths.length || recording.patterns.length) ?
-					manager.addRequests(recording, getRootReader(useGitignore)) : Promise.resolve();
+			const recordBucket = (manager, recording, useGitignore) => {
+				if (recording && (recording.paths.length || recording.patterns.length)) {
+					return manager.addRequests(recording, getRootReader(useGitignore));
+				}
+				if (manager.hasRequests()) {
+					manager.clear();
+				}
+				return Promise.resolve();
+			};
 			await Promise.all([
 				recordBucket(this.#rootRequestManagers.gitignore, rootRequestRecording.gitignore, true),
 				recordBucket(this.#rootRequestManagers.noGitignore, rootRequestRecording.noGitignore, false),
@@ -483,16 +497,16 @@ export default class BuildStageCache {
 	 *    rootCacheObject, rootNoGitignoreCacheObject]
 	 */
 	toCacheObjects() {
+		const {gitignore, noGitignore} = this.#rootRequestManagers;
 		return [
 			this.#projectRequestManager.toCacheObject(),
 			this.#dependencyRequestManager.toCacheObject(),
 			this.#inputSet.isEmpty() ? undefined : this.#inputSet.toCacheObject(),
-			// Only persist a root manager that recorded requests, so a task without root reads
-			// writes no root metadata.
-			this.#rootRequestManagers.gitignore.hasRequests() ?
-				this.#rootRequestManagers.gitignore.toCacheObject() : undefined,
-			this.#rootRequestManagers.noGitignore.hasRequests() ?
-				this.#rootRequestManagers.noGitignore.toCacheObject() : undefined,
+			// Persist a root manager that recorded requests, or one cleared this build so the now-empty
+			// state overwrites the stored request set. A manager that was always empty writes no root
+			// metadata, keeping a stage without root reads free of root rows.
+			gitignore.hasRequests() || gitignore.wasCleared() ? gitignore.toCacheObject() : undefined,
+			noGitignore.hasRequests() || noGitignore.wasCleared() ? noGitignore.toCacheObject() : undefined,
 		];
 	}
 }
