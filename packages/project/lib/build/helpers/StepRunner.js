@@ -157,6 +157,15 @@ class RecordingReaderWriter extends AbstractReaderWriter {
  *     key set and <code>each</code> runs once per key</li>
  * </ul>
  *
+ * Write contract: every write a unit makes must go through its own <code>workspace</code> (the recording
+ * reader/writer passed in the unit's context). A write through any other handle (a stage workspace captured
+ * in a closure, a writer reached some other way) is not attributed to the unit, so a delta build cannot drop
+ * that output when the unit stops producing it: {@link #computeStaleOutputs} derives stale outputs from the
+ * unit's recorded <code>writes</code>, so an unrecorded write leaves a stale file behind. The step API hands
+ * a unit no writable handle other than its <code>workspace</code> (the factory receives <code>options</code>
+ * only, and <code>taskUtil.getProject().getReader()</code> is read-only), so honoring this is the default; a
+ * custom step that reaches a writer another way breaks the stale-output guarantee.
+ *
  * Steps run in array order via {@link #runSteps}. A scalar step is a one-key group; a map step is a
  * multi-key group. Each unit runs against per-step recording readers and a per-step
  * [MonitoredTaskUtil]{@link @ui5/project/build/helpers/MonitoredTaskUtil} that record what it reads,
@@ -215,12 +224,17 @@ export default class StepRunner {
 	 * @param {function(string): Promise<(object|boolean)>} [parameters.prepareStage] Switches the project to
 	 *   the named step's stage and returns its cache verdict: <code>true</code> (fully cached, do not run),
 	 *   an object (delta cacheInfo for the map step's internal key-delta), or a falsy value (run every unit).
-	 *   Absent for standalone use (no cache): every unit runs.
+	 *   Absent for standalone use (no cache): every unit runs. This verdict is read three ways in
+	 *   {@link #runSteps}: compared against <code>true</code> for the full-hit short-circuit, passed to
+	 *   <code>markStageExecuting</code> as a "was this a delta" flag, and treated as "run everything if
+	 *   falsy" by {@link #selectStepsToRun}. An explicit verdict shape would read more clearly, but it is
+	 *   deferred: the shape is shared with the stage-signature code and reshaping it belongs with that work.
 	 * @param {function(string): Promise<(object|boolean)>} [parameters.reopenStage] Reopens the named step's
 	 *   stage with a fresh live writer after a full cache hit that must be re-run (a consumed
-	 *   <code>needs</code> return changed), and returns the cache verdict to run it under (a falsy value for
-	 *   a full re-run). The full-hit restore had installed a read-only cached stage; re-running needs a
-	 *   writable one. Absent for standalone use, where a full hit never occurs.
+	 *   <code>needs</code> return changed), and returns the cache verdict to run it under (deliberately a
+	 *   falsy value for a full re-run, not a delta; see {@link #runSteps} for why pruning is not attempted
+	 *   here). The full-hit restore had installed a read-only cached stage; re-running needs a writable one.
+	 *   Absent for standalone use, where a full hit never occurs.
 	 * @param {function(string, object): Promise<void>} [parameters.recordStage] Records the named step's
 	 *   stage from the run outcome <code>{projectRequests, dependencyRequests, inputRecording,
 	 *   rootRequests, cacheInfo, invocationData, staleOutputs}</code>. Absent for standalone use.
@@ -354,8 +368,15 @@ export default class StepRunner {
 				log.verbose(
 					`step '${step.name}': a consumed needs return changed, re-running despite a full ` +
 					`stage-cache hit`);
-				// Reopen the stage (fresh writer) and demote the verdict to the re-run verdict the hook
-				// returns (a falsy value for a full re-run). Standalone use has no hook and no full hit.
+				// Reopen the stage (fresh writer) and re-run it as a full execution: the hook returns a
+				// falsy verdict, so #selectStepsToRun runs every unit rather than pruning. Reopening installs
+				// a fresh EMPTY writable stage (unlike a delta verdict, whose stage was pre-seeded with the
+				// cached outputs at import), so the units cannot be pruned without first re-seeding that
+				// stage; re-running the whole stage keeps the output complete without that machinery. No
+				// shipped multi-step task is penalized: generateThemeDesignerResources is the only task
+				// wiring needs, and a changed scan return means its themes must regenerate anyway. The cost
+				// of a full re-run here is a large map consumer gated behind a trivially-changed producer
+				// return, which no shipped task has. Standalone use has no hook and no full hit.
 				cacheInfo = this.#reopenStage ? await this.#reopenStage(step.name) : false;
 			}
 
@@ -465,6 +486,11 @@ export default class StepRunner {
 	 * actually executed: a cached unit's entry is carried over from <code>previous</code> unchanged, so
 	 * comparing it against itself could never report a dropped path anyway.
 	 *
+	 * This relies on each unit's recorded <code>writes</code> being a complete record of what it produced,
+	 * which holds only while units honor the write contract (see the class description): a write that went
+	 * through a handle other than the unit's <code>workspace</code> is absent from <code>writes</code>, so
+	 * this derivation cannot drop it and the stale output survives.
+	 *
 	 * @param {Map<string, object>|undefined} previous The stage's previous per-key invocation data
 	 * @param {Map<string, object>} invocationData The stage's complete per-key invocation data this build
 	 *   (re-run units merged over the carried-over cached ones)
@@ -514,6 +540,18 @@ export default class StepRunner {
 	 * The <code>needs</code> returns a key consumes are deliberately excluded (tracked separately in
 	 * <code>needsInputs</code> for per-key selection only): they are re-derived from producer reads/inputs
 	 * that are themselves tracked, so folding one into the stage signature would permanently miss the cache.
+	 *
+	 * Because a consumer stage's signature omits the producer return, a cached consumer's correctness rests
+	 * on two checks instead of the signature: {@link #needsReturnChanged} on the full-hit path and the
+	 * <code>needsInputs</code> comparison in {@link #selectStepsToRun} on the delta path. These are the only
+	 * two paths that reach a cached stage through the StepRunner. A whole project restored from the
+	 * project-level result cache never runs the StepRunner at all (and <code>ProjectBuildCache.#importStages</code>
+	 * installs those stages blindly by signature), yet that is safe without a needs check: the result
+	 * signature aggregates every stage's inputs, the producer stage included (project source, dependency
+	 * reads, non-resource inputs and root reads across all stages), so any change that could alter a
+	 * producer's return perturbs the result signature, misses the result cache, and defers to the StepRunner
+	 * where these two checks run. The gap the needs checks close is specific to a single consumer stage whose
+	 * own signature omits the producer; aggregation closes it at the project level.
 	 *
 	 * The recorder stores resolved paths (not patterns), and the same path is commonly read by more than one
 	 * key (a shared marker probe, a dependency a map step's keys each resolve), so the raw concatenation held
@@ -655,17 +693,29 @@ export default class StepRunner {
 	/**
 	 * The combined return signature of a step, used by a consumer's per-unit selection to detect a changed
 	 * producer return. A scalar step's signature is its single unit's return signature; a map step's is the
-	 * ordered list of its units' return signatures.
+	 * order-independent set of its units' return signatures.
+	 *
+	 * The map case hashes a <code>keyId -&gt; signature</code> map sorted by <code>keyId</code>, not a
+	 * positional array in <code>entries</code> order. <code>entries</code> order is <code>keys()</code>
+	 * order, which for the shipped tasks is <code>workspace.byGlob(...)</code> order, so a reordering that
+	 * changes nothing semantically (an adapter change, filesystem ordering, a reader-collection reshuffle)
+	 * would otherwise move the signature and re-run every consumer for nothing.
 	 *
 	 * @param {Map<string, object>} invocationData The step's per-key invocation data this build
-	 * @param {Array<{keyId: string}>} entries The step's key entries this build, in key order
+	 * @param {Array<{keyId: string}>} entries The step's key entries this build
 	 * @param {boolean} isScalar Whether the step is scalar
 	 * @returns {string} The step's return signature
 	 */
 	#computeStepReturnSignature(invocationData, entries, isScalar) {
-		const signatures = entries.map(
-			({keyId}) => this.#returnDescriptorSignature(invocationData?.get(keyId)?.returns));
-		return isScalar ? (signatures[0] ?? "none") : JSON.stringify(signatures);
+		if (isScalar) {
+			// A scalar step is a single implicit unit, so there is no key order to normalize.
+			const first = entries[0];
+			return first ? this.#returnDescriptorSignature(invocationData?.get(first.keyId)?.returns) : "none";
+		}
+		const pairs = entries
+			.map(({keyId}) => [keyId, this.#returnDescriptorSignature(invocationData?.get(keyId)?.returns)])
+			.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+		return JSON.stringify(pairs);
 	}
 
 	/**

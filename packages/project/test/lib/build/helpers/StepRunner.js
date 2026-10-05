@@ -487,6 +487,72 @@ test("Full stage-cache hit stays cached when the producer's return is unchanged"
 	t.deepEqual(ran, [], "A full-hit consumer stays cached when its producer's return is unchanged");
 });
 
+test("A map producer's return signature is invariant under key order", async (t) => {
+	// The producer returns the same per-key values on both builds but enumerates its keys in a different
+	// order (entries follow keys() order, which for the shipped tasks is workspace.byGlob(...) order). A
+	// positional signature would move with the order and re-run the consumer for nothing; the signature
+	// must be order-independent so the consumer stays cached when nothing it consumes changed.
+	const makeSteps = (keys, ran) => [
+		{name: "make", keys: async () => keys, each: async (key) => ({v: key})},
+		{name: "use", needs: ["make"], run: async () => {
+			ran.push("use");
+		}},
+	];
+
+	const build1 = makeDriver({steps: makeSteps(["a", "b"], [])});
+	await build1.runner.runSteps();
+
+	const ran = [];
+	// make takes a delta verdict with no changed paths, so all its keys stay cached (restored), but it
+	// enumerates them in reversed order this build. use is a full hit; it re-runs only if make's return
+	// signature changed.
+	const noChange = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
+	const build2 = makeDriver({
+		cacheVerdicts: {make: noChange, use: true},
+		previousData: new Map([
+			["make", invocationDataOf(build1.recorded, "make")],
+			["use", invocationDataOf(build1.recorded, "use")],
+		]),
+		steps: makeSteps(["b", "a"], ran),
+	});
+	await build2.runner.runSteps();
+
+	t.deepEqual(ran, [], "The consumer stayed cached because the producer return is order-independent");
+});
+
+test("A map producer's changed return re-runs its consumer", async (t) => {
+	// The complement of the invariance test: when a key's return changes, the producer's signature
+	// must change so the consumer re-runs rather than serving stale output.
+	const makeSteps = (value, ran) => [
+		{name: "make", keys: async () => ["a", "b"], each: async (key, {workspace}) => {
+			await workspace.byPath(`/in/${key}`); // recorded read, so a changed path re-runs this key
+			return {v: key === "a" ? value : key};
+		}},
+		{name: "use", needs: ["make"], run: async () => {
+			ran.push("use");
+		}},
+	];
+
+	const build1 = makeDriver({steps: makeSteps("a", [])});
+	await build1.runner.runSteps();
+
+	const ran = [];
+	// make re-runs key "a" because its recorded read changed, advancing the producer return. use is a full
+	// hit; it must re-run because the producer return it consumed changed.
+	const cacheInfo = {changedProjectResourcePaths: ["/in/a"], changedDependencyResourcePaths: []};
+	const build2 = makeDriver({
+		cacheVerdicts: {make: cacheInfo, use: true},
+		previousData: new Map([
+			["make", invocationDataOf(build1.recorded, "make")],
+			["use", invocationDataOf(build1.recorded, "use")],
+		]),
+		steps: makeSteps("a2", ran),
+	});
+	await build2.runner.runSteps();
+
+	t.deepEqual(ran, ["use"], "The consumer re-ran because the producer's return changed");
+});
+
 test("A map step honors sequential so a later key reads an earlier key's write", async (t) => {
 	let secondSawFirst = false;
 	const {runner} = makeDriver({
