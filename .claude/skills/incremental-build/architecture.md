@@ -584,7 +584,7 @@ project.getProjectResources().setStage(stageName, stageCache.stage,
     stageCache.projectTagOperations, stageCache.buildTagOperations);
 ```
 
-`ProjectBuildCache` keeps the stage ids `setTasks` created in execution order (`#stageOrder`) and prefetches one stage ahead: entering a stage in `prepareStageExecutionAndValidateCache` starts the database read for the following stage, so that read overlaps the current stage's execution. A prefetched entry is keyed by the exact stage signature, so a prefetch whose signature does not match is discarded and a normal read follows. The lookahead covers legacy single stages and per-step stages alike, since both are entries in the same `#stageOrder`.
+`ProjectBuildCache` keeps the stage ids `setTasks` created in execution order (`#stageOrder`), which the dependency component of a stage signature is composed over. Looking up a stage reads directly in `#findStageCache`: it checks the in-memory `StageCache` first, then reads the matching row from SQLite. There is no lookahead prefetch. A one-stage-ahead prefetch existed on this branch but was removed: every `CacheManager` read is synchronous better-sqlite3, so moving the read earlier cannot overlap the current stage's execution, and the prefetched signatures were computed before the next stage's `updateProjectIndices`, so on a delta build they did not match the signatures the lookup then asked for. Measured on `sap.m` it never helped (see `performance-investigation.md`).
 
 ## Persistent Cache Format
 

@@ -56,9 +56,7 @@ export const RESULT_CACHE_STATES = Object.freeze({
 export default class ProjectBuildCache {
 	#stageCaches = new Map();
 	#stageCache = new StageCache();
-	#prefetchedStageReads;
-	// Stage ids in execution order, as established by setTasks. Drives the one-stage lookahead in
-	// #prefetchNextStageCache.
+	// Stage ids in execution order, as established by setTasks.
 	#stageOrder = [];
 
 	#project;
@@ -708,10 +706,6 @@ export default class ProjectBuildCache {
 		// Switch project to new stage
 		this.#project.getProjectResources().useStage(stageId);
 		log.verbose(`Preparing execution for stage ${stageId} in project ${this.#project.getName()}...`);
-		// Read the next stage's cache metadata now, so its database reads happen while this stage executes
-		// rather than when that stage is prepared. The stage order comes from setTasks, so this covers a
-		// legacy task's single stage and a step-based task's per-step stages alike.
-		this.#prefetchNextStageCache(stageId);
 		if (!stageCache) {
 			log.verbose(`No stage cache found`);
 			return false;
@@ -865,72 +859,6 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Pre-fetches the stage cache metadata of the stage following the given one in the stage order
-	 * {@link #setTasks} established.
-	 *
-	 * The lookahead is one stage, so the read happens while the given stage executes. The last stage has
-	 * no successor and prefetches nothing.
-	 *
-	 * @param {string} stageId Stage id currently being prepared
-	 * @returns {void}
-	 */
-	#prefetchNextStageCache(stageId) {
-		const stageIdx = this.#stageOrder.indexOf(stageId);
-		const nextStageId = stageIdx === -1 ? undefined : this.#stageOrder[stageIdx + 1];
-		if (!nextStageId) {
-			return;
-		}
-		this.prefetchStageCache(nextStageId);
-	}
-
-	/**
-	 * Pre-fetches stage cache metadata from persistent storage for the given task.
-	 * Results are stored internally and consumed by #findStageCache when called later.
-	 *
-	 * @public
-	 * @param {string} stageId Stage id to prefetch cache for
-	 */
-	prefetchStageCache(stageId) {
-		const stageCache = this.#stageCaches.get(stageId);
-		if (!stageCache) {
-			return;
-		}
-
-		// Compute the exact-match stage signatures from the current index state, matching how stages are
-		// recorded and looked up in prepareStageExecutionAndValidateCache.
-		const stageSignatures = stageCache.getStageSignatures(this.#resolveInputValue);
-
-		if (!stageSignatures.length) {
-			return;
-		}
-
-		// Filter out signatures already in memory
-		const uncachedSignatures = stageSignatures.filter((sig) =>
-			!this.#stageCache.getCacheForSignature(stageId, sig));
-
-		if (!uncachedSignatures.length) {
-			return;
-		}
-
-		// Batch-check which signatures exist in the DB
-		const existingSignatures = this.#cacheManager.findExistingStageSignatures(
-			this.#project.getId(), this.#buildSignature, stageId, uncachedSignatures);
-
-		if (!existingSignatures.length) {
-			return;
-		}
-
-		// Only read signatures that exist
-		const prefetchMap = new Map();
-		for (const sig of existingSignatures) {
-			prefetchMap.set(sig, this.#cacheManager.readStageCache(
-				this.#project.getId(), this.#buildSignature, stageId, sig));
-		}
-		this.#prefetchedStageReads = this.#prefetchedStageReads ?? new Map();
-		this.#prefetchedStageReads.set(stageId, prefetchMap);
-	}
-
-	/**
 	 * Attempts to find a cached stage for the given task
 	 *
 	 * Checks both in-memory stage cache and persistent cache storage for a matching
@@ -952,25 +880,6 @@ export default class ProjectBuildCache {
 			const stageCache = this.#stageCache.getCacheForSignature(stageId, stageSignature);
 			if (stageCache) {
 				return stageCache;
-			}
-		}
-
-		// Check prefetched data
-		const prefetchMap = this.#prefetchedStageReads?.get(stageId);
-		if (prefetchMap) {
-			this.#prefetchedStageReads.delete(stageId);
-			for (const stageSignature of stageSignatures) {
-				const stageMetadata = prefetchMap.get(stageSignature);
-				if (stageMetadata) {
-					log.verbose(`Found prefetched cached stage for stage  ` +
-						`with signature ${stageSignature}`);
-					return this.#processStageCacheMetadata(stageId, stageSignature, stageMetadata);
-				}
-			}
-			// Filter out already-checked signatures from disk lookup
-			stageSignatures = stageSignatures.filter((sig) => !prefetchMap.has(sig));
-			if (!stageSignatures.length) {
-				return;
 			}
 		}
 
@@ -1533,7 +1442,7 @@ export default class ProjectBuildCache {
 			}
 		}
 		this.#project.getProjectResources().initStages(stageIds);
-		// Remember the order so each prepared stage can prefetch its successor's cache metadata.
+		// Remember the order so the dependency signature is composed over stages deterministically.
 		this.#stageOrder = stageIds;
 
 		// TODO: Rename function? We simply use it to have a point in time right before the project is built

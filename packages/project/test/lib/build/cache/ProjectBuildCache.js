@@ -472,28 +472,6 @@ test("prepareStageExecutionAndValidateCache: switches project to correct stage",
 	t.true(project.getProjectResources().useStage.calledWith("task/task2"), "Switched to task2 stage");
 });
 
-// Stage-cache metadata for the next stage is read while the current stage executes, so the database work
-// overlaps execution instead of stalling the next stage's preparation. The lookahead follows the stage order
-// setTasks established, which covers a legacy task's single stage and a step-based task's per-step stages.
-test("prepareStageExecutionAndValidateCache: prefetches the next stage's cache", async (t) => {
-	const project = createMockProject();
-	const cacheManager = createMockCacheManager();
-	const cache = new ProjectBuildCache(project, "sig", cacheManager);
-	await cache.initSourceIndex();
-
-	const prefetch = sinon.spy(cache, "prefetchStageCache");
-	cache.setTasks([{taskName: "task1"}, {taskName: "stepTask", stepNames: ["a", "b"]}]);
-
-	await cache.prepareStageExecutionAndValidateCache("task1");
-	await cache.prepareStageExecutionAndValidateCache("stepTask", "a");
-	await cache.prepareStageExecutionAndValidateCache("stepTask", "b");
-
-	t.deepEqual(prefetch.getCalls().map((call) => call.args), [
-		["task/stepTask::step/a"],
-		["task/stepTask::step/b"],
-	], "Every prepared stage but the last read the following stage's cache, in stage order");
-});
-
 test("recordStageResult: creates stage cache", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();

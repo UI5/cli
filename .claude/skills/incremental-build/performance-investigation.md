@@ -415,6 +415,20 @@ The fix tracks which stages re-recorded (a dirty `Set` added to by `setStepInvoc
 
 Alongside this, `#storeStepReturns` previously opened one SQLite transaction per returning unit; it now buffers compressed rows and the driver flushes one transaction per step (`StepRunner.#runGroup` calls the store's `flush` after a step's units run). No shipped builder task returns resources from `each`, so this path is latent, but the first task that does would otherwise pay a transaction per key. The return descriptors are also built from the metadata `#prepareStageResources` already computed rather than re-reading each resource's `getIntegrity()`/`getSize()`.
 
+### 16. The stage prefetch never paid off and was removed
+
+A one-stage-ahead prefetch (`#prefetchNextStageCache`, `prefetchStageCache`, `#prefetchedStageReads`) read the next stage's cache rows while the current stage was prepared, on the premise that the read would overlap the current stage's execution. Every `CacheManager` read is synchronous better-sqlite3, so there is no overlap to win: the prefetch moves the same blocking read earlier in the same thread. It also computed the next stage's signatures before that stage's `updateProjectIndices` ran, so on a delta build the prefetched signatures did not match the ones the lookup then asked for, and it read every existing signature's `resourceMetadata` while `#findStageCache` needs only the first match.
+
+**Measured (2026-10, `sap.m` with its three built dependencies, working-tree CLI via `UI5_CLI_NO_LOCAL`):** counters around the prefetch over a whole build.
+
+| Scenario | signatures read | lookups served from prefetch | hit rate | bytes deserialized | stages that read disk anyway |
+|---|---|---|---|---|---|
+| Cold (empty cache) | 0 | 0 | n/a | 0 | 0 |
+| Warm (no change) | 0 | 0 | n/a | 0 | 0 |
+| One file changed (delta) | 8 | 3 | 37.5% | ~736 KB | 5 |
+
+Cold has nothing cached to prefetch. The warm no-change build is served by the project-level result cache before any per-stage `prepareStageExecutionAndValidateCache` runs, so the prefetch never fires. The delta path is the only one that prefetches, and 5 of its 8 prefetched maps missed the lookup (the stale-signature and over-read effects above). A hyperfine A/B (prefetch on vs a `UI5_NO_PREFETCH` early return, warmup 3 / runs 10) found no win: cold 21.91 s vs 21.88 s and warm 2.43 s vs 2.52 s are within noise, and on the delta path prefetch-off was marginally faster (4.654 s vs 4.753 s, 1.02x). The mechanism was removed; `#findStageCache` keeps the in-memory `StageCache` fast path and the single-row disk read.
+
 ## Investigation Workflow
 
 1. **Establish a baseline.** Run the build 2-3 times to get stable warm-cache timings. Note the total time and per-phase breakdown.
