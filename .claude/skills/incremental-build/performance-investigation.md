@@ -396,6 +396,25 @@ The one-stage-per-step design was reviewed as the suspected structural cause of 
 
 The branch's warm and stale deltas against `main` are real but are not a stage-count effect. On a stale build they are the per-key map-step machinery (`#keyId` content hashing, item 12; the delta fold, item 13; per-unit allocation). On a warm build the project is served from cache and tasks are skipped, so the delta is startup and module loading, not the step pipeline. Precise numbers live in the benchmark results repository alongside the config that produced them, not here, since they drift with the code.
 
+### 15. The step invocation sidecar is re-serialized only for stages that re-recorded
+
+The per-stage step invocation data (`task_metadata` type `"steps"`) was re-serialized and rewritten in `writeCache` on every build that writes cache, for every step-based stage, whether or not its map changed. `getStepInvocationData` loads and memoizes a stage's map (the `getPreviousInvocationData` hook calls it for every step, including full cache hits that never re-record), and the old `#prepareStageRequestCache` loop walked the whole memoized map and emitted a row for each non-empty entry. A full-hit stage therefore paid a `JSON.stringify` plus a SQLite write of its unchanged map for nothing.
+
+**Measured (2026-10, cold-built `sap.m` + its three built dependencies, scratch cache):** the sidecar is tens of KB per step stage, not the multi-megabyte an earlier estimate assumed, because the per-key id was shortened to `path` + `lastModified` + `size` (item 12). `SELECT project_id, count(*), sum(length(data)) FROM task_metadata WHERE type='steps' GROUP BY project_id`:
+
+| Project | step rows | sidecar bytes |
+|---|---|---|
+| `sap.ui.core` | 7 | ~239 KB |
+| `sap.m` | 6 | ~226 KB |
+| `sap.ui.layout` | 6 | ~29 KB |
+| `sap.ui.unified` | 6 | ~22 KB |
+
+Largest single row ~94 KB (`replaceVersion`), ~515 KB across the four projects per build.
+
+The fix tracks which stages re-recorded (a dirty `Set` added to by `setStepInvocationData`, the only mutation path; `getStepInvocationData` loads without marking) and emits only those. On a one-file delta build (`Button.js` edited), `sap.m` re-records 3 of its 7 loaded step stages; the other 4 (and every step stage of the three dependencies, all full hits on this delta) are no longer rewritten. `writeCache` for `sap.m` was ~150 ms on this scenario; the sidecar serialization it now skips is a small fraction of that, so the direct wall-clock win is minor in CLI mode where the write is deferred off the critical path. As with the request-graph dirty-flag fix (§13), it matters more in BuildServer mode (Phase 4), where cache writes are awaited and each skipped row shortens the awaited write.
+
+Alongside this, `#storeStepReturns` previously opened one SQLite transaction per returning unit; it now buffers compressed rows and the driver flushes one transaction per step (`StepRunner.#runGroup` calls the store's `flush` after a step's units run). No shipped builder task returns resources from `each`, so this path is latent, but the first task that does would otherwise pay a transaction per key. The return descriptors are also built from the metadata `#prepareStageResources` already computed rather than re-reading each resource's `getIntegrity()`/`getSize()`.
+
 ## Investigation Workflow
 
 1. **Establish a baseline.** Run the build 2-3 times to get stable warm-cache timings. Note the total time and per-phase breakdown.

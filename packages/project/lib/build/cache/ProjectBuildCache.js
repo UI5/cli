@@ -114,6 +114,15 @@ export default class ProjectBuildCache {
 	// per-task metadata.
 	#stepInvocationData = new Map();
 
+	// Stage ids whose #stepInvocationData map changed since it was last persisted, so writeCache
+	// re-serializes only those. A map that was merely loaded and read (a full cache hit) is never
+	// marked, so it is not rewritten. setStepInvocationData is the only mutation path; it adds here.
+	#dirtyStepInvocationData = new Set();
+
+	// Compressed CAS rows for resources returned by the step runner, buffered per unit and flushed in
+	// one transaction per step via the return value store's flush() (see #flushStepReturns).
+	#pendingStepReturnCasRows = [];
+
 	/**
 	 * Creates a new ProjectBuildCache instance
 	 *
@@ -1092,19 +1101,25 @@ export default class ProjectBuildCache {
 	 */
 	setStepInvocationData(stageId, invocationData) {
 		this.#stepInvocationData.set(stageId, invocationData);
+		// Mark it for re-serialization. This is the only path that changes the map (getStepInvocationData
+		// only loads and memoizes), so a stage that was a full cache hit never lands here and its loaded
+		// map is not rewritten.
+		this.#dirtyStepInvocationData.add(stageId);
 	}
 
 	/**
 	 * Returns the CAS-backed store the {@link StepRunner} driver uses to persist and rebuild callback
-	 * return values. <code>store</code> writes the resources' content to the CAS (deduped, flushed in
-	 * the writeCache transaction) and returns path-aligned descriptors; <code>restore</code> rebuilds a
-	 * resource from such a descriptor on a delta build without re-running the step.
+	 * return values. <code>store</code> buffers the resources' content for the CAS (deduped) and returns
+	 * path-aligned descriptors; <code>flush</code> writes the content buffered since the last flush in a
+	 * single transaction, called once per step by the driver; <code>restore</code> rebuilds a resource
+	 * from such a descriptor on a delta build without re-running the step.
 	 *
-	 * @returns {{store: Function, restore: Function}} The return value store
+	 * @returns {{store: Function, flush: Function, restore: Function}} The return value store
 	 */
 	getStepReturnValueStore() {
 		return {
 			store: (resources) => this.#storeStepReturns(resources),
+			flush: () => this.#flushStepReturns(),
 			restore: (descriptor) => this.#restoreStepReturn(descriptor),
 		};
 	}
@@ -1123,11 +1138,12 @@ export default class ProjectBuildCache {
 
 	/**
 	 * Persists the content of resources a step returned and describes them for later
-	 * reconstruction. Content goes through the same compression and dedup pipeline as stage resources
-	 * and is written to the CAS immediately (its own transaction, mirroring
-	 * {@link #freezeUntransformedSources}); the descriptors are recorded in the step's invocation data.
-	 * The CAS write uses INSERT OR IGNORE, so content shared with a stage output is stored once and a
-	 * build that later fails leaves only harmless orphan content.
+	 * reconstruction. Content goes through the same compression and dedup pipeline as stage resources;
+	 * the compressed rows are buffered in {@link #pendingStepReturnCasRows} and written by
+	 * {@link #flushStepReturns}, which the driver calls once per step so a step returning many units
+	 * costs one transaction rather than one per unit. The descriptors are recorded in the step's
+	 * invocation data. The CAS write uses INSERT OR IGNORE, so content shared with a stage output is
+	 * stored once and a build that later fails before the flush leaves nothing behind.
 	 *
 	 * @param {@ui5/fs/Resource[]} resources Resources a step returned, in return order
 	 * @returns {Promise<Array<object>>} Descriptors <code>{path, integrity, size, lastModified, inode}</code>
@@ -1138,21 +1154,35 @@ export default class ProjectBuildCache {
 		// collides with a written output is stored once by integrity and rebuilt independently of that
 		// output.
 		const {resourceMetadata, casRows} = await this.#prepareStageResources(resources, "stepReturn");
-		if (casRows.length) {
-			this.#cacheManager.transaction(() => {
-				for (const {integrity, compressedBuffer} of casRows) {
-					this.#cacheManager.putCompressedContent(integrity, compressedBuffer);
-				}
-			});
+		for (const row of casRows) {
+			this.#pendingStepReturnCasRows.push(row);
 		}
 		this.#collectKnownIntegrities(resourceMetadata);
-		return Promise.all(resources.map(async (res) => ({
-			path: res.getPath(),
-			integrity: await res.getIntegrity(),
-			size: await res.getSize(),
-			lastModified: res.getLastModified(),
-			inode: res.getInode(),
-		})));
+		// Build descriptors from the metadata #prepareStageResources already computed (integrity, size,
+		// lastModified, inode per path) rather than re-reading each resource. resourceMetadata is keyed by
+		// original path; the descriptor path is the current path, which differ only for a renamed resource.
+		return resources.map((res) => {
+			const {integrity, size, lastModified, inode} = resourceMetadata[res.getOriginalPath()];
+			return {path: res.getPath(), integrity, size, lastModified, inode};
+		});
+	}
+
+	/**
+	 * Writes the step-return CAS rows buffered since the last flush in a single transaction. The driver
+	 * calls this once per step (after the step's units have stored their returns), so one step costs one
+	 * transaction regardless of how many units returned resources. A no-op when nothing was buffered.
+	 */
+	#flushStepReturns() {
+		if (!this.#pendingStepReturnCasRows.length) {
+			return;
+		}
+		const rows = this.#pendingStepReturnCasRows;
+		this.#pendingStepReturnCasRows = [];
+		this.#cacheManager.transaction(() => {
+			for (const {integrity, compressedBuffer} of rows) {
+				this.#cacheManager.putCompressedContent(integrity, compressedBuffer);
+			}
+		});
 	}
 
 	/**
@@ -1756,6 +1786,10 @@ export default class ProjectBuildCache {
 		// this, a long-lived consumer (ui5 serve) pairs the partial data with the older persisted stage
 		// state on the next rebuild, corrupting step selection and stale-output derivation.
 		this.#stepInvocationData.clear();
+		this.#dirtyStepInvocationData.clear();
+		// Return CAS rows buffered by a step that stored returns but whose build then aborted before the
+		// per-step flush: drop them, matching the cleared invocation data that would have referenced them.
+		this.#pendingStepReturnCasRows = [];
 		// Reset the result cache state. A prior validateCache may have left it at NO_CACHE or
 		// FRESH_AND_IN_USE, but the next build asserts PENDING_VALIDATION after restoring the
 		// dependency index.
@@ -2335,12 +2369,16 @@ export default class ProjectBuildCache {
 		}
 		// step-runner invocation data is a per-stage sidecar (not part of BuildStageCache), persisted as
 		// [[keyId, {reads, dependencyReads, writes, ...}], ...] pairs since JSON has no Map. Each stage owns
-		// exactly one step's per-key data.
-		for (const [stageId, invocationData] of this.#stepInvocationData) {
+		// exactly one step's per-key data. Only re-serialize a stage whose map changed this build:
+		// a stage that was a full cache hit loaded its map but never re-recorded, so rewriting it would
+		// re-persist an unchanged per-key payload for nothing.
+		for (const stageId of this.#dirtyStepInvocationData) {
+			const invocationData = this.#stepInvocationData.get(stageId);
 			if (invocationData && invocationData.size) {
 				out.push({stageId, type: "steps", metadata: [...invocationData]});
 			}
 		}
+		this.#dirtyStepInvocationData.clear();
 		return out;
 	}
 

@@ -969,6 +969,11 @@ export default class StepRunner {
 			}
 		}
 
+		// The return value store buffers each unit's returned content; flush this step's buffer in one
+		// transaction now that every unit has recorded its return. A no-op for a step that returned
+		// nothing, and for standalone use with no store.
+		this.#returnValueStore?.flush?.();
+
 		const invocationData = this.#mergeInvocationData(currentInvocationData, entries, previous, cacheInfo);
 
 		if (log.isLevelEnabled("verbose")) {

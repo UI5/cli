@@ -1369,6 +1369,110 @@ test("writeCache: skips writing unchanged caches", async (t) => {
 	t.is(secondCallCount, firstCallCount + 1, "Index written each time");
 });
 
+test("writeCache: a loaded-but-unmodified step invocation map is not re-serialized", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const stageId = "task/minify::step/minify";
+	const persisted = [["resource:/a.js\0h", {reads: ["/a.js"], writes: ["/a.js"]}]];
+	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, requestedStageId, type) =>
+		(requestedStageId === stageId && type === "steps") ? persisted : null);
+
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+	project.getReader.returns({
+		byGlob: sinon.stub().resolves([]),
+		byPath: sinon.stub().resolves(null)
+	});
+
+	// A full cache hit loads the previous map through getStepInvocationData (the TaskRunner hook) but
+	// never re-records it, so the map must not be written back.
+	const loaded = cache.getStepInvocationData(stageId);
+	t.truthy(loaded, "precondition: the previous map was loaded");
+
+	await cache.writeCache();
+
+	const stepsWrites = cacheManager.writeTaskMetadata.getCalls().filter((call) => call.args[3] === "steps");
+	t.is(stepsWrites.length, 0, "a loaded-but-unmodified step invocation map is not written back");
+});
+
+test("writeCache: a step invocation map set this build is serialized, and only when set", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const stageId = "task/minify::step/minify";
+
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+	project.getReader.returns({
+		byGlob: sinon.stub().resolves([]),
+		byPath: sinon.stub().resolves(null)
+	});
+
+	const stepsWritesSince = (resetAt) => cacheManager.writeTaskMetadata.getCalls()
+		.slice(resetAt).filter((call) => call.args[3] === "steps");
+
+	// Build 1: the step ran and recorded a per-key map, so it is written as [[keyId, entry], ...] pairs.
+	const first = new Map([["k1", {reads: ["/a.js"], writes: ["/a.js"]}]]);
+	cache.setStepInvocationData(stageId, first);
+	let callsBefore = cacheManager.writeTaskMetadata.callCount;
+	await cache.writeCache();
+	let writes = stepsWritesSince(callsBefore);
+	t.is(writes.length, 1, "the modified map is written");
+	t.is(writes[0].args[2], stageId, "written under its stage id");
+	t.deepEqual(writes[0].args[4], [["k1", {reads: ["/a.js"], writes: ["/a.js"]}]],
+		"persisted as [[keyId, entry], ...] pairs");
+
+	// Build 2: nothing was re-set (a full cache hit), so the row is not rewritten.
+	callsBefore = cacheManager.writeTaskMetadata.callCount;
+	await cache.writeCache();
+	t.is(stepsWritesSince(callsBefore).length, 0, "an unchanged map is not rewritten on a later build");
+
+	// Build 3: the step re-ran, adding k2, changing k1 and dropping the implicit removed key.
+	const updated = new Map([
+		["k1", {reads: ["/a.js", "/new.js"], writes: ["/a.js"]}],
+		["k2", {reads: ["/b.js"], writes: ["/b.js"]}]
+	]);
+	cache.setStepInvocationData(stageId, updated);
+	callsBefore = cacheManager.writeTaskMetadata.callCount;
+	await cache.writeCache();
+	writes = stepsWritesSince(callsBefore);
+	t.is(writes.length, 1, "a re-run that added, changed and removed keys rewrites the row");
+	t.deepEqual(writes[0].args[4], [...updated], "the rewritten row holds the updated per-key map");
+});
+
+test("step return storage buffers per unit and flushes one transaction per step", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+
+	const store = cache.getStepReturnValueStore();
+
+	// The driver calls store() once per returning unit. Three units each return one resource.
+	const resA = createMockResource("/out/a.js", "int-a", 10, 12, 1);
+	const resB = createMockResource("/out/b.js", "int-b", 20, 12, 2);
+	const resC = createMockResource("/out/c.js", "int-c", 30, 12, 3);
+
+	const txBefore = cacheManager.transaction.callCount;
+	const dA = await store.store([resA]);
+	const dB = await store.store([resB]);
+	const dC = await store.store([resC]);
+	t.is(cacheManager.transaction.callCount, txBefore, "storing a unit's return opens no transaction");
+
+	// Descriptors are built from the metadata #prepareStageResources already computed, identical to
+	// re-reading each resource's integrity/size/lastModified/inode.
+	t.deepEqual(dA, [{path: "/out/a.js", integrity: "int-a", size: 12, lastModified: 10, inode: 1}]);
+	t.deepEqual(dB, [{path: "/out/b.js", integrity: "int-b", size: 12, lastModified: 20, inode: 2}]);
+	t.deepEqual(dC, [{path: "/out/c.js", integrity: "int-c", size: 12, lastModified: 30, inode: 3}]);
+
+	store.flush();
+	t.is(cacheManager.transaction.callCount, txBefore + 1,
+		"flush writes every buffered unit's content in exactly one transaction");
+	t.is(cacheManager.putCompressedContent.callCount, 3, "each unit's content written once");
+
+	store.flush();
+	t.is(cacheManager.transaction.callCount, txBefore + 1, "an empty flush opens no transaction");
+});
+
 // ===== EDGE CASES =====
 
 test("Create cache with empty project name", async (t) => {
