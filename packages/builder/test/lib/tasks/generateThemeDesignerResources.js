@@ -15,7 +15,7 @@ test.beforeEach(async (t) => {
 	t.context.ResourceStub = sinon.stub();
 	t.context.libraryLessGeneratorStub = sinon.stub();
 
-	t.context.generateThemeDesignerResources = await esmock("../../../lib/tasks/generateThemeDesignerResources", {
+	t.context.generateThemeDesignerResources = await esmock.p("../../../lib/tasks/generateThemeDesignerResources", {
 		"../../../lib/processors/libraryLessGenerator": t.context.libraryLessGeneratorStub,
 		"@ui5/fs/ReaderCollectionPrioritized": t.context.ReaderCollectionPrioritizedStub,
 		"@ui5/fs/fsInterface": t.context.fsInterfaceStub,
@@ -24,6 +24,7 @@ test.beforeEach(async (t) => {
 });
 
 test.afterEach.always((t) => {
+	esmock.purge(t.context.generateThemeDesignerResources);
 	t.context.sinon.restore();
 });
 

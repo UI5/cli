@@ -1,7 +1,6 @@
 import posixPath from "node:path/posix";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("builder:tasks:generateThemeDesignerResources");
-import libraryLessGenerator from "../processors/libraryLessGenerator.js";
 import {updateLibraryDotTheming} from "./utils/dotTheming.js";
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
 import Resource from "@ui5/fs/Resource";
@@ -206,7 +205,10 @@ export default function build(options) {
 				await workspace.write(themeDotThemingResource);
 			}
 
-			// library.less file
+			// library.less file. Load the less generator lazily, inside the step body, so plan-time step-name
+			// discovery can import this factory module without evaluating that processor's module graph. A
+			// build whose themes step is a cache hit never reaches here.
+			const libraryLessGenerator = (await import("../processors/libraryLessGenerator.js")).default;
 			const [libraryLessResource] = await libraryLessGenerator({
 				resources: [librarySourceLess],
 				fs: fsInterface(combo),

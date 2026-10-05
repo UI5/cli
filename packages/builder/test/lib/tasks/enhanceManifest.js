@@ -25,7 +25,7 @@ test.beforeEach(async (t) => {
 
 	t.context.manifestEnhancerStub = sinon.stub();
 	t.context.fsInterfaceStub = sinon.stub().returns("fs interface");
-	t.context.enhanceManifest = await esmock("../../../lib/tasks/enhanceManifest.js", {
+	t.context.enhanceManifest = await esmock.p("../../../lib/tasks/enhanceManifest.js", {
 		"@ui5/logger": {
 			getLogger: sinon.stub().withArgs("builder:tasks:enhanceManifest").returns(t.context.log)
 		},
@@ -36,6 +36,7 @@ test.beforeEach(async (t) => {
 });
 
 test.afterEach.always((t) => {
+	esmock.purge(t.context.enhanceManifest);
 	t.context.sinon.restore();
 });
 

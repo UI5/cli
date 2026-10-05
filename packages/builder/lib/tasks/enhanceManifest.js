@@ -1,4 +1,3 @@
-import manifestEnhancer from "../processors/manifestEnhancer.js";
 import fsInterface from "@ui5/fs/fsInterface";
 
 /* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
@@ -32,6 +31,10 @@ export default function build({projectNamespace}) {
 		// workspace and are thus tracked per step.
 		keys: async ({workspace}) => workspace.byGlob(`/resources/${projectNamespace}/**/manifest.json`),
 		each: async (resource, {workspace}) => {
+			// Load the manifest enhancer lazily, inside the step body, so plan-time step-name discovery can
+			// import this factory module without evaluating that processor's module graph. A build whose
+			// manifest keys are all cache hits never reaches here.
+			const manifestEnhancer = (await import("../processors/manifestEnhancer.js")).default;
 			const [processed] = await manifestEnhancer({
 				resources: [resource],
 				fs: fsInterface(workspace),

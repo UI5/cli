@@ -394,7 +394,7 @@ Findings:
 
 The one-stage-per-step design was reviewed as the suspected structural cause of the branch building slower than `main`. Measured, it is not. Count stages from the perf log (`importStages ... with N stages`, or the unique `task/...::step/...` ids) and compare `main` to this branch for a `ui5 build` and a `ui5 build --all`: a library builds with the same stage count on both. Every shipped step-based task (`minify`, `buildThemes`, the three `replace*`, `escapeNonAsciiCharacters`, `enhanceManifest`) is single-step, and `generateThemeDesignerResources` (the only multi-step task, three steps) is not in the default library task set, so step count equals task count. A single-step task already is exactly one stage, so collapsing it to `task/{taskName}` removes no stage, leaves `StepRunner`'s per-key machinery in place, and was measured and rejected as a pure stage-id rename. Per-stage `updateProjectIndices` cost is the same on both revisions.
 
-The branch's warm and stale deltas against `main` are real but are not a stage-count effect. On a stale build they are the per-key map-step machinery (`#keyId` content hashing, item 12; the delta fold, item 13; per-unit allocation). On a warm build the project is served from cache and tasks are skipped, so the delta is startup and module loading, not the step pipeline. Precise numbers live in the benchmark results repository alongside the config that produced them, not here, since they drift with the code.
+The branch's warm and stale deltas against `main` are real but are not a stage-count effect. On a stale build they are the per-key map-step machinery (`#keyId` content hashing, item 12; the delta fold, item 13; per-unit allocation). On a warm build the project is served from cache and tasks are skipped, so the delta is startup and module loading, not the step pipeline; the plan-time module-loading part is item 18. Precise numbers live in the benchmark results repository alongside the config that produced them, not here, since they drift with the code.
 
 ### 15. The step invocation sidecar is re-serialized only for stages that re-recorded
 
@@ -454,6 +454,21 @@ Skipped after measurement (no win in any scenario):
 | Cold (empty cache, warmup 1 / runs 3) | 21.438 s ± 0.165 | 20.598 s ± 0.195 |
 
 Stale is within noise (the ranges overlap; these edits barely execute when few units run). Cold is ~0.8 s faster (~4%), consistent with the O(n squared) accumulation removal being largest where ~12k resources are written. The headline is correctness and hygiene, with a measurable cold-build improvement and no stale regression.
+
+### 18. Step-based task modules must not import their processors at plan time
+
+`TaskRunner.runTasks` imports every step-based task's module and calls its factory at plan time, before the cache decides whether any step runs, to discover step names for `setTasks`. When a task module imported its processor at module top level, planning evaluated that processor's whole graph for every step-based task, including tasks that turn out to be full cache hits and never run a step body. The heavy graphs are `buildThemes`' `less-openui5` (pulled in through `themeBuilderWorker.js` -> `themeBuilder.js`), `minify`'s `minifier`, `enhanceManifest`'s `manifestEnhancer` (`semver`), and `generateThemeDesignerResources`' less generator. On `main` these loaded lazily inside the task body, after the cache check; the step-factory refactor moved them to module top level because the factory module is imported eagerly for discovery.
+
+The fix keeps the factory cheap and defers each processor to its step body (`const p = (await import("../processors/...")).default`), so a cache-hit build never loads it. `buildThemes` is the exception: its worker module `themeBuilderWorker.js` is both the main-thread fs-bridge helper source and the workerpool worker entry, so dynamically importing it from the main thread breaks the worker tests (a dangling, unterminated pool). Instead `themeBuilderWorker.js` defers `themeBuilder` (the `less-openui5` graph) inside its worker entry `execThemeBuild`; its static `workerpool` import stays, since the worker registration runs at module load. `workerpool` is light (~4 ms).
+
+**Measured (2026-10, min-of-5 fresh-process import of the eight library step-based task modules, `node --input-type=module`):**
+
+| Task module set | Before | After |
+|---|---|---|
+| All eight imported in one process | ~58 ms | ~40 ms |
+| `buildThemes` alone (fresh process) | ~64 ms | ~37 ms |
+
+The aggregate drop is bounded by dependency sharing: the light factory modules still load `@ui5/fs` and `@ui5/logger`, and `buildThemes` still loads `workerpool`. The win is the heavy processor graphs (`less-openui5`, `minifier`, `semver`, the less generator) no longer evaluating at plan time, which also keeps them out of memory on a warm build where no step runs. This is the "module loading" part of the warm-build delta noted in item 14. Measure it directly (import the task modules and time module evaluation, or `NODE_OPTIONS=--cpu-prof` on a warm `sap.m` build and read module-eval time before the first `_executeTask`) rather than through the end-to-end build, where ~18 ms sits below the stale/warm noise floor. The import boundary is covered by `packages/builder/test/lib/tasks/stepFactoryLazyImports.js`.
 
 ## Investigation Workflow
 

@@ -1,4 +1,3 @@
-import minifier from "../processors/minifier.js";
 import fsInterface from "@ui5/fs/fsInterface";
 
 /**
@@ -70,6 +69,10 @@ export default function build({pattern, omitSourceMapResources = false, useInput
 		// changed. The input source map is read through the step's workspace and thus tracked per step.
 		keys: async ({workspace}) => workspace.byGlob(pattern),
 		each: async (inputResource, {workspace, taskUtil}) => {
+			// Load the minifier (and its worker-pool module graph) lazily, inside the step body, so plan-time
+			// step-name discovery can import this factory module without evaluating that graph. A build whose
+			// minify keys are all cache hits never reaches here.
+			const minifier = (await import("../processors/minifier.js")).default;
 			const [processed] = await minifier({
 				resources: [inputResource],
 				fs: fsInterface(workspace),
