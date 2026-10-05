@@ -9,6 +9,35 @@ function createResource(resourcePath, content = resourcePath) {
 	};
 }
 
+// A filesystem-backed resource as the project source reader yields it: lastModified and a statically-known
+// size are present (so #keyId's cheap tier applies and never reads content), while getIntegrity() would read
+// and hash the content. getIntegrity throws here so a test proves the cheap tier did NOT fall through to it.
+function createFsResource(resourcePath, {content = resourcePath, lastModified = 1000, size} = {}) {
+	return {
+		getPath: () => resourcePath,
+		getLastModified: () => lastModified,
+		hasSize: () => true,
+		getSize: async () => size ?? content.length,
+		getIntegrity: async () => {
+			throw new Error(`getIntegrity() must not be called for ${resourcePath} on the cheap key tier`);
+		},
+		getString: async () => content,
+	};
+}
+
+// A memory-backed or generated resource: no lastModified, so #keyId falls back to the integrity tier. The
+// Memory adapter and resources produced by a task carry no filesystem stat, matching this shape.
+function createMemoryResource(resourcePath, content = resourcePath) {
+	return {
+		getPath: () => resourcePath,
+		getLastModified: () => undefined,
+		hasSize: () => true,
+		getSize: async () => content.length,
+		getIntegrity: async () => `sha256-${content}`,
+		getString: async () => content,
+	};
+}
+
 function createWorkspace(initial = []) {
 	const store = new Map(initial.map((res) => [res.getPath(), res]));
 	return {
@@ -534,6 +563,142 @@ test("A removed key's output stays when a cached key still writes it", async (t)
 
 	t.deepEqual(build2.recorded.get("m").staleOutputs, ["/out/b"],
 		"Only the removed key's exclusive output is stale");
+});
+
+// --- Key identity (#keyId) ---
+
+test("Key identity is stable across builds for an unchanged resource and uses the cheap tier", async (t) => {
+	// The same filesystem-backed resource (same lastModified + size) on two builds. getIntegrity throws, so
+	// the build only completes if #keyId used the lastModified + size tier and never read the content.
+	const stepsFor = () => [
+		{name: "m", keys: async ({workspace}) => workspace.byGlob(), each: async () => {}},
+	];
+
+	const build1 = makeDriver({
+		workspace: createWorkspace([createFsResource("/in/a", {lastModified: 1000, size: 3})]),
+		steps: stepsFor(),
+	});
+	await build1.runner.runSteps();
+	const keyId1 = [...invocationDataOf(build1.recorded, "m").keys()];
+
+	const build2 = makeDriver({
+		workspace: createWorkspace([createFsResource("/in/a", {lastModified: 1000, size: 3})]),
+		steps: stepsFor(),
+	});
+	await build2.runner.runSteps();
+	const keyId2 = [...invocationDataOf(build2.recorded, "m").keys()];
+
+	t.deepEqual(keyId2, keyId1, "An unchanged resource keeps the same key identity across builds");
+});
+
+test("Key identity changes when a resource's content changes", async (t) => {
+	// A content edit moves lastModified (and here size), so the cheap tier yields a new key identity.
+	const stepsFor = () => [
+		{name: "m", keys: async ({workspace}) => workspace.byGlob(), each: async () => {}},
+	];
+
+	const build1 = makeDriver({
+		workspace: createWorkspace([createFsResource("/in/a", {content: "old", lastModified: 1000, size: 3})]),
+		steps: stepsFor(),
+	});
+	await build1.runner.runSteps();
+	const [keyId1] = [...invocationDataOf(build1.recorded, "m").keys()];
+
+	const build2 = makeDriver({
+		workspace: createWorkspace([createFsResource("/in/a", {content: "newer", lastModified: 2000, size: 5})]),
+		steps: stepsFor(),
+	});
+	await build2.runner.runSteps();
+	const [keyId2] = [...invocationDataOf(build2.recorded, "m").keys()];
+
+	t.not(keyId2, keyId1, "A changed resource yields a different key identity");
+});
+
+test("A content change drops the previous output rather than serving it stale", async (t) => {
+	// The property the integrity hash guaranteed, now carried by lastModified + size: when a key resource's
+	// content changes, its key identity changes, so the old key disappears and its output is dropped as stale,
+	// while the unit re-runs under the new key producing fresh output. A stale (not re-run, not dropped) key
+	// would keep serving the old output. The output path is derived from the content so the drop is observable:
+	// the old key wrote /out/old, the re-run writes /out/new, and /out/old must be reported stale.
+	const stepsFor = (ran) => [
+		{name: "m", keys: async ({workspace}) => workspace.byGlob(), each: async (key, {workspace}) => {
+			const content = await key.getString();
+			ran?.push(content);
+			await workspace.write(createResource(`/out/${content}`));
+		}},
+	];
+
+	const build1 = makeDriver({
+		workspace: createWorkspace([createFsResource("/in/a", {content: "old", lastModified: 1000, size: 3})]),
+		steps: stepsFor(),
+	});
+	await build1.runner.runSteps();
+	const previous = invocationDataOf(build1.recorded, "m");
+
+	// A delta build whose changed-path verdict does NOT list /in/a: the re-run is driven solely by the new key
+	// identity, exactly the case the integrity hash existed to cover (a mtime-moving edit the stage's own
+	// changed-path delta did not surface, e.g. because no unit recorded a read of /in/a).
+	const ran = [];
+	const build2 = makeDriver({
+		workspace: createWorkspace([createFsResource("/in/a", {content: "new", lastModified: 2000, size: 3})]),
+		cacheVerdicts: {m: {changedProjectResourcePaths: [], changedDependencyResourcePaths: []}},
+		previousData: new Map([["m", previous]]),
+		steps: stepsFor(ran),
+	});
+	await build2.runner.runSteps();
+
+	t.deepEqual(ran, ["new"], "The changed-content key re-ran");
+	t.true(build2.workspace.store.has("/out/new"), "The re-run produced fresh output");
+	t.deepEqual(build2.recorded.get("m").staleOutputs, ["/out/old"],
+		"The previous key's output is dropped as stale, not served from cache");
+});
+
+test("Key identity falls back to integrity when lastModified is missing", async (t) => {
+	// A memory-backed or generated resource has no lastModified, so #keyId uses the integrity tier. Identity
+	// is still stable for identical content and changes with content.
+	const stepsFor = () => [
+		{name: "m", keys: async ({workspace}) => workspace.byGlob(), each: async () => {}},
+	];
+
+	const build1 = makeDriver({
+		workspace: createWorkspace([createMemoryResource("/mem/a", "same")]), steps: stepsFor(),
+	});
+	await build1.runner.runSteps();
+	const [stable1] = [...invocationDataOf(build1.recorded, "m").keys()];
+
+	const build2 = makeDriver({
+		workspace: createWorkspace([createMemoryResource("/mem/a", "same")]), steps: stepsFor(),
+	});
+	await build2.runner.runSteps();
+	const [stable2] = [...invocationDataOf(build2.recorded, "m").keys()];
+
+	t.is(stable2, stable1, "A memory resource with unchanged content keeps its integrity-tier key identity");
+
+	const build3 = makeDriver({
+		workspace: createWorkspace([createMemoryResource("/mem/a", "changed")]), steps: stepsFor(),
+	});
+	await build3.runner.runSteps();
+	const [changed3] = [...invocationDataOf(build3.recorded, "m").keys()];
+
+	t.not(changed3, stable1, "A memory resource's changed content yields a different integrity-tier key");
+});
+
+test("A filesystem key and a memory key never collide on the same path", async (t) => {
+	// The tier prefixes (m/s vs i) keep a stat-tiered key distinct from an integrity-tiered key for the same
+	// path, so a resource that changes provenance between builds is treated as new rather than aliasing.
+	const stepsFor = (resource) => [
+		{name: "m", keys: async () => [resource], each: async () => {}},
+	];
+
+	const fsBuild = makeDriver({steps: stepsFor(createFsResource("/x", {lastModified: 1000, size: 3}))});
+	await fsBuild.runner.runSteps();
+	const [fsKey] = [...invocationDataOf(fsBuild.recorded, "m").keys()];
+
+	const memBuild = makeDriver({steps: stepsFor(createMemoryResource("/x", "abc"))});
+	await memBuild.runner.runSteps();
+	const [memKey] = [...invocationDataOf(memBuild.recorded, "m").keys()];
+
+	t.not(fsKey, memKey, "A stat-tiered key and an integrity-tiered key for the same path differ");
 });
 
 test("A step's needs is frozen, so one unit cannot leak into its siblings", async (t) => {

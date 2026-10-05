@@ -356,6 +356,22 @@ When diagnosing slow `writeStageResources`, check the `CAS skipped` vs `CAS writ
 
 `HashTree.upsertResources` and `TreeRegistry.flush` call `isResourceUnchanged` (`utils.js`) per resource, which checks `lastModified`/`size` (sync) first and only reads and hashes the file (`getIntegrity()`) when that fast path fails (see the tiered comparison in `architecture.md`). On an incremental build most resources are unchanged, so the common path is synchronous. Wrapping these calls in `Promise.all` either forces `getIntegrity()` for every resource (a regression) or adds promise overhead to hundreds of synchronously-resolving checks (no gain). Initial builds already parallelize through `createResourceIndex`. Before parallelizing I/O here, confirm the short-circuit does not already make the common path synchronous, and benchmark before and after.
 
+### 12. `StepRunner.#keyId` must not force the content hash per enumerated key
+
+`StepRunner.#resolveEntries` computes a key identity (`#keyId`) for every key a map step enumerates, via `Promise.all`, **before** delta selection runs. If `#keyId` derives that identity from the SSRI integrity, it reads and hashes every enumerated key's full content on every build — the same force-the-hash trap as §11, but one tier up (per enumerated key rather than per index resource). This bites hardest on a step whose keys come from a broad `workspace.byGlob` resolving straight to the project source reader (`replaceCopyright`, `replaceVersion`), where the key set is the whole source tree and the resources carry `lastModified`+`size` from statInfo but no `#integrity` (the `FileSystem` adapter never sets it), so `getIntegrity()` reads the file. A step whose keys come from a stage cache (`minify`) is already cheap because those resources carry `integrity`.
+
+`#keyId` therefore tiers the identity like `isResourceUnchanged`: `lastModified`+`size` when both are statically available (`getLastModified()` is a number and `hasSize()` is true, no content read), integrity only as the fallback (memory/generated resources with no `lastModified`, or no static size; and stage-cache resources, whose `getIntegrity()` is cached and so stays cheap). See the key-identity paragraph under "Step-Based Build Tasks" in `architecture.md` for the correctness argument and the residual mtime+size-preserving risk.
+
+**Measured (2026-10, stale-cache sap.m, one source file edited, instrumenting `#resolveEntries` per step):**
+
+| Step | keys | integrity tier (before) | lastModified+size tier (after) |
+|------|------|-------------------------|--------------------------------|
+| `replaceCopyright` | 4411 | ~210–375 ms | ~4 ms |
+| `replaceVersion` | 5292 | ~196–227 ms | ~2 ms |
+| `minify` | 737 | ~0.5 ms (already cheap, stage-cache keys carry integrity) | ~0.2 ms |
+
+`#resolveEntries` across the two broad-glob steps dropped from ~420–600 ms (first-run fs-cache-cold spike at the top of the range) to ~6 ms — the per-key `ssri.fromData` disappears from the stale-cache critical path. Total stale-cache sap.m build time: ~3.2 s → ~2.4 s. Warm cache is unaffected (the result cache is valid, so `#resolveEntries` is never reached), and cold cache is unaffected (integrity is already computed during indexing).
+
 ## Investigation Workflow
 
 1. **Establish a baseline.** Run the build 2-3 times to get stable warm-cache timings. Note the total time and per-phase breakdown.

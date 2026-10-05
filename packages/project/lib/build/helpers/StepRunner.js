@@ -173,10 +173,12 @@ class RecordingReaderWriter extends AbstractReaderWriter {
  * injected into a consumer via <code>needs</code>, and the return's signature folds into the consumer's
  * per-unit selection so a changed producer return re-runs the consumer.
  *
- * A key is identified by content and identity: a resource key by its path and integrity (the path
- * distinguishes resources that share content but produce different output, the integrity makes a content
- * change a new key that cannot yield a stale hit), a string key by its value. A compound key is the
- * caller's responsibility to express as a stable string.
+ * A key is identified by content and identity: a resource key by its path and a content discriminator (the
+ * path distinguishes resources that share content but produce different output, the discriminator makes a
+ * content change a new key that cannot yield a stale hit), a string key by its value. The discriminator is
+ * tiered like <code>isResourceUnchanged</code> (<code>lastModified</code> + <code>size</code> when
+ * statically available, SSRI integrity otherwise); see {@link #keyId}. A compound key is the caller's
+ * responsibility to express as a stable string.
  *
  * @private
  */
@@ -673,11 +675,28 @@ export default class StepRunner {
 
 	async #keyId(key) {
 		if (key && typeof key.getIntegrity === "function") {
-			// Path and integrity together: the path distinguishes resources that share content but
-			// produce different output (e.g. two libraries' identical library.source.less), while the
-			// integrity makes a content change a new key, so the unit re-runs and its previous output
-			// is dropped rather than served stale.
-			return `resource:${key.getPath()}\0${await key.getIntegrity()}`;
+			// The path distinguishes resources that share content but produce different output (e.g. two
+			// libraries' identical library.source.less); the trailing component makes a content change a
+			// new key, so the unit re-runs and its previous output is dropped rather than served stale.
+			//
+			// That trailing component is tiered like isResourceUnchanged (utils.js), cheapest first, to
+			// avoid hashing every key's content on every build (a stale-cache sap.m build spent ~420 ms
+			// here, see performance-investigation.md §12): lastModified + size when both are statically
+			// available (no content read), falling back to the SSRI integrity when either is missing (a
+			// memory- or generated resource with no lastModified, or one whose size is not statically
+			// known). A resource restored from a stage cache carries its integrity, so getIntegrity()
+			// resolves without reading content and the fallback stays cheap for that path too.
+			//
+			// Residual staleness risk, identical to isResourceUnchanged's and accepted for the same
+			// reason: a content change that preserves BOTH lastModified and size keeps the same key, so
+			// the unit is not re-run. A real edit moves mtime; the gap is for mtime-preserving replacements
+			// (cp -p, tar -x, atomic rename) that also hold size constant. The changed-path delta does not
+			// cover this case either, since it is derived through the same tiered comparison.
+			const lastModified = key.getLastModified?.();
+			if (typeof lastModified === "number" && typeof key.hasSize === "function" && key.hasSize()) {
+				return `resource:${key.getPath()}\0m${lastModified}\0s${await key.getSize()}`;
+			}
+			return `resource:${key.getPath()}\0i${await key.getIntegrity()}`;
 		}
 		if (typeof key === "string") {
 			return `string:${key}`;
