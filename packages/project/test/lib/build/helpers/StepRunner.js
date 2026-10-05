@@ -296,17 +296,21 @@ test("Delta build re-runs a consumer when its producer's return changed", async 
 	t.deepEqual(ran, ["use"], "The consumer re-ran because the producer's return changed");
 });
 
-test("Delta build keeps a consumer cached when its producer is restored unchanged", async (t) => {
+test("Delta build keeps a map consumer cached when its producer is restored unchanged", async (t) => {
+	// A scalar step always re-runs on a delta verdict (a single implicit unit cannot be pruned), so the
+	// delta-path "keep the consumer cached when its producer is unchanged" behavior is exercised through a
+	// map consumer: its one key stays cached because the producer return it consumed did not change.
 	const stepsFor = (ran) => [
 		{name: "scan", run: async ({workspace}) => {
 			const res = await workspace.byPath("/in");
 			ran.push("scan");
 			return {v: res ? await res.getString() : "none"};
 		}},
-		{name: "use", needs: ["scan"], run: async ({needs, workspace}) => {
-			ran.push("use");
-			await workspace.write(createResource("/use.out", JSON.stringify(needs.scan)));
-		}},
+		{name: "use", needs: ["scan"], keys: async () => ["k"],
+			each: async (key, {needs, workspace}) => {
+				ran.push("use");
+				await workspace.write(createResource("/use.out", JSON.stringify(needs.scan)));
+			}},
 	];
 
 	const build1 = makeDriver({
@@ -316,7 +320,7 @@ test("Delta build keeps a consumer cached when its producer is restored unchange
 
 	const ran = [];
 	// scan is fully cached (verdict true), so it restores its return unchanged; use is a delta with no
-	// changed paths, so it stays cached because the producer return did not change.
+	// changed paths, so its key stays cached because the producer return did not change.
 	const cacheInfo = {changedProjectResourcePaths: [], changedDependencyResourcePaths: []};
 	const build2 = makeDriver({
 		workspace: createWorkspace([createResource("/in", "v")]),
@@ -329,7 +333,79 @@ test("Delta build keeps a consumer cached when its producer is restored unchange
 	});
 	await build2.runner.runSteps();
 
-	t.deepEqual(ran, [], "Neither the restored producer nor its consumer re-ran");
+	t.deepEqual(ran, [], "Neither the restored producer nor its cached map consumer re-ran");
+});
+
+test("Delta build re-runs a scalar step whose glob gains a newly matching file", async (t) => {
+	// A scalar step globs for themes. On build 1 the workspace has none, so the step records no reads and
+	// returns hasThemes:false. On build 2 a file matching the glob is added. The recorder stores resolved
+	// paths, not the glob pattern, so the added file is in no previous read and the per-unit reads delta
+	// cannot select the step. A scalar step is a single implicit unit, so it must re-run on any delta
+	// verdict rather than serve its stale cached return.
+	const stepsFor = (ran) => [
+		{name: "scan", run: async ({workspace}) => {
+			ran.push("scan");
+			const matches = await workspace.byGlob("/themes/**/library.source.less");
+			return {hasThemes: matches.length > 0};
+		}},
+	];
+
+	const build1 = makeDriver({workspace: createWorkspace([]), steps: stepsFor([])});
+	await build1.runner.runSteps();
+	t.deepEqual(
+		[...invocationDataOf(build1.recorded, "scan").values()][0].reads, [],
+		"Build 1 recorded no reads because the glob matched nothing");
+
+	const ran = [];
+	// The stage signature changed (the stage monitor recorded the glob), so prepareStage returns a delta
+	// verdict. The added path intersects none of scan's recorded (empty) reads.
+	const cacheInfo = {
+		changedProjectResourcePaths: ["/themes/my_theme/library.source.less"],
+		changedDependencyResourcePaths: [],
+	};
+	const build2 = makeDriver({
+		workspace: createWorkspace([createResource("/themes/my_theme/library.source.less")]),
+		cacheVerdicts: {scan: cacheInfo},
+		previousData: new Map([["scan", invocationDataOf(build1.recorded, "scan")]]),
+		steps: stepsFor(ran),
+	});
+	await build2.runner.runSteps();
+
+	t.deepEqual(ran, ["scan"], "The scalar step re-ran on the delta despite no recorded read changing");
+});
+
+test("Delta build re-runs a scalar step whose glob loses its last matching file", async (t) => {
+	// The removal direction: build 1 globs one matching file (recorded as a read), build 2 removes it. The
+	// removed path intersects the recorded read, so the reads delta alone would already re-run the step;
+	// this locks that a scalar step still re-runs when its only matching file is deleted.
+	const stepsFor = (ran) => [
+		{name: "scan", run: async ({workspace}) => {
+			ran.push("scan");
+			const matches = await workspace.byGlob("/themes/**/library.source.less");
+			return {hasThemes: matches.length > 0};
+		}},
+	];
+
+	const build1 = makeDriver({
+		workspace: createWorkspace([createResource("/themes/my_theme/library.source.less")]),
+		steps: stepsFor([]),
+	});
+	await build1.runner.runSteps();
+
+	const ran = [];
+	const cacheInfo = {
+		changedProjectResourcePaths: ["/themes/my_theme/library.source.less"],
+		changedDependencyResourcePaths: [],
+	};
+	const build2 = makeDriver({
+		workspace: createWorkspace([]),
+		cacheVerdicts: {scan: cacheInfo},
+		previousData: new Map([["scan", invocationDataOf(build1.recorded, "scan")]]),
+		steps: stepsFor(ran),
+	});
+	await build2.runner.runSteps();
+
+	t.deepEqual(ran, ["scan"], "The scalar step re-ran when its last matching file was removed");
 });
 
 test("Full stage-cache hit re-runs a consumer when its producer's return changed", async (t) => {

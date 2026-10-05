@@ -1066,3 +1066,134 @@ test.serial("Build application.a (custom task reads a root config file, tracked 
 		assertions: {projects: {}},
 	});
 });
+
+// generateThemeDesignerResources opens with a scalar "scan" step whose body globs
+// `library.source.less` to decide whether the library has any themes, and writes that verdict into the
+// library `.theming` as the bIgnore flag (bIgnore true == no themes, so the SAP Theme Designer skips the
+// library). A scalar step is a single implicit unit, so the per-unit reads delta cannot prune or select
+// it, and that delta cannot see a file that newly matches the glob: the recorder stores resolved paths,
+// not patterns, so a file absent on the previous build appears in no recorded read. Re-running the scalar
+// step on any delta verdict (the owning stage signature does change, because the stage-level monitor
+// recorded the glob) is what flips the verdict. The task is gated on isFrameworkProject(), so the
+// `library.framework` fixture carries an `@openui5/` package id; it declares no framework version and no
+// framework libraries, so graph enrichment resolves no framework and the build stays hermetic. The task
+// is off by default (composeTaskList), so each build opts in through includedTasks.
+//
+// On a cleanDest rebuild a generateThemeDesignerResources served from cache would restore the previous
+// build's `.theming`, so a flipped bIgnore flag is proof the scalar step re-ran this build.
+const generateThemeDesignerResourcesTask = "generateThemeDesignerResources";
+
+// Per-task build status of one project from the recorded project-build-status events, so a test can
+// assert a single task re-ran (task-start) rather than being served from cache (task-skip).
+function taskStatusOf(t, projectName) {
+	const started = new Set();
+	const skipped = new Set();
+	for (const [event] of t.context.projectBuildStatusEventStub.args) {
+		if (event.projectName !== projectName) {
+			continue;
+		}
+		if (event.status === "task-start") {
+			started.add(event.taskName);
+		} else if (event.status === "task-skip") {
+			skipped.add(event.taskName);
+		}
+	}
+	return {started, skipped};
+}
+
+async function readTheming(destPath) {
+	return JSON.parse(await fs.readFile(
+		`${destPath}/resources/library/framework/.theming`, {encoding: "utf8"}));
+}
+
+const SELF_CONTAINED_LESS = `@mycolor: blue;\n.sapUiBody {\n\tbackground-color: @mycolor;\n}\n`;
+
+test.serial(
+	"generateThemeDesignerResources: adding the first theme re-runs the scalar scan on a delta build",
+	async (t) => {
+		const fixtureTester = new FixtureTester(t, "library.framework");
+		const destPath = fixtureTester.destPath;
+		const includedTasks = [generateThemeDesignerResourcesTask];
+		const themeSourcePath =
+			`${fixtureTester.fixturePath}/main/src/library/framework/themes/my_theme/library.source.less`;
+
+		// #1 build (fills the cache): the library has no themes, so scan reports none and the library
+		// `.theming` carries bIgnore.
+		await fixtureTester.buildProject({
+			config: {destPath, cleanDest: false, includedTasks},
+			assertions: {projects: {"library.framework": {}}},
+		});
+		t.is((await readTheming(destPath)).bIgnore, true,
+			"Initial library .theming reports the library has no themes");
+
+		// Add the first theme. Its `library.source.less` newly matches scan's glob, whose result was empty
+		// on build #1.
+		await fs.mkdir(`${fixtureTester.fixturePath}/main/src/library/framework/themes/my_theme`,
+			{recursive: true});
+		await fs.writeFile(themeSourcePath, SELF_CONTAINED_LESS);
+
+		// #2 build (with cache, with changes): a delta build where unaffected tasks stay cached, yet the
+		// scalar scan step re-runs and flips hasThemes.
+		await fixtureTester.buildProject({
+			config: {destPath, cleanDest: true, includedTasks},
+		});
+		const status = taskStatusOf(t, "library.framework");
+		t.true(status.skipped.has("minify"),
+			"Delta build: a source-unaffected task is served from cache");
+		t.true(status.started.has(generateThemeDesignerResourcesTask),
+			"generateThemeDesignerResources re-ran as a step-based task");
+		t.false(status.skipped.has(generateThemeDesignerResourcesTask),
+			"generateThemeDesignerResources was not served from cache");
+		t.is((await readTheming(destPath)).bIgnore, undefined,
+			"After adding the first theme the library .theming reports the library HAS themes");
+		// buildThemes generated the newly added theme's CSS on the same delta build.
+		await t.notThrowsAsync(
+			fs.readFile(`${destPath}/resources/library/framework/themes/my_theme/library.css`,
+				{encoding: "utf8"}),
+			"The newly added theme was built");
+	});
+
+test.serial(
+	"generateThemeDesignerResources: removing the last theme re-runs the scalar scan on a delta build",
+	async (t) => {
+		const fixtureTester = new FixtureTester(t, "library.framework");
+		const destPath = fixtureTester.destPath;
+		const includedTasks = [generateThemeDesignerResourcesTask];
+		const themeSourcePath =
+			`${fixtureTester.fixturePath}/main/src/library/framework/themes/my_theme/library.source.less`;
+
+		// Ship the fixture with one theme present before the first build fills the cache.
+		await fixtureTester._initialize();
+		await fs.mkdir(`${fixtureTester.fixturePath}/main/src/library/framework/themes/my_theme`,
+			{recursive: true});
+		await fs.writeFile(themeSourcePath, SELF_CONTAINED_LESS);
+
+		// #1 build (fills the cache): the library has a theme, so scan reports themes and the library
+		// `.theming` carries no bIgnore.
+		await fixtureTester.buildProject({
+			config: {destPath, cleanDest: false, includedTasks},
+		});
+		t.is((await readTheming(destPath)).bIgnore, undefined,
+			"Initial library .theming reports the library HAS themes");
+
+		// Remove the only theme. Its `library.source.less` yields a delta (a removed path).
+		await fs.rm(`${fixtureTester.fixturePath}/main/src/library/framework/themes`,
+			{recursive: true, force: true});
+
+		// #2 build (with cache, with changes): the scalar scan step re-runs and flips hasThemes back.
+		await fixtureTester.buildProject({
+			config: {destPath, cleanDest: true, includedTasks},
+		});
+		const status = taskStatusOf(t, "library.framework");
+		t.true(status.started.has(generateThemeDesignerResourcesTask),
+			"generateThemeDesignerResources re-ran as a step-based task");
+		t.false(status.skipped.has(generateThemeDesignerResourcesTask),
+			"generateThemeDesignerResources was not served from cache");
+		t.is((await readTheming(destPath)).bIgnore, true,
+			"After removing the last theme the library .theming reports the library has no themes");
+		// The removed theme's CSS is gone from the built output.
+		await t.throwsAsync(
+			fs.readFile(`${destPath}/resources/library/framework/themes/my_theme/library.css`,
+				{encoding: "utf8"}),
+			undefined, "The removed theme is no longer built");
+	});

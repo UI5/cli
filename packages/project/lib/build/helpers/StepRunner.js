@@ -384,7 +384,8 @@ export default class StepRunner {
 			}
 
 			const {results, invocationData, freshInvocationData} = await this.#runGroup(
-				step.name, entries, options, callback, {needs, needsSignatures, cacheInfo, previous, ctx});
+				step.name, entries, options, callback,
+				{needs, needsSignatures, cacheInfo, previous, ctx, isScalar});
 
 			this.#returns.set(step.name, isScalar ? results[0] : results);
 			this.#returnSignatures.set(step.name,
@@ -811,9 +812,16 @@ export default class StepRunner {
 		return {kind: "value", value};
 	}
 
-	#selectStepsToRun(entries, previous, needsSignatures, cacheInfo) {
-		if (!cacheInfo || !previous) {
-			// Full build, or a step with no previous data: run every unit.
+	#selectStepsToRun(entries, previous, needsSignatures, cacheInfo, isScalar) {
+		if (!cacheInfo || !previous || isScalar) {
+			// Full build, or a step with no previous data: run every unit. A scalar step always re-runs
+			// on a delta verdict too: it is a single implicit unit, so the per-unit reads delta cannot
+			// prune it, and that delta cannot catch a file newly matching a glob the step evaluated. The
+			// recorder stores resolved paths, not patterns, so a file that did not exist on the previous
+			// build appears in no recorded read; the owning stage signature does change (the stage-level
+			// monitor recorded the glob), so prepareStage returns a delta verdict here rather than a full
+			// hit. A full stage-cache hit (cacheInfo === true) never reaches this method, so an unchanged
+			// scalar step stays cached.
 			return entries;
 		}
 		const changedProject = new Set(cacheInfo.changedProjectResourcePaths ?? []);
@@ -907,15 +915,18 @@ export default class StepRunner {
 	 * @param {object|boolean} [context.cacheInfo] The stage's delta cache verdict (map step internal key-delta)
 	 * @param {Map<string, object>} [context.previous] The stage's previous per-key invocation data
 	 * @param {object} context.ctx The per-stage context ({workspace, dependencies, taskUtil})
+	 * @param {boolean} [context.isScalar] Whether this stage is a scalar step (a single implicit unit),
+	 *   which is selected to run on any delta verdict (see {@link #selectStepsToRun})
 	 * @returns {Promise<{results: Array, invocationData: Map<string, object>,
 	 *   freshInvocationData: Map<string, object>}>} Per-key results aligned to <code>entries</code> order,
 	 *   the stage's complete per-key invocation data, and the subset of it recorded by the units that
-	 *   actually ran this build
+	 *   ran this build
 	 */
-	async #runGroup(group, entries, options, callback, {needs, needsSignatures, cacheInfo, previous, ctx}) {
+	async #runGroup(group, entries, options, callback,
+		{needs, needsSignatures, cacheInfo, previous, ctx, isScalar}) {
 		const sequential = options?.sequential ?? false;
 		const concurrent = !sequential;
-		const toRun = this.#selectStepsToRun(entries, previous, needsSignatures, cacheInfo);
+		const toRun = this.#selectStepsToRun(entries, previous, needsSignatures, cacheInfo, isScalar);
 		const toRunIndices = new Set(toRun.map((entry) => entry.index));
 
 		const currentInvocationData = new Map();
