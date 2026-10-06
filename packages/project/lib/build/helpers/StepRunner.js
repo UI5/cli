@@ -509,8 +509,17 @@ export default class StepRunner {
 
 	/**
 	 * Rebuilds a fully-cached stage's per-key results without running the step: each key's return is
-	 * restored from its persisted descriptor (in key order) and its recorded tag operations are replayed,
-	 * so later steps' <code>needs</code> resolve and the cached tags reappear this build.
+	 * restored from its persisted descriptor (in key order), so later steps' <code>needs</code> resolve.
+	 *
+	 * Tags are not replayed here. On a full hit the stage was installed by
+	 * <code>ProjectBuildCache.prepareStageExecutionAndValidateCache</code> via
+	 * <code>ProjectResources.setStage</code>, carrying the stage's complete cached tag operations (the full
+	 * set captured at record time, including the <code>keys</code> enumerator's tags, which belong to no
+	 * key). Those reach the live tag collection through <code>#applyCachedResourceTags</code> when a later
+	 * stage or the result stage reads over this one. A per-key replay would re-apply a strict subset of the
+	 * same operations for nothing. The delta path (<code>#runGroup</code>) does replay, because there the
+	 * stage re-runs and is re-recorded, so a restored key's tags must land in the monitored collection to be
+	 * captured and persisted again.
 	 *
 	 * @param {Map<string, object>|undefined} previous The stage's previous per-key invocation data
 	 * @param {boolean} isScalar Whether the step is scalar
@@ -523,7 +532,6 @@ export default class StepRunner {
 		for (const {keyId, index} of entries) {
 			const prev = invocationData.get(keyId);
 			results[index] = this.#restoreReturn(prev?.returns);
-			this.#replayTagOperations(prev?.tagOperations);
 		}
 		return {results, invocationData, entries};
 	}

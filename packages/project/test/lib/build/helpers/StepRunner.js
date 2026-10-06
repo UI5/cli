@@ -571,6 +571,54 @@ test("Full stage-cache hit stays cached when the producer's return is unchanged"
 	t.deepEqual(ran, [], "A full-hit consumer stays cached when its producer's return is unchanged");
 });
 
+test("Full stage-cache hit does not replay per-key tags: setStage owns the full-hit tag operations", async (t) => {
+	// On a full hit the stage was installed via ProjectResources.setStage with its complete cached tag
+	// operations (captured at record time, including the keys enumerator's), which reach the live tag
+	// collection through #applyCachedResourceTags when a later stage reads over it. Replaying each key's
+	// subset again would be redundant work, so #restoreCachedStage must not call the applyTagOperations hook.
+	// The delta path still replays (see the next test), because there the stage re-runs and is re-recorded.
+	let replayCount = 0;
+	const previous = new Map([
+		["key-1", {returns: null, tagOperations: [
+			{op: "set", path: "/out", tag: "ui5:IsDebugVariant", value: true},
+		]}],
+	]);
+	const {runner} = makeDriver({
+		steps: [{name: "s", run: async () => undefined}],
+		cacheVerdicts: {s: true},
+		previousData: new Map([["s", previous]]),
+		applyTagOperations: () => replayCount++,
+	});
+
+	await runner.runSteps();
+
+	t.is(replayCount, 0,
+		"A full-hit restore does not replay per-key tags; setStage already installed the complete set");
+});
+
+test("Delta stage hit still replays a restored key's tags so the re-recorded stage keeps them", async (t) => {
+	// Contrast with the full-hit test: on a delta build the stage re-runs and is re-recorded, so a key
+	// served from cache must have its tags replayed into the monitored collection to be captured and
+	// persisted again. This locks that the delta-path replay in #runGroup stays.
+	let replayCount = 0;
+	const previous = new Map([
+		["string:/a", {returns: null, reads: [], dependencyReads: [], inputs: [], needsInputs: [], writes: [],
+			tagOperations: [{op: "set", path: "/a", tag: "ui5:IsDebugVariant", value: true}]}],
+	]);
+	// A map step whose single key "/a" is unchanged, so the delta leaves it cached rather than re-running it.
+	const {runner} = makeDriver({
+		workspace: createWorkspace([createResource("/a")]),
+		steps: [{name: "m", keys: async () => ["/a"], each: async () => undefined}],
+		cacheVerdicts: {m: {changedProjectResourcePaths: [], changedDependencyResourcePaths: []}},
+		previousData: new Map([["m", previous]]),
+		applyTagOperations: () => replayCount++,
+	});
+
+	await runner.runSteps();
+
+	t.is(replayCount, 1, "The restored key's tags were replayed on the delta path");
+});
+
 test("A scalar producer's full hit with no sidecar re-runs instead of handing undefined to a consumer", async (t) => {
 	// The stage result and its per-key sidecar are two independent rows (independent write conditions), so
 	// a stage_metadata hit can arrive with no matching steps row (previous === undefined). Restoring it
