@@ -355,7 +355,8 @@ export default class StepRunner {
 				// delta path catches that via needsInputs in #selectStepsToRun, but a full hit never runs
 				// #selectStepsToRun. Check it here: when a consumed return changed, reopen the stage with a
 				// live writer and re-run it rather than serving stale cached output.
-				if (!this.#needsReturnChanged(previous, needsSignatures)) {
+				if (this.#canRestoreCachedStage(step, previous, isScalar) &&
+						!this.#needsReturnChanged(previous, needsSignatures)) {
 					// Fully cached stage: the step does not run. Rebuild its return from the persisted
 					// per-key invocation data (in key order) so later steps' needs still resolve, and replay
 					// each key's tag operations so its tags reappear this build (the stage writer was already
@@ -368,8 +369,8 @@ export default class StepRunner {
 					continue;
 				}
 				log.verbose(
-					`step '${step.name}': a consumed needs return changed, re-running despite a full ` +
-					`stage-cache hit`);
+					`step '${step.name}': re-running despite a full stage-cache hit ` +
+					`(a consumed needs return changed, or the stage's invocation data cannot be restored)`);
 				// Reopen the stage (fresh writer) and re-run it as a full execution: the hook returns a
 				// falsy verdict, so #selectStepsToRun runs every unit rather than pruning. Reopening installs
 				// a fresh EMPTY writable stage (unlike a delta verdict, whose stage was pre-seeded with the
@@ -430,6 +431,43 @@ export default class StepRunner {
 			}
 		}
 		return {anyStepExecuted, writtenResourcePaths};
+	}
+
+	/**
+	 * Whether a full stage-cache hit can be faithfully reconstructed from its persisted per-key invocation
+	 * data. A full hit serves the stage from {@link #restoreCachedStage} without running it, so the per-key
+	 * sidecar must describe the stage. It can fail to, because the stage result and its sidecar are two
+	 * independent rows with independent write conditions (a missing sidecar after discardIncrementalState,
+	 * or a drop-to-zero map). When the sidecar does not describe the stage, re-run it rather than serving a
+	 * reconstruction that is wrong:
+	 *
+	 * - <code>previous === undefined</code>: no sidecar at all. A scalar producer would restore an
+	 *   <code>undefined</code> return that crashes a consumer dereferencing it through <code>needs</code>.
+	 * - A scalar step whose <code>previous.size !== 1</code>: a scalar step records exactly its one implicit
+	 *   unit, so any other count means the sidecar does not match.
+	 * - A <code>needs</code>-declaring step whose <code>previous.size === 0</code>: {@link #needsReturnChanged}
+	 *   has no recorded <code>needsInputs</code> to compare against, so it cannot observe that a consumed
+	 *   producer return changed (the zero-key map step gated behind a <code>needs</code> flag). Re-running
+	 *   re-enumerates <code>keys()</code> against the current <code>needs</code>.
+	 *
+	 * An empty map step that declares no <code>needs</code> stays restorable, so its cache is preserved.
+	 *
+	 * @param {object} step The step descriptor
+	 * @param {Map<string, object>|undefined} previous The stage's previous per-key invocation data
+	 * @param {boolean} isScalar Whether the step is scalar
+	 * @returns {boolean} <code>true</code> if the stage can be served from cache
+	 */
+	#canRestoreCachedStage(step, previous, isScalar) {
+		if (previous === undefined) {
+			return false;
+		}
+		if (isScalar) {
+			return previous.size === 1;
+		}
+		if (step.needs?.length && previous.size === 0) {
+			return false;
+		}
+		return true;
 	}
 
 	/**

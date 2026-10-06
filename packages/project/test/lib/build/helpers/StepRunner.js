@@ -571,6 +571,84 @@ test("Full stage-cache hit stays cached when the producer's return is unchanged"
 	t.deepEqual(ran, [], "A full-hit consumer stays cached when its producer's return is unchanged");
 });
 
+test("A scalar producer's full hit with no sidecar re-runs instead of handing undefined to a consumer", async (t) => {
+	// The stage result and its per-key sidecar are two independent rows (independent write conditions), so
+	// a stage_metadata hit can arrive with no matching steps row (previous === undefined). Restoring it
+	// would store an undefined return for the scalar producer, which crashes a consumer dereferencing it
+	// through needs. #canRestoreCachedStage rejects the unrestorable full hit so the producer re-runs.
+	const ran = [];
+	const steps = [
+		{name: "scan", run: async ({workspace}) => {
+			ran.push("scan");
+			return {hasThemes: (await workspace.byGlob("/themes/*")).length > 0};
+		}},
+		{name: "use", needs: ["scan"], run: async ({needs, workspace}) => {
+			ran.push("use");
+			// Dereferences the producer return exactly as generateThemeDesignerResources does; this throws
+			// if scan handed down undefined.
+			await workspace.write(createResource("/use.out", JSON.stringify(needs.scan.hasThemes)));
+		}},
+	];
+
+	const {runner, workspace} = makeDriver({
+		workspace: createWorkspace([createResource("/themes/a", "x")]),
+		// scan reports a full hit, but no previousData is seeded for it: the sidecar is absent.
+		cacheVerdicts: {scan: true, use: false},
+		steps,
+	});
+
+	await runner.runSteps();
+
+	t.deepEqual(ran, ["scan", "use"], "scan re-ran rather than restoring an undefined return");
+	t.is(await workspace.store.get("/use.out").getString(), "true",
+		"The consumer saw the freshly produced return");
+});
+
+test("A zero-key map step gated behind a needs flag re-runs when the flag flips (finding 6)", async (t) => {
+	// generateThemeDesignerResources' themes map step gates keys() behind needs.scan.hasThemes. With no
+	// themes it enumerates zero keys and persists an empty sidecar, so on the next build its stage is a
+	// full hit with an empty previous map. #needsReturnChanged cannot examine an empty map, so a flipped
+	// scan return would be missed. #canRestoreCachedStage treats an empty previous on a needs-declaring
+	// step as unrestorable, forcing a re-run that re-enumerates keys() against the new needs.
+	const makeSteps = (ran) => [
+		{name: "scan", run: async ({workspace}) => ({
+			hasThemes: (await workspace.byGlob("/themes/*")).length > 0,
+		})},
+		{name: "themes", needs: ["scan"],
+			keys: async ({needs, workspace}) => needs.scan.hasThemes ? workspace.byGlob("/themes/*") : [],
+			each: async (theme, {workspace}) => {
+				ran.push(theme.getPath());
+				await workspace.write(createResource(`${theme.getPath()}.css`, "built"));
+			}},
+	];
+
+	// Build 1: no themes. scan.hasThemes is false, themes enumerates zero keys and records an empty map.
+	const build1 = makeDriver({workspace: createWorkspace([]), steps: makeSteps([])});
+	await build1.runner.runSteps();
+	t.is(invocationDataOf(build1.recorded, "themes").size, 0, "themes recorded zero keys with no themes");
+
+	// Build 2: the first theme is added. scan re-runs (its glob gained a match) and now returns
+	// {hasThemes: true}. themes reads nothing when gated, so its stage signature did not move: a full hit.
+	const ran = [];
+	const build2 = makeDriver({
+		workspace: createWorkspace([createResource("/themes/base/library.source.less", "less")]),
+		cacheVerdicts: {
+			scan: {changedProjectResourcePaths: ["/themes/base/library.source.less"],
+				changedDependencyResourcePaths: []},
+			themes: true,
+		},
+		previousData: new Map([
+			["scan", invocationDataOf(build1.recorded, "scan")],
+			["themes", invocationDataOf(build1.recorded, "themes")],
+		]),
+		steps: makeSteps(ran),
+	});
+	await build2.runner.runSteps();
+
+	t.deepEqual(ran, ["/themes/base/library.source.less"],
+		"themes re-enumerated and built the newly added theme despite its full stage-cache hit");
+});
+
 test("A map producer's return signature is invariant under key order", async (t) => {
 	// The producer returns the same per-key values on both builds but enumerates its keys in a different
 	// order (entries follow keys() order, which for the shipped tasks is workspace.byGlob(...) order). A
@@ -998,7 +1076,10 @@ test("notifyStepExecution reports the first executing stage's delta verdict", as
 			s1: true,
 			s2: {changedProjectResourcePaths: ["/in"], changedDependencyResourcePaths: []},
 		},
-		previousData: new Map([["s2", invocationDataOf(build1.recorded, "s2")]]),
+		previousData: new Map([
+			["s1", invocationDataOf(build1.recorded, "s1")],
+			["s2", invocationDataOf(build1.recorded, "s2")],
+		]),
 		steps: [
 			{name: "s1", run: async ({workspace}) => {
 				await workspace.write(createResource("/out/1"));
@@ -1015,10 +1096,24 @@ test("notifyStepExecution reports the first executing stage's delta verdict", as
 });
 
 test("notifyStepExecution is not called when every step is served from cache", async (t) => {
+	// A real full hit carries the stage's one-entry scalar sidecar, so seed it from a prior build:
+	// a full hit with no sidecar is treated as unrestorable and re-runs (see #canRestoreCachedStage).
+	const build1 = makeDriver({
+		steps: [
+			{name: "s1", run: async () => undefined},
+			{name: "s2", run: async () => undefined},
+		],
+	});
+	await build1.runner.runSteps();
+
 	let notified = 0;
 	const {runner} = makeDriver({
 		notifyStepExecution: () => notified++,
 		cacheVerdicts: {s1: true, s2: true},
+		previousData: new Map([
+			["s1", invocationDataOf(build1.recorded, "s1")],
+			["s2", invocationDataOf(build1.recorded, "s2")],
+		]),
 		steps: [
 			{name: "s1", run: async () => undefined},
 			{name: "s2", run: async () => undefined},

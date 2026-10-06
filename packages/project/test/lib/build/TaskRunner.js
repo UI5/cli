@@ -2338,7 +2338,10 @@ function createStepReportingFixture(t, {stepBased, fullyCached = false}) {
 		getStageId: (taskName, stepName) =>
 			stepName === undefined ? `task/${taskName}` : `task/${taskName}::step/${stepName}`,
 		prepareStageExecutionAndValidateCache: sinon.stub().resolves(fullyCached),
-		getStepInvocationData: sinon.stub().returns(undefined),
+		// A fully cached scalar stage carries its one-entry sidecar ("scalar:0" is the implicit unit's key
+		// id). Without it, a full hit is treated as unrestorable and re-runs (see #canRestoreCachedStage).
+		getStepInvocationData: sinon.stub().returns(
+			fullyCached ? new Map([["scalar:0", {returns: null, tagOperations: []}]]) : undefined),
 		getStepReturnValueStore: sinon.stub().returns(undefined),
 		getResolveInputValue: sinon.stub().returns(() => undefined),
 		setStepInvocationData: sinon.stub(),
