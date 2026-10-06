@@ -403,21 +403,17 @@ test("discardIncrementalState clears the retained result signature and resets Pr
 
 test("discardIncrementalState drops the failed build's partial step invocation data", async (t) => {
 	// A step-based task records its per-key invocation data in-memory via setStepInvocationData as it
-	// runs, but that data is only persisted in writeCache on a successful build. A build that throws
-	// mid-execution leaves the partial data memoized in #stepInvocationData. discardIncrementalState
-	// restores #stageCache from the last good persisted state; it must do the same for the step data,
-	// or getStepInvocationData keeps returning the failed build's partial map (memoized, never
-	// re-fetched). On a long-lived consumer (ui5 serve) that partial data then pairs with the older
-	// persisted stage state on the next rebuild, corrupting #selectStepsToRun / #computeStaleOutputs.
+	// runs. #stepInvocationData is this build's working copy: a stage lookup stashes the matched stage's
+	// map here, and a running stage overwrites it. A build that throws mid-execution leaves the partial
+	// map behind. discardIncrementalState must drop it, or getStepInvocationData keeps returning the
+	// failed build's partial map. On a long-lived consumer (ui5 serve) that partial map then pairs with
+	// the next rebuild's stage, corrupting #selectStepsToRun / #computeStaleOutputs. The signature-matched
+	// map the next build needs is re-stashed from the restored stage_metadata row (embedded there, keyed
+	// by signature), not re-fetched by getStepInvocationData.
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 
 	const stageId = "task/minify::step/minify";
-	// The last good state persisted by a previous successful build, as the [[keyId, entry], ...] pairs
-	// getStepInvocationData reconstructs into a Map.
-	const goodPersisted = [["/good.js", {reads: [], writes: ["/good.js"]}]];
-	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, requestedStageId, type) =>
-		(requestedStageId === stageId && type === "steps") ? goodPersisted : null);
 
 	const cache = new ProjectBuildCache(project, "sig", cacheManager);
 	await cache.initSourceIndex();
@@ -430,11 +426,8 @@ test("discardIncrementalState drops the failed build's partial step invocation d
 
 	cache.discardIncrementalState();
 
-	const afterDiscard = cache.getStepInvocationData(stageId);
-	t.not(afterDiscard, partial,
+	t.is(cache.getStepInvocationData(stageId), undefined,
 		"discardIncrementalState dropped the failed build's partial step invocation data");
-	t.deepEqual(afterDiscard, new Map(goodPersisted),
-		"getStepInvocationData re-fetches the last good persisted state instead of the partial map");
 });
 
 test("discardIncrementalState is a no-op in Cache.Off mode", async (t) => {
@@ -1347,83 +1340,108 @@ test("writeCache: skips writing unchanged caches", async (t) => {
 	t.is(secondCallCount, firstCallCount + 1, "Index written each time");
 });
 
-test("writeCache: a loaded-but-unmodified step invocation map is not re-serialized", async (t) => {
+// Records a step-based stage end to end (prepare + setStepInvocationData + recordStageResult) so
+// writeCache has a queued stage to persist, mirroring the TaskRunner's step-stage hook order
+// (setStepInvocationData runs immediately before recordStageResult).
+async function recordStepStage(cache, taskName, stepName, invocationData) {
+	cache.setTasks([{taskName, stepNames: [stepName]}]);
+	await cache.prepareStageExecutionAndValidateCache(taskName, stepName);
+	const stageId = cache.getStageId(taskName, stepName);
+	if (invocationData !== undefined) {
+		cache.setStepInvocationData(stageId, invocationData);
+	}
+	await cache.recordStageResult({
+		taskName,
+		stepName,
+		stepBased: true,
+		projectResourceRequests: {paths: new Set(), patterns: new Set()},
+		dependencyResourceRequests: {paths: new Set(), patterns: new Set()},
+		cacheInfo: null,
+	});
+	return stageId;
+}
+
+test("writeCache embeds a recorded step stage's invocation map in its stage_metadata row", async (t) => {
+	// The per-key map travels inside the stage's own stage_metadata row (keyed by stage signature), so a
+	// later lookup pairs the stage output with the map recorded under exactly that signature. It is
+	// persisted as [[keyId, entry], ...] pairs since JSON has no Map.
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
-	const stageId = "task/minify::step/minify";
-	const persisted = [["resource:/a.js\0h", {reads: ["/a.js"], writes: ["/a.js"]}]];
-	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, requestedStageId, type) =>
-		(requestedStageId === stageId && type === "steps") ? persisted : null);
-
 	const cache = new ProjectBuildCache(project, "sig", cacheManager);
 	await cache.initSourceIndex();
-	project.getReader.returns({
-		byGlob: sinon.stub().resolves([]),
-		byPath: sinon.stub().resolves(null)
-	});
 
-	// A full cache hit loads the previous map through getStepInvocationData (the TaskRunner hook) but
-	// never re-records it, so the map must not be written back.
-	const loaded = cache.getStepInvocationData(stageId);
-	t.truthy(loaded, "precondition: the previous map was loaded");
+	const map = new Map([["k1", {reads: ["/a.js"], writes: ["/a.js"]}]]);
+	const stageId = await recordStepStage(cache, "minify", "minify", map);
 
 	await cache.writeCache();
 
-	const stepsWrites = cacheManager.writeTaskMetadata.getCalls().filter((call) => call.args[3] === "steps");
-	t.is(stepsWrites.length, 0, "a loaded-but-unmodified step invocation map is not written back");
+	const stageWrite = cacheManager.writeStageCache.getCalls().find((c) => c.args[2] === stageId);
+	t.truthy(stageWrite, "the recorded stage's metadata row is written");
+	t.deepEqual(stageWrite.args[4].stepInvocationData, [["k1", {reads: ["/a.js"], writes: ["/a.js"]}]],
+		"the step invocation map is embedded in the stage row as [[keyId, entry], ...] pairs");
 });
 
-test("writeCache: a step invocation map set this build is serialized, and only when set", async (t) => {
+test("writeCache embeds an emptied step invocation map as []", async (t) => {
+	// A map step whose key set dropped to zero this build re-records under a new signature; its stage row
+	// must carry [] so the next build that matches it sees no stale keys rather than the previous run's.
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
-	const stageId = "task/minify::step/minify";
-
 	const cache = new ProjectBuildCache(project, "sig", cacheManager);
 	await cache.initSourceIndex();
-	project.getReader.returns({
-		byGlob: sinon.stub().resolves([]),
-		byPath: sinon.stub().resolves(null)
+
+	const stageId = await recordStepStage(cache, "minify", "minify", new Map());
+
+	await cache.writeCache();
+
+	const stageWrite = cacheManager.writeStageCache.getCalls().find((c) => c.args[2] === stageId);
+	t.truthy(stageWrite, "the recorded stage's metadata row is written");
+	t.deepEqual(stageWrite.args[4].stepInvocationData, [],
+		"an empty per-key map is embedded as []");
+});
+
+test("writeCache omits stepInvocationData for a legacy stage", async (t) => {
+	// A legacy task records no per-key map, so its stage row carries no stepInvocationData field.
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+
+	cache.setTasks([{taskName: "legacyTask"}]);
+	await cache.prepareStageExecutionAndValidateCache("legacyTask");
+	await cache.recordStageResult({
+		taskName: "legacyTask",
+		projectResourceRequests: {paths: new Set(), patterns: new Set()},
+		dependencyResourceRequests: {paths: new Set(), patterns: new Set()},
+		cacheInfo: null,
 	});
 
-	const stepsWritesSince = (resetAt) => cacheManager.writeTaskMetadata.getCalls()
-		.slice(resetAt).filter((call) => call.args[3] === "steps");
-
-	// Build 1: the step ran and recorded a per-key map, so it is written as [[keyId, entry], ...] pairs.
-	const first = new Map([["k1", {reads: ["/a.js"], writes: ["/a.js"]}]]);
-	cache.setStepInvocationData(stageId, first);
-	let callsBefore = cacheManager.writeTaskMetadata.callCount;
 	await cache.writeCache();
-	let writes = stepsWritesSince(callsBefore);
-	t.is(writes.length, 1, "the modified map is written");
-	t.is(writes[0].args[2], stageId, "written under its stage id");
-	t.deepEqual(writes[0].args[4], [["k1", {reads: ["/a.js"], writes: ["/a.js"]}]],
-		"persisted as [[keyId, entry], ...] pairs");
 
-	// Build 2: nothing was re-set (a full cache hit), so the row is not rewritten.
-	callsBefore = cacheManager.writeTaskMetadata.callCount;
-	await cache.writeCache();
-	t.is(stepsWritesSince(callsBefore).length, 0, "an unchanged map is not rewritten on a later build");
+	const stageWrite = cacheManager.writeStageCache.getCalls().find((c) => c.args[2] === "task/legacyTask");
+	t.truthy(stageWrite, "the legacy stage's metadata row is written");
+	t.is(stageWrite.args[4].stepInvocationData, undefined,
+		"a legacy stage omits the stepInvocationData field");
+});
 
-	// Build 3: the step re-ran, adding k2, changing k1 and dropping the implicit removed key.
-	const updated = new Map([
-		["k1", {reads: ["/a.js", "/new.js"], writes: ["/a.js"]}],
-		["k2", {reads: ["/b.js"], writes: ["/b.js"]}]
-	]);
-	cache.setStepInvocationData(stageId, updated);
-	callsBefore = cacheManager.writeTaskMetadata.callCount;
-	await cache.writeCache();
-	writes = stepsWritesSince(callsBefore);
-	t.is(writes.length, 1, "a re-run that added, changed and removed keys rewrites the row");
-	t.deepEqual(writes[0].args[4], [...updated], "the rewritten row holds the updated per-key map");
+test("writeCache does not rewrite a stage that was not re-recorded", async (t) => {
+	// stage_metadata (with its embedded step map) is written only for a stage recorded this build. A later
+	// writeCache with nothing newly recorded leaves the row untouched, preserving the "write only when
+	// changed" cost that the embedded map inherits for free.
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
 
-	// Build 4: the step re-ran and enumerated zero keys (every theme removed, every manifest deleted).
-	// The now-empty map must still overwrite build 3's non-empty row, else the next build loads dead keys.
-	cache.setStepInvocationData(stageId, new Map());
-	callsBefore = cacheManager.writeTaskMetadata.callCount;
+	const map = new Map([["k1", {reads: ["/a.js"], writes: ["/a.js"]}]]);
+	const stageId = await recordStepStage(cache, "minify", "minify", map);
 	await cache.writeCache();
-	writes = stepsWritesSince(callsBefore);
-	t.is(writes.length, 1, "a drop-to-zero map still rewrites the row");
-	t.deepEqual(writes[0].args[4], [], "the rewritten row holds an empty per-key map");
+	const writesAfterFirst = cacheManager.writeStageCache.getCalls().filter((c) => c.args[2] === stageId).length;
+	t.is(writesAfterFirst, 1, "the stage row is written on the build that recorded it");
+
+	// A second writeCache without recording the stage again must not rewrite its row.
+	await cache.writeCache();
+	const writesAfterSecond = cacheManager.writeStageCache.getCalls().filter((c) => c.args[2] === stageId).length;
+	t.is(writesAfterSecond, 1, "an unchanged stage row is not rewritten on a later build");
 });
 
 test("step return storage buffers per unit and flushes one transaction per step", async (t) => {

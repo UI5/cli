@@ -51,6 +51,8 @@ export const RESULT_CACHE_STATES = Object.freeze({
  * Map of resource paths to their tags that were set or cleared during this stage's execution, for project tags
  * @property {Map<string, Map<string, *>>} buildTagOperations
  * Map of resource paths to their tags that were set or cleared during this stage's execution, for build tags
+ * @property {Map<string, object>} [stepInvocationData] A step-based stage's per-key invocation data,
+ * restored from the same cache row as the stage output so the two stay paired under one signature
  */
 
 export default class ProjectBuildCache {
@@ -107,19 +109,19 @@ export default class ProjectBuildCache {
 	#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
 	#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
 
-	// Per-task step-runner invocation data (see lib/build/helpers/StepRunner.js), keyed by task name.
-	// Each value is a Map of group name -> Map of key identity -> {reads, dependencyReads, writes,
-	// returns} recorded during the last run (a task may run several step groups). It lets a delta build
-	// map a changed input back to the step that read it, fold newly-observed reads into the task's request
-	// graph, drop outputs a step no longer produces, and rebuild a cached step's returned resource(s) from
-	// the CAS. Loaded lazily from task_metadata (type "steps") and persisted alongside the other
-	// per-task metadata.
+	// Per-stage step-runner invocation data (see lib/build/helpers/StepRunner.js), keyed by stage id.
+	// Each value is a Map of key identity -> {reads, dependencyReads, writes, inputs, needsInputs,
+	// tagOperations, returns} recorded during the stage's last run. It lets a delta build map a changed
+	// input back to the key that read it, fold newly-observed reads into the stage's request graph, drop
+	// outputs a key no longer produces, and rebuild a cached key's returned resource(s) from the CAS.
+	//
+	// The persisted copy travels inside the stage's own stage_metadata row (keyed by stage signature,
+	// see #prepareStageCache / #processStageCacheMetadata), so the per-key map can never pair with a
+	// different run's stage output. This map is the per-build working copy: a cache lookup stashes the
+	// matched stage's map here (prepareStageExecutionAndValidateCache) so getStepInvocationData returns
+	// the signature-matched "previous" data, and a stage that re-records overwrites it via
+	// setStepInvocationData.
 	#stepInvocationData = new Map();
-
-	// Stage ids whose #stepInvocationData map changed since it was last persisted, so writeCache
-	// re-serializes only those. A map that was merely loaded and read (a full cache hit) is never
-	// marked, so it is not rewritten. setStepInvocationData is the only mutation path; it adds here.
-	#dirtyStepInvocationData = new Set();
 
 	// Compressed CAS rows for resources returned by the step runner, buffered per unit and flushed in
 	// one transaction per step via the return value store's flush() (see #flushStepReturns).
@@ -712,6 +714,8 @@ export default class ProjectBuildCache {
 		log.verbose(`Preparing execution for stage ${stageId} in project ${this.#project.getName()}...`);
 		if (!stageCache) {
 			log.verbose(`No stage cache found`);
+			// No cached stage to restore from: this build has no "previous" per-key data for the stage.
+			this.#stepInvocationData.set(stageId, undefined);
 			return false;
 		}
 		if (this.#writtenResultResourcePaths.length) {
@@ -754,6 +758,11 @@ export default class ProjectBuildCache {
 		if (cachedStage) {
 			this.#project.getProjectResources().setStage(stageId, cachedStage.stage,
 				cachedStage.projectTagOperations, cachedStage.buildTagOperations);
+
+			// Stash the matched stage's per-key map as this build's "previous" data, so
+			// getStepInvocationData returns the map recorded under exactly this signature rather than the
+			// most-recently-written one (see the stepInvocationData field note).
+			this.#stepInvocationData.set(stageId, cachedStage.stepInvocationData);
 
 			// Skip propagation when the cached stage matches the previous one
 			if (cachedStage.signature !== oldStageSig) {
@@ -816,6 +825,10 @@ export default class ProjectBuildCache {
 			if (deltaStageCache) {
 				const provenance = provenanceBySignature.get(deltaStageCache.signature);
 
+				// Stash the matched (previous-signature) stage's per-key map so #selectStepsToRun and
+				// #computeStaleOutputs run against the data recorded under the restored signature.
+				this.#stepInvocationData.set(stageId, deltaStageCache.stepInvocationData);
+
 				// Skip propagation when the cached stage matches the previous one
 				if (oldStageSig !== deltaStageCache.signature) {
 					// Cached stage likely differs from the previous one (if any)
@@ -847,6 +860,9 @@ export default class ProjectBuildCache {
 				};
 			}
 		}
+		// No cached stage matched (neither an exact signature nor a delta): the stage runs in full against
+		// a fresh writer, so it has no restorable "previous" per-key map.
+		this.#stepInvocationData.set(stageId, undefined);
 		return false; // Task needs to be executed
 	}
 
@@ -917,7 +933,8 @@ export default class ProjectBuildCache {
 	 * @returns {object} Stage cache entry
 	 */
 	#processStageCacheMetadata(stageId, stageSignature, stageMetadata) {
-		const {resourceMapping, resourceMetadata, projectTagOperations, buildTagOperations} = stageMetadata;
+		const {resourceMapping, resourceMetadata, projectTagOperations, buildTagOperations,
+			stepInvocationData} = stageMetadata;
 		let writtenResourcePaths;
 		let stageReader;
 		if (resourceMapping) {
@@ -955,6 +972,8 @@ export default class ProjectBuildCache {
 			writtenResourcePaths,
 			projectTagOperations: tagOpsToMap(projectTagOperations),
 			buildTagOperations: tagOpsToMap(buildTagOperations),
+			// Persisted as [[keyId, entry], ...] pairs (JSON has no Map); undefined for a legacy stage.
+			stepInvocationData: stepInvocationData ? new Map(stepInvocationData) : undefined,
 		};
 	}
 
@@ -984,34 +1003,26 @@ export default class ProjectBuildCache {
 	 *   or <code>undefined</code> if caching is disabled
 	 */
 	/**
-	 * Returns the step-runner invocation data recorded for a step's stage on its previous run, or
-	 * <code>undefined</code> if the stage has none (first build, or a stage that ran no keys). Loaded
-	 * lazily from the persistent cache and memoized. Keyed by stage id: each step-based task's step is its
-	 * own stage, so the data is that step's per-key map alone.
+	 * Returns the step-runner invocation data for a step's stage on its previous run, or
+	 * <code>undefined</code> if the stage has none (first build, a stage that ran no keys, or a full miss
+	 * with no cached stage to restore from). The value is the per-key map of the stage that
+	 * {@link #prepareStageExecutionAndValidateCache} matched for this build (stashed there under the exact
+	 * signature it was recorded under), or the map a running stage recorded via
+	 * {@link #setStepInvocationData}. Keyed by stage id: each step-based task's step is its own stage, so
+	 * the data is that step's per-key map alone.
 	 *
 	 * @param {string} stageId Stage id
 	 * @returns {Map<string, object>|undefined} That stage's per-key data
 	 *   <code>{reads, dependencyReads, writes, inputs, needsInputs, tagOperations, returns}</code>
 	 */
 	getStepInvocationData(stageId) {
-		if (this.#stepInvocationData.has(stageId)) {
-			return this.#stepInvocationData.get(stageId);
-		}
-		let data;
-		const cached = this.#cacheManager?.readTaskMetadata(
-			this.#project.getId(), this.#buildSignature, stageId, "steps");
-		if (cached) {
-			// Persisted as [[keyId, entry], ...] pairs (JSON has no Map): one stage owns one step's
-			// per-key data.
-			data = new Map(cached);
-		}
-		this.#stepInvocationData.set(stageId, data);
-		return data;
+		return this.#stepInvocationData.get(stageId);
 	}
 
 	/**
-	 * Stores the step-runner invocation data a step's stage recorded on this build, for the delta
-	 * selection and read fold-back of the next build. Persisted by {@link #prepareStageRequestCache}.
+	 * Stores the step-runner invocation data a step's stage recorded on this build. {@link #recordStageResult}
+	 * reads it back to pair it with the stage under its new signature (persisted inside the stage's own
+	 * {@link #prepareStageCache} payload), so the per-key map and the stage output stay keyed together.
 	 *
 	 * @param {string} stageId Stage id
 	 * @param {Map<string, object>} invocationData That stage's per-key data
@@ -1019,10 +1030,6 @@ export default class ProjectBuildCache {
 	 */
 	setStepInvocationData(stageId, invocationData) {
 		this.#stepInvocationData.set(stageId, invocationData);
-		// Mark it for re-serialization. This is the only path that changes the map (getStepInvocationData
-		// only loads and memoizes), so a stage that was a full cache hit never lands here and its loaded
-		// map is not rewritten.
-		this.#dirtyStepInvocationData.add(stageId);
 	}
 
 	/**
@@ -1332,10 +1339,13 @@ export default class ProjectBuildCache {
 		log.verbose(`Caching stage ${stageId} in project ${this.#project.getName()} ` +
 			`with signature ${stageSignature}`);
 
-		// Store resulting stage in stage cache
+		// Store resulting stage in stage cache. The step runner set the stage's per-key map via
+		// setStepInvocationData immediately before this call (undefined for a legacy task), so it travels
+		// with the stage under this signature and is persisted inside the stage's own metadata row.
 		this.#stageCache.addSignature(
 			stageId, stageSignature, this.#project.getProjectResources().getStage(),
-			writtenResourcePaths, projectTagOperations, buildTagOperations);
+			writtenResourcePaths, projectTagOperations, buildTagOperations,
+			this.#stepInvocationData.get(stageId));
 
 		// Update task cache with new metadata
 		log.verbose(`Stage ${stageId} produced ${writtenResourcePaths.length} resources`);
@@ -1695,14 +1705,13 @@ export default class ProjectBuildCache {
 		// source tree from scratch. See the initSourceIndex guard.
 		this.#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
 		this.#stageCaches.clear();
-		// Step invocation data is only persisted on a successful build (#prepareStageRequestCache in
-		// writeCache); mid-build it lives only here, memoized and never re-fetched. A failed build leaves
-		// its partial per-key data behind. Clear it alongside #stageCaches so getStepInvocationData falls
-		// back to the last good persisted state, matching the task cache the re-scan restores. Without
-		// this, a long-lived consumer (ui5 serve) pairs the partial data with the older persisted stage
-		// state on the next rebuild, corrupting step selection and stale-output derivation.
+		// #stepInvocationData is this build's working copy of the per-key maps (a lookup stashes the matched
+		// stage's map here, a run overwrites it). A failed build leaves its partial map behind. Clear it so
+		// the next build re-stashes the signature-matched map from the restored stage (the persisted copy
+		// lives inside each stage_metadata row and is re-read when #findStageCache matches). Without this, a
+		// long-lived consumer (ui5 serve) would pair the partial map with the next rebuild's stage, corrupting
+		// step selection and stale-output derivation.
 		this.#stepInvocationData.clear();
-		this.#dirtyStepInvocationData.clear();
 		// Return CAS rows buffered by a step that stored returns but whose build then aborted before the
 		// per-step flush: drop them, matching the cleared invocation data that would have referenced them.
 		this.#pendingStepReturnCasRows = [];
@@ -2138,7 +2147,7 @@ export default class ProjectBuildCache {
 
 		const payloads = [];
 		for (const [stageId, stageSignature] of stageQueue) {
-			const {stage, projectTagOperations, buildTagOperations} =
+			const {stage, projectTagOperations, buildTagOperations, stepInvocationData} =
 				this.#stageCache.getCacheForSignature(stageId, stageSignature);
 			const writer = stage.getWriter();
 
@@ -2176,6 +2185,14 @@ export default class ProjectBuildCache {
 			}
 			metadata.projectTagOperations = tagOpsToObject(projectTagOperations);
 			metadata.buildTagOperations = tagOpsToObject(buildTagOperations);
+			if (stepInvocationData) {
+				// Embed the step's per-key map in the stage's own row, keyed by this stage signature, so the
+				// map and the stage output can never pair with a different run's data. Persisted as
+				// [[keyId, entry], ...] pairs since JSON has no Map; an empty map serializes as [] so a stage
+				// whose key set dropped to zero overwrites (under its new signature) rather than stranding the
+				// previous non-empty data. A legacy stage has no map and omits the field.
+				metadata.stepInvocationData = [...stepInvocationData];
+			}
 
 			payloads.push({stageId, stageSignature, metadata, casRows: casRowsForStage});
 		}
@@ -2304,22 +2321,6 @@ export default class ProjectBuildCache {
 				out.push({stageId, type: "root-no-gitignore", metadata: rootNoGitignoreRequests});
 			}
 		}
-		// step-runner invocation data is a per-stage sidecar (not part of BuildStageCache), persisted as
-		// [[keyId, {reads, dependencyReads, writes, ...}], ...] pairs since JSON has no Map. Each stage owns
-		// exactly one step's per-key data. Only re-serialize a stage whose map changed this build:
-		// a stage that was a full cache hit loaded its map but never re-recorded, so rewriting it would
-		// re-persist an unchanged per-key payload for nothing.
-		for (const stageId of this.#dirtyStepInvocationData) {
-			const invocationData = this.#stepInvocationData.get(stageId);
-			if (invocationData) {
-				// Serialize even an empty map: a map step whose key set dropped to zero this build must
-				// overwrite its previous non-empty row (writeTaskMetadata is INSERT OR REPLACE with no
-				// delete path). An empty [] reads back as an empty Map, so the next build sees no stale
-				// keys rather than the previous run's.
-				out.push({stageId, type: "steps", metadata: [...invocationData]});
-			}
-		}
-		this.#dirtyStepInvocationData.clear();
 		return out;
 	}
 
