@@ -4,6 +4,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v4.0.2...HEAD).
 
+## [5.0.0-alpha.14](https://github.com/UI5/cli/compare/fs-v5.0.0-alpha.13...fs-v5.0.0-alpha.14) (2026-10-06)
+
+
+### Dependencies
+
+* Bump ssri from 13.0.1 to 14.0.0 ([#1634](https://github.com/UI5/cli/issues/1634)) ([cf83a19](https://github.com/UI5/cli/commit/cf83a1908485b6cb67c9c236ec3d15ea0835f8c0))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/logger bumped from ^5.0.0-alpha.13 to ^5.0.0-alpha.14
+
 ## [5.0.0-alpha.13](https://github.com/UI5/cli/compare/fs-v5.0.0-alpha.12...fs-v5.0.0-alpha.13) (2026-10-01)
 
 
