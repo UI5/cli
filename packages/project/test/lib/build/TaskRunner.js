@@ -2218,7 +2218,8 @@ test("Step-based task: recordStage dedups the fold against the monitored request
 				invocationData: new Map(),
 				staleOutputs: [],
 				foldedReads: {
-					project: {paths: ["/already.js", "/new.js", "/new.js", "/resources/x/a.js"], patterns: []},
+					project: {paths: ["/already.js", "/new.js", "/new.js", "/resources/x/a.js"],
+						patterns: ["/scan/b/*"]},
 					dependencies: {paths: [], patterns: []},
 				},
 				foldedInputs: [],
@@ -2262,8 +2263,8 @@ test("Step-based task: recordStage dedups the fold against the monitored request
 	await taskRunner._tasks["stepTask"].task(projectBuildLogger);
 
 	const {projectResourceRequests} = buildCache.recordStageResult.getCall(0).args[0];
-	t.deepEqual(projectResourceRequests.patterns, [["/resources/x/**"]],
-		"The monitored pattern is preserved");
+	t.deepEqual(projectResourceRequests.patterns, [["/resources/x/**"], "/scan/b/*"],
+		"The monitored pattern is preserved and the cached key's folded pattern is merged in");
 	t.deepEqual(projectResourceRequests.paths, ["/already.js", "/new.js", "/resources/x/a.js"],
 		"The already-requested path is not repeated and the duplicate is collapsed; the new paths are added " +
 		"once each (a pattern-covered path is kept, not reasoned about)");

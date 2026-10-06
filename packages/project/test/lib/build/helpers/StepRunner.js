@@ -1225,3 +1225,38 @@ test("A cached key's read, unseen by the stage monitor, stays in the stage fold 
 		"The re-run key's read is folded in too");
 });
 
+test("A cached key's glob pattern stays in the stage fold on a delta build (finding 4)", async (t) => {
+	// The pattern counterpart of the previous test. A map-step key's each issues a glob; on a delta build
+	// where that key is cached, its each does not re-run, so the glob is not re-issued and the stage monitor
+	// never sees the pattern. The pattern must still key the stage, or a newly matching file would not move
+	// the stage signature and the stage would stay a full hit (buildThemes' per-theme themesPattern check).
+	// The fold recovers the pattern from the cached key's recorded invocation data.
+	const stepsFor = () => [
+		{name: "m",
+			keys: async () => ["a", "b"], // keys() issues no glob, so patterns come only from each
+			each: async (key, {workspace}) => {
+				await workspace.byPath(`/in/${key}`); // the delta driver re-runs the key whose input changed
+				await workspace.byGlob(`/scan/${key}/*`); // this key's own glob, dropped on cache unless folded
+				await workspace.write(createResource(`/out/${key}`));
+			}},
+	];
+
+	const build1 = makeDriver({steps: stepsFor()});
+	await build1.runner.runSteps();
+
+	// A delta that re-runs only key 'a'. Key 'b' is served from cache, so its glob /scan/b/* is not re-issued
+	// this build and reaches the stage request set only through the fold.
+	const build2 = makeDriver({
+		cacheVerdicts: {m: {changedProjectResourcePaths: ["/in/a"], changedDependencyResourcePaths: []}},
+		previousData: new Map([["m", invocationDataOf(build1.recorded, "m")]]),
+		steps: stepsFor(),
+	});
+	await build2.runner.runSteps();
+
+	const {foldedReads} = build2.recorded.get("m");
+	t.true(foldedReads.project.patterns.includes("/scan/b/*"),
+		"The cached key's glob pattern is folded in, so a newly matching file still moves the stage signature");
+	t.true(foldedReads.project.patterns.includes("/scan/a/*"),
+		"The re-run key's glob pattern is folded in too");
+});
+

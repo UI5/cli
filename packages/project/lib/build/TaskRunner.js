@@ -54,21 +54,22 @@ function mergeInputRecordings(base, extra) {
 }
 
 /**
- * Folds a stage's per-key reads (the {@link StepRunner} fold, paths only) into the stage-level monitored
- * requests, deduping against the paths the base recording already requests.
+ * Folds a stage's per-key reads (the {@link StepRunner} fold) into the stage-level monitored requests,
+ * deduping against what the base recording already requests.
  *
- * The recorder stores resolved paths, and a path is commonly read by more than one key (a shared marker
- * probe, a dependency each key resolves) and also recorded at the stage level, so a plain concatenation
- * carried duplicates that only collapse later in the request graph (which keys on a Set). Deduping here
- * keeps the recording the request graph rebuilds minimal; it does not move the stage signature, since the
- * dropped entries are paths already present.
+ * The recorder stores resolved paths and the glob patterns a unit issued, and a path or pattern is commonly
+ * read by more than one key (a shared marker probe, a dependency each key resolves, a shared glob) and also
+ * recorded at the stage level, so a plain concatenation carried duplicates that only collapse later in the
+ * request graph (which keys on a Set). Deduping here keeps the recording the request graph rebuilds minimal;
+ * it does not move the stage signature, since the dropped entries are already present. The patterns matter: a
+ * cached map-step key does not re-issue its globs, so its patterns reach the request set only through this
+ * fold, which is how a newly matching file keeps moving the stage signature.
  *
  * @param {{paths: string[], patterns: string[]}|undefined} base Stage-level monitored requests
- * @param {{paths: string[], patterns: string[]}} fold The stage's folded per-key reads (patterns always
- *   empty: the recorder stores resolved paths)
+ * @param {{paths: string[], patterns: string[]}} fold The stage's folded per-key reads and patterns
  * @returns {{paths: string[], patterns: string[]}|undefined} The base requests with the not-yet-present
- *   fold paths added, or <code>undefined</code> when there was nothing to record (preserving the "requested
- *   nothing" signal {@link #recordStageResult} distinguishes from an empty request set)
+ *   fold paths and patterns added, or <code>undefined</code> when there was nothing to record (preserving the
+ *   "requested nothing" signal {@link #recordStageResult} distinguishes from an empty request set)
  */
 function foldReadsInto(base, fold) {
 	const basePaths = base ? base.paths : [];
@@ -81,13 +82,23 @@ function foldReadsInto(base, fold) {
 		covered.add(path);
 		newPaths.push(path);
 	}
+	const basePatterns = base ? base.patterns : [];
+	const coveredPatterns = new Set(basePatterns);
+	const newPatterns = [];
+	for (const pattern of fold.patterns) {
+		if (coveredPatterns.has(pattern)) {
+			continue;
+		}
+		coveredPatterns.add(pattern);
+		newPatterns.push(pattern);
+	}
 	if (!base) {
-		if (!newPaths.length) {
+		if (!newPaths.length && !newPatterns.length) {
 			return undefined;
 		}
-		return {paths: newPaths, patterns: []};
+		return {paths: newPaths, patterns: newPatterns};
 	}
-	return {paths: [...basePaths, ...newPaths], patterns: [...base.patterns]};
+	return {paths: [...basePaths, ...newPaths], patterns: [...basePatterns, ...newPatterns]};
 }
 
 /**

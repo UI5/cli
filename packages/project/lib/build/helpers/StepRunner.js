@@ -47,6 +47,13 @@ function describeValue(value) {
 class StepRecorder {
 	projectReads = new Set();
 	dependencyReads = new Set();
+	// Glob patterns a unit issued, kept so a cached key's glob stays in the stage request set: a stored
+	// pattern is re-executed against the current reader on lookup, which is how a newly matching file moves
+	// the stage signature. Without it, a map-step key served from cache would drop its globs (its each body
+	// does not re-run), so an added match would not re-run the stage. Project and dependency patterns are
+	// kept apart like the paths, so each is re-executed against its own reader.
+	projectPatterns = new Set();
+	dependencyPatterns = new Set();
 	writes = new Set();
 }
 
@@ -67,6 +74,7 @@ class RecordingReader extends AbstractReader {
 
 	async _byGlob(virPattern, options) {
 		const resources = await this.#reader.byGlob(virPattern, options);
+		this.#recorder.dependencyPatterns.add(virPattern);
 		for (const resource of resources) {
 			this.#recorder.dependencyReads.add(resource.getPath());
 		}
@@ -112,6 +120,7 @@ class RecordingReaderWriter extends AbstractReaderWriter {
 
 	async _byGlob(virPattern, options) {
 		const resources = await this.#workspace.byGlob(virPattern, options);
+		this.#recorder.projectPatterns.add(virPattern);
 		for (const resource of resources) {
 			this.#recorder.projectReads.add(resource.getPath());
 		}
@@ -593,13 +602,15 @@ export default class StepRunner {
 	 * where these two checks run. The gap the needs checks close is specific to a single consumer stage whose
 	 * own signature omits the producer; aggregation closes it at the project level.
 	 *
-	 * The recorder stores resolved paths (not patterns), and the same path is commonly read by more than one
-	 * key (a shared marker probe, a dependency a map step's keys each resolve), so the raw concatenation held
-	 * one entry per read. The duplicates collapse downstream (the request graph keys on a Set), but carrying
-	 * them inflates the recording the TaskRunner folds onto the stage monitor and the request-key set the
-	 * request graph's exact-match lookup rebuilds, so the fold dedups per read bucket into a Set here (and
-	 * the TaskRunner's <code>foldReadsInto</code> dedups again against the monitored paths). Deduplication
-	 * does not move the resulting signature.
+	 * The recorder stores resolved paths and the glob patterns a unit issued, and the same path or pattern is
+	 * commonly read by more than one key (a shared marker probe, a dependency a map step's keys each resolve,
+	 * a shared glob), so the raw concatenation held one entry per read. The duplicates collapse downstream (the
+	 * request graph keys on a Set), but carrying them inflates the recording the TaskRunner folds onto the
+	 * stage monitor and the request-key set the request graph's exact-match lookup rebuilds, so the fold dedups
+	 * each bucket into a Set here (and the TaskRunner's <code>foldReadsInto</code> dedups again against the
+	 * monitored requests). Deduplication does not move the resulting signature. A cached key's patterns are
+	 * folded back too, so a glob a map-step key issued on a previous run keeps moving the stage signature when
+	 * a newly matching file appears, even on a build where that key did not re-run.
 	 *
 	 * @param {Map<string, object>} invocationData The stage's complete per-key invocation data
 	 * @returns {{reads: {project: {paths: string[], patterns: string[]},
@@ -609,6 +620,8 @@ export default class StepRunner {
 	#foldStageKeys(invocationData) {
 		const projectPaths = new Set();
 		const dependencyPaths = new Set();
+		const projectPatterns = new Set();
+		const dependencyPatterns = new Set();
 		const mergedInputs = new Map();
 		for (const data of invocationData.values()) {
 			for (const path of data.reads ?? []) {
@@ -617,14 +630,20 @@ export default class StepRunner {
 			for (const path of data.dependencyReads ?? []) {
 				dependencyPaths.add(path);
 			}
+			for (const pattern of data.patterns ?? []) {
+				projectPatterns.add(pattern);
+			}
+			for (const pattern of data.dependencyPatterns ?? []) {
+				dependencyPatterns.add(pattern);
+			}
 			for (const input of data.inputs ?? []) {
 				mergedInputs.set(`${input.type}\0${input.name}`, input);
 			}
 		}
 		return {
 			reads: {
-				project: {paths: [...projectPaths], patterns: []},
-				dependencies: {paths: [...dependencyPaths], patterns: []},
+				project: {paths: [...projectPaths], patterns: [...projectPatterns]},
+				dependencies: {paths: [...dependencyPaths], patterns: [...dependencyPatterns]},
 			},
 			inputs: [...mergedInputs.values()],
 		};
@@ -1046,6 +1065,8 @@ export default class StepRunner {
 			currentInvocationData.set(keyId, {
 				reads: [...recorder.projectReads],
 				dependencyReads: [...recorder.dependencyReads],
+				patterns: [...recorder.projectPatterns],
+				dependencyPatterns: [...recorder.dependencyPatterns],
 				writes: [...recorder.writes],
 				inputs: taskUtil.getInputRecording(),
 				needsInputs: recordedNeeds,
