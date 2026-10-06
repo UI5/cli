@@ -4,6 +4,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logger/compare/v4.0.2...HEAD).
 
+## [5.0.0-alpha.14](https://github.com/UI5/cli/compare/logger-v5.0.0-alpha.13...logger-v5.0.0-alpha.14) (2026-10-06)
+
+
+### Dependencies
+
+* Bump the npm group with 3 updates ([#1631](https://github.com/UI5/cli/issues/1631)) ([9e5c985](https://github.com/UI5/cli/commit/9e5c985cf2427669f4bff31fd3832876684a493c))
+
 ## [5.0.0-alpha.13](https://github.com/UI5/cli/compare/logger-v5.0.0-alpha.12...logger-v5.0.0-alpha.13) (2026-10-01)
 
 

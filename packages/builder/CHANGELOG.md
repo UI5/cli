@@ -4,6 +4,23 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v4.0.11...HEAD).
 
+## [5.0.0-alpha.14](https://github.com/UI5/cli/compare/builder-v5.0.0-alpha.13...builder-v5.0.0-alpha.14) (2026-10-06)
+
+
+### Bug Fixes
+
+* Strip UTF-8 BOM from resources to prevent corruption in XML and properties files ([#1637](https://github.com/UI5/cli/issues/1637)) ([3538552](https://github.com/UI5/cli/commit/35385526b568cc2e2a521ef4279f955ee1b39b06))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/fs bumped from ^5.0.0-alpha.13 to ^5.0.0-alpha.14
+    * @ui5/logger bumped from ^5.0.0-alpha.13 to ^5.0.0-alpha.14
+  * devDependencies
+    * @ui5/project bumped from ^5.0.0-alpha.13 to ^5.0.0-alpha.14
+
 ## [5.0.0-alpha.13](https://github.com/UI5/cli/compare/builder-v5.0.0-alpha.12...builder-v5.0.0-alpha.13) (2026-10-01)
 
 
