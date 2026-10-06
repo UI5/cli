@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import AbstractReader from "@ui5/fs/AbstractReader";
 import AbstractReaderWriter from "@ui5/fs/AbstractReaderWriter";
 import {assertDistinctWrite, flushWriteBuffer} from "@ui5/fs/internal/stepWriteBuffer";
@@ -751,8 +752,8 @@ export default class StepRunner {
 
 	/**
 	 * The combined return signature of a step, used by a consumer's per-unit selection to detect a changed
-	 * producer return. A scalar step's signature is its single unit's return signature; a map step's is the
-	 * order-independent set of its units' return signatures.
+	 * producer return. A scalar step's signature derives from its single unit's return; a map step's from the
+	 * order-independent set of its units' returns.
 	 *
 	 * The map case hashes a <code>keyId -&gt; signature</code> map sorted by <code>keyId</code>, not a
 	 * positional array in <code>entries</code> order. <code>entries</code> order is <code>keys()</code>
@@ -760,21 +761,39 @@ export default class StepRunner {
 	 * changes nothing semantically (an adapter change, filesystem ordering, a reader-collection reshuffle)
 	 * would otherwise move the signature and re-run every consumer for nothing.
 	 *
+	 * Both cases return a fixed-size SHA-256 hex digest rather than the raw serialization, so the value is
+	 * consistent with every other signature in the cache system and the per-unit <code>needsInputs</code>
+	 * each consumer records stays O(1) in size. The raw map serialization would be O(producer key count),
+	 * copied into every consumer unit, so a map producer feeding a map consumer would persist an
+	 * O(producers x consumers) sidecar.
+	 *
 	 * @param {Map<string, object>} invocationData The step's per-key invocation data this build
 	 * @param {Array<{keyId: string}>} entries The step's key entries this build
 	 * @param {boolean} isScalar Whether the step is scalar
-	 * @returns {string} The step's return signature
+	 * @returns {string} The step's return signature, a SHA-256 hex digest
 	 */
 	#computeStepReturnSignature(invocationData, entries, isScalar) {
 		if (isScalar) {
 			// A scalar step is a single implicit unit, so there is no key order to normalize.
 			const first = entries[0];
-			return first ? this.#returnDescriptorSignature(invocationData?.get(first.keyId)?.returns) : "none";
+			const raw = first ?
+				this.#returnDescriptorSignature(invocationData?.get(first.keyId)?.returns) : "none";
+			return this.#hashSignature(raw);
 		}
 		const pairs = entries
 			.map(({keyId}) => [keyId, this.#returnDescriptorSignature(invocationData?.get(keyId)?.returns)])
 			.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-		return JSON.stringify(pairs);
+		return this.#hashSignature(JSON.stringify(pairs));
+	}
+
+	/**
+	 * Hashes a step's raw return serialization into a fixed-size SHA-256 hex digest.
+	 *
+	 * @param {string} data The raw serialization to hash
+	 * @returns {string} SHA-256 hex digest
+	 */
+	#hashSignature(data) {
+		return crypto.createHash("sha256").update(data).digest("hex");
 	}
 
 	/**

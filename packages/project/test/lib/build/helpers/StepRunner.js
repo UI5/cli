@@ -715,6 +715,39 @@ test("A map producer's changed return re-runs its consumer", async (t) => {
 	t.deepEqual(ran, ["use"], "The consumer re-ran because the producer's return changed");
 });
 
+test("A producer's return signature is a fixed-size digest, not a raw serialization", async (t) => {
+	// The consumer records each producer it needs under needsInputs[].value, which is the producer's
+	// return signature. That value must be a SHA-256 hex digest regardless of producer shape (finding 5):
+	// a raw map serialization is O(producer key count) and is copied into every consumer unit, so a map
+	// producer feeding a map consumer would persist an O(producers x consumers) sidecar. A digest keeps the
+	// recorded value O(1) and consistent with every other signature in the cache system.
+	const digest = /^[0-9a-f]{64}$/;
+
+	// Map producer: enough keys that a raw serialization would be visibly long.
+	const mapBuild = makeDriver({
+		steps: [
+			{name: "make", keys: async () => ["a", "b", "c", "d"], each: async (key) => ({v: key})},
+			{name: "use", needs: ["make"], run: async () => {}},
+		],
+	});
+	await mapBuild.runner.runSteps();
+	const mapNeeds = [...invocationDataOf(mapBuild.recorded, "use").values()][0].needsInputs;
+	t.is(mapNeeds.length, 1, "The consumer recorded the one producer it needs");
+	t.is(mapNeeds[0].name, "make", "Recorded under the producer's name");
+	t.regex(mapNeeds[0].value, digest, "A map producer's return signature is a SHA-256 hex digest");
+
+	// Scalar producer: its branch is hashed too, so a large scalar value does not land verbatim either.
+	const scalarBuild = makeDriver({
+		steps: [
+			{name: "make", run: async () => ({wanted: ["x", "y", "z"]})},
+			{name: "use", needs: ["make"], run: async () => {}},
+		],
+	});
+	await scalarBuild.runner.runSteps();
+	const scalarNeeds = [...invocationDataOf(scalarBuild.recorded, "use").values()][0].needsInputs;
+	t.regex(scalarNeeds[0].value, digest, "A scalar producer's return signature is a SHA-256 hex digest");
+});
+
 test("A map step honors sequential so a later key reads an earlier key's write", async (t) => {
 	let secondSawFirst = false;
 	const {runner} = makeDriver({
