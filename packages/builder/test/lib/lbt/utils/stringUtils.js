@@ -14,6 +14,17 @@ test("removeHashbang: removes leading hashbang line", (t) => {
 	t.is(removeHashbang("var a = 1;"), "var a = 1;", "content without hashbang is unchanged");
 });
 
+test("removeHashbang: removes a hashbang that is preceded by a BOM, keeping the BOM", (t) => {
+	// A hashbang after a BOM is NOT a valid ECMAScript HashbangComment (the parser requires "#!" to
+	// be the first characters of the source), so the "#!" would be a syntax error if left in the
+	// bundle. removeHashbang must therefore drop the hashbang line even behind a BOM. The BOM itself
+	// is kept (it is valid JS whitespace) so byte offsets are not shifted beyond the hashbang.
+	t.is(removeHashbang(BOM + "#!/usr/bin/env node\nvar a = 1;"), BOM + "\nvar a = 1;",
+		"hashbang is removed, BOM is kept");
+	t.is(removeHashbang(BOM + "var a = 1;"), BOM + "var a = 1;",
+		"BOM'd content without a hashbang is unchanged");
+});
+
 test("stripBOM: removes a single leading BOM", (t) => {
 	t.is(stripBOM(BOM + "<mvc:View/>"), "<mvc:View/>", "leading BOM is removed");
 });

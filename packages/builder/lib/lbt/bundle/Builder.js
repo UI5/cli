@@ -456,6 +456,8 @@ class BundleBuilder {
 			// Note: a leading UTF-8 BOM is not stripped here. The JS code is written verbatim, where a
 			// U+FEFF is a valid whitespace character to the parser, so it does not corrupt the module.
 			// Stripping it would also shift all byte offsets and invalidate the source map handled below.
+			// (removeHashbang below still drops a hashbang that sits behind such a BOM, which otherwise
+			// would be an invalid HashbangComment and break the bundle.)
 			let moduleContent = (await resource.buffer()).toString();
 			moduleContent = removeHashbang(moduleContent);
 			if (this.options.sourceMap) {

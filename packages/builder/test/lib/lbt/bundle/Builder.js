@@ -154,6 +154,26 @@ test.serial("writePreloadModule: JS module removes a leading hashbang", async (t
 	t.is(outW.output(), `function(){\n\nvar x = 1;\n}`, "the hashbang line is removed");
 });
 
+test.serial("writePreloadModule: JS module removes a hashbang that sits behind a BOM", async (t) => {
+	const {BuilderWithStub} = t.context;
+
+	const builder = new BuilderWithStub({});
+	builder.options = {};
+	const outW = createOutWStub();
+	builder.outW = outW;
+	const jsResource = {
+		buffer: async () => Buffer.from(`${BOM}#!/usr/bin/env node\nvar x = 1;`, "utf8"),
+		getPath: () => "my/app/cli.js"
+	};
+	const result = await builder.writePreloadModule("my/app/cli.js", null, jsResource);
+
+	t.true(result, "result is true");
+	// The hashbang after a BOM is an invalid HashbangComment, so "#!" must not survive into the
+	// bundle; the BOM itself stays as (harmless) leading whitespace.
+	t.false(outW.output().includes("#!"), "the hashbang is removed even though a BOM precedes it");
+	t.is(outW.output(), `function(){\n${BOM}\nvar x = 1;\n}`, "hashbang removed, BOM kept");
+});
+
 test.serial("writePreloadModule: JS module requiring top level scope is embedded as a string literal", async (t) => {
 	const {BuilderWithStub, warnLogStub} = t.context;
 	const jsContent = `var x = 1;`;

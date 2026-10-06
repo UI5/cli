@@ -13,7 +13,11 @@ export function makeStringLiteral(str) {
 }
 
 export function removeHashbang(str) {
-	return str.replace(/^#!(.*)/, "");
+	// A hashbang is only a valid ECMAScript HashbangComment when "#!" are the first characters of the
+	// source. If the file was saved with a UTF-8 BOM, the "#!" is no longer first and would become a
+	// syntax error once embedded in a bundle. Match (and keep) an optional leading BOM so the hashbang
+	// line is removed in that case too; the BOM is valid JS whitespace and is left untouched.
+	return str.replace(/^(\uFEFF)?#!(.*)/, "$1");
 }
 
 /**
