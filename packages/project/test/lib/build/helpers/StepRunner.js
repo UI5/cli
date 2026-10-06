@@ -51,6 +51,27 @@ function createWorkspace(initial = []) {
 	};
 }
 
+// A workspace fake that additionally records the write order and the trailing write arguments, so the
+// key-order flush and the argument handling of a concurrent map step are observable.
+function createRecordingWorkspace(initial = []) {
+	const store = new Map(initial.map((res) => [res.getPath(), res]));
+	const writeOrder = [];
+	const writeArgs = [];
+	return {
+		getName: () => "workspace",
+		byGlob: async () => [...store.values()],
+		byPath: async (virPath) => store.get(virPath) ?? null,
+		write: async (resource, ...args) => {
+			writeOrder.push(resource.getPath());
+			writeArgs.push(args);
+			store.set(resource.getPath(), resource);
+		},
+		store,
+		writeOrder,
+		writeArgs,
+	};
+}
+
 // content by integrity so store() and a later restore() round-trip the exact bytes, exactly as the real
 // SQLite CAS does across two builds.
 function createReturnValueStore() {
@@ -153,6 +174,69 @@ test("runSteps runs a map step's each once per enumerated key", async (t) => {
 	t.deepEqual(ran.sort(), ["a", "b"], "each ran once per key");
 	t.is(invocationDataOf(recorded, "m").size, 2, "Map step recorded one unit per key");
 	t.true(workspace.store.has("/out/a") && workspace.store.has("/out/b"), "Both keys' writes persisted");
+});
+
+test("Concurrent map-step keys writing the same path throw the shared message", async (t) => {
+	const {runner} = makeDriver({
+		steps: [
+			{name: "m", keys: async () => ["a", "b"], each: async (key, {workspace}) => {
+				await workspace.write(createResource("/same"));
+			}},
+		],
+	});
+
+	const err = await t.throwsAsync(runner.runSteps());
+	// The exact user-visible message, shared with the uncached runner through @ui5/fs/internal/stepWriteBuffer.
+	t.is(err.message,
+		"Concurrent map-step keys must not write the same resource path /same. " +
+		"Pass {sequential: true} if a later key must build on an earlier key's writes.",
+		"The same-path guard surfaces the shared message verbatim");
+});
+
+test("A concurrent map step flushes its writes in key order", async (t) => {
+	const workspace = createRecordingWorkspace();
+	const {runner} = makeDriver({
+		workspace,
+		steps: [
+			{name: "m", keys: async () => ["a", "b", "c"], each: async (key, {workspace}) => {
+				// Reverse the natural completion order so the key-order flush is observable.
+				if (key === "a") {
+					await new Promise((resolve) => setTimeout(resolve, 15));
+				}
+				await workspace.write(createResource(`/${key}.out`));
+			}},
+		],
+	});
+
+	await runner.runSteps();
+
+	t.deepEqual(workspace.writeOrder, ["/a.out", "/b.out", "/c.out"],
+		"Buffered writes flushed in key order regardless of completion order");
+});
+
+test("A concurrent map step replays each key's write options through the flush", async (t) => {
+	const workspace = createRecordingWorkspace();
+	const {runner} = makeDriver({
+		workspace,
+		steps: [
+			{name: "m", keys: async () => ["with", "without"], each: async (key, {workspace}) => {
+				if (key === "with") {
+					await workspace.write(createResource("/with"), {drain: true, readOnly: false});
+				} else {
+					// No options: RecordingReaderWriter overrides _write, so AbstractReaderWriter.write has
+					// already defaulted options by the time it buffers; the flush replays that one object.
+					await workspace.write(createResource("/without"));
+				}
+			}},
+		],
+	});
+
+	await runner.runSteps();
+
+	t.deepEqual(workspace.writeOrder, ["/with", "/without"], "Flushed in key order");
+	t.deepEqual(workspace.writeArgs,
+		[[{drain: true, readOnly: false}], [{drain: false, readOnly: false}]],
+		"The with-options write replays its options; the without-options write replays the defaulted options");
 });
 
 test("A step must be either scalar or map", async (t) => {

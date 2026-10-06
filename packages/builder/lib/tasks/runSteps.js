@@ -1,10 +1,12 @@
 import AbstractReaderWriter from "@ui5/fs/AbstractReaderWriter";
+import {assertDistinctWrite, flushWriteBuffer} from "@ui5/fs/internal/stepWriteBuffer";
 
 /**
  * Buffers the writes of one concurrent map-step key and delegates reads to the underlying workspace, so
  * a map step's writes can be flushed in key order after all keys finish. Mirrors the cached step runner's
  * write buffering (minus the cache recording), including the same-path guard that keeps concurrent keys
- * independent.
+ * independent. The same-path guard, its error message and the key-order flush are shared with the cached
+ * runner through <code>@ui5/fs/internal/stepWriteBuffer</code> so the two cannot drift.
  */
 class BufferedWriter extends AbstractReaderWriter {
 	#workspace;
@@ -31,18 +33,15 @@ class BufferedWriter extends AbstractReaderWriter {
 		return this.#workspace.byPath(virPath, options);
 	}
 
-	// Override the public write (rather than _write) so the caller's exact arguments are preserved: the
-	// base class would default options to an object, which the key-order flush would then re-pass.
+	// Overrides the public write (rather than _write, unlike @ui5/project's RecordingReaderWriter) so the
+	// caller's exact arguments are preserved: the base class would default options to an object, which the
+	// key-order flush would then re-pass. The buffered entry stores those raw arguments as args, which
+	// flushWriteBuffer replays via write(resource, ...args).
 	async write(resource, ...args) {
 		// Real resources are keyed and deduplicated by their virtual path; a value without getPath
 		// (a test fake) is keyed by identity so it still buffers and flushes in insertion order.
 		const key = typeof resource.getPath === "function" ? resource.getPath() : resource;
-		const existing = this.#buffer.get(key);
-		if (existing && existing.index !== this.#index) {
-			throw new Error(
-				`Concurrent map-step keys must not write the same resource path ${key}. ` +
-				`Pass {sequential: true} if a later key must build on an earlier key's writes.`);
-		}
+		assertDistinctWrite(this.#buffer, key, this.#index);
 		this.#buffer.set(key, {resource, args, index: this.#index});
 	}
 }
@@ -110,9 +109,7 @@ export default async function runSteps(build, {workspace, dependencies, taskUtil
 			const buffer = new Map();
 			const results = await Promise.all(keys.map((key, index) =>
 				step.each(key, {...context, workspace: new BufferedWriter(workspace, buffer, index)})));
-			for (const {resource, args} of [...buffer.values()].sort((a, b) => a.index - b.index)) {
-				await workspace.write(resource, ...args);
-			}
+			await flushWriteBuffer(buffer, workspace);
 			returns.set(step.name, results);
 		}
 	}

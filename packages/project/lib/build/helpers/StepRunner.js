@@ -1,5 +1,6 @@
 import AbstractReader from "@ui5/fs/AbstractReader";
 import AbstractReaderWriter from "@ui5/fs/AbstractReaderWriter";
+import {assertDistinctWrite, flushWriteBuffer} from "@ui5/fs/internal/stepWriteBuffer";
 import {getLogger} from "@ui5/logger";
 import MonitoredTaskUtil from "./MonitoredTaskUtil.js";
 
@@ -122,6 +123,12 @@ class RecordingReaderWriter extends AbstractReaderWriter {
 		return this.#workspace.byPath(virPath, options);
 	}
 
+	// Overrides _write rather than the public write (unlike @ui5/builder's runSteps BufferedWriter) because
+	// this writer also records every write for the build cache, and AbstractReaderWriter.write has already
+	// defaulted options by the time it delegates here. The buffered entry therefore stores the defaulted
+	// options as the single replay argument, which flushWriteBuffer replays via write(resource, ...args).
+	// The same-path guard, its error message and the key-order flush are shared with runSteps through
+	// @ui5/fs/internal/stepWriteBuffer so the two runners cannot drift.
 	async _write(resource, options) {
 		const resourcePath = resource.getPath();
 		this.#recorder.writes.add(resourcePath);
@@ -129,13 +136,8 @@ class RecordingReaderWriter extends AbstractReaderWriter {
 			// Concurrent mode: buffer and flush in key order once all keys finish. Concurrent keys are
 			// required to be independent, so two keys writing the same path is a contract violation
 			// rather than a last-wins race.
-			const existing = this.#writeBuffer.get(resourcePath);
-			if (existing && existing.stepIndex !== this.#stepIndex) {
-				throw new Error(
-					`Concurrent map-step keys must not write the same resource path ${resourcePath}. ` +
-					`Pass {sequential: true} if a later key must build on an earlier key's writes.`);
-			}
-			this.#writeBuffer.set(resourcePath, {resource, options, stepIndex: this.#stepIndex});
+			assertDistinctWrite(this.#writeBuffer, resourcePath, this.#stepIndex);
+			this.#writeBuffer.set(resourcePath, {resource, args: [options], index: this.#stepIndex});
 			return;
 		}
 		// Sequential mode: persist immediately so a later key reads what this key wrote.
@@ -942,13 +944,6 @@ export default class StepRunner {
 		return merged;
 	}
 
-	async #flushWriteBuffer(writeBuffer, workspace) {
-		const buffered = [...writeBuffer.values()].sort((a, b) => a.stepIndex - b.stepIndex);
-		for (const {resource, options} of buffered) {
-			await workspace.write(resource, options);
-		}
-	}
-
 	/**
 	 * Runs one step's stage (a scalar step's implicit unit, or a map step's keys): selects the units to
 	 * run, restores the rest from cache, records each unit's reads/writes/inputs/tags/return, and merges
@@ -1023,7 +1018,7 @@ export default class StepRunner {
 
 		if (concurrent) {
 			await Promise.all(toRun.map(runStep));
-			await this.#flushWriteBuffer(writeBuffer, ctx.workspace);
+			await flushWriteBuffer(writeBuffer, ctx.workspace);
 		} else {
 			for (const entry of toRun) {
 				await runStep(entry);

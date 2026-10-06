@@ -10,20 +10,24 @@ function createResource(resourcePath, content = resourcePath) {
 }
 
 // Minimal in-memory workspace: byGlob/byPath/write plus getName so a BufferedWriter can wrap it. Write
-// order is recorded so the key-order flush is observable.
+// order and the trailing write arguments are recorded so the key-order flush and the argument handling are
+// observable.
 function createWorkspace(initial = []) {
 	const store = new Map(initial.map((res) => [res.getPath(), res]));
 	const writeOrder = [];
+	const writeArgs = [];
 	return {
 		getName: () => "workspace",
 		byGlob: async () => [...store.values()],
 		byPath: async (virPath) => store.get(virPath) ?? null,
-		write: async (resource) => {
+		write: async (resource, ...args) => {
 			writeOrder.push(resource.getPath());
+			writeArgs.push(args);
 			store.set(resource.getPath(), resource);
 		},
 		store,
 		writeOrder,
+		writeArgs,
 	};
 }
 
@@ -105,11 +109,34 @@ test("A sequential map step makes an earlier key's write visible to a later key"
 
 test("Concurrent map-step keys writing the same path throw", async (t) => {
 	const workspace = createWorkspace();
-	await t.throwsAsync(runSteps(() => [
+	const err = await t.throwsAsync(runSteps(() => [
 		{name: "m", keys: async () => ["a", "b"], each: async (key, {workspace}) => {
 			await workspace.write(createResource("/same"));
 		}},
-	], {workspace}), {message: /must not write the same resource path \/same/});
+	], {workspace}));
+	// The exact user-visible message, shared with the cached runner through @ui5/fs/internal/stepWriteBuffer.
+	t.is(err.message,
+		"Concurrent map-step keys must not write the same resource path /same. " +
+		"Pass {sequential: true} if a later key must build on an earlier key's writes.",
+		"The same-path guard surfaces the shared message verbatim");
+});
+
+test("A concurrent map step preserves each key's write arguments through the flush", async (t) => {
+	const workspace = createWorkspace();
+	await runSteps(() => [
+		{name: "m", keys: async () => ["with", "without"], each: async (key, {workspace}) => {
+			if (key === "with") {
+				await workspace.write(createResource("/with"), {drain: true});
+			} else {
+				// No options: the override must not fabricate a defaulted options object for the flush.
+				await workspace.write(createResource("/without"));
+			}
+		}},
+	], {workspace});
+
+	t.deepEqual(workspace.writeOrder, ["/with", "/without"], "Flushed in key order");
+	t.deepEqual(workspace.writeArgs, [[{drain: true}], []],
+		"A write with options replays its options; a write without options replays no extra argument");
 });
 
 test("A later step sees an earlier step's write", async (t) => {
