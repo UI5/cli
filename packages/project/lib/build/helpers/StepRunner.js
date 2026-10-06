@@ -28,9 +28,12 @@ function isResource(value) {
  * @param {*} value Rejected value
  * @returns {string} A short human-readable type description
  */
-function describeValue(value) {
+export function describeValue(value) {
 	if (value === null) {
 		return "null";
+	}
+	if (value === undefined) {
+		return "undefined";
 	}
 	if (typeof value === "object") {
 		const name = value.constructor?.name;

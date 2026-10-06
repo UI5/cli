@@ -1891,6 +1891,33 @@ test("Step-based task: the factory runs once per build and its steps are reused 
 		"A stage was created for every step the factory emits");
 });
 
+// A step factory that forgets its return yields undefined, the single most likely authoring mistake.
+// Discovery consumes the factory return (steps.map) before StepRunner#validateStep would see the elements,
+// so the container shape is validated here, naming the task and the value the factory returned.
+test("Step-based task: a factory returning a non-array throws a named error at discovery", async (t) => {
+	const {sinon, taskUtil} = t.context;
+
+	const build = () => undefined; // missing return
+	const taskDefinitions = {
+		getTaskDefinitions: async () => ({
+			standardTasks: new Map([
+				["stepTask",
+					{requiresDependencies: false, stepBased: true, options: {}, taskFunction: build}],
+			]),
+			customTasks: new Map(),
+		}),
+	};
+
+	const project = getMockProject("module");
+	const taskRunner = createTaskRunner(t, project, {taskUtil, taskDefinitions});
+	sinon.stub(taskRunner, "getDependenciesReader").resolves({getName: () => "dependencies"});
+
+	const err = await t.throwsAsync(taskRunner.runTasks());
+	t.is(err.message,
+		"Step factory for task 'stepTask' must return an array of step objects, got undefined",
+		"The error names the task, the expected shape, and the actual returned value");
+});
+
 // The factory is called once per build, so discovery and execution share one step array by construction.
 // There is no second call for an impure factory (an untracked environment or clock read in its body) to
 // diverge on: the discovered steps are the ones that run. This records the deliberate removal of the former

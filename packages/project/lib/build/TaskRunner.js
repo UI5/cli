@@ -1,7 +1,7 @@
 import {getLogger} from "@ui5/logger";
 import composeTaskList from "./helpers/composeTaskList.js";
 import MonitoredTaskUtil from "./helpers/MonitoredTaskUtil.js";
-import StepRunner from "./helpers/StepRunner.js";
+import StepRunner, {describeValue} from "./helpers/StepRunner.js";
 import {createReaderCollection, createMonitor} from "@ui5/fs/resourceFactory";
 
 const EMPTY_RESOURCE_REQUESTS = {paths: [], patterns: []};
@@ -223,8 +223,13 @@ class TaskRunner {
 				return {taskName};
 			}
 			const factory = await taskDef.stepFactory();
-			const steps = Object.freeze(await factory(taskDef.options));
-			taskDef.steps = steps;
+			const steps = await factory(taskDef.options);
+			if (!Array.isArray(steps)) {
+				throw new Error(
+					`Step factory for task '${taskName}' must return an array of step objects, ` +
+					`got ${describeValue(steps)}`);
+			}
+			taskDef.steps = Object.freeze(steps);
 			return {taskName, stepNames: steps.map((step) => step.name)};
 		}));
 		this._buildCache.setTasks(stageTasks);
