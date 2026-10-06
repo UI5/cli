@@ -2311,7 +2311,11 @@ export default class ProjectBuildCache {
 		// re-persist an unchanged per-key payload for nothing.
 		for (const stageId of this.#dirtyStepInvocationData) {
 			const invocationData = this.#stepInvocationData.get(stageId);
-			if (invocationData && invocationData.size) {
+			if (invocationData) {
+				// Serialize even an empty map: a map step whose key set dropped to zero this build must
+				// overwrite its previous non-empty row (writeTaskMetadata is INSERT OR REPLACE with no
+				// delete path). An empty [] reads back as an empty Map, so the next build sees no stale
+				// keys rather than the previous run's.
 				out.push({stageId, type: "steps", metadata: [...invocationData]});
 			}
 		}

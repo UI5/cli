@@ -1415,6 +1415,15 @@ test("writeCache: a step invocation map set this build is serialized, and only w
 	writes = stepsWritesSince(callsBefore);
 	t.is(writes.length, 1, "a re-run that added, changed and removed keys rewrites the row");
 	t.deepEqual(writes[0].args[4], [...updated], "the rewritten row holds the updated per-key map");
+
+	// Build 4: the step re-ran and enumerated zero keys (every theme removed, every manifest deleted).
+	// The now-empty map must still overwrite build 3's non-empty row, else the next build loads dead keys.
+	cache.setStepInvocationData(stageId, new Map());
+	callsBefore = cacheManager.writeTaskMetadata.callCount;
+	await cache.writeCache();
+	writes = stepsWritesSince(callsBefore);
+	t.is(writes.length, 1, "a drop-to-zero map still rewrites the row");
+	t.deepEqual(writes[0].args[4], [], "the rewritten row holds an empty per-key map");
 });
 
 test("step return storage buffers per unit and flushes one transaction per step", async (t) => {
