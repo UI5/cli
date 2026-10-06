@@ -7,6 +7,7 @@ import semver from "semver";
 import Builder from "../../../../lib/lbt/bundle/Builder.js";
 import {__localFunctions__} from "../../../../lib/lbt/bundle/Builder.js";
 import ResourcePool from "../../../../lib/lbt/resources/ResourcePool.js";
+import {makeStringLiteral as makeStringLiteralRef} from "../../../../lib/lbt/utils/stringUtils.js";
 
 // Node.js itself tries to parse sourceMappingURLs in all JavaScript files. This is unwanted and might even lead to
 // obscure errors when dynamically generating Data-URI soruceMappingURL values.
@@ -74,11 +75,179 @@ test.serial("writePreloadModule: with invalid json content", async (t) => {
 	t.is(writeStub.callCount, 1, "Writer is called once");
 });
 
+// --- writePreloadModule: branch coverage ---------------------------------------------------------
+// writePreloadModule has one branch per module type. The tests below cover each branch, with a
+// focus on how a leading UTF-8 BOM (U+FEFF) is handled: it is stripped from embedded-as-data content
+// (html/json/xml/properties) but intentionally kept in the two JavaScript branches, where a leading
+// U+FEFF is valid whitespace to the parser and stripping it would shift source-map offsets.
+const BOM = "\uFEFF";
+
+// Minimal outW stub that records every written chunk, so tests can assert on the full bundle output.
+function createOutWStub() {
+	const chunks = [];
+	return {
+		chunks,
+		output: () => chunks.join(""),
+		write: (str) => chunks.push(str),
+		writeln: (str) => chunks.push(str + "\n"),
+		ensureNewLine: () => {
+			const last = chunks[chunks.length - 1];
+			if (last !== undefined && !last.endsWith("\n")) {
+				chunks.push("\n");
+			}
+		}
+	};
+}
+
+test.serial("writePreloadModule: JS module is written verbatim (raw, not a string literal)", async (t) => {
+	const {BuilderWithStub} = t.context;
+	const jsContent = `sap.ui.define([], function() { return 42; });`;
+
+	const builder = new BuilderWithStub({});
+	builder.options = {};
+	const outW = createOutWStub();
+	builder.outW = outW;
+	const jsResource = {
+		buffer: async () => Buffer.from(jsContent, "utf8"),
+		getPath: () => "my/app/Component.js"
+	};
+	// info == null => the module does not require top level scope => embedded as raw code
+	const result = await builder.writePreloadModule("my/app/Component.js", null, jsResource);
+
+	t.true(result, "result is true");
+	t.is(outW.output(), `function(){\n${jsContent}\n}`, "JS is wrapped in a function and written verbatim");
+});
+
+test.serial("writePreloadModule: JS module keeps a leading BOM (U+FEFF is valid JS whitespace)", async (t) => {
+	const {BuilderWithStub} = t.context;
+	const jsContent = `var x = 1;`;
+
+	const builder = new BuilderWithStub({});
+	builder.options = {};
+	const outW = createOutWStub();
+	builder.outW = outW;
+	const jsResource = {
+		buffer: async () => Buffer.from(BOM + jsContent, "utf8"),
+		getPath: () => "my/app/Component.js"
+	};
+	const result = await builder.writePreloadModule("my/app/Component.js", null, jsResource);
+
+	t.true(result, "result is true");
+	t.true(outW.output().includes(BOM), "the BOM is intentionally kept in the raw JS output");
+	t.is(outW.output(), `function(){\n${BOM}${jsContent}\n}`, "BOM remains at the start of the module body");
+});
+
+test.serial("writePreloadModule: JS module removes a leading hashbang", async (t) => {
+	const {BuilderWithStub} = t.context;
+
+	const builder = new BuilderWithStub({});
+	builder.options = {};
+	const outW = createOutWStub();
+	builder.outW = outW;
+	const jsResource = {
+		buffer: async () => Buffer.from(`#!/usr/bin/env node\nvar x = 1;`, "utf8"),
+		getPath: () => "my/app/cli.js"
+	};
+	const result = await builder.writePreloadModule("my/app/cli.js", null, jsResource);
+
+	t.true(result, "result is true");
+	t.is(outW.output(), `function(){\n\nvar x = 1;\n}`, "the hashbang line is removed");
+});
+
+test.serial("writePreloadModule: JS module requiring top level scope is embedded as a string literal", async (t) => {
+	const {BuilderWithStub, warnLogStub} = t.context;
+	const jsContent = `var x = 1;`;
+
+	const builder = new BuilderWithStub({});
+	builder.options = {};
+	const outW = createOutWStub();
+	builder.outW = outW;
+	const jsResource = {
+		buffer: async () => Buffer.from(jsContent, "utf8"),
+		getPath: () => "my/app/legacy.js"
+	};
+	const result = await builder.writePreloadModule("my/app/legacy.js", {requiresTopLevelScope: true}, jsResource);
+
+	t.true(result, "result is true");
+	t.is(warnLogStub.callCount, 1, "a warning about top level scope is logged");
+	t.is(outW.output(), `'${jsContent}'`, "the module is written as a string literal");
+});
+
+test.serial("writePreloadModule: string-literal JS module keeps a leading BOM", async (t) => {
+	const {BuilderWithStub} = t.context;
+	const jsContent = `var x = 1;`;
+
+	const builder = new BuilderWithStub({});
+	builder.options = {};
+	const outW = createOutWStub();
+	builder.outW = outW;
+	const jsResource = {
+		buffer: async () => Buffer.from(BOM + jsContent, "utf8"),
+		getPath: () => "my/app/legacy.js"
+	};
+	const result = await builder.writePreloadModule("my/app/legacy.js", {requiresTopLevelScope: true}, jsResource);
+
+	t.true(result, "result is true");
+	// The BOM is whitespace inside the eval'd string, so it is intentionally kept.
+	t.is(outW.output(), `'${BOM}${jsContent}'`, "BOM is kept inside the string literal");
+});
+
+test.serial("writePreloadModule: HTML module is embedded as a string literal", async (t) => {
+	const writeStub = sinon.stub();
+	const {BuilderWithStub} = t.context;
+	const htmlContent = `<!DOCTYPE html><html></html>`;
+
+	const builder = new BuilderWithStub({});
+	builder.outW = {write: writeStub};
+	const htmlResource = {
+		buffer: async () => Buffer.from(htmlContent, "utf8")
+	};
+	const result = await builder.writePreloadModule("my/app/index.html", undefined, htmlResource);
+
+	t.true(result, "result is true");
+	t.is(writeStub.getCall(0).args[0], `'${htmlContent}'`, "HTML is written as a string literal");
+});
+
+test.serial("writePreloadModule: HTML saved with UTF-8 BOM has the BOM stripped", async (t) => {
+	const writeStub = sinon.stub();
+	const {BuilderWithStub} = t.context;
+	const htmlContent = `<!DOCTYPE html><html></html>`;
+
+	const builder = new BuilderWithStub({});
+	builder.outW = {write: writeStub};
+	const htmlResource = {
+		buffer: async () => Buffer.from(BOM + htmlContent, "utf8")
+	};
+	const result = await builder.writePreloadModule("my/app/index.html", undefined, htmlResource);
+
+	t.true(result, "result is true");
+	const writtenLiteral = writeStub.getCall(0).args[0];
+	t.false(writtenLiteral.includes(BOM), "the written literal does not contain a BOM character");
+	t.is(writtenLiteral, `'${htmlContent}'`, "the literal starts directly with the HTML content");
+});
+
+test.serial("writePreloadModule: JSON module is written as-is without optimize", async (t) => {
+	const writeStub = sinon.stub();
+	const {BuilderWithStub} = t.context;
+	const jsonContent = `{\n\t"a": 1\n}`;
+
+	const builder = new BuilderWithStub({});
+	builder.optimize = false;
+	builder.outW = {write: writeStub};
+	const jsonResource = {
+		buffer: async () => Buffer.from(jsonContent, "utf8")
+	};
+	const result = await builder.writePreloadModule("my/app/data.json", undefined, jsonResource);
+
+	t.true(result, "result is true");
+	t.is(writeStub.getCall(0).args[0], makeStringLiteralRef(jsonContent),
+		"JSON is written unchanged (not minified) when optimize is off");
+});
+
 test.serial("writePreloadModule: XML saved with UTF-8 BOM does not keep the BOM in the literal", async (t) => {
 	const writeStub = sinon.stub();
 	const {BuilderWithStub} = t.context;
 
-	const BOM = "\uFEFF";
 	const xmlContent = `<mvc:View xmlns:mvc="sap.ui.core.mvc"></mvc:View>`;
 
 	const builder = new BuilderWithStub({});
@@ -98,11 +267,48 @@ test.serial("writePreloadModule: XML saved with UTF-8 BOM does not keep the BOM 
 	t.is(writtenLiteral, `'${xmlContent}'`, "the literal starts directly with the XML content");
 });
 
+test.serial("writePreloadModule: XML with optimize is minified (BOM stripped before minifying)", async (t) => {
+	const writeStub = sinon.stub();
+	const {BuilderWithStub} = t.context;
+	const xmlContent = `<mvc:View xmlns:mvc="sap.ui.core.mvc">\n\t<Button/>\n</mvc:View>`;
+
+	const builder = new BuilderWithStub({});
+	builder.optimize = true;
+	builder.outW = {write: writeStub};
+	const xmlResource = {
+		buffer: async () => Buffer.from(BOM + xmlContent, "utf8")
+	};
+	const result = await builder.writePreloadModule("my/app/view/App.view.xml", undefined, xmlResource);
+
+	t.true(result, "result is true");
+	const writtenLiteral = writeStub.getCall(0).args[0];
+	t.false(writtenLiteral.includes(BOM), "BOM is removed before minifying");
+	t.notRegex(writtenLiteral, /\n\t/, "whitespace between tags is minified");
+	t.true(writtenLiteral.startsWith(`'<mvc:View`), "literal starts directly with the XML content");
+});
+
+test.serial("writePreloadModule: XML with a <pre> tag is not minified even with optimize", async (t) => {
+	const writeStub = sinon.stub();
+	const {BuilderWithStub} = t.context;
+	const xmlContent = `<View xmlns:html="http://www.w3.org/1999/xhtml"><html:pre>  keep  </html:pre></View>`;
+
+	const builder = new BuilderWithStub({});
+	builder.optimize = true;
+	builder.outW = {write: writeStub};
+	const xmlResource = {
+		buffer: async () => Buffer.from(xmlContent, "utf8")
+	};
+	const result = await builder.writePreloadModule("my/app/view/App.view.xml", undefined, xmlResource);
+
+	t.true(result, "result is true");
+	t.is(writeStub.getCall(0).args[0], makeStringLiteralRef(xmlContent),
+		"XML containing a <pre> tag is written unchanged to preserve whitespace");
+});
+
 test.serial("writePreloadModule: JSON saved with UTF-8 BOM is stripped before parsing/optimizing", async (t) => {
 	const writeStub = sinon.stub();
 	const {BuilderWithStub, verboseLogStub} = t.context;
 
-	const BOM = "\uFEFF";
 	const jsonContent = `{\n\t"a": 1\n}`;
 
 	const builder = new BuilderWithStub({});
@@ -120,6 +326,52 @@ test.serial("writePreloadModule: JSON saved with UTF-8 BOM is stripped before pa
 	const writtenLiteral = writeStub.getCall(0).args[0];
 	t.false(writtenLiteral.includes(BOM), "the written literal does not contain a BOM character");
 	t.is(writtenLiteral, `'{"a":1}'`, "BOM removed and JSON minified");
+});
+
+test.serial("writePreloadModule: properties module is escaped (BOM stripped via escapePropertiesFile)", async (t) => {
+	const writeStub = sinon.stub();
+	const {BuilderWithStub} = t.context;
+
+	const builder = new BuilderWithStub({});
+	builder.outW = {write: writeStub};
+	let content = BOM + "TITLE=Gr\u00FC\u00DFe";
+	const propertiesResource = {
+		getProject: () => ({getPropertiesFileSourceEncoding: () => "UTF-8"}),
+		resource: {
+			getBuffer: async () => Buffer.from(content, "utf8"),
+			setString: (str) => {
+				content = str;
+			}
+		},
+		buffer: async () => Buffer.from(content, "utf8")
+	};
+	const result = await builder.writePreloadModule("my/app/i18n.properties", undefined, propertiesResource);
+
+	t.true(result, "result is true");
+	const writtenLiteral = writeStub.getCall(0).args[0];
+	t.false(writtenLiteral.includes(BOM), "the BOM is stripped from the properties content");
+	// makeStringLiteral escapes the backslashes of the already-escaped \u sequences, so each "\u"
+	// becomes "\\u" in the final literal.
+	t.is(writtenLiteral, `'TITLE=Gr\\\\u00fc\\\\u00dfe'`,
+		"BOM removed and non-ascii characters escaped");
+});
+
+test.serial("writePreloadModule: unknown module type logs an error and writes nothing", async (t) => {
+	const writeStub = sinon.stub();
+	const {BuilderWithStub, errorLogStub} = t.context;
+
+	const builder = new BuilderWithStub({});
+	builder.outW = {write: writeStub};
+	const resource = {
+		buffer: async () => Buffer.from("some content", "utf8")
+	};
+	const result = await builder.writePreloadModule("my/app/unknown.txt", undefined, resource);
+
+	t.true(result, "result is still true");
+	t.is(writeStub.callCount, 0, "nothing is written for an unknown module type");
+	t.is(errorLogStub.callCount, 1, "an error is logged");
+	t.is(errorLogStub.getCall(0).args[0], "Don't know how to embed module my/app/unknown.txt",
+		"the error names the module");
 });
 
 test("integration: createBundle with exposedGlobals", async (t) => {

@@ -453,6 +453,9 @@ class BundleBuilder {
 			outW.writeln(`function(){`);
 			// The module should be written to a new line in order for dev-tools to map breakpoints to it
 			outW.ensureNewLine();
+			// Note: a leading UTF-8 BOM is not stripped here. The JS code is written verbatim, where a
+			// U+FEFF is a valid whitespace character to the parser, so it does not corrupt the module.
+			// Stripping it would also shift all byte offsets and invalidate the source map handled below.
 			let moduleContent = (await resource.buffer()).toString();
 			moduleContent = removeHashbang(moduleContent);
 			if (this.options.sourceMap) {
@@ -473,6 +476,8 @@ class BundleBuilder {
 		} else if ( /\.js$/.test(moduleName) /* implicitly: && info != null && info.requiresTopLevelScope */ ) {
 			log.warn(
 				`Module ${moduleName} requires top level scope and can only be embedded as a string (requires 'eval')`);
+			// Note: a leading UTF-8 BOM is not stripped here either. The string literal is eval'd as JS,
+			// where a leading U+FEFF is whitespace and does not corrupt the module (unlike XML/JSON/properties).
 			let moduleContent = (await resource.buffer()).toString();
 			moduleContent = removeHashbang(moduleContent);
 			if (this.options.sourceMap) {
