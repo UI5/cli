@@ -1,4 +1,5 @@
 import {escapeUnicode} from "escape-unicode";
+import {stripBOM} from "../lbt/utils/stringUtils.js";
 
 /**
  * @public
@@ -57,6 +58,13 @@ const escapeNonAscii = function(string) {
 /**
  * Escapes non ASCII characters with unicode escape sequences.
  *
+ * A leading UTF-8 Byte Order Mark (BOM, U+FEFF) is removed before escaping. Otherwise it would be
+ * escaped to a literal "\\uFEFF" sequence at the start of the content, corrupting the first key of
+ * a *.properties file. The removal is gated on the decoded content starting with U+FEFF, not on the
+ * encoding name: a UTF-8 BOM decodes to a leading U+FEFF and is removed, whereas an ISO-8859-1
+ * (latin1) decode can never produce U+FEFF (its code points are limited to U+0000-U+00FF), so
+ * latin1 files are left untouched.
+ *
  * ```js
  * const encoding = nonAsciiEscaper.getEncodingFromAlias("ISO-8859-1");
  * nonAsciiEscaper({resources, options: {encoding}});
@@ -79,9 +87,16 @@ async function nonAsciiEscaper({resources, options: {encoding}}) {
 
 	async function processResource(resource) {
 		const resourceString = (await resource.getBuffer()).toString(encoding);
-		const escaped = escapeNonAscii(resourceString);
-		// only modify the resource's string if it was changed
-		if (escaped.modified) {
+		// Strip a leading UTF-8 BOM before escaping. Otherwise the U+FEFF character would be escaped
+		// to a literal "\\uFEFF" sequence at the very start of the content, silently corrupting the
+		// first key of a *.properties file. This is the common choke point for both the standalone
+		// escapeNonAsciiCharacters task and the bundler (via escapePropertiesFile), so handling it
+		// here covers every path. Only UTF-8 input is affected: a BOM decoded as latin1 becomes the
+		// three characters "ï»¿" (not U+FEFF), so ISO-8859-1 byte semantics are preserved.
+		const strippedString = stripBOM(resourceString);
+		const escaped = escapeNonAscii(strippedString);
+		// modify the resource if a BOM was stripped and/or non-ascii characters were escaped
+		if (escaped.modified || strippedString !== resourceString) {
 			resource.setString(escaped.string);
 			return resource;
 		}

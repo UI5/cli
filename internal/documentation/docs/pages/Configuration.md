@@ -208,6 +208,8 @@ If your project uses a different encoding for `*.properties` files, you need to 
 
 UI5 CLI will read the corresponding files of the project in the given encoding. Any non-ASCII characters will be replaced with the respective Unicode escape sequences. This allows you to deploy the resulting files to any environment, independent of how it expects `*.properties` files to be encoded. Please refer to [RFC 7](https://github.com/UI5/cli/blob/main/rfcs/0007-properties-file-encoding.md) for details.
 
+If a `*.properties` file was accidentally saved with a leading UTF-8 Byte Order Mark (BOM), the BOM is removed during this process. Otherwise it would be escaped into a literal `\uFEFF` sequence at the start of the file, corrupting the first key.
+
 ## Custom Configuration
 
 ::: info

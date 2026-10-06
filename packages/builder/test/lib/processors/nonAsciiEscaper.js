@@ -104,6 +104,36 @@ test("No Replace of characters", async (t) => {
 	t.is(result[0], undefined, "Resource is not returned when no characters need escaping");
 });
 
+test("Strip leading UTF-8 BOM (otherwise it corrupts the first properties key)", async (t) => {
+	t.plan(2);
+
+	const input = `\uFEFFTITLE=Todos`;
+	const [resource] = await escape(input);
+	t.not(resource, undefined, "Resource is returned because the BOM was stripped");
+	t.is(await resource.getString(), "TITLE=Todos",
+		"Leading BOM is removed and not escaped to a \\uFEFF sequence");
+});
+
+test("Strip leading UTF-8 BOM while still escaping non-ascii characters", async (t) => {
+	t.plan(1);
+
+	const input = `\uFEFFTITLE=Grüße`;
+	const [resource] = await escape(input);
+	t.is(await resource.getString(), "TITLE=Gr\\u00fc\\u00dfe",
+		"BOM removed, remaining non-ascii characters still escaped");
+});
+
+test("Leading BOM bytes decoded as latin1 are not treated as a BOM", async (t) => {
+	t.plan(1);
+
+	// The UTF-8 BOM bytes EF BB BF decoded as latin1 are the three characters "ï»¿" (not U+FEFF),
+	// so they must NOT be stripped — they are escaped like any other non-ascii latin1 character.
+	const input = "ï»¿KEY=val";
+	const [resource] = await escape(input, {encoding: "latin1"}, "latin1");
+	t.is(await resource.getString(), "\\u00ef\\u00bb\\u00bfKEY=val",
+		"latin1 bytes are preserved and escaped, not stripped");
+});
+
 test("Invalid encoding", async (t) => {
 	t.plan(2);
 

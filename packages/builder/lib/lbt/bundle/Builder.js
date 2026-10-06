@@ -11,7 +11,7 @@ import {
 	MODULE__UI5LOADER, MODULE__UI5LOADER_AUTOCONFIG,
 	MODULE__JQUERY_SAP_GLOBAL, MODULE__SAP_UI_CORE_CORE} from "../UI5ClientConstants.js";
 import escapePropertiesFile from "../utils/escapePropertiesFile.js";
-import {makeStringLiteral, removeHashbang} from "../utils/stringUtils.js";
+import {makeStringLiteral, removeHashbang, stripBOM} from "../utils/stringUtils.js";
 import BundleResolver from "./Resolver.js";
 import BundleSplitter from "./AutoSplitter.js";
 import {SectionType} from "./BundleDefinition.js";
@@ -453,6 +453,11 @@ class BundleBuilder {
 			outW.writeln(`function(){`);
 			// The module should be written to a new line in order for dev-tools to map breakpoints to it
 			outW.ensureNewLine();
+			// Note: a leading UTF-8 BOM is not stripped here. The JS code is written verbatim, where a
+			// U+FEFF is a valid whitespace character to the parser, so it does not corrupt the module.
+			// Stripping it would also shift all byte offsets and invalidate the source map handled below.
+			// (removeHashbang below still drops a hashbang that sits behind such a BOM, which otherwise
+			// would be an invalid HashbangComment and break the bundle.)
 			let moduleContent = (await resource.buffer()).toString();
 			moduleContent = removeHashbang(moduleContent);
 			if (this.options.sourceMap) {
@@ -473,6 +478,8 @@ class BundleBuilder {
 		} else if ( /\.js$/.test(moduleName) /* implicitly: && info != null && info.requiresTopLevelScope */ ) {
 			log.warn(
 				`Module ${moduleName} requires top level scope and can only be embedded as a string (requires 'eval')`);
+			// Note: a leading UTF-8 BOM is not stripped here either. The string literal is eval'd as JS,
+			// where a leading U+FEFF is whitespace and does not corrupt the module (unlike XML/JSON/properties).
 			let moduleContent = (await resource.buffer()).toString();
 			moduleContent = removeHashbang(moduleContent);
 			if (this.options.sourceMap) {
@@ -489,10 +496,10 @@ class BundleBuilder {
 			}
 			outW.write( makeStringLiteral(moduleContent) );
 		} else if ( /\.html$/.test(moduleName) ) {
-			const fileContent = (await resource.buffer()).toString();
+			const fileContent = stripBOM((await resource.buffer()).toString());
 			outW.write( makeStringLiteral( fileContent ) );
 		} else if ( /\.json$/.test(moduleName) ) {
-			let fileContent = (await resource.buffer()).toString();
+			let fileContent = stripBOM((await resource.buffer()).toString());
 			if ( this.optimize ) {
 				try {
 					fileContent = JSON.stringify( JSON.parse( fileContent) );
@@ -503,7 +510,7 @@ class BundleBuilder {
 			}
 			outW.write(makeStringLiteral(fileContent));
 		} else if ( /\.xml$/.test(moduleName) ) {
-			let fileContent = (await resource.buffer()).toString();
+			let fileContent = stripBOM((await resource.buffer()).toString());
 			if ( this.optimize ) {
 				// For XML we use the pretty data
 				// Do not minify if XML(View) contains an <*:pre> tag,
