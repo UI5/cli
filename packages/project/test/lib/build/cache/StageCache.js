@@ -71,3 +71,29 @@ test("discardPending removes the latest write for an overwritten signature", (t)
 	t.is(cache.getCacheForSignature("task/a", "sig-x"), null,
 		"Overwritten-and-then-discarded entry is removed from the in-memory map");
 });
+
+test("getCacheForSignature returns each signature's own step invocation data", (t) => {
+	// The step-based stage's per-key map travels with the stage under its signature, so a stage cached
+	// under two signatures (e.g. a dependency at v1 then v2) keeps a distinct map per signature. This is
+	// the in-memory half of the fix that keeps the map from pairing with a different run's stage output.
+	const cache = new StageCache();
+	const stageId = "task/enhanceManifest::step/enhanceManifest";
+	const mapV1 = new Map([["/manifest.json", {reads: ["/manifest.json"], writes: ["/manifest.json"]}]]);
+	const mapV2 = new Map([["/manifest.json", {reads: ["/manifest.json", "/dep"], writes: ["/manifest.json"]}]]);
+
+	cache.addSignature(stageId, "sig-v1", fakeStage("v1"), [], new Map(), new Map(), mapV1);
+	cache.addSignature(stageId, "sig-v2", fakeStage("v2"), [], new Map(), new Map(), mapV2);
+
+	t.is(cache.getCacheForSignature(stageId, "sig-v1").stepInvocationData, mapV1,
+		"the v1 signature returns v1's per-key map, not the most-recently-written one");
+	t.is(cache.getCacheForSignature(stageId, "sig-v2").stepInvocationData, mapV2,
+		"the v2 signature returns v2's per-key map");
+});
+
+test("getCacheForSignature carries no step invocation data for a legacy stage", (t) => {
+	const cache = new StageCache();
+	cache.addSignature("task/legacy", "sig", fakeStage("l"), [], new Map(), new Map());
+
+	t.is(cache.getCacheForSignature("task/legacy", "sig").stepInvocationData, undefined,
+		"a legacy stage recorded without a per-key map carries undefined");
+});

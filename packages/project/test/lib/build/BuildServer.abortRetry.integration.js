@@ -23,9 +23,9 @@ const FixtureTester = createFixtureTesterFactory("abortRetry", {graphFromPackage
 registerBuildHooks(test, {watcherMock});
 
 // ProjectBuildCache's StageCache must be cleared correctly when a build is aborted.
-// A task that completed during an aborted attempt has already called recordTaskResult,
+// A task that completed during an aborted attempt has already called recordStageResult,
 // which adds its stage to the in-memory StageCache. On retry,
-// prepareTaskExecutionAndValidateCache might finds those entries via #findStageCache if not cleaned up.
+// prepareStageExecutionAndValidateCache might finds those entries via #findStageCache if not cleaned up.
 // It will then emit task-skip events for tasks that the retry should have actually re-executed.
 test.serial("Aborted initial build must not leak in-memory StageCache to retry", async (t) => {
 	const fixtureTester = t.context.fixtureTester = await FixtureTester.create(t, "library.d");
@@ -37,7 +37,7 @@ test.serial("Aborted initial build must not leak in-memory StageCache to retry",
 	// One-shot trigger: when `replaceBuildtime` (the 4th task for this fixture) ends in the
 	// initial build, simulate a watcher event by calling _projectResourceChanged directly.
 	// This invalidates library.d, aborts the running build at the next signal check, and
-	// re-enqueues it. By that point, tasks 1-4 have completed recordTaskResult and live in
+	// re-enqueues it. By that point, tasks 1-4 have completed recordStageResult and live in
 	// the in-memory StageCache. Tasks 5+ never started.
 	let aborted = false;
 	const abortHandler = (event) => {
@@ -62,7 +62,7 @@ test.serial("Aborted initial build must not leak in-memory StageCache to retry",
 	t.true(aborted, "Test setup precondition: abort trigger should have fired");
 
 	// On a fresh fixture the persistent cache is empty. After the fix, the retry's
-	// prepareTaskExecutionAndValidateCache should find no cached stages (in-memory cache
+	// prepareStageExecutionAndValidateCache should find no cached stages (in-memory cache
 	// from the aborted build is discarded) and execute every task. No task-skip events
 	// should be emitted for library.d.
 	const skippedTasks = t.context.projectBuildStatusEventStub.args

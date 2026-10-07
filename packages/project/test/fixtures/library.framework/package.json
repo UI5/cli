@@ -1,0 +1,9 @@
+{
+  "name": "@openui5/library.framework",
+  "version": "1.0.0",
+  "description": "Framework-named library used to exercise generateThemeDesignerResources",
+  "dependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

@@ -40,6 +40,32 @@ test("setFrozenSourceReader: frozen reader is included in getReader chain", (t) 
 	t.truthy(reader, "Reader returned successfully");
 });
 
+test("reopenStage: swaps a cached read-only stage back to a writable one", (t) => {
+	const {pr, writer} = createProjectResources();
+	pr.initStages(["task/a", "task/b"]);
+	pr.useStage("task/b");
+
+	// A full cache hit installs a read-only cached stage: it has a cached writer, no live writer.
+	const cachedWriter = {byGlob: sinon.stub().resolves([]), name: "cached-reader"};
+	pr.setStage("task/b", cachedWriter, new Map(), new Map());
+	t.is(pr.getStage().getWriter(), undefined, "Cached stage has no live writer");
+	t.is(pr.getStage().getCachedWriter(), cachedWriter, "Cached stage carries the cached reader");
+
+	// Reopening restores a fresh live writer so the stage can be re-run.
+	pr.reopenStage("task/b");
+	t.is(pr.getStage().getId(), "task/b", "Still on the reopened stage");
+	t.is(pr.getStage().getWriter(), writer, "Reopened stage has a live writer");
+	t.is(pr.getStage().getCachedWriter(), undefined, "Reopened stage dropped the cached reader");
+	t.notThrows(() => pr.getWorkspace(), "The reopened stage yields a writable workspace");
+});
+
+test("reopenStage: throws for an unknown stage", (t) => {
+	const {pr} = createProjectResources();
+	pr.initStages(["task/a"]);
+	t.throws(() => pr.reopenStage("task/missing"),
+		{message: /Stage 'task\/missing' does not exist in project test\.project/});
+});
+
 test("setFrozenSourceReader: invalidates cached readers", (t) => {
 	const {pr} = createProjectResources();
 
@@ -189,4 +215,27 @@ test("Frozen source reader takes priority over filesystem source reader", async 
 	const content = await result.getString();
 	t.is(content, frozenCASContent,
 		"Frozen CAS reader takes priority over filesystem source reader");
+});
+
+test("replayTagOperations routes by tag, applies by path, and skips get operations", (t) => {
+	const {pr} = createProjectResources();
+
+	// A restored step replays these: a project-level and a build-level set, a get (no
+	// persistent effect), and a set-then-clear of the same tag on another path.
+	pr.replayTagOperations([
+		{op: "set", path: "/resources/x.js", tag: "ui5:HasDebugVariant", value: true},
+		{op: "set", path: "/resources/x.js", tag: "ui5:OmitFromBuildResult", value: true},
+		{op: "get", path: "/resources/x.js", tag: "ui5:IsBundle"},
+		{op: "set", path: "/resources/x-dbg.js", tag: "ui5:IsDebugVariant", value: true},
+		{op: "clear", path: "/resources/x-dbg.js", tag: "ui5:IsDebugVariant"},
+	]);
+
+	const {projectTagOperations, buildTagOperations} = pr.getResourceTagOperations();
+
+	t.deepEqual([...projectTagOperations.get("/resources/x.js")], [["ui5:HasDebugVariant", true]],
+		"A project-level tag is routed to the project collection");
+	t.deepEqual([...projectTagOperations.get("/resources/x-dbg.js")], [["ui5:IsDebugVariant", undefined]],
+		"A set followed by a clear of the same tag records the clear");
+	t.deepEqual([...buildTagOperations.get("/resources/x.js")], [["ui5:OmitFromBuildResult", true]],
+		"A build-level tag is routed to the build collection; the skipped get left no operation");
 });

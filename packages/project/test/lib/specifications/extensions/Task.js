@@ -112,18 +112,6 @@ test("getDetermineBuildSignatureCallback (ESM)", async (t) => {
 	t.is(callback, undefined, "Returns undefined when not exported");
 });
 
-test("getSupportsDifferentialBuildsCallback (CJS)", async (t) => {
-	const extension = await Specification.create(clone(basicCjsTaskInput));
-	const callback = await extension.getSupportsDifferentialBuildsCallback();
-	t.is(callback, undefined, "Returns undefined when not exported");
-});
-
-test("getSupportsDifferentialBuildsCallback (ESM)", async (t) => {
-	const extension = await Specification.create(clone(basicEsmTaskInput));
-	const callback = await extension.getSupportsDifferentialBuildsCallback();
-	t.is(callback, undefined, "Returns undefined when not exported");
-});
-
 test("getExpectedOutputCallback (CJS)", async (t) => {
 	const extension = await Specification.create(clone(basicCjsTaskInput));
 	const callback = await extension.getExpectedOutputCallback();

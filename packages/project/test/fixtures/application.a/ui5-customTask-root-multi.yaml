@@ -1,0 +1,27 @@
+---
+specVersion: "5.0"
+type: application
+metadata:
+  name: application.a
+builder:
+  customTasks:
+    - name: root-config
+      afterTask: minify
+    - name: root-glob
+      afterTask: root-config
+---
+specVersion: "5.0"
+kind: extension
+type: task
+metadata:
+  name: root-config
+task:
+  path: task.root-config.js
+---
+specVersion: "5.0"
+kind: extension
+type: task
+metadata:
+  name: root-glob
+task:
+  path: task.root-glob.js

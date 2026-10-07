@@ -39,10 +39,14 @@ class Task extends Extension {
 	}
 
 	/**
-	* @public
-	*/
-	async getSupportsDifferentialBuildsCallback() {
-		return (await this._getImplementation()).supportsDifferentialBuilds;
+	 * Whether the task opts into the step-factory build API, declared as a static <code>stepBased</code>
+	 * export (a plain boolean value, not a callback). Honored from Specification Version 5.0.
+	 *
+	 * @public
+	 * @returns {Promise<boolean|undefined>} The task module's <code>stepBased</code> export
+	 */
+	async getStepBased() {
+		return (await this._getImplementation()).stepBased;
 	}
 
 	/**

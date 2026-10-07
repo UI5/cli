@@ -50,32 +50,33 @@ test("Standard build", (t) => {
 
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
+			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
+			stepBased: true,
 			options: {
 				copyright: "copyright", pattern: "/**/*.{js,json}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
+			stepBased: true,
 			options: {
 				version: "version", pattern: "/**/*.{js,json}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		minify: {
+			stepBased: true,
 			options: {
 				pattern: [
 					"/**/*.js",
 					"!**/*.support.js",
 				]
 			},
-			supportsDifferentialBuilds: true,
 		},
-		enhanceManifest: {},
+		enhanceManifest: {stepBased: true},
 		generateFlexChangesBundle: {},
 		generateComponentPreload: {
 			options: {
@@ -133,32 +134,33 @@ test("Standard build with legacy spec version", (t) => {
 
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
+			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
+			stepBased: true,
 			options: {
 				copyright: "copyright", pattern: "/**/*.{js,json}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
+			stepBased: true,
 			options: {
 				version: "version", pattern: "/**/*.{js,json}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		minify: {
+			stepBased: true,
 			options: {
 				pattern: [
 					"/**/*.js",
 					"!**/*.support.js",
 				]
 			},
-			supportsDifferentialBuilds: true,
 		},
-		enhanceManifest: {},
+		enhanceManifest: {stepBased: true},
 		generateFlexChangesBundle: {},
 		generateComponentPreload: {
 			options: {
@@ -249,32 +251,33 @@ test("Custom bundles", async (t) => {
 
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
+			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
+			stepBased: true,
 			options: {
 				copyright: "copyright", pattern: "/**/*.{js,json}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
+			stepBased: true,
 			options: {
 				version: "version", pattern: "/**/*.{js,json}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		minify: {
+			stepBased: true,
 			options: {
 				pattern: [
 					"/**/*.js",
 					"!**/*.support.js",
 				]
 			},
-			supportsDifferentialBuilds: true,
 		},
-		enhanceManifest: {},
+		enhanceManifest: {stepBased: true},
 		generateFlexChangesBundle: {},
 		generateComponentPreload: {
 			options: {
@@ -399,6 +402,7 @@ test("Minification excludes", (t) => {
 
 	const taskDefinition = tasks.get("minify");
 	t.deepEqual(taskDefinition, {
+		stepBased: true,
 		options: {
 			pattern: [
 				"/**/*.js",
@@ -406,7 +410,6 @@ test("Minification excludes", (t) => {
 				"!/resources/**.html",
 			]
 		},
-		supportsDifferentialBuilds: true,
 	}, "Correct minify task definition");
 });
 
@@ -426,13 +429,13 @@ test("Minification excludes not applied for legacy specVersion", (t) => {
 
 	const taskDefinition = tasks.get("minify");
 	t.deepEqual(taskDefinition, {
+		stepBased: true,
 		options: {
 			pattern: [
 				"/**/*.js",
 				"!**/*.support.js",
 			]
 		},
-		supportsDifferentialBuilds: true,
 	}, "Correct minify task definition");
 });
 

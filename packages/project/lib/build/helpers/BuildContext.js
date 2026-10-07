@@ -14,6 +14,7 @@ import Cache from "../cache/Cache.js";
  */
 class BuildContext {
 	#cacheManager;
+	#buildTime;
 
 	constructor(graph, taskRepository, { // buildConfig
 		selfContained = false,
@@ -85,6 +86,41 @@ class BuildContext {
 
 		this._ui5DataDir = ui5DataDir;
 		this._projectBuildContexts = new Map();
+
+		// One timestamp per build run, shared by every time quantization (TaskUtil#getTime on the
+		// record side, ProjectBuildContext#resolveInputValue on the lookup side). Initialized here as
+		// a safe default and refreshed at the start of each run via refreshBuildTime(); see there.
+		this.#buildTime = new Date();
+	}
+
+	/**
+	 * Establishes the timestamp for a new build run.
+	 *
+	 * Called at the start of each run (ProjectBuilder#build / #validate), which are mutually
+	 * exclusive, so no run observes another run's refresh. A single BuildContext is reused across
+	 * many runs of a long-running consumer (BuildServer / `ui5 serve`), so the timestamp cannot be
+	 * fixed at construction: `getTime("year")` would freeze at the server's start bucket and, because
+	 * a cached time input would keep agreeing with itself, silently serve stale time-derived output
+	 * (e.g. replaceCopyright's `${currentYear}` after New Year) without ever missing the cache.
+	 * Refreshing per run keeps the timestamp constant within a run (all projects, and the record and
+	 * lookup within that run, agree) while advancing across runs so a rolled-over bucket misses the
+	 * cache and re-runs the task.
+	 */
+	refreshBuildTime() {
+		this.#buildTime = new Date();
+	}
+
+	/**
+	 * Returns the timestamp of the current build run, used for all time quantization.
+	 *
+	 * Consumers must read this live at use time rather than snapshot it: TaskUtil and
+	 * ProjectBuildContext instances are constructed once and reused across runs, while the timestamp
+	 * is refreshed per run by {@link #refreshBuildTime}.
+	 *
+	 * @returns {Date} The current build run's timestamp
+	 */
+	getBuildTime() {
+		return this.#buildTime;
 	}
 
 	getRootProject() {

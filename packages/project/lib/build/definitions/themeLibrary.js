@@ -11,7 +11,7 @@
 export default function({project, taskUtil, getTask}) {
 	const tasks = new Map();
 	tasks.set("replaceCopyright", {
-		supportsDifferentialBuilds: true,
+		stepBased: true,
 		options: {
 			copyright: project.getCopyright(),
 			pattern: "/resources/**/*.{less,theme}"
@@ -19,7 +19,7 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("replaceVersion", {
-		supportsDifferentialBuilds: true,
+		stepBased: true,
 		options: {
 			version: project.getVersion(),
 			pattern: "/resources/**/*.{less,theme}"
@@ -27,6 +27,7 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("buildThemes", {
+		stepBased: true,
 		requiresDependencies: true,
 		options: {
 			projectName: project.getName(),
@@ -38,6 +39,7 @@ export default function({project, taskUtil, getTask}) {
 
 	if (project.isFrameworkProject()) {
 		tasks.set("generateThemeDesignerResources", {
+			stepBased: true,
 			requiresDependencies: true,
 			options: {
 				version: project.getVersion()

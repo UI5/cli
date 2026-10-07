@@ -504,3 +504,136 @@ builder:
 		}
 	});
 });
+
+// The `.out` a unit of the step-based custom task fixture writes per `.src` key (see task.step-based.js).
+// procEachOut is the virtual path recorded in writtenResources; procEachDist is the on-disk location,
+// where an application build has dropped the `/resources/id1/` namespace prefix.
+const procEachOut = (name) => `/resources/id1/procEach/${name}.out`;
+const procEachDist = (destPath, name) => `${destPath}/procEach/${name}.out`;
+
+test.serial("Build application.a (step-based custom task with per-step delta caching)", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+	await fixtureTester._initialize();
+
+	// The custom task "step-based-task" (Specification Version 5.0, a step-based factory) runs one
+	// cached map-step unit per `.src` file. Each unit reads its sibling `.dep` through the step workspace,
+	// so that `.dep` is a tracked input of the owning unit alone. Changing only `a.dep` must re-run only
+	// a's unit and leave b's unit served from cache, proving per-step delta caching for a custom task.
+	const procEachDir = `${fixtureTester.fixturePath}/webapp/procEach`;
+	await fs.mkdir(procEachDir, {recursive: true});
+	await fs.writeFile(`${procEachDir}/a.src`, "source-a");
+	await fs.writeFile(`${procEachDir}/b.src`, "source-b");
+	await fs.writeFile(`${procEachDir}/a.dep`, "dep-a-v1");
+	await fs.writeFile(`${procEachDir}/b.dep`, "dep-b-v1");
+
+	// #1 build (no cache): both steps run, so the task writes both `.out` files.
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-stepBased.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"library.d": {},
+				"library.a": {},
+				"library.b": {},
+				"library.c": {},
+				"application.a": {
+					writtenResources: {
+						"step-based-task": [procEachOut("a"), procEachOut("b")],
+					},
+				},
+			},
+		},
+	});
+
+	// Both outputs reflect their v1 dep content.
+	t.is(await fs.readFile(procEachDist(destPath, "a"), {encoding: "utf8"}), "source-a\n// dep: dep-a-v1\n");
+	t.is(await fs.readFile(procEachDist(destPath, "b"), {encoding: "utf8"}), "source-b\n// dep: dep-b-v1\n");
+
+	// Change ONLY a's cross-resource input. a.src is untouched, so a's step re-runs solely because its
+	// recorded read of a.dep changed. b's step reads b.dep (unchanged) and stays cached.
+	await fs.writeFile(`${procEachDir}/a.dep`, "dep-a-v2");
+
+	// #2 build (with cache, with changes): the task re-runs in delta mode and writes ONLY a's `.out`.
+	// Only a.dep changed and only the step-based-task reads `.dep` files, so every standard task is
+	// served from cache and only application.a is rebuilt.
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-stepBased.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"application.a": {
+					skippedTasks: [
+						"escapeNonAsciiCharacters",
+						"replaceCopyright",
+						"enhanceManifest",
+						"generateFlexChangesBundle",
+						"generateVersionInfo",
+						"minify",
+						"replaceVersion",
+						"generateComponentPreload",
+					],
+					writtenResources: {
+						"step-based-task": [procEachOut("a")],
+					},
+				},
+			},
+		},
+	});
+
+	// a's output reflects the new dep; b's output is carried forward from cache unchanged.
+	t.is(await fs.readFile(procEachDist(destPath, "a"), {encoding: "utf8"}), "source-a\n// dep: dep-a-v2\n");
+	t.is(await fs.readFile(procEachDist(destPath, "b"), {encoding: "utf8"}), "source-b\n// dep: dep-b-v1\n");
+
+	// #3 build (with cache, no changes): everything is served from cache, including the custom task.
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-stepBased.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+});
+
+
+// A map step's keys() enumerator owns no key of its own, so anything it does is attributed to the stage
+// rather than to a unit. For resource tags that matters across a fully cached stage: the enumerator does
+// not run at all, and the tag has to come back from the stage's recorded tag operations.
+test.serial("Build application.a (step-based custom task: a tag set in keys() survives a cached stage)",
+	async (t) => {
+		const fixtureTester = new FixtureTester(t, "application.a");
+		const destPath = fixtureTester.destPath;
+		await fixtureTester._initialize();
+
+		// The fixture's keys() enumerator tags every `.omitme` file with OmitFromBuildResult while it
+		// globs for `.src` keys, so `keep.omitme` must never reach the build result.
+		const procEachDir = `${fixtureTester.fixturePath}/webapp/procEach`;
+		await fs.mkdir(procEachDir, {recursive: true});
+		await fs.writeFile(`${procEachDir}/a.src`, "source-a");
+		await fs.writeFile(`${procEachDir}/a.dep`, "dep-a-v1");
+		await fs.writeFile(`${procEachDir}/keep.omitme`, "should not reach the build result");
+
+		// #1 build (no cache): the enumerator runs and sets the tag live.
+		await fixtureTester.buildProject({
+			graphConfig: {rootConfigPath: "ui5-customTask-stepBased.yaml"},
+			config: {destPath, cleanDest: true},
+		});
+		await t.throwsAsync(fs.readFile(`${destPath}/procEach/keep.omitme`, {encoding: "utf8"}),
+			undefined, "#1 build: the tagged resource was omitted from the build result");
+
+		// #2 build: an unrelated source file changed, so application.a rebuilds, but nothing the step read
+		// changed. Its stage is a full cache hit, which means keys() never runs and the tag can only come
+		// from the restored stage.
+		await fs.writeFile(`${fixtureTester.fixturePath}/webapp/unrelated.js`, "console.log(\"unrelated\");");
+		await fixtureTester.buildProject({
+			graphConfig: {rootConfigPath: "ui5-customTask-stepBased.yaml"},
+			config: {destPath, cleanDest: true},
+		});
+		const skippedTasks = t.context.projectBuildStatusEventStub.args.map(([event]) => event)
+			.filter((event) => event.projectName === "application.a" && event.status === "task-skip")
+			.map((event) => event.taskName);
+		t.true(skippedTasks.includes("step-based-task"),
+			`#2 build: the step's stage was served from cache (skipped: ${skippedTasks})`);
+		await t.throwsAsync(fs.readFile(`${destPath}/procEach/keep.omitme`, {encoding: "utf8"}),
+			undefined, "#2 build (stage served from cache): the tagged resource is still omitted");
+	});

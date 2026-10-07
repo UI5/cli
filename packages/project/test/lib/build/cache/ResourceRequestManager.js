@@ -302,6 +302,52 @@ test("ResourceRequestManager: Adding requests marks as modified", async (t) => {
 	t.true(manager.hasNewOrModifiedCacheEntries(), "Has modified entries after adding requests");
 });
 
+test("ResourceRequestManager: Reusing an unchanged request set leaves the manager clean", async (t) => {
+	// A step-based stage records the same request set on every delta build. When that set already exists in
+	// the restored graph, #addRequestSet reuses the existing node and nothing persisted changes, so the
+	// manager must stay clean: otherwise every delta build re-serializes the whole request graph to SQLite.
+	const resources = new Map([
+		["/a.js", createMockResource("/a.js", "hash-a")],
+		["/b.js", createMockResource("/b.js", "hash-b")],
+	]);
+	const reader = createMockReader(resources);
+
+	// Record the set once, serialize, and restore a clean manager from the cache.
+	const manager1 = new ResourceRequestManager("test.project", "myTask", false);
+	await manager1.addRequests({paths: ["/a.js", "/b.js"], patterns: []}, reader);
+	const cacheData = manager1.toCacheObject();
+	const manager2 = ResourceRequestManager.fromCache("test.project", "myTask", false, cacheData);
+	t.false(manager2.hasNewOrModifiedCacheEntries(), "Restored manager starts clean");
+
+	// Record the identical set again: the exact-match reuse must not flag the manager dirty.
+	await manager2.addRequests({paths: ["/a.js", "/b.js"], patterns: []}, reader);
+
+	t.false(manager2.hasNewOrModifiedCacheEntries(),
+		"Reusing an unchanged request set leaves the manager clean");
+	t.is(manager2.toCacheObject(), undefined, "A clean manager serializes to nothing");
+});
+
+test("ResourceRequestManager: Adding a new request set to a restored manager flags it dirty", async (t) => {
+	// The counterpart to the reuse case: a genuinely new request set (not present in the restored graph) is a
+	// cache modification and must flag the manager dirty so it is persisted.
+	const resources = new Map([
+		["/a.js", createMockResource("/a.js", "hash-a")],
+		["/b.js", createMockResource("/b.js", "hash-b")],
+	]);
+	const reader = createMockReader(resources);
+
+	const manager1 = new ResourceRequestManager("test.project", "myTask", false);
+	await manager1.addRequests({paths: ["/a.js"], patterns: []}, reader);
+	const cacheData = manager1.toCacheObject();
+	const manager2 = ResourceRequestManager.fromCache("test.project", "myTask", false, cacheData);
+	t.false(manager2.hasNewOrModifiedCacheEntries(), "Restored manager starts clean");
+
+	// A request set that was never recorded before: a new node is created.
+	await manager2.addRequests({paths: ["/a.js", "/b.js"], patterns: []}, reader);
+
+	t.true(manager2.hasNewOrModifiedCacheEntries(), "A new request set flags the manager dirty");
+});
+
 // ===== toCacheObject TESTS =====
 
 test("ResourceRequestManager: Serialize to cache object", async (t) => {
@@ -829,9 +875,9 @@ test("ResourceRequestManager: fully empty root recording gets a distinguished si
 			"Distinct root recordings with all-unresolved reads produce distinct signatures");
 	});
 
-test("ResourceRequestManager: BuildTaskCache-shape flow with unresolved probe (integration-ish)",
+test("ResourceRequestManager: BuildStageCache-shape flow with unresolved probe (integration-ish)",
 	async (t) => {
-		// Mirrors what BuildTaskCache.recordRequests does with two consecutive
+		// Mirrors what BuildStageCache.recordRequests does with two consecutive
 		// addRequests recordings that share a parent but differ by one probed path.
 		const readerBefore = createMockReader(new Map([
 			["/a.js", createMockResource("/a.js", "hash-a")],
@@ -892,3 +938,29 @@ test("ResourceRequestManager: Serialization round-trip with multiple request set
 	t.true(manager2.hasNewOrModifiedCacheEntries(), "Restored manager has new entries");
 });
 
+
+test("ResourceRequestManager: clear() empties the manager and flags it for re-persistence", async (t) => {
+	const manager = new ResourceRequestManager("test.project", "myStage#root", false);
+	const reader = createMockReader(new Map([["/tsconfig.json", createMockResource("/tsconfig.json")]]));
+	await manager.addRequests({paths: ["/tsconfig.json"], patterns: []}, reader);
+
+	t.true(manager.hasRequests(), "Manager has requests after recording");
+	t.true(manager.getIndexSignatures().length > 0, "A recorded request yields a signature");
+	t.false(manager.wasCleared(), "A manager that recorded requests was not cleared");
+
+	manager.clear();
+
+	t.false(manager.hasRequests(), "clear() empties the manager");
+	t.deepEqual(manager.getIndexSignatures(), [], "No signatures remain after clear()");
+	t.true(manager.wasCleared(), "wasCleared() reports the manager was cleared");
+	t.true(manager.hasNewOrModifiedCacheEntries(), "A cleared manager is marked for re-persistence");
+	t.truthy(manager.toCacheObject(), "A cleared manager serializes its now-empty state to overwrite the stored one");
+});
+
+test("ResourceRequestManager: wasCleared() is false for a fresh and a restored manager", (t) => {
+	t.false(new ResourceRequestManager("test.project", "myStage#root", false).wasCleared(),
+		"A fresh manager was not cleared");
+	const restored = ResourceRequestManager.fromCache("test.project", "myStage#root", false,
+		{requestSetGraph: {nodes: [], nextId: 1}, rootIndices: [], deltaIndices: []});
+	t.false(restored.wasCleared(), "A restored manager was not cleared");
+});
