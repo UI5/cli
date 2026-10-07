@@ -1,4 +1,6 @@
 import test from "ava";
+import runSteps from "../../../lib/tasks/runSteps.js";
+import sinon from "sinon";
 import replaceCopyright from "../../../lib/tasks/replaceCopyright.js";
 import {createAdapter, createResource} from "@ui5/fs/resourceFactory";
 import DuplexCollection from "@ui5/fs/DuplexCollection";
@@ -38,7 +40,7 @@ console.log('HelloWorld');`;
 
 	await workspace.write(resource);
 
-	await replaceCopyright({
+	await runSteps(replaceCopyright, {
 		workspace,
 		options: {
 			copyright: copyright,
@@ -53,6 +55,56 @@ console.log('HelloWorld');`;
 	} else {
 		t.deepEqual(await transformedResource.getString(), expected);
 	}
+});
+
+
+test("integration: replace copyright reads the current year through taskUtil.getTime", async (t) => {
+	const reader = createAdapter({
+		virBasePath: "/"
+	});
+	const writer = createAdapter({
+		virBasePath: "/"
+	});
+	const workspace = new DuplexCollection({reader, writer});
+
+	/* eslint-disable no-useless-escape */
+	const content = `/*!
+ * $\{copyright\}
+ */
+console.log('HelloWorld');`;
+	/* eslint-enable no-useless-escape */
+
+	const copyright = `(c) Copyright 2009-\${currentYear} SAP SE or an SAP affiliate company.`;
+
+	// A stubbed taskUtil.getTime lets the test assert both that the task reads the year through the
+	// tracked accessor (not new Date()) and that it requests the "year" granularity.
+	const getTime = sinon.stub().returns("1999");
+	const expected = `/*!
+ * (c) Copyright 2009-1999 SAP SE or an SAP affiliate company.
+ */
+console.log('HelloWorld');`;
+
+	const resource = createResource({
+		path: "/test.js",
+		string: content
+	});
+
+	await workspace.write(resource);
+
+	await runSteps(replaceCopyright, {
+		workspace,
+		taskUtil: {getTime},
+		options: {
+			copyright: copyright,
+			pattern: "/**/*.js"
+		}
+	});
+
+	t.true(getTime.calledOnceWithExactly("year"), "taskUtil.getTime was called with the year granularity");
+
+	const transformedResource = await writer.byPath("/test.js");
+	t.truthy(transformedResource, "Could find /test.js in target");
+	t.is(await transformedResource.getString(), expected);
 });
 
 
@@ -87,7 +139,7 @@ test("test.xml: replace @copyright@", async (t) => {
 	});
 
 	await reader.write(resource);
-	await replaceCopyright({
+	await runSteps(replaceCopyright, {
 		workspace,
 		options: {
 			pattern: "/**/*.xml",

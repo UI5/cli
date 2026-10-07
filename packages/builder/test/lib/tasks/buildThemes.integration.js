@@ -1,5 +1,6 @@
 import test from "ava";
 import buildThemes from "../../../lib/tasks/buildThemes.js";
+import runSteps from "../../../lib/tasks/runSteps.js";
 import {createAdapter, createResource} from "@ui5/fs/resourceFactory";
 import DuplexCollection from "@ui5/fs/DuplexCollection";
 
@@ -45,7 +46,7 @@ test("integration: simple", async (t) => {
 		string: content
 	});
 	await reader.write(resource);
-	await buildThemes({
+	await runSteps(buildThemes, {
 		workspace: duplexCollection,
 		dependencies: dependencies,
 		options: {
@@ -126,7 +127,7 @@ test("integration: imports", async (t) => {
 		return reader.write(resource);
 	}));
 
-	await buildThemes({
+	await runSteps(buildThemes, {
 		workspace: duplexCollection,
 		dependencies: dependencies,
 		options: {

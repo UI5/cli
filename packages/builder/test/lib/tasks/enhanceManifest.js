@@ -1,4 +1,5 @@
 import test from "ava";
+import runSteps from "../../../lib/tasks/runSteps.js";
 import sinonGlobal from "sinon";
 import esmock from "esmock";
 import {createAdapter, createResource} from "@ui5/fs/resourceFactory";
@@ -24,7 +25,7 @@ test.beforeEach(async (t) => {
 
 	t.context.manifestEnhancerStub = sinon.stub();
 	t.context.fsInterfaceStub = sinon.stub().returns("fs interface");
-	t.context.enhanceManifest = await esmock("../../../lib/tasks/enhanceManifest.js", {
+	t.context.enhanceManifest = await esmock.p("../../../lib/tasks/enhanceManifest.js", {
 		"@ui5/logger": {
 			getLogger: sinon.stub().withArgs("builder:tasks:enhanceManifest").returns(t.context.log)
 		},
@@ -35,6 +36,7 @@ test.beforeEach(async (t) => {
 });
 
 test.afterEach.always((t) => {
+	esmock.purge(t.context.enhanceManifest);
 	t.context.sinon.restore();
 });
 
@@ -70,7 +72,7 @@ test.serial("Transforms single manifest.json resource", async (t) => {
 
 	t.context.manifestEnhancerStub.returns([resource]);
 
-	await enhanceManifest({
+	await runSteps(enhanceManifest, {
 		workspace,
 		options: {
 			projectNamespace: "sap/ui/demo/app"
@@ -92,7 +94,7 @@ test.serial("Transforms single manifest.json resource", async (t) => {
 test.serial("Transforms all manifest.json resources", async (t) => {
 	const {enhanceManifest, log} = t.context;
 
-	t.plan(6);
+	t.plan(5);
 
 	const resourceLib = createResource({
 		path: "/resources/sap/ui/demo/lib/manifest.json",
@@ -173,22 +175,19 @@ test.serial("Transforms all manifest.json resources", async (t) => {
 		}
 	};
 
-	t.context.manifestEnhancerStub.returns([resourceLib, resourceReuseComp1]);
+	// One step per manifest.json: the unchanged comp2 manifest returns nothing and is not written.
+	t.context.manifestEnhancerStub.callsFake(({resources}) =>
+		resources[0] === resourceReuseComp2 ? [] : [resources[0]]);
 
-	await enhanceManifest({
+	await runSteps(enhanceManifest, {
 		workspace,
 		options: {
 			projectNamespace: "sap/ui/demo/lib"
 		}
 	});
 
-	t.is(t.context.manifestEnhancerStub.callCount, 1,
-		"Processor should be called once");
-
-	t.true(t.context.manifestEnhancerStub.calledWithExactly({
-		resources: [resourceLib, resourceReuseComp1, resourceReuseComp2],
-		fs: "fs interface"
-	}), "Processor should be called with expected arguments");
+	t.is(t.context.manifestEnhancerStub.callCount, 3,
+		"Processor should be called once per manifest.json");
 
 	t.true(log.warn.notCalled, "No warnings should be logged");
 	t.true(log.error.notCalled, "No errors should be logged");
@@ -197,7 +196,7 @@ test.serial("Transforms all manifest.json resources", async (t) => {
 test.serial("Transforms multiple manifest.json resources", async (t) => {
 	const {enhanceManifest, log} = t.context;
 
-	t.plan(7);
+	t.plan(6);
 
 	const resourceLib = createResource({
 		path: "/resources/sap/ui/demo/lib/manifest.json",
@@ -277,22 +276,18 @@ test.serial("Transforms multiple manifest.json resources", async (t) => {
 		}
 	};
 
-	t.context.manifestEnhancerStub.returns([resourceLib, resourceReuseComp1, resourceReuseComp2]);
+	// One step per manifest.json: each changed manifest is written back at its own path.
+	t.context.manifestEnhancerStub.callsFake(({resources}) => [resources[0]]);
 
-	await enhanceManifest({
+	await runSteps(enhanceManifest, {
 		workspace,
 		options: {
 			projectNamespace: "sap/ui/demo/lib"
 		}
 	});
 
-	t.is(t.context.manifestEnhancerStub.callCount, 1,
-		"Processor should be called once");
-
-	t.true(t.context.manifestEnhancerStub.calledWithExactly({
-		resources: [resourceLib, resourceReuseComp1, resourceReuseComp2],
-		fs: "fs interface"
-	}), "Processor should be called with expected arguments");
+	t.is(t.context.manifestEnhancerStub.callCount, 3,
+		"Processor should be called once per manifest.json");
 
 	t.true(log.warn.notCalled, "No warnings should be logged");
 	t.true(log.error.notCalled, "No errors should be logged");
@@ -328,7 +323,7 @@ test.serial("Should not rewrite the manifest.json if no changes were made", asyn
 
 	t.context.manifestEnhancerStub.returns([]);
 
-	await enhanceManifest({
+	await runSteps(enhanceManifest, {
 		workspace,
 		options: {
 			projectNamespace: "sap/ui/demo/app"

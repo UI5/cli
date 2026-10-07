@@ -1,5 +1,4 @@
 import workerpool from "workerpool";
-import themeBuilder from "./themeBuilder.js";
 import {createResource} from "@ui5/fs/resourceFactory";
 import {Buffer} from "node:buffer";
 
@@ -25,6 +24,10 @@ export default async function execThemeBuild({
 	const fsThemeResources = deserializeResources(themeResources);
 	const fsReader = new FsWorkerThreadInterface(fsInterfacePort);
 
+	// Load the theme builder (and its less-openui5 module graph) lazily, so the main thread can import this
+	// module for its FsMainThreadInterface and (de)serialize helpers, and for the step-factory's plan-time
+	// step-name discovery, without evaluating that graph. Only a worker that builds a theme needs it.
+	const themeBuilder = (await import("./themeBuilder.js")).default;
 	const result = await themeBuilder({
 		resources: fsThemeResources,
 		fs: fsReader,

@@ -18,44 +18,46 @@ import stringReplacer from "../processors/stringReplacer.js";
  * it will be replaced with the current year.
  * If no copyright string is given, no replacement is being done.
  *
+ * A step-based task: the default export is a factory returning one map step with a key per matched
+ * resource, so a delta build re-processes only the resources whose content changed. Each step reads the
+ * current year through [taskUtil.getTime]{@link @ui5/project/build/helpers/TaskUtil#getTime} so the
+ * incremental build cache tracks it: a cached result re-runs when the calendar year rolls over. Without a
+ * TaskUtil (e.g. a direct invocation) the step falls back to the wall clock.
+ *
  * @public
  * @function default
  * @static
  *
- * @param {object} parameters Parameters
- * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {string[]} [parameters.changedProjectResourcePaths] Set of changed resource paths within the project.
- * This is only set if a cache is used and changes have been detected.
- * @param {object} parameters.options Options
- * @param {string} parameters.options.copyright Replacement copyright
- * @param {string} parameters.options.pattern Pattern to locate the files to be processed
- * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
+ * @param {object} options Options
+ * @param {string} options.copyright Replacement copyright
+ * @param {string} options.pattern Pattern to locate the files to be processed
+ * @returns {object[]} The task's build steps
  */
-export default async function({workspace, changedProjectResourcePaths, options: {copyright, pattern}}) {
+export default function build({copyright, pattern}) {
 	if (!copyright) {
-		return;
+		return [];
 	}
 
-	// Replace optional placeholder ${currentYear} with the current year
-	copyright = copyright.replace(/(?:\$\{currentYear\})/, new Date().getFullYear());
+	const replacePattern = /(?:\$\{copyright\}|@copyright@)/g;
 
-	let resources;
-	if (changedProjectResourcePaths) {
-		resources = await Promise.all(changedProjectResourcePaths.map((resource) => workspace.byPath(resource)));
-	} else {
-		resources = await workspace.byGlob(pattern);
-	}
+	return [{
+		name: "replaceCopyright",
+		// One key per matched resource, so a delta build re-processes only the resources that changed.
+		keys: async ({workspace}) => workspace.byGlob(pattern),
+		each: async (resource, {workspace, taskUtil}) => {
+			// Read the current year through taskUtil.getTime so the build cache tracks it as a step input:
+			// a cached step then re-runs when the calendar year rolls over. Fall back to a direct Date read
+			// when the task runs without a TaskUtil.
+			const currentYear = taskUtil?.getTime ? taskUtil.getTime("year") : new Date().getFullYear();
+			const replacement = copyright.replace(/(?:\$\{currentYear\})/, currentYear);
 
-	const processedResources = await stringReplacer({
-		resources,
-		options: {
-			pattern: /(?:\$\{copyright\}|@copyright@)/g,
-			replacement: copyright
-		}
-	});
-	return Promise.all(processedResources.map((resource) => {
-		if (resource) {
-			return workspace.write(resource);
-		}
-	}));
+			const [processed] = await stringReplacer({
+				resources: [resource],
+				options: {pattern: replacePattern, replacement}
+			});
+			if (processed) {
+				await workspace.write(processed);
+			}
+		},
+	}];
 }
