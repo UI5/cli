@@ -348,7 +348,12 @@ export default async function({workspace, taskUtil, options: {skipBundles = [], 
 	}
 	const coreVersion = taskUtil?.getProject("sap.ui.core")?.getVersion();
 	const allowStringBundling = taskUtil?.getProject().getSpecVersion().lt("4.0");
-	const createBundleInfoPreload = !!process.env.UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD;
+	// Read the experimental flag through taskUtil.getEnv so that its usage is tracked as a task
+	// input by the incremental build cache (a changed value then invalidates this task's cached
+	// result). Fall back to a direct process.env read when the task runs without a TaskUtil.
+	const createBundleInfoPreload = taskUtil?.getEnv ?
+		!!taskUtil.getEnv("UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD") :
+		!!process.env.UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD;
 	const execModuleBundlerIfNeeded = ({options, resources}) => {
 		if (skipBundles.includes(options.bundleDefinition.name)) {
 			log.verbose(`Skipping generation of bundle ${options.bundleDefinition.name}`);
