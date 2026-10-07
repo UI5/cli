@@ -4,6 +4,8 @@
  * @property {string[]} writtenResourcePaths Array of resource paths written during stage execution
  * @property {Map<string, Map<string, *>>} resourceTagOperations
  *  Map of resource paths to their tags that were set or cleared during this stage's execution
+ * @property {Map<string, object>} [stepInvocationData] A step-based stage's per-key invocation data,
+ *  travelling with the stage under the same signature so the pair can never separate
  */
 
 /**
@@ -45,8 +47,11 @@ export default class StageCache {
 	 * @param {Map<string, Map<string, *>>} projectTagOperations
 	 * @param {Map<string, Map<string, *>>} buildTagOperations
 	 *  Map of resource paths to their tags that were set or cleared during this stage's execution
+	 * @param {Map<string, object>} [stepInvocationData] A step-based stage's per-key invocation data,
+	 *  stored under this signature so a later lookup pairs the stage output with the matching per-key map
 	 */
-	addSignature(stageId, signature, stageInstance, writtenResourcePaths, projectTagOperations, buildTagOperations) {
+	addSignature(stageId, signature, stageInstance, writtenResourcePaths, projectTagOperations, buildTagOperations,
+		stepInvocationData) {
 		if (!this.#stageIdToSignatures.has(stageId)) {
 			this.#stageIdToSignatures.set(stageId, new Map());
 		}
@@ -57,6 +62,7 @@ export default class StageCache {
 			writtenResourcePaths,
 			projectTagOperations,
 			buildTagOperations,
+			stepInvocationData,
 		});
 		this.#cacheQueue.push([stageId, signature]);
 	}

@@ -61,29 +61,30 @@ test("Standard build", async (t) => {
 	const generateJsdocTaskDefinition = tasks.get("generateJsdoc");
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
+			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
+			stepBased: true,
 			options: {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
+			stepBased: true,
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceBuildtime: {
+			stepBased: true,
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		generateJsdoc: {
 			determineBuildSignature: generateJsdocTaskDefinition.determineBuildSignature,
@@ -97,22 +98,23 @@ test("Standard build", async (t) => {
 			}
 		},
 		minify: {
+			stepBased: true,
 			options: {
 				pattern: [
 					"/resources/**/*.js",
 					"!**/*.support.js",
 				]
 			},
-			supportsDifferentialBuilds: true,
 		},
 		generateLibraryManifest: {},
-		enhanceManifest: {},
+		enhanceManifest: {stepBased: true},
 		generateLibraryPreload: {
 			options: {
 				excludes: [], skipBundles: []
 			}
 		},
 		buildThemes: {
+			stepBased: true,
 			requiresDependencies: true,
 			options: {
 				projectName: "project.b",
@@ -177,6 +179,7 @@ test("Standard build (framework project)", (t) => {
 	});
 
 	t.deepEqual(tasks.get("generateThemeDesignerResources"), {
+		stepBased: true,
 		requiresDependencies: true, options: {
 			version: "version"
 		}
@@ -199,29 +202,30 @@ test("Standard build with legacy spec version", (t) => {
 	const generateJsdocTaskDefinition = tasks.get("generateJsdoc");
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
+			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
+			stepBased: true,
 			options: {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
+			stepBased: true,
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceBuildtime: {
+			stepBased: true,
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		generateJsdoc: {
 			determineBuildSignature: generateJsdocTaskDefinition.determineBuildSignature,
@@ -235,22 +239,23 @@ test("Standard build with legacy spec version", (t) => {
 			}
 		},
 		minify: {
+			stepBased: true,
 			options: {
 				pattern: [
 					"/resources/**/*.js",
 					"!**/*.support.js",
 				]
 			},
-			supportsDifferentialBuilds: true,
 		},
 		generateLibraryManifest: {},
-		enhanceManifest: {},
+		enhanceManifest: {stepBased: true},
 		generateLibraryPreload: {
 			options: {
 				excludes: [], skipBundles: []
 			}
 		},
 		buildThemes: {
+			stepBased: true,
 			requiresDependencies: true,
 			options: {
 				projectName: "project.b",
@@ -329,29 +334,30 @@ test("Custom bundles", async (t) => {
 
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
+			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
+			stepBased: true,
 			options: {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
+			stepBased: true,
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceBuildtime: {
+			stepBased: true,
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		generateJsdoc: {
 			determineBuildSignature: generateJsdocTaskDefinition.determineBuildSignature,
@@ -365,16 +371,16 @@ test("Custom bundles", async (t) => {
 			}
 		},
 		minify: {
+			stepBased: true,
 			options: {
 				pattern: [
 					"/resources/**/*.js",
 					"!**/*.support.js",
 				]
 			},
-			supportsDifferentialBuilds: true,
 		},
 		generateLibraryManifest: {},
-		enhanceManifest: {},
+		enhanceManifest: {stepBased: true},
 		generateLibraryPreload: {
 			options: {
 				excludes: [],
@@ -389,6 +395,7 @@ test("Custom bundles", async (t) => {
 			taskFunction: generateBundleTaskDefinition.taskFunction
 		},
 		buildThemes: {
+			stepBased: true,
 			requiresDependencies: true,
 			options: {
 				projectName: "project.b",
@@ -493,6 +500,7 @@ test("Minification excludes", (t) => {
 
 	const taskDefinition = tasks.get("minify");
 	t.deepEqual(taskDefinition, {
+		stepBased: true,
 		options: {
 			pattern: [
 				"/resources/**/*.js",
@@ -500,7 +508,6 @@ test("Minification excludes", (t) => {
 				"!/resources/**.html",
 			]
 		},
-		supportsDifferentialBuilds: true,
 	}, "Correct minify task definition");
 });
 
@@ -521,13 +528,13 @@ test("Minification excludes not applied for legacy specVersion", (t) => {
 
 	const taskDefinition = tasks.get("minify");
 	t.deepEqual(taskDefinition, {
+		stepBased: true,
 		options: {
 			pattern: [
 				"/resources/**/*.js",
 				"!**/*.support.js",
 			]
 		},
-		supportsDifferentialBuilds: true,
 	}, "Correct minify task definition");
 });
 
@@ -633,6 +640,7 @@ test("buildThemes: Project is not root", (t) => {
 
 	const taskDefinition = tasks.get("buildThemes");
 	t.deepEqual(taskDefinition, {
+		stepBased: true,
 		requiresDependencies: true,
 		options: {
 			projectName: "project.b",
@@ -688,6 +696,7 @@ test("buildThemes: CSS Variables enabled", (t) => {
 
 	const taskDefinition = tasks.get("buildThemes");
 	t.deepEqual(taskDefinition, {
+		stepBased: true,
 		requiresDependencies: true,
 		options: {
 			projectName: "project.b",
@@ -711,29 +720,30 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 	const generateJsdocTaskDefinition = tasks.get("generateJsdoc");
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
+			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
+			stepBased: true,
 			options: {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
+			stepBased: true,
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceBuildtime: {
+			stepBased: true,
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		generateJsdoc: {
 			determineBuildSignature: generateJsdocTaskDefinition.determineBuildSignature,
@@ -747,22 +757,23 @@ test("Standard build: nulled taskFunction to skip tasks", (t) => {
 			}
 		},
 		minify: {
+			stepBased: true,
 			options: {
 				pattern: [
 					"/resources/**/*.js",
 					"!**/*.support.js",
 				]
 			},
-			supportsDifferentialBuilds: true,
 		},
 		generateLibraryManifest: {},
-		enhanceManifest: {},
+		enhanceManifest: {stepBased: true},
 		generateLibraryPreload: {
 			options: {
 				excludes: [], skipBundles: []
 			}
 		},
 		buildThemes: {
+			stepBased: true,
 			requiresDependencies: true,
 			options: {
 				projectName: "project.b",

@@ -11,7 +11,7 @@ const log = getLogger("build:cache:CacheManager");
 const cacheManagerInstances = new Map();
 
 // Cache version for compatibility management
-export const CACHE_VERSION = "v0_7";
+export const CACHE_VERSION = "v0_9";
 
 /**
  * Manages persistence for the build cache using a unified SQLite-backed storage
@@ -154,31 +154,31 @@ export default class CacheManager {
 	}
 
 	/**
-	 * Reads task metadata from cache
+	 * Reads stage request metadata from cache
 	 *
 	 * @public
 	 * @param {string} projectId Project identifier
 	 * @param {string} buildSignature Build signature hash
-	 * @param {string} taskName Task name
+	 * @param {string} stageId Stage id
 	 * @param {string} type "project" or "dependency"
-	 * @returns {object|null} Parsed task metadata or null if not found
+	 * @returns {object|null} Parsed stage metadata or null if not found
 	 */
-	readTaskMetadata(projectId, buildSignature, taskName, type) {
-		return this.#storage.readTaskMetadata(projectId, buildSignature, taskName, type);
+	readTaskMetadata(projectId, buildSignature, stageId, type) {
+		return this.#storage.readTaskMetadata(projectId, buildSignature, stageId, type);
 	}
 
 	/**
-	 * Writes task metadata to cache
+	 * Writes stage request metadata to cache
 	 *
 	 * @public
 	 * @param {string} projectId Project identifier
 	 * @param {string} buildSignature Build signature hash
-	 * @param {string} taskName Task name
+	 * @param {string} stageId Stage id
 	 * @param {string} type "project" or "dependency"
-	 * @param {object} metadata Task metadata object to serialize
+	 * @param {object} metadata Stage metadata object to serialize
 	 */
-	writeTaskMetadata(projectId, buildSignature, taskName, type, metadata) {
-		this.#storage.writeTaskMetadata(projectId, buildSignature, taskName, type, metadata);
+	writeTaskMetadata(projectId, buildSignature, stageId, type, metadata) {
+		this.#storage.writeTaskMetadata(projectId, buildSignature, stageId, type, metadata);
 	}
 
 	/**

@@ -9,6 +9,19 @@ function emptyarray() {
 	return [];
 }
 
+// A task receives its taskUtil wrapped in a MonitoredTaskUtil, which records the inputs the task
+// reads. The wrapper exposes getInputRecording() and delegates every other member to the underlying
+// taskUtil, so a wrapped member reads back the underlying value.
+function assertMonitoredTaskUtil(t, actual, {delegates} = {}) {
+	t.is(typeof actual.getInputRecording, "function", "task received a MonitoredTaskUtil");
+	t.deepEqual(actual.getInputRecording(), [], "no task inputs recorded");
+	if (delegates) {
+		for (const [key, value] of Object.entries(delegates)) {
+			t.is(actual[key], value, `MonitoredTaskUtil delegates '${key}' to the underlying taskUtil`);
+		}
+	}
+}
+
 const buildConfig = {
 	selfContained: false,
 	jsdoc: false,
@@ -99,7 +112,7 @@ test.beforeEach(async (t) => {
 			};
 		},
 		getRequiredDependenciesCallback: t.context.getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false),
+		getStepBased: async () => false,
 	};
 
 	t.context.graph = {
@@ -129,10 +142,15 @@ test.beforeEach(async (t) => {
 
 	t.context.buildCache = {
 		setTasks: sinon.stub(),
-		prepareTaskExecutionAndValidateCache: sinon.stub().resolves(false),
-		recordTaskResult: sinon.stub().resolves(),
+		prepareStageExecutionAndValidateCache: sinon.stub().resolves(false),
+		recordStageResult: sinon.stub().resolves(),
 		allTasksCompleted: sinon.stub().resolves([]),
-		prefetchStageCache: sinon.stub(),
+		getStepInvocationData: sinon.stub().returns(undefined),
+		getStepReturnValueStore: sinon.stub().returns(undefined),
+		getResolveInputValue: sinon.stub().returns(undefined),
+		setStepInvocationData: sinon.stub(),
+		getStageId: sinon.stub().callsFake((taskName, stepName) =>
+			stepName === undefined ? `task/${taskName}` : `task/${taskName}::step/${stepName}`),
 	};
 
 	t.context.resourceFactory = {
@@ -145,7 +163,7 @@ test.beforeEach(async (t) => {
 				return {
 					constructor: {name: "MonitoredReader"},
 					getName: () => name,
-					getResourceRequests: sinon.stub().returns([])
+					getResourceRequests: sinon.stub().returns({paths: [], patterns: []})
 				};
 			}
 			return resource;
@@ -666,9 +684,9 @@ test("Custom task is called correctly", async (t) => {
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
+		getStepBased: async () => false,
 	});
-	t.context.taskUtil.getInterface.returns("taskUtil interface");
+	t.context.taskUtil.getInterface.returns({isTaskUtilInterface: true});
 	const project = getMockProject("module");
 	project.getCustomTasks = () => [
 		{name: "myTask", configuration: "configuration"}
@@ -685,12 +703,12 @@ test("Custom task is called correctly", async (t) => {
 	await taskRunner._tasks["myTask"].task();
 
 	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
-	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
 	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
-		"SpecificationVersion#gte got called with correct arguments on second call (differential updates check)");
+		"SpecificationVersion#gte got called with correct arguments on second call (step-based opt-in)");
+	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
 
 	t.is(createDependencyReaderStub.callCount, 1, "getDependenciesReader got called once");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
@@ -702,7 +720,7 @@ test("Custom task is called correctly", async (t) => {
 	const taskArgs = taskStub.getCall(0).args[0];
 	t.is(taskArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
 	t.is(taskArgs.dependencies.constructor.name, "MonitoredReader", "dependencies is MonitoredReader");
-	t.is(taskArgs.taskUtil, "taskUtil interface", "taskUtil is correct");
+	assertMonitoredTaskUtil(t, taskArgs.taskUtil, {delegates: {isTaskUtilInterface: true}});
 	t.is(taskArgs.options.projectName, "project.b", "projectName is correct");
 	t.is(taskArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
 	t.is(taskArgs.options.configuration, "configuration", "configuration is correct");
@@ -725,7 +743,7 @@ test("Custom task with legacy spec version", async (t) => {
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
+		getStepBased: async () => false,
 	});
 	t.context.taskUtil.getInterface.returns(undefined); // simulating no taskUtil for old specVersion
 	const project = getMockProject("module");
@@ -745,12 +763,12 @@ test("Custom task with legacy spec version", async (t) => {
 	await taskRunner._tasks["myTask"].task();
 
 	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
-	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
 	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
-		"SpecificationVersion#gte got called with correct arguments on second call (differential updates check)");
+		"SpecificationVersion#gte got called with correct arguments on second call (step-based opt-in)");
+	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
 
 	t.is(createDependencyReaderStub.callCount, 1, "getDependenciesReader got called once");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
@@ -785,7 +803,7 @@ test("Custom task with legacy spec version and requiredDependenciesCallback", as
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
+		getStepBased: async () => false,
 	});
 	t.context.taskUtil.getInterface.returns(undefined); // simulating no taskUtil for old specVersion
 	const project = getMockProject("module");
@@ -816,12 +834,12 @@ test("Custom task with legacy spec version and requiredDependenciesCallback", as
 	await taskRunner._tasks["myTask"].task();
 
 	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
-	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
 	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
-		"SpecificationVersion#gte got called with correct arguments on second call (differential updates check)");
+		"SpecificationVersion#gte got called with correct arguments on second call (step-based opt-in)");
+	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
 
 	t.is(createDependencyReaderStub.callCount, 1, "getDependenciesReader got called once");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
@@ -859,7 +877,7 @@ test("Custom task with specVersion 3.0", async (t) => {
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
+		getStepBased: async () => false,
 	});
 
 	const project = getMockProject("module");
@@ -907,12 +925,12 @@ test("Custom task with specVersion 3.0", async (t) => {
 	await taskRunner._tasks["myTask"].task();
 
 	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
-	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
 	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
-		"SpecificationVersion#gte got called with correct arguments on second call (differential updates check)");
+		"SpecificationVersion#gte got called with correct arguments on second call (step-based opt-in)");
+	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
 
 	t.is(taskUtil.getInterface.callCount, 2, "taskUtil#getInterface got called twice");
 	t.is(taskUtil.getInterface.getCall(0).args[0], mockSpecVersion,
@@ -931,7 +949,7 @@ test("Custom task with specVersion 3.0", async (t) => {
 	t.is(taskArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
 	t.is(taskArgs.dependencies.constructor.name, "MonitoredReader", "dependencies is MonitoredReader");
 	t.is(taskArgs.log, "group logger", "log is correct");
-	t.deepEqual(taskArgs.taskUtil, taskUtil, "taskUtil is correct");
+	assertMonitoredTaskUtil(t, taskArgs.taskUtil);
 	t.is(taskArgs.options.projectName, "project.b", "projectName is correct");
 	t.is(taskArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
 	t.is(taskArgs.options.taskName, "myTask", "taskName is correct");
@@ -954,7 +972,7 @@ test("Custom task with specVersion 3.0 and no requiredDependenciesCallback", asy
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
+		getStepBased: async () => false,
 	});
 
 	const project = getMockProject("module");
@@ -973,12 +991,12 @@ test("Custom task with specVersion 3.0 and no requiredDependenciesCallback", asy
 	await taskRunner._tasks["myTask"].task();
 
 	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
-	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
 	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
 	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
-		"SpecificationVersion#gte got called with correct arguments on second call (differential updates check)");
+		"SpecificationVersion#gte got called with correct arguments on second call (step-based opt-in)");
+	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
 
 	t.is(taskUtil.getInterface.callCount, 1, "taskUtil#getInterface got called once");
 	t.is(taskUtil.getInterface.getCall(0).args[0], mockSpecVersion,
@@ -991,7 +1009,7 @@ test("Custom task with specVersion 3.0 and no requiredDependenciesCallback", asy
 	const taskArgs = taskStub.getCall(0).args[0];
 	t.is(taskArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
 	t.is(taskArgs.log, "group logger", "log is correct");
-	t.deepEqual(taskArgs.taskUtil, taskUtil, "taskUtil is correct");
+	assertMonitoredTaskUtil(t, taskArgs.taskUtil);
 	t.is(taskArgs.options.projectName, "project.b", "projectName is correct");
 	t.is(taskArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
 	t.is(taskArgs.options.taskName, "myTask", "taskName is correct");
@@ -1032,28 +1050,28 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 		getTask: () => taskStubA,
 		getSpecVersion: () => mockSpecVersionA,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
+		getStepBased: async () => false,
 	});
 	graph.getExtension.onSecondCall().returns({
 		getName: () => "Task Name B",
 		getTask: () => taskStubB,
 		getSpecVersion: () => mockSpecVersionB,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
+		getStepBased: async () => false,
 	});
 	graph.getExtension.onThirdCall().returns({
 		getName: () => "Task Name C",
 		getTask: () => taskStubC,
 		getSpecVersion: () => mockSpecVersionC,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
+		getStepBased: async () => false,
 	});
 	graph.getExtension.onCall(3).returns({
 		getName: () => "Task Name D",
 		getTask: () => taskStubD,
 		getSpecVersion: () => mockSpecVersionD,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
+		getStepBased: async () => false,
 	});
 	const project = getMockProject("module");
 	project.getCustomTasks = () => [
@@ -1173,7 +1191,7 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 	const taskCArgs = taskStubC.getCall(0).args[0];
 	t.is(taskCArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
 	t.is(taskCArgs.log, "group logger", "log is correct");
-	t.deepEqual(taskCArgs.taskUtil, taskUtil, "taskUtil is correct");
+	assertMonitoredTaskUtil(t, taskCArgs.taskUtil);
 	t.is(taskCArgs.options.projectName, "project.b", "projectName is correct");
 	t.is(taskCArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
 	t.is(taskCArgs.options.taskName, "myTask--3", "taskName is correct");
@@ -1185,7 +1203,7 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 	t.is(taskDArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
 	t.is(taskDArgs.dependencies.constructor.name, "MonitoredReader", "dependencies is MonitoredReader");
 	t.is(taskDArgs.log, "group logger", "log is correct");
-	t.deepEqual(taskDArgs.taskUtil, taskUtil, "taskUtil is correct");
+	assertMonitoredTaskUtil(t, taskDArgs.taskUtil);
 	t.is(taskDArgs.options.projectName, "project.b", "projectName is correct");
 	t.is(taskDArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
 	t.is(taskDArgs.options.taskName, "myTask--4", "taskName is correct");
@@ -1210,7 +1228,7 @@ test("Custom task: requiredDependenciesCallback returns unknown dependency", asy
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
+		getStepBased: async () => false,
 	});
 
 	const project = getMockProject("module");
@@ -1246,7 +1264,7 @@ test("Custom task: requiredDependenciesCallback returns Array instead of Set", a
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getSupportsDifferentialBuildsCallback: sinon.stub().returns(() => false)
+		getStepBased: async () => false,
 	});
 
 	const project = getMockProject("module");
@@ -1272,7 +1290,9 @@ test("Custom task attached to a disabled task", async (t) => {
 		{name: "myTask", afterTask: "generateBundle", configuration: "dog"}
 	];
 
-	taskRepository.getTask = sinon.stub().returns({task: sinon.stub()});
+	// Standard tasks are step-based factories; the stub returns an empty step list so the step runner is
+	// a no-op and this test only exercises task ordering and the custom task's execution.
+	taskRepository.getTask = sinon.stub().returns({task: sinon.stub().returns([])});
 	customTask.getTask = () => customTaskFnStub;
 
 	const taskRunner = createTaskRunner(t, project);
@@ -1302,7 +1322,7 @@ test("Custom task attached to a disabled task", async (t) => {
 });
 
 test.serial("_addTask", async (t) => {
-	const {sinon, taskUtil, taskRepository} = t.context;
+	const {sinon, taskRepository} = t.context;
 
 	const taskStub = sinon.stub();
 	taskRepository.getTask.withArgs("standardTask").resolves({
@@ -1334,11 +1354,11 @@ test.serial("_addTask", async (t) => {
 	t.is(taskCallArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
 	t.is(taskCallArgs.options.projectName, "project.b", "projectName is correct");
 	t.is(taskCallArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
-	t.is(taskCallArgs.taskUtil, taskUtil, "taskUtil is correct");
+	assertMonitoredTaskUtil(t, taskCallArgs.taskUtil);
 });
 
 test.serial("_addTask with options", async (t) => {
-	const {sinon, taskUtil, taskRepository} = t.context;
+	const {sinon, taskRepository} = t.context;
 	const taskStub = sinon.stub();
 	const project = getMockProject("module");
 
@@ -1376,7 +1396,60 @@ test.serial("_addTask with options", async (t) => {
 	t.is(taskCallArgs.options.projectName, "project.b", "projectName is correct");
 	t.is(taskCallArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
 	t.is(taskCallArgs.options.myTaskOption, "cat", "myTaskOption is correct");
-	t.is(taskCallArgs.taskUtil, taskUtil, "taskUtil is correct");
+	assertMonitoredTaskUtil(t, taskCallArgs.taskUtil);
+});
+
+// A fake AbstractReader-like project reader. Answers byPath/byGlob for the pass-through path and
+// exposes the _byPath/_byGlob hooks a real MonitoredReader delegates to once the reader is wrapped.
+function fakeProjectReader(name) {
+	return {
+		getName: () => name,
+		byPath: async (virPath) => ({getPath: () => virPath}),
+		byGlob: async () => [],
+		_byPath: async (virPath) => ({getPath: () => virPath}),
+		_byGlob: async () => [],
+	};
+}
+
+test.serial("Folds taskUtil project-reader reads into the recorded resource requests", async (t) => {
+	const {sinon, taskUtil, buildCache} = t.context;
+	const project = getMockProject("module");
+
+	// getProject() (no arg) / "project.b" is the project being built; "dep.a" is a dependency.
+	taskUtil.getProject.callsFake((name) => {
+		if (name === undefined || name === "project.b") {
+			return {getName: () => "project.b", getReader: () => fakeProjectReader("project.b reader")};
+		}
+		if (name === "dep.a") {
+			return {getName: () => "dep.a", getReader: () => fakeProjectReader("dep.a reader")};
+		}
+		return undefined;
+	});
+
+	const taskStub = sinon.stub().callsFake(async (params) => {
+		await params.taskUtil.getProject().getReader().byPath("/resources/project/b/own.js");
+		await params.taskUtil.getProject("dep.a").getReader().byGlob("/resources/dep/a/**");
+	});
+
+	const taskRunner = createTaskRunner(t, project);
+	await taskRunner._initTasks();
+	taskRunner._addTask("standardTask", {requiresDependencies: true, taskFunction: taskStub});
+
+	// Warm the cached dependencies reader (normally done by runTasks)
+	await taskRunner.getDependenciesReader(new Set(["dep.a", "dep.b"]), true);
+	await taskRunner._tasks["standardTask"].task();
+
+	t.is(taskStub.callCount, 1, "task executed");
+	const {projectResourceRequests, dependencyResourceRequests} =
+		buildCache.recordStageResult.getCall(0).args[0];
+	t.deepEqual(projectResourceRequests, {
+		paths: ["/resources/project/b/own.js"],
+		patterns: [],
+	}, "reads of the project being built are folded into the project resource requests");
+	t.deepEqual(dependencyResourceRequests, {
+		paths: [],
+		patterns: ["/resources/dep/a/**"],
+	}, "reads of a dependency's reader are folded into the dependency resource requests");
 });
 
 test("_addTask: Duplicate task", async (t) => {
@@ -1564,3 +1637,800 @@ test("getDependenciesReader: No dependencies required", async (t) => {
 	t.is(res.getName(), "custom reader collection", "Shared (all-)dependency reader returned");
 });
 
+
+// Integration: a step-based standard task built on the real MonitoredTaskUtil + StepRunner. A per-step
+// non-resource input change (an env var one step reads) must re-run only that step, and a step served from
+// cache must replay its recorded tag operations into the project tag collection.
+test("Step-based task: a per-step input change re-runs only that step; a restored step replays its tags",
+	async (t) => {
+		const {sinon, projectBuildLogger} = t.context;
+
+		// A mutable environment the step reads per key; the resolver re-derives the current value on the
+		// delta build the same way the real ProjectBuildContext does.
+		const env = {a: "1", b: "1"};
+		const resolveInputValue = (type, name) => (type === "env" ? env[name] : undefined);
+
+		// The taskUtil the per-step MonitoredTaskUtil wraps: getEnv is a tracked input, setTag passes
+		// through to reach the tag collection when a step actually runs.
+		const setTag = sinon.stub();
+		const taskUtil = {
+			isRootProject: sinon.stub().returns(true),
+			getDependencies: sinon.stub().returns([]),
+			getInterface: sinon.stub(),
+			getEnv: (name) => env[name],
+			setTag,
+		};
+		taskUtil.getInterface.returns(taskUtil);
+
+		const ran = [];
+		// A step factory: one map step keyed by "a"/"b" whose each reads an env var and tags its output.
+		const build = () => [{
+			name: "stepGroup",
+			keys: async () => ["a", "b"],
+			each: async (key, {taskUtil}) => {
+				ran.push(key);
+				taskUtil.getEnv(key);
+				taskUtil.setTag({getPath: () => `/out/${key}`}, "ui5:IsBundle", true);
+			},
+		}];
+		const taskDefinitions = {
+			getTaskDefinitions: async () => ({
+				standardTasks: new Map([
+					["stepTask",
+						{requiresDependencies: false, stepBased: true, options: {}, taskFunction: build}],
+				]),
+				customTasks: new Map(),
+			}),
+		};
+
+		let capturedInvocationData;
+		let deltaMode = false;
+		const buildCache = {
+			setTasks: sinon.stub(),
+			recordStageResult: sinon.stub().resolves(),
+			allTasksCompleted: sinon.stub().resolves([]),
+			getStageId: (taskName, stepName) =>
+				stepName === undefined ? `task/${taskName}` : `task/${taskName}::step/${stepName}`,
+			prepareStageExecutionAndValidateCache: sinon.stub().callsFake(async () =>
+				(deltaMode ? {changedProjectResourcePaths: [], changedDependencyResourcePaths: []} : false)),
+			getStepInvocationData: sinon.stub().callsFake(() => capturedInvocationData),
+			getStepReturnValueStore: sinon.stub().returns(undefined),
+			getResolveInputValue: sinon.stub().returns(resolveInputValue),
+			setStepInvocationData: sinon.stub().callsFake((name, data) => {
+				capturedInvocationData = data;
+			}),
+		};
+
+		const replayTagOperations = sinon.stub();
+		const project = getMockProject("module");
+		project.getProjectResources = () => ({replayTagOperations});
+
+		const taskRunner = createTaskRunner(t, project, {taskUtil, buildCache, taskDefinitions});
+		await taskRunner._initTasks();
+
+		// Build 1 (full): both steps run and record their env input and tag operation.
+		await taskRunner._tasks["stepTask"].task(projectBuildLogger);
+		t.deepEqual(ran, ["a", "b"], "The full build ran every step");
+		t.is(replayTagOperations.callCount, 0, "A full build restores no step, so nothing is replayed");
+
+		// Build 2 (delta): only env var "a" changed, so step "a" re-runs and step "b" is restored.
+		ran.length = 0;
+		setTag.resetHistory();
+		deltaMode = true;
+		env.a = "2";
+		await taskRunner._tasks["stepTask"].task(projectBuildLogger);
+
+		t.deepEqual(ran, ["a"], "Only the step whose env input changed re-ran on the delta build");
+		t.is(setTag.callCount, 1, "Only the re-run step set its tag live");
+		t.is(setTag.getCall(0).args[0].getPath(), "/out/a", "The re-run step's live setTag targeted its own output");
+		t.is(replayTagOperations.callCount, 1, "The restored step replayed its tag operations");
+		t.deepEqual(replayTagOperations.getCall(0).args[0],
+			[{op: "set", path: "/out/b", tag: "ui5:IsBundle", value: true}],
+			"The restored step's recorded tag operation was replayed, so its tag survives");
+	});
+
+// Builds a custom task extension stub whose spec version is driven by the given gte(version) result and
+// whose step-based opt-in is the given flag.
+function createCustomTaskExtension(sinon, {taskFunction, gte, stepBased = false}) {
+	return {
+		getName: () => "myCustom",
+		getSpecVersion: () => ({gte}),
+		getTask: async () => taskFunction,
+		getRequiredDependenciesCallback: sinon.stub().resolves(undefined),
+		getStepBased: async () => stepBased,
+	};
+}
+
+test("Step-based task: a full stage-cache hit re-runs a read-free consumer when its producer's return " +
+	"changed", async (t) => {
+	const {sinon, projectBuildLogger} = t.context;
+
+	// A mutable env the producer reads; the resolver re-derives its current value on the delta build.
+	const env = {x: "1"};
+	const resolveInputValue = (type, name) => (type === "env" ? env[name] : undefined);
+	const taskUtil = {
+		isRootProject: sinon.stub().returns(true),
+		getDependencies: sinon.stub().returns([]),
+		getInterface: sinon.stub(),
+		getEnv: (name) => env[name],
+	};
+	taskUtil.getInterface.returns(taskUtil);
+
+	const ran = [];
+	// A scalar producer 'scan' reads env x and returns it; a read-free scalar consumer 'use' consumes the
+	// producer return via needs and writes nothing observable to a reader. 'use' has a constant stage
+	// signature, so its verdict is a full hit even when 'scan' re-ran with a changed return.
+	const build = () => [
+		{name: "scan", run: async ({taskUtil}) => ({v: taskUtil.getEnv("x")})},
+		{name: "use", needs: ["scan"], run: async ({needs}) => {
+			ran.push(`use:${needs.scan.v}`);
+		}},
+	];
+	const taskDefinitions = {
+		getTaskDefinitions: async () => ({
+			standardTasks: new Map([
+				["stepTask", {requiresDependencies: false, stepBased: true, options: {}, taskFunction: build}],
+			]),
+			customTasks: new Map(),
+		}),
+	};
+
+	// Per-stage invocation data, keyed by stage id so 'scan' and 'use' carry their own data forward.
+	const invocationByStage = new Map();
+	const getStageId = (taskName, stepName) =>
+		stepName === undefined ? `task/${taskName}` : `task/${taskName}::step/${stepName}`;
+	// Build-2 verdicts per step: 'scan' is a delta (so its recorded env input re-selects it), 'use' is a
+	// full stage-cache hit.
+	let verdicts = {};
+	const buildCache = {
+		setTasks: sinon.stub(),
+		recordStageResult: sinon.stub().resolves(),
+		allTasksCompleted: sinon.stub().resolves([]),
+		getStageId,
+		prepareStageExecutionAndValidateCache: sinon.stub().callsFake(async (taskName, stepName) =>
+			(stepName in verdicts ? verdicts[stepName] : false)),
+		getStepInvocationData: sinon.stub().callsFake((stageId) => invocationByStage.get(stageId)),
+		getStepReturnValueStore: sinon.stub().returns(undefined),
+		getResolveInputValue: sinon.stub().returns(resolveInputValue),
+		setStepInvocationData: sinon.stub().callsFake((stageId, data) => {
+			invocationByStage.set(stageId, data);
+		}),
+		reopenStageForRerun: sinon.stub(),
+	};
+
+	const project = getMockProject("module");
+	project.getProjectResources = () => ({replayTagOperations: sinon.stub()});
+
+	const taskRunner = createTaskRunner(t, project, {taskUtil, buildCache, taskDefinitions});
+	await taskRunner._initTasks();
+
+	// Build 1 (full): both steps run; scan returns {v:"1"}, use records scan's return signature.
+	await taskRunner._tasks["stepTask"].task(projectBuildLogger);
+	t.deepEqual(ran, ["use:1"], "The full build ran the consumer with the producer's initial return");
+
+	// Build 2: env x changed, so scan re-runs via delta and its return advances to {v:"2"}. use is a full
+	// stage-cache hit, but its consumed needs return changed, so it must re-run.
+	ran.length = 0;
+	env.x = "2";
+	verdicts = {
+		scan: {changedProjectResourcePaths: [], changedDependencyResourcePaths: []},
+		use: true,
+	};
+	await taskRunner._tasks["stepTask"].task(projectBuildLogger);
+
+	t.deepEqual(ran, ["use:2"],
+		"The read-free consumer re-ran despite a full stage-cache hit, with the producer's fresh return");
+	t.is(buildCache.reopenStageForRerun.callCount, 1, "The consumer's stage was reopened for the re-run");
+	t.deepEqual(buildCache.reopenStageForRerun.getCall(0).args, ["stepTask", "use"],
+		"reopenStageForRerun targeted the consumer step's stage");
+});
+
+// runTasks calls a step-based task's factory once, at discovery, to enumerate its step names for setTasks,
+// and keeps the returned step array on the task so execution reuses it instead of calling the factory again.
+// A factory may branch on options.projectNamespace (generateThemeDesignerResources emits its libraryTheming
+// step only for a namespace), so discovery has to see a complete options object. Otherwise it misses a stage
+// that the step runner then asks for, and the build fails on the missing stage.
+test("Step-based task: the factory runs once per build and its steps are reused for execution", async (t) => {
+	const {sinon, taskUtil} = t.context;
+
+	const factoryOptions = [];
+	// Mirrors the generateThemeDesignerResources shape: a step that only exists for a namespace.
+	const build = (options) => {
+		factoryOptions.push({...options});
+		const steps = [{name: "scan", run: async () => undefined}];
+		if (options.projectNamespace) {
+			steps.push({name: "namespaced", run: async () => undefined});
+		}
+		return steps;
+	};
+	const taskDefinitions = {
+		getTaskDefinitions: async () => ({
+			standardTasks: new Map([
+				["stepTask",
+					{requiresDependencies: false, stepBased: true, options: {}, taskFunction: build}],
+			]),
+			customTasks: new Map(),
+		}),
+	};
+
+	// Only stages that setTasks created can be prepared, as in ProjectResources#useStage.
+	const createdStages = new Set();
+	const buildCache = {
+		...t.context.buildCache,
+		setTasks: sinon.stub().callsFake((tasks) => {
+			for (const {taskName, stepNames} of tasks) {
+				for (const stepName of stepNames ?? [undefined]) {
+					createdStages.add(buildCache.getStageId(taskName, stepName));
+				}
+			}
+		}),
+		prepareStageExecutionAndValidateCache: sinon.stub().callsFake(async (taskName, stepName) => {
+			const stageId = buildCache.getStageId(taskName, stepName);
+			if (!createdStages.has(stageId)) {
+				throw new Error(`Stage '${stageId}' does not exist`);
+			}
+			return false;
+		}),
+	};
+
+	const project = getMockProject("module");
+	project.getProjectResources = () => ({replayTagOperations: sinon.stub()});
+
+	const taskRunner = createTaskRunner(t, project, {taskUtil, buildCache, taskDefinitions});
+	sinon.stub(taskRunner, "getDependenciesReader").resolves({getName: () => "dependencies"});
+
+	await t.notThrowsAsync(taskRunner.runTasks(),
+		"The step the factory emits for a namespace has a stage, so preparing it succeeds");
+
+	t.is(factoryOptions.length, 1,
+		"The factory was called once at discovery; execution reused the discovered step array");
+	t.is(factoryOptions[0].projectNamespace, "project/b",
+		"Step discovery already saw the project namespace");
+	t.deepEqual(buildCache.setTasks.firstCall.firstArg,
+		[{taskName: "stepTask", stepNames: ["scan", "namespaced"]}],
+		"A stage was created for every step the factory emits");
+});
+
+// A step factory that forgets its return yields undefined, the single most likely authoring mistake.
+// Discovery validates the whole step list (validateSteps) before it derives the step names and creates
+// stages, so the container shape is validated here, naming the task and the value the factory returned.
+test("Step-based task: a factory returning a non-array throws a named error at discovery", async (t) => {
+	const {sinon, taskUtil} = t.context;
+
+	const build = () => undefined; // missing return
+	const taskDefinitions = {
+		getTaskDefinitions: async () => ({
+			standardTasks: new Map([
+				["stepTask",
+					{requiresDependencies: false, stepBased: true, options: {}, taskFunction: build}],
+			]),
+			customTasks: new Map(),
+		}),
+	};
+
+	const project = getMockProject("module");
+	const taskRunner = createTaskRunner(t, project, {taskUtil, taskDefinitions});
+	sinon.stub(taskRunner, "getDependenciesReader").resolves({getName: () => "dependencies"});
+
+	const err = await t.throwsAsync(taskRunner.runTasks());
+	t.is(err.message,
+		"Step factory for task 'stepTask' must return an array of step objects, got undefined",
+		"The error names the task, the expected shape, and the actual returned value");
+});
+
+// A duplicate step name would create two stages with the same stage id (setTasks derives one id per step
+// name), so discovery must reject it before setTasks runs — not later when the step runs and the corrupt
+// stage already exists. The spied setTasks proves validation precedes stage creation.
+test("Step-based task: a duplicate step name throws at discovery, before setTasks", async (t) => {
+	const {sinon, taskUtil, buildCache} = t.context;
+
+	const build = () => [
+		{name: "dup", run: async () => {}},
+		{name: "dup", run: async () => {}},
+	];
+	const taskDefinitions = {
+		getTaskDefinitions: async () => ({
+			standardTasks: new Map([
+				["stepTask",
+					{requiresDependencies: false, stepBased: true, options: {}, taskFunction: build}],
+			]),
+			customTasks: new Map(),
+		}),
+	};
+
+	const project = getMockProject("module");
+	const taskRunner = createTaskRunner(t, project, {taskUtil, taskDefinitions});
+	sinon.stub(taskRunner, "getDependenciesReader").resolves({getName: () => "dependencies"});
+
+	const err = await t.throwsAsync(taskRunner.runTasks());
+	t.is(err.message, "Duplicate step name 'dup' for task 'stepTask'",
+		"The error names the duplicate step and the task");
+	t.false(buildCache.setTasks.called, "No stage was created: validation ran before setTasks");
+});
+
+// The factory is called once per build, so discovery and execution share one step array by construction.
+// There is no second call for an impure factory (an untracked environment or clock read in its body) to
+// diverge on: the discovered steps are the ones that run. This records the deliberate removal of the former
+// discovery-versus-execution check, which only ever caught a divergence between two calls.
+test("Step-based task: the factory is called once, so discovery and execution cannot diverge", async (t) => {
+	const {sinon, projectBuildLogger, taskUtil} = t.context;
+
+	let callCount = 0;
+	// An impure factory that would add a step on a second call. With one call per build, the second output
+	// never happens, so the step runner only ever sees the discovered ["scan"].
+	const build = () => {
+		callCount++;
+		const steps = [{name: "scan", run: async () => undefined}];
+		if (callCount > 1) {
+			steps.push({name: "sneaked", run: async () => undefined});
+		}
+		return steps;
+	};
+	const taskDefinitions = {
+		getTaskDefinitions: async () => ({
+			standardTasks: new Map([
+				["stepTask",
+					{requiresDependencies: false, stepBased: true, options: {}, taskFunction: build}],
+			]),
+			customTasks: new Map(),
+		}),
+	};
+
+	const createdStages = new Set();
+	const buildCache = {
+		...t.context.buildCache,
+		setTasks: sinon.stub().callsFake((tasks) => {
+			for (const {taskName, stepNames} of tasks) {
+				for (const stepName of stepNames ?? [undefined]) {
+					createdStages.add(buildCache.getStageId(taskName, stepName));
+				}
+			}
+		}),
+		prepareStageExecutionAndValidateCache: sinon.stub().callsFake(async (taskName, stepName) => {
+			const stageId = buildCache.getStageId(taskName, stepName);
+			if (!createdStages.has(stageId)) {
+				throw new Error(`Stage '${stageId}' does not exist`);
+			}
+			return false;
+		}),
+	};
+
+	const project = getMockProject("module");
+	project.getProjectResources = () => ({replayTagOperations: sinon.stub()});
+
+	const taskRunner = createTaskRunner(t, project, {taskUtil, buildCache, taskDefinitions});
+	sinon.stub(taskRunner, "getDependenciesReader").resolves({getName: () => "dependencies"});
+
+	await t.notThrowsAsync(taskRunner.runTasks(),
+		"No stage is ever asked for that discovery did not create, because the factory runs once");
+	t.is(callCount, 1, "The factory was called exactly once, so no second call could return a different set");
+	t.deepEqual(buildCache.setTasks.firstCall.firstArg,
+		[{taskName: "stepTask", stepNames: ["scan"]}],
+		"Only the discovered step produced a stage; the would-be second-call step never appeared");
+	t.is(projectBuildLogger.skipTask.callCount, 0, "The discovered step ran rather than being skipped");
+});
+
+// The discovered step array is kept on the task, frozen so a custom task cannot mutate the shared value, and
+// re-derived on the next build so a surviving TaskRunner (reused across ui5 serve rebuilds) never serves a
+// stale array. Options are fixed for a TaskRunner's lifetime (a changed ui5.yaml rebuilds the whole stack),
+// so re-deriving per build keeps the steps in step with the options without any explicit invalidation.
+test("Step-based task: the kept step array is frozen and re-derived on each build", async (t) => {
+	const {sinon, taskUtil} = t.context;
+
+	let callCount = 0;
+	const build = () => {
+		callCount++;
+		return [{name: "scan", run: async () => undefined}];
+	};
+	const taskDefinitions = {
+		getTaskDefinitions: async () => ({
+			standardTasks: new Map([
+				["stepTask",
+					{requiresDependencies: false, stepBased: true, options: {}, taskFunction: build}],
+			]),
+			customTasks: new Map(),
+		}),
+	};
+
+	const createdStages = new Set();
+	const buildCache = {
+		...t.context.buildCache,
+		setTasks: sinon.stub().callsFake((tasks) => {
+			for (const {taskName, stepNames} of tasks) {
+				for (const stepName of stepNames ?? [undefined]) {
+					createdStages.add(buildCache.getStageId(taskName, stepName));
+				}
+			}
+		}),
+		prepareStageExecutionAndValidateCache: sinon.stub().callsFake(async (taskName, stepName) => {
+			const stageId = buildCache.getStageId(taskName, stepName);
+			if (!createdStages.has(stageId)) {
+				throw new Error(`Stage '${stageId}' does not exist`);
+			}
+			return false;
+		}),
+	};
+
+	const project = getMockProject("module");
+	project.getProjectResources = () => ({replayTagOperations: sinon.stub()});
+
+	const taskRunner = createTaskRunner(t, project, {taskUtil, buildCache, taskDefinitions});
+	sinon.stub(taskRunner, "getDependenciesReader").resolves({getName: () => "dependencies"});
+
+	// First build: one factory call, the kept array is frozen.
+	await taskRunner.runTasks();
+	t.is(callCount, 1, "The factory ran once for the first build");
+	const firstSteps = taskRunner._tasks["stepTask"].steps;
+	t.true(Object.isFrozen(firstSteps), "The kept step array is frozen");
+	t.throws(() => firstSteps.push({name: "injected"}), undefined,
+		"A custom task cannot mutate the frozen step array");
+
+	// Second build through the same TaskRunner: the factory runs again and the kept array is a fresh one.
+	await taskRunner.runTasks();
+	t.is(callCount, 2, "The factory ran once more for the second build (re-derived, not reused across builds)");
+	const secondSteps = taskRunner._tasks["stepTask"].steps;
+	t.not(secondSteps, firstSteps, "The second build keeps a fresh step array, not the previous one");
+	t.true(Object.isFrozen(secondSteps), "The re-derived array is frozen too");
+});
+
+// Integration: the custom-task path drives the same real MonitoredTaskUtil + StepRunner as the standard-task
+// path, gated at Specification Version 5.0 via the static stepBased export. A per-step input change (an env
+// var one step reads) re-runs only that step, a restored step replays its tags, and the runner's outcome is
+// folded into recordStageResult (step-based flag set, invocation data persisted).
+test("Step-based custom task: bound at Specification Version 5.0, folds the runner outcome",
+	async (t) => {
+		const {sinon, projectBuildLogger} = t.context;
+
+		const env = {a: "1", b: "1"};
+		const resolveInputValue = (type, name) => (type === "env" ? env[name] : undefined);
+
+		const setTag = sinon.stub();
+		const taskUtil = {
+			isRootProject: sinon.stub().returns(true),
+			getDependencies: sinon.stub().returns([]),
+			getInterface: sinon.stub(),
+			getEnv: (name) => env[name],
+			setTag,
+		};
+		taskUtil.getInterface.returns(taskUtil);
+
+		const ran = [];
+		const build = () => [{
+			name: "stepGroup",
+			keys: async () => ["a", "b"],
+			each: async (key, {taskUtil}) => {
+				ran.push(key);
+				taskUtil.getEnv(key);
+				taskUtil.setTag({getPath: () => `/out/${key}`}, "ui5:IsBundle", true);
+			},
+		}];
+
+		const taskDefinitions = {
+			getTaskDefinitions: async () => ({
+				standardTasks: new Map(),
+				customTasks: new Map([
+					["myCustom", {
+						taskDef: {name: "myCustom"},
+						task: createCustomTaskExtension(sinon, {taskFunction: build, gte: () => true, stepBased: true}),
+					}],
+				]),
+			}),
+		};
+
+		let capturedInvocationData;
+		let deltaMode = false;
+		const buildCache = {
+			setTasks: sinon.stub(),
+			recordStageResult: sinon.stub().resolves(),
+			allTasksCompleted: sinon.stub().resolves([]),
+			getStageId: (taskName, stepName) =>
+				stepName === undefined ? `task/${taskName}` : `task/${taskName}::step/${stepName}`,
+			prepareStageExecutionAndValidateCache: sinon.stub().callsFake(async () =>
+				(deltaMode ? {changedProjectResourcePaths: [], changedDependencyResourcePaths: []} : false)),
+			getStepInvocationData: sinon.stub().callsFake(() => capturedInvocationData),
+			getStepReturnValueStore: sinon.stub().returns(undefined),
+			getResolveInputValue: sinon.stub().returns(resolveInputValue),
+			setStepInvocationData: sinon.stub().callsFake((name, data) => {
+				capturedInvocationData = data;
+			}),
+		};
+
+		const replayTagOperations = sinon.stub();
+		const project = getMockProject("module");
+		project.getProjectResources = () => ({replayTagOperations});
+
+		const taskRunner = createTaskRunner(t, project, {taskUtil, buildCache, taskDefinitions});
+		await taskRunner._initTasks();
+
+		// Build 1 (full): both steps run; the runner's outcome is folded into recordStageResult.
+		await taskRunner._tasks["myCustom"].task(projectBuildLogger);
+		t.deepEqual(ran, ["a", "b"], "The full build ran every step");
+		t.is(buildCache.setStepInvocationData.callCount, 1, "The invocation data was persisted");
+		t.is(buildCache.recordStageResult.getCall(0).args[0].stepBased, true,
+			"recordStageResult was told the task ran the step runner");
+
+		// Build 2 (delta): only env var "a" changed, so step "a" re-runs and step "b" is restored.
+		ran.length = 0;
+		setTag.resetHistory();
+		deltaMode = true;
+		env.a = "2";
+		await taskRunner._tasks["myCustom"].task(projectBuildLogger);
+
+		t.deepEqual(ran, ["a"], "Only the step whose env input changed re-ran on the delta build");
+		t.is(setTag.callCount, 1, "Only the re-run step set its tag live");
+		t.is(setTag.getCall(0).args[0].getPath(), "/out/a", "The re-run step's live setTag targeted its own output");
+		t.is(replayTagOperations.callCount, 1, "The restored step replayed its tag operations");
+		t.deepEqual(replayTagOperations.getCall(0).args[0],
+			[{op: "set", path: "/out/b", tag: "ui5:IsBundle", value: true}],
+			"The restored step's recorded tag operation was replayed, so its tag survives");
+	});
+
+// The TaskRunner's recordStage hook must not mutate the stage's delta verdict: the StepRunner still
+// holds it and #selectStepsToRun already read its changed paths before recordStage runs. The extended
+// changed-path list (the verdict's own paths plus the stage's stale outputs) is handed to
+// recordStageResult as an explicit field instead. Freezing the verdict pins the contract: the former
+// in-place assignment would throw on the frozen object in strict mode.
+test("Step-based task: recordStage passes stale outputs without mutating the delta verdict", async (t) => {
+	const {sinon, projectBuildLogger} = t.context;
+
+	const frozenVerdict = Object.freeze({
+		changedProjectResourcePaths: Object.freeze(["/changed.js"]),
+		changedDependencyResourcePaths: Object.freeze([]),
+	});
+	const staleOutputs = ["/stale.js"];
+
+	// Fake StepRunner: drive the real recordStage hook once with the frozen verdict and a non-empty
+	// stale-output list, the exact condition under which the old code mutated the verdict.
+	class FakeStepRunner {
+		constructor(opts) {
+			this._opts = opts;
+		}
+		async runSteps() {
+			const ctx = this._opts.createStageContext();
+			await this._opts.recordStage("s", {
+				ctx,
+				cacheInfo: frozenVerdict,
+				invocationData: new Map(),
+				staleOutputs,
+				foldedReads: undefined,
+				foldedInputs: undefined,
+			});
+			return {anyStepExecuted: true, writtenResourcePaths: []};
+		}
+	}
+
+	const build = () => [{name: "s", keys: async () => [], each: async () => {}}];
+	const taskDefinitions = {
+		getTaskDefinitions: async () => ({
+			standardTasks: new Map([
+				["stepTask", {requiresDependencies: false, stepBased: true, options: {}, taskFunction: build}],
+			]),
+			customTasks: new Map(),
+		}),
+	};
+	const buildCache = {
+		setTasks: sinon.stub(),
+		recordStageResult: sinon.stub().resolves([]),
+		allTasksCompleted: sinon.stub().resolves([]),
+		getStageId: (taskName, stepName) =>
+			stepName === undefined ? `task/${taskName}` : `task/${taskName}::step/${stepName}`,
+		prepareStageExecutionAndValidateCache: sinon.stub().resolves(false),
+		getStepInvocationData: sinon.stub().returns(undefined),
+		setStepInvocationData: sinon.stub(),
+		getStepReturnValueStore: sinon.stub().returns(undefined),
+		getResolveInputValue: sinon.stub().returns(undefined),
+	};
+	const project = getMockProject("module");
+	project.getProjectResources = () => ({replayTagOperations: sinon.stub()});
+
+	t.context.TaskRunner = await esmock("../../../lib/build/TaskRunner.js", {
+		"@ui5/logger": t.context.logger,
+		"@ui5/fs/resourceFactory": t.context.resourceFactory,
+		"../../../lib/build/helpers/StepRunner.js": {default: FakeStepRunner},
+	});
+
+	const taskRunner = createTaskRunner(t, project, {taskUtil: t.context.taskUtil, buildCache, taskDefinitions});
+	await taskRunner._initTasks();
+
+	// Completing without throwing already proves the frozen verdict was not written to.
+	await t.notThrowsAsync(taskRunner._tasks["stepTask"].task(projectBuildLogger),
+		"the step path completes without mutating the frozen verdict");
+
+	t.deepEqual(frozenVerdict.changedProjectResourcePaths, ["/changed.js"],
+		"the verdict's changed-path list is left untouched");
+
+	const options = buildCache.recordStageResult.getCall(0).args[0];
+	t.is(options.cacheInfo, frozenVerdict, "the same verdict object is forwarded, unmutated");
+	t.deepEqual(options.changedProjectResourcePaths, ["/changed.js", "/stale.js"],
+		"the stale outputs are appended to the verdict's changed paths and passed as an explicit field");
+});
+
+
+// The recordStage hook folds the stage's per-key reads into the stage-level monitored requests via
+// foldReadsInto: it dedups fold paths against the monitored paths (and against each other) rather than
+// concatenating duplicates that only collapse later in the request graph. This keeps the request set that
+// keys the stage minimal without moving its signature (a dropped entry was an already-present path).
+test("Step-based task: recordStage dedups the fold against the monitored requests", async (t) => {
+	const {sinon, projectBuildLogger} = t.context;
+
+	// A monitored workspace that reports one explicit path and a glob pattern, as a stage-level byPath and
+	// the keys() enumerator would. The fold then adds: a path already requested explicitly (/already.js), a
+	// genuinely new path (/new.js) carried twice, and a path matching the monitored pattern (kept: the
+	// trimmed foldReadsInto only dedups exact paths, it does not reason about pattern coverage).
+	t.context.resourceFactory.createMonitor = sinon.stub().callsFake((resource) => ({
+		constructor: {name: "MonitoredReader"},
+		getName: () => (resource?.getName ? resource.getName() : "workspace"),
+		getResourceRequests: () => ({paths: ["/already.js"], patterns: [["/resources/x/**"]]}),
+	}));
+
+	class FakeStepRunner {
+		constructor(opts) {
+			this._opts = opts;
+		}
+		async runSteps() {
+			const ctx = this._opts.createStageContext();
+			await this._opts.recordStage("s", {
+				ctx,
+				cacheInfo: false,
+				invocationData: new Map(),
+				staleOutputs: [],
+				foldedReads: {
+					project: {paths: ["/already.js", "/new.js", "/new.js", "/resources/x/a.js"],
+						patterns: ["/scan/b/*"]},
+					dependencies: {paths: [], patterns: []},
+				},
+				foldedInputs: [],
+			});
+			return {anyStepExecuted: true, writtenResourcePaths: []};
+		}
+	}
+
+	const build = () => [{name: "s", keys: async () => [], each: async () => {}}];
+	const taskDefinitions = {
+		getTaskDefinitions: async () => ({
+			standardTasks: new Map([
+				["stepTask", {requiresDependencies: false, stepBased: true, options: {}, taskFunction: build}],
+			]),
+			customTasks: new Map(),
+		}),
+	};
+	const buildCache = {
+		setTasks: sinon.stub(),
+		recordStageResult: sinon.stub().resolves([]),
+		allTasksCompleted: sinon.stub().resolves([]),
+		getStageId: (taskName, stepName) =>
+			stepName === undefined ? `task/${taskName}` : `task/${taskName}::step/${stepName}`,
+		prepareStageExecutionAndValidateCache: sinon.stub().resolves(false),
+		getStepInvocationData: sinon.stub().returns(undefined),
+		setStepInvocationData: sinon.stub(),
+		getStepReturnValueStore: sinon.stub().returns(undefined),
+		getResolveInputValue: sinon.stub().returns(undefined),
+	};
+	const project = getMockProject("module");
+	project.getProjectResources = () => ({replayTagOperations: sinon.stub()});
+
+	t.context.TaskRunner = await esmock("../../../lib/build/TaskRunner.js", {
+		"@ui5/logger": t.context.logger,
+		"@ui5/fs/resourceFactory": t.context.resourceFactory,
+		"../../../lib/build/helpers/StepRunner.js": {default: FakeStepRunner},
+	});
+
+	const taskRunner = createTaskRunner(t, project, {taskUtil: t.context.taskUtil, buildCache, taskDefinitions});
+	await taskRunner._initTasks();
+	await taskRunner._tasks["stepTask"].task(projectBuildLogger);
+
+	const {projectResourceRequests} = buildCache.recordStageResult.getCall(0).args[0];
+	t.deepEqual(projectResourceRequests.patterns, [["/resources/x/**"], "/scan/b/*"],
+		"The monitored pattern is preserved and the cached key's folded pattern is merged in");
+	t.deepEqual(projectResourceRequests.paths, ["/already.js", "/new.js", "/resources/x/a.js"],
+		"The already-requested path is not repeated and the duplicate is collapsed; the new paths are added " +
+		"once each (a pattern-covered path is kept, not reasoned about)");
+});
+
+
+// task declaring stepBased still runs as a legacy body, so the step runner is never driven and the runner
+// outcome is not folded into recordStageResult.
+test("Step-based custom task: the step-based export is ignored below Specification Version 5.0", async (t) => {
+	const {sinon, projectBuildLogger} = t.context;
+
+	let ran = false;
+	const taskFunction = async () => {
+		ran = true;
+	};
+
+	const taskDefinitions = {
+		getTaskDefinitions: async () => ({
+			standardTasks: new Map(),
+			customTasks: new Map([
+				["myCustom", {
+					taskDef: {name: "myCustom"},
+					// 4.0: gte("3.0") is true (an interface is provided), gte("5.0") is false, so the
+					// stepBased export is not honored and the task runs as a legacy body.
+					task: createCustomTaskExtension(sinon, {taskFunction, gte: (v) => v === "3.0", stepBased: true}),
+				}],
+			]),
+		}),
+	};
+
+	const project = getMockProject("module");
+	const taskRunner = createTaskRunner(t, project, {taskDefinitions});
+	await taskRunner._initTasks();
+	await taskRunner._tasks["myCustom"].task(projectBuildLogger);
+
+	t.true(ran, "The legacy task body ran");
+	t.falsy(t.context.buildCache.recordStageResult.getCall(0).args[0].stepBased,
+		"The step-based export is ignored below 5.0, so the task did not run the step runner");
+});
+
+// Builds the fixture both step-based paths share for the reporting-order tests: a two-step task whose
+// bodies append to `order`, next to a projectBuildLogger whose start/end/skip reports append to the same
+// log. `fullyCached` makes every stage a cache hit, so the task must be reported skipped.
+function createStepReportingFixture(t, {stepBased, fullyCached = false}) {
+	const {sinon, projectBuildLogger} = t.context;
+	const order = [];
+	for (const method of ["startTask", "endTask", "skipTask"]) {
+		projectBuildLogger[method].callsFake((taskName) => order.push(`${method}:${taskName}`));
+	}
+
+	const taskName = stepBased === "custom" ? "myCustom" : "stepTask";
+	const build = () => ["s1", "s2"].map((name) => ({
+		name,
+		run: async () => {
+			order.push(`run:${name}`);
+		},
+	}));
+
+	const standardTasks = stepBased === "custom" ? new Map() : new Map([
+		["stepTask", {requiresDependencies: false, stepBased: true, options: {}, taskFunction: build}],
+	]);
+	const customTasks = stepBased === "custom" ? new Map([
+		["myCustom", {
+			taskDef: {name: "myCustom"},
+			task: createCustomTaskExtension(sinon, {taskFunction: build, gte: () => true, stepBased: true}),
+		}],
+	]) : new Map();
+	const taskDefinitions = {getTaskDefinitions: async () => ({standardTasks, customTasks})};
+
+	const buildCache = {
+		...t.context.buildCache,
+		getStageId: (taskName, stepName) =>
+			stepName === undefined ? `task/${taskName}` : `task/${taskName}::step/${stepName}`,
+		prepareStageExecutionAndValidateCache: sinon.stub().resolves(fullyCached),
+		// A fully cached scalar stage carries its one-entry sidecar ("scalar:0" is the implicit unit's key
+		// id). Without it, a full hit is treated as unrestorable and re-runs (see #canRestoreCachedStage).
+		getStepInvocationData: sinon.stub().returns(
+			fullyCached ? new Map([["scalar:0", {returns: null, tagOperations: []}]]) : undefined),
+		getStepReturnValueStore: sinon.stub().returns(undefined),
+		getResolveInputValue: sinon.stub().returns(() => undefined),
+		setStepInvocationData: sinon.stub(),
+	};
+
+	const project = getMockProject("module");
+	project.getProjectResources = () => ({replayTagOperations: sinon.stub()});
+	return {order, taskName, taskRunner: createTaskRunner(t, project, {buildCache, taskDefinitions})};
+}
+
+// The reporting contract a project-build-status consumer depends on: task-start announces work that is
+// about to happen. A step-based task only learns its skip verdict while driving its stages, so it reports
+// from the first stage that stops being a cache hit, before that stage runs anything.
+for (const path of ["standard", "custom"]) {
+	test(`Step-based ${path} task: reports itself started before its first step runs`, async (t) => {
+		const {order, taskName, taskRunner} = createStepReportingFixture(t, {stepBased: path});
+		await taskRunner._initTasks();
+
+		await taskRunner._tasks[taskName].task(t.context.projectBuildLogger);
+
+		t.deepEqual(order, [`startTask:${taskName}`, "run:s1", "run:s2", `endTask:${taskName}`],
+			"The task was announced once, before any step ran, and closed after the last step");
+	});
+
+	test(`Step-based ${path} task: a fully cached task is reported skipped, not started`, async (t) => {
+		const {order, taskName, taskRunner} =
+			createStepReportingFixture(t, {stepBased: path, fullyCached: true});
+		await taskRunner._initTasks();
+
+		await taskRunner._tasks[taskName].task(t.context.projectBuildLogger);
+
+		t.deepEqual(order, [`skipTask:${taskName}`], "A task whose every stage was cached only reports a skip");
+	});
+}

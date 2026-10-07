@@ -14,6 +14,7 @@ import {enhanceBundlesWithDefaults} from "../../validation/validator.js";
 export default function({project, taskUtil, getTask}) {
 	const tasks = new Map();
 	tasks.set("escapeNonAsciiCharacters", {
+		stepBased: true,
 		options: {
 			encoding: project.getPropertiesFileSourceEncoding(),
 			pattern: "/**/*.properties"
@@ -21,7 +22,7 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("replaceCopyright", {
-		supportsDifferentialBuilds: true,
+		stepBased: true,
 		options: {
 			copyright: project.getCopyright(),
 			pattern: "/**/*.{js,library,css,less,theme,html}"
@@ -29,7 +30,7 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("replaceVersion", {
-		supportsDifferentialBuilds: true,
+		stepBased: true,
 		options: {
 			version: project.getVersion(),
 			pattern: "/**/*.{js,json,library,css,less,theme,html}"
@@ -37,7 +38,7 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("replaceBuildtime", {
-		supportsDifferentialBuilds: true,
+		stepBased: true,
 		options: {
 			pattern: "/resources/sap/ui/{Global,core/Core}.js"
 		}
@@ -89,7 +90,7 @@ export default function({project, taskUtil, getTask}) {
 	}
 
 	tasks.set("minify", {
-		supportsDifferentialBuilds: true,
+		stepBased: true,
 		options: {
 			pattern: minificationPattern
 		}
@@ -102,7 +103,7 @@ export default function({project, taskUtil, getTask}) {
 		tasks.set("generateLibraryManifest", {taskFunction: null});
 	}
 
-	tasks.set("enhanceManifest", {});
+	tasks.set("enhanceManifest", {stepBased: true});
 
 	const bundles = project.getBundles();
 	const existingBundleDefinitionNames =
@@ -159,6 +160,7 @@ export default function({project, taskUtil, getTask}) {
 	}
 
 	tasks.set("buildThemes", {
+		stepBased: true,
 		requiresDependencies: true,
 		options: {
 			projectName: project.getName(),
@@ -170,6 +172,7 @@ export default function({project, taskUtil, getTask}) {
 
 	if (project.isFrameworkProject()) {
 		tasks.set("generateThemeDesignerResources", {
+			stepBased: true,
 			requiresDependencies: true,
 			options: {
 				version: project.getVersion()

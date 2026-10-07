@@ -21,6 +21,7 @@ function createBuildContextStub(overrides = {}) {
 	return {
 		getGraph: () => ({}),
 		getTaskRepository: () => ({}),
+		getBuildTime: () => new Date(),
 		...overrides
 	};
 }
@@ -433,4 +434,102 @@ test("getBuildMetadata: has no build-manifest", (t) => {
 		project
 	);
 	t.is(projectBuildContext.getBuildMetadata(), null, "Project has no build manifest");
+});
+
+test("resolveInputValue: env reads process.env", (t) => {
+	const buildContext = createBuildContextStub();
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	t.teardown(() => {
+		delete process.env.UI5_PROJECT_BUILD_CONTEXT_TEST;
+	});
+	delete process.env.UI5_PROJECT_BUILD_CONTEXT_TEST;
+	t.is(projectBuildContext.resolveInputValue("env", "UI5_PROJECT_BUILD_CONTEXT_TEST"), undefined,
+		"unset variable resolves to undefined");
+	process.env.UI5_PROJECT_BUILD_CONTEXT_TEST = "value";
+	t.is(projectBuildContext.resolveInputValue("env", "UI5_PROJECT_BUILD_CONTEXT_TEST"), "value");
+});
+
+test("resolveInputValue: isRootProject normalizes the boolean", (t) => {
+	const rootProject = {getName: () => "root", getType: () => "type"};
+	const buildContext = createBuildContextStub({getRootProject: () => rootProject});
+	const projectBuildContext = new ProjectBuildContext(buildContext, rootProject);
+
+	t.is(projectBuildContext.resolveInputValue("isRootProject", ""), "true");
+});
+
+test("resolveInputValue: getDependencies normalizes the array via the graph", (t) => {
+	const getDependencies = sinon.stub().returns(["dep.a", "dep.b"]);
+	const buildContext = createBuildContextStub({
+		getGraph: () => ({getDependencies, getTaskRepository: () => ({})}),
+		getTaskRepository: () => ({}),
+	});
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	t.is(projectBuildContext.resolveInputValue("getDependencies", "project"), `["dep.a","dep.b"]`);
+	t.true(getDependencies.calledWith("project"));
+});
+
+test("resolveInputValue: project.getVersion reads the dependency version from the graph", (t) => {
+	const coreProject = {getName: () => "sap.ui.core", getVersion: () => "2.0.0"};
+	const getProject = sinon.stub().callsFake((name) => (name === "sap.ui.core" ? coreProject : undefined));
+	const buildContext = createBuildContextStub({
+		getGraph: () => ({getProject}),
+	});
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	t.is(projectBuildContext.resolveInputValue("project.getVersion", "sap.ui.core"), "2.0.0");
+});
+
+test("resolveInputValue: unresolvable project yields undefined", (t) => {
+	const getProject = sinon.stub().returns(undefined);
+	const buildContext = createBuildContextStub({
+		getGraph: () => ({getProject}),
+	});
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	t.is(projectBuildContext.resolveInputValue("project.getVersion", "gone"), undefined,
+		"a project no longer in the graph resolves to undefined");
+});
+
+test("resolveInputValue: time re-derives the bucket for the granularity from the build time", (t) => {
+	// 25 September 2026, 14:07:03 local. The lookup side must quantize the build run's shared
+	// timestamp (via getBuildTime), so assert against that instant's buckets.
+	const buildTime = new Date(2026, 8, 25, 14, 7, 3);
+	const buildContext = createBuildContextStub({getBuildTime: () => buildTime});
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	t.is(projectBuildContext.resolveInputValue("time", "year"), "2026");
+	t.is(projectBuildContext.resolveInputValue("time", "hour"), "2026-09-25T14");
+});
+
+test("resolveInputValue: time with an unknown granularity yields undefined", (t) => {
+	const buildContext = createBuildContextStub();
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	// A corrupt cache row must miss the cache, not crash the lookup.
+	t.is(projectBuildContext.resolveInputValue("time", "minute"), undefined);
+});
+
+test("resolveInputValue: unknown type yields undefined", (t) => {
+	const buildContext = createBuildContextStub();
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	t.is(projectBuildContext.resolveInputValue("unknownType", "x"), undefined);
+});
+
+test("getBuildTime delegates to the build context", (t) => {
+	const buildTime = new Date(2026, 8, 25, 14, 7, 3);
+	const buildContext = createBuildContextStub({getBuildTime: () => buildTime});
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	t.is(projectBuildContext.getBuildTime(), buildTime, "Returns the build context's timestamp");
 });

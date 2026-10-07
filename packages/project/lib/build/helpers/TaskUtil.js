@@ -6,6 +6,7 @@ import {
 	createLinkReader,
 	createFlatReader
 } from "@ui5/fs/resourceFactory";
+import {quantizeTime} from "./quantizeTime.js";
 
 /**
  * Convenience functions for UI5 tasks.
@@ -135,6 +136,91 @@ class TaskUtil {
 		}
 		const collection = this._projectBuildContext.getResourceTagCollection(resource, tag);
 		return collection.clearTag(resource, tag);
+	}
+
+	/**
+	 * Reads an environment variable.
+	 *
+	 * Tasks whose output depends on an environment variable must read it through this method rather
+	 * than accessing <code>process.env</code> directly. During a build the task receives a
+	 * [MonitoredTaskUtil]{@link @ui5/project/build/helpers/MonitoredTaskUtil} that records the read
+	 * and folds it into the task's build-cache signature, so that changing the variable between
+	 * builds invalidates the task's cached result (the same way a changed resource does). Reading
+	 * <code>process.env</code> directly is not tracked and can lead to a stale cached result being
+	 * served.
+	 *
+	 * </br></br>
+	 * This method is only available to custom task extensions defining
+	 * <b>Specification Version 5.0 and above</b>.
+	 *
+	 * @param {string} name Environment variable name
+	 * @returns {string|undefined} The environment variable value, or <code>undefined</code> if unset
+	 * @public
+	 */
+	getEnv(name) {
+		return process.env[name];
+	}
+
+	/**
+	 * Reads the build's time quantized to a fixed granularity.
+	 *
+	 * The returned value comes from a single timestamp fixed once per build run (shared by every
+	 * project and task in the run), not a fresh <code>Date</code> per call, so all time reads within
+	 * a run agree.
+	 *
+	 * Tasks whose output depends on the current time (for example
+	 * [replaceCopyright]{@link @ui5/builder/tasks/replaceCopyright}, which expands
+	 * <code>${currentYear}</code>) must read it through this method rather than calling
+	 * <code>new Date()</code> directly. During a build the task receives a
+	 * [MonitoredTaskUtil]{@link @ui5/project/build/helpers/MonitoredTaskUtil} that records the read
+	 * and folds it into the task's build-cache signature, so a cached result re-runs once the time
+	 * bucket rolls over (a <code>"year"</code>-granularity result is re-run at the next calendar year).
+	 * A direct <code>Date</code> read is not tracked and can serve a stale result.
+	 *
+	 * The granularity is the contract: it names the bucket at which the output is stable. A
+	 * millisecond-precision read would change on every build and miss the cache every time, so this
+	 * method never returns a raw timestamp. Reading at <code>"year"</code> means "re-run only when the
+	 * year changes".
+	 *
+	 * </br></br>
+	 * This method is only available to custom task extensions defining
+	 * <b>Specification Version 5.0 and above</b>.
+	 *
+	 * @param {string} granularity Time bucket, one of <code>"year"</code>, <code>"month"</code>,
+	 *   <code>"day"</code>, <code>"hour"</code>
+	 * @returns {string} Current time quantized to the granularity, e.g. <code>"2026"</code> for
+	 *   <code>"year"</code> or <code>"2026-09-25T14"</code> for <code>"hour"</code>
+	 * @throws {Error} If the granularity is not one of the supported buckets
+	 * @public
+	 */
+	getTime(granularity) {
+		return quantizeTime(granularity, this._projectBuildContext.getBuildTime());
+	}
+
+	/**
+	 * Returns the build run's shared timestamp as a raw <code>Date</code>.
+	 *
+	 * The value is the single timestamp fixed once per build run (shared by every project and task in
+	 * the run), the same source [getTime]{@link @ui5/project/build/helpers/TaskUtil#getTime} quantizes.
+	 *
+	 * Unlike <code>getTime</code>, this read is deliberately <b>not</b> tracked as a build-cache input:
+	 * the [MonitoredTaskUtil]{@link @ui5/project/build/helpers/MonitoredTaskUtil} passes it through
+	 * untracked, so its value never folds into the task's cache signature. A cached result therefore
+	 * keeps the timestamp it embedded on the build that produced it, rather than re-running because the
+	 * timestamp advanced. That staleness is intended: a build timestamp changes on every build, so
+	 * tracking it would force a cache miss every time and defeat caching for any task that reads it.
+	 * Read through <code>getTime</code> instead when the output should re-run once a time bucket rolls
+	 * over (for example a copyright year).
+	 *
+	 * </br></br>
+	 * This method is only available to custom task extensions defining
+	 * <b>Specification Version 5.0 and above</b>.
+	 *
+	 * @returns {Date} The current build run's timestamp
+	 * @public
+	 */
+	getBuildTime() {
+		return this._projectBuildContext.getBuildTime();
 	}
 
 	/**
@@ -346,6 +432,10 @@ class TaskUtil {
 				baseInterface.resourceFactory[factoryFunction] = this.resourceFactory[factoryFunction];
 			});
 		}
+
+		if (specVersion.gte("5.0")) {
+			bindFunctions(this, baseInterface, ["getEnv", "getTime", "getBuildTime"]);
+		}
 		return baseInterface;
 	}
 
@@ -389,6 +479,10 @@ class TaskUtil {
 			].forEach((factoryFunction) => {
 				baseInterface.resourceFactory[factoryFunction] = this.resourceFactory[factoryFunction];
 			});
+		}
+
+		if (specVersion.gte("5.0")) {
+			bindFunctions(this, baseInterface, ["getEnv", "getTime", "getBuildTime"]);
 		}
 		return baseInterface;
 	}

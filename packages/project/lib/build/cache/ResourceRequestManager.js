@@ -42,29 +42,34 @@ function serializeUnresolvedRequests(entry, unresolvedRequests) {
  * @class
  */
 class ResourceRequestManager {
-	#taskName;
+	#ownerId;
 	#projectName;
 	#requestGraph;
 
 	#treeRegistries = [];
 	#treeUpdateDeltas = new Map();
+	// Per-updateIndices scratch: each affected node's exposed (composite) signature captured before its
+	// unresolved requests are drained, so a recorded delta keys on the same signature the stage was
+	// stored under (getIndexSignatures folds unresolved requests in; the tree hash alone does not).
+	#deltaOriginalComposite = new Map();
 
 	#hasNewOrModifiedCacheEntries;
 	#useDifferentialUpdate;
 	#unusedAtLeastOnce;
+	#clearedExistingRequests = false;
 
 	/**
 	 * Creates a new ResourceRequestManager instance
 	 *
 	 * @param {string} projectName Name of the project
-	 * @param {string} taskName Name of the task
+	 * @param {string} ownerId Identifier of the request owner (a stage id, or a stage's root-reads label)
 	 * @param {boolean} useDifferentialUpdate Whether to track differential updates
 	 * @param {ResourceRequestGraph} [requestGraph] Optional pre-existing request graph from cache
-	 * @param {boolean} [unusedAtLeastOnce=false] Whether the task has been unused at least once
+	 * @param {boolean} [unusedAtLeastOnce=false] Whether the request owner has been unused at least once
 	 */
-	constructor(projectName, taskName, useDifferentialUpdate, requestGraph, unusedAtLeastOnce = false) {
+	constructor(projectName, ownerId, useDifferentialUpdate, requestGraph, unusedAtLeastOnce = false) {
 		this.#projectName = projectName;
-		this.#taskName = taskName;
+		this.#ownerId = ownerId;
 		this.#useDifferentialUpdate = useDifferentialUpdate;
 		this.#unusedAtLeastOnce = unusedAtLeastOnce;
 		if (requestGraph) {
@@ -83,7 +88,7 @@ class ResourceRequestManager {
 	 * including both root indices and delta indices for differential updates.
 	 *
 	 * @param {string} projectName Name of the project
-	 * @param {string} taskName Name of the task
+	 * @param {string} ownerId Identifier of the request owner (a stage id, or a stage's root-reads label)
 	 * @param {boolean} useDifferentialUpdate Whether to track differential updates
 	 * @param {object} cacheData Cached metadata object
 	 * @param {object} cacheData.requestSetGraph Serialized request graph
@@ -92,12 +97,12 @@ class ResourceRequestManager {
 	 * @param {boolean} [cacheData.unusedAtLeastOnce] Whether the task has been unused
 	 * @returns {ResourceRequestManager} Restored manager instance
 	 */
-	static fromCache(projectName, taskName, useDifferentialUpdate, {
+	static fromCache(projectName, ownerId, useDifferentialUpdate, {
 		requestSetGraph, rootIndices, deltaIndices, unusedAtLeastOnce
 	}) {
 		const requestGraph = ResourceRequestGraph.fromCache(requestSetGraph);
 		const resourceRequestManager = new ResourceRequestManager(
-			projectName, taskName, useDifferentialUpdate, requestGraph, unusedAtLeastOnce);
+			projectName, ownerId, useDifferentialUpdate, requestGraph, unusedAtLeastOnce);
 		const registries = new Map();
 		// Restore root resource indices
 		for (const {nodeId, resourceIndex: serializedIndex, unresolvedRequests} of rootIndices) {
@@ -115,7 +120,7 @@ class ResourceRequestManager {
 				const registry = registries.get(node.getParentId());
 				if (!registry) {
 					throw new Error(`Missing tree registry for parent of node ID ${nodeId} of task ` +
-					`'${taskName}' of project '${projectName}'`);
+					`'${ownerId}' of project '${projectName}'`);
 				}
 				const resourceIndex = parentResourceIndex.deriveTreeWithIndex(addedResourceIndex);
 
@@ -201,7 +206,7 @@ class ResourceRequestManager {
 		}));
 		if (log.isLevelEnabled("perf")) {
 			log.perf(
-				`refreshIndices for task '${this.#taskName}' of project '${this.#projectName}' ` +
+				`refreshIndices for '${this.#ownerId}' of project '${this.#projectName}' ` +
 				`completed in ${(performance.now() - refreshStart).toFixed(2)} ms: ` +
 				`${totalResourcesFetched} resources fetched, ${totalResourcesRemoved} resources removed`);
 		}
@@ -224,6 +229,7 @@ class ResourceRequestManager {
 	async updateIndices(reader, changedResourcePaths) {
 		const matchingRequestSetIds = [];
 		const updatesByRequestSetId = new Map();
+		this.#deltaOriginalComposite.clear();
 		if (this.#requestGraph.getSize() === 0) {
 			// No requests recorded -> No updates necessary
 			return false;
@@ -283,7 +289,7 @@ class ResourceRequestManager {
 		}
 		if (log.isLevelEnabled("perf")) {
 			log.perf(
-				`updateIndices for task '${this.#taskName}' of project '${this.#projectName}' ` +
+				`updateIndices for '${this.#ownerId}' of project '${this.#projectName}' ` +
 				`resource fetch completed in ${(performance.now() - fetchStart).toFixed(2)} ms: ` +
 				`${cacheHits} cache hits, ${cacheMisses} cache misses`);
 		}
@@ -295,6 +301,10 @@ class ResourceRequestManager {
 			if (!resourceIndex) {
 				throw new Error(`Missing resource index for request set ID ${requestSetId}`);
 			}
+			// Capture the exposed signature (tree + unresolved requests) before draining below, so the
+			// delta records the same signature the stage was stored under (see #deltaOriginalComposite).
+			this.#deltaOriginalComposite.set(requestSetId,
+				this.#computeNodeSignature(resourceIndex, metadata.unresolvedRequests));
 
 			const resourcePathsToUpdate = updatesByRequestSetId.get(requestSetId);
 			const resourcesToUpdate = [];
@@ -425,8 +435,14 @@ class ResourceRequestManager {
 				hasChanges = true;
 			}
 			for (const [tree, diff] of res.treeStats) {
-				const [requestSetId, originalSignature] = previousTreeSignatures.get(tree);
-				const newSignature = tree.getRootHash();
+				const [requestSetId] = previousTreeSignatures.get(tree);
+				const metadata = this.#requestGraph.getMetadata(requestSetId);
+				// Key the delta on the exposed (composite) signatures, matching getIndexSignatures and
+				// the signature the stage was stored under. For a node without unresolved requests the
+				// composite equals the tree hash, so this is a no-op for the common case.
+				const originalSignature =
+					this.#deltaOriginalComposite.get(requestSetId) ?? previousTreeSignatures.get(tree)[1];
+				const newSignature = this.#computeNodeSignature(metadata.resourceIndex, metadata.unresolvedRequests);
 				this.#addDeltaEntry(requestSetId, originalSignature, newSignature, diff);
 			}
 		}
@@ -447,7 +463,7 @@ class ResourceRequestManager {
 		const results = await Promise.all(this.#treeRegistries.map((registry) => registry.flush()));
 		if (log.isLevelEnabled("perf")) {
 			log.perf(
-				`#flushTreeChanges for task '${this.#taskName}' of project '${this.#projectName}' ` +
+				`#flushTreeChanges for '${this.#ownerId}' of project '${this.#projectName}' ` +
 				`completed in ${(performance.now() - flushStart).toFixed(2)} ms ` +
 				`across ${this.#treeRegistries.length} registries`);
 		}
@@ -508,8 +524,9 @@ class ResourceRequestManager {
 	 * Gets all delta entries for differential cache updates
 	 *
 	 * Returns a map of signature transitions and their associated changed resource paths.
-	 * Only includes deltas where no resources were removed, as removed resources prevent
-	 * differential updates.
+	 * A removed resource is included as a changed path: a step that read the removed
+	 * input then re-runs (or, for a gone key, drops out), and its stale output is dropped from the
+	 * carried-forward stage via the changed-paths merge in ProjectBuildCache.recordStageResult.
 	 *
 	 * @public
 	 * @returns {Map<string, object>} Map from original signature to delta information
@@ -521,11 +538,7 @@ class ResourceRequestManager {
 			let changedPaths;
 			if (diff) {
 				const {added, updated, removed} = diff;
-				if (removed.length) {
-					// Cannot use differential build if a resource has been removed
-					continue;
-				}
-				changedPaths = Array.from(new Set([...added, ...updated]));
+				changedPaths = Array.from(new Set([...added, ...updated, ...removed]));
 			} else {
 				changedPaths = [];
 			}
@@ -579,6 +592,39 @@ class ResourceRequestManager {
 	}
 
 	/**
+	 * Clears all recorded resource requests, resetting the manager to an empty state.
+	 *
+	 * Marks the manager modified and remembers that it previously held requests, so the now-empty
+	 * state is persisted (overwriting the stored request set) rather than skipped the way a
+	 * never-used manager is. Used when a stage recorded reads on an earlier build but records none
+	 * now, so its signature stops folding resources it no longer reads.
+	 *
+	 * @public
+	 */
+	clear() {
+		this.#requestGraph = new ResourceRequestGraph();
+		this.#treeRegistries = [];
+		this.#treeUpdateDeltas = new Map();
+		this.#deltaOriginalComposite = new Map();
+		this.#unusedAtLeastOnce = false;
+		this.#hasNewOrModifiedCacheEntries = true;
+		this.#clearedExistingRequests = true;
+	}
+
+	/**
+	 * Whether clear() emptied a manager that previously held requests
+	 *
+	 * Distinguishes a manager cleared this build, whose now-empty state must be persisted to
+	 * overwrite the stored request set, from a manager that was always empty and is not persisted.
+	 *
+	 * @public
+	 * @returns {boolean}
+	 */
+	wasCleared() {
+		return this.#clearedExistingRequests;
+	}
+
+	/**
 	 * Adds a request set and creates or reuses a resource index
 	 *
 	 * Attempts to find an existing matching request set to reuse. If not found, creates
@@ -590,19 +636,24 @@ class ResourceRequestManager {
 	 * @returns {Promise<object>} Object containing setId and signature of the resource index
 	 */
 	async #addRequestSet(requests, reader) {
-		this.#hasNewOrModifiedCacheEntries = true;
 		// Try to find an existing request set that we can reuse
 		let setId = this.#requestGraph.findExactMatch(requests);
 		let resourceIndex;
 		let unresolvedRequests;
 		if (setId) {
 			// Reuse existing resource index.
-			// Note: This index has already been updated before the task executed, so no update is necessary here
+			// Note: This index has already been updated before the task executed, so no update is necessary
+			// here, and nothing in the persisted request graph changed: the manager stays clean so the whole
+			// request graph is not needlessly re-serialized to SQLite. (A tree update that moved the index's
+			// signature flags the manager dirty itself in updateIndices.) Recording the same request set on
+			// every delta build is the common case for a step-based stage, so leaving the flag untouched here
+			// is what keeps a one-file-changed build from rewriting every stage's request cache.
 			const existingMetadata = this.#requestGraph.getMetadata(setId);
 			resourceIndex = existingMetadata.resourceIndex;
 			unresolvedRequests = existingMetadata.unresolvedRequests;
 		} else {
 			// New request set, check whether we can create a delta
+			this.#hasNewOrModifiedCacheEntries = true;
 			const metadata = {}; // Will populate with resourceIndex below
 			setId = this.#requestGraph.addRequestSet(requests, metadata);
 
@@ -614,7 +665,7 @@ class ResourceRequestManager {
 				const addedRequests = requestSet.getAddedRequests();
 				const resourcesToAdd =
 					await this.#getResourcesForRequests(addedRequests, reader);
-				log.verbose(`Task '${this.#taskName}' of project '${this.#projectName}' ` +
+				log.verbose(`Request owner '${this.#ownerId}' of project '${this.#projectName}' ` +
 					`created derived resource index for request set ID ${setId} ` +
 					`based on parent ID ${parentId} with ${resourcesToAdd.length} additional resources`);
 				resourceIndex = await parentResourceIndex.deriveTree(resourcesToAdd);
