@@ -2,6 +2,7 @@ import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
 import {deserializeResources} from "../../../lib/processors/themeBuilderWorker.js";
+import runSteps from "../../../lib/tasks/runSteps.js";
 let buildThemes;
 
 test.before(async () => {
@@ -18,7 +19,11 @@ test.beforeEach(async (t) => {
 
 	t.context.ReaderCollectionPrioritizedStub = sinon.stub();
 	t.context.comboByGlob = sinon.stub().resolves([]);
-	t.context.ReaderCollectionPrioritizedStub.returns({byGlob: t.context.comboByGlob});
+	t.context.comboByPath = sinon.stub().resolves(null);
+	t.context.ReaderCollectionPrioritizedStub.returns({
+		byGlob: t.context.comboByGlob,
+		byPath: t.context.comboByPath
+	});
 
 	buildThemes = await esmock.p("../../../lib/tasks/buildThemes.js", {
 		"@ui5/fs/fsInterface": t.context.fsInterfaceStub,
@@ -35,7 +40,7 @@ test.afterEach.always(() => {
 test.serial("buildThemes", async (t) => {
 	t.plan(6);
 
-	const lessResource = {};
+	const lessResource = {getPath: () => "/resources/test/library.source.less"};
 
 	const workspace = {
 		byGlob: async (globPattern) => {
@@ -58,7 +63,7 @@ test.serial("buildThemes", async (t) => {
 		jsonParametersResource
 	]);
 
-	await buildThemes({
+	await runSteps(buildThemes, {
 		workspace,
 		options: {
 			projectName: "sap.ui.demo.app",
@@ -88,7 +93,7 @@ test.serial("buildThemes", async (t) => {
 test.serial("buildThemes (compress = false)", async (t) => {
 	t.plan(6);
 
-	const lessResource = {};
+	const lessResource = {getPath: () => "/resources/test/library.source.less"};
 
 	const workspace = {
 		byGlob: async (globPattern) => {
@@ -111,7 +116,7 @@ test.serial("buildThemes (compress = false)", async (t) => {
 		jsonParametersResource
 	]);
 
-	await buildThemes({
+	await runSteps(buildThemes, {
 		workspace,
 		options: {
 			projectName: "sap.ui.demo.app",
@@ -139,7 +144,7 @@ test.serial("buildThemes (compress = false)", async (t) => {
 });
 
 test.serial("buildThemes (filtering libraries)", async (t) => {
-	t.plan(3);
+	t.plan(5);
 
 	const lessResources = {
 		"sap/ui/lib1/themes/theme1/library.source.less": {
@@ -178,16 +183,15 @@ test.serial("buildThemes (filtering libraries)", async (t) => {
 			lessResources["sap/ui/lib3/themes/theme1/library.source.less"]
 		]);
 
-	t.context.comboByGlob
-		.withArgs("/resources/**/(*.library|library.js)").resolves([
-			dotLibraryResources["sap/ui/lib1/.library"],
-			dotLibraryResources["sap/ui/lib1/library.js"],
-			dotLibraryResources["sap/ui/lib3/library.js"]
-		]);
+	// Per theme, isThemeAvailable probes the library markers by path. lib1 and lib3 have a marker;
+	// lib2 does not, so its theme is skipped.
+	t.context.comboByPath.callsFake(async (p) =>
+		Object.values(dotLibraryResources).find((res) => res.getPath() === p) ?? null);
 
-	t.context.themeBuilderStub.returns([{}]);
+	// One step per surviving theme; a fresh result per call so concurrent writes stay independent.
+	t.context.themeBuilderStub.callsFake(() => [{}]);
 
-	await buildThemes({
+	await runSteps(buildThemes, {
 		workspace,
 		options: {
 			projectName: "sap.ui.test.lib1",
@@ -196,26 +200,23 @@ test.serial("buildThemes (filtering libraries)", async (t) => {
 		}
 	});
 
-	t.is(t.context.themeBuilderStub.callCount, 1,
-		"Processor should be called once");
+	t.is(t.context.themeBuilderStub.callCount, 2,
+		"Processor should be called once per surviving theme");
 
-	t.deepEqual(t.context.themeBuilderStub.getCall(0).args[0], {
-		resources: [
-			lessResources["sap/ui/lib1/themes/theme1/library.source.less"],
-			lessResources["sap/ui/lib3/themes/theme1/library.source.less"]
-		],
-		fs: {},
-		options: {
-			compress: true,
-		}
-	}, "Processor should be called with expected arguments");
+	const processed = t.context.themeBuilderStub.getCalls().map((call) => call.args[0].resources[0]);
+	t.true(processed.includes(lessResources["sap/ui/lib1/themes/theme1/library.source.less"]),
+		"lib1 theme was built");
+	t.true(processed.includes(lessResources["sap/ui/lib3/themes/theme1/library.source.less"]),
+		"lib3 theme was built");
+	t.false(processed.includes(lessResources["sap/ui/lib2/themes/theme1/library.source.less"]),
+		"lib2 theme was skipped (no library marker)");
 
-	t.is(workspace.write.callCount, 1,
-		"workspace.write should be called once");
+	t.is(workspace.write.callCount, 2,
+		"workspace.write should be called once per surviving theme");
 });
 
 test.serial("buildThemes (filtering themes)", async (t) => {
-	t.plan(3);
+	t.plan(5);
 
 	const lessResources = {
 		"sap/ui/lib1/themes/theme1/library.source.less": {
@@ -263,9 +264,10 @@ test.serial("buildThemes (filtering themes)", async (t) => {
 			baseThemes["sap/ui/core/themes/theme3/"]
 		]);
 
-	t.context.themeBuilderStub.returns([{}]);
+	// One step per surviving theme; a fresh result per call so concurrent writes stay independent.
+	t.context.themeBuilderStub.callsFake(() => [{}]);
 
-	await buildThemes({
+	await runSteps(buildThemes, {
 		workspace,
 		options: {
 			projectName: "sap.ui.test.lib1",
@@ -274,26 +276,23 @@ test.serial("buildThemes (filtering themes)", async (t) => {
 		}
 	});
 
-	t.is(t.context.themeBuilderStub.callCount, 1,
-		"Processor should be called once");
+	t.is(t.context.themeBuilderStub.callCount, 2,
+		"Processor should be called once per surviving theme");
 
-	t.deepEqual(t.context.themeBuilderStub.getCall(0).args[0], {
-		resources: [
-			lessResources["sap/ui/lib1/themes/theme1/library.source.less"],
-			lessResources["sap/ui/lib1/themes/theme3/library.source.less"]
-		],
-		fs: {},
-		options: {
-			compress: true,
-		}
-	}, "Processor should be called with expected arguments");
+	const processed = t.context.themeBuilderStub.getCalls().map((call) => call.args[0].resources[0]);
+	t.true(processed.includes(lessResources["sap/ui/lib1/themes/theme1/library.source.less"]),
+		"theme1 was built");
+	t.true(processed.includes(lessResources["sap/ui/lib1/themes/theme3/library.source.less"]),
+		"theme3 was built");
+	t.false(processed.includes(lessResources["sap/ui/lib1/themes/theme2/library.source.less"]),
+		"theme2 was skipped (no sap.ui.core theme folder)");
 
-	t.is(workspace.write.callCount, 1,
-		"workspace.write should be called once");
+	t.is(workspace.write.callCount, 2,
+		"workspace.write should be called once per surviving theme");
 });
 
 test.serial("buildThemes (filtering libraries + themes)", async (t) => {
-	t.plan(3);
+	t.plan(6);
 
 	const lessResources = {
 		"sap/ui/lib1/themes/theme1/library.source.less": {
@@ -372,19 +371,17 @@ test.serial("buildThemes (filtering libraries + themes)", async (t) => {
 		]);
 
 	t.context.comboByGlob
-		.withArgs("/resources/**/(*.library|library.js)").resolves([
-			dotLibraryResources["sap/ui/lib1/.library"],
-			dotLibraryResources["sap/ui/lib1/library.js"],
-			dotLibraryResources["sap/ui/lib3/library.js"]
-		])
 		.withArgs("/resources/sap/ui/core/themes/*", {nodir: false}).resolves([
 			baseThemes["sap/ui/core/themes/theme1/"],
 			baseThemes["sap/ui/core/themes/theme3/"]
 		]);
+	t.context.comboByPath.callsFake(async (p) =>
+		Object.values(dotLibraryResources).find((res) => res.getPath() === p) ?? null);
 
-	t.context.themeBuilderStub.returns([{}]);
+	// One step per surviving theme; a fresh result per call so concurrent writes stay independent.
+	t.context.themeBuilderStub.callsFake(() => [{}]);
 
-	await buildThemes({
+	await runSteps(buildThemes, {
 		workspace,
 		options: {
 			projectName: "sap.ui.test.lib1",
@@ -394,24 +391,18 @@ test.serial("buildThemes (filtering libraries + themes)", async (t) => {
 		}
 	});
 
-	t.is(t.context.themeBuilderStub.callCount, 1,
-		"Processor should be called once");
+	t.is(t.context.themeBuilderStub.callCount, 4,
+		"Processor should be called once per surviving theme");
 
-	t.deepEqual(t.context.themeBuilderStub.getCall(0).args[0], {
-		resources: [
-			lessResources["sap/ui/lib1/themes/theme1/library.source.less"],
-			lessResources["sap/ui/lib1/themes/theme3/library.source.less"],
-			lessResources["sap/ui/lib3/themes/theme1/library.source.less"],
-			lessResources["sap/ui/lib3/themes/theme3/library.source.less"]
-		],
-		fs: {},
-		options: {
-			compress: true,
-		}
-	}, "Processor should be called with expected arguments");
+	const processed = t.context.themeBuilderStub.getCalls().map((call) => call.args[0].resources[0]);
+	// Surviving: an available library (lib1, lib3) crossed with an available theme (theme1, theme3).
+	t.true(processed.includes(lessResources["sap/ui/lib1/themes/theme1/library.source.less"]), "lib1 theme1");
+	t.true(processed.includes(lessResources["sap/ui/lib1/themes/theme3/library.source.less"]), "lib1 theme3");
+	t.true(processed.includes(lessResources["sap/ui/lib3/themes/theme1/library.source.less"]), "lib3 theme1");
+	t.true(processed.includes(lessResources["sap/ui/lib3/themes/theme3/library.source.less"]), "lib3 theme3");
 
-	t.is(workspace.write.callCount, 1,
-		"workspace.write should be called once");
+	t.is(workspace.write.callCount, 4,
+		"workspace.write should be called once per surviving theme");
 });
 
 test.serial("buildThemes (useWorkers = true)", async (t) => {
@@ -461,7 +452,7 @@ test.serial("buildThemes (useWorkers = true)", async (t) => {
 		jsonParametersResource
 	]);
 
-	await buildThemes({
+	await runSteps(buildThemes, {
 		workspace,
 		taskUtil: taskUtilMock,
 		options: {
@@ -532,7 +523,7 @@ test.serial("buildThemes with taskUtil and unexpected termination of the workerp
 		mkdir: (...args) => args[args.length - 1](null, {}),
 	});
 
-	await buildThemes({
+	await runSteps(buildThemes, {
 		workspace,
 		taskUtil: taskUtilMock,
 		options: {
