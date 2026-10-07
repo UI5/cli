@@ -128,14 +128,6 @@ A custom task implementation needs to return a function with the following signa
  *      Namespace of the project currently being built
  * @param {string} parameters.options.configuration
  *      Custom task configuration, as defined in the project's ui5.yaml
- * @param {string[] | undefined} parameters.changedProjectResourcePaths
- *      List of changed resource paths since last execution.
- *      Only used if the task supports differential builds (supportsDifferentialBuilds=true).
- *      Returns undefined if unsupported or no cache is available.
- * @param {string[] | undefined} parameters.changedDependencyResourcePaths
- *      List of changed dependency resource paths since last execution.
- *      Only used if the task supports differential builds (supportsDifferentialBuilds=true).
- *      Returns undefined if unsupported or no cache is available.
  * @param {string} parameters.options.taskName
  *      Name of the custom task.
  *      This parameter is only provided to custom task extensions
@@ -174,14 +166,6 @@ export default async function({dependencies, log, options, taskUtil, workspace})
  *      Namespace of the project currently being built
  * @param {string} parameters.options.configuration
  *      Custom task configuration, as defined in the project's ui5.yaml
- * @param {string[] | undefined} parameters.changedProjectResourcePaths
- *      List of changed resource paths since last execution.
- *      Only used if the task supports differential builds (supportsDifferentialBuilds=true).
- *      Returns undefined if unsupported or no cache is available.
- * @param {string[] | undefined} parameters.changedDependencyResourcePaths
- *      List of changed dependency resource paths since last execution.
- *      Only used if the task supports differential builds (supportsDifferentialBuilds=true).
- *      Returns undefined if unsupported or no cache is available.
  * @param {string} parameters.options.taskName
  *      Name of the custom task.
  *      This parameter is only provided to custom task extensions
@@ -302,48 +286,47 @@ module.exports.determineRequiredDependencies = async function({availableDependen
 ```
 :::
 
-### "Cache-aware" Tasks 
+### "Cache-aware" Tasks
 
-Due to UI5 Builder and UI5 Server supporting **build caches** of task data, custom tasks can opt into this behavior to improve performance. To do this, export optional callback functions in your task implementation:
+Due to UI5 Builder and UI5 Server supporting **build caches** of task data, custom tasks can opt into this behavior to improve performance. A cache-aware task is a **step-based task**: instead of a task body, it default-exports a factory `build(options)` and declares a static `stepBased` flag. The factory returns an array of steps that describe the work. The build cache tracks each step's inputs and, on a delta build, re-runs only the steps (and, within a step, only the keys) whose inputs changed, restoring the rest from cache. A task that is not step-based, runs on a Specification Version below 5.0, or has no cache available, processes all resources from scratch.
 
-#### `supportsDifferentialBuilds()`
+Step-based custom tasks are available from Specification Version 5.0. A task opts in with a static `stepBased` export set to `true`:
 
 ::: code-group
+
 ```js [ESM]
-/**
- * Indicates whether the task supports differential builds
- *
- * Tasks that support differential builds can use incremental cache invalidation,
- * processing only changed resources rather than rebuilding from scratch.
- *
- * @public
- * @returns {boolean} True if differential builds are supported
- */
-export function supportsDifferentialBuilds() {
-    return true;
-}
+export const stepBased = true;
+export default function build(options) {
+    return [ /* steps */ ];
+};
 ```
 
 ```js [CommonJS]
-/**
- * Indicates whether the task supports differential builds
- *
- * Tasks that support differential builds can use incremental cache invalidation,
- * processing only changed resources rather than rebuilding from scratch.
- *
- * @public
- * @returns {boolean} True if differential builds are supported
- */
-module.exports.supportsDifferentialBuilds = function() {
-    return true;
-}
+module.exports = function build(options) {
+    return [ /* steps */ ];
+};
+module.exports.stepBased = true;
 ```
+:::
 
-When this returns `true`, your task's main function receives an additional parameter `changedProjectResourcePaths`. This parameter provides an array of changed resource paths (strings) since its last execution. The task then processes only those resources instead of all resources. If this callback isn't provided or returns a falsy value, your task can't use incremental cache invalidation and processes all resources from scratch.
+The factory receives the task `options` only (the same `options` object the standard task function receives); it never receives readers or a `taskUtil`, so it cannot close over build state. It must be pure over `options`: it may branch on `options.projectNamespace`, precompute glob patterns, or include or omit steps, but it must not read or write resources. Every input a step reads arrives through the step's own callback arguments.
+
+There are two kinds of steps, run in array order:
+
+* **Scalar step** `{name, needs?, run}` — runs once. `run: async ({needs, workspace, dependencies, taskUtil, options}) => value?`
+* **Map step** `{name, needs?, keys, each}` — runs once per key. `keys: async ({needs, workspace, dependencies, taskUtil, options}) => keySet` enumerates the keys, and `each: async (key, {needs, workspace, dependencies, taskUtil, options}) => value?` processes one key. A key is a resource or a stable string.
+
+Each step gets its own `name` (a non-empty string, unique within the task). A map step is the usual cache-aware shape: the build cache treats every key as its own cached unit, so a delta build re-processes only the keys whose inputs changed.
+
+A step may list earlier step names in `needs`; those steps' return values then arrive as `needs.<name>` in the step's callbacks. A step may reference only steps that come before it in the array, so there can be no cycle. A step's return value (resources, or any JSON-serializable value) folds into the cache signature of every step that consumes it, so a changed producer re-runs its consumers.
 
 ::: info Best Practices for Cache-aware Tasks
-1. **Keep tasks deterministic**: Given the same inputs, always produce the same outputs
-2. **Opt into differential builds carefully**: Only set `supportsDifferentialBuilds = true` if your task can safely process files independently
+1. **Keep tasks deterministic**: Given the same inputs, always produce the same outputs.
+2. **Keep the factory pure**: The `build(options)` factory must only return step descriptors from `options`. Never read or write resources in the factory; do that in the step callbacks.
+3. **Read and write only through the callback arguments**: Every input a step reads must arrive through its `workspace`, `dependencies`, `taskUtil`, or `needs` arguments, and every write must go through the step's own `workspace`. A read or write that bypasses these is not recorded, so the cache cannot track it and a delta build can serve stale output.
+4. **Import heavy processors lazily**: UI5 CLI calls the factory on every build to discover the steps, even when every step is a cache hit. Import heavy modules inside the step callbacks (for example `const p = (await import("./processor.js")).default`), not at the top of the module, so a fully cached build does not load them.
+5. **Split work carefully**: Only use a map step if each key can be processed independently. Two keys that run concurrently must not write the same path.
+6. **Name steps stably**: Reuse the same step `name` across builds so the cached data is found.
 :::
 
 ### Examples
@@ -355,88 +338,82 @@ The following code snippets show examples for custom task implementations.
 This example is making use of the `resourceFactory` [TaskUtil](../../api/@ui5_project_build_helpers_TaskUtil.html)
 API to create new resources based on the output of a third-party module for rendering Markdown files. The created resources are added to the build
 result by writing them into the provided `workspace`.
-In addition, this task supports differential builds, which re-process only changed resources.
+This task is a step-based, cache-aware task: a single map step renders one Markdown resource per key, so a delta build re-renders only the files that changed. The `renderMarkdown` processor is imported lazily inside the `each` callback, so a fully cached build never loads it.
 
 ::: code-group
 
 ```js [ESM]
 import path from "node:path";
-import renderMarkdown from "./renderMarkdown.js";
+import {getLogger} from "@ui5/logger";
+
+const log = getLogger("builder:tasks:renderMarkdownFiles");
 
 /*
 * Render all .md (Markdown) files in the project to HTML
 */
-export default async function({dependencies, log, options, taskUtil, workspace, changedProjectResourcePaths}) {
-    const {createResource} = taskUtil.resourceFactory;
-    let textResources;
-	
-	if (changedProjectResourcePaths) {
-		textResources = await Promise.all(changedProjectResourcePaths.map((resource) => workspace.byPath(resource)));
-	} else {
-		textResources = await workspace.byGlob("**/*.md");
-	}
+export const stepBased = true;
+export default function build(options) {
+    return [{
+        name: "render",
+        // One cached unit per Markdown file, so a delta build re-renders only the files that changed.
+        keys: async ({workspace}) => workspace.byGlob("**/*.md"),
+        each: async (resource, {workspace, taskUtil}) => {
+            // Import the processor lazily so a fully cached build does not load it
+            const renderMarkdown = (await import("./renderMarkdown.js")).default;
+            const {createResource} = taskUtil.resourceFactory;
+            const markdownResourcePath = resource.getPath();
 
-	await Promise.all(textResources.map(async (resource) => {
-		const markdownResourcePath = resource.getPath();
+            log.info(`Rendering markdown file ${markdownResourcePath}...`);
+            const htmlString = await renderMarkdown(await resource.getString(), options.configuration);
 
-		log.info(`Rendering markdown file ${markdownResourcePath}...`);
-		const htmlString = await renderMarkdown(await resource.getString(), options.configuration);
+            // Note: @ui5/fs virtual paths are always (on *all* platforms) POSIX. Therefore using path.posix here
+            const newResourceName = path.posix.basename(markdownResourcePath, ".md") + ".html";
+            const newResourcePath = path.posix.join(path.posix.dirname(markdownResourcePath), newResourceName);
 
-		// Note: @ui5/fs virtual paths are always (on *all* platforms) POSIX. Therefore using path.posix here
-		const newResourceName = path.posix.basename(markdownResourcePath, ".md") + ".html";
-		const newResourcePath = path.posix.join(path.posix.dirname(markdownResourcePath), newResourceName);
-
-		const markdownResource = createResource({
-			path: newResourcePath,
-			string: htmlString
-		});
-		await workspace.write(markdownResource);
-	}));
+            await workspace.write(createResource({
+                path: newResourcePath,
+                string: htmlString
+            }));
+        }
+    }];
 };
-
-export function supportsDifferentialBuilds() {
-    return true;
-}
 ```
 
 ```js [CommonJS]
 const path = require("node:path");
-const renderMarkdown = require("./renderMarkdown.js");
+const {getLogger} = require("@ui5/logger");
+
+const log = getLogger("builder:tasks:renderMarkdownFiles");
 
 /*
 * Render all .md (Markdown) files in the project to HTML
 */
-module.exports = async function({dependencies, log, options, taskUtil, workspace, changedProjectResourcePaths}) {
-    const {createResource} = taskUtil.resourceFactory;
-	let textResources;
-	
-	if (changedProjectResourcePaths) {
-		textResources = await Promise.all(changedProjectResourcePaths.map((resource) => workspace.byPath(resource)));
-	} else {
-		textResources = await workspace.byGlob("**/*.md");
-	}
-	
-	await Promise.all(textResources.map(async (resource) => {
-        const markdownResourcePath = resource.getPath();
+module.exports = function build(options) {
+    return [{
+        name: "render",
+        // One cached unit per Markdown file, so a delta build re-renders only the files that changed.
+        keys: async ({workspace}) => workspace.byGlob("**/*.md"),
+        each: async (resource, {workspace, taskUtil}) => {
+            // Import the processor lazily so a fully cached build does not load it
+            const renderMarkdown = require("./renderMarkdown.js");
+            const {createResource} = taskUtil.resourceFactory;
+            const markdownResourcePath = resource.getPath();
 
-        log.info(`Rendering markdown file ${markdownResourcePath}...`);
-        const htmlString = await renderMarkdown(await resource.getString(), options.configuration);
+            log.info(`Rendering markdown file ${markdownResourcePath}...`);
+            const htmlString = await renderMarkdown(await resource.getString(), options.configuration);
 
-        // Note: @ui5/fs virtual paths are always (on *all* platforms) POSIX. Therefore using path.posix here
-        const newResourceName = path.posix.basename(markdownResourcePath, ".md") + ".html";
-        const newResourcePath = path.posix.join(path.posix.dirname(markdownResourcePath), newResourceName);
+            // Note: @ui5/fs virtual paths are always (on *all* platforms) POSIX. Therefore using path.posix here
+            const newResourceName = path.posix.basename(markdownResourcePath, ".md") + ".html";
+            const newResourcePath = path.posix.join(path.posix.dirname(markdownResourcePath), newResourceName);
 
-        const markdownResource = createResource({
-            path: newResourcePath,
-            string: htmlString
-        });
-        await workspace.write(markdownResource);
-    }));
+            await workspace.write(createResource({
+                path: newResourcePath,
+                string: htmlString
+            }));
+        }
+    }];
 };
-
-module.exports.supportsDifferentialBuilds = function() {
-    return true;
-}
+module.exports.stepBased = true;
 ```
 :::
 
