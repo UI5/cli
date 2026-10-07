@@ -1892,8 +1892,8 @@ test("Step-based task: the factory runs once per build and its steps are reused 
 });
 
 // A step factory that forgets its return yields undefined, the single most likely authoring mistake.
-// Discovery consumes the factory return (steps.map) before StepRunner#validateStep would see the elements,
-// so the container shape is validated here, naming the task and the value the factory returned.
+// Discovery validates the whole step list (validateSteps) before it derives the step names and creates
+// stages, so the container shape is validated here, naming the task and the value the factory returned.
 test("Step-based task: a factory returning a non-array throws a named error at discovery", async (t) => {
 	const {sinon, taskUtil} = t.context;
 
@@ -1916,6 +1916,36 @@ test("Step-based task: a factory returning a non-array throws a named error at d
 	t.is(err.message,
 		"Step factory for task 'stepTask' must return an array of step objects, got undefined",
 		"The error names the task, the expected shape, and the actual returned value");
+});
+
+// A duplicate step name would create two stages with the same stage id (setTasks derives one id per step
+// name), so discovery must reject it before setTasks runs — not later when the step runs and the corrupt
+// stage already exists. The spied setTasks proves validation precedes stage creation.
+test("Step-based task: a duplicate step name throws at discovery, before setTasks", async (t) => {
+	const {sinon, taskUtil, buildCache} = t.context;
+
+	const build = () => [
+		{name: "dup", run: async () => {}},
+		{name: "dup", run: async () => {}},
+	];
+	const taskDefinitions = {
+		getTaskDefinitions: async () => ({
+			standardTasks: new Map([
+				["stepTask",
+					{requiresDependencies: false, stepBased: true, options: {}, taskFunction: build}],
+			]),
+			customTasks: new Map(),
+		}),
+	};
+
+	const project = getMockProject("module");
+	const taskRunner = createTaskRunner(t, project, {taskUtil, taskDefinitions});
+	sinon.stub(taskRunner, "getDependenciesReader").resolves({getName: () => "dependencies"});
+
+	const err = await t.throwsAsync(taskRunner.runTasks());
+	t.is(err.message, "Duplicate step name 'dup' for task 'stepTask'",
+		"The error names the duplicate step and the task");
+	t.false(buildCache.setTasks.called, "No stage was created: validation ran before setTasks");
 });
 
 // The factory is called once per build, so discovery and execution share one step array by construction.

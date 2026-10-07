@@ -259,6 +259,69 @@ test("A step's needs may only reference an earlier step", async (t) => {
 		{message: /Step 'a' needs 'later', which is not an earlier step/});
 });
 
+test("A factory returning a non-array throws before any step runs", async (t) => {
+	const {runner} = makeDriver({steps: undefined});
+	await t.throwsAsync(runner.runSteps(),
+		{message: "Step factory must return an array of step objects, got undefined"});
+});
+
+test("A non-object step element names its index", async (t) => {
+	const {runner} = makeDriver({steps: [{name: "ok", run: async () => {}}, "nope"]});
+	await t.throwsAsync(runner.runSteps(),
+		{message: "Step at index 1 must be an object, got a string"});
+});
+
+test("A step without a name names its index", async (t) => {
+	const {runner} = makeDriver({steps: [{run: async () => {}}]});
+	await t.throwsAsync(runner.runSteps(),
+		{message: "Step at index 0 must have a non-empty string 'name'"});
+
+	const {runner: empty} = makeDriver({steps: [{name: "", run: async () => {}}]});
+	await t.throwsAsync(empty.runSteps(),
+		{message: "Step at index 0 must have a non-empty string 'name'"});
+});
+
+test("A duplicate step name throws", async (t) => {
+	const {runner} = makeDriver({
+		steps: [{name: "dup", run: async () => {}}, {name: "dup", run: async () => {}}],
+	});
+	await t.throwsAsync(runner.runSteps(), {message: "Duplicate step name 'dup'"});
+});
+
+test("A half-defined map step names the missing half", async (t) => {
+	const {runner: noEach} = makeDriver({steps: [{name: "m", keys: async () => []}]});
+	await t.throwsAsync(noEach.runSteps(),
+		{message: "Map step 'm' must define both 'keys' and 'each' functions"});
+
+	const {runner: noKeys} = makeDriver({steps: [{name: "m", each: async () => {}}]});
+	await t.throwsAsync(noKeys.runSteps(),
+		{message: "Map step 'm' must define both 'keys' and 'each' functions"});
+});
+
+test("A step's needs declared as a string throws the array message, not a per-character error", async (t) => {
+	// Regression: 'needs' used to be iterated with for..of, so a string typo iterated characters and
+	// reported the first character as a missing earlier step. It must be rejected as a non-array instead.
+	const {runner} = makeDriver({
+		steps: [{name: "a", run: async () => {}}, {name: "b", needs: "a", run: async () => {}}],
+	});
+	await t.throwsAsync(runner.runSteps(),
+		{message: "Step 'b' 'needs' must be an array of earlier step names, got a string"});
+});
+
+test("A non-string needs entry names its index", async (t) => {
+	const {runner} = makeDriver({
+		steps: [{name: "a", run: async () => {}}, {name: "b", needs: ["a", 42], run: async () => {}}],
+	});
+	await t.throwsAsync(runner.runSteps(),
+		{message: "Step 'b' 'needs' entries must be strings; entry 1 is a number"});
+});
+
+test("A step needing itself throws, since it is not an earlier step", async (t) => {
+	const {runner} = makeDriver({steps: [{name: "a", needs: ["a"], run: async () => {}}]});
+	await t.throwsAsync(runner.runSteps(),
+		{message: "Step 'a' needs 'a', which is not an earlier step"});
+});
+
 test("A scalar producer's serializable return is injected into a consumer via needs", async (t) => {
 	let seen;
 	const {runner} = makeDriver({

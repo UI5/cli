@@ -1,7 +1,7 @@
 import {getLogger} from "@ui5/logger";
 import composeTaskList from "./helpers/composeTaskList.js";
 import MonitoredTaskUtil from "./helpers/MonitoredTaskUtil.js";
-import StepRunner, {describeValue} from "./helpers/StepRunner.js";
+import StepRunner, {validateSteps} from "./helpers/StepRunner.js";
 import {createReaderCollection, createMonitor} from "@ui5/fs/resourceFactory";
 
 const EMPTY_RESOURCE_REQUESTS = {paths: [], patterns: []};
@@ -224,11 +224,10 @@ class TaskRunner {
 			}
 			const factory = await taskDef.stepFactory();
 			const steps = await factory(taskDef.options);
-			if (!Array.isArray(steps)) {
-				throw new Error(
-					`Step factory for task '${taskName}' must return an array of step objects, ` +
-					`got ${describeValue(steps)}`);
-			}
+			// Validate the whole step list before it creates any stage: setTasks below derives a stage id per
+			// step name, so a duplicate name or a malformed declaration must be rejected here, not later when
+			// the step runs (by then two steps sharing a name have already created two stages with one id).
+			validateSteps(steps, {taskName});
 			taskDef.steps = Object.freeze(steps);
 			return {taskName, stepNames: steps.map((step) => step.name)};
 		}));

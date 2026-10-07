@@ -43,6 +43,82 @@ export function describeValue(value) {
 }
 
 /**
+ * Validates a step-based task's complete step list in one pass, before any step runs. The
+ * [TaskRunner]{@link @ui5/project/build/TaskRunner} calls this at discovery, before it derives the step
+ * names and creates one pipeline stage per step: a malformed declaration (a bad shape, a duplicate name, an
+ * invalid <code>needs</code>) must be rejected before it can create a corrupt stage (two steps sharing a
+ * name would create two stages with the same stage id). {@link StepRunner#runSteps} calls it again at its
+ * entry, so a directly or standalone instantiated runner validates the same way.
+ *
+ * Every rule is static over the step descriptors (no reader, taskUtil, options or cache state is consulted),
+ * so one upfront pass can replace the former per-step check that ran interleaved with execution. The
+ * "earlier steps" set a step's <code>needs</code> may reference is reconstructed by iterating in declaration
+ * order; because a step may reference only an earlier step, a forward or self reference throws, which is also
+ * what makes a <code>needs</code> cycle impossible.
+ *
+ * @param {*} steps The value the task factory returned
+ * @param {object} [parameters]
+ * @param {string} [parameters.taskName] The task name, named in the array- and element-shape messages when
+ *   the caller is the TaskRunner (absent for a standalone runner)
+ * @throws {Error} If the step list or any step declaration is invalid
+ */
+export function validateSteps(steps, {taskName} = {}) {
+	const where = taskName ? ` for task '${taskName}'` : "";
+	if (!Array.isArray(steps)) {
+		throw new Error(
+			`Step factory${where} must return an array of step objects, got ${describeValue(steps)}`);
+	}
+	const seen = new Set();
+	for (let i = 0; i < steps.length; i++) {
+		const step = steps[i];
+		if (!step || typeof step !== "object") {
+			throw new Error(`Step at index ${i}${where} must be an object, got ${describeValue(step)}`);
+		}
+		if (typeof step.name !== "string" || !step.name) {
+			throw new Error(`Step at index ${i}${where} must have a non-empty string 'name'`);
+		}
+		if (seen.has(step.name)) {
+			throw new Error(`Duplicate step name '${step.name}'${where}`);
+		}
+		const isScalar = typeof step.run === "function";
+		const hasKeys = typeof step.keys === "function";
+		const hasEach = typeof step.each === "function";
+		const isMap = hasKeys && hasEach;
+		if (!isScalar && (hasKeys !== hasEach)) {
+			// A half-defined map step is the common authoring typo; name the missing half rather than the
+			// generic scalar-or-map message.
+			throw new Error(
+				`Map step '${step.name}' must define both 'keys' and 'each' functions`);
+		}
+		if (isScalar === isMap) {
+			throw new Error(
+				`Step '${step.name}' must be either a scalar step ({name, run}) or a ` +
+				`map step ({name, keys, each})`);
+		}
+		if (step.needs !== undefined) {
+			if (!Array.isArray(step.needs)) {
+				throw new Error(
+					`Step '${step.name}' 'needs' must be an array of earlier step names, ` +
+					`got ${describeValue(step.needs)}`);
+			}
+			for (let j = 0; j < step.needs.length; j++) {
+				const needed = step.needs[j];
+				if (typeof needed !== "string") {
+					throw new Error(
+						`Step '${step.name}' 'needs' entries must be strings; ` +
+						`entry ${j} is ${describeValue(needed)}`);
+				}
+				if (!seen.has(needed)) {
+					throw new Error(
+						`Step '${step.name}' needs '${needed}', which is not an earlier step`);
+				}
+			}
+		}
+		seen.add(step.name);
+	}
+}
+
+/**
  * Collects the reads and writes of a single step (a scalar step's implicit unit, or one key of a map
  * step). Project reads (workspace) and dependency reads are kept apart so they can be folded back into
  * the task's project vs. dependency request graph independently: a dependency path folded into the
@@ -309,7 +385,7 @@ export default class StepRunner {
 	 * @returns {Promise<void>}
 	 */
 	async runSteps() {
-		const seen = new Set();
+		validateSteps(this.#steps);
 		let anyStepExecuted = false;
 		const writtenResourcePaths = [];
 
@@ -347,8 +423,6 @@ export default class StepRunner {
 
 		for (const step of this.#steps) {
 			this.#signal?.throwIfAborted();
-			this.#validateStep(step, seen);
-			seen.add(step.name);
 
 			// Switch the project to this step's own stage and get its cache verdict. Standalone use (no
 			// prepareStage) always runs every unit.
@@ -659,39 +733,6 @@ export default class StepRunner {
 			},
 			inputs: [...mergedInputs.values()],
 		};
-	}
-
-	/**
-	 * Validates one step's shape and its <code>needs</code> wiring.
-	 *
-	 * @param {object} step Step from the factory
-	 * @param {Set<string>} seen Names of the steps already processed (needs may only reference these)
-	 */
-	#validateStep(step, seen) {
-		if (!step || typeof step !== "object") {
-			throw new Error("Step factory must return an array of step objects");
-		}
-		if (typeof step.name !== "string" || !step.name) {
-			throw new Error("Each step must have a non-empty string 'name'");
-		}
-		if (seen.has(step.name)) {
-			throw new Error(`Duplicate step name '${step.name}'`);
-		}
-		const isScalar = typeof step.run === "function";
-		const isMap = typeof step.keys === "function" && typeof step.each === "function";
-		if (isScalar === isMap) {
-			throw new Error(
-				`Step '${step.name}' must be either a scalar step ({name, run}) or a ` +
-				`map step ({name, keys, each})`);
-		}
-		if (step.needs) {
-			for (const needed of step.needs) {
-				if (!seen.has(needed)) {
-					throw new Error(
-						`Step '${step.name}' needs '${needed}', which is not an earlier step`);
-				}
-			}
-		}
 	}
 
 	/**
