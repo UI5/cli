@@ -43,7 +43,9 @@ With this setup, a build task can always access the result of the previous tasks
 
 ### Incremental Build Cache
 
-For the incremental build cache, a new entity `Build Task Cache` shall be created, managed by a new entity `Project Build Cache`. In addition, the current concept of the project `workspace` shall be extended to allow for `stage writers`. These stages build upon each other. Essentially, instead of one writer being shared across all tasks, each task is assigned its own stage, and each task reads from the combined stages of the preceding tasks.
+For the incremental build cache, a new entity `Build Stage Cache` shall be created, managed by a new entity `Project Build Cache`. In addition, the current concept of the project `workspace` shall be extended to allow for `stage writers`. These stages build upon each other. Essentially, instead of one writer being shared across all tasks, the build is divided into an ordered sequence of stages, each with its own writer, and each stage reads from the combined stages of the preceding ones.
+
+The unit of caching is a **stage**. A regular task is one stage. A task that opts into partial rebuilds becomes a *step-based task* (see [Build Task API Changes](#build-task-api-changes)) and contributes one stage per step, so its steps are cached independently.
 
 ![Diagram illustrating the central build components with the Project Build Cache and Build Task Cache](./resources/0017-incremental-build/Build_Overview.png)
 
@@ -69,13 +71,13 @@ _The project has been built and a cache has been stored._
 1. The build determines which tasks need to be executed using the imported cache and information about the modified source files.
 	* In this example, it is determined that Task A and Task C need to be executed since they requested the modified resource in their previous execution.
 1. Task A is executed. The output is written into a **new writer** of the associated stage.
-	* Since Task A communicated that it supports `differential builds`, the task is provided with a list of changed resources, allowing it to determine which resources need to be processed again, skipping stale resources.
-	* In this example, Task A decided to only process the changed resources and ignores the others.
-	* **Note: Task A can't access the cached stage reader.** It can only access the combined resources of all previous writer stages, just like in a regular build.
+	* Task A is a step-based task, so each of its steps is cached independently. The build cache re-runs only the steps (and, within a map step, only the keys) whose inputs changed since the last build, and restores the rest from cache.
+	* In this example, Task A re-runs only the step affected by the modified resource and reuses its other steps.
+	* **Note: a task can't access the cached stage reader of its own stages.** A step can only access the combined resources of all previous writer stages, the same as in a regular build.
 1. _New task outputs are combined with the cached outputs and the new stage metadata is serialized to disk_
 1. The `Project Build Cache` determines whether the resources produced in this latest execution of Task A are relevant for Task B. If yes, the content of those resources is compared to the cached content of the resources Task B received during its last execution. In this example, the output of Task A is not relevant for Task B, so it is skipped.
 1. Task C is executed (assuming that relevant resources have changed) and has access to the full stage (cache reader and new writer) of Task A, as well as the cached stage of Task B. This allows it to access all resources produced in all previous executions of Task A and Task B.
-	* Task C does not support `differential builds`. The output of Task C is written into a **new writer** of the associated stage.
+	* Task C is a regular (non-step-based) task. The output of Task C is written into a **new writer** of the associated stage.
 1. _New task outputs are stored in the content-addressable store and stage metadata is serialized to disk_
 1. The build finishes. The combined resources of all stages and the source reader are written to the target output directory.
 
@@ -87,23 +89,23 @@ _The project has been built and a cache has been stored._
 
 The `Project Build Cache` is responsible for managing the build cache of a single project. It handles the (de-)serialization of the cache to and from disk, as well as determining whether a new build of the project is required (e.g. due to the lack of an existing cache or based on source or dependency file changes).
 
-It also manages the individual `Build Task Cache` instances for each task in the build process, allowing them to track which resources have been read and written during their execution.
+It also manages the individual `Build Stage Cache` instances, one per stage in the build process, allowing them to track which resources have been read and written during their execution.
 
 To detect changes in a project's sources, a [Hash Tree](#hash-tree) is used to efficiently store and compare metadata of all source files. This allows quick detection of changed source files since the last build. The root hash of this tree is referred to as the project's `source-index signature`. Together with the signatures of all relevant dependency-indices, a cache key can be generated to look up an existing result cache for the project's current state. If found, it can be used to skip the build of the project altogether.
 
-Similarly, each task's input resources are tracked using two hash trees (one for project-internal resources and one for dependency resources). These trees include resource tags in their leaf node hashes, ensuring that tag changes are detected alongside content changes. The root hashes of both trees can be combined to form a stage cache key.
+Similarly, each stage's input resources are tracked using hash trees (one for project-internal resources and one for dependency resources). These trees include resource tags in their leaf node hashes, ensuring that tag changes are detected alongside content changes. Their root hashes, together with a signature over the stage's [non-resource inputs](#non-resource-task-inputs) (e.g. environment variables) and over any configuration files read outside the resource model, combine to form a stage cache key.
 
 See also: [Cache Creation](#cache-creation).
 
-#### Build Task Cache
+#### Build Stage Cache
 
-The `Build Task Cache` is responsible for managing the cache information for a single build task within a project. It keeps track of which resources have been read and written by the task during previous executions.
+The `Build Stage Cache` is responsible for managing the cache information for a single stage within a project (a regular task's single stage, or one of a step-based task's per-step stages). It keeps track of which resources have been read and written by the stage during previous executions.
 
-During a rebuild, it can use this information to determine whether the task needs to be re-executed based on changes to the relevant input resources.
+During a rebuild, it can use this information to determine whether the stage needs to be re-executed based on changes to the relevant input resources.
 
-The Project Build Cache uses this information to determine whether a changed resource _potentially_ affects a given task. This does not mean that the task must be re-executed right away, only that it might need to be. The actual decision is deferred until the task is about to be executed. Only at that point can the task compare the content of the relevant input resources with its cache and determine whether (and which) relevant resources have changed.
+The Project Build Cache uses this information to determine whether a changed resource _potentially_ affects a given stage. This does not mean that the stage must be re-executed right away, only that it might need to be. The actual decision is deferred until the stage is about to be executed. Only at that point can the stage's input resources be compared with the cache to determine whether (and which) relevant resources have changed.
 
-All necessary metadata stored in the `Build Task Cache` is serialized to disk as part of the [Build Task Metadata](#build-task-metadata).
+All necessary metadata stored in the `Build Stage Cache` is serialized to disk as part of the [Build Stage Metadata](#build-stage-metadata).
 
 ### Enhancements in Existing Components
 
@@ -117,9 +119,9 @@ Previously, the `Project` class was responsible for providing the project's `wor
 
 A new `Project Resources` class shall be created to manage the access to a project's resources and decouple this responsibility from the `Project` class. This class will be responsible for managing the different resource readers and writers of a project, including the handling of resource tags.
 
-To support the incremental build, the `Project Resources` class shall manage multiple resource `stages`, one for each task in the build process. Each stage holds either a `writer` or, in case the stage has been restored from cache, a `cached writer` (the latter being read-only). Additionally, each stage contains two `ResourceTagCollection` instances for managing resource tags (see [resource tags](#resource-tags)).
+To support the incremental build, the `Project Resources` class shall manage multiple resource `stages`, one per stage of the build (a regular task contributes one stage, a step-based task one stage per step). Each stage holds either a `writer` or, in case the stage has been restored from cache, a `cached writer` (the latter being read-only). Additionally, each stage contains two `ResourceTagCollection` instances for managing resource tags (see [resource tags](#resource-tags)).
 
-During the project build, and before executing a task, the `Project Build Cache` shall set the correct stage in the `Project Resources` instance. E.g. before executing the `replaceCopyright` task, the stage is set to `task/replaceCopyright`.
+During the project build, and before executing a stage, the `Project Build Cache` shall set the correct stage in the `Project Resources` instance. E.g. before executing the `replaceCopyright` task, the stage is set to `task/replaceCopyright`.
 
 Whenever progressing to a new stage, the stage is initialized with an empty writer and resource tag collection. The `Project Build Cache` can replace the writer with a `cached writer`, in case a previous execution of the task has been cached and the cache is still valid. Similarly, the resource tag collection is updated based on cached tag operations for the stage. Note that this includes clearing tags.
 
@@ -127,7 +129,7 @@ Once a `workspace` is requested from the `Project Resources` instance, it will i
 
 When requesting the `resourceTagCollection` for a stage, the `Project Resources` instance will return a `Monitored Tag Collection` wrapper around the actual `Resource Tag Collection` of the stage. This allows tracking all tag operations performed during a task's execution and storing them in the cache (see [Monitored Tag Collection](#monitored-tag-collection)). A notable difference to the handling of resources is that the `Resource Tag Collection` is per project rather than per stage: it is populated with the tags of each stage as the build progresses. There are two such collections (see [Monitored Tag Collection](#monitored-tag-collection)): the `project` tags collection is cleared at the beginning of every build, while the `build` tags collection is cleared at the end.
 
-Stages have an explicit order, defined during their initialization. Stages shall be named using the following schema: `<type>/<name>`, where `<type>` is the type of the stage (e.g. `task`) and `<name>` is the name of the entity creating the stage (e.g. the task name).
+Stages have an explicit order, defined during their initialization. Stages shall be named using the following schema: `<type>/<name>`, where `<type>` is the type of the stage (e.g. `task`) and `<name>` is the name of the entity creating the stage (e.g. the task name). A step-based task's per-step stages extend this with a step segment, i.e. `task/<taskName>::step/<stepName>`.
 
 ![Diagram illustrating project stages](./resources/0017-incremental-build/Project_Stages.png)
 
@@ -164,14 +166,15 @@ The `Project Builder` shall be enhanced to:
 The `Task Runner` shall be enhanced to:
 
 1. Request the build signature of any tasks implementing the `determineBuildSignature` method at the beginning of the build process (see [Build Task API Changes](#build-task-api-changes)). These signatures are then incorporated into the overall build signature of the project (see [Cache Creation](#cache-creation)).
-2. Before executing each task, allow the `Project Build Cache` to prepare the task execution and determine whether the task needs to be executed or can be skipped based on valid cache data.
-3. Execute the task, optionally providing it with a list of changed resource paths since the last execution. This can be used by tasks supporting `differential builds` to only process changed resources (see [Build Task API Changes](#build-task-api-changes) below).
-4. After a task has been executed, allow the `Project Build Cache` to update the cache using information on which resources have been read during the task's execution as well as its output resources.
-	* The resources read by a task are determined by providing the task with `workspace` and `dependencies` reader/writer instances that have been wrapped in ["Monitored Reader"](#monitored-reader) instances. They are responsible for observing which resources are accessed during the task's execution.
+2. For a step-based task, derive its steps once at the beginning of the build (by calling the task's factory, which is pure over its options) to register one stage per step with the `Project Build Cache`. A regular task registers a single stage.
+3. Before executing each stage, allow the `Project Build Cache` to prepare the stage and determine whether it needs to be executed or can be skipped based on valid cache data.
+4. Execute the stage. For a step-based task, the Task Runner drives its steps through a step runner that re-runs only the steps (and, within a map step, only the keys) whose inputs changed, restoring the rest from cache. A regular task runs its full body.
+5. After a stage has been executed, allow the `Project Build Cache` to update the cache using information on which resources have been read during execution as well as its output resources.
+	* The resources read by a stage are determined by providing it with `workspace` and `dependencies` reader/writer instances that have been wrapped in ["Monitored Reader"](#monitored-reader) instances. They are responsible for observing which resources are accessed during execution.
 	* The `Project Build Cache` will then:
-		* Update the metadata in the respective `Build Task Cache` with the set of resources read by the task ("resource requests")
-		* Compile a new "signature" for the task's input resources and store this, along with the project's current stage instance, in the in-memory Stage Cache of the `Project Build Cache` (mapping a stage signature to an earlier cached stage instance).
-		* Using the set of changed resource paths, check which downstream tasks need to be potentially invalidated (see [Cache Invalidation](#cache-invalidation))
+		* Update the metadata in the respective `Build Stage Cache` with the set of resources read by the stage ("resource requests"), along with the stage's [non-resource inputs](#non-resource-task-inputs)
+		* Compile a new "signature" for the stage's input resources and store this, along with the project's current stage instance, in the in-memory Stage Cache of the `Project Build Cache` (mapping a stage signature to an earlier cached stage instance).
+		* Using the set of changed resource paths, check which downstream stages need to be potentially invalidated (see [Cache Invalidation](#cache-invalidation))
 
 ##### Processor Return Value Convention
 
@@ -179,12 +182,14 @@ Resource processors invoked from a task may return `undefined` for an input reso
 
 ##### Build Task API Changes
 
-Build tasks can now optionally support "differential builds" by implementing the following new features.
+A build task can opt into partial rebuilds by becoming a **step-based task**. Instead of a single task body, such a task default-exports a factory `build(options) => Step[]` and declares a static `stepBased` flag. The factory returns an ordered list of steps that describe the work. Each step becomes its own build stage and is cached independently: on a rebuild, only the steps whose inputs changed are re-executed, and the rest are restored from cache (see [Step-Based Tasks](#step-based-tasks)).
 
-**Important:** When a task supports differential builds, it is the task author's responsibility to ensure correctness. Specifically, if a task's output for resource A depends on the content of resource B, the task must account for this when processing only the changed resources. "Accounting for" the task's inputs also means re-applying the task's own input derivation (e.g. its configured glob pattern and excludes) to the changed resource paths, rather than selecting them by a coarser rule such as file extension — otherwise a differential build and a full build may process different input sets, and the two builds can produce different output for the same sources. Tasks that cannot reliably determine such cross-resource dependencies should not enable differential build support. For example, bundling tasks (where the output depends on the content of many input resources) may not support differential builds until a more reliable solution is available.
+This replaces an earlier design in which a task declared `supportsDifferentialBuilds()` and received a list of changed resource paths to process itself. Moving the delta bookkeeping into the build cache removes that burden, and its correctness pitfalls, from the task author.
 
-* **supportsDifferentialBuilds()**: Returns `true` if the task supports differential builds, i.e. if it can process only a subset of changed resources instead of all resources. If this method is not implemented, it is assumed that the task does not support differential builds.
-	* If a task supports differential builds, it will be provided with a list of changed resource paths since its last execution.
+Step-based tasks are available to custom tasks from Specification Version 5.0. A task opts in with a static `stepBased` export set to `true`. Absent the flag, the default export is a regular task body and runs unchanged.
+
+A separate, independent callback lets a task contribute to the project's build signature:
+
 * **async determineBuildSignature({log, options, taskUtil})**
 	* `log`: A logger instance scoped to the task
 	* `options`: Same as for the main task function. `{projectName, projectNamespace, configuration, taskName}`
@@ -193,9 +198,140 @@ Build tasks can now optionally support "differential builds" by implementing the
 	* Custom tasks providing this callback must declare Specification Version 5.0 or higher.
 	* This method is called once at the beginning of every build. The return value is used to calculate a unique signature for the task based on its configuration. This signature is then incorporated into the overall build signature of the project (see [Cache Creation](#cache-creation) below).
 	* **To be discussed:** Whether the callback may also return a list of file paths to be watched for changes in watch mode. On change, the build signature would be recalculated and the cache invalidated if it has changed. This is distinct from the project-definition file watching that drives a graph re-resolve in `ui5 serve` (see [Reacting to Project-Definition Changes](#reacting-to-project-definition-changes)): task-specific files such as `tsconfig.json` influence the build signature rather than the graph. See also [Watch Mode: Cache Invalidation](#cache-invalidation-1).
-Stale output detection is not implemented. An earlier draft proposed a `determineExpectedOutput` method through which a task would declare the resources it expects to write, so the `Project Build Cache` could remove outputs that a previous execution produced but the current one no longer does. This has been discarded: when an input resource is removed, the task's input signature changes, so no cached stage matches and the task runs without differential input, reproducing its full output into a fresh writer stage. A task supporting differential builds therefore never leaves a stale, no-longer-produced output behind. The trade-off is that such a build cannot benefit from the differential cache entries when an input resource is removed.
+Stale output detection is handled by the step model. When a step (or, within a map step, a key) stops producing an output it produced before, the build cache prunes that output on the rebuild: a removed input resource yields a per-key delta where the affected key re-runs with fewer outputs or drops out entirely, and the outputs it no longer produces are dropped from the stage result. This replaces an earlier `determineExpectedOutput` draft, discarded because the step model derives the dropped outputs from what each step writes, without a task having to declare its expected output.
 
-These methods took some inspiration from the existing [`determineRequiredDependencies` method](https://github.com/UI5/cli/blob/main/rfcs/0012-UI5-Tooling-Extension-API-3.md#new-api-2) ([docs](https://ui5.github.io/cli/stable/pages/extensibility/CustomTasks/#required-dependencies)).
+The `determineBuildSignature` callback took some inspiration from the existing [`determineRequiredDependencies` method](https://github.com/UI5/cli/blob/main/rfcs/0012-UI5-Tooling-Extension-API-3.md#new-api-2) ([docs](https://ui5.github.io/cli/stable/pages/extensibility/CustomTasks/#required-dependencies)).
+
+##### Step-Based Tasks
+
+A step-based task decomposes its work into cacheable stages. Its default export is a factory with the signature `build(options) => Step[]` (an asynchronous factory is also supported). Each scalar or map step becomes one build stage. A map step contains a cache unit for each key, so a rebuild can restore unchanged keys while it runs the affected keys again.
+
+Built-in tasks declare the step-based mode in their task definition. A custom task uses Specification Version 5.0 or higher and exports the static `stepBased` flag:
+
+```js
+export const stepBased = true;
+
+export default function build(options) {
+	return [/* step descriptors */];
+}
+```
+
+The Task Runner calls the factory once near the start of each build, before it checks the step stages for cache hits. The factory receives only the same `{projectName, projectNamespace, configuration, taskName}` options object as a regular task. It must derive the step list from `options` without reading resources or other build state. Import expensive processors inside a step callback so a build that restores all steps does not load them.
+
+###### Step List
+
+The factory must return an array. An empty array is valid. The Task Runner validates the complete array before it registers any step stage:
+
+* Every step must be an object with a non-empty `name` that is unique within the task. Keep the name stable between builds because it is part of the stage identity `task/<taskName>::step/<stepName>`.
+* A scalar step defines `run`. It must not also define the complete `keys` and `each` pair.
+* A map step defines both `keys` and `each`. Defining only one of these callbacks is invalid.
+* The optional `needs` value must be an array of names from earlier steps. Forward references and self references are invalid.
+
+Steps run in array order and use one of these shapes:
+
+* **Scalar step:** `{name, needs?, run}`
+* **Map step:** `{name, needs?, sequential?, keys, each}`
+
+###### Callback Context
+
+The runner calls the step callbacks with these signatures:
+
+```js
+run({needs, workspace, dependencies, taskUtil, options})
+keys({needs, workspace, dependencies, taskUtil, options})
+each(key, {needs, workspace, dependencies, taskUtil, options})
+```
+
+Each callback can return its result directly or through a promise. The context contains:
+
+* `workspace`: The reader/writer for the current step or map key. All output writes must use this instance.
+* `dependencies`: The optional dependency reader. It is available when the task requested dependency access.
+* `taskUtil`: A monitored Task Util instance for the current step or map key.
+* `needs`: A shallow-frozen object containing the return values requested from earlier steps. It is empty when the step declares no dependencies.
+* `options`: The same options object that was passed to the factory.
+
+A scalar step calls `run` once. Use a scalar step when one output depends on a set of inputs that cannot be processed independently. For example, a bundling step must run again when any bundle member changes.
+
+A map step first calls `keys`. This callback returns an iterable of resources or strings. Returning `undefined`, `null`, or an empty iterable produces no map units. The runner then calls `each` once for every key. The `keys` callback must only enumerate keys. Put processing and output writes in `each` so the runner can attribute them to a cache unit.
+
+Resource keys use the resource path and a content discriminator as their cache identity. String keys use the complete string. Encode a compound key as a stable string. A resource content change creates a new key identity, which causes the new unit to run and the old unit's outputs to be removed.
+
+Map keys run concurrently by default. Their writes are buffered and flushed in key order after all keys finish. Concurrent keys must be independent and must not write the same resource path. Set `sequential: true` when a later key must read or replace an earlier key's output. Sequential writes reach the workspace immediately.
+
+###### Step Dependencies and Return Values
+
+The optional `needs` array declares data flow between steps. For example, `needs: ["scan"]` makes the return value of the earlier `scan` step available as `needs.scan` to `run`, `keys`, and `each`. Earlier-step references make cycles impossible.
+
+A scalar callback or map unit can return one of these values:
+
+* `undefined` or `null` for no return value
+* One resource
+* An array containing only resources
+* A JSON-serializable value
+
+The return value transfers data to dependent steps. It does not add a resource to the build output. A callback must write output resources to its `workspace`.
+
+The runner stores serializable values with the step metadata and stores returned resources in the content-addressable store. A scalar step contributes its direct return value. A map step contributes an array of per-key return values in key enumeration order. The runner restores these values on a cache hit. A changed return value invalidates each consumer that lists the producer in `needs`.
+
+###### Cache Tracking and Correctness
+
+The build cache records reads, glob patterns, Task Util inputs, and tag operations from map-key enumeration at the step level. For each scalar or map unit, it records resource reads and writes, Task Util inputs, tag operations, consumed step returns, and the callback return value. A cache hit restores the unit's outputs, tags, and return value. A delta build runs a unit again when a recorded input changes. If a unit writes fewer paths than before, or a map key disappears, the cache removes outputs that the unit no longer produces.
+
+Read project resources through the callback's `workspace` and dependency resources through its `dependencies` instance. Write outputs through the callback's `workspace`. Read non-resource inputs through the callback's `taskUtil` instance. Access through a captured reader, another writer, `process.env`, or a direct file-system API is not recorded and can cause a stale cache result.
+
+Keep each map key independent unless the step uses `sequential: true` for an intentional dependency between keys. Use a scalar step when the output depends on the complete input set. Keep all callbacks deterministic for the recorded inputs.
+
+###### Example
+
+The following task uses build options to select the text resources and control whether associated metadata is used. With `useMetadata` enabled, each map unit reads its metadata resource through its `workspace`. The runner records this read for the text-resource key, so a metadata change invalidates only the unit that depends on it.
+
+```js
+export default function build({
+	pattern = "/**/*.txt",
+	useMetadata = true
+}) {
+	return [{
+		name: "processText",
+		keys: async ({workspace}) => workspace.byGlob(pattern),
+		each: async (resource, {workspace}) => {
+			const metadataPath = resource.getPath().replace(/\.txt$/, ".meta.json");
+			const metadataResource = useMetadata ?
+				await workspace.byPath(metadataPath) : undefined;
+			const metadata = metadataResource ?
+				JSON.parse(await metadataResource.getString()) : {prefix: ""};
+
+			const output = await resource.clone();
+			output.setString(metadata.prefix + await resource.getString());
+			await workspace.write(output);
+		},
+	}];
+}
+```
+
+When `useMetadata` is enabled, the `workspace.byPath(metadataPath)` call is part of the unit's recorded input set even when no metadata resource exists. Changing, adding, or removing the associated `.meta.json` resource causes that unit to run again. Other text-resource units can remain cached.
+
+###### Standalone Execution
+
+`@ui5/builder/tasks/runSteps` runs the same factory outside the cached build:
+
+```js
+import runSteps from "@ui5/builder/tasks/runSteps";
+import build from "./task.js";
+
+await runSteps(build, {workspace, dependencies, taskUtil, options});
+```
+
+The helper preserves step order, `needs` values, map concurrency, ordered write flushing, and `sequential` behavior. It runs every step and key because standalone execution has no delta selection, cache persistence, or tag replay.
+
+##### Non-Resource Task Inputs
+
+A task's output can depend on inputs that are not resources: an environment variable, or a value read through the `TaskUtil` interface (e.g. a dependency's version via `getProject(name).getVersion()`, or `isRootProject()`). None of these feed the resource indices, so without tracking, changing one between builds would leave a stale cached result being served. The canonical example: the `generateLibraryManifest` task embeds a dependency's version as the manifest `minVersion`; removing or bumping that dependency must re-run the task even though no source resource changed.
+
+To handle this, the build cache records the non-resource inputs a stage reads (as `{type, name}`, never the value) and folds a signature over their current values into the stage's cache key. On a later build, each recorded input's current value is re-read; agi value that differs from the one baked into the cached signature misses the cache and re-runs the stage.
+
+For this tracking to work, task authors must read such values through the `taskUtil` interface (e.g. `taskUtil.getEnv(name)` rather than `process.env` directly), so that the read is observed. A value obtained outside the monitored `taskUtil` is untracked and can serve stale.
+
+Configuration files that a task reads outside the UI5 resource model (e.g. a root `tsconfig.json` or files under `node_modules`, read via `getRootReader()`) are tracked as a separate class of input: a change to such a file re-runs the whole stage that read it (full refresh, not a per-file delta).
 
 #### Resource Request Graph
 
@@ -259,8 +395,8 @@ The CAS-stored source files are tracked using a flat index of resource paths map
 The cache consists of the following components:
 1. A `content` table acting as the global CAS, storing resource BLOBs keyed by their SRI integrity hash.
 2. Metadata tables per project build (identified by its build signature):
-	* `index_cache`: Serialized [Hash Tree](#hash-tree) of all **source** files of the project, as well as a list of all build task names executed during the build.
-	* `task_metadata`: Stores all resource requests of a build task, as well as serialized [Shared Hash Trees](#shared-hash-tree) representing the input resources of the task during its last execution.
+	* `index_cache`: Serialized [Hash Tree](#hash-tree) of all **source** files of the project, as well as a list of all stages executed during the build.
+	* `stage_request_metadata`: Stores all resource requests of a stage (keyed by stage id), its recorded non-resource inputs and root-reader requests, as well as serialized [Shared Hash Trees](#shared-hash-tree) representing the input resources of the stage during its last execution.
 	* `stage_metadata`: Contains the resource metadata for a given stage. The metadata can be used to access the resource content from the `content` table, allowing restoration of the output of a task or the final build result of a project (by combining multiple stages).
 	* `result_metadata`: Maps a set of stage metadata that produced a final build result for a given project state (represented by the project's source index signature and the signatures of relevant dependencies).
 
@@ -303,16 +439,82 @@ The signature is a hash represented as a hexadecimal string.
 
 A mechanism for custom tasks to contribute to the build signature via `determineBuildSignature()` is defined in the Task API.
 
+### Cache Key Overview
+
+All cache data lives in one SQLite database (see [Cache Directory Structure](#cache-directory-structure)). This section decomposes the key of every stored entity, so each table can be read on a technical level without tracing the code.
+
+Every metadata table shares two leading key columns:
+
+* **`project_id`**: the project's unique Specification id (`project.getId()`), scoping all of a project's rows.
+* **`build_signature`**: identifies one *kind* of build of that project (decomposed below). A regular build, a `jsdoc` build, and a serve-mode build each produce a distinct build signature and therefore separate, non-colliding rows.
+
+The following entities are stored:
+
+| Table | Key columns | Holds |
+|-------|-------------|-------|
+| `content` | `integrity` | A single resource's content, gzip-compressed. The content-addressable store (CAS). |
+| `index_cache` | `project_id`, `build_signature`, `kind` | The source [index](#index-cache) (hash tree + stage list). `kind` is `"source"`. |
+| `stage_metadata` | `project_id`, `build_signature`, `stage_id`, `stage_signature` | One stage's output ([Stage Metadata](#stage-metadata)): resource metadata, tag operations, and (for step stages) per-key invocation data. |
+| `stage_request_metadata` | `project_id`, `build_signature`, `stage_id`, `type` | One stage's recorded inputs ([Build Stage Metadata](#build-stage-metadata)): resource request graphs and non-resource inputs. `type` is one of `project`, `dependencies`, `input`, `root`, `root-no-gitignore`. |
+| `result_metadata` | `project_id`, `build_signature`, `stage_signature` | The mapping from one project state to the set of stages that produced its [build result](#result-metadata). Here `stage_signature` is a *result* signature (decomposed below). |
+
+`stage_id` is the id of a stage: `task/<taskName>` for a regular task, or `task/<taskName>::step/<stepName>` for a step-based task's step.
+
+#### Build-Signature Composition
+
+A single SHA-256 hex digest over, in order:
+
+* an internal `BUILD_SIG_VERSION` constant (bumped on an incompatible cache-format change)
+* the build configuration (e.g. the set of enabled tasks, the build mode)
+* the aggregated `determineBuildSignature()` contributions of all tasks (each contribution falling back to a hash of the task's configuration when the callback is absent)
+* the project's id (`project.getId()`) and its full configuration
+* the effective versions of `@ui5/builder` and `@ui5/fs` (so a package upgrade that changes task output cannot silently reuse an incompatible cache)
+* the `@ui5/project` version
+
+#### Stage-Signature Composition
+
+The key under which a stage's output is stored in `stage_metadata`. It is a tuple of **four independent components**, each a SHA-256 hex digest, joined with a `-` (the separator cannot occur inside a hex digest, so the split is lossless):
+
+```
+<projectIndexSignature>-<dependencyIndexSignature>-<inputSignature>-<rootSignature>
+```
+
+* **`projectIndexSignature`**: root hash of the stage's project-resource index (a [Hash Tree](#hash-tree) over the project resources the stage read, tags included). The placeholder `X` when the stage read no project resources.
+* **`dependencyIndexSignature`**: root hash of the stage's dependency-resource index. The placeholder `X` when the stage read no dependency resources.
+* **`inputSignature`**: hash over the stage's recorded [non-resource inputs](#non-resource-task-inputs), evaluated to their current values. A fixed empty-set digest when the stage read none.
+* **`rootSignature`**: hash over the signatures of the stage's root-reader requests (configuration files outside the resource model, see [Non-Resource Task Inputs](#non-resource-task-inputs)). A fixed empty-set digest when the stage made none.
+
+Keeping the four as separate slots lets a delta lookup pair a changed project or dependency signature with the *current* input and root signatures directly, without a reverse mapping from a combined value.
+
+#### Result-Signature Composition
+
+The key under which a whole build result is stored in `result_metadata`. It describes one complete project state and, like a stage signature, is a tuple of four `-`-joined components:
+
+```
+<sourceSignature>-<combinedDependencySignature>-<aggregatedInputSignature>-<aggregatedRootSignature>
+```
+
+* **`sourceSignature`**: root hash of the project's source index (all source files, see [Index Cache](#index-cache)).
+* **`combinedDependencySignature`**: a hash over the per-stage dependency signatures, taken in stage order. On lookup, the candidate keys are the cartesian product of each stage's possible dependency signatures, so a stage carrying a dependency delta contributes more than one candidate.
+* **`aggregatedInputSignature`**: a hash over all stages' input signatures (order-independent: the per-stage signatures are sorted before hashing).
+* **`aggregatedRootSignature`**: a hash over all stages' root signatures.
+
+Because the input and root signatures each occupy their own slot, a changed environment variable or a changed root configuration file misses the result cache and the per-project build is not skipped wholesale (the result-cache check runs before the per-stage checks).
+
+#### Content Integrity (CAS Key)
+
+The `content` table is keyed only by `integrity`, an SRI string (`sha256-<base64>`) over the resource's uncompressed bytes. It is global, not scoped by project or build signature, so identical content produced by any project or any build is stored once. All other tables reference content indirectly: their resource metadata records the `integrity`, and the content is read from the CAS by that key.
+
 ### Index Cache
 
 ```jsonc
 {
 	"indexTimestamp": 1764688556165,
 	"indexTree": { /* Serialized hash tree */ },
-	"tasks": [ // <-- Task list, defining the order of executed tasks and whether they support differential builds or not (1 or 0)
-		["replaceCopyright", 1],
-		["minify", 1],
-		["generateComponentPreload", 0],
+	"stages": [ // <-- Stage list: execution order of stages and whether each ran the step runner (1 = step-based, 0 = regular task)
+		["task/replaceCopyright::step/replaceCopyright", 1],
+		["task/minify::step/minify", 1],
+		["task/generateComponentPreload", 0],
 	]
 }
 ```
@@ -321,7 +523,7 @@ The index provides metadata for all **source** files of the project. This allows
 
 The metadata is represented as a [`Hash Tree`](#hash-tree), making updates efficient and allowing the generation of a single "project-index signature" representing the current state of all indexed resources.
 
-The index cache also contains a list of tasks executed during the build, along with information on whether they support `differential builds`. This is used to efficiently deserialize cached [Build Task Metadata](#build-task-metadata).
+The index cache also contains a list of the stages executed during the build (in order), along with information on whether each stage ran the step runner. This is used to efficiently deserialize cached [Build Stage Metadata](#build-stage-metadata).
 
 #### Index Signature
 
@@ -329,7 +531,7 @@ An index signature (e.g. the "source-index signature") refers to the unique root
 
 These signatures are used to quickly check whether a cache exists by using them as cache keys.
 
-### Build Task Metadata
+### Build Stage Metadata
 
 **Example 1**
 
@@ -396,7 +598,7 @@ These signatures are used to quickly check whether a cache exists by using them 
 }
 ```
 
-Stores the resource request information of a build task, along with serialized [Shared Hash Trees](#shared-hash-tree) representing the input resources of the task during its last execution.
+Stores the resource request information of a build stage, along with serialized [Shared Hash Trees](#shared-hash-tree) representing the input resources of the stage during its last execution. It is stored per stage (keyed by the stage id, e.g. `task/minify::step/minify`), and besides the resource requests it also records the stage's [non-resource inputs](#non-resource-task-inputs) and any requests made against the root reader.
 
 The resource requests are stored in a serialized [`Resource Request Graph`](#resource-request-graph). For Shared Hash Trees, only the root tree is serialized. The additions of the derived trees are stored as "delta indices". Later, this can be used to reconstruct (and correctly derive) all Shared Hash Trees in memory.
 
@@ -448,7 +650,9 @@ Stores the metadata of all resources for a given "stage" (i.e. all resources wri
 
 The `resourceMapping` maps virtual path prefixes to indices in the `resourceMetadata` array. This is necessary for certain UI5 project types where multiple virtual paths map to the same physical path. For example, for a project of type `application`, the root path `/` maps to the sources (i.e. the `webapp` directory), just like the namespaced path `/resources/my/app/`. Both prefixes therefore reference the same `resourceMetadata` entry (index `0` in the example above). A different prefix, such as `/` for generated root-level resources, may reference a separate entry (index `1`).
 
-For build tasks, the stage metadata is keyed using the signature of the project-index and the dependency-index that produced the output. Both signatures are combined using a `-` separator, i.e. `<project-index-signature>-<dependency-index-signature>`. If a task did not consume any project or dependency resources, that index signature is replaced with an `X` placeholder.
+The stage metadata is keyed using the stage's cache signature, a four-component tuple decomposed in [Stage-Signature Composition](#stage-signature-composition). If a stage read no project or dependency resources, that component is replaced with an `X` placeholder; the input and root components use a fixed empty-set digest when there is nothing to hash.
+
+For a step-based stage, the per-key invocation data (which key read what, and what it produced) is embedded in the same stage-metadata entry, so it is always keyed by the same stage signature as the output it describes.
 
 The contained metadata represents all resources **written** by that task during its execution. It includes the `lastModified`, `size` and `integrity` of each resource. This information is required for determining whether subsequent tasks need to be re-executed. It also contains information on resource tag operations, such as setting a tag to a value or clearing a tag. These tag operations are applied when restoring a cached stage and are incorporated into the hash tree leaf nodes of downstream tasks' input resources, ensuring that tag changes are reflected in the index signatures used for cache invalidation.
 
@@ -471,21 +675,27 @@ For some project types where no path mapping is done (e.g. type `module`), the s
 
 ```jsonc
 {
+	// Each stage id maps to the four-component stage signature its output was stored under:
+	// "<projectIndex>-<dependencyIndex>-<input>-<root>" (see "Stage-Signature Composition").
+	// "X" marks a slot that read nothing. Empty input and root slots each carry an empty-set
+	// digest ("b4e2d1a09f8c7d60" / "e3b0c44298fc1c14" below). Hashes are shortened for readability.
 	"stageSignatures": {
-		"task/escapeNonAsciiCharacters": "614d99a15456009ffcaf88a2e22d4dfedc516eded4ebdcdcf3aeee9e724e6ec7-X",
-		"task/replaceCopyright": "e1e95e8939eda1c44075578e0c434b82b747b56220a58cc86f6db2c808c1c1f8-X",
-		"task/replaceVersion": "564593c13f783c6d27fb24739b63bd79115f719b4fa4e54a3ca7a0c47ac4c9f6-X",
-		"task/replaceBuildtime": "d4f21ef86ef20170714457fbcbce6acaa7e2092d54be4f7298e404f30499d7ce-X",
-		"task/generateLibraryManifest": "5b04940ceb72b0e739e291550129671b4d7a97a843cf04d7678d8f489344e944-X",
-		"task/enhanceManifest": "cf1c319946bf577df0450cdb9662a5c216c231164ce3a814dea0a50291266eca-X",
-		"task/generateLibraryPreload": "dea7afdd9c4bcfd0cb0aa905764046cdcae7e20c39261b0d8da11cb2a8acfd5a-X",
-		"task/generateBundle": "9817778bd77caa6ed268e65d8ea2268251b607d34cefa3e1d3665bd5148c0af6-82a660a818563004b4ba5dbcfe49a57407eb096b31ac414b8e5fd32dc9cd5376",
-		"task/buildThemes": "c027e3e5bcb1577c3d0d3c5004d3821a0c948903d6032be2c1508542719cf023-66198298279add82baab3a781dfbf1dde8e87605fb19d9c2982770c8f7a11f3c"
+		"task/escapeNonAsciiCharacters::step/escapeNonAsciiCharacters": "614d99a154560090-X-b4e2d1a09f8c7d60-e3b0c44298fc1c14",
+		"task/replaceCopyright::step/replaceCopyright": "e1e95e8939eda1c4-X-7b9f0c2a1d4e5f60-e3b0c44298fc1c14",
+		"task/replaceVersion::step/replaceVersion": "564593c13f783c6d-X-b4e2d1a09f8c7d60-e3b0c44298fc1c14",
+		"task/replaceBuildtime::step/replaceBuildtime": "d4f21ef86ef20170-X-7b9f0c2a1d4e5f60-e3b0c44298fc1c14",
+		"task/generateLibraryManifest": "5b04940ceb72b0e7-X-2c7d1a9b3e8f4056-e3b0c44298fc1c14",
+		"task/enhanceManifest::step/enhanceManifest": "cf1c319946bf577d-X-b4e2d1a09f8c7d60-e3b0c44298fc1c14",
+		"task/generateLibraryPreload": "dea7afdd9c4bcfd0-X-b4e2d1a09f8c7d60-e3b0c44298fc1c14",
+		"task/generateBundle": "9817778bd77caa6e-82a660a818563004-b4e2d1a09f8c7d60-e3b0c44298fc1c14",
+		"task/buildThemes::step/buildThemes": "c027e3e5bcb1577c-66198298279add82-b4e2d1a09f8c7d60-e3b0c44298fc1c14"
 	}
 }
 ```
 
-Result metadata is stored by forming a key using the current source-index signature, combined with the signatures of the dependency-indices of all the project's stages. The dependency signatures are concatenated and a hash is calculated over the resulting string. The final key is then formed as `<source-index-signature>-<dependency-signature-hash>`.
+In this example, the `replaceCopyright` and `replaceBuildtime` steps carry a non-empty **input** signature because they read the quantized build time through `taskUtil`, and `generateLibraryManifest` carries one because it reads a dependency's version (a non-resource input) rather than a dependency resource (so its **dependency** slot is `X`). `generateBundle` and `buildThemes` are the only stages here that read dependency resources.
+
+Result metadata is stored under a four-component *result signature* (the source-index signature, a combined dependency signature over all stages, an aggregated input signature, and an aggregated root signature), decomposed in [Result-Signature Composition](#result-signature-composition).
 
 The metadata then maps this key to the [Stage Metadata](#stage-metadata) of all stages that produced the final build result for this project state. This ultimately allows recreating the full build output of the project by combining those stages with the current sources. Additionally, the result metadata includes the index of [source files stored in the CAS](#source-file-storage-in-cas), enabling dependent projects to resolve these resources from the CAS even when the dependency's build is skipped entirely in subsequent builds.
 
@@ -499,8 +709,8 @@ All cache data is stored in a single SQLite database file per cache version:
     Tables:
     - content          # CAS: resource BLOBs keyed by integrity hash
     - index_cache      # Source/result index trees
-    - stage_metadata   # Per-task stage results
-    - task_metadata    # Resource request graphs
+    - stage_metadata   # Per-stage results
+    - stage_request_metadata  # Per-stage resource request graphs and non-resource inputs
     - result_metadata  # Build result mappings
 ```
 
@@ -518,7 +728,7 @@ Before building a project, UI5 CLI shall check for an existing index cache by ca
 
 The cache is then used to:
 1. Check the source files of the project against the deserialized hash tree to determine which files have changed since the last build
-2. Restore `Build Task Cache` instances using the respective [Build Task Metadata](#build-task-metadata) Cache
+2. Restore `Build Stage Cache` instances using the respective [Build Stage Metadata](#build-stage-metadata) Cache
 3. Provide the `Project` with readers for the cached `writer stages` (i.e. task outputs)
 	* When the build process needs to access a cached resource, it can do so using those readers. Internally, resources are provided by first looking up their metadata in the corresponding [Stage Metadata](#stage-metadata) cache to find the resource content hash. Using this hash, the resource content is read from the `content` table in the database.
 4. Provide dependency resource readers backed by the CAS
@@ -532,11 +742,11 @@ This allows executing individual tasks and providing them with the results of al
 
 The following diagram shows the process for determining whether a project needs to be (partially) rebuilt and if yes, which individual tasks need to be (re-)executed.
 
-Note this important differentiation: A Build Task Cache can be *potentially* or *definitely* invalidated. It is *potentially* invalidated if the corresponding task read resources that have been modified since the last build. It is *definitely* invalidated if the content of those resources has actually changed. By only potentially invalidating a Build Task Cache, the current process does not have to ensure that the resources actually changed at this point in time. Comparing the content of resources can be deferred until the task is actually executed. This can save time, especially since the resource in question might be modified again before the potentially invalidated task is executed.
+Note this important differentiation: A Build Stage Cache can be *potentially* or *definitely* invalidated. It is *potentially* invalidated if the corresponding stage read resources that have been modified since the last build. It is *definitely* invalidated if the content of those resources has in fact changed. By only potentially invalidating a Build Stage Cache, the current process does not have to confirm that the resources changed at this point in time. Comparing the content of resources can be deferred until the stage runs. This can save time, especially since the resource in question might be modified again before the potentially invalidated stage is executed.
 
-If the task ends up being executed, it might produce new resources. After the execution has finished and the new resources have been written to the writer stage, it shall be checked whether the content of those resources has actually changed. If not, they must not lead to the invalidation of any following tasks. If they have changed, the relevant Build Task Cache instances will be notified about the changed resources and might *potentially* invalidate themselves.
+If the stage ends up being executed, it might produce new resources. After the execution has finished and the new resources have been written to the writer stage, it shall be checked whether the content of those resources has in fact changed. If not, they must not lead to the invalidation of any following stages. If they have changed, the relevant Build Stage Cache instances will be notified about the changed resources and might *potentially* invalidate themselves.
 
-A task supporting `differential builds` is provided with the set of changed resource paths that *definitely* invalidated it. It must act on **every** path in that set: for each changed input it must either produce the corresponding output, or — for any changed input it cannot map to an output on the differential path — decline the differential path and fall back to a full (non-differential) execution. A task must not silently process only a subset of its invalidating inputs. If it does, the inputs it ignored have already been merged into its input signature (so the cache was correctly invalidated and the task ran), yet the task writes nothing for them, and the stage's cached output for those inputs is carried forward unchanged. The result is a served output that is stale despite the task having re-executed — cache invalidation and differential execution disagreeing about what "changed" means. This is a stricter statement of the correctness responsibility in [Build Task API Changes](#build-task-api-changes): the changed set a differential task receives may legitimately contain inputs whose relation to the task's outputs is not one-to-one (e.g. a source map referenced by a script rather than the script itself), and the task must recognize those rather than filter the changed set down by a coarse rule.
+Because the build cache owns the per-stage and per-key selection, a step-based task no longer filters the changed set itself. On a rebuild, the set of changed resource paths maps to the steps (and, within a map step, the keys) that read them, and only those re-run; the rest are restored from cache. A changed input whose relation to a step's output is not one-to-one (e.g. a source map referenced by a script rather than the script itself) still re-runs the step that read it, because the mapping is derived from what the step read during its previous execution, not from a coarse rule such as file extension. The author's remaining responsibility is the step contract: read and write only through the step's callback arguments (see [Step-Based Tasks](#step-based-tasks)), so that every input is observed.
 
 After a *project* has finished building, a list of all modified resources is compiled and passed to the `Project Build Cache` instances of all dependent projects (i.e. projects that depend on the current project and therefore might use the modified resources).
 
@@ -742,6 +952,6 @@ Server-Sent Events were considered as an alternative transport. When not used ov
 ## Outlook and Future Ideas
 
 * Allow tasks to store additional information in the cache.
-* Stale output detection: reintroduce a mechanism (e.g. a `determineExpectedOutput` callback or inference from previous executions) so that removing an input resource no longer forces a full, non-differential re-execution. This would let differential builds keep benefiting from the cache when inputs are removed, at the cost of tracking and pruning outputs a task no longer produces (see [Build Task API Changes](#build-task-api-changes)).
+* Track processor-library versions as step inputs: a step's output can depend on the version of a processor library (e.g. terser, less-openui5) that is not yet a tracked [non-resource input](#non-resource-task-inputs), so a step can serve stale output across a processor-library upgrade until that version is routed through the step's `taskUtil`.
 * Cross-process build coordination: SQLite's database-level concurrency does not coordinate higher-level build activity. Whether to add filesystem-based shared/exclusive locks per build signature (as proposed in [Concurrency](#concurrency)) depends on how often parallel builds of the same project occur in practice.
 * Add a debug command (e.g. `ui5 cache verify`) to verify the integrity of a cache by rebuilding the project and comparing the result with the cache.
