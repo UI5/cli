@@ -255,7 +255,7 @@ On a failed re-resolve `Supervisor` flags the surviving stack degraded (last-goo
 |    content        (CAS: integrity -> gzip-compressed BLOB)       |
 |    index_cache    (resource index trees, by kind="source")       |
 |    stage_metadata (cached stage results, by stage signature)     |
-|    task_metadata  (resource requests per stage, by type)         |
+|    stage_request_metadata (resource requests per stage, by type)|
 |    result_metadata(per-build result metadata)                    |
 +-----------------------------------------------------------------+
 ```
@@ -279,7 +279,7 @@ A task's output can depend on inputs that are not resources: an environment vari
 
 Tracking has a record side and a lookup side, mirroring the resource-request flow:
 
-- **Record** (task executes): the TaskRunner hands the task a `MonitoredTaskUtil` instead of the raw `TaskUtil`. It is a Proxy that preserves the wrapped shape (a custom task's limited interface stays limited) and records every tracked read as `{type, name, value}`, normalizing the value via `normalizeInputValue`. `getProject(name)` returns a wrapped project whose tracked accessors record under the project's name; its `getReader()` result is wrapped in a `MonitoredReader` so the resources the task reads through it are recorded as resource requests, and, for the project being built, its `getRootReader()` result is wrapped too so reads of files outside the UI5 resource model are recorded as root requests (see the reader-monitoring note below), while untracked members (`getRootPath`, `getSpecVersion`, ...) pass straight through unrecorded. After the task, the TaskRunner drains `getInputRecording()` into `ProjectBuildCache.recordStageResult`, which builds a `TaskInputSet` and folds its signature into the task's project-component signature (`combineProjectAndInputSignature`). Only entry type/name are persisted (`task_metadata` type `"input"`), never values.
+- **Record** (task executes): the TaskRunner hands the task a `MonitoredTaskUtil` instead of the raw `TaskUtil`. It is a Proxy that preserves the wrapped shape (a custom task's limited interface stays limited) and records every tracked read as `{type, name, value}`, normalizing the value via `normalizeInputValue`. `getProject(name)` returns a wrapped project whose tracked accessors record under the project's name; its `getReader()` result is wrapped in a `MonitoredReader` so the resources the task reads through it are recorded as resource requests, and, for the project being built, its `getRootReader()` result is wrapped too so reads of files outside the UI5 resource model are recorded as root requests (see the reader-monitoring note below), while untracked members (`getRootPath`, `getSpecVersion`, ...) pass straight through unrecorded. After the task, the TaskRunner drains `getInputRecording()` into `ProjectBuildCache.recordStageResult`, which builds a `TaskInputSet` and folds its signature into the task's project-component signature (`combineProjectAndInputSignature`). Only entry type/name are persisted (`stage_request_metadata` type `"input"`), never values.
 - **Lookup** (later build): `BuildStageCache.getInputSignature(resolveValue)` recomputes the input signature, re-reading each recorded input's *current* value through `ProjectBuildContext.resolveInputValue(type, name)` (which reaches `process.env` and the current project graph). A value that differs from the one baked into the cached stage signature misses the cache and re-runs the task. Record and lookup normalize through the same `normalizeInputValue`, so equal values compare equal.
 
 Excluded from input-value tracking: mutations (`setTag`/`clearTag`, already captured as tag operations in the hash trees), constructors (`resourceFactory`), readers (`getReader`/`getRootReader`), side effects (`registerCleanupTask`), and the FS-path accessors (`getRootPath`/`getSourcePath`) whose absolute, machine-specific values would make cache entries non-portable.
@@ -601,7 +601,7 @@ project.getProjectResources().setStage(stageName, stageCache.stage,
     - content(integrity TEXT PK, data BLOB)                                  # CAS: gzip above ~128 bytes
     - index_cache(project_id, build_signature, kind, data)                   # kind: "source"
     - stage_metadata(project_id, build_signature, stage_id, stage_signature, data)
-    - task_metadata(project_id, build_signature, stage_id, type, data)      # stage_id is the STAGE id (task/{taskName} or task/{taskName}::step/{stepName}); type: "project" | "dependencies" | "input" | "root" | "root-no-gitignore"
+    - stage_request_metadata(project_id, build_signature, stage_id, type, data)  # stage_id is the STAGE id (task/{taskName} or task/{taskName}::step/{stepName}); type: "project" | "dependencies" | "input" | "root" | "root-no-gitignore"
     - result_metadata(project_id, build_signature, stage_signature, data)
 ```
 
@@ -612,7 +612,7 @@ Note: Both CAS content and metadata BLOBs are gzip-compressed via thresholds (`C
 The index cache (one row per `(project_id, build_signature, kind="source")`) contains:
 - `indexTimestamp`: creation timestamp (used for racy-git detection)
 - `root`: serialized Merkle tree (TreeNode hierarchy)
-- `tasks`: array of `[stageId, stepBased ? 1 : 0]` recording the stage execution order (one entry per stage: a legacy task's `task/{taskName}`, or a step-based task's per-step `task/{taskName}::step/{stepName}`) and whether the stage ran the step runner (step-based), which drives delta tracking. The stage id is the `task_metadata` key everything else for that stage is stored under
+- `stages`: array of `[stageId, stepBased ? 1 : 0]` recording the stage execution order (one entry per stage: a legacy task's `task/{taskName}`, or a step-based task's per-step `task/{taskName}::step/{stepName}`) and whether the stage ran the step runner (step-based), which drives delta tracking. The stage id is the `stage_request_metadata` key everything else for that stage is stored under
 
 #### Stage Metadata Format
 

@@ -33,9 +33,9 @@ function serializeUnresolvedRequests(entry, unresolvedRequests) {
 }
 
 /**
- * Manages resource requests and their associated indices for a single task
+ * Manages resource requests and their associated indices for a single stage
  *
- * Tracks all resources accessed by a task during execution and maintains resource indices
+ * Tracks all resources accessed by a stage during execution and maintains resource indices
  * for cache validation and differential updates. Supports both full and delta-based caching
  * strategies.
  *
@@ -94,7 +94,7 @@ class ResourceRequestManager {
 	 * @param {object} cacheData.requestSetGraph Serialized request graph
 	 * @param {Array<object>} cacheData.rootIndices Array of root resource indices
 	 * @param {Array<object>} [cacheData.deltaIndices] Array of delta resource indices
-	 * @param {boolean} [cacheData.unusedAtLeastOnce] Whether the task has been unused
+	 * @param {boolean} [cacheData.unusedAtLeastOnce] Whether the stage has been unused
 	 * @returns {ResourceRequestManager} Restored manager instance
 	 */
 	static fromCache(projectName, ownerId, useDifferentialUpdate, {
@@ -119,7 +119,7 @@ class ResourceRequestManager {
 				const {resourceIndex: parentResourceIndex} = requestGraph.getMetadata(node.getParentId());
 				const registry = registries.get(node.getParentId());
 				if (!registry) {
-					throw new Error(`Missing tree registry for parent of node ID ${nodeId} of task ` +
+					throw new Error(`Missing tree registry for parent of node ID ${nodeId} of stage ` +
 					`'${ownerId}' of project '${projectName}'`);
 				}
 				const resourceIndex = parentResourceIndex.deriveTreeWithIndex(addedResourceIndex);
@@ -133,11 +133,11 @@ class ResourceRequestManager {
 	}
 
 	/**
-	 * Gets all project index signatures for this task
+	 * Gets all project index signatures for this stage
 	 *
 	 * Returns signatures from all recorded project-request sets. Each signature represents
 	 * a unique combination of resources belonging to the current project that were accessed
-	 * during task execution. This can be used to form cache keys for restoring cached task results.
+	 * during stage execution. This can be used to form cache keys for restoring cached stage results.
 	 *
 	 * @public
 	 * @returns {string[]} Array of signature strings
@@ -575,7 +575,7 @@ class ResourceRequestManager {
 	}
 
 	/**
-	 * Records that a task made no resource requests
+	 * Records that a stage made no resource requests
 	 *
 	 * Marks the manager as having been unused at least once and returns a special
 	 * signature indicating no requests were made.
@@ -642,7 +642,7 @@ class ResourceRequestManager {
 		let unresolvedRequests;
 		if (setId) {
 			// Reuse existing resource index.
-			// Note: This index has already been updated before the task executed, so no update is necessary
+			// Note: This index has already been updated before the stage executed, so no update is necessary
 			// here, and nothing in the persisted request graph changed: the manager stays clean so the whole
 			// request graph is not needlessly re-serialized to SQLite. (A tree update that moved the index's
 			// signature flags the manager dirty itself in updateIndices.) Recording the same request set on
@@ -671,7 +671,7 @@ class ResourceRequestManager {
 				resourceIndex = await parentResourceIndex.deriveTree(resourcesToAdd);
 				// Some added requests may resolve to no resource (e.g. a byPath probe for an
 				// optional file, or every request after a branch switch deletes probed files).
-				// Those reads still influence task output, so record the unresolved requests to
+				// Those reads still influence stage output, so record the unresolved requests to
 				// keep the exposed signature distinct from the parent's until they resolve.
 				unresolvedRequests = this.#collectUnresolvedRequests(addedRequests, resourcesToAdd);
 			} else {
@@ -699,7 +699,7 @@ class ResourceRequestManager {
 	 * With no unresolved requests, returns the underlying tree signature. When some
 	 * recorded requests resolved to no resources (byPath probes for files that don't
 	 * exist yet, or byGlob patterns matching nothing), those reads still influence
-	 * task output, so the exposed signature must stay distinct from the tree hash of
+	 * stage output, so the exposed signature must stay distinct from the tree hash of
 	 * an otherwise-identical index. The signature therefore hashes the tree signature
 	 * together with the sorted unresolved keys.
 	 *
@@ -886,7 +886,7 @@ class ResourceRequestManager {
 	 * @returns {object} return.requestSetGraph Serialized request graph
 	 * @returns {Array<object>} return.rootIndices Array of root resource indices with node IDs
 	 * @returns {Array<object>} return.deltaIndices Array of delta resource indices with node IDs
-	 * @returns {boolean} return.unusedAtLeastOnce Whether the task has been unused
+	 * @returns {boolean} return.unusedAtLeastOnce Whether the stage has been unused
 	 */
 	toCacheObject() {
 		if (!this.#hasNewOrModifiedCacheEntries) {

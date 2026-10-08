@@ -81,8 +81,8 @@ function createMockCacheManager() {
 		writeStageCache: sinon.stub(),
 		readResultMetadata: sinon.stub().returns(null),
 		writeResultMetadata: sinon.stub(),
-		readTaskMetadata: sinon.stub().returns(null),
-		writeTaskMetadata: sinon.stub(),
+		readStageRequestMetadata: sinon.stub().returns(null),
+		writeStageRequestMetadata: sinon.stub(),
 		hasContent: sinon.stub().returns(false),
 		readContent: sinon.stub().returns(Buffer.from("test")),
 		readContentRaw: sinon.stub().returns(Buffer.from("test")),
@@ -165,11 +165,11 @@ test("Create with existing index cache", async (t) => {
 				}
 			}
 		},
-		tasks: [["task/task1", false]]
+		stages: [["task/task1", false]]
 	};
 
 	// Mock task metadata responses
-	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, stageId, type) => {
+	cacheManager.readStageRequestMetadata.callsFake((projectId, buildSig, stageId, type) => {
 		if (type === "project") {
 			return {
 				requestSetGraph: {
@@ -319,7 +319,7 @@ test("allTasksCompleted returns changed resource paths", async (t) => {
 				}
 			}
 		},
-		tasks: []
+		stages: []
 	};
 	cacheManager.readIndexCache.returns(indexCache);
 
@@ -969,7 +969,7 @@ test("projectSourcesChanged: marks cache as requiring validation", async (t) => 
 				}
 			}
 		},
-		tasks: []
+		stages: []
 	};
 	cacheManager.readIndexCache.returns(indexCache);
 
@@ -1011,7 +1011,7 @@ test("dependencyResourcesChanged: marks cache as requiring validation", async (t
 				}
 			}
 		},
-		tasks: []
+		stages: []
 	};
 	cacheManager.readIndexCache.returns(indexCache);
 
@@ -1074,7 +1074,7 @@ test("projectSourcesChanged after SourceChangedDuringBuildError does not corrupt
 				}
 			}
 		},
-		tasks: []
+		stages: []
 	};
 	cacheManager.readIndexCache.returns(indexCache);
 
@@ -1150,7 +1150,7 @@ test("Retry after SourceChangedDuringBuildError when prior build set NO_CACHE: "
 				}
 			}
 		},
-		tasks: []
+		stages: []
 	};
 	cacheManager.readIndexCache.returns(indexCache);
 	// readResultMetadata returns null by default → #findResultCache returns false → NO_CACHE.
@@ -1226,11 +1226,11 @@ test("_refreshDependencyIndices: updates dependency indices", async (t) => {
 				}
 			}
 		},
-		tasks: [["task/task1", false]]
+		stages: [["task/task1", false]]
 	};
 
 	// Mock task metadata responses
-	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, stageId, type) => {
+	cacheManager.readStageRequestMetadata.callsFake((projectId, buildSig, stageId, type) => {
 		if (type === "project") {
 			return {
 				requestSetGraph: {
@@ -1318,7 +1318,7 @@ test("writeCache: skips writing unchanged caches", async (t) => {
 				}
 			}
 		},
-		tasks: []
+		stages: []
 	};
 	cacheManager.readIndexCache.returns(indexCache);
 
@@ -1738,11 +1738,11 @@ async function buildCacheWithWarmCacheAndTaskResult({
 				children
 			}
 		},
-		tasks: [["task/myTask", 0]]
+		stages: [["task/myTask", 0]]
 	};
 
 	// Mock task metadata for the cached task
-	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, stageId, type) => {
+	cacheManager.readStageRequestMetadata.callsFake((projectId, buildSig, stageId, type) => {
 		if (type === "input") {
 			return null;
 		}
@@ -1958,10 +1958,10 @@ test("restoreFrozenSources: cache miss skips gracefully", async (t) => {
 				}
 			}
 		},
-		tasks: [["task/task1", false]]
+		stages: [["task/task1", false]]
 	};
 	cacheManager.readIndexCache.returns(indexCache);
-	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, stageId, type) => {
+	cacheManager.readStageRequestMetadata.callsFake((projectId, buildSig, stageId, type) => {
 		if (type === "input") {
 			return null;
 		}
@@ -2045,10 +2045,10 @@ test("restoreFrozenSources: cache hit creates CAS reader", async (t) => {
 				}
 			}
 		},
-		tasks: [["task/task1", false]]
+		stages: [["task/task1", false]]
 	};
 	cacheManager.readIndexCache.returns(indexCache);
-	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, stageId, type) => {
+	cacheManager.readStageRequestMetadata.callsFake((projectId, buildSig, stageId, type) => {
 		if (type === "input") {
 			return null;
 		}
@@ -2119,7 +2119,7 @@ test("restoreFrozenSources: cache hit creates CAS reader", async (t) => {
 // (warm cache loaded from disk with task metadata) and spies on _refreshDependencyIndices.
 async function createCacheInRestoringState({
 	resources = [createMockResource("/test.js", "hash1", 1000, 100, 1)],
-	tasks = [["task1", false]],
+	stages = [["task1", false]],
 	cacheMode,
 } = {}) {
 	const project = createMockProject();
@@ -2163,10 +2163,10 @@ async function createCacheInRestoringState({
 				children
 			}
 		},
-		tasks
+		stages
 	};
 
-	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, stageId, type) => {
+	cacheManager.readStageRequestMetadata.callsFake((projectId, buildSig, stageId, type) => {
 		if (type === "input") {
 			return null;
 		}
@@ -2657,13 +2657,13 @@ async function createCacheWithDependencyGlob({
 				},
 			},
 		},
-		tasks: [[`task/${taskName}`, false]],
+		stages: [[`task/${taskName}`, false]],
 		// Persisted dependency-set identity from the previous build. validateCache compares the
 		// identity passed at the next build against this; a mismatch forces the refresh.
 		availableDependencies: oldDependencySetIdentity,
 	};
 	cacheManager.readIndexCache.returns(indexCache);
-	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, task, type) => {
+	cacheManager.readStageRequestMetadata.callsFake((projectId, buildSig, task, type) => {
 		if (type === "dependencies") {
 			return depCacheObject;
 		}
