@@ -5,7 +5,7 @@
 
 ::: details
 ```yaml title="ui5-workspace.yaml"
-specVersion: workspace/1.0
+specVersion: workspace/1.1
 metadata:
     name: default
 dependencyManagement:
@@ -23,14 +23,14 @@ Workspaces are typically configured in a `ui5-workspace.yaml` file, located next
 
 ::: details Example
 ```yaml title="ui5-workspace.yaml"
-specVersion: workspace/1.0
+specVersion: workspace/1.1
 metadata:
     name: default
 dependencyManagement:
    	    resolutions:
    	    - path: ../heavy.library
 ---
-specVersion: workspace/1.0
+specVersion: workspace/1.1
 metadata:
     name: extended
 dependencyManagement:
@@ -52,14 +52,14 @@ This concept has been discussed in an RFC: [RFC 0006 Local Dependency Resolution
 A UI5 Workspace configuration must define a specification version (`specVersion`) compatible with its configuration. For more information, see [Workspace Specification Versions](#workspace-specification-versions).
 
 ```yaml
-specVersion: "workspace/1.0"
+specVersion: "workspace/1.1"
 ```
 
 ### Metadata
 
 ::: details Example
 ```yaml
-specVersion: workspace/1.0
+specVersion: workspace/1.1
 metadata:
     name: dolphin
 ```
@@ -91,7 +91,7 @@ UI5 Workspace configurations allow to influence the dependency resolution when w
 
 ::: details
 ```yaml
-specVersion: workspace/1.0
+specVersion: workspace/1.1
 metadata:
     name: dolphin
 dependencyManagement:
@@ -119,11 +119,24 @@ Paths must be written in POSIX (i.e. using only forward slashes `/` as path segm
 
 Note that this configuration only affects the resolution of dependencies which have already been found during the regular dependency resolution process of a project. For example, if a workspace resolution path resolves to a project that would otherwise not be part of the dependency tree of the current root project, it will not be added to the dependency tree. Also, transitive dependencies of resolved projects are not being followed.
 
+#### configPath
+
+*Available since `workspace/1.1`*
+
+```yaml
+dependencyManagement:
+    resolutions:
+        - path: ../test.library
+          configPath: custom-config.yaml
+```
+
+By default, UI5 CLI looks for a `ui5.yaml` at the root of the resolved module. The optional `configPath` property allows pointing to a different configuration file within the module directory. The path must be written in POSIX notation and must be **relative to the resolution `path`**.
+
 ## Workspace Specification Versions
 A workspace configuration must define a Specification Version by setting the `specVersion` property. UI5 CLI uses this information to detect whether the currently installed version is compatible with a workspace's configuration.
 
 ```yaml
-specVersion: "workspace/1.0"
+specVersion: "workspace/1.1"
 [...]
 ```
 
@@ -142,7 +155,14 @@ Unless otherwise noted in the table below, UI5 CLI modules are backward-compatib
 
 Version | UI5 CLI Release
 --- | ---
+**`workspace/1.1`** | v5.0.0+ and v4.1.0+
 **`workspace/1.0`** | v3.0.0+
+
+### Specification Version `workspace/1.1`
+
+Added [`configPath`](#configpath) property to resolution entries.
+
+Specification Version `workspace/1.1` configurations are compatible with [UI5 CLI](https://github.com/SAP/ui5-cli) v5.0.0 and above, as well as v4.1.0 and above.
 
 ### Specification Version `workspace/1.0`
 
