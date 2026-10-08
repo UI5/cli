@@ -2,8 +2,9 @@ name: Security Audit (all projects)
 
 # Central, on-demand security audit across several UI5 projects. Each matrix entry checks out a
 # project at a given branch and runs the shared dependency-audit action (locked + latest · dev+prod
-# + latest · prod-only). Add a project by adding a matrix entry; a project with several branches
-# gets one entry per branch.
+# + latest · prod-only), which audits via audit-ci and honours each repo/branch's own audit-ci
+# config. Add a project by adding a matrix entry; a project with several branches gets one entry
+# per branch.
 #
 # Note: auditing other repositories/branches means checking out code other than this workflow's own
 # ref, which CodeQL reports as a potential cache-poisoning source. It is accepted here — the refs are
@@ -24,24 +25,14 @@ jobs:
       fail-fast: false # audit every project even if one fails
       matrix:
         include:
-          # Projects without an "audit" npm script use native "npm audit" (prod scope: --omit=dev).
           - repository: UI5/mcp-server
             ref: main
-            audit-command: npm audit
-            prod-only-args: --omit=dev
           - repository: UI5/linter
             ref: main
-            audit-command: npm audit
-            prod-only-args: --omit=dev
-          # UI5/cli audits via audit-ci (prod scope: audit-ci's --skip-dev).
           - repository: UI5/cli
             ref: main
-            audit-command: npm run audit
-            prod-only-args: -- --skip-dev
           - repository: UI5/cli
             ref: v4
-            audit-command: npm run audit
-            prod-only-args: -- --skip-dev
 
     steps:
       - name: Checkout ${{ matrix.repository }}@${{ matrix.ref }}
@@ -56,6 +47,3 @@ jobs:
       # TODO: pin to a commit SHA once this action exists on the default branch.
       - name: Audit dependencies
         uses: UI5/cli/.github/actions/dependency-audit@main
-        with:
-          audit-command: ${{ matrix.audit-command }}
-          prod-only-args: ${{ matrix.prod-only-args }}
