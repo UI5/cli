@@ -53,8 +53,8 @@ test.serial("Task metadata: round-trip via CacheManager", async (t) => {
 	const cm = new CacheManager(path.join(testDir, "buildCache"));
 
 	const data = {requestSetGraph: {nodes: []}};
-	cm.writeTaskMetadata("project-x", "build-sig", "minify", "project", data);
-	const result = cm.readTaskMetadata("project-x", "build-sig", "minify", "project");
+	cm.writeStageRequestMetadata("project-x", "build-sig", "minify", "project", data);
+	const result = cm.readStageRequestMetadata("project-x", "build-sig", "minify", "project");
 	t.deepEqual(result, data);
 	cm.close();
 });
@@ -78,7 +78,7 @@ test.serial("Cache miss returns null for all metadata types", async (t) => {
 
 	t.is(cm.readIndexCache("no-project", "no-sig", "source"), null);
 	t.is(cm.readStageCache("no-project", "no-sig", "no-stage", "no-sig"), null);
-	t.is(cm.readTaskMetadata("no-project", "no-sig", "no-task", "project"), null);
+	t.is(cm.readStageRequestMetadata("no-project", "no-sig", "no-task", "project"), null);
 	t.is(cm.readResultMetadata("no-project", "no-sig", "no-sig"), null);
 	cm.close();
 });

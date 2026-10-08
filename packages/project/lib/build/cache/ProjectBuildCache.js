@@ -46,7 +46,7 @@ export const RESULT_CACHE_STATES = Object.freeze({
  * @typedef {object} StageCacheEntry
  * @property {string} signature Signature of the cached stage
  * @property {@ui5/fs/AbstractReader} stage Reader for the cached stage
- * @property {string[]} writtenResourcePaths Array of resource paths written by the task
+ * @property {string[]} writtenResourcePaths Array of resource paths written by the stage
  * @property {Map<string, Map<string, *>>} projectTagOperations
  * Map of resource paths to their tags that were set or cleared during this stage's execution, for project tags
  * @property {Map<string, Map<string, *>>} buildTagOperations
@@ -286,7 +286,7 @@ export default class ProjectBuildCache {
 		// signal. Refresh their indices against the current project root and, if their aggregate
 		// signature moved since the cache was last validated, force result-cache revalidation so a root
 		// change is not skipped when no source or dependency resource changed.
-		if (this.#combinedIndexState === INDEX_STATES.FRESH && this.#anyTaskHasRootRequests()) {
+		if (this.#combinedIndexState === INDEX_STATES.FRESH && this.#anyStageHasRootRequests()) {
 			const rootStart = performance.now();
 			await this.#refreshRootIndices();
 			const rootAggregate = this.#getAggregatedRootSignature();
@@ -324,7 +324,7 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Processes changed resources since last build, updating indices and invalidating tasks as needed
+	 * Processes changed resources since last build, updating indices and invalidating stages as needed
 	 *
 	 * @param {@ui5/fs/AbstractReader} dependencyReader Reader for dependency resources
 	 * @returns {Promise<boolean>}
@@ -350,9 +350,9 @@ export default class ProjectBuildCache {
 		let depIndicesChanged = false;
 		if (this.#changedDependencyResourcePaths.length) {
 			const depStart = performance.now();
-			const tasksWithDepRequests = Array.from(this.#stageCaches.values())
+			const stagesWithDepRequests = Array.from(this.#stageCaches.values())
 				.filter((stageCache) => stageCache.hasDependencyRequests());
-			await Promise.all(tasksWithDepRequests.map(async (stageCache) => {
+			await Promise.all(stagesWithDepRequests.map(async (stageCache) => {
 				const changed = await stageCache
 					.updateDependencyIndices(dependencyReader, this.#changedDependencyResourcePaths);
 				if (changed) {
@@ -364,7 +364,7 @@ export default class ProjectBuildCache {
 					`#flushPendingChanges updateDependencyIndices for project ${this.#project.getName()} ` +
 					`completed in ${(performance.now() - depStart).toFixed(2)} ms ` +
 					`(${this.#changedDependencyResourcePaths.length} changed paths, ` +
-					`${tasksWithDepRequests.length}/${this.#stageCaches.size} tasks, changed=${depIndicesChanged})`);
+					`${stagesWithDepRequests.length}/${this.#stageCaches.size} stages, changed=${depIndicesChanged})`);
 			}
 		}
 
@@ -381,7 +381,7 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Initialize dependency indices for all tasks. This only needs to be called once per build.
+	 * Initialize dependency indices for all stages. This only needs to be called once per build.
 	 * Later builds of the same project during the same overall build can reuse the existing indices
 	 * (they will be updated based on input via dependencyResourcesChanged)
 	 *
@@ -389,9 +389,9 @@ export default class ProjectBuildCache {
 	 * @returns {Promise<void>}
 	 */
 	async _refreshDependencyIndices(dependencyReader) {
-		const tasksWithDepRequests = Array.from(this.#stageCaches.values())
+		const stagesWithDepRequests = Array.from(this.#stageCaches.values())
 			.filter((stageCache) => stageCache.hasDependencyRequests());
-		await Promise.all(tasksWithDepRequests.map(async (stageCache) => {
+		await Promise.all(stagesWithDepRequests.map(async (stageCache) => {
 			await stageCache.refreshDependencyIndices(dependencyReader);
 		}));
 		// Reset pending dependency changes since indices are fresh now anyways
@@ -559,16 +559,16 @@ export default class ProjectBuildCache {
 		// #getResultStageSignature (the store side) always walk the same stages in the same order.
 		// createDependencySignature is positional and length-sensitive, so a divergence here would store
 		// a result signature no later lookup could reproduce (F2).
-		const taskDependencySignatures = this.#stageOrder.map((stageId) => {
+		const stageDependencySignatures = this.#stageOrder.map((stageId) => {
 			const stageCache = this.#stageCaches.get(stageId);
 			if (!stageCache) {
 				throw new Error(
 					`Inconsistent stage state in project ${this.#project.getName()}: stage ${stageId} is ` +
-					`in the stage order but has no task cache`);
+					`in the stage order but has no stage cache`);
 			}
 			return stageCache.getDependencyIndexSignatures();
 		});
-		const dependencySignaturesCombinations = cartesianProduct(taskDependencySignatures);
+		const dependencySignaturesCombinations = cartesianProduct(stageDependencySignatures);
 
 		// The aggregated input and root signatures are single current values (not sets of cached
 		// alternatives), so they apply to every dependency combination as constants. Each is its own slot
@@ -613,7 +613,7 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Aggregates the current non-resource input signatures (e.g. recorded env-var usage) across all task
+	 * Aggregates the current non-resource input signatures (e.g. recorded env-var usage) across all stage
 	 * caches into a single signature, re-evaluated against the current environment and graph.
 	 *
 	 * It is one slot of the result stage signature (root resources are a sibling slot via
@@ -643,11 +643,11 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Whether any task cache recorded root resource requests.
+	 * Whether any stage cache recorded root resource requests.
 	 *
 	 * @returns {boolean}
 	 */
-	#anyTaskHasRootRequests() {
+	#anyStageHasRootRequests() {
 		for (const stageCache of this.#stageCaches.values()) {
 			if (stageCache.hasRootRequests()) {
 				return true;
@@ -657,8 +657,8 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Refreshes the root resource indices of every task cache that recorded root requests, resolving
-	 * them against the current project root. Bounded by what the tasks requested.
+	 * Refreshes the root resource indices of every stage cache that recorded root requests, resolving
+	 * them against the current project root. Bounded by what the stages requested.
 	 *
 	 * @returns {Promise<void>}
 	 */
@@ -670,7 +670,7 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Aggregates the current root signatures across all task caches into one signature, used to detect
+	 * Aggregates the current root signatures across all stage caches into one signature, used to detect
 	 * whether any recorded root file changed since the cache was last validated.
 	 *
 	 * @returns {string} Aggregated root signature
@@ -683,7 +683,7 @@ export default class ProjectBuildCache {
 		return crypto.createHash("sha256").update(rootSignatures.sort().join("\0")).digest("hex");
 	}
 
-	// ===== TASK MANAGEMENT =====
+	// ===== STAGE MANAGEMENT =====
 
 	/**
 	 * Prepares a stage for execution by switching to it and checking for cached results
@@ -747,7 +747,7 @@ export default class ProjectBuildCache {
 		// with the current input and root signatures (BuildStageCache.getStageSignatures). The input and
 		// root signatures are re-evaluated against the current environment, graph, and project root, so a
 		// changed input or root file misses the cached stage. Root indices were refreshed in validateCache
-		// before this build's tasks run.
+		// before this build's stages run.
 		const inputSignature = stageCache.getInputSignature(this.#resolveInputValue);
 		const rootSignature = stageCache.getRootSignature();
 		const stageSignatures = stageCache.getStageSignatures(this.#resolveInputValue);
@@ -884,7 +884,7 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Attempts to find a cached stage for the given task
+	 * Attempts to find a cached stage for the given stage
 	 *
 	 * Checks both in-memory stage cache and persistent cache storage for a matching
 	 * stage signature. Returns the first matching cached stage found.
@@ -978,13 +978,13 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Records the result of a task execution and updates the cache
+	 * Records the result of a stage execution and updates the cache
 	 *
 	 * This method:
-	 * 1. Creates a signature for the executed task based on its resource requests
+	 * 1. Creates a signature for the executed stage based on its resource requests
 	 * 2. Stores the resulting stage in the stage cache using that signature
-	 * 3. Invalidates downstream tasks if they depend on written resources
-	 * 4. Removes the task from the invalidated tasks list
+	 * 3. Invalidates downstream stages if they depend on written resources
+	 * 4. Removes the stage from the invalidated stages list
 	 *
 	 * @public
 	 * @param {string} taskName Name of the executed task
@@ -999,7 +999,7 @@ export default class ProjectBuildCache {
 	 * @param {{gitignore: @ui5/project/build/cache/BuildStageCache~ResourceRequests,
 	 *   noGitignore: @ui5/project/build/cache/BuildStageCache~ResourceRequests}} [rootResourceRequests]
 	 *   Resource requests read through the project's root reader, keyed by useGitignore
-	 * @returns {Promise<string[]|undefined>} The resource paths written by the task,
+	 * @returns {Promise<string[]|undefined>} The resource paths written by the stage,
 	 *   or <code>undefined</code> if caching is disabled
 	 */
 	/**
@@ -1219,7 +1219,7 @@ export default class ProjectBuildCache {
 		log.verbose(`Recording results of stage ${stageId} in project ${this.#project.getName()}...`);
 		const stageCache = this.#stageCaches.get(stageId);
 
-		// Identify resources written by task
+		// Identify resources written by stage
 		const stage = this.#project.getProjectResources().getStage();
 		const stageWriter = stage.getWriter();
 		const writtenResources = await stageWriter.byGlob("/**/*");
@@ -1246,7 +1246,7 @@ export default class ProjectBuildCache {
 			}
 
 			// Import the previous stage cache's tag operations into the tag collections so that
-			// subsequent tasks can access them. Delta builds only record tags set during delta
+			// subsequent stages can access them. Delta builds only record tags set during delta
 			// execution, so the previous build's tags must be imported explicitly.
 			this.#project.getProjectResources().importTagOperations(
 				cacheInfo.previousStageCache.projectTagOperations,
@@ -1263,7 +1263,7 @@ export default class ProjectBuildCache {
 				reader = cacheInfo.previousStageCache.stage.getWriter() ??
 					cacheInfo.previousStageCache.stage.getCachedWriter();
 			}
-			// Paths flagged changed but not re-emitted by the delta task: their source
+			// Paths flagged changed but not re-emitted by the delta stage: their source
 			// is gone or excluded, so replaying the previous stage's copy would
 			// resurrect content that no longer belongs in the output. The caller passes the effective
 			// list (the verdict's changed paths plus any stale outputs it derived); fall back to the
@@ -1283,7 +1283,7 @@ export default class ProjectBuildCache {
 					continue; // Delta re-emitted this path; skip
 				}
 				if (changedPathSet.has(path)) {
-					// Flagged changed but not written back by the delta task.
+					// Flagged changed but not written back by the delta stage.
 					// Drop the stale copy from the merge.
 					droppedCount++;
 					continue;
@@ -1347,7 +1347,7 @@ export default class ProjectBuildCache {
 			writtenResourcePaths, projectTagOperations, buildTagOperations,
 			this.#stepInvocationData.get(stageId));
 
-		// Update task cache with new metadata
+		// Update stage cache with new metadata
 		log.verbose(`Stage ${stageId} produced ${writtenResourcePaths.length} resources`);
 
 		for (const resourcePath of writtenResourcePaths) {
@@ -1668,7 +1668,7 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Discards the in-memory source index and task caches so the next build re-initializes
+	 * Discards the in-memory source index and stage caches so the next build re-initializes
 	 * the source index from scratch via a full <code>byGlob("/**\/*")</code> re-scan (see
 	 * {@link #initSourceIndex}), diffing the live source tree against the persisted index.
 	 * Recovers from an unreliable incremental change signal (the file watcher dropping
@@ -1715,7 +1715,7 @@ export default class ProjectBuildCache {
 		this.#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
 		// initSourceIndex does not touch this one, so reset it here.
 		this.#changedDependencyResourcePaths = [];
-		// Root managers are held on the (now cleared) task caches; drop the remembered aggregate so the
+		// Root managers are held on the (now cleared) stage caches; drop the remembered aggregate so the
 		// re-initialized caches re-establish it on the next validateCache.
 		this.#cachedRootAggregateSignature = undefined;
 		// Clear per-build state so a failed build does not leak into the next one.
@@ -1853,7 +1853,7 @@ export default class ProjectBuildCache {
 	 * Initializes the resource index from cache or creates a new one
 	 *
 	 * This method attempts to load a cached resource index. If found, it validates
-	 * the index against current source files and invalidates affected tasks if
+	 * the index against current source files and invalidates affected stages if
 	 * resources have changed. If no cache exists, creates a fresh index.
 	 *
 	 * @returns {Promise<void>}
@@ -1896,14 +1896,14 @@ export default class ProjectBuildCache {
 			// Import stage caches (one entry per stage: a legacy task's single stage, or a step-based
 			// task's per-step stages).
 			const buildStageCaches = await Promise.all(
-				indexCache.tasks.map(async ([stageId, stepBased]) => {
-					const projectRequests = this.#cacheManager.readTaskMetadata(
+				indexCache.stages.map(async ([stageId, stepBased]) => {
+					const projectRequests = this.#cacheManager.readStageRequestMetadata(
 						this.#project.getId(), this.#buildSignature, stageId, "project");
 					if (!projectRequests) {
 						throw new Error(`Failed to load project request cache for stage ` +
 							`${stageId} in project ${this.#project.getName()}`);
 					}
-					const dependencyRequests = this.#cacheManager.readTaskMetadata(
+					const dependencyRequests = this.#cacheManager.readStageRequestMetadata(
 						this.#project.getId(), this.#buildSignature, stageId, "dependencies");
 					if (!dependencyRequests) {
 						throw new Error(`Failed to load dependency request cache for stage ` +
@@ -1912,14 +1912,14 @@ export default class ProjectBuildCache {
 					// Input metadata (e.g. recorded env-var usage) is optional: absent for stages that
 					// declared no non-resource inputs, and absent in caches written before input
 					// tracking existed.
-					const inputTree = this.#cacheManager.readTaskMetadata(
+					const inputTree = this.#cacheManager.readStageRequestMetadata(
 						this.#project.getId(), this.#buildSignature, stageId, "input");
 					// Root request metadata is optional too: absent for stages that made no root reads,
 					// and absent in caches written before root tracking existed. Kept per useGitignore
 					// flag since the flag changes which resources a recorded glob matches.
-					const rootRequests = this.#cacheManager.readTaskMetadata(
+					const rootRequests = this.#cacheManager.readStageRequestMetadata(
 						this.#project.getId(), this.#buildSignature, stageId, "root");
-					const rootNoGitignoreRequests = this.#cacheManager.readTaskMetadata(
+					const rootNoGitignoreRequests = this.#cacheManager.readStageRequestMetadata(
 						this.#project.getId(), this.#buildSignature, stageId, "root-no-gitignore");
 					return BuildStageCache.fromCache({
 						projectName: this.#project.getName(),
@@ -1939,7 +1939,7 @@ export default class ProjectBuildCache {
 			}
 			// Capture the restored stage order so the result-signature functions have the single source of
 			// truth available before this build's setTasks runs (result-cache validation happens first).
-			this.#stageOrder = indexCache.tasks.map(([stageId]) => stageId);
+			this.#stageOrder = indexCache.stages.map(([stageId]) => stageId);
 
 			// Force mode: Fail if cache is stale (source files changed OR pending changes exist)
 			if (this.#cacheMode === Cache.Force &&
@@ -2018,8 +2018,8 @@ export default class ProjectBuildCache {
 	 *
 	 * This method:
 	 * 1. Stores the signatures of all stages that lead to the current build result
-	 * 2. Writes all pending task stage caches to persistent storage
-	 * 3. Writes task request metadata to persistent storage
+	 * 2. Writes all pending stage caches to persistent storage
+	 * 3. Writes stage request metadata to persistent storage
 	 * 4. Writes the source resource index to persistent storage
 	 *
 	 * @public
@@ -2070,7 +2070,7 @@ export default class ProjectBuildCache {
 					stageId, stageSignature, metadata);
 			}
 			for (const {stageId, type, metadata} of stageRequestPrepared) {
-				this.#cacheManager.writeTaskMetadata(
+				this.#cacheManager.writeStageRequestMetadata(
 					this.#project.getId(), this.#buildSignature, stageId, type, metadata);
 			}
 			if (sourceIndexPrepared) {
@@ -2117,7 +2117,7 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Prepares all pending task stage caches for persistence.
+	 * Prepares all pending stage caches for persistence.
 	 *
 	 * Gathers resources, computes integrity, gzip-compresses payloads.
 	 *
@@ -2336,9 +2336,9 @@ export default class ProjectBuildCache {
 		const sourceIndexObject = this.#sourceIndex.toCacheObject();
 		// One entry per stage in execution order: a legacy task's single stage, or a step-based task's
 		// per-step stages. The stage id is the metadata key everything else is stored under.
-		const tasks = [];
+		const stages = [];
 		for (const [stageId, stageCache] of this.#stageCaches) {
-			tasks.push([stageId, stageCache.getStepBased() ? 1 : 0]);
+			stages.push([stageId, stageCache.getStepBased() ? 1 : 0]);
 		}
 		return {
 			projectId: this.#project.getId(),
@@ -2346,7 +2346,7 @@ export default class ProjectBuildCache {
 			kind: "source",
 			index: {
 				...sourceIndexObject,
-				tasks,
+				stages,
 				availableDependencies: this.#currentDependencySetIdentity,
 			},
 		};

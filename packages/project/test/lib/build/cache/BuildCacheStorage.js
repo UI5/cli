@@ -161,29 +161,29 @@ test("Stage metadata: Stage IDs with slashes are stored correctly", (t) => {
 
 // ===== Task metadata =====
 
-test("readTaskMetadata: Returns null on cache miss", (t) => {
-	const result = t.context.storage.readTaskMetadata("project-a", "sig-1", "minify", "project");
+test("readStageRequestMetadata: Returns null on cache miss", (t) => {
+	const result = t.context.storage.readStageRequestMetadata("project-a", "sig-1", "minify", "project");
 	t.is(result, null);
 });
 
 test("Task metadata: Round-trip write and read", (t) => {
 	const data = {requestSetGraph: {nodes: [], nextId: 1}};
-	t.context.storage.writeTaskMetadata("project-a", "sig-1", "minify", "project", data);
-	const result = t.context.storage.readTaskMetadata("project-a", "sig-1", "minify", "project");
+	t.context.storage.writeStageRequestMetadata("project-a", "sig-1", "minify", "project", data);
+	const result = t.context.storage.readStageRequestMetadata("project-a", "sig-1", "minify", "project");
 	t.deepEqual(result, data);
 });
 
 test("Task metadata: Different types are independent", (t) => {
 	const projectData = {scope: "project"};
 	const depData = {scope: "dependency"};
-	t.context.storage.writeTaskMetadata("project-a", "sig-1", "minify", "project", projectData);
-	t.context.storage.writeTaskMetadata("project-a", "sig-1", "minify", "dependencies", depData);
+	t.context.storage.writeStageRequestMetadata("project-a", "sig-1", "minify", "project", projectData);
+	t.context.storage.writeStageRequestMetadata("project-a", "sig-1", "minify", "dependencies", depData);
 
 	t.deepEqual(
-		t.context.storage.readTaskMetadata("project-a", "sig-1", "minify", "project"), projectData
+		t.context.storage.readStageRequestMetadata("project-a", "sig-1", "minify", "project"), projectData
 	);
 	t.deepEqual(
-		t.context.storage.readTaskMetadata("project-a", "sig-1", "minify", "dependencies"), depData
+		t.context.storage.readStageRequestMetadata("project-a", "sig-1", "minify", "dependencies"), depData
 	);
 });
 
@@ -238,12 +238,12 @@ test("transaction: Multiple writes commit atomically", (t) => {
 	const {storage} = t.context;
 	storage.transaction(() => {
 		storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
-		storage.writeTaskMetadata("project-a", "sig-1", "minify", "project", {v: 2});
+		storage.writeStageRequestMetadata("project-a", "sig-1", "minify", "project", {v: 2});
 		storage.writeResultMetadata("project-a", "sig-1", "result-sig-1", {v: 3});
 	});
 
 	t.deepEqual(storage.readIndexCache("project-a", "sig-1", "source"), {v: 1});
-	t.deepEqual(storage.readTaskMetadata("project-a", "sig-1", "minify", "project"), {v: 2});
+	t.deepEqual(storage.readStageRequestMetadata("project-a", "sig-1", "minify", "project"), {v: 2});
 	t.deepEqual(storage.readResultMetadata("project-a", "sig-1", "result-sig-1"), {v: 3});
 });
 
@@ -252,13 +252,13 @@ test("transaction: Throwing callback rolls back all writes", (t) => {
 	t.throws(() => {
 		storage.transaction(() => {
 			storage.writeIndexCache("project-a", "sig-1", "source", {v: 1});
-			storage.writeTaskMetadata("project-a", "sig-1", "minify", "project", {v: 2});
+			storage.writeStageRequestMetadata("project-a", "sig-1", "minify", "project", {v: 2});
 			throw new Error("boom");
 		});
 	}, {message: "boom"});
 
 	t.is(storage.readIndexCache("project-a", "sig-1", "source"), null);
-	t.is(storage.readTaskMetadata("project-a", "sig-1", "minify", "project"), null);
+	t.is(storage.readStageRequestMetadata("project-a", "sig-1", "minify", "project"), null);
 });
 
 test("transaction: Combined metadata and content writes commit atomically", (t) => {
@@ -440,7 +440,7 @@ test("hasRecords: Returns true when stage metadata table has records", (t) => {
 });
 
 test("hasRecords: Returns true when task metadata table has records", (t) => {
-	t.context.storage.writeTaskMetadata("project-a", "build-sig", "minify", "project", {v: 1});
+	t.context.storage.writeStageRequestMetadata("project-a", "build-sig", "minify", "project", {v: 1});
 	t.true(t.context.storage.hasRecords());
 });
 

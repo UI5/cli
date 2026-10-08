@@ -55,11 +55,11 @@ export default class BuildStageCache {
 	// managers because getRootReader's useGitignore flag changes which resources a glob matches, so a
 	// request recorded with the flag on must re-materialize against a root reader with the flag on.
 	// Both are resolved against a dedicated root reader (not the stage-pipeline project reader) and
-	// their signatures fold into the task's stage signature.
+	// their signatures fold into the stage signature.
 	#rootRequestManagers;
 
 	// Tracks non-resource inputs (environment variables and TaskUtil interface reads) recorded during
-	// the last execution of this task. Its signature is folded into the task's stage signature so that
+	// the last execution of this stage. Its signature is folded into the stage signature so that
 	// a changed input invalidates the cached result. Only entry names are persisted; values are
 	// re-read on lookup (see #inputSet.getSignatureWithCurrentValues).
 	#inputSet;
@@ -120,7 +120,7 @@ export default class BuildStageCache {
 	 * @param {boolean} options.stepBased Whether the stage ran the step runner, driving per-step delta tracking
 	 * @param {object} options.projectRequests Cached project request manager data
 	 * @param {object} options.dependencyRequests Cached dependency request manager data
-	 * @param {object} [options.inputSet] Cached task input set data
+	 * @param {object} [options.inputSet] Cached stage input set data
 	 * @param {object} [options.rootRequests] Cached useGitignore:true root request manager data
 	 * @param {object} [options.rootNoGitignoreRequests] Cached useGitignore:false root request manager data
 	 * @returns {BuildStageCache} Restored stage cache instance
@@ -190,12 +190,12 @@ export default class BuildStageCache {
 	}
 
 	/**
-	 * Returns the signature of this task's recorded non-resource inputs, computed against the current
+	 * Returns the signature of this stage's recorded non-resource inputs, computed against the current
 	 * environment and project graph.
 	 *
 	 * Used on cache lookup: each recorded input name is re-evaluated via the given resolver, so the
 	 * returned signature reflects the environment and graph of the build performing the lookup. When
-	 * the task recorded no inputs, a stable empty-input digest is returned.
+	 * the stage recorded no inputs, a stable empty-input digest is returned.
 	 *
 	 * @public
 	 * @param {function(string, string, (string|undefined)): (string|undefined)} [resolveValue]
@@ -208,7 +208,7 @@ export default class BuildStageCache {
 	}
 
 	/**
-	 * Returns whether this task recorded any root resource requests
+	 * Returns whether this stage recorded any root resource requests
 	 *
 	 * @public
 	 * @returns {boolean}
@@ -242,9 +242,9 @@ export default class BuildStageCache {
 	/**
 	 * Returns a single signature aggregating the current signatures of both root request sets.
 	 *
-	 * Folded into the task's stage signature so a changed root file misses the cached stage. Unlike
+	 * Folded into the stage signature so a changed root file misses the cached stage. Unlike
 	 * the project and dependency components, root requests are not delta-tracked: the aggregate is one
-	 * value, so any root change re-runs the whole task. A task with no recorded root requests yields a
+	 * value, so any root change re-runs the whole stage. A stage with no recorded root requests yields a
 	 * stable digest that stays constant across builds.
 	 *
 	 * @public
@@ -292,7 +292,7 @@ export default class BuildStageCache {
 	}
 
 	/**
-	 * Returns whether this task has any recorded dependency resource requests
+	 * Returns whether this stage has any recorded dependency resource requests
 	 *
 	 * @public
 	 * @returns {boolean}
@@ -306,7 +306,7 @@ export default class BuildStageCache {
 	 *
 	 * Since dependency resources may change independently from this project's cache, a full
 	 * refresh of the dependency index is required at the beginning of every build from cache.
-	 * This ensures all dependency resources are current before task execution.
+	 * This ensures all dependency resources are current before stage execution.
 	 *
 	 * @public
 	 * @param {module:@ui5/fs.AbstractReader} dependencyReader Reader for accessing dependency resources
@@ -317,11 +317,11 @@ export default class BuildStageCache {
 	}
 
 	/**
-	 * Gets all project index signatures for this task
+	 * Gets all project index signatures for this stage
 	 *
 	 * Returns signatures from all recorded project-request sets. Each signature represents
 	 * a unique combination of resources, belonging to the current project, that were accessed
-	 * during task execution. These can be used as cache keys for restoring cached task results.
+	 * during stage execution. These can be used as cache keys for restoring cached stage results.
 	 *
 	 * @public
 	 * @returns {string[]} Array of signature strings
@@ -332,12 +332,12 @@ export default class BuildStageCache {
 	}
 
 	/**
-	 * Gets all dependency index signatures for this task
+	 * Gets all dependency index signatures for this stage
 	 *
 	 * Returns signatures from all recorded dependency-request sets. Each signature represents
 	 * a unique combination of resources, belonging to all dependencies of the current project,
-	 * that were accessed during task execution. These can be used as cache keys for restoring
-	 * cached task results.
+	 * that were accessed during stage execution. These can be used as cache keys for restoring
+	 * cached stage results.
 	 *
 	 * @public
 	 * @returns {string[]} Array of signature strings
@@ -351,7 +351,7 @@ export default class BuildStageCache {
 	 * Gets all project index delta transitions for differential updates
 	 *
 	 * Returns a map of signature transitions and their associated changed resource paths
-	 * for project resources. Used when tasks support differential updates to identify
+	 * for project resources. Used when stages support differential updates to identify
 	 * which resources changed between cache states.
 	 *
 	 * @public
@@ -366,7 +366,7 @@ export default class BuildStageCache {
 	 * Gets all dependency index delta transitions for differential updates
 	 *
 	 * Returns a map of signature transitions and their associated changed resource paths
-	 * for dependency resources. Used when tasks support differential updates to identify
+	 * for dependency resources. Used when stages support differential updates to identify
 	 * which dependency resources changed between cache states.
 	 *
 	 * @public
@@ -493,7 +493,7 @@ export default class BuildStageCache {
 	}
 
 	/**
-	 * Serializes the task cache to plain objects for persistence
+	 * Serializes the stage cache to plain objects for persistence
 	 *
 	 * Exports both project and dependency resource request graphs in a format suitable
 	 * for JSON serialization. The serialized data can be passed to fromCache() to restore

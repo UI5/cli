@@ -10,12 +10,12 @@ const METADATA_COMPRESSION_THRESHOLD = 4096;
 const CONTENT_COMPRESSION_THRESHOLD = 128;
 
 /** All live data table names */
-const DATA_TABLES = ["content", "index_cache", "stage_metadata", "task_metadata", "result_metadata"];
+const DATA_TABLES = ["content", "index_cache", "stage_metadata", "stage_request_metadata", "result_metadata"];
 
 /**
  * Unified SQLite-backed storage for the build cache
  *
- * Stores both metadata (index caches, stage metadata, task metadata, result metadata)
+ * Stores both metadata (index caches, stage metadata, stage request metadata, result metadata)
  * and content-addressable resource content (gzip-compressed BLOBs) in a single database.
  *
  * @class
@@ -70,7 +70,7 @@ export default class BuildCacheStorage {
 				PRIMARY KEY (project_id, build_signature, stage_id, stage_signature)
 			) WITHOUT ROWID;
 
-			CREATE TABLE IF NOT EXISTS task_metadata (
+			CREATE TABLE IF NOT EXISTS stage_request_metadata (
 				project_id TEXT NOT NULL,
 				build_signature TEXT NOT NULL,
 				stage_id TEXT NOT NULL,
@@ -127,12 +127,12 @@ export default class BuildCacheStorage {
 			),
 
 			// Stage request metadata
-			readTaskMetadata: this.#db.prepare(
-				`SELECT data FROM task_metadata
+			readStageRequestMetadata: this.#db.prepare(
+				`SELECT data FROM stage_request_metadata
 				WHERE project_id = ? AND build_signature = ? AND stage_id = ? AND type = ?`
 			),
-			writeTaskMetadata: this.#db.prepare(
-				`INSERT OR REPLACE INTO task_metadata
+			writeStageRequestMetadata: this.#db.prepare(
+				`INSERT OR REPLACE INTO stage_request_metadata
 				(project_id, build_signature, stage_id, type, data) VALUES (?, ?, ?, ?, ?)`
 			),
 
@@ -335,9 +335,9 @@ export default class BuildCacheStorage {
 	 * @param {string} type "project" or "dependency"
 	 * @returns {object|null} Parsed stage metadata or null if not found
 	 */
-	readTaskMetadata(projectId, buildSignature, stageId, type) {
+	readStageRequestMetadata(projectId, buildSignature, stageId, type) {
 		try {
-			const row = this.#stmts.readTaskMetadata.get(
+			const row = this.#stmts.readStageRequestMetadata.get(
 				projectId, buildSignature, stageId, type
 			);
 			return row ? this.#deserializeMetadata(row.data) : null;
@@ -359,8 +359,8 @@ export default class BuildCacheStorage {
 	 * @param {string} type "project" or "dependency"
 	 * @param {object} metadata Stage metadata object to serialize
 	 */
-	writeTaskMetadata(projectId, buildSignature, stageId, type, metadata) {
-		this.#stmts.writeTaskMetadata.run(
+	writeStageRequestMetadata(projectId, buildSignature, stageId, type, metadata) {
+		this.#stmts.writeStageRequestMetadata.run(
 			projectId, buildSignature, stageId, type, this.#serializeMetadata(metadata)
 		);
 	}

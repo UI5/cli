@@ -18,13 +18,13 @@ export const CACHE_VERSION = "v0_9";
  * for both metadata and content-addressable resource content
  *
  * CacheManager delegates metadata operations (index caches, stage metadata,
- * task metadata, result metadata) and binary resource content (gzip-compressed
+ * stage request metadata, result metadata) and binary resource content (gzip-compressed
  * BLOBs) to BuildCacheStorage (single SQLite database).
  *
  * The cache is organized by:
  * 1. Project ID (package name)
  * 2. Build signature (hash of build configuration)
- * 3. Stage/task identifiers and signatures
+ * 3. Stage identifiers and signatures
  *
  * Key features:
  * - Content-addressable storage with deduplication
@@ -119,7 +119,7 @@ export default class CacheManager {
 	 * @param {string} projectId Project identifier
 	 * @param {string} buildSignature Build signature hash
 	 * @param {string} kind "source" or "result"
-	 * @param {object} index Index object containing resource tree and task metadata
+	 * @param {object} index Index object containing resource tree and stage list
 	 */
 	writeIndexCache(projectId, buildSignature, kind, index) {
 		this.#storage.writeIndexCache(projectId, buildSignature, kind, index);
@@ -163,8 +163,8 @@ export default class CacheManager {
 	 * @param {string} type "project" or "dependency"
 	 * @returns {object|null} Parsed stage metadata or null if not found
 	 */
-	readTaskMetadata(projectId, buildSignature, stageId, type) {
-		return this.#storage.readTaskMetadata(projectId, buildSignature, stageId, type);
+	readStageRequestMetadata(projectId, buildSignature, stageId, type) {
+		return this.#storage.readStageRequestMetadata(projectId, buildSignature, stageId, type);
 	}
 
 	/**
@@ -177,8 +177,8 @@ export default class CacheManager {
 	 * @param {string} type "project" or "dependency"
 	 * @param {object} metadata Stage metadata object to serialize
 	 */
-	writeTaskMetadata(projectId, buildSignature, stageId, type, metadata) {
-		this.#storage.writeTaskMetadata(projectId, buildSignature, stageId, type, metadata);
+	writeStageRequestMetadata(projectId, buildSignature, stageId, type, metadata) {
+		this.#storage.writeStageRequestMetadata(projectId, buildSignature, stageId, type, metadata);
 	}
 
 	/**
