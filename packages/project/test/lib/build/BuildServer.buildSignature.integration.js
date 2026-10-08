@@ -69,17 +69,12 @@ test.serial.failing(
 			"Served resource no longer reflects the stale control value v1");
 	});
 
-// Served counterpart of the ProjectBuilder minify source-map staleness test (see
+// Served counterpart of the ProjectBuilder minify source-map test (see
 // ProjectBuilder.caching.integration.js for the full mechanism). Minify reads a resource's input source
 // map via fsInterface and embeds its content into the `-dbg.js.map` output. That read goes through the
 // monitored workspace's byPath, so changing ONLY the `.js.map` (not the referencing `.js`) invalidates
-// minify's cache and re-runs it in delta mode with the `.js.map` as the sole changed path. But minify
-// keeps only changed `.js` paths, so the unchanged `.js` is filtered out, the task writes nothing, and
-// the previously served `-dbg.js.map` is carried forward STALE.
-//
-// This asserts the desired behavior (the changed input map is reflected in the served debug map without
-// a server restart) and is marked test.failing because the delta path does not yet achieve it. See the
-// minify FIXME for why a fix needs the `.map` -> `.js` relation, not a local pattern tweak.
+// minify's cache and re-runs it with the `.js.map` as the changed path. The served `-dbg.js.map` must
+// then reflect the new input map content without a server restart.
 test.serial(
 	"Serve application.a, changing only an input source map read via fs by minify invalidates the debug source map",
 	async (t) => {
@@ -99,7 +94,7 @@ test.serial(
 
 		// Change ONLY the input source map — NOT the referencing scriptWithSourceMap.js. The minify task
 		// read this map via fsInterface, so it is a tracked input and this change invalidates minify's
-		// cache. But the owning .js is unchanged, so the differential minify path has no .js to reprocess.
+		// cache.
 		const jsMapContent = await fs.readFile(jsMapFilePath, {encoding: "utf8"});
 		await fs.writeFile(
 			jsMapFilePath,
@@ -112,8 +107,7 @@ test.serial(
 
 		// #2 request: the served debug source map must reflect the changed input source map content.
 		// The minify task is expected to re-execute here (its cache is invalidated because the changed
-		// .js.map is a tracked input) — proving the staleness is a differential-execution defect, not a
-		// missed invalidation.
+		// .js.map is a tracked input).
 		const second = await fixtureTester.requestResource({
 			resource: dbgSourceMapResourcePath,
 			assertions: {
@@ -127,8 +121,17 @@ test.serial(
 							"enhanceManifest",
 							"generateFlexChangesBundle",
 							"generateVersionInfo"
-							// "minify" is NOT skipped: it re-runs in differential mode for the changed .js.map
-						]
+							// "minify" is NOT skipped: it re-runs for the changed .js.map
+						],
+						writtenResources: {
+							// Only resources affected by the source map change should be written
+							"minify": [
+								"/resources/id1/thirdparty/scriptWithSourceMap-dbg.js",
+								"/resources/id1/thirdparty/scriptWithSourceMap-dbg.js.map",
+								"/resources/id1/thirdparty/scriptWithSourceMap.js",
+								"/resources/id1/thirdparty/scriptWithSourceMap.js.map",
+							]
+						}
 					}
 				}
 			}

@@ -2578,10 +2578,8 @@ test("Fail-then-succeed: delta merge does not resurrect resources from a stage a
 // signature the cache reports afterwards is compared against the signature a full refresh against
 // the new set produces (computed independently via ResourceRequestManager).
 //
-// They are marked test.failing: they assert the *desired* behavior and currently fail because the
-// bug is unfixed. AVA reports a failing-marked test as a pass while it throws and as a hard error
-// once it starts passing, so committing them keeps CI green and flips to a signal the moment the
-// fix lands (at which point drop the `.failing`).
+// validateCache now refreshes the dependency indices on a dependency-set change, so these cases
+// pass and guard against a regression of the stale-index bug.
 
 // Builds a persisted "dependencies" task-metadata object by recording a single glob request
 // against `oldDepResources`, mirroring what a real build stores for a task that globs dependency
