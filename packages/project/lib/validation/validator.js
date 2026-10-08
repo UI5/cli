@@ -86,7 +86,7 @@ async function _validate(schemaName, options) {
 	if (!validator[schemaName]) {
 		validator[schemaName] = (async () => {
 			const {default: Ajv} = await import("ajv");
-			const {default: ajvErrors} = await import("ajv-errors");
+			const {default: ajvErrors} = await import("./ajvErrors/ajvErrors.cjs");
 			return new Validator({Ajv, ajvErrors, schemaName});
 		})();
 	}
@@ -99,7 +99,7 @@ async function _validateAndSetDefaults(schemaName, options) {
 	if (!defaultsValidator[schemaName]) {
 		defaultsValidator[schemaName] = (async () => {
 			const {default: Ajv} = await import("ajv");
-			const {default: ajvErrors} = await import("ajv-errors");
+			const {default: ajvErrors} = await import("./ajvErrors/ajvErrors.cjs");
 			return new Validator({Ajv, ajvErrors, ajvConfig: {useDefaults: true}, schemaName});
 		})();
 	}

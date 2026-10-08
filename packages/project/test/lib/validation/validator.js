@@ -10,7 +10,7 @@ test.beforeEach(async (t) => {
 
 	t.context.validatorModule = await esmock.p("../../../lib/validation/validator.js", {
 		"ajv": Ajv,
-		"ajv-errors": ajvErrors
+		"../../../lib/validation/ajvErrors/ajvErrors.cjs": ajvErrors
 	});
 	const {validate, validateWorkspace, _Validator: Validator} = t.context.validatorModule;
 
