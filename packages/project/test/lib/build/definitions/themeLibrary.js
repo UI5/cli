@@ -50,20 +50,21 @@ test("Standard build", (t) => {
 	const generateThemeDesignerResourcesTaskFunction = tasks.get("generateThemeDesignerResources");
 	t.deepEqual(Object.fromEntries(tasks), {
 		replaceCopyright: {
+			stepBased: true,
 			options: {
 				copyright: "copyright",
 				pattern: "/resources/**/*.{less,theme}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
+			stepBased: true,
 			options: {
 				version: "version",
 				pattern: "/resources/**/*.{less,theme}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		buildThemes: {
+			stepBased: true,
 			requiresDependencies: true,
 			options: {
 				projectName: "project.b",
@@ -94,6 +95,7 @@ test("Standard build (framework project)", (t) => {
 	});
 
 	t.deepEqual(tasks.get("generateThemeDesignerResources"), {
+		stepBased: true,
 		requiresDependencies: true, options: {
 			version: "version"
 		}
@@ -109,20 +111,21 @@ test("Standard build for non root project", (t) => {
 	});
 	t.deepEqual(Object.fromEntries(tasks), {
 		replaceCopyright: {
+			stepBased: true,
 			options: {
 				copyright: "copyright",
 				pattern: "/resources/**/*.{less,theme}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		replaceVersion: {
+			stepBased: true,
 			options: {
 				version: "version",
 				pattern: "/resources/**/*.{less,theme}"
 			},
-			supportsDifferentialBuilds: true,
 		},
 		buildThemes: {
+			stepBased: true,
 			requiresDependencies: true,
 			options: {
 				projectName: "project.b",
@@ -150,6 +153,7 @@ test("CSS variables enabled", (t) => {
 
 	const taskDefinition = tasks.get("buildThemes");
 	t.deepEqual(taskDefinition, {
+		stepBased: true,
 		requiresDependencies: true,
 		options: {
 			projectName: "project.b",

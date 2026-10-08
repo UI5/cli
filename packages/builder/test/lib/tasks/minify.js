@@ -1,6 +1,7 @@
 import test from "ava";
 import sinonGlobal from "sinon";
 import esmock from "esmock";
+import runSteps from "../../../lib/tasks/runSteps.js";
 
 test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
@@ -11,6 +12,7 @@ test.beforeEach(async (t) => {
 	t.context.taskUtil = {
 		setTag: sinon.stub(),
 		getTag: sinon.stub(),
+		getEnv: sinon.stub().returns(undefined),
 		STANDARD_TAGS: {
 			HasDebugVariant: "has debug variant",
 			IsDebugVariant: "is debug variant",
@@ -21,7 +23,7 @@ test.beforeEach(async (t) => {
 
 	t.context.fsInterfaceStub = sinon.stub().returns("fs interface");
 	t.context.minifierStub = sinon.stub();
-	t.context.minify = await esmock("../../../lib/tasks/minify.js", {
+	t.context.minify = await esmock.p("../../../lib/tasks/minify.js", {
 		"@ui5/fs/fsInterface": t.context.fsInterfaceStub,
 		"../../../lib/processors/minifier.js": t.context.minifierStub
 	});
@@ -35,22 +37,28 @@ test.afterEach.always(async (t) => {
 		await cleanupTask();
 	}
 
+	esmock.purge(t.context.minify);
 	t.context.sinon.restore();
 });
 
 test("minify: Default params", async (t) => {
 	const {minify, workspace, taskUtil, minifierStub} = t.context;
-	minifierStub.resolves([{
-		resource: "resource A",
-		dbgResource: "dbgResource A",
-		sourceMapResource: "sourceMapResource A",
-		dbgSourceMapResource: "dbgSourceMapResource A" // optional
-	}, {
-		resource: "resource B",
-		dbgResource: "dbgResource B",
-		sourceMapResource: "sourceMapResource B",
-	}]);
-	await minify({
+	// One step per resource: the processor is called once per input resource.
+	const processedByInput = {
+		"resource A": {
+			resource: "resource A",
+			dbgResource: "dbgResource A",
+			sourceMapResource: "sourceMapResource A",
+			dbgSourceMapResource: "dbgSourceMapResource A" // optional
+		},
+		"resource B": {
+			resource: "resource B",
+			dbgResource: "dbgResource B",
+			sourceMapResource: "sourceMapResource B",
+		}
+	};
+	minifierStub.callsFake(({resources}) => Promise.resolve([processedByInput[resources[0]]]));
+	await runSteps(minify, {
 		workspace,
 		taskUtil,
 		options: {
@@ -58,9 +66,10 @@ test("minify: Default params", async (t) => {
 		}
 	});
 
-	t.is(minifierStub.callCount, 1, "minifier got called once");
+	t.is(minifierStub.callCount, 2, "minifier got called once per resource");
 	const minifierCallArgs = minifierStub.firstCall.firstArg;
-	t.deepEqual(minifierCallArgs.resources, ["resource A", "resource B"], "Correct resources provided to processor");
+	t.deepEqual(minifierCallArgs.resources, ["resource A"], "First step processes the first resource");
+	t.deepEqual(minifierStub.secondCall.firstArg.resources, ["resource B"], "Second step: second resource");
 	t.is(minifierCallArgs.fs, "fs interface", "Correct fs interface provided to processor");
 	t.is(minifierCallArgs.taskUtil, taskUtil, "Correct taskUtil provided to processor");
 	t.deepEqual(minifierCallArgs.options, {
@@ -100,17 +109,22 @@ test("minify: Default params", async (t) => {
 
 test("minify: omitSourceMapResources: true, useInputSourceMaps: false", async (t) => {
 	const {minify, workspace, taskUtil, minifierStub} = t.context;
-	minifierStub.resolves([{
-		resource: "resource A",
-		dbgResource: "dbgResource A",
-		sourceMapResource: "sourceMapResource A",
-		dbgSourceMapResource: "dbgSourceMapResource A" // optional
-	}, {
-		resource: "resource B",
-		dbgResource: "dbgResource B",
-		sourceMapResource: "sourceMapResource B",
-	}]);
-	await minify({
+	// One step per resource: the processor is called once per input resource.
+	const processedByInput = {
+		"resource A": {
+			resource: "resource A",
+			dbgResource: "dbgResource A",
+			sourceMapResource: "sourceMapResource A",
+			dbgSourceMapResource: "dbgSourceMapResource A" // optional
+		},
+		"resource B": {
+			resource: "resource B",
+			dbgResource: "dbgResource B",
+			sourceMapResource: "sourceMapResource B",
+		}
+	};
+	minifierStub.callsFake(({resources}) => Promise.resolve([processedByInput[resources[0]]]));
+	await runSteps(minify, {
 		workspace,
 		taskUtil,
 		options: {
@@ -120,9 +134,10 @@ test("minify: omitSourceMapResources: true, useInputSourceMaps: false", async (t
 		}
 	});
 
-	t.is(minifierStub.callCount, 1, "minifier got called once");
+	t.is(minifierStub.callCount, 2, "minifier got called once per resource");
 	const minifierCallArgs = minifierStub.firstCall.firstArg;
-	t.deepEqual(minifierCallArgs.resources, ["resource A", "resource B"], "Correct resources provided to processor");
+	t.deepEqual(minifierCallArgs.resources, ["resource A"], "First step processes the first resource");
+	t.deepEqual(minifierStub.secondCall.firstArg.resources, ["resource B"], "Second step: second resource");
 	t.is(minifierCallArgs.fs, "fs interface", "Correct fs interface provided to processor");
 	t.is(minifierCallArgs.taskUtil, taskUtil, "Correct taskUtil provided to processor");
 	t.deepEqual(minifierCallArgs.options, {
@@ -174,26 +189,32 @@ test("minify: omitSourceMapResources: true, useInputSourceMaps: false", async (t
 
 test("minify: No taskUtil", async (t) => {
 	const {minify, workspace, minifierStub} = t.context;
-	minifierStub.resolves([{
-		resource: "resource A",
-		dbgResource: "dbgResource A",
-		sourceMapResource: "sourceMapResource A",
-		dbgSourceMapResource: "dbgSourceMapResource A" // optional
-	}, {
-		resource: "resource B",
-		dbgResource: "dbgResource B",
-		sourceMapResource: "sourceMapResource B",
-	}]);
-	await minify({
+	// One step per resource: the processor is called once per input resource.
+	const processedByInput = {
+		"resource A": {
+			resource: "resource A",
+			dbgResource: "dbgResource A",
+			sourceMapResource: "sourceMapResource A",
+			dbgSourceMapResource: "dbgSourceMapResource A" // optional
+		},
+		"resource B": {
+			resource: "resource B",
+			dbgResource: "dbgResource B",
+			sourceMapResource: "sourceMapResource B",
+		}
+	};
+	minifierStub.callsFake(({resources}) => Promise.resolve([processedByInput[resources[0]]]));
+	await runSteps(minify, {
 		workspace,
 		options: {
 			pattern: "**"
 		}
 	});
 
-	t.is(minifierStub.callCount, 1, "minifier got called once");
+	t.is(minifierStub.callCount, 2, "minifier got called once per resource");
 	const minifierCallArgs = minifierStub.firstCall.firstArg;
-	t.deepEqual(minifierCallArgs.resources, ["resource A", "resource B"], "Correct resources provided to processor");
+	t.deepEqual(minifierCallArgs.resources, ["resource A"], "First step processes the first resource");
+	t.deepEqual(minifierStub.secondCall.firstArg.resources, ["resource B"], "Second step: second resource");
 	t.is(minifierCallArgs.fs, "fs interface", "Correct fs interface provided to processor");
 	t.is(minifierCallArgs.taskUtil, undefined, "No taskUtil provided to processor");
 	t.deepEqual(minifierCallArgs.options, {

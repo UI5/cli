@@ -1,8 +1,20 @@
 import test from "ava";
 import sinon from "sinon";
+import path from "node:path";
+import {rimraf} from "rimraf";
+import {createResource} from "@ui5/fs/resourceFactory";
 import ProjectBuildCache from "../../../../lib/build/cache/ProjectBuildCache.js";
 import ResourceRequestManager from "../../../../lib/build/cache/ResourceRequestManager.js";
 import Cache from "../../../../lib/build/cache/Cache.js";
+import CacheManager from "../../../../lib/build/cache/CacheManager.js";
+import StepRunner from "../../../../lib/build/helpers/StepRunner.js";
+
+const INTEGRATION_TEST_DIR = path.join(import.meta.dirname, "..", "..", "..", "tmp", "ProjectBuildCache");
+
+test.after.always(async () => {
+	// Best-effort cleanup; on Windows, SQLite WAL files may linger briefly after close.
+	await rimraf(INTEGRATION_TEST_DIR).catch(() => {});
+});
 
 // Helper to create mock Project instances
 function createMockProject(name = "test.project", id = "test-project-id") {
@@ -69,8 +81,8 @@ function createMockCacheManager() {
 		writeStageCache: sinon.stub(),
 		readResultMetadata: sinon.stub().returns(null),
 		writeResultMetadata: sinon.stub(),
-		readTaskMetadata: sinon.stub().returns(null),
-		writeTaskMetadata: sinon.stub(),
+		readStageRequestMetadata: sinon.stub().returns(null),
+		writeStageRequestMetadata: sinon.stub(),
 		hasContent: sinon.stub().returns(false),
 		readContent: sinon.stub().returns(Buffer.from("test")),
 		readContentRaw: sinon.stub().returns(Buffer.from("test")),
@@ -153,11 +165,11 @@ test("Create with existing index cache", async (t) => {
 				}
 			}
 		},
-		tasks: [["task1", false]]
+		stages: [["task/task1", false]]
 	};
 
 	// Mock task metadata responses
-	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
+	cacheManager.readStageRequestMetadata.callsFake((projectId, buildSig, stageId, type) => {
 		if (type === "project") {
 			return {
 				requestSetGraph: {
@@ -188,8 +200,8 @@ test("Create with existing index cache", async (t) => {
 	await cache.initSourceIndex();
 
 	t.truthy(cache, "Cache created with existing index");
-	const taskCache = cache.getTaskCache("task1");
-	t.truthy(taskCache, "Task cache loaded from index");
+	const stageCache = cache.getStageCache("task1");
+	t.truthy(stageCache, "Stage cache loaded from index");
 });
 
 test("Initialize without any cache", async (t) => {
@@ -212,13 +224,27 @@ test("isFresh returns false for empty cache", async (t) => {
 	t.false(cache.isFresh(), "Empty cache is not fresh");
 });
 
-test("getTaskCache returns undefined for non-existent task", async (t) => {
+test("getStageCache returns undefined for non-existent stage", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = new ProjectBuildCache(project, "sig", cacheManager);
 	await cache.initSourceIndex();
 
-	t.is(cache.getTaskCache("nonexistent"), undefined, "Returns undefined");
+	t.is(cache.getStageCache("nonexistent"), undefined, "Returns undefined");
+});
+
+test("getStageCache throws when a stage id is passed in place of a task name", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+
+	const error = t.throws(() => cache.getStageCache("task/task1"),
+		{instanceOf: Error}, "Throws for a composed stage id");
+	t.true(error.message.includes("task/task1"),
+		"Error names the offending stage id");
+	t.true(error.message.includes("expects a task name"),
+		"Error states the expected argument");
 });
 
 // ===== TASK MANAGEMENT TESTS =====
@@ -229,7 +255,7 @@ test("setTasks initializes project stages", async (t) => {
 	const cache = new ProjectBuildCache(project, "sig", cacheManager);
 	await cache.initSourceIndex();
 
-	cache.setTasks(["task1", "task2", "task3"]);
+	cache.setTasks([{taskName: "task1"}, {taskName: "task2"}, {taskName: "task3"}]);
 
 	t.true(project.getProjectResources().initStages.calledOnce, "initStages called once");
 	t.deepEqual(
@@ -293,7 +319,7 @@ test("allTasksCompleted returns changed resource paths", async (t) => {
 				}
 			}
 		},
-		tasks: []
+		stages: []
 	};
 	cacheManager.readIndexCache.returns(indexCache);
 
@@ -375,6 +401,35 @@ test("discardIncrementalState clears the retained result signature and resets Pr
 		"cache is no longer fresh, so the retained result signature can't serve stale stages");
 });
 
+test("discardIncrementalState drops the failed build's partial step invocation data", async (t) => {
+	// A step-based task records its per-key invocation data in-memory via setStepInvocationData as it
+	// runs. #stepInvocationData is this build's working copy: a stage lookup stashes the matched stage's
+	// map here, and a running stage overwrites it. A build that throws mid-execution leaves the partial
+	// map behind. discardIncrementalState must drop it, or getStepInvocationData keeps returning the
+	// failed build's partial map. On a long-lived consumer (ui5 serve) that partial map then pairs with
+	// the next rebuild's stage, corrupting #selectStepsToRun / #computeStaleOutputs. The signature-matched
+	// map the next build needs is re-stashed from the restored stage_metadata row (embedded there, keyed
+	// by signature), not re-fetched by getStepInvocationData.
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+
+	const stageId = "task/minify::step/minify";
+
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+
+	// A failed build records partial in-memory data for the stage.
+	const partial = new Map([["/partial.js", {reads: [], writes: ["/partial.js"]}]]);
+	cache.setStepInvocationData(stageId, partial);
+	t.is(cache.getStepInvocationData(stageId), partial,
+		"the partial data is memoized in-memory while the failed build is still live");
+
+	cache.discardIncrementalState();
+
+	t.is(cache.getStepInvocationData(stageId), undefined,
+		"discardIncrementalState dropped the failed build's partial step invocation data");
+});
+
 test("discardIncrementalState is a no-op in Cache.Off mode", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
@@ -385,78 +440,88 @@ test("discardIncrementalState is a no-op in Cache.Off mode", async (t) => {
 	t.notThrows(() => cache.discardIncrementalState());
 });
 
-test("prepareTaskExecutionAndValidateCache: task needs execution when no cache exists", async (t) => {
+test("prepareStageExecutionAndValidateCache: task needs execution when no cache exists", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = new ProjectBuildCache(project, "sig", cacheManager);
 	await cache.initSourceIndex();
 
-	cache.setTasks(["myTask"]);
-	const canUseCache = await cache.prepareTaskExecutionAndValidateCache("myTask");
+	cache.setTasks([{taskName: "myTask"}]);
+	const canUseCache = await cache.prepareStageExecutionAndValidateCache("myTask");
 
 	t.false(canUseCache, "Task cannot use cache");
 	t.true(project.getProjectResources().useStage.calledWith("task/myTask"), "Project switched to task stage");
 });
 
-test("prepareTaskExecutionAndValidateCache: switches project to correct stage", async (t) => {
+test("prepareStageExecutionAndValidateCache: switches project to correct stage", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = new ProjectBuildCache(project, "sig", cacheManager);
 	await cache.initSourceIndex();
 
-	cache.setTasks(["task1", "task2"]);
-	await cache.prepareTaskExecutionAndValidateCache("task2");
+	cache.setTasks([{taskName: "task1"}, {taskName: "task2"}]);
+	await cache.prepareStageExecutionAndValidateCache("task2");
 
 	t.true(project.getProjectResources().useStage.calledWith("task/task2"), "Switched to task2 stage");
 });
 
-test("recordTaskResult: creates task cache", async (t) => {
+test("recordStageResult: creates stage cache", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = new ProjectBuildCache(project, "sig", cacheManager);
 	await cache.initSourceIndex();
 
-	cache.setTasks(["newTask"]);
-	await cache.prepareTaskExecutionAndValidateCache("newTask");
+	cache.setTasks([{taskName: "newTask"}]);
+	await cache.prepareStageExecutionAndValidateCache("newTask");
 
 	const projectRequests = {paths: new Set(["/input.js"]), patterns: new Set()};
 	const dependencyRequests = {paths: new Set(), patterns: new Set()};
 
-	await cache.recordTaskResult("newTask", projectRequests, dependencyRequests, null, false);
+	await cache.recordStageResult({
+		taskName: "newTask",
+		projectResourceRequests: projectRequests,
+		dependencyResourceRequests: dependencyRequests,
+		cacheInfo: null,
+	});
 
-	const taskCache = cache.getTaskCache("newTask");
-	t.truthy(taskCache, "Task cache created");
+	const stageCache = cache.getStageCache("newTask");
+	t.truthy(stageCache, "Stage cache created");
 });
 
-test("recordTaskResult with empty requests", async (t) => {
+test("recordStageResult with empty requests", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = new ProjectBuildCache(project, "sig", cacheManager);
 	await cache.initSourceIndex();
 
-	cache.setTasks(["task1"]);
-	await cache.prepareTaskExecutionAndValidateCache("task1");
+	cache.setTasks([{taskName: "task1"}]);
+	await cache.prepareStageExecutionAndValidateCache("task1");
 
 	const projectRequests = {paths: new Set(), patterns: new Set()};
 	const dependencyRequests = {paths: new Set(), patterns: new Set()};
 
-	await cache.recordTaskResult("task1", projectRequests, dependencyRequests, null, false);
+	await cache.recordStageResult({
+		taskName: "task1",
+		projectResourceRequests: projectRequests,
+		dependencyResourceRequests: dependencyRequests,
+		cacheInfo: null,
+	});
 
-	const taskCache = cache.getTaskCache("task1");
-	t.truthy(taskCache, "Task cache created even with no requests");
+	const stageCache = cache.getStageCache("task1");
+	t.truthy(stageCache, "Stage cache created even with no requests");
 });
 
 // ===== DELTA (CACHEINFO) PATH IN RECORDTASKRESULT TESTS =====
 
-test("recordTaskResult with cacheInfo: merges resources from previous stage, skipping already-written paths",
+test("recordStageResult with cacheInfo: merges resources from previous stage, skipping already-written paths",
 	async (t) => {
 		const project = createMockProject();
 		const cacheManager = createMockCacheManager();
 		const cache = new ProjectBuildCache(project, "sig", cacheManager);
 		await cache.initSourceIndex();
 
-		cache.setTasks(["myTask"]);
-		await cache.prepareTaskExecutionAndValidateCache("myTask");
+		cache.setTasks([{taskName: "myTask"}]);
+		await cache.prepareStageExecutionAndValidateCache("myTask");
 
 		// Resources written by the delta execution
 		const deltaWrittenRes = createMockResource("/a.js", "hash-a-new", 2000, 200, 2);
@@ -491,7 +556,12 @@ test("recordTaskResult with cacheInfo: merges resources from previous stage, ski
 
 		const projectRequests = {paths: new Set(), patterns: new Set()};
 		const dependencyRequests = {paths: new Set(), patterns: new Set()};
-		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo, false);
+		await cache.recordStageResult({
+			taskName: "myTask",
+			projectResourceRequests: projectRequests,
+			dependencyResourceRequests: dependencyRequests,
+			cacheInfo,
+		});
 
 		t.is(writeStub.callCount, 2, "Write called for 2 non-overlapping resources");
 		const writtenPaths = writeStub.getCalls().map((call) => call.args[0].getOriginalPath());
@@ -500,15 +570,15 @@ test("recordTaskResult with cacheInfo: merges resources from previous stage, ski
 		t.false(writtenPaths.includes("/a.js"), "Already-written /a.js not merged");
 	});
 
-test("recordTaskResult with cacheInfo: calls importTagOperations with previous stage cache tags",
+test("recordStageResult with cacheInfo: calls importTagOperations with previous stage cache tags",
 	async (t) => {
 		const project = createMockProject();
 		const cacheManager = createMockCacheManager();
 		const cache = new ProjectBuildCache(project, "sig", cacheManager);
 		await cache.initSourceIndex();
 
-		cache.setTasks(["myTask"]);
-		await cache.prepareTaskExecutionAndValidateCache("myTask");
+		cache.setTasks([{taskName: "myTask"}]);
+		await cache.prepareStageExecutionAndValidateCache("myTask");
 
 		const writeStub = sinon.stub().resolves();
 		project.getProjectResources().getStage.returns({
@@ -539,7 +609,12 @@ test("recordTaskResult with cacheInfo: calls importTagOperations with previous s
 
 		const projectRequests = {paths: new Set(), patterns: new Set()};
 		const dependencyRequests = {paths: new Set(), patterns: new Set()};
-		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo, false);
+		await cache.recordStageResult({
+			taskName: "myTask",
+			projectResourceRequests: projectRequests,
+			dependencyResourceRequests: dependencyRequests,
+			cacheInfo,
+		});
 
 		const importStub = project.getProjectResources().importTagOperations;
 		t.true(importStub.calledOnce, "importTagOperations called once");
@@ -549,15 +624,15 @@ test("recordTaskResult with cacheInfo: calls importTagOperations with previous s
 			"Called with previous stage buildTagOperations");
 	});
 
-test("recordTaskResult with cacheInfo: merges tag operations with current delta ops taking precedence",
+test("recordStageResult with cacheInfo: merges tag operations with current delta ops taking precedence",
 	async (t) => {
 		const project = createMockProject();
 		const cacheManager = createMockCacheManager();
 		const cache = new ProjectBuildCache(project, "sig", cacheManager);
 		await cache.initSourceIndex();
 
-		cache.setTasks(["myTask"]);
-		await cache.prepareTaskExecutionAndValidateCache("myTask");
+		cache.setTasks([{taskName: "myTask"}]);
+		await cache.prepareStageExecutionAndValidateCache("myTask");
 
 		// Delta execution's own tag operations — /a.js IsDebugVariant overrides previous value
 		project.getProjectResources().getResourceTagOperations.returns({
@@ -598,7 +673,12 @@ test("recordTaskResult with cacheInfo: merges tag operations with current delta 
 
 		const projectRequests = {paths: new Set(), patterns: new Set()};
 		const dependencyRequests = {paths: new Set(), patterns: new Set()};
-		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo, false);
+		await cache.recordStageResult({
+			taskName: "myTask",
+			projectResourceRequests: projectRequests,
+			dependencyResourceRequests: dependencyRequests,
+			cacheInfo,
+		});
 
 		// Verify merged tags via writeCache -> cacheManager.writeStageCache
 		await cache.writeCache();
@@ -623,15 +703,15 @@ test("recordTaskResult with cacheInfo: merges tag operations with current delta 
 			"Delta build tag for /c.js present");
 	});
 
-test("recordTaskResult with cacheInfo: uses cacheInfo.newSignature as stage signature",
+test("recordStageResult with cacheInfo: uses cacheInfo.newSignature as stage signature",
 	async (t) => {
 		const project = createMockProject();
 		const cacheManager = createMockCacheManager();
 		const cache = new ProjectBuildCache(project, "sig", cacheManager);
 		await cache.initSourceIndex();
 
-		cache.setTasks(["myTask"]);
-		await cache.prepareTaskExecutionAndValidateCache("myTask");
+		cache.setTasks([{taskName: "myTask"}]);
+		await cache.prepareStageExecutionAndValidateCache("myTask");
 
 		const writtenRes = createMockResource("/a.js", "hash-a", 2000, 200, 2);
 		const writeStub = sinon.stub().resolves();
@@ -660,7 +740,12 @@ test("recordTaskResult with cacheInfo: uses cacheInfo.newSignature as stage sign
 
 		const projectRequests = {paths: new Set(), patterns: new Set()};
 		const dependencyRequests = {paths: new Set(), patterns: new Set()};
-		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo, false);
+		await cache.recordStageResult({
+			taskName: "myTask",
+			projectResourceRequests: projectRequests,
+			dependencyResourceRequests: dependencyRequests,
+			cacheInfo,
+		});
 
 		await cache.writeCache();
 
@@ -672,15 +757,15 @@ test("recordTaskResult with cacheInfo: uses cacheInfo.newSignature as stage sign
 			"Stage signature comes from cacheInfo.newSignature");
 	});
 
-test("recordTaskResult with cacheInfo: uses getCachedWriter fallback when getWriter returns null",
+test("recordStageResult with cacheInfo: uses getCachedWriter fallback when getWriter returns null",
 	async (t) => {
 		const project = createMockProject();
 		const cacheManager = createMockCacheManager();
 		const cache = new ProjectBuildCache(project, "sig", cacheManager);
 		await cache.initSourceIndex();
 
-		cache.setTasks(["myTask"]);
-		await cache.prepareTaskExecutionAndValidateCache("myTask");
+		cache.setTasks([{taskName: "myTask"}]);
+		await cache.prepareStageExecutionAndValidateCache("myTask");
 
 		const writeStub = sinon.stub().resolves();
 		project.getProjectResources().getStage.returns({
@@ -715,12 +800,141 @@ test("recordTaskResult with cacheInfo: uses getCachedWriter fallback when getWri
 
 		const projectRequests = {paths: new Set(), patterns: new Set()};
 		const dependencyRequests = {paths: new Set(), patterns: new Set()};
-		await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, cacheInfo, false);
+		await cache.recordStageResult({
+			taskName: "myTask",
+			projectResourceRequests: projectRequests,
+			dependencyResourceRequests: dependencyRequests,
+			cacheInfo,
+		});
 
 		t.true(getCachedWriterStub.calledOnce, "getCachedWriter used as fallback");
 		t.is(writeStub.callCount, 1, "Write called for 1 resource from cached writer");
 		t.is(writeStub.firstCall.args[0].getOriginalPath(), "/e.js",
 			"Resource /e.js merged from getCachedWriter");
+	});
+
+// ===== STAGE / RESULT SIGNATURE INVARIANT TESTS =====
+
+// B1 regression. On a dependency-only delta (the dependency moved, the project's own sources did not)
+// the delta verdict's newSignature must pair the UNCHANGED project component as recorded with the new
+// dependency component, so the next build's exact lookup recomputes it. The defect reverse-mapped the
+// already-combined project component and combined it a second time, yielding a signature no later build
+// produces. Delta tracking is only active for step-based stages, so the stage here is step-based; the
+// assertion reads the newSignature's components back out and compares them to the raw current index
+// signatures (available on the stage cache before and after the fix). Before the fix the project
+// component is a doubly-combined hash, not the raw project index signature.
+test("prepareStageExecutionAndValidateCache: a dependency-only delta keys the stage on the raw project " +
+	"signature, not a re-combined one (B1 regression)", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+
+	const projectResource = createMockResource("/test.js", "proj-hash", 1000, 100, 1);
+	const projectReader = {
+		byGlob: sinon.stub().resolves([projectResource]),
+		byPath: sinon.stub().callsFake((p) => Promise.resolve(p === "/test.js" ? projectResource : null)),
+	};
+	project.getReader.callsFake(() => projectReader);
+	project.getSourceReader.callsFake(() => ({
+		byGlob: sinon.stub().resolves([projectResource]),
+		byPath: sinon.stub().callsFake((p) => Promise.resolve(p === "/test.js" ? projectResource : null)),
+	}));
+
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+
+	// validateCache sets the project and dependency readers recordStageResult records against.
+	const depResourceV0 = createMockResource("/dep.js", "dep-v0", 1000, 100, 2);
+	const depReaderV0 = {
+		byGlob: sinon.stub().resolves([depResourceV0]),
+		byPath: sinon.stub().callsFake((p) => Promise.resolve(p === "/dep.js" ? depResourceV0 : null)),
+	};
+	await cache.validateCache(depReaderV0, {prepareForBuild: true});
+
+	// A step-based stage: differential (delta) tracking is active only for step-based stages.
+	cache.setTasks([{taskName: "stepTask", stepNames: ["s"]}]);
+
+	project.getProjectResources().getStage.returns({
+		getId: () => "task/stepTask::step/s",
+		getWriter: sinon.stub().returns({byGlob: sinon.stub().resolves([])}),
+	});
+
+	// Build #1: full execution records the stage over /test.js (project) and /dep.js@dep-v0 (dependency).
+	t.is(await cache.prepareStageExecutionAndValidateCache("stepTask", "s"), false, "Build #1 has no cache");
+	await cache.recordStageResult({
+		taskName: "stepTask",
+		projectResourceRequests: {paths: new Set(["/test.js"]), patterns: new Set()},
+		dependencyResourceRequests: {paths: new Set(["/dep.js"]), patterns: new Set()},
+		cacheInfo: null,
+		stepBased: true,
+		stepName: "s",
+	});
+
+	// A dependency resource changed while the project's sources did not: move the stage's dependency
+	// index to a delta (dep-v0 -> dep-v1). The changed resource differs in size and mtime so
+	// isResourceUnchanged does not short-circuit it as unchanged.
+	const depResourceV1 = createMockResource("/dep.js", "dep-v1", 2000, 200, 2);
+	const depReaderV1 = {
+		byGlob: sinon.stub().resolves([depResourceV1]),
+		byPath: sinon.stub().callsFake((p) => Promise.resolve(p === "/dep.js" ? depResourceV1 : null)),
+	};
+	const stageCache = cache.getStageCache("stepTask", "s");
+	await stageCache.updateDependencyIndices(depReaderV1, ["/dep.js"]);
+
+	// Build #2: exact lookup misses (dependency moved), the dependency-only delta hits.
+	const cacheInfo = await cache.prepareStageExecutionAndValidateCache("stepTask", "s");
+	t.truthy(cacheInfo, "Build #2 finds the stage via the dependency-only delta");
+	t.not(cacheInfo, true, "Build #2 is a delta, not a full hit");
+	t.deepEqual(cacheInfo.changedProjectResourcePaths, [],
+		"A dependency-only delta reports no changed project resources");
+
+	// The delta's newSignature is the [project, dependency, input, root] tuple. Its project component
+	// must be the raw project index signature (unchanged this build), and its dependency component the
+	// new dependency index signature, so the next build's exact lookup reproduces it.
+	const [projectComponent, dependencyComponent] = cacheInfo.newSignature.split("-");
+	t.is(projectComponent, stageCache.getProjectIndexSignatures()[0],
+		"newSignature's project component is the raw project index signature, not a re-combined hash");
+	t.is(dependencyComponent, stageCache.getDependencyIndexSignatures()[0],
+		"newSignature's dependency component is the updated dependency index signature");
+});
+
+// F2 invariant. The result signature's dependency component is positional, so the candidate list
+// (#getPossibleResultStageSignatures) and the stored signature (#getResultStageSignature) must cover
+// the same stages in the same order. Deriving both from the single stage order turns a stage that is
+// declared but never recorded into a loud failure instead of a silently shortened, never-matching
+// dependency list. Before the fix allTasksCompleted computed a result signature over whichever stages
+// happened to be in #currentStageSignatures and did not throw.
+test("allTasksCompleted throws when a declared stage never received a signature (F2 invariant)",
+	async (t) => {
+		const project = createMockProject();
+		const cacheManager = createMockCacheManager();
+
+		const resource = createMockResource("/test.js", "hash1", 1000, 100, 1);
+		project.getSourceReader.callsFake(() => ({
+			byGlob: sinon.stub().resolves([resource]),
+			byPath: sinon.stub().callsFake((p) => Promise.resolve(p === "/test.js" ? resource : null)),
+		}));
+
+		const cache = new ProjectBuildCache(project, "sig", cacheManager);
+		await cache.initSourceIndex();
+
+		// Two stages are declared, but only the first is prepared and recorded. The second never receives
+		// a #currentStageSignatures entry.
+		cache.setTasks([{taskName: "taskA"}, {taskName: "taskB"}]);
+		await cache.prepareStageExecutionAndValidateCache("taskA");
+		project.getProjectResources().getStage.returns({
+			getId: () => "task/taskA",
+			getWriter: sinon.stub().returns({byGlob: sinon.stub().resolves([])}),
+		});
+		await cache.recordStageResult({
+			taskName: "taskA",
+			projectResourceRequests: {paths: new Set(), patterns: new Set()},
+			dependencyResourceRequests: {paths: new Set(), patterns: new Set()},
+			cacheInfo: null,
+		});
+
+		const error = await t.throwsAsync(() => cache.allTasksCompleted());
+		t.regex(error.message, /stage task\/taskB has no current stage signature/,
+			"Fails loudly instead of storing a result signature no later lookup could reproduce");
 	});
 
 // ===== RESOURCE CHANGE TRACKING TESTS =====
@@ -755,7 +969,7 @@ test("projectSourcesChanged: marks cache as requiring validation", async (t) => 
 				}
 			}
 		},
-		tasks: []
+		stages: []
 	};
 	cacheManager.readIndexCache.returns(indexCache);
 
@@ -797,7 +1011,7 @@ test("dependencyResourcesChanged: marks cache as requiring validation", async (t
 				}
 			}
 		},
-		tasks: []
+		stages: []
 	};
 	cacheManager.readIndexCache.returns(indexCache);
 
@@ -860,7 +1074,7 @@ test("projectSourcesChanged after SourceChangedDuringBuildError does not corrupt
 				}
 			}
 		},
-		tasks: []
+		stages: []
 	};
 	cacheManager.readIndexCache.returns(indexCache);
 
@@ -936,7 +1150,7 @@ test("Retry after SourceChangedDuringBuildError when prior build set NO_CACHE: "
 				}
 			}
 		},
-		tasks: []
+		stages: []
 	};
 	cacheManager.readIndexCache.returns(indexCache);
 	// readResultMetadata returns null by default → #findResultCache returns false → NO_CACHE.
@@ -1012,11 +1226,11 @@ test("_refreshDependencyIndices: updates dependency indices", async (t) => {
 				}
 			}
 		},
-		tasks: [["task1", false]]
+		stages: [["task/task1", false]]
 	};
 
 	// Mock task metadata responses
-	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
+	cacheManager.readStageRequestMetadata.callsFake((projectId, buildSig, stageId, type) => {
 		if (type === "project") {
 			return {
 				requestSetGraph: {
@@ -1104,7 +1318,7 @@ test("writeCache: skips writing unchanged caches", async (t) => {
 				}
 			}
 		},
-		tasks: []
+		stages: []
 	};
 	cacheManager.readIndexCache.returns(indexCache);
 
@@ -1124,6 +1338,144 @@ test("writeCache: skips writing unchanged caches", async (t) => {
 	const secondCallCount = cacheManager.writeIndexCache.callCount;
 
 	t.is(secondCallCount, firstCallCount + 1, "Index written each time");
+});
+
+// Records a step-based stage end to end (prepare + setStepInvocationData + recordStageResult) so
+// writeCache has a queued stage to persist, mirroring the TaskRunner's step-stage hook order
+// (setStepInvocationData runs immediately before recordStageResult).
+async function recordStepStage(cache, taskName, stepName, invocationData) {
+	cache.setTasks([{taskName, stepNames: [stepName]}]);
+	await cache.prepareStageExecutionAndValidateCache(taskName, stepName);
+	const stageId = cache.getStageId(taskName, stepName);
+	if (invocationData !== undefined) {
+		cache.setStepInvocationData(stageId, invocationData);
+	}
+	await cache.recordStageResult({
+		taskName,
+		stepName,
+		stepBased: true,
+		projectResourceRequests: {paths: new Set(), patterns: new Set()},
+		dependencyResourceRequests: {paths: new Set(), patterns: new Set()},
+		cacheInfo: null,
+	});
+	return stageId;
+}
+
+test("writeCache embeds a recorded step stage's invocation map in its stage_metadata row", async (t) => {
+	// The per-key map travels inside the stage's own stage_metadata row (keyed by stage signature), so a
+	// later lookup pairs the stage output with the map recorded under exactly that signature. It is
+	// persisted as [[keyId, entry], ...] pairs since JSON has no Map.
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+
+	const map = new Map([["k1", {reads: ["/a.js"], writes: ["/a.js"]}]]);
+	const stageId = await recordStepStage(cache, "minify", "minify", map);
+
+	await cache.writeCache();
+
+	const stageWrite = cacheManager.writeStageCache.getCalls().find((c) => c.args[2] === stageId);
+	t.truthy(stageWrite, "the recorded stage's metadata row is written");
+	t.deepEqual(stageWrite.args[4].stepInvocationData, [["k1", {reads: ["/a.js"], writes: ["/a.js"]}]],
+		"the step invocation map is embedded in the stage row as [[keyId, entry], ...] pairs");
+});
+
+test("writeCache embeds an emptied step invocation map as []", async (t) => {
+	// A map step whose key set dropped to zero this build re-records under a new signature; its stage row
+	// must carry [] so the next build that matches it sees no stale keys rather than the previous run's.
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+
+	const stageId = await recordStepStage(cache, "minify", "minify", new Map());
+
+	await cache.writeCache();
+
+	const stageWrite = cacheManager.writeStageCache.getCalls().find((c) => c.args[2] === stageId);
+	t.truthy(stageWrite, "the recorded stage's metadata row is written");
+	t.deepEqual(stageWrite.args[4].stepInvocationData, [],
+		"an empty per-key map is embedded as []");
+});
+
+test("writeCache omits stepInvocationData for a legacy stage", async (t) => {
+	// A legacy task records no per-key map, so its stage row carries no stepInvocationData field.
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+
+	cache.setTasks([{taskName: "legacyTask"}]);
+	await cache.prepareStageExecutionAndValidateCache("legacyTask");
+	await cache.recordStageResult({
+		taskName: "legacyTask",
+		projectResourceRequests: {paths: new Set(), patterns: new Set()},
+		dependencyResourceRequests: {paths: new Set(), patterns: new Set()},
+		cacheInfo: null,
+	});
+
+	await cache.writeCache();
+
+	const stageWrite = cacheManager.writeStageCache.getCalls().find((c) => c.args[2] === "task/legacyTask");
+	t.truthy(stageWrite, "the legacy stage's metadata row is written");
+	t.is(stageWrite.args[4].stepInvocationData, undefined,
+		"a legacy stage omits the stepInvocationData field");
+});
+
+test("writeCache does not rewrite a stage that was not re-recorded", async (t) => {
+	// stage_metadata (with its embedded step map) is written only for a stage recorded this build. A later
+	// writeCache with nothing newly recorded leaves the row untouched, preserving the "write only when
+	// changed" cost that the embedded map inherits for free.
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+
+	const map = new Map([["k1", {reads: ["/a.js"], writes: ["/a.js"]}]]);
+	const stageId = await recordStepStage(cache, "minify", "minify", map);
+	await cache.writeCache();
+	const writesAfterFirst = cacheManager.writeStageCache.getCalls().filter((c) => c.args[2] === stageId).length;
+	t.is(writesAfterFirst, 1, "the stage row is written on the build that recorded it");
+
+	// A second writeCache without recording the stage again must not rewrite its row.
+	await cache.writeCache();
+	const writesAfterSecond = cacheManager.writeStageCache.getCalls().filter((c) => c.args[2] === stageId).length;
+	t.is(writesAfterSecond, 1, "an unchanged stage row is not rewritten on a later build");
+});
+
+test("step return storage buffers per unit and flushes one transaction per step", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+
+	const store = cache.getStepReturnValueStore();
+
+	// The driver calls store() once per returning unit. Three units each return one resource.
+	const resA = createMockResource("/out/a.js", "int-a", 10, 12, 1);
+	const resB = createMockResource("/out/b.js", "int-b", 20, 12, 2);
+	const resC = createMockResource("/out/c.js", "int-c", 30, 12, 3);
+
+	const txBefore = cacheManager.transaction.callCount;
+	const dA = await store.store([resA]);
+	const dB = await store.store([resB]);
+	const dC = await store.store([resC]);
+	t.is(cacheManager.transaction.callCount, txBefore, "storing a unit's return opens no transaction");
+
+	// Descriptors are built from the metadata #prepareStageResources already computed, identical to
+	// re-reading each resource's integrity/size/lastModified/inode.
+	t.deepEqual(dA, [{path: "/out/a.js", integrity: "int-a", size: 12, lastModified: 10, inode: 1}]);
+	t.deepEqual(dB, [{path: "/out/b.js", integrity: "int-b", size: 12, lastModified: 20, inode: 2}]);
+	t.deepEqual(dC, [{path: "/out/c.js", integrity: "int-c", size: 12, lastModified: 30, inode: 3}]);
+
+	store.flush();
+	t.is(cacheManager.transaction.callCount, txBefore + 1,
+		"flush writes every buffered unit's content in exactly one transaction");
+	t.is(cacheManager.putCompressedContent.callCount, 3, "each unit's content written once");
+
+	store.flush();
+	t.is(cacheManager.transaction.callCount, txBefore + 1, "an empty flush opens no transaction");
 });
 
 // ===== EDGE CASES =====
@@ -1172,8 +1524,8 @@ async function buildCacheWithTaskResult(resources, writtenPaths = []) {
 	await cache.initSourceIndex();
 
 	// Set up and execute a task
-	cache.setTasks(["myTask"]);
-	await cache.prepareTaskExecutionAndValidateCache("myTask");
+	cache.setTasks([{taskName: "myTask"}]);
+	await cache.prepareStageExecutionAndValidateCache("myTask");
 
 	// Simulate task writing some resources
 	const writtenResources = writtenPaths.map(
@@ -1188,7 +1540,12 @@ async function buildCacheWithTaskResult(resources, writtenPaths = []) {
 
 	const projectRequests = {paths: new Set(), patterns: new Set()};
 	const dependencyRequests = {paths: new Set(), patterns: new Set()};
-	await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, null, false);
+	await cache.recordStageResult({
+		taskName: "myTask",
+		projectResourceRequests: projectRequests,
+		dependencyResourceRequests: dependencyRequests,
+		cacheInfo: null,
+	});
 
 	return {cache, project, cacheManager};
 }
@@ -1298,8 +1655,8 @@ test("freezeUntransformedSources: throws when source file not found", async (t) 
 
 	const cache = new ProjectBuildCache(project, "test-sig", cacheManager);
 	await cache.initSourceIndex();
-	cache.setTasks(["myTask"]);
-	await cache.prepareTaskExecutionAndValidateCache("myTask");
+	cache.setTasks([{taskName: "myTask"}]);
+	await cache.prepareStageExecutionAndValidateCache("myTask");
 
 	project.getProjectResources().getStage.returns({
 		getId: () => "task/myTask",
@@ -1310,7 +1667,12 @@ test("freezeUntransformedSources: throws when source file not found", async (t) 
 
 	const projectRequests = {paths: new Set(), patterns: new Set()};
 	const dependencyRequests = {paths: new Set(), patterns: new Set()};
-	await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, null, false);
+	await cache.recordStageResult({
+		taskName: "myTask",
+		projectResourceRequests: projectRequests,
+		dependencyResourceRequests: dependencyRequests,
+		cacheInfo: null,
+	});
 
 	const error = await t.throwsAsync(() => cache.allTasksCompleted());
 	t.true(error.message.includes("not found during CAS freeze"),
@@ -1376,11 +1738,14 @@ async function buildCacheWithWarmCacheAndTaskResult({
 				children
 			}
 		},
-		tasks: [["myTask", 0]]
+		stages: [["task/myTask", 0]]
 	};
 
 	// Mock task metadata for the cached task
-	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
+	cacheManager.readStageRequestMetadata.callsFake((projectId, buildSig, stageId, type) => {
+		if (type === "input") {
+			return null;
+		}
 		return {
 			requestSetGraph: {nodes: [], nextId: 1},
 			rootIndices: [],
@@ -1404,8 +1769,8 @@ async function buildCacheWithWarmCacheAndTaskResult({
 	await cache.initSourceIndex();
 
 	// Set up and execute a task
-	cache.setTasks(["myTask"]);
-	await cache.prepareTaskExecutionAndValidateCache("myTask");
+	cache.setTasks([{taskName: "myTask"}]);
+	await cache.prepareStageExecutionAndValidateCache("myTask");
 
 	// Simulate task writing some resources
 	const writtenResources = taskWrittenPaths.map(
@@ -1420,7 +1785,12 @@ async function buildCacheWithWarmCacheAndTaskResult({
 
 	const projectRequests = {paths: new Set(), patterns: new Set()};
 	const dependencyRequests = {paths: new Set(), patterns: new Set()};
-	await cache.recordTaskResult("myTask", projectRequests, dependencyRequests, null, false);
+	await cache.recordStageResult({
+		taskName: "myTask",
+		projectResourceRequests: projectRequests,
+		dependencyResourceRequests: dependencyRequests,
+		cacheInfo: null,
+	});
 
 	return {cache, project, cacheManager};
 }
@@ -1588,10 +1958,13 @@ test("restoreFrozenSources: cache miss skips gracefully", async (t) => {
 				}
 			}
 		},
-		tasks: [["task1", false]]
+		stages: [["task/task1", false]]
 	};
 	cacheManager.readIndexCache.returns(indexCache);
-	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
+	cacheManager.readStageRequestMetadata.callsFake((projectId, buildSig, stageId, type) => {
+		if (type === "input") {
+			return null;
+		}
 		return {
 			requestSetGraph: {nodes: [], nextId: 1},
 			rootIndices: [],
@@ -1672,10 +2045,13 @@ test("restoreFrozenSources: cache hit creates CAS reader", async (t) => {
 				}
 			}
 		},
-		tasks: [["task1", false]]
+		stages: [["task/task1", false]]
 	};
 	cacheManager.readIndexCache.returns(indexCache);
-	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
+	cacheManager.readStageRequestMetadata.callsFake((projectId, buildSig, stageId, type) => {
+		if (type === "input") {
+			return null;
+		}
 		return {
 			requestSetGraph: {nodes: [], nextId: 1},
 			rootIndices: [],
@@ -1743,7 +2119,7 @@ test("restoreFrozenSources: cache hit creates CAS reader", async (t) => {
 // (warm cache loaded from disk with task metadata) and spies on _refreshDependencyIndices.
 async function createCacheInRestoringState({
 	resources = [createMockResource("/test.js", "hash1", 1000, 100, 1)],
-	tasks = [["task1", false]],
+	stages = [["task1", false]],
 	cacheMode,
 } = {}) {
 	const project = createMockProject();
@@ -1787,10 +2163,13 @@ async function createCacheInRestoringState({
 				children
 			}
 		},
-		tasks
+		stages
 	};
 
-	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
+	cacheManager.readStageRequestMetadata.callsFake((projectId, buildSig, stageId, type) => {
+		if (type === "input") {
+			return null;
+		}
 		return {
 			requestSetGraph: {nodes: [], nextId: 1},
 			rootIndices: [],
@@ -1820,7 +2199,7 @@ test("validateCache prepareForBuild=true: skips _refreshDependencyIndices when n
 	const {cache, refreshSpy, mockDependencyReader} = await createCacheInRestoringState();
 
 	// Do NOT call dependencyResourcesChanged — simulates warm cache with no upstream changes.
-	// In RESTORING_DEPENDENCY_INDICES state, cached dependency indices (from BuildTaskCache.fromCache)
+	// In RESTORING_DEPENDENCY_INDICES state, cached dependency indices (from BuildStageCache.fromCache)
 	// are already correct, so _refreshDependencyIndices can be skipped.
 	await cache.validateCache(mockDependencyReader, {prepareForBuild: true});
 
@@ -1966,8 +2345,8 @@ test("validateCache: Cache.Force throws when source changes are detected", async
 // the delta-merge input.
 //
 // Each test drives a successful build, a second attempt where task B "throws"
-// (modeled by omitting its `recordTaskResult` call), and a retry. Assertions
-// inspect the arguments passed to the taskCache / projectResources mocks on the retry.
+// (modeled by omitting its `recordStageResult` call), and a retry. Assertions
+// inspect the arguments passed to the stageCache / projectResources mocks on the retry.
 
 // Points the project's getStage mock at a stage with the given id whose writer
 // returns `written` from byGlob. Pass `write` to capture merge writes.
@@ -1983,17 +2362,20 @@ function stubStage(project, stageId, {written = [], write} = {}) {
 }
 
 // Records a task result with empty project/dependency request sets.
-function recordEmptyResult(cache, taskName, cacheInfo = null, isDelta = false) {
-	return cache.recordTaskResult(
-		taskName, {paths: new Set(), patterns: new Set()},
-		{paths: new Set(), patterns: new Set()}, cacheInfo, isDelta);
+function recordEmptyResult(cache, taskName, cacheInfo = null) {
+	return cache.recordStageResult({
+		taskName,
+		projectResourceRequests: {paths: new Set(), patterns: new Set()},
+		dependencyResourceRequests: {paths: new Set(), patterns: new Set()},
+		cacheInfo,
+	});
 }
 
 test("Fail-then-succeed: #writtenResultResourcePaths accumulates across failed attempts (documented behavior)",
 	async (t) => {
 		// After taskA records in a failed build and taskB throws, /a.js is left in
-		// #writtenResultResourcePaths. On retry, prepareTaskExecutionAndValidateCache
-		// calls taskCache.updateProjectIndices(reader, #writtenResultResourcePaths).
+		// #writtenResultResourcePaths. On retry, prepareStageExecutionAndValidateCache
+		// calls stageCache.updateProjectIndices(reader, #writtenResultResourcePaths).
 		//
 		// Benign in practice: updateProjectIndices re-fetches each path through the
 		// retry's fresh reader and re-hashes. Unchanged content yields the same
@@ -2021,14 +2403,14 @@ test("Fail-then-succeed: #writtenResultResourcePaths accumulates across failed a
 		};
 
 		// Failed build attempt: taskA runs successfully and writes /a.js.
-		cache.setTasks(["taskA", "taskB"]);
-		await cache.prepareTaskExecutionAndValidateCache("taskA");
+		cache.setTasks([{taskName: "taskA"}, {taskName: "taskB"}]);
+		await cache.prepareStageExecutionAndValidateCache("taskA");
 
 		const writtenA = createMockResource("/a.js", "hash-a-built", 2000, 200, 1);
 		stubStage(project, "task/taskA", {written: [writtenA]});
 		await recordEmptyResult(cache, "taskA");
 
-		// taskB "throws": no recordTaskResult call. The failed build leaves
+		// taskB "throws": no recordStageResult call. The failed build leaves
 		// #writtenResultResourcePaths containing ["/a.js"] since allTasksCompleted
 		// (which would clear it) never runs.
 
@@ -2037,12 +2419,12 @@ test("Fail-then-succeed: #writtenResultResourcePaths accumulates across failed a
 
 		// The retry claims taskA again. Currently /a.js is passed as a "changed"
 		// path to updateProjectIndices even though it did not change on disk.
-		cache.setTasks(["taskA", "taskB"]);
+		cache.setTasks([{taskName: "taskA"}, {taskName: "taskB"}]);
 		const updateProjectIndicesStub = sinon.stub(
-			cache.getTaskCache("taskA"), "updateProjectIndices").resolves();
+			cache.getStageCache("taskA"), "updateProjectIndices").resolves();
 
 		stubStage(project, "task/taskA");
-		await cache.prepareTaskExecutionAndValidateCache("taskA");
+		await cache.prepareStageExecutionAndValidateCache("taskA");
 
 		t.true(updateProjectIndicesStub.called,
 			"updateProjectIndices is called on retry with the leaked paths");
@@ -2082,8 +2464,8 @@ test("Fail-then-succeed: #currentStageSignatures from failed attempt does not li
 		await cache.validateCache(mockDependencyReader, {prepareForBuild: true});
 
 		// Failed attempt: taskA records with a distinctive signature.
-		cache.setTasks(["taskA", "taskB"]);
-		await cache.prepareTaskExecutionAndValidateCache("taskA");
+		cache.setTasks([{taskName: "taskA"}, {taskName: "taskB"}]);
+		await cache.prepareStageExecutionAndValidateCache("taskA");
 		stubStage(project, "task/taskA");
 		await recordEmptyResult(cache, "taskA");
 
@@ -2091,13 +2473,13 @@ test("Fail-then-succeed: #currentStageSignatures from failed attempt does not li
 
 		// Retry.
 		await cache.validateCache(mockDependencyReader, {prepareForBuild: true});
-		cache.setTasks(["taskA", "taskB"]);
+		cache.setTasks([{taskName: "taskA"}, {taskName: "taskB"}]);
 
-		await cache.prepareTaskExecutionAndValidateCache("taskA");
+		await cache.prepareStageExecutionAndValidateCache("taskA");
 		stubStage(project, "task/taskA");
 		await recordEmptyResult(cache, "taskA");
 
-		await cache.prepareTaskExecutionAndValidateCache("taskB");
+		await cache.prepareStageExecutionAndValidateCache("taskB");
 		stubStage(project, "task/taskB");
 		await recordEmptyResult(cache, "taskB");
 
@@ -2121,7 +2503,7 @@ test("Fail-then-succeed: delta merge does not resurrect resources from a stage a
 		// Build 2 (failed): source /b.js is deleted; taskA runs, taskB throws.
 		// Build 3 (retry): source /b.js is still gone. taskA runs in delta mode
 		// with cacheInfo.previousStageCache pointing at build 1's stage entry.
-		// The delta merge at recordTaskResult (line 900-907) reads previousStageCache
+		// The delta merge at recordStageResult (line 900-907) reads previousStageCache
 		// and writes every resource not overlaid by the current delta. If it merges
 		// the stale /b.js, /b.js becomes visible in the retry's output even though
 		// the source file no longer exists.
@@ -2130,8 +2512,8 @@ test("Fail-then-succeed: delta merge does not resurrect resources from a stage a
 		const cache = new ProjectBuildCache(project, "sig", cacheManager);
 		await cache.initSourceIndex();
 
-		cache.setTasks(["deltaTask"]);
-		await cache.prepareTaskExecutionAndValidateCache("deltaTask");
+		cache.setTasks([{taskName: "deltaTask"}]);
+		await cache.prepareStageExecutionAndValidateCache("deltaTask");
 
 		// The retry's delta task writes only the changed /a.js.
 		const retryA = createMockResource("/a.js", "hash-a-new", 3000, 300, 1);
@@ -2161,7 +2543,7 @@ test("Fail-then-succeed: delta merge does not resurrect resources from a stage a
 			changedDependencyResourcePaths: [],
 		};
 
-		await recordEmptyResult(cache, "deltaTask", cacheInfo, true);
+		await recordEmptyResult(cache, "deltaTask", cacheInfo);
 
 		// Without the fix, the merge writes every previous resource whose path is not
 		// in the delta's writtenResourcePaths. /b.js is not overlaid, so it gets
@@ -2196,10 +2578,8 @@ test("Fail-then-succeed: delta merge does not resurrect resources from a stage a
 // signature the cache reports afterwards is compared against the signature a full refresh against
 // the new set produces (computed independently via ResourceRequestManager).
 //
-// They are marked test.failing: they assert the *desired* behavior and currently fail because the
-// bug is unfixed. AVA reports a failing-marked test as a pass while it throws and as a hard error
-// once it starts passing, so committing them keeps CI green and flips to a signal the moment the
-// fix lands (at which point drop the `.failing`).
+// validateCache now refreshes the dependency indices on a dependency-set change, so these cases
+// pass and guard against a regression of the stale-index bug.
 
 // Builds a persisted "dependencies" task-metadata object by recording a single glob request
 // against `oldDepResources`, mirroring what a real build stores for a task that globs dependency
@@ -2275,15 +2655,18 @@ async function createCacheWithDependencyGlob({
 				},
 			},
 		},
-		tasks: [[taskName, false]],
+		stages: [[`task/${taskName}`, false]],
 		// Persisted dependency-set identity from the previous build. validateCache compares the
 		// identity passed at the next build against this; a mismatch forces the refresh.
 		availableDependencies: oldDependencySetIdentity,
 	};
 	cacheManager.readIndexCache.returns(indexCache);
-	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, task, type) => {
+	cacheManager.readStageRequestMetadata.callsFake((projectId, buildSig, task, type) => {
 		if (type === "dependencies") {
 			return depCacheObject;
+		}
+		if (type === "input") {
+			return null;
 		}
 		return {requestSetGraph: {nodes: [], nextId: 1}, rootIndices: [], deltaIndices: [], unusedAtLeastOnce: false};
 	});
@@ -2318,13 +2701,13 @@ test("validateCache: added transitive dependency refreshes dependency index (bui
 
 		t.not(oldDepSignature, expectedDepSignature,
 			"precondition: adding libB must change the dependency index signature");
-		t.is(cache.getTaskCache(taskName).getDependencyIndexSignatures()[0], oldDepSignature,
+		t.is(cache.getStageCache(taskName).getDependencyIndexSignatures()[0], oldDepSignature,
 			"restored dependency index starts at the old signature");
 
 		await cache.validateCache(newDependencyReader,
 			{prepareForBuild: true, dependencySetIdentity: newDependencySetIdentity});
 
-		t.is(cache.getTaskCache(taskName).getDependencyIndexSignatures()[0], expectedDepSignature,
+		t.is(cache.getStageCache(taskName).getDependencyIndexSignatures()[0], expectedDepSignature,
 			"dependency index must reflect the added transitive dependency after validateCache");
 	});
 
@@ -2347,7 +2730,7 @@ test("validateCache: removed transitive dependency refreshes dependency index", 
 	await cache.validateCache(newDependencyReader,
 		{prepareForBuild: true, dependencySetIdentity: newDependencySetIdentity});
 
-	t.is(cache.getTaskCache(taskName).getDependencyIndexSignatures()[0], expectedDepSignature,
+	t.is(cache.getStageCache(taskName).getDependencyIndexSignatures()[0], expectedDepSignature,
 		"dependency index must reflect the removed transitive dependency after validateCache");
 });
 
@@ -2373,6 +2756,107 @@ test("validateCache: dependency-set change is general, not specific to the build
 		await cache.validateCache(newDependencyReader,
 			{prepareForBuild: true, dependencySetIdentity: newDependencySetIdentity});
 
-		t.is(cache.getTaskCache(taskName).getDependencyIndexSignatures()[0], expectedDepSignature,
+		t.is(cache.getStageCache(taskName).getDependencyIndexSignatures()[0], expectedDepSignature,
 			"dependency index must refresh for any dependency-globbing task, not just buildThemes");
 	});
+
+// Integration: CAS-backed step return values through a real SQLite CacheManager. Proves a returned
+// resource is correct after a full build (stored), an unchanged rebuild (every unit restored from CAS),
+// and a delta build (the changed unit re-runs, the others restore from CAS). The map step's reassembled
+// returns are observed through a needs consumer, since runSteps() itself returns nothing.
+function createIntegrationWorkspace(sources = []) {
+	const store = new Map(sources.map((res) => [res.getPath(), res]));
+	return {
+		getName: () => "workspace",
+		byGlob: async () => [...store.values()],
+		byPath: async (virPath) => store.get(virPath) ?? null,
+		write: async (resource) => {
+			store.set(resource.getPath(), resource);
+		},
+	};
+}
+
+test.serial("Integration: step return values round-trip through the real CAS", async (t) => {
+	const testDir = path.join(INTEGRATION_TEST_DIR, `steps-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+	const cacheManager = new CacheManager(path.join(testDir, "buildCache"));
+	t.teardown(() => cacheManager.close());
+
+	const project = {getName: () => "test.project", getId: () => "test-project-id"};
+	const buildCache = new ProjectBuildCache(project, "build-sig", cacheManager, Cache.Default);
+	const returnValueStore = buildCache.getStepReturnValueStore();
+
+	// A producer map step over keys "a" and "b": each unit reads its per-key input (so a change to that
+	// input re-runs the owning unit) and returns a freshly-built resource. A consumer scalar step captures
+	// the producer's reassembled returns via needs, the observable route now that runSteps returns nothing.
+	let captured;
+	const buildSteps = (marker, ran) => [
+		{
+			name: "g",
+			keys: async () => ["a", "b"],
+			each: async (key, {workspace}) => {
+				ran?.push(key);
+				await workspace.byPath(`/in/${key}`);
+				return createResource({path: `/out/${key}.js`, string: `${marker}-${key}`});
+			},
+		},
+		{
+			name: "check",
+			needs: ["g"],
+			run: async ({needs}) => {
+				captured = needs.g;
+			},
+		},
+	];
+
+	// Drive a StepRunner with in-memory per-stage hooks, keeping the real
+	// CAS-backed returnValueStore so returns genuinely round-trip through SQLite. `verdicts` gives each
+	// step's cache verdict (false = full run, true = fully cached, or a delta cacheInfo); `previousData`
+	// carries each step's per-key invocation data forward; `captureInvocation` records it back out.
+	function runBuild({marker, ran, verdicts = {}, previousData = new Map(), captureInvocation}) {
+		const workspace = createIntegrationWorkspace();
+		return new StepRunner({
+			steps: buildSteps(marker, ran),
+			returnValueStore,
+			prepareStage: async (step) => (step in verdicts ? verdicts[step] : false),
+			getPreviousInvocationData: (step) => previousData.get(step),
+			createStageContext: () => ({workspace, taskUtil: {}, monitoredTaskUtil: {}}),
+			recordStage: async (step, outcome) => {
+				captureInvocation?.(step, outcome.invocationData);
+				return [];
+			},
+		}).runSteps();
+	}
+
+	// Build 1: full build. Every unit runs; returns are stored in the CAS.
+	let producerData;
+	await runBuild({marker: "content", captureInvocation: (step, data) => {
+		if (step === "g") {
+			producerData = data;
+		}
+	}});
+	t.is(await captured[0].getString(), "content-a", "Build 1 hands back the fresh resource for a");
+	t.is(await captured[1].getString(), "content-b", "Build 1 hands back the fresh resource for b");
+
+	// Build 2: unchanged rebuild. No changed paths, so no producer unit re-runs; both returns come from CAS.
+	// Only the producer's persisted data is carried forward; the consumer re-runs to capture the returns.
+	const ran2 = [];
+	await runBuild({
+		marker: "content", ran: ran2,
+		verdicts: {g: {changedProjectResourcePaths: [], changedDependencyResourcePaths: []}},
+		previousData: new Map([["g", producerData]]),
+	});
+	t.deepEqual(ran2, [], "No producer unit re-ran on the unchanged rebuild");
+	t.is(await captured[0].getString(), "content-a", "Unchanged rebuild restored a from the CAS");
+	t.is(await captured[1].getString(), "content-b", "Unchanged rebuild restored b from the CAS");
+
+	// Build 3: delta build. Only /in/a changed, so unit "a" re-runs (fresh) while "b" restores from CAS.
+	const ran3 = [];
+	await runBuild({
+		marker: "fresh", ran: ran3,
+		verdicts: {g: {changedProjectResourcePaths: ["/in/a"], changedDependencyResourcePaths: []}},
+		previousData: new Map([["g", producerData]]),
+	});
+	t.deepEqual(ran3, ["a"], "Delta build re-ran only the unit whose input changed");
+	t.is(await captured[0].getString(), "fresh-a", "Delta build handed back the re-run unit's fresh return");
+	t.is(await captured[1].getString(), "content-b", "Delta build restored the unchanged unit b from the CAS");
+});

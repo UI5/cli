@@ -1,7 +1,6 @@
 import posixPath from "node:path/posix";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("builder:tasks:generateThemeDesignerResources");
-import libraryLessGenerator from "../processors/libraryLessGenerator.js";
 import {updateLibraryDotTheming} from "./utils/dotTheming.js";
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
 import Resource from "@ui5/fs/Resource";
@@ -92,32 +91,37 @@ async function generateThemeDotTheming({workspace, combo, themeFolder}) {
  * @module @ui5/builder/tasks/generateThemeDesignerResources
  */
 
-/* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
 /**
  * Generates resources required for integration with the SAP Theme Designer.
+ *
+ * A step-based task: the default export is a factory returning a scalar "scan" step (does the library
+ * have themes at all), an optional scalar "libraryTheming" step (the library-level <code>.theming</code>,
+ * for a project of type <code>library</code>), and a "themes" map step with a key per theme's
+ * <code>library.source.less</code>. Each theme step generates that theme's <code>.theming</code> and
+ * <code>library.less</code>, reading the core <code>.theming</code> and the less imports through its own
+ * combo so those reads are recorded per step. A delta build regenerates only the affected theme. The
+ * later steps consume the scan result through <code>needs</code>, so they stay cached while a library has
+ * themes even as individual themes change. Standalone invocation runs every step through runSteps.
  *
  * @public
  * @function default
  * @static
  *
- * @param {object} parameters Parameters
- * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
- * @param {object} parameters.options Options
- * @param {string} parameters.options.projectName Project name
- * @param {string} parameters.options.version Project version
- * @param {string} [parameters.options.projectNamespace] If the project is of type <code>library</code>,
- * 														 provide its namespace.
- * Omit for type <code>theme-library</code>
- * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
+ * @param {object} options Options
+ * @param {string} options.projectName Project name
+ * @param {string} options.version Project version
+ * @param {string} [options.projectNamespace] If the project is of type <code>library</code>, provide its
+ *   namespace. Omit for type <code>theme-library</code>
+ * @returns {object[]} The task's build steps
  */
-export default async function({workspace, dependencies, options}) {
+export default function build(options) {
 	const {projectName, version} = options;
 	const namespace = options.projectNamespace;
 
-	// Skip sap.ui.documentation since it is not intended to be available in SAP Theme Designer to create custom themes
+	// Skip sap.ui.documentation since it is not intended to be available in SAP Theme Designer to create
+	// custom themes
 	if (namespace === "sap/ui/documentation") {
-		return;
+		return [];
 	}
 
 	let librarySourceLessPattern;
@@ -129,78 +133,89 @@ export default async function({workspace, dependencies, options}) {
 		librarySourceLessPattern = `/resources/**/themes/*/library.source.less`;
 	}
 
-	const librarySourceLessResources = await workspace.byGlob(librarySourceLessPattern);
+	const steps = [{
+		// Whether the library has any themes at all. Consumed by the later steps through needs, so they
+		// stay cached while this holds even as individual themes change.
+		name: "scan",
+		run: async ({workspace}) => ({
+			hasThemes: (await workspace.byGlob(librarySourceLessPattern)).length > 0
+		}),
+	}];
 
-	const hasThemes = librarySourceLessResources.length > 0;
-
-	// library .theming file
-	// Only for type "library". Type "theme-library" does not provide a namespace
-	// Also needs to be created in case a library does not have any themes (see bIgnore flag)
+	// library .theming file. Only for type "library" (type "theme-library" provides no namespace). Also
+	// needs to be created when a library has no themes (the bIgnore flag).
 	if (namespace) {
-		let libraryDotThemingResource;
+		steps.push({
+			name: "libraryTheming",
+			needs: ["scan"],
+			run: async ({needs, workspace}) => {
+				const {hasThemes} = needs.scan;
+				let libraryDotThemingResource;
 
-		// Do not generate a .theming file for the sap.ui.core library
-		if (namespace === "sap/ui/core") {
-			// Check if the .theming file already exists
-			libraryDotThemingResource = await workspace.byPath(`/resources/${namespace}/.theming`);
-			if (libraryDotThemingResource) {
-				// Update the existing .theming resource
-				log.verbose(`Updating .theming for namespace ${namespace}`);
-				await updateLibraryDotTheming({
-					resource: libraryDotThemingResource,
-					namespace,
-					version,
-					hasThemes
-				});
-			}
-		}
+				// Do not generate a .theming file for the sap.ui.core library
+				if (namespace === "sap/ui/core") {
+					// Update the existing .theming file if present
+					libraryDotThemingResource = await workspace.byPath(`/resources/${namespace}/.theming`);
+					if (libraryDotThemingResource) {
+						log.verbose(`Updating .theming for namespace ${namespace}`);
+						await updateLibraryDotTheming({
+							resource: libraryDotThemingResource,
+							namespace,
+							version,
+							hasThemes
+						});
+					}
+				}
 
-		if (!libraryDotThemingResource) {
-			log.verbose(`Generating .theming for namespace ${namespace}`);
-			libraryDotThemingResource = generateLibraryDotTheming({
-				namespace,
-				version,
-				hasThemes
+				if (!libraryDotThemingResource) {
+					log.verbose(`Generating .theming for namespace ${namespace}`);
+					libraryDotThemingResource = generateLibraryDotTheming({
+						namespace,
+						version,
+						hasThemes
+					});
+				}
+
+				await workspace.write(libraryDotThemingResource);
+			},
+		});
+	}
+
+	steps.push({
+		// One key per theme, so a delta build regenerates only the affected theme. keys() returns nothing
+		// when the library has no themes.
+		name: "themes",
+		needs: ["scan"],
+		keys: async ({needs, workspace}) =>
+			needs.scan.hasThemes ? workspace.byGlob(librarySourceLessPattern) : [],
+		each: async (librarySourceLess, {workspace, dependencies}) => {
+			// Build the combo from the step readers so the core .theming and less-import reads are
+			// recorded as inputs of this theme.
+			const combo = new ReaderCollectionPrioritized({
+				name: `generateThemeDesignerResources - prioritize workspace over dependencies: ${projectName}`,
+				readers: dependencies ? [workspace, dependencies] : [workspace]
 			});
-		}
 
-		await workspace.write(libraryDotThemingResource);
-	}
-
-	if (!hasThemes) {
-		// Skip further processing as there are no themes
-		return;
-	}
-
-	const combo = new ReaderCollectionPrioritized({
-		name: `generateThemeDesignerResources - prioritize workspace over dependencies: ${projectName}`,
-		readers: [workspace, dependencies]
-	});
-
-	// theme .theming files
-	const themeDotThemingFiles = await Promise.all(
-		librarySourceLessResources.map((librarySourceLess) => {
 			const themeFolder = posixPath.dirname(librarySourceLess.getPath());
 			log.verbose(`Generating .theming for theme ${themeFolder}`);
-			return generateThemeDotTheming({
-				workspace, combo, themeFolder
-			});
-		})
-	);
-	await Promise.all(
-		themeDotThemingFiles.map(async (resource) => {
-			if (resource) {
-				await workspace.write(resource);
-			}
-		})
-	);
 
-	// library.less files
-	const libraryLessResources = await libraryLessGenerator({
-		resources: librarySourceLessResources,
-		fs: fsInterface(combo),
+			// theme .theming file
+			const themeDotThemingResource = await generateThemeDotTheming({workspace, combo, themeFolder});
+			if (themeDotThemingResource) {
+				await workspace.write(themeDotThemingResource);
+			}
+
+			// library.less file. Load the less generator lazily, inside the step body, so plan-time step-name
+			// discovery can import this factory module without evaluating that processor's module graph. A
+			// build whose themes step is a cache hit never reaches here.
+			const libraryLessGenerator = (await import("../processors/libraryLessGenerator.js")).default;
+			const [libraryLessResource] = await libraryLessGenerator({
+				resources: [librarySourceLess],
+				fs: fsInterface(combo),
+			});
+			await workspace.write(libraryLessResource);
+		},
 	});
-	await Promise.all(
-		libraryLessResources.map((resource) => workspace.write(resource))
-	);
+
+	return steps;
 }

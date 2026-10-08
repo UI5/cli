@@ -11,20 +11,20 @@ const log = getLogger("build:cache:CacheManager");
 const cacheManagerInstances = new Map();
 
 // Cache version for compatibility management
-export const CACHE_VERSION = "v0_7";
+export const CACHE_VERSION = "v0_9";
 
 /**
  * Manages persistence for the build cache using a unified SQLite-backed storage
  * for both metadata and content-addressable resource content
  *
  * CacheManager delegates metadata operations (index caches, stage metadata,
- * task metadata, result metadata) and binary resource content (gzip-compressed
+ * stage request metadata, result metadata) and binary resource content (gzip-compressed
  * BLOBs) to BuildCacheStorage (single SQLite database).
  *
  * The cache is organized by:
  * 1. Project ID (package name)
  * 2. Build signature (hash of build configuration)
- * 3. Stage/task identifiers and signatures
+ * 3. Stage identifiers and signatures
  *
  * Key features:
  * - Content-addressable storage with deduplication
@@ -119,7 +119,7 @@ export default class CacheManager {
 	 * @param {string} projectId Project identifier
 	 * @param {string} buildSignature Build signature hash
 	 * @param {string} kind "source" or "result"
-	 * @param {object} index Index object containing resource tree and task metadata
+	 * @param {object} index Index object containing resource tree and stage list
 	 */
 	writeIndexCache(projectId, buildSignature, kind, index) {
 		this.#storage.writeIndexCache(projectId, buildSignature, kind, index);
@@ -154,31 +154,31 @@ export default class CacheManager {
 	}
 
 	/**
-	 * Reads task metadata from cache
+	 * Reads stage request metadata from cache
 	 *
 	 * @public
 	 * @param {string} projectId Project identifier
 	 * @param {string} buildSignature Build signature hash
-	 * @param {string} taskName Task name
+	 * @param {string} stageId Stage id
 	 * @param {string} type "project" or "dependency"
-	 * @returns {object|null} Parsed task metadata or null if not found
+	 * @returns {object|null} Parsed stage metadata or null if not found
 	 */
-	readTaskMetadata(projectId, buildSignature, taskName, type) {
-		return this.#storage.readTaskMetadata(projectId, buildSignature, taskName, type);
+	readStageRequestMetadata(projectId, buildSignature, stageId, type) {
+		return this.#storage.readStageRequestMetadata(projectId, buildSignature, stageId, type);
 	}
 
 	/**
-	 * Writes task metadata to cache
+	 * Writes stage request metadata to cache
 	 *
 	 * @public
 	 * @param {string} projectId Project identifier
 	 * @param {string} buildSignature Build signature hash
-	 * @param {string} taskName Task name
+	 * @param {string} stageId Stage id
 	 * @param {string} type "project" or "dependency"
-	 * @param {object} metadata Task metadata object to serialize
+	 * @param {object} metadata Stage metadata object to serialize
 	 */
-	writeTaskMetadata(projectId, buildSignature, taskName, type, metadata) {
-		this.#storage.writeTaskMetadata(projectId, buildSignature, taskName, type, metadata);
+	writeStageRequestMetadata(projectId, buildSignature, stageId, type, metadata) {
+		this.#storage.writeStageRequestMetadata(projectId, buildSignature, stageId, type, metadata);
 	}
 
 	/**

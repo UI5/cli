@@ -10,12 +10,12 @@ const METADATA_COMPRESSION_THRESHOLD = 4096;
 const CONTENT_COMPRESSION_THRESHOLD = 128;
 
 /** All live data table names */
-const DATA_TABLES = ["content", "index_cache", "stage_metadata", "task_metadata", "result_metadata"];
+const DATA_TABLES = ["content", "index_cache", "stage_metadata", "stage_request_metadata", "result_metadata"];
 
 /**
  * Unified SQLite-backed storage for the build cache
  *
- * Stores both metadata (index caches, stage metadata, task metadata, result metadata)
+ * Stores both metadata (index caches, stage metadata, stage request metadata, result metadata)
  * and content-addressable resource content (gzip-compressed BLOBs) in a single database.
  *
  * @class
@@ -70,13 +70,13 @@ export default class BuildCacheStorage {
 				PRIMARY KEY (project_id, build_signature, stage_id, stage_signature)
 			) WITHOUT ROWID;
 
-			CREATE TABLE IF NOT EXISTS task_metadata (
+			CREATE TABLE IF NOT EXISTS stage_request_metadata (
 				project_id TEXT NOT NULL,
 				build_signature TEXT NOT NULL,
-				task_name TEXT NOT NULL,
+				stage_id TEXT NOT NULL,
 				type TEXT NOT NULL,
 				data BLOB NOT NULL,
-				PRIMARY KEY (project_id, build_signature, task_name, type)
+				PRIMARY KEY (project_id, build_signature, stage_id, type)
 			) WITHOUT ROWID;
 
 			CREATE TABLE IF NOT EXISTS result_metadata (
@@ -126,14 +126,14 @@ export default class BuildCacheStorage {
 				(project_id, build_signature, stage_id, stage_signature, data) VALUES (?, ?, ?, ?, ?)`
 			),
 
-			// Task metadata
-			readTaskMetadata: this.#db.prepare(
-				`SELECT data FROM task_metadata
-				WHERE project_id = ? AND build_signature = ? AND task_name = ? AND type = ?`
+			// Stage request metadata
+			readStageRequestMetadata: this.#db.prepare(
+				`SELECT data FROM stage_request_metadata
+				WHERE project_id = ? AND build_signature = ? AND stage_id = ? AND type = ?`
 			),
-			writeTaskMetadata: this.#db.prepare(
-				`INSERT OR REPLACE INTO task_metadata
-				(project_id, build_signature, task_name, type, data) VALUES (?, ?, ?, ?, ?)`
+			writeStageRequestMetadata: this.#db.prepare(
+				`INSERT OR REPLACE INTO stage_request_metadata
+				(project_id, build_signature, stage_id, type, data) VALUES (?, ?, ?, ?, ?)`
 			),
 
 			// Result metadata
@@ -327,41 +327,41 @@ export default class BuildCacheStorage {
 	}
 
 	/**
-	 * Reads task metadata from cache
+	 * Reads stage request metadata from cache
 	 *
 	 * @param {string} projectId Project identifier
 	 * @param {string} buildSignature Build signature hash
-	 * @param {string} taskName Task name
+	 * @param {string} stageId Stage id
 	 * @param {string} type "project" or "dependency"
-	 * @returns {object|null} Parsed task metadata or null if not found
+	 * @returns {object|null} Parsed stage metadata or null if not found
 	 */
-	readTaskMetadata(projectId, buildSignature, taskName, type) {
+	readStageRequestMetadata(projectId, buildSignature, stageId, type) {
 		try {
-			const row = this.#stmts.readTaskMetadata.get(
-				projectId, buildSignature, taskName, type
+			const row = this.#stmts.readStageRequestMetadata.get(
+				projectId, buildSignature, stageId, type
 			);
 			return row ? this.#deserializeMetadata(row.data) : null;
 		} catch (err) {
 			throw new Error(
-				`Failed to read task metadata from cache for ` +
-				`${projectId} / ${buildSignature} / ${taskName} / ${type}: ${err.message}`,
+				`Failed to read stage metadata from cache for ` +
+				`${projectId} / ${buildSignature} / ${stageId} / ${type}: ${err.message}`,
 				{cause: err}
 			);
 		}
 	}
 
 	/**
-	 * Writes task metadata to cache
+	 * Writes stage request metadata to cache
 	 *
 	 * @param {string} projectId Project identifier
 	 * @param {string} buildSignature Build signature hash
-	 * @param {string} taskName Task name
+	 * @param {string} stageId Stage id
 	 * @param {string} type "project" or "dependency"
-	 * @param {object} metadata Task metadata object to serialize
+	 * @param {object} metadata Stage metadata object to serialize
 	 */
-	writeTaskMetadata(projectId, buildSignature, taskName, type, metadata) {
-		this.#stmts.writeTaskMetadata.run(
-			projectId, buildSignature, taskName, type, this.#serializeMetadata(metadata)
+	writeStageRequestMetadata(projectId, buildSignature, stageId, type, metadata) {
+		this.#stmts.writeStageRequestMetadata.run(
+			projectId, buildSignature, stageId, type, this.#serializeMetadata(metadata)
 		);
 	}
 

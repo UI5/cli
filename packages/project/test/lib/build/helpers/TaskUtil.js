@@ -258,6 +258,43 @@ test("resourceFactory", (t) => {
 		"resourceFactory function createFlatReader is available");
 });
 
+test("getTime quantizes the build run's timestamp to the requested granularity", (t) => {
+	// 25 September 2026, 14:07:03 local. getTime must quantize the build run's fixed timestamp
+	// (from getBuildTime), not a fresh new Date(), so assert against that instant's buckets.
+	const buildTime = new Date(2026, 8, 25, 14, 7, 3);
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {
+			getBuildTime: () => buildTime
+		}
+	});
+
+	t.is(taskUtil.getTime("year"), "2026", "year bucket derives from the build time");
+	t.is(taskUtil.getTime("hour"), "2026-09-25T14", "hour bucket derives from the build time");
+});
+
+test("getTime throws for an unknown granularity", (t) => {
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {
+			getBuildTime: () => new Date()
+		}
+	});
+
+	const err = t.throws(() => taskUtil.getTime("second"));
+	t.is(err.message, `Invalid time granularity "second". Expected one of: year, month, day, hour`);
+});
+
+test("getBuildTime returns the build run's raw timestamp", (t) => {
+	// Unlike getTime, getBuildTime returns the underlying Date unquantized and untracked.
+	const buildTime = new Date(2026, 8, 25, 14, 7, 3);
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {
+			getBuildTime: () => buildTime
+		}
+	});
+
+	t.is(taskUtil.getBuildTime(), buildTime, "returns the build context's Date instance");
+});
+
 test("registerCleanupTask", (t) => {
 	const registerCleanupTaskStub = sinon.stub();
 	const taskUtil = new TaskUtil({
@@ -450,6 +487,9 @@ test("getInterface: specVersion 3.0", (t) => {
 	t.is(typeof interfacedTaskUtil.isRootProject, "function", "function isRootProject is provided");
 	t.is(typeof interfacedTaskUtil.registerCleanupTask, "function", "function registerCleanupTask is provided");
 	t.is(typeof interfacedTaskUtil.getProject, "function", "function registerCleanupTask is provided");
+	t.is(interfacedTaskUtil.getEnv, undefined, "getEnv is not provided below specVersion 5.0");
+	t.is(interfacedTaskUtil.getTime, undefined, "getTime is not provided below specVersion 5.0");
+	t.is(interfacedTaskUtil.getBuildTime, undefined, "getBuildTime is not provided below specVersion 5.0");
 
 	// getProject
 	const interfacedProject = interfacedTaskUtil.getProject("pony");
@@ -506,4 +546,64 @@ test("getInterface: specVersion 3.0", (t) => {
 		"resourceFactory function createLinkReader is available");
 	t.is(typeof resourceFactory.createFlatReader, "function",
 		"resourceFactory function createFlatReader is available");
+});
+
+test("getInterface: specVersion 5.0 exposes getBuildTime", (t) => {
+	const buildTime = new Date(2026, 8, 25, 14, 7, 3);
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {
+			getProject: sinon.stub().returns({
+				getName: () => "name",
+			}),
+			getDependencies: sinon.stub().returns([]),
+			getBuildTime: () => buildTime,
+		}
+	});
+
+	const interfacedTaskUtil = taskUtil.getInterface(getSpecificationVersion("5.0"));
+
+	t.deepEqual(Object.keys(interfacedTaskUtil), [
+		"STANDARD_TAGS",
+		"setTag",
+		"clearTag",
+		"getTag",
+		"isRootProject",
+		"registerCleanupTask",
+		"getProject",
+		"getDependencies",
+		"resourceFactory",
+		"getEnv",
+		"getTime",
+		"getBuildTime",
+	], "getBuildTime is added at specVersion 5.0");
+
+	t.is(typeof interfacedTaskUtil.getEnv, "function", "function getEnv is provided");
+	t.is(typeof interfacedTaskUtil.getTime, "function", "function getTime is provided");
+	t.is(typeof interfacedTaskUtil.getBuildTime, "function", "function getBuildTime is provided");
+	t.is(interfacedTaskUtil.getBuildTime(), buildTime, "getBuildTime returns the build run's Date");
+});
+
+test("getReadOnlyInterface: specVersion 5.0 exposes getBuildTime", (t) => {
+	const buildTime = new Date(2026, 8, 25, 14, 7, 3);
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {
+			getProject: sinon.stub().returns({
+				getName: () => "name",
+			}),
+			getDependencies: sinon.stub().returns([]),
+			getBuildTime: () => buildTime,
+		}
+	});
+
+	const interfacedTaskUtil = taskUtil.getReadOnlyInterface(getSpecificationVersion("5.0"));
+
+	t.is(typeof interfacedTaskUtil.getEnv, "function", "function getEnv is provided");
+	t.is(typeof interfacedTaskUtil.getTime, "function", "function getTime is provided");
+	t.is(typeof interfacedTaskUtil.getBuildTime, "function", "function getBuildTime is provided");
+	t.is(interfacedTaskUtil.getBuildTime(), buildTime, "getBuildTime returns the build run's Date");
+
+	const readOnlyBelow5 = taskUtil.getReadOnlyInterface(getSpecificationVersion("3.0"));
+	t.is(readOnlyBelow5.getEnv, undefined, "getEnv is not provided below specVersion 5.0");
+	t.is(readOnlyBelow5.getTime, undefined, "getTime is not provided below specVersion 5.0");
+	t.is(readOnlyBelow5.getBuildTime, undefined, "getBuildTime is not provided below specVersion 5.0");
 });
