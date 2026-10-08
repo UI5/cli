@@ -22,6 +22,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ matrix.branch }}
+          # This workflow runs in the privileged default-branch context (schedule / dispatch) but
+          # checks out other branches. Do not persist the GITHUB_TOKEN in the git config so the
+          # checked-out code cannot inherit push/API credentials (CodeQL cache-poisoning).
+          persist-credentials: false
 
       # Use Node.js 24 to get npm 11 instead of npm 10. The default runner Node.js version is 22, which
       # comes with npm 10. This could lead to different installation paths that could conflict with the
@@ -31,8 +35,11 @@ jobs:
         with:
           node-version: "24"
 
+      # --ignore-scripts: never run dependency lifecycle scripts here. The audit only needs the
+      # resolved tree, and this removes execution of untrusted code in the privileged
+      # default-branch context (CodeQL cache-poisoning).
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Use audit-ci
         run: npm run audit
@@ -58,6 +65,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ matrix.branch }}
+          # This workflow runs in the privileged default-branch context (schedule / dispatch) but
+          # checks out other branches. Do not persist the GITHUB_TOKEN in the git config so the
+          # checked-out code cannot inherit push/API credentials (CodeQL cache-poisoning).
+          persist-credentials: false
 
       # Use Node.js 24 to get npm 11 instead of npm 10. The default runner Node.js version is 22, which
       # comes with npm 10. This could lead to different installation paths that could conflict with the
@@ -76,10 +87,14 @@ jobs:
       # devDependency, so "--omit=dev" would remove the audit tool. The audit scope is instead
       # controlled by the "--skip-dev" flag below, which filters the dependency graph npm audit
       # reads from the lockfile — it does not require devDependencies to be absent from disk.
+      #
+      # --ignore-scripts: never run dependency lifecycle scripts here. The audit only needs the
+      # resolved tree, and this removes execution of untrusted code in the privileged
+      # default-branch context (CodeQL cache-poisoning).
       - name: Resolve latest dependencies (ignore lockfile)
         run: |
           rm -rf node_modules package-lock.json
-          npm install --no-audit --no-fund
+          npm install --no-audit --no-fund --ignore-scripts
 
       # For the "prod only" scope, "--skip-dev" makes audit-ci pass "--omit=dev" to npm audit so
       # only the production dependencies consumers receive are audited.
