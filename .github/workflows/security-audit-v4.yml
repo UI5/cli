@@ -1,0 +1,32 @@
+name: Security Audit (v4)
+
+on:
+  schedule:
+    - cron: "46 4 * * *" # Run once a day (offset from the main audit)
+  workflow_dispatch:
+
+# No permissions are required for this workflow
+permissions: {}
+
+jobs:
+  security-scan:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      # Scheduled workflows always run from the default branch, so auditing v4 requires an
+      # explicit checkout of the v4 branch. CodeQL flags this as a potential cache-poisoning
+      # source (untrusted code checked out in the default-branch context); it is accepted/dismissed
+      # here because "ref" is a fixed, trusted branch of this repository, the audit runs with
+      # "--ignore-scripts" (no dependency code executes), there is no caching, and permissions
+      # are empty. Keeping v4 in its own workflow isolates this from the clean main audit.
+      - name: Checkout v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: v4
+          persist-credentials: false
+
+      # The workspace above is the v4 tree, which does not contain this action — reference it
+      # from the default branch instead of the local "./" path.
+      # TODO: pin to a commit SHA once this action exists on the default branch.
+      - name: Audit dependencies
+        uses: UI5/cli/.github/actions/dependency-audit@main

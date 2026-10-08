@@ -1,0 +1,32 @@
+name: "Dependency security audit"
+description: >
+  Audits the already-checked-out project's dependencies in three scopes — locked (npm ci),
+  latest (dev + prod), and latest (production only) — so a repository can see what its committed
+  lockfile pins versus what a fresh install resolves to today. Operates on the current workspace;
+  the caller is responsible for the checkout.
+
+inputs:
+  node-version:
+    description: "Node.js version to set up (npm 11+ recommended for stable audit paths)."
+    default: "24"
+  audit-command:
+    description: "Command that runs the audit and exits non-zero on findings."
+    default: "npm run audit"
+  prod-only-args:
+    description: "Extra arguments appended to audit-command for the production-only scope."
+    default: "-- --skip-dev"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Run dependency audit (all scopes)
+      shell: bash
+      env:
+        AUDIT_COMMAND: ${{ inputs.audit-command }}
+        PROD_ONLY_ARGS: ${{ inputs.prod-only-args }}
+      run: bash "${{ github.action_path }}/audit.sh"
