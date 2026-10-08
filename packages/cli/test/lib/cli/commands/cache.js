@@ -57,8 +57,14 @@ test.beforeEach(async (t) => {
 	t.context.buildCacheCleanCache = sinon.stub();
 	t.context.buildCacheCleanAdditional = sinon.stub().resolves([]);
 	t.context.buildCacheGetAdditionalCacheInfo = sinon.stub().resolves([]);
+	t.context.buildCacheGetProjectCacheInfo = sinon.stub();
+	t.context.buildCacheCleanProject = sinon.stub();
 
 	t.context.yesnoStub = sinon.stub();
+
+	t.context.getRootStub = sinon.stub().returns({getId: () => "my.project"});
+	t.context.graphFromPackageDependencies = sinon.stub().resolves({getRoot: t.context.getRootStub});
+	t.context.graphFromStaticFile = sinon.stub().resolves({getRoot: t.context.getRootStub});
 
 	t.context.cache = await esmock.p("../../../../lib/cli/commands/cache.js", {
 		"@ui5/project/internal/ui5Framework/cache": {
@@ -75,7 +81,13 @@ test.beforeEach(async (t) => {
 				static cleanCache = t.context.buildCacheCleanCache;
 				static cleanAdditional = t.context.buildCacheCleanAdditional;
 				static getAdditionalCacheInfo = t.context.buildCacheGetAdditionalCacheInfo;
+				static getProjectCacheInfo = t.context.buildCacheGetProjectCacheInfo;
+				static cleanProject = t.context.buildCacheCleanProject;
 			}
+		},
+		"@ui5/project/graph": {
+			graphFromPackageDependencies: t.context.graphFromPackageDependencies,
+			graphFromStaticFile: t.context.graphFromStaticFile,
 		},
 		"yesno": {
 			default: t.context.yesnoStub,
@@ -106,6 +118,7 @@ test("Command builder", async (t) => {
 	const yargsStub = {
 		usage: sinon.stub().returnsThis(),
 		option: sinon.stub().returnsThis(),
+		coerce: sinon.stub().returnsThis(),
 		example: sinon.stub().returnsThis(),
 	};
 	const cliStub = {
@@ -125,8 +138,9 @@ test("Command builder", async (t) => {
 	t.is(yargsStub.usage.callCount, 1, "usage called once for warning help banner");
 	t.true(yargsStub.usage.firstCall.args[0].startsWith("WARNING:"),
 		"usage banner starts with warning");
-	t.is(yargsStub.option.callCount, 1, "option called for --force flag");
-	t.is(yargsStub.example.callCount, 3, "example called 3 times");
+	// config, dependency-definition, workspace-config, workspace, force, project
+	t.is(yargsStub.option.callCount, 6, "option called for all clean options");
+	t.is(yargsStub.example.callCount, 5, "example called 5 times");
 });
 
 test.serial("Command definition is correct", (t) => {
@@ -868,4 +882,177 @@ test.serial("ui5 cache clean: pre-clean summary shows both groups when active an
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes(ACTIVE_CACHE_HEADER), "Shows Active Cache group header");
 	t.true(allOutput.includes(STALE_CACHE_HEADER), "Shows Stale Cache group header");
+});
+
+// ─── Project-scoped clean (ui5 cache clean --project) ────────────────────────
+
+test.serial("ui5 cache clean --project: nothing to clean", async (t) => {
+	const {cache, argv, stderrWriteStub, buildCacheGetProjectCacheInfo,
+		buildCacheCleanProject, frameworkCacheCleanCache, yesnoStub} = t.context;
+
+	buildCacheGetProjectCacheInfo.resolves(null);
+
+	argv["_"] = ["cache", "clean"];
+	argv["project"] = ""; // bare --project resolves the root project id
+	setLogLevel("verbose");
+	await cache.handler(argv);
+
+	t.is(buildCacheGetProjectCacheInfo.callCount, 1, "Looks up project cache info");
+	t.is(buildCacheGetProjectCacheInfo.firstCall.args[0], TEST_UI5_DATA_DIR, "Uses resolved ui5DataDir");
+	t.is(buildCacheGetProjectCacheInfo.firstCall.args[1], "my.project", "Uses resolved root project id");
+	t.is(yesnoStub.callCount, 0, "Does not prompt when nothing to clean");
+	t.is(buildCacheCleanProject.callCount, 0, "Does not clean when nothing to clean");
+	t.is(frameworkCacheCleanCache.callCount, 0, "Never touches framework cache in project mode");
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("Nothing to clean"), "Prints nothing to clean");
+});
+
+test.serial("ui5 cache clean --project: removes project build cache with --force", async (t) => {
+	const {cache, argv, stderrWriteStub, buildCacheGetProjectCacheInfo,
+		buildCacheCleanProject, frameworkCacheCleanCache, buildCacheCleanCache, yesnoStub} = t.context;
+
+	buildCacheGetProjectCacheInfo.resolves({path: BUILD_CACHE_PATH, projectId: "my.project"});
+	buildCacheCleanProject.resolves({path: BUILD_CACHE_PATH, projectId: "my.project", deletedEntries: 42});
+
+	argv["_"] = ["cache", "clean"];
+	argv["project"] = ""; // bare --project resolves the root project id
+	argv["force"] = true;
+	setLogLevel("verbose");
+	await cache.handler(argv);
+
+	t.is(yesnoStub.callCount, 0, "Does not prompt with --force");
+	t.is(buildCacheCleanProject.callCount, 1, "Cleans project build cache");
+	t.is(buildCacheCleanProject.firstCall.args[1], "my.project", "Cleans the resolved root project id");
+	t.is(frameworkCacheCleanCache.callCount, 0, "Does not touch framework cache");
+	t.is(buildCacheCleanCache.callCount, 0, "Does not run full build cache clean");
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("my.project"), "Names the project");
+	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, BUILD_CACHE_PATH)), "Shows absolute build cache path");
+	t.true(allOutput.includes("42 entries"), "Reports number of removed entries");
+	t.true(allOutput.includes("Success:"), "Shows success summary");
+});
+
+test.serial("ui5 cache clean --project: user cancels", async (t) => {
+	const {cache, argv, buildCacheGetProjectCacheInfo, buildCacheCleanProject, yesnoStub} = t.context;
+
+	buildCacheGetProjectCacheInfo.resolves({path: BUILD_CACHE_PATH, projectId: "my.project"});
+	yesnoStub.resolves(false);
+
+	argv["_"] = ["cache", "clean"];
+	argv["project"] = ""; // bare --project resolves the root project id
+	await cache.handler(argv);
+
+	t.is(yesnoStub.callCount, 1, "Prompts for confirmation");
+	t.is(buildCacheCleanProject.callCount, 0, "Does not clean when user cancels");
+});
+
+test.serial("ui5 cache clean --project: reports parallel cleanup when result is empty", async (t) => {
+	const {cache, argv, stderrWriteStub, buildCacheGetProjectCacheInfo,
+		buildCacheCleanProject, yesnoStub} = t.context;
+
+	buildCacheGetProjectCacheInfo.resolves({path: BUILD_CACHE_PATH, projectId: "my.project"});
+	buildCacheCleanProject.resolves(null);
+	yesnoStub.resolves(true);
+
+	argv["_"] = ["cache", "clean"];
+	argv["project"] = ""; // bare --project resolves the root project id
+	setLogLevel("verbose");
+	await cache.handler(argv);
+
+	t.is(buildCacheCleanProject.callCount, 1, "Attempts cleanup");
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes(PARALLEL_CLEANUP_NOTICE), "Reports parallel cleanup for empty result");
+	t.false(allOutput.includes("Success:"), "Does not claim success for empty result");
+});
+
+test.serial("ui5 cache clean --project: non-verbose --force stays quiet", async (t) => {
+	const {cache, argv, stderrWriteStub, buildCacheGetProjectCacheInfo, buildCacheCleanProject} = t.context;
+
+	buildCacheGetProjectCacheInfo.resolves({path: BUILD_CACHE_PATH, projectId: "my.project"});
+	buildCacheCleanProject.resolves({path: BUILD_CACHE_PATH, projectId: "my.project", deletedEntries: 3});
+
+	argv["_"] = ["cache", "clean"];
+	argv["project"] = ""; // bare --project resolves the root project id
+	argv["force"] = true;
+	await cache.handler(argv);
+
+	t.is(buildCacheCleanProject.callCount, 1, "Cleans project build cache");
+	t.is(stderrWriteStub.callCount, 0, "Writes nothing in non-verbose --force mode");
+});
+
+test.serial("ui5 cache clean --project: resolves graph via package dependencies by default", async (t) => {
+	const {cache, argv, graphFromPackageDependencies, graphFromStaticFile,
+		buildCacheGetProjectCacheInfo} = t.context;
+
+	buildCacheGetProjectCacheInfo.resolves(null);
+
+	argv["_"] = ["cache", "clean"];
+	argv["project"] = ""; // bare --project resolves the root project id
+	await cache.handler(argv);
+
+	t.is(graphFromPackageDependencies.callCount, 1, "Resolves graph from package dependencies");
+	t.is(graphFromStaticFile.callCount, 0, "Does not use static file resolution");
+});
+
+test.serial("ui5 cache clean --project: uses static file when dependency-definition is given", async (t) => {
+	const {cache, argv, graphFromPackageDependencies, graphFromStaticFile,
+		buildCacheGetProjectCacheInfo} = t.context;
+
+	buildCacheGetProjectCacheInfo.resolves(null);
+
+	argv["_"] = ["cache", "clean"];
+	argv["project"] = ""; // bare --project resolves the root project id
+	argv["dependencyDefinition"] = "/path/to/deps.yaml";
+	await cache.handler(argv);
+
+	t.is(graphFromStaticFile.callCount, 1, "Resolves graph from static file");
+	t.is(graphFromStaticFile.firstCall.args[0].filePath, "/path/to/deps.yaml", "Passes dependency definition path");
+	t.is(graphFromPackageDependencies.callCount, 0, "Does not use package dependency resolution");
+});
+
+test.serial("ui5 cache clean --project <id>: uses the given id without resolving the graph", async (t) => {
+	const {cache, argv, stderrWriteStub, graphFromPackageDependencies, graphFromStaticFile,
+		buildCacheGetProjectCacheInfo, buildCacheCleanProject, frameworkCacheCleanCache} = t.context;
+
+	buildCacheGetProjectCacheInfo.resolves({path: BUILD_CACHE_PATH, projectId: "sap.ui.core"});
+	buildCacheCleanProject.resolves({path: BUILD_CACHE_PATH, projectId: "sap.ui.core", deletedEntries: 7});
+
+	argv["_"] = ["cache", "clean"];
+	argv["project"] = "sap.ui.core";
+	argv["force"] = true;
+	setLogLevel("verbose");
+	await cache.handler(argv);
+
+	t.is(graphFromPackageDependencies.callCount, 0, "Does not resolve the project graph for an explicit id");
+	t.is(graphFromStaticFile.callCount, 0, "Does not resolve the project graph for an explicit id");
+	t.is(buildCacheGetProjectCacheInfo.firstCall.args[1], "sap.ui.core", "Looks up the given project id");
+	t.is(buildCacheCleanProject.firstCall.args[1], "sap.ui.core", "Cleans the given project id");
+	t.is(frameworkCacheCleanCache.callCount, 0, "Never touches framework cache in project mode");
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("sap.ui.core"), "Names the given project");
+	t.true(allOutput.includes("7 entries"), "Reports number of removed entries");
+	t.true(allOutput.includes("Success:"), "Shows success summary");
+});
+
+test.serial("ui5 cache clean --project <id>: nothing to clean for an unknown id", async (t) => {
+	const {cache, argv, stderrWriteStub, graphFromPackageDependencies,
+		buildCacheGetProjectCacheInfo, buildCacheCleanProject, yesnoStub} = t.context;
+
+	buildCacheGetProjectCacheInfo.resolves(null);
+
+	argv["_"] = ["cache", "clean"];
+	argv["project"] = "does.not.exist";
+	setLogLevel("verbose");
+	await cache.handler(argv);
+
+	t.is(graphFromPackageDependencies.callCount, 0, "Does not resolve the project graph for an explicit id");
+	t.is(buildCacheGetProjectCacheInfo.firstCall.args[1], "does.not.exist", "Looks up the given project id");
+	t.is(yesnoStub.callCount, 0, "Does not prompt when nothing to clean");
+	t.is(buildCacheCleanProject.callCount, 0, "Does not clean when nothing to clean");
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("Nothing to clean"), "Prints nothing to clean");
 });
