@@ -14,9 +14,9 @@ const collectionBLibraryA = path.join(__dirname, "..", "..", "fixtures", "collec
 const collectionBLibraryB = path.join(__dirname, "..", "..", "fixtures", "collection.b", "library.b");
 const collectionBLibraryC = path.join(__dirname, "..", "..", "fixtures", "collection.b", "library.c");
 
-function createWorkspaceConfig({dependencyManagement}) {
+function createWorkspaceConfig({dependencyManagement, specVersion = "workspace/1.0"}) {
 	return {
-		specVersion: "workspace/1.0",
+		specVersion,
 		metadata: {
 			name: "workspace-name"
 		},
@@ -474,15 +474,67 @@ test("Missing parameters", (t) => {
 	}, "Threw with expected error message");
 });
 
-test("Basic validation of workspace with specified configPath for dependency", (t) => {
-	// TODO: add test which passes the following yaml example:
-	// specVersion: workspace/1.1
-	// metadata:
-	// name: default
-	// dependencyManagement:
-	// resolutions:
-	// 	- path: ../my-reuse-library
-	// 	configPath: ui5-mock.yaml
+test("workspace/1.1: Basic validation with specified configPath for dependency", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/library.d",
+					configPath: "custom-config-path.yaml" // Custom configPath
+				}, {
+					path: "../../fixtures/library.e",
+					// no custom yaml -> resorts to default: ui5.yaml
+				}]
+			}
+		})
+	});
 
+	const {projectNameMap} = await workspace._getResolvedModules();
+	t.deepEqual(Array.from(projectNameMap.keys()).sort(), ["library.d", "library.e"], "Correct project name keys");
+	t.is(projectNameMap.get("library.d")._configPath, "custom-config-path.yaml");
+	t.is(projectNameMap.get("library.e")._configPath, "ui5.yaml");
+});
 
+test("workspace/1.1: Custom configPath for dependency but specVersion is workspace/1.0", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.0",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/library.d",
+					configPath: "custom-config-path.yaml" // Custom configPath
+				}, {
+					path: "../../fixtures/library.e",
+				}]
+			}
+		})
+	});
+
+	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+	t.is(err.message.includes("\"configPath\" is only supported for specVersion \"workspace/1.1\" and higher"), true);
+});
+
+test("workspace/1.1: Custom configPath for dependency does not exist", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/library.d",
+					configPath: "not-existing-config-path.yaml" // Custom configPath
+				}, {
+					path: "../../fixtures/library.e",
+					// no custom yaml -> resorts to default: ui5.yaml
+				}]
+			}
+		})
+	});
+
+	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+	t.is(err.message.includes("Failed to read configuration for module library.d: " +
+		"Could not find configuration file in module at path 'not-existing-config-path.yaml'"), true);
 });
