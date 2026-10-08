@@ -144,7 +144,7 @@ class Workspace {
 					`Missing property 'path' in dependency resolution configuration of workspace ${this.getName()}`);
 			}
 			return await this._getModulesFromPath(
-				this.#cwd, resolutionConfig.path);
+				this.#cwd, resolutionConfig.path, resolutionConfig.configPath);
 		}));
 
 		// Flatten array since package-workspaces might have resolved to multiple modules for a single resolution
@@ -175,7 +175,7 @@ class Workspace {
 		};
 	}
 
-	async _getModulesFromPath(cwd, relPath, failOnMissingFiles = true) {
+	async _getModulesFromPath(cwd, relPath, configPath, failOnMissingFiles = true) {
 		const nodePath = path.join(cwd, relPath);
 		if (this.#visitedNodePaths.has(nodePath)) {
 			log.verbose(`Module located at ${nodePath} has already been visited`);
@@ -235,7 +235,8 @@ class Workspace {
 
 			const resolvedModules = new Map();
 			await Promise.all(searchPaths.map(async (pkgPath) => {
-				const modules = await this._getModulesFromPath(nodePath, pkgPath, staticPatterns.includes(pkgPath));
+				const modules =
+					await this._getModulesFromPath(nodePath, pkgPath, configPath, staticPatterns.includes(pkgPath));
 				modules.forEach((module) => {
 					const id = module.getId();
 					if (!resolvedModules.get(id)) {
@@ -248,7 +249,8 @@ class Workspace {
 			return [new Module({
 				id: pkg.name,
 				version: pkg.version,
-				modulePath: nodePath
+				modulePath: nodePath,
+				configPath: configPath,
 			})];
 		}
 	}
