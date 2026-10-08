@@ -1,0 +1,49 @@
+name: Security Audit (all projects)
+
+# Central, on-demand security audit across several UI5 projects. Each matrix entry checks out a
+# project at a given branch and runs the shared dependency-audit action (locked + latest · dev+prod
+# + latest · prod-only), which audits via audit-ci and honours each repo/branch's own audit-ci
+# config. Add a project by adding a matrix entry; a project with several branches gets one entry
+# per branch.
+#
+# Note: auditing other repositories/branches means checking out code other than this workflow's own
+# ref, which CodeQL reports as a potential cache-poisoning source. It is accepted here — the refs are
+# fixed, trusted UI5 repositories, the audit runs with "--ignore-scripts" (no dependency code runs),
+# there is no caching, and permissions are empty.
+
+on:
+  workflow_dispatch:
+
+# No permissions are required: the audited repositories are public and checked out read-only.
+permissions: {}
+
+jobs:
+  audit:
+    name: "${{ matrix.repository }}@${{ matrix.ref }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false # audit every project even if one fails
+      matrix:
+        include:
+          - repository: UI5/mcp-server
+            ref: main
+          - repository: UI5/linter
+            ref: main
+          - repository: UI5/cli
+            ref: main
+          - repository: UI5/cli
+            ref: v4
+
+    steps:
+      - name: Checkout ${{ matrix.repository }}@${{ matrix.ref }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ matrix.repository }}
+          ref: ${{ matrix.ref }}
+          persist-credentials: false
+
+      # The workspace above is the audited project, which does not contain this action — reference
+      # it from UI5/cli instead of the local "./" path.
+      # TODO: pin to a commit SHA once this action exists on the default branch.
+      - name: Audit dependencies
+        uses: UI5/cli/.github/actions/dependency-audit@main

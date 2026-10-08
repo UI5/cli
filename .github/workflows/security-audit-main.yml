@@ -1,0 +1,27 @@
+name: Security Audit (main)
+
+on:
+  schedule:
+    - cron: "36 4 * * *" # Run once a day
+  workflow_dispatch:
+
+# No permissions are required for this workflow
+permissions: {}
+
+jobs:
+  security-scan:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      # Plain checkout of this workflow's own ref (the default branch). No "ref:" to another
+      # branch, so no untrusted code runs in the privileged default-branch context — this keeps
+      # the workflow clear of the CodeQL "cache poisoning" finding. v4 is audited by its own
+      # workflow (security-audit-v4.yml).
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Reusable engine: audits locked (npm ci) + latest (dev + prod) + latest (prod only).
+      - name: Audit dependencies
+        uses: ./.github/actions/dependency-audit
