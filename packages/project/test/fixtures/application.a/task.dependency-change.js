@@ -34,3 +34,7 @@ module.exports = async function ({log, taskUtil, workspace}) {
     // Start processing dependencies of the root project
     await processProject(taskUtil.getProject());
 };
+
+module.exports.determineRequiredDependencies = function ({availableDependencies}) {
+	return availableDependencies;
+}
