@@ -28,8 +28,12 @@
 				"properties": {
 					"resolutions": {
 						"items": {
-							"not": {"required": ["configPath"]},
-							"errorMessage": "\"configPath\" is only supported for specVersion \"workspace/1.1\" and higher"
+							"if": {"type": "object"},
+							"then": {
+								"not": {"required": ["configPath"]},
+								"errorMessage": "\"configPath\" is only supported for specVersion \"workspace/1.1\" and higher"
+							},
+							"else": {}
 						}
 					}
 				}
