@@ -69,7 +69,7 @@ class Module {
 		this._id = id;
 		this._version = version;
 		this._modulePath = modulePath;
-		this._configPath = configPath || DEFAULT_CONFIG_PATH;
+		this._configPath = configPath ? path.resolve(modulePath, configPath) : DEFAULT_CONFIG_PATH;
 		this._dependencies = Object.create(null);
 
 		if (!Array.isArray(configuration)) {
