@@ -89,7 +89,7 @@ For details, see: https://ui5.github.io/cli/stable/pages/Workspace/#workspace-sp
 							message:
 								"must be equal to one of the allowed values",
 							params: {
-								allowedValues: ["workspace/1.0"],
+								allowedValues: ["workspace/1.1", "workspace/1.0"],
 							},
 						},
 					],
@@ -290,7 +290,7 @@ For details, see: https://ui5.github.io/cli/stable/pages/Workspace/#workspace-sp
 							message:
 								"must be equal to one of the allowed values",
 							params: {
-								allowedValues: ["workspace/1.0"],
+								allowedValues: ["workspace/1.1", "workspace/1.0"],
 							},
 						},
 					],
@@ -351,7 +351,7 @@ For details, see: https://ui5.github.io/cli/stable/pages/Workspace/#workspace-sp
 							message:
 								"must be equal to one of the allowed values",
 							params: {
-								allowedValues: ["workspace/1.0"],
+								allowedValues: ["workspace/1.1", "workspace/1.0"],
 							},
 						},
 					],
@@ -454,5 +454,56 @@ test("Invalid dependencyManagement", async (t) => {
 				},
 			},
 		]
+	);
+});
+
+test("Invalid dependencyManagement: configPath not allowed for workspace/1.0", async (t) => {
+	await assertValidation(
+		t,
+		{
+			specVersion: "workspace/1.0",
+			metadata: {
+				name: "test-spec-name",
+			},
+			dependencyManagement: {
+				resolutions: [
+					{
+						path: "../my.library",
+						configPath: "config/ui5.yaml"
+					}],
+			},
+		},
+		[
+			{
+				instancePath: "/dependencyManagement/resolutions/0",
+				keyword: "errorMessage",
+				message: "\"configPath\" is only supported for specVersion \"workspace/1.1\" and higher",
+				params: {
+					errors: [
+						{
+							instancePath: "/dependencyManagement/resolutions/0",
+							keyword: "not",
+							message: "must NOT be valid",
+							params: {},
+						},
+					],
+				},
+			},
+		]
+	);
+});
+
+test("Valid dependencyManagement: configPath allowed for workspace/1.1", async (t) => {
+	await assertValidation(
+		t,
+		{
+			specVersion: "workspace/1.1",
+			metadata: {
+				name: "test-spec-name",
+			},
+			dependencyManagement: {
+				resolutions: [{path: "../my.library", configPath: "config/ui5.yaml"}],
+			},
+		}
 	);
 });
