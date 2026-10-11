@@ -71,7 +71,7 @@
 		"escape-string-regexp": "^5.0.0",
 		"globby": "^16.2.4",
 		"graceful-fs": "^4.2.11",
-		"js-yaml": "^5.4.2",
+		"js-yaml": "^5.4.3",
 		"lockfile": "^1.0.4",
 		"make-fetch-happen": "^16.0.1",
 		"micromatch": "^4.0.8",
@@ -80,7 +80,7 @@
 		"pretty-hrtime": "^1.0.3",
 		"read-package-up": "^12.0.0",
 		"read-pkg": "^10.1.0",
-		"resolve": "^1.22.12",
+		"resolve": "^1.22.13",
 		"semver": "^7.8.5",
 		"xml2js": "^0.6.2",
 		"yesno": "^0.4.0"
