@@ -53,7 +53,7 @@
 		"figures": "^6.1.0",
 		"log-update": "^8.0.0",
 		"pretty-hrtime": "^1.0.3",
-		"slice-ansi": "^5.0.0"
+		"slice-ansi": "^9.0.1"
 	},
 	"devDependencies": {
 		"@istanbuljs/esm-loader-hook": "^0.3.0",
