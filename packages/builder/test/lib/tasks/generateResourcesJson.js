@@ -45,7 +45,7 @@ test.afterEach.always((t) => {
 test.serial("Missing 'dependencies' parameter", async (t) => {
 	const {generateResourcesJson} = t.context;
 
-	await t.throwsAsync(generateResourcesJson({
+	await t.throwsAsync(generateResourcesJson().task({
 		workspace: createWorkspace(),
 		options: {
 			projectName: "sap.ui.core"
@@ -59,7 +59,7 @@ test.serial("Missing 'dependencies' parameter", async (t) => {
 test.serial("empty resources (sap.ui.core)", async (t) => {
 	const {generateResourcesJson, resourceListCreatorStub} = t.context;
 
-	const result = await generateResourcesJson({
+	const result = await generateResourcesJson().task({
 		workspace: createWorkspace(),
 		dependencies: createDependencies(),
 		options: {
@@ -84,7 +84,7 @@ test.serial("empty resources (sap.ui.core)", async (t) => {
 test.serial("empty resources (my.lib)", async (t) => {
 	const {generateResourcesJson} = t.context;
 
-	const result = await generateResourcesJson({
+	const result = await generateResourcesJson().task({
 		workspace: createWorkspace(),
 		dependencies: createDependencies(),
 		options: {
@@ -106,7 +106,7 @@ test.serial("empty resources (my.lib with dependencies)", async (t) => {
 		byGlob: sinon.stub().resolves(dependencyResources)
 	};
 
-	const result = await generateResourcesJson({
+	const result = await generateResourcesJson().task({
 		workspace: createWorkspace(),
 		dependencies,
 		options: {
@@ -160,7 +160,7 @@ test.serial("Resources omitted from build result should be ignored", async (t) =
 		.onCall(3).returns(true) // first dependencyResource should be filtered out
 		.onCall(4).returns(false);
 
-	const result = await generateResourcesJson({
+	const result = await generateResourcesJson().task({
 		workspace,
 		dependencies,
 		taskUtil,

@@ -20,7 +20,7 @@ import nonAsciiEscaper from "../processors/nonAsciiEscaper.js";
  * @param {object} options Options
  * @param {string} options.pattern Glob pattern to locate the files to be processed
  * @param {string} options.encoding source file encoding either "UTF-8" or "ISO-8859-1"
- * @returns {object[]} The task's build steps
+ * @returns {object} The task descriptor with its build steps
  */
 export default function build({pattern, encoding}) {
 	if (!encoding) {
@@ -31,7 +31,7 @@ export default function build({pattern, encoding}) {
 		encoding: nonAsciiEscaper.getEncodingFromAlias(encoding)
 	};
 
-	return [{
+	return {steps: [{
 		name: "escapeNonAsciiCharacters",
 		// One key per matched resource, so a delta build re-processes only the resources that changed.
 		keys: async ({workspace}) => workspace.byGlob(pattern),
@@ -41,5 +41,5 @@ export default function build({pattern, encoding}) {
 				await workspace.write(processed);
 			}
 		},
-	}];
+	}]};
 }

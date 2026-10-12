@@ -44,7 +44,7 @@ test.serial("Transforms index.html resource", async (t) => {
 
 	t.context.bootstrapHtmlTransformerStub.returns([resource]);
 
-	await transformBootstrapHtml({
+	await transformBootstrapHtml().task({
 		workspace,
 		options: {
 			projectName: "sap.ui.demo.app",
@@ -86,7 +86,7 @@ test.serial("Transforms index.html resource without namespace", async (t) => {
 
 	t.context.bootstrapHtmlTransformerStub.returns([resource]);
 
-	await transformBootstrapHtml({
+	await transformBootstrapHtml().task({
 		workspace,
 		options: {
 			projectName: "sap.ui.demo.app"
@@ -122,7 +122,7 @@ test.serial("No index.html resource exists", async (t) => {
 		}
 	};
 
-	await transformBootstrapHtml({
+	await transformBootstrapHtml().task({
 		workspace,
 		options: {
 			projectName: "sap.ui.demo.app",

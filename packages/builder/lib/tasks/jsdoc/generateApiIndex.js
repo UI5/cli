@@ -7,10 +7,14 @@ import apiIndexGenerator from "../../processors/jsdoc/apiIndexGenerator.js";
  * @module @ui5/builder/tasks/jsdoc/generateApiIndex
  */
 
+/* eslint "jsdoc/check-param-names": "off" */
 /**
  * Compiles an api-index.json resource from all available api.json resources as created by the
  * [executeJsdocSdkTransformation]{@link @ui5/builder/tasks/jsdoc/executeJsdocSdkTransformation} task.
  * The resulting api-index.json resource is mainly to be used in the SDK.
+ *
+ * The default export is a factory returning the task descriptor. The parameters below document the
+ * <code>task</code> body that receives them at build time.
  *
  * @public
  * @function default
@@ -21,36 +25,38 @@ import apiIndexGenerator from "../../processors/jsdoc/apiIndexGenerator.js";
  * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
- * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
+ * @returns {object} The task descriptor
  */
-export default async function({
-	workspace,
-	dependencies,
-	options: {projectName}
-}) {
-	const combo = new ReaderCollectionPrioritized({
-		name: `generateApiIndex - workspace + dependencies: ${projectName}`,
-		readers: [workspace, dependencies]
-	});
+export default function() {
+	return {requiresDependencies: true, task: async function({
+		workspace,
+		dependencies,
+		options: {projectName}
+	}) {
+		const combo = new ReaderCollectionPrioritized({
+			name: `generateApiIndex - workspace + dependencies: ${projectName}`,
+			readers: [workspace, dependencies]
+		});
 
-	const versionInfoPath = "/resources/sap-ui-version.json";
-	const testResourcesRootPath = "/test-resources";
-	const targetApiIndexPath = "/docs/api/api-index.json";
-	const targetApiIndexDeprecatedPath = "/docs/api/api-index-deprecated.json";
-	const targetApiIndexExperimentalPath = "/docs/api/api-index-experimental.json";
-	const targetApiIndexSincePath = "/docs/api/api-index-since.json";
+		const versionInfoPath = "/resources/sap-ui-version.json";
+		const testResourcesRootPath = "/test-resources";
+		const targetApiIndexPath = "/docs/api/api-index.json";
+		const targetApiIndexDeprecatedPath = "/docs/api/api-index-deprecated.json";
+		const targetApiIndexExperimentalPath = "/docs/api/api-index-experimental.json";
+		const targetApiIndexSincePath = "/docs/api/api-index-since.json";
 
-	const createdResources = await apiIndexGenerator({
-		versionInfoPath,
-		testResourcesRootPath,
-		targetApiIndexPath,
-		targetApiIndexDeprecatedPath,
-		targetApiIndexExperimentalPath,
-		targetApiIndexSincePath,
-		fs: fsInterface(combo),
-	});
+		const createdResources = await apiIndexGenerator({
+			versionInfoPath,
+			testResourcesRootPath,
+			targetApiIndexPath,
+			targetApiIndexDeprecatedPath,
+			targetApiIndexExperimentalPath,
+			targetApiIndexSincePath,
+			fs: fsInterface(combo),
+		});
 
-	await Promise.all(createdResources.map((resource) => {
-		return workspace.write(resource);
-	}));
+		await Promise.all(createdResources.map((resource) => {
+			return workspace.write(resource);
+		}));
+	}};
 }

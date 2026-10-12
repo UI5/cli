@@ -49,25 +49,21 @@ test("Standard build", (t) => {
 
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
-			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
-			stepBased: true,
 			options: {
 				copyright: "copyright", pattern: "/**/*.{js,json}"
 			},
 		},
 		replaceVersion: {
-			stepBased: true,
 			options: {
 				version: "version", pattern: "/**/*.{js,json}"
 			},
 		},
 		minify: {
-			stepBased: true,
 			options: {
 				pattern: [
 					"/**/*.js",
@@ -75,7 +71,7 @@ test("Standard build", (t) => {
 				]
 			},
 		},
-		enhanceManifest: {stepBased: true},
+		enhanceManifest: {},
 		generateFlexChangesBundle: {},
 		generateComponentPreload: {
 			options: {
@@ -84,17 +80,13 @@ test("Standard build", (t) => {
 				skipBundles: []
 			}
 		},
-		generateBundle: {
-			taskFunction: null
-		},
+		generateBundle: {skip: true},
 		generateCachebusterInfo: {
 			options: {
 				signatureType: "PONY"
 			}
 		},
-		generateResourcesJson: {
-			requiresDependencies: true
-		}
+		generateResourcesJson: {}
 	}, "Correct task definitions");
 
 	t.is(taskUtil.getBuildOption.callCount, 0, "taskUtil#getBuildOption has not been called");
@@ -141,8 +133,9 @@ test("Custom bundles", async (t) => {
 	}];
 
 	const generateBundleTaskStub = sinon.stub();
+	const generateBundleFactoryStub = sinon.stub().returns({task: generateBundleTaskStub});
 	getTask.returns({
-		task: generateBundleTaskStub
+		task: generateBundleFactoryStub
 	});
 
 	const tasks = component({
@@ -152,25 +145,21 @@ test("Custom bundles", async (t) => {
 
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
-			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
-			stepBased: true,
 			options: {
 				copyright: "copyright", pattern: "/**/*.{js,json}"
 			},
 		},
 		replaceVersion: {
-			stepBased: true,
 			options: {
 				version: "version", pattern: "/**/*.{js,json}"
 			},
 		},
 		minify: {
-			stepBased: true,
 			options: {
 				pattern: [
 					"/**/*.js",
@@ -178,7 +167,7 @@ test("Custom bundles", async (t) => {
 				]
 			},
 		},
-		enhanceManifest: {stepBased: true},
+		enhanceManifest: {},
 		generateFlexChangesBundle: {},
 		generateComponentPreload: {
 			options: {
@@ -199,9 +188,7 @@ test("Custom bundles", async (t) => {
 				signatureType: "PONY"
 			}
 		},
-		generateResourcesJson: {
-			requiresDependencies: true
-		}
+		generateResourcesJson: {}
 	}, "Correct task definitions");
 
 
@@ -289,7 +276,6 @@ test("Minification excludes", (t) => {
 
 	const taskDefinition = tasks.get("minify");
 	t.deepEqual(taskDefinition, {
-		stepBased: true,
 		options: {
 			pattern: [
 				"/**/*.js",

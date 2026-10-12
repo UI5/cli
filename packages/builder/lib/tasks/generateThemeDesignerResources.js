@@ -112,7 +112,7 @@ async function generateThemeDotTheming({workspace, combo, themeFolder}) {
  * @param {string} options.version Project version
  * @param {string} [options.projectNamespace] If the project is of type <code>library</code>, provide its
  *   namespace. Omit for type <code>theme-library</code>
- * @returns {object[]} The task's build steps
+ * @returns {object} The task descriptor with its build steps
  */
 export default function build(options) {
 	const {projectName, version} = options;
@@ -121,7 +121,7 @@ export default function build(options) {
 	// Skip sap.ui.documentation since it is not intended to be available in SAP Theme Designer to create
 	// custom themes
 	if (namespace === "sap/ui/documentation") {
-		return [];
+		return {requiresDependencies: true, steps: []};
 	}
 
 	let librarySourceLessPattern;
@@ -217,5 +217,5 @@ export default function build(options) {
 		},
 	});
 
-	return steps;
+	return {requiresDependencies: true, steps};
 }

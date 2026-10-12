@@ -105,11 +105,29 @@ task:
 
 ## Task Implementation
 
-A custom task implementation needs to return a function with the following signature:
+From [Specification Version](../Configuration.md#specification-versions) 5.0, a custom task module's default export is a **factory function** that receives the task `options` and returns a **descriptor** object. The descriptor declares the task's work and its optional callbacks in one place:
+
+* `task` — a traditional task body (see the signature below), **or**
+* `steps` — an array of steps for a [cache-aware task](#cache-aware-tasks) (exactly one of `task` or `steps` must be defined)
+* `determineRequiredDependencies` — optional, see [Required Dependencies](#required-dependencies)
+* `determineBuildSignature` — optional callback contributing to the project's build signature
+* `specVersion` — optional; if set, it must equal the task extension's configured Specification Version
+
+The factory receives only the `options` object (never readers or a `taskUtil`), so it must be pure: it may branch on `options` and precompute values, but it must not read or write resources. Those happen in the `task` body (or in the step callbacks).
+
+::: info
+Below Specification Version 5.0, the default export **is** the task body itself (the signature shown below), and the callbacks are top-level named exports. The factory-and-descriptor model, cache-aware `steps`, and the `determineBuildSignature` callback are available from Specification Version 5.0.
+:::
 
 ::: code-group
 
 ```js [ESM]
+export default function(options) {
+    return {
+        task: myTask
+    };
+};
+
 /**
  * Custom task API
  *
@@ -142,12 +160,18 @@ A custom task implementation needs to return a function with the following signa
  * @returns {Promise<undefined>}
  *      Promise resolving once the task has finished
  */
-export default async function({dependencies, log, options, taskUtil, workspace}) {
+async function myTask({dependencies, log, options, taskUtil, workspace}) {
     // [...]
 };
 ```
 
 ```js [CommonJS]
+module.exports = function(options) {
+    return {
+        task: myTask
+    };
+};
+
 /**
  * Custom task API
  *
@@ -180,7 +204,7 @@ export default async function({dependencies, log, options, taskUtil, workspace})
  * @returns {Promise<undefined>}
  *      Promise resolving once the task has finished
  */
-module.exports = async function({dependencies, log, options, taskUtil, workspace}) {
+async function myTask({dependencies, log, options, taskUtil, workspace}) {
     // [...]
 };
 ```
@@ -193,7 +217,9 @@ This functionality has been added with UI5 CLI [`v3.0.0`](https://github.com/SAP
 
 :::
 
-Custom tasks can export an optional callback function `determineRequiredDependencies` to control which dependency-resources are made available through the `dependencies`-reader that is provided to the task. By reducing the amount of required dependencies or by not requiring any, UI5 CLI might be able to build a project faster.
+Custom tasks can declare an optional `determineRequiredDependencies` callback to control which dependency-resources are made available through the `dependencies`-reader that is provided to the task. By reducing the amount of required dependencies or by not requiring any, UI5 CLI might be able to build a project faster.
+
+From Specification Version 5.0 the callback is a property of the descriptor the task factory returns. Below 5.0 it is a top-level named export of the task module.
 
 Before executing a task, UI5 CLI will ensure that all required dependencies have been built.
 
@@ -208,6 +234,13 @@ If this callback is not provided, UI5 CLI will make an assumption as to whether 
 ::: code-group
 
 ```js [ESM]
+export default function(options) {
+    return {
+        determineRequiredDependencies,
+        task
+    };
+};
+
 /**
  * Callback function to define the list of required dependencies
  *
@@ -232,7 +265,7 @@ If this callback is not provided, UI5 CLI will make an assumption as to whether 
  *      UI5 CLI will ensure that those dependencies have been
  *      built before executing the task.
  */
-export async function determineRequiredDependencies({availableDependencies, getDependencies, getProject, options}) {
+async function determineRequiredDependencies({availableDependencies, getDependencies, getProject, options}) {
     // "availableDependencies" could look like this: Set(3) { "sap.ui.core", "sap.m", "my.lib" }
 
     // Reduce list of required dependencies: Do not require any UI5 framework projects
@@ -247,6 +280,13 @@ export async function determineRequiredDependencies({availableDependencies, getD
 ```
 
 ```js [CommonJS]
+module.exports = function(options) {
+    return {
+        determineRequiredDependencies,
+        task
+    };
+};
+
 /**
  * Callback function to define the list of required dependencies
  *
@@ -271,7 +311,7 @@ export async function determineRequiredDependencies({availableDependencies, getD
  *      UI5 CLI will ensure that those dependencies have been
  *      built before executing the task.
  */
-module.exports.determineRequiredDependencies = async function({availableDependencies, getDependencies, getProject, options}) {
+async function determineRequiredDependencies({availableDependencies, getDependencies, getProject, options}) {
     // "availableDependencies" could look like this: Set(3) { "sap.ui.core", "sap.m", "my.lib" }
 
     // Reduce list of required dependencies: Do not require any UI5 framework projects
@@ -288,28 +328,30 @@ module.exports.determineRequiredDependencies = async function({availableDependen
 
 ### "Cache-aware" Tasks
 
-Due to UI5 Builder and UI5 Server supporting **build caches** of task data, custom tasks can opt into this behavior to improve performance. A cache-aware task is a **step-based task**: instead of a task body, it default-exports a factory `build(options)` and declares a static `stepBased` flag. The factory returns an array of steps that describe the work. The build cache tracks each step's inputs and, on a delta build, re-runs only the steps (and, within a step, only the keys) whose inputs changed, restoring the rest from cache. A task that is not step-based, runs on a Specification Version below 5.0, or has no cache available, processes all resources from scratch.
+Due to UI5 Builder and UI5 Server supporting **build caches** of task data, custom tasks can opt into this behavior to improve performance. A cache-aware task is a **step-based task**: its descriptor returns a `steps` array instead of a `task` body. The steps describe the work. The build cache tracks each step's inputs and, on a delta build, re-runs only the steps (and, within a step, only the keys) whose inputs changed, restoring the rest from cache. A task that returns a `task` body, runs on a Specification Version below 5.0, or has no cache available, processes all resources from scratch.
 
-Step-based custom tasks are available from Specification Version 5.0. A task opts in with a static `stepBased` export set to `true`:
+Step-based custom tasks are available from Specification Version 5.0. A task opts in by returning a `steps` array (instead of `task`) from its descriptor:
 
 ::: code-group
 
 ```js [ESM]
-export const stepBased = true;
-export default function build(options) {
-    return [ /* steps */ ];
+export default function(options) {
+    return {
+        steps: [ /* steps */ ]
+    };
 };
 ```
 
 ```js [CommonJS]
-module.exports = function build(options) {
-    return [ /* steps */ ];
+module.exports = function(options) {
+    return {
+        steps: [ /* steps */ ]
+    };
 };
-module.exports.stepBased = true;
 ```
 :::
 
-The factory receives the task `options` only (the same `options` object the standard task function receives); it never receives readers or a `taskUtil`, so it cannot close over build state. It must be pure over `options`: it may branch on `options.projectNamespace`, precompute glob patterns, or include or omit steps, but it must not read or write resources. Every input a step reads arrives through the step's own callback arguments.
+The factory receives the task `options` only (the same `options` object the task body receives); it never receives readers or a `taskUtil`, so it cannot close over build state. It must be pure over `options`: it may branch on `options.projectNamespace`, precompute glob patterns, or include or omit steps, but it must not read or write resources. Every input a step reads arrives through the step's own callback arguments.
 
 There are two kinds of steps, run in array order:
 
@@ -322,7 +364,7 @@ A step may list earlier step names in `needs`; those steps' return values then a
 
 ::: info Best Practices for Cache-aware Tasks
 1. **Keep tasks deterministic**: Given the same inputs, always produce the same outputs.
-2. **Keep the factory pure**: The `build(options)` factory must only return step descriptors from `options`. Never read or write resources in the factory; do that in the step callbacks.
+2. **Keep the factory pure**: The factory must only return the descriptor (with its `steps`) from `options`. Never read or write resources in the factory; do that in the step callbacks.
 3. **Read and write only through the callback arguments**: Every input a step reads must arrive through its `workspace`, `dependencies`, `taskUtil`, or `needs` arguments, and every write must go through the step's own `workspace`. A read or write that bypasses these is not recorded, so the cache cannot track it and a delta build can serve stale output.
 4. **Import heavy processors lazily**: UI5 CLI calls the factory on every build to discover the steps, even when every step is a cache hit. Import heavy modules inside the step callbacks (for example `const p = (await import("./processor.js")).default`), not at the top of the module, so a fully cached build does not load them.
 5. **Split work carefully**: Only use a map step if each key can be processed independently. Two keys that run concurrently must not write the same path.
@@ -351,9 +393,8 @@ const log = getLogger("builder:tasks:renderMarkdownFiles");
 /*
 * Render all .md (Markdown) files in the project to HTML
 */
-export const stepBased = true;
 export default function build(options) {
-    return [{
+    return {steps: [{
         name: "render",
         // One cached unit per Markdown file, so a delta build re-renders only the files that changed.
         keys: async ({workspace}) => workspace.byGlob("**/*.md"),
@@ -375,7 +416,7 @@ export default function build(options) {
                 string: htmlString
             }));
         }
-    }];
+    }]};
 };
 ```
 
@@ -389,7 +430,7 @@ const log = getLogger("builder:tasks:renderMarkdownFiles");
 * Render all .md (Markdown) files in the project to HTML
 */
 module.exports = function build(options) {
-    return [{
+    return {steps: [{
         name: "render",
         // One cached unit per Markdown file, so a delta build re-renders only the files that changed.
         keys: async ({workspace}) => workspace.byGlob("**/*.md"),
@@ -411,9 +452,8 @@ module.exports = function build(options) {
                 string: htmlString
             }));
         }
-    }];
+    }]};
 };
-module.exports.stepBased = true;
 ```
 :::
 
@@ -435,11 +475,15 @@ APIs to retrieve additional information about the project currently being built 
 ```js [ESM]
 import path from "node:path";
 
+export default function(options) {
+    return {task};
+};
+
 /*
 * Compile a list of all licenses of the project's dependencies
 * and write it to "dependency-license-summary.json
 */
-export default async function({dependencies, log, options, taskUtil, workspace}) {
+async function task({dependencies, log, options, taskUtil, workspace}) {
     const {createResource} = taskUtil.resourceFactory;
     const licenses = new Map();
     const projectsVisited = new Set();
@@ -483,11 +527,15 @@ export default async function({dependencies, log, options, taskUtil, workspace})
 ```js [CommonJS]
 const path = require("node:path");
 
+module.exports = function(options) {
+    return {task};
+};
+
 /*
 * Compile a list of all licenses of the project's dependencies
 * and write it to "dependency-license-summary.json"
 */
-module.exports = async function({dependencies, log, options, taskUtil, workspace}) {
+async function task({dependencies, log, options, taskUtil, workspace}) {
     const {createResource} = taskUtil.resourceFactory;
     const licenses = new Map();
     const projectsVisited = new Set();

@@ -13,7 +13,6 @@ import {enhanceBundlesWithDefaults} from "../../validation/validator.js";
 export default function({project, taskUtil, getTask}) {
 	const tasks = new Map();
 	tasks.set("escapeNonAsciiCharacters", {
-		stepBased: true,
 		options: {
 			encoding: project.getPropertiesFileSourceEncoding(),
 			pattern: "/**/*.properties"
@@ -21,7 +20,6 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("replaceCopyright", {
-		stepBased: true,
 		options: {
 			copyright: project.getCopyright(),
 			pattern: "/**/*.{js,json}"
@@ -29,7 +27,6 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("replaceVersion", {
-		stepBased: true,
 		options: {
 			version: project.getVersion(),
 			pattern: "/**/*.{js,json}"
@@ -45,13 +42,12 @@ export default function({project, taskUtil, getTask}) {
 		}
 	}
 	tasks.set("minify", {
-		stepBased: true,
 		options: {
 			pattern: minificationPattern
 		}
 	});
 
-	tasks.set("enhanceManifest", {stepBased: true});
+	tasks.set("enhanceManifest", {});
 
 	tasks.set("generateFlexChangesBundle", {});
 
@@ -82,21 +78,26 @@ export default function({project, taskUtil, getTask}) {
 		});
 	}
 
-	tasks.set("generateStandaloneAppBundle", {requiresDependencies: true});
+	tasks.set("generateStandaloneAppBundle", {});
 
 	tasks.set("transformBootstrapHtml", {});
 
 	if (bundles.length) {
+		// The generateBundle task module resolves one bundle per call. Resolving the per-bundle defaults
+		// needs enhanceBundlesWithDefaults, which lives in @ui5/project and cannot move into @ui5/builder, so
+		// the multi-bundle wrapper stays here. It reads the task module's descriptor via getTask and drives
+		// descriptor.task once per bundle.
 		tasks.set("generateBundle", {
 			requiresDependencies: true,
 			taskFunction: async ({workspace, dependencies, taskUtil, options}) => {
-				const generateBundleTask = await getTask("generateBundle");
+				const {task} = await getTask("generateBundle");
+				const {task: generateBundle} = task(options);
 				// Async resolve default values for bundle definitions and options
 				const bundlesDefaults = await enhanceBundlesWithDefaults(bundles, taskUtil.getProject());
 
 				return bundlesDefaults.reduce(async function(sequence, bundle) {
 					return sequence.then(function() {
-						return generateBundleTask.task({
+						return generateBundle({
 							workspace,
 							dependencies,
 							taskUtil,
@@ -113,12 +114,11 @@ export default function({project, taskUtil, getTask}) {
 	} else {
 		// No bundles defined. Just set task so that it can be referenced by custom tasks
 		tasks.set("generateBundle", {
-			taskFunction: null
+			skip: true
 		});
 	}
 
 	tasks.set("generateVersionInfo", {
-		requiresDependencies: true,
 		options: {
 			rootProject: project,
 			pattern: "/resources/**/.library"
@@ -131,8 +131,8 @@ export default function({project, taskUtil, getTask}) {
 		}
 	});
 
-	tasks.set("generateApiIndex", {requiresDependencies: true});
-	tasks.set("generateResourcesJson", {requiresDependencies: true});
+	tasks.set("generateApiIndex", {});
+	tasks.set("generateResourcesJson", {});
 
 	return tasks;
 }

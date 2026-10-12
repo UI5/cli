@@ -47,25 +47,20 @@ test("Standard build", (t) => {
 	const tasks = themeLibrary({
 		project, taskUtil, getTask
 	});
-	const generateThemeDesignerResourcesTaskFunction = tasks.get("generateThemeDesignerResources");
 	t.deepEqual(Object.fromEntries(tasks), {
 		replaceCopyright: {
-			stepBased: true,
 			options: {
 				copyright: "copyright",
 				pattern: "/resources/**/*.{less,theme}"
 			},
 		},
 		replaceVersion: {
-			stepBased: true,
 			options: {
 				version: "version",
 				pattern: "/resources/**/*.{less,theme}"
 			},
 		},
 		buildThemes: {
-			stepBased: true,
-			requiresDependencies: true,
 			options: {
 				projectName: "project.b",
 				librariesPattern: undefined,
@@ -73,16 +68,9 @@ test("Standard build", (t) => {
 				inputPattern: "/resources/**/themes/*/library.source.less",
 			}
 		},
-		generateResourcesJson: {
-			requiresDependencies: true
-		},
-		generateThemeDesignerResources: {
-			taskFunction: null
-		}
+		generateThemeDesignerResources: {skip: true},
+		generateResourcesJson: {}
 	}, "Correct task definitions");
-
-
-	t.is(generateThemeDesignerResourcesTaskFunction.taskFunction, null, "taskFunction is explicitly set to null");
 });
 
 test("Standard build (framework project)", (t) => {
@@ -95,8 +83,7 @@ test("Standard build (framework project)", (t) => {
 	});
 
 	t.deepEqual(tasks.get("generateThemeDesignerResources"), {
-		stepBased: true,
-		requiresDependencies: true, options: {
+		options: {
 			version: "version"
 		}
 	});
@@ -111,22 +98,18 @@ test("Standard build for non root project", (t) => {
 	});
 	t.deepEqual(Object.fromEntries(tasks), {
 		replaceCopyright: {
-			stepBased: true,
 			options: {
 				copyright: "copyright",
 				pattern: "/resources/**/*.{less,theme}"
 			},
 		},
 		replaceVersion: {
-			stepBased: true,
 			options: {
 				version: "version",
 				pattern: "/resources/**/*.{less,theme}"
 			},
 		},
 		buildThemes: {
-			stepBased: true,
-			requiresDependencies: true,
 			options: {
 				projectName: "project.b",
 				librariesPattern: "/resources/**/(*.library|library.js)",
@@ -134,12 +117,8 @@ test("Standard build for non root project", (t) => {
 				inputPattern: "/resources/**/themes/*/library.source.less",
 			}
 		},
-		generateResourcesJson: {
-			requiresDependencies: true
-		},
-		generateThemeDesignerResources: {
-			taskFunction: null
-		}
+		generateThemeDesignerResources: {skip: true},
+		generateResourcesJson: {}
 	}, "Correct task definitions");
 });
 
@@ -153,8 +132,6 @@ test("CSS variables enabled", (t) => {
 
 	const taskDefinition = tasks.get("buildThemes");
 	t.deepEqual(taskDefinition, {
-		stepBased: true,
-		requiresDependencies: true,
 		options: {
 			projectName: "project.b",
 			librariesPattern: undefined,

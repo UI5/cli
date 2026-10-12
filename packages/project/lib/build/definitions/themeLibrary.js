@@ -11,7 +11,6 @@
 export default function({project, taskUtil, getTask}) {
 	const tasks = new Map();
 	tasks.set("replaceCopyright", {
-		stepBased: true,
 		options: {
 			copyright: project.getCopyright(),
 			pattern: "/resources/**/*.{less,theme}"
@@ -19,7 +18,6 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("replaceVersion", {
-		stepBased: true,
 		options: {
 			version: project.getVersion(),
 			pattern: "/resources/**/*.{less,theme}"
@@ -27,8 +25,6 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("buildThemes", {
-		stepBased: true,
-		requiresDependencies: true,
 		options: {
 			projectName: project.getName(),
 			librariesPattern: !taskUtil.isRootProject() ? "/resources/**/(*.library|library.js)" : undefined,
@@ -39,16 +35,14 @@ export default function({project, taskUtil, getTask}) {
 
 	if (project.isFrameworkProject()) {
 		tasks.set("generateThemeDesignerResources", {
-			stepBased: true,
-			requiresDependencies: true,
 			options: {
 				version: project.getVersion()
 			}
 		});
 	} else {
-		tasks.set("generateThemeDesignerResources", {taskFunction: null});
+		tasks.set("generateThemeDesignerResources", {skip: true});
 	}
 
-	tasks.set("generateResourcesJson", {requiresDependencies: true});
+	tasks.set("generateResourcesJson", {});
 	return tasks;
 }

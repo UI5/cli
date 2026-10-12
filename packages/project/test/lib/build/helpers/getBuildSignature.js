@@ -2,7 +2,7 @@ import test from "ava";
 import crypto from "node:crypto";
 import esmock from "esmock";
 
-const BUILD_SIG_VERSION = "0";
+const BUILD_SIG_VERSION = "1";
 
 function hash(key) {
 	return crypto.createHash("sha256").update(key).digest("hex");
