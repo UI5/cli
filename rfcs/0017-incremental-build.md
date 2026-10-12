@@ -205,7 +205,7 @@ The `determineBuildSignature` callback follows the existing [`determineRequiredD
 
 ##### Step-Based Tasks
 
-A step-based task decomposes its work into cacheable stages. Its default export is a factory with the signature `build(options) => Step[]` (an asynchronous factory is also supported). Each scalar or map step becomes one build stage. A map step contains a cache unit for each key, so a rebuild can restore unchanged keys while it runs the affected keys again.
+A step-based task decomposes its work into cacheable stages. Its default export is a factory with the signature `build(options) => Step[]` (an asynchronous factory is also supported). Each scalar or map step becomes one build stage. A map step contains a cache invocation for each key, so a rebuild can restore unchanged keys while it runs the affected keys again.
 
 Built-in tasks declare the step-based mode in their task definition. A custom task uses Specification Version 5.0 or higher and exports the static `stepBased` flag:
 
@@ -253,9 +253,9 @@ Each callback can return its result directly or through a promise. The context c
 
 A scalar step calls `run` once. Use a scalar step when one output depends on a set of inputs that cannot be processed independently. For example, a bundling step must run again when any bundle member changes.
 
-A map step first calls `keys`. This callback returns an iterable of resources or strings. Returning `undefined`, `null`, or an empty iterable produces no map units. The runner then calls `each` once for every key. The `keys` callback must only enumerate keys. Put processing and output writes in `each` so the runner can attribute them to a cache unit.
+A map step first calls `keys`. This callback returns an iterable of resources or strings. Returning `undefined`, `null`, or an empty iterable produces no map invocations. The runner then calls `each` once for every key. The `keys` callback must only enumerate keys. Put processing and output writes in `each` so the runner can attribute them to a cache invocation.
 
-Resource keys use the resource path and a content discriminator as their cache identity. String keys use the complete string. Encode a compound key as a stable string. A resource content change creates a new key identity, which causes the new unit to run and the old unit's outputs to be removed.
+Resource keys use the resource path and a content discriminator as their cache identity. String keys use the complete string. Encode a compound key as a stable string. A resource content change creates a new key identity, which causes the new invocation to run and the old invocation's outputs to be removed.
 
 Map keys run concurrently by default. Their writes are buffered and flushed in key order after all keys finish. Concurrent keys must be independent and must not write the same resource path. Set `sequential: true` when a later key must read or replace an earlier key's output. Sequential writes reach the workspace immediately.
 
@@ -263,7 +263,7 @@ Map keys run concurrently by default. Their writes are buffered and flushed in k
 
 The optional `needs` array declares data flow between steps. For example, `needs: ["scan"]` makes the return value of the earlier `scan` step available as `needs.scan` to `run`, `keys`, and `each`. Earlier-step references make cycles impossible.
 
-A scalar callback or map unit can return one of these values:
+A scalar callback or map invocation can return one of these values:
 
 * `undefined` or `null` for no return value
 * One resource
@@ -276,7 +276,7 @@ The runner stores serializable values with the step metadata and stores returned
 
 ###### Cache Tracking and Correctness
 
-The build cache records reads, glob patterns, Task Util inputs, and tag operations from map-key enumeration at the step level. For each scalar or map unit, it records resource reads and writes, Task Util inputs, tag operations, consumed step returns, and the callback return value. A cache hit restores the unit's outputs, tags, and return value. A delta build runs a unit again when a recorded input changes. If a unit writes fewer paths than before, or a map key disappears, the cache removes outputs that the unit no longer produces.
+The build cache records reads, glob patterns, Task Util inputs, and tag operations from map-key enumeration at the step level. For each scalar or map invocation, it records resource reads and writes, Task Util inputs, tag operations, consumed step returns, and the callback return value. A cache hit restores the invocation's outputs, tags, and return value. A delta build runs an invocation again when a recorded input changes. If an invocation writes fewer paths than before, or a map key disappears, the cache removes outputs that the invocation no longer produces.
 
 Read project resources through the callback's `workspace` and dependency resources through its `dependencies` instance. Write outputs through the callback's `workspace`. Read non-resource inputs through the callback's `taskUtil` instance. Access through a captured reader, another writer, `process.env`, or a direct filesystem API is not recorded and can cause a stale cache result.
 
@@ -284,7 +284,7 @@ Keep each map key independent unless the step uses `sequential: true` for an int
 
 ###### Map Step With Associated Metadata
 
-The following task uses build options to select text resources and control metadata use. With `useMetadata` enabled, each map unit reads its metadata resource through its `workspace`. The runner records this read for the text-resource key, so a metadata change invalidates only the unit that depends on it.
+The following task uses build options to select text resources and control metadata use. With `useMetadata` enabled, each map invocation reads its metadata resource through its `workspace`. The runner records this read for the text-resource key, so a metadata change invalidates only the invocation that depends on it.
 
 ```js
 export default function build({
@@ -309,7 +309,7 @@ export default function build({
 }
 ```
 
-When `useMetadata` is enabled, the `workspace.byPath(metadataPath)` call is part of the unit's recorded input set even when no metadata resource exists. Changing, adding, or removing the associated `.meta.json` resource causes that unit to run again. Other text-resource units can remain cached.
+When `useMetadata` is enabled, the `workspace.byPath(metadataPath)` call is part of the invocation's recorded input set even when no metadata resource exists. Changing, adding, or removing the associated `.meta.json` resource causes that invocation to run again. Other text-resource invocations can remain cached.
 
 ###### Standalone Execution
 
@@ -746,7 +746,7 @@ A `Build Stage Cache` has two invalidation states. A modified resource that the 
 
 After a stage runs and writes its resources, the cache shall compare their content with the previous result. Unchanged output must not invalidate downstream stages. Changed output shall notify the relevant `Build Stage Cache` instances and can make them *potentially* invalid.
 
-The build cache owns per-stage and per-key selection, so a step-based task does not filter the changed set. Changed paths map to the steps and map keys that previously read them. The cache runs those units and restores the others. This recorded mapping also handles inputs without a one-to-one output relation, such as a source map referenced by a script. Task authors remain responsible for reading and writing only through step callback arguments so the cache observes every input (see [Step-Based Tasks](#step-based-tasks)).
+The build cache owns per-stage and per-key selection, so a step-based task does not filter the changed set. Changed paths map to the steps and map keys that previously read them. The cache runs those invocations and restores the others. This recorded mapping also handles inputs without a one-to-one output relation, such as a source map referenced by a script. Task authors remain responsible for reading and writing only through step callback arguments so the cache observes every input (see [Step-Based Tasks](#step-based-tasks)).
 
 After a *project* has finished building, a list of all modified resources is compiled and passed to the `Project Build Cache` instances of all dependent projects (i.e. projects that depend on the current project and therefore might use the modified resources).
 
