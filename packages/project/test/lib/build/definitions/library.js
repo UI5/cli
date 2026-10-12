@@ -46,59 +46,49 @@ test.beforeEach((t) => {
 	t.context.getTask = sinon.stub();
 });
 
-test("Standard build", async (t) => {
+test("Standard build", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 	project.getJsdocExcludes = () => ["**.html"];
-
-	const generateJsdocTaskStub = sinon.stub();
-	getTask.returns({
-		task: generateJsdocTaskStub
-	});
 
 	const tasks = library({
 		project, taskUtil, getTask
 	});
-	const generateJsdocTaskDefinition = tasks.get("generateJsdoc");
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
-			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
-			stepBased: true,
 			options: {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
 			},
 		},
 		replaceVersion: {
-			stepBased: true,
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
 		},
 		replaceBuildtime: {
-			stepBased: true,
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
 			},
 		},
 		generateJsdoc: {
-			determineBuildSignature: generateJsdocTaskDefinition.determineBuildSignature,
-			requiresDependencies: true,
-			taskFunction: generateJsdocTaskDefinition.taskFunction
+			options: {
+				namespace: "project/b",
+				version: "version",
+				jsdocExcludes: ["**.html"]
+			}
 		},
 		executeJsdocSdkTransformation: {
-			requiresDependencies: true,
 			options: {
 				dotLibraryPattern: "/resources/**/*.library"
 			}
 		},
 		minify: {
-			stepBased: true,
 			options: {
 				pattern: [
 					"/resources/**/*.js",
@@ -107,15 +97,15 @@ test("Standard build", async (t) => {
 			},
 		},
 		generateLibraryManifest: {},
-		enhanceManifest: {stepBased: true},
+		enhanceManifest: {},
+		generateComponentPreload: {skip: true},
 		generateLibraryPreload: {
 			options: {
 				excludes: [], skipBundles: []
 			}
 		},
+		generateBundle: {skip: true},
 		buildThemes: {
-			stepBased: true,
-			requiresDependencies: true,
 			options: {
 				projectName: "project.b",
 				librariesPattern: undefined,
@@ -123,45 +113,9 @@ test("Standard build", async (t) => {
 				inputPattern: "/resources/project/b/themes/*/library.source.less",
 			}
 		},
-		generateBundle: {
-			taskFunction: null
-		},
-		generateComponentPreload: {
-			taskFunction: null
-		},
-		generateThemeDesignerResources: {
-			taskFunction: null
-		},
-		generateResourcesJson: {
-			requiresDependencies: true
-		}
+		generateThemeDesignerResources: {skip: true},
+		generateResourcesJson: {}
 	}, "Correct task definitions");
-
-
-	await generateJsdocTaskDefinition.taskFunction({
-		workspace: "workspace",
-		dependencies: "dependencies",
-		taskUtil,
-		options: {
-			projectName: "projectName"
-		}
-	});
-
-	t.is(generateJsdocTaskStub.callCount, 1, "generateJsdoc task got called once");
-	t.deepEqual(generateJsdocTaskStub.getCall(0).args[0], {
-		workspace: "workspace",
-		dependencies: "dependencies",
-		taskUtil,
-		options: {
-			projectName: "projectName",
-			namespace: "project/b",
-			version: "version",
-			pattern: [
-				"/resources/**/*.js",
-				"!/resources/**.html"
-			],
-		}
-	}, "generateBundle task got called with correct arguments");
 });
 
 test("Standard build (framework project)", (t) => {
@@ -169,18 +123,12 @@ test("Standard build (framework project)", (t) => {
 
 	project.isFrameworkProject = () => true;
 
-	const generateJsdocTaskStub = sinon.stub();
-	getTask.returns({
-		task: generateJsdocTaskStub
-	});
-
 	const tasks = library({
 		project, taskUtil, getTask
 	});
 
 	t.deepEqual(tasks.get("generateThemeDesignerResources"), {
-		stepBased: true,
-		requiresDependencies: true, options: {
+		options: {
 			version: "version"
 		}
 	});
@@ -199,47 +147,42 @@ test("Standard build with legacy spec version", (t) => {
 	const tasks = library({
 		project, taskUtil, getTask
 	});
-	const generateJsdocTaskDefinition = tasks.get("generateJsdoc");
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
-			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
-			stepBased: true,
 			options: {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
 			},
 		},
 		replaceVersion: {
-			stepBased: true,
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
 		},
 		replaceBuildtime: {
-			stepBased: true,
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
 			},
 		},
 		generateJsdoc: {
-			determineBuildSignature: generateJsdocTaskDefinition.determineBuildSignature,
-			requiresDependencies: true,
-			taskFunction: generateJsdocTaskDefinition.taskFunction
+			options: {
+				namespace: "project/b",
+				version: "version",
+				jsdocExcludes: []
+			}
 		},
 		executeJsdocSdkTransformation: {
-			requiresDependencies: true,
 			options: {
 				dotLibraryPattern: "/resources/**/*.library"
 			}
 		},
 		minify: {
-			stepBased: true,
 			options: {
 				pattern: [
 					"/resources/**/*.js",
@@ -248,15 +191,15 @@ test("Standard build with legacy spec version", (t) => {
 			},
 		},
 		generateLibraryManifest: {},
-		enhanceManifest: {stepBased: true},
+		enhanceManifest: {},
+		generateComponentPreload: {skip: true},
 		generateLibraryPreload: {
 			options: {
 				excludes: [], skipBundles: []
 			}
 		},
+		generateBundle: {skip: true},
 		buildThemes: {
-			stepBased: true,
-			requiresDependencies: true,
 			options: {
 				projectName: "project.b",
 				librariesPattern: undefined,
@@ -264,18 +207,8 @@ test("Standard build with legacy spec version", (t) => {
 				inputPattern: "/resources/project/b/themes/*/library.source.less",
 			}
 		},
-		generateBundle: {
-			taskFunction: null
-		},
-		generateComponentPreload: {
-			taskFunction: null
-		},
-		generateThemeDesignerResources: {
-			taskFunction: null
-		},
-		generateResourcesJson: {
-			requiresDependencies: true
-		}
+		generateThemeDesignerResources: {skip: true},
+		generateResourcesJson: {}
 	}, "Correct task definitions");
 });
 
@@ -322,56 +255,52 @@ test("Custom bundles", async (t) => {
 	}];
 
 	const generateBundleTaskStub = sinon.stub();
+	const generateBundleFactoryStub = sinon.stub().returns({task: generateBundleTaskStub});
 	getTask.returns({
-		task: generateBundleTaskStub
+		task: generateBundleFactoryStub
 	});
 
 	const tasks = library({
 		project, taskUtil, getTask
 	});
-	const generateJsdocTaskDefinition = tasks.get("generateJsdoc");
 	const generateBundleTaskDefinition = tasks.get("generateBundle");
 
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
-			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
-			stepBased: true,
 			options: {
 				copyright: "copyright",
 				pattern: "/**/*.{js,library,css,less,theme,html}"
 			},
 		},
 		replaceVersion: {
-			stepBased: true,
 			options: {
 				version: "version",
 				pattern: "/**/*.{js,json,library,css,less,theme,html}"
 			},
 		},
 		replaceBuildtime: {
-			stepBased: true,
 			options: {
 				pattern: "/resources/sap/ui/{Global,core/Core}.js"
 			},
 		},
 		generateJsdoc: {
-			determineBuildSignature: generateJsdocTaskDefinition.determineBuildSignature,
-			requiresDependencies: true,
-			taskFunction: generateJsdocTaskDefinition.taskFunction
+			options: {
+				namespace: "project/b",
+				version: "version",
+				jsdocExcludes: []
+			}
 		},
 		executeJsdocSdkTransformation: {
-			requiresDependencies: true,
 			options: {
 				dotLibraryPattern: "/resources/**/*.library"
 			}
 		},
 		minify: {
-			stepBased: true,
 			options: {
 				pattern: [
 					"/resources/**/*.js",
@@ -380,7 +309,8 @@ test("Custom bundles", async (t) => {
 			},
 		},
 		generateLibraryManifest: {},
-		enhanceManifest: {stepBased: true},
+		enhanceManifest: {},
+		generateComponentPreload: {skip: true},
 		generateLibraryPreload: {
 			options: {
 				excludes: [],
@@ -395,8 +325,6 @@ test("Custom bundles", async (t) => {
 			taskFunction: generateBundleTaskDefinition.taskFunction
 		},
 		buildThemes: {
-			stepBased: true,
-			requiresDependencies: true,
 			options: {
 				projectName: "project.b",
 				librariesPattern: undefined,
@@ -404,15 +332,8 @@ test("Custom bundles", async (t) => {
 				inputPattern: "/resources/project/b/themes/*/library.source.less",
 			}
 		},
-		generateComponentPreload: {
-			taskFunction: null
-		},
-		generateThemeDesignerResources: {
-			taskFunction: null
-		},
-		generateResourcesJson: {
-			requiresDependencies: true
-		}
+		generateThemeDesignerResources: {skip: true},
+		generateResourcesJson: {}
 	}, "Correct task definitions");
 
 
@@ -500,7 +421,6 @@ test("Minification excludes", (t) => {
 
 	const taskDefinition = tasks.get("minify");
 	t.deepEqual(taskDefinition, {
-		stepBased: true,
 		options: {
 			pattern: [
 				"/resources/**/*.js",
@@ -528,7 +448,6 @@ test("Minification excludes not applied for legacy specVersion", (t) => {
 
 	const taskDefinition = tasks.get("minify");
 	t.deepEqual(taskDefinition, {
-		stepBased: true,
 		options: {
 			pattern: [
 				"/resources/**/*.js",
@@ -640,8 +559,6 @@ test("buildThemes: Project is not root", (t) => {
 
 	const taskDefinition = tasks.get("buildThemes");
 	t.deepEqual(taskDefinition, {
-		stepBased: true,
-		requiresDependencies: true,
 		options: {
 			projectName: "project.b",
 			librariesPattern: "/resources/**/(*.library|library.js)",
@@ -650,6 +567,7 @@ test("buildThemes: Project is not root", (t) => {
 		}
 	}, "Correct buildThemes task definition");
 });
+
 test("generateLibraryManifest: specVersion 5.0, non-framework project", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 
@@ -664,7 +582,7 @@ test("generateLibraryManifest: specVersion 5.0, non-framework project", (t) => {
 
 	const tasks = library({project, taskUtil, getTask});
 
-	t.deepEqual(tasks.get("generateLibraryManifest"), {taskFunction: null},
+	t.deepEqual(tasks.get("generateLibraryManifest"), {skip: true},
 		"generateLibraryManifest is skipped for non-framework libraries on specVersion 5.0");
 });
 
@@ -696,8 +614,6 @@ test("buildThemes: CSS Variables enabled", (t) => {
 
 	const taskDefinition = tasks.get("buildThemes");
 	t.deepEqual(taskDefinition, {
-		stepBased: true,
-		requiresDependencies: true,
 		options: {
 			projectName: "project.b",
 			librariesPattern: undefined,
@@ -707,96 +623,17 @@ test("buildThemes: CSS Variables enabled", (t) => {
 	}, "Correct buildThemes task definition");
 });
 
-test("Standard build: nulled taskFunction to skip tasks", (t) => {
+test("Standard build: skipped tasks use skip flag", (t) => {
 	const {project, taskUtil, getTask} = t.context;
-	project.getJsdocExcludes = () => ["**.html"];
 
 	const tasks = library({
 		project, taskUtil, getTask
 	});
-	const generateComponentPreloadTaskDefinition = tasks.get("generateComponentPreload");
-	const generateBundleTaskDefinition = tasks.get("generateBundle");
-	const generateThemeDesignerResourcesTaskDefinition = tasks.get("generateThemeDesignerResources");
-	const generateJsdocTaskDefinition = tasks.get("generateJsdoc");
-	t.deepEqual(Object.fromEntries(tasks), {
-		escapeNonAsciiCharacters: {
-			stepBased: true,
-			options: {
-				encoding: "UTF-412", pattern: "/**/*.properties"
-			}
-		},
-		replaceCopyright: {
-			stepBased: true,
-			options: {
-				copyright: "copyright",
-				pattern: "/**/*.{js,library,css,less,theme,html}"
-			},
-		},
-		replaceVersion: {
-			stepBased: true,
-			options: {
-				version: "version",
-				pattern: "/**/*.{js,json,library,css,less,theme,html}"
-			},
-		},
-		replaceBuildtime: {
-			stepBased: true,
-			options: {
-				pattern: "/resources/sap/ui/{Global,core/Core}.js"
-			},
-		},
-		generateJsdoc: {
-			determineBuildSignature: generateJsdocTaskDefinition.determineBuildSignature,
-			requiresDependencies: true,
-			taskFunction: async () => {},
-		},
-		executeJsdocSdkTransformation: {
-			requiresDependencies: true,
-			options: {
-				dotLibraryPattern: "/resources/**/*.library"
-			}
-		},
-		minify: {
-			stepBased: true,
-			options: {
-				pattern: [
-					"/resources/**/*.js",
-					"!**/*.support.js",
-				]
-			},
-		},
-		generateLibraryManifest: {},
-		enhanceManifest: {stepBased: true},
-		generateLibraryPreload: {
-			options: {
-				excludes: [], skipBundles: []
-			}
-		},
-		buildThemes: {
-			stepBased: true,
-			requiresDependencies: true,
-			options: {
-				projectName: "project.b",
-				librariesPattern: undefined,
-				themesPattern: undefined,
-				inputPattern: "/resources/project/b/themes/*/library.source.less",
-			}
-		},
-		generateBundle: {
-			taskFunction: null
-		},
-		generateComponentPreload: {
-			taskFunction: null
-		},
-		generateThemeDesignerResources: {
-			taskFunction: null
-		},
-		generateResourcesJson: {
-			requiresDependencies: true
-		}
-	}, "Correct task definitions");
 
-	t.is(generateComponentPreloadTaskDefinition.taskFunction, null, "taskFunction is explicitly set to null");
-	t.is(generateBundleTaskDefinition.taskFunction, null, "taskFunction is explicitly set to null");
-	t.is(generateThemeDesignerResourcesTaskDefinition.taskFunction, null, "taskFunction is explicitly set to null");
+	t.deepEqual(tasks.get("generateComponentPreload"), {skip: true},
+		"generateComponentPreload is skipped when no paths or namespaces");
+	t.deepEqual(tasks.get("generateBundle"), {skip: true},
+		"generateBundle is skipped when no bundles");
+	t.deepEqual(tasks.get("generateThemeDesignerResources"), {skip: true},
+		"generateThemeDesignerResources is skipped for non-framework projects");
 });

@@ -18,17 +18,28 @@ import sdkTransformer from "../../processors/jsdoc/sdkTransformer.js";
  * @function default
  * @static
  *
+ * @param {object} options Options
+ * @param {string|Array} options.dotLibraryPattern Pattern to locate the .library resource to be processed
+ * @param {string} options.projectName Project name
+ * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor
+ */
+export default function defineTask(options) {
+	return {
+		requiresDependencies: true,
+		task
+	};
+}
+
+/**
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {object} parameters.options Options
  * @param {string|Array} parameters.options.dotLibraryPattern Pattern to locate the .library resource to be processed
  * @param {string} parameters.options.projectName Project name
- * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
+ * @returns {Promise<undefined>} Promise resolving once the transformed api.json has been written
  */
-const executeJsdocSdkTransformation = async function(
-	{workspace, dependencies, options: {projectName, dotLibraryPattern}} = {}
-) {
+async function task({workspace, dependencies, options: {projectName, dotLibraryPattern}} = {}) {
 	if (!projectName || !dotLibraryPattern) {
 		throw new Error("[executeJsdocSdkTransformation]: One or more mandatory options not provided");
 	}
@@ -79,6 +90,4 @@ const executeJsdocSdkTransformation = async function(
 	await Promise.all(createdResources.map((resource) => {
 		return workspace.write(resource);
 	}));
-};
-
-export default executeJsdocSdkTransformation;
+}

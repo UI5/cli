@@ -9,7 +9,6 @@ import parseJSON from "../../utils/json.js";
  * @module @ui5/builder/tasks/bundlers/generateFlexChangesBundle
  */
 
-/* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
 /**
  * Task to create changes-bundle.json file containing all changes stored in the /changes folder for easier consumption
  * at runtime.
@@ -22,15 +21,24 @@ import parseJSON from "../../utils/json.js";
  * @function default
  * @static
  *
+ * @param {object} [options] Options
+ * @param {string} [options.projectNamespace] Project Namespace
+ * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor
+ */
+export default function defineTask(options) {
+	return {task};
+}
+
+/**
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} [parameters.options] Options
  * @param {string} [parameters.options.projectNamespace] Project Namespace
- * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
+ * @returns {Promise<undefined>} Promise resolving once the flex changes bundle has been written
  */
-export default async function({workspace, taskUtil, options = {}}) {
-	const namespace = options.projectNamespace;
+async function task({workspace, taskUtil, options: {projectNamespace} = {}}) {
+	const namespace = projectNamespace;
 
 	// Use the given namespace if available, otherwise use no namespace
 	// (e.g. in case no manifest.json is present)
@@ -117,7 +125,8 @@ export default async function({workspace, taskUtil, options = {}}) {
 	if (allResources.length > 0) {
 		const versionArray = await readManifestMinUI5Version();
 		const versions = versionArray.map((version) => semver.coerce(version));
-		const versionsAllSuitableForFlexBundle = versions.every((version) => semver.compare(version, "1.73.0") >= 0);
+		const versionsAllSuitableForFlexBundle =
+			versions.every((version) => semver.compare(version, "1.73.0") >= 0);
 		let hasFlexBundleVersion = false;
 		let flexBundle = {};
 		if (versionsAllSuitableForFlexBundle) {

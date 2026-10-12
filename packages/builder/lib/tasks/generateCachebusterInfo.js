@@ -34,7 +34,6 @@ function getSigner(type) {
 	}
 }
 
-/* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
 /**
  * Task to generate the application cachebuster info file.
  *
@@ -42,19 +41,26 @@ function getSigner(type) {
  * @function default
  * @static
  *
+ * @param {object} options Options
+ * @param {string} options.projectNamespace Namespace of the application
+ * @param {string} [options.signatureType='time'] Type of signature to be used ('time' or 'hash')
+ * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor
+ */
+export default function defineTask(options) {
+	return {task};
+}
+
+/**
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectNamespace Namespace of the application
  * @param {string} [parameters.options.signatureType='time'] Type of signature to be used ('time' or 'hash')
- * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
+ * @returns {Promise<undefined>} Promise resolving once the cachebuster info has been written
  */
-export default function({workspace, options}) {
-	const {signatureType} = options;
-	const namespace = options.projectNamespace;
-
-	const basePath = `/resources/${namespace}/`;
-	return workspace.byGlob(`/resources/${namespace}/**/*`)
+function task({workspace, options: {projectNamespace, signatureType}}) {
+	const basePath = `/resources/${projectNamespace}/`;
+	return workspace.byGlob(`/resources/${projectNamespace}/**/*`)
 		.then(async (resources) => {
 			const cachebusterInfo = Object.create(null);
 			const signer = getSigner(signatureType);
@@ -71,7 +77,7 @@ export default function({workspace, options}) {
 				cachebusterInfo[resourcePath] = await signer(resource);
 			}));
 			const cachebusterInfoResource = createResource({
-				path: `/resources/${namespace}/sap-ui-cachebuster-info.json`,
+				path: `/resources/${projectNamespace}/sap-ui-cachebuster-info.json`,
 				string: JSON.stringify(cachebusterInfo, null, 2)
 			});
 			return workspace.write(cachebusterInfoResource);

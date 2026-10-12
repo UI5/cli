@@ -321,6 +321,22 @@ function getSapUiCoreBunDef(name, filters, preload) {
  * @function default
  * @static
  *
+ * @param {object} options Options
+ * @param {string} options.projectName Project name
+ * @param {string[]} [options.skipBundles] Names of bundles that should not be created
+ * @param {string[]} [options.excludes=[]] List of modules declared as glob patterns (resource name patterns)
+ * that should be excluded from the library-preload.js bundle.
+ * A pattern ending with a slash '/' will, similarly to the use of a single '*' or double '**' asterisk,
+ * denote an arbitrary number of characters or folder names.
+ * Re-includes should be marked with a leading exclamation mark '!'. The order of filters is relevant; a later
+ * inclusion overrides an earlier exclusion, and vice versa.
+ * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor
+ */
+export default function defineTask(options) {
+	return {task};
+}
+
+/**
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {@ui5/project/build/helpers/TaskUtil} [parameters.taskUtil] TaskUtil
@@ -333,9 +349,9 @@ function getSapUiCoreBunDef(name, filters, preload) {
  * denote an arbitrary number of characters or folder names.
  * Re-includes should be marked with a leading exclamation mark '!'. The order of filters is relevant; a later
  * inclusion overrides an earlier exclusion, and vice versa.
- * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
+ * @returns {Promise<undefined>} Promise resolving once the library preload bundles have been written
  */
-export default async function({workspace, taskUtil, options: {skipBundles = [], excludes = [], projectName}}) {
+async function task({workspace, taskUtil, options: {skipBundles = [], excludes = [], projectName}}) {
 	let nonDbgWorkspace = workspace;
 	if (taskUtil) {
 		nonDbgWorkspace = taskUtil.resourceFactory.createFilterReader({
@@ -522,7 +538,7 @@ export default async function({workspace, taskUtil, options: {skipBundles = [], 
 											skipIfEmpty: true
 										}
 										// Note: Although the bundle uses optimize=false, there is
-										// no moduleNameMapping needed, as support files are excluded from minification.
+										// no moduleNameMapping needed, as support files are excluded from minify.
 									},
 									resources
 								})
@@ -536,14 +552,14 @@ export default async function({workspace, taskUtil, options: {skipBundles = [], 
 
 							if (skipBundles.includes(`${libraryNamespace}/library-preload.js`) &&
 								!skipBundles.includes(`${libraryNamespace}/_library-content.js`)) {
-								// If the standard preload bundle is skipped, ensure to also skip the content bundle,
+								// If the standard preload bundle is skipped, also skip the content bundle,
 								// since they depend on each other
 								skipBundles.push(`${libraryNamespace}/_library-content.js`);
 							}
 
 							if (skipBundles.includes(`${libraryNamespace}/_library-content.js`) &&
 								!skipBundles.includes(`${libraryNamespace}/library-preload.js`)) {
-								// If the content bundle is skipped, the default preload bundle must be skipped as well
+								// If the content bundle is skipped, the default preload bundle must be skipped too
 								throw new Error(
 									`A custom bundle '${libraryNamespace}/_library-content.js' has been defined, ` +
 									`but it also requires a corresponding custom bundle definition for ` +
@@ -593,7 +609,7 @@ export default async function({workspace, taskUtil, options: {skipBundles = [], 
 											skipIfEmpty: true
 										}
 										// Note: Although the bundle uses optimize=false, there is
-										// no moduleNameMapping needed, as support files are excluded from minification.
+										// no moduleNameMapping needed, as support files are excluded from minify.
 									},
 									resources
 								})

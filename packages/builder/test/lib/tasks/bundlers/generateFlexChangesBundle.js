@@ -87,7 +87,7 @@ function createStubWorkspace(changeList, manifest, {
  * @returns {Promise<undefined>} Resolves when the task has finished
  */
 function runTask(workspace, extra = {}) {
-	return generateFlexChangesBundle({
+	return generateFlexChangesBundle().task({
 		workspace,
 		taskUtil: false,
 		options: {projectNamespace: "sap/ui/demo/app"},

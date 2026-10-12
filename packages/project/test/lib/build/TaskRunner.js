@@ -2,6 +2,7 @@ import test from "ava";
 import sinonGlobal from "sinon";
 import esmock from "esmock";
 import {setLogLevel} from "@ui5/logger";
+import {validateSteps} from "../../../lib/build/helpers/StepRunner.js";
 setLogLevel("perf");
 
 function noop() {}
@@ -28,6 +29,30 @@ const buildConfig = {
 	includedTasks: [],
 	excludedTasks: []
 };
+
+/**
+ * Returns a getStandardDescriptor implementation for mock taskDefinitions objects used in step-based tests.
+ *
+ * Step-based standard task mocks store the step factory in taskDef.taskFunction instead of in a real
+ * taskRepository. This helper calls the factory with the completed options, validates the steps, and returns
+ * the descriptor so _addTask treats the task as step-based.
+ *
+ * For tasks with skip or no taskFunction, returns undefined so _addTask falls back to taskDef properties.
+ *
+ * @returns {Function} Async getStandardDescriptor implementation
+ */
+function makeStepBasedGetStandardDescriptor() {
+	return async function getStandardDescriptor(taskName, taskDef) {
+		if (taskDef.skip || !taskDef.taskFunction) {
+			return undefined;
+		}
+		// The mock stores the step factory in taskFunction. Call it with the completed options.
+		const steps = taskDef.taskFunction(taskDef.options ?? {});
+		// validateSteps throws if the factory returned a non-array or a malformed step.
+		validateSteps(steps, {taskName});
+		return {steps, requiresDependencies: !!taskDef.requiresDependencies};
+	};
+}
 
 function getMockProject(type) {
 	return {
@@ -79,6 +104,7 @@ function getMockProject(type) {
 		isFrameworkProject: () => false,
 		sealWorkspace: noop,
 		createNewWorkspaceVersion: noop,
+		getJsdocExcludes: emptyarray,
 	};
 }
 
@@ -95,9 +121,9 @@ test.beforeEach(async (t) => {
 	t.context.taskUtil.getInterface.returns(t.context.taskUtil);
 
 	t.context.taskRepository = {
-		getTask: sinon.stub().callsFake(async (taskName) => {
-			throw new Error(`taskRepository: Unknown Task ${taskName}`);
-		}),
+		getTask: sinon.stub().callsFake((taskName) => ({
+			task: (opts) => ({task: async () => {}})
+		})),
 		getAllTaskNames: sinon.stub().returns(["replaceVersion"]),
 		getRemovedTaskNames: sinon.stub().returns(["removedTask"]),
 	};
@@ -111,6 +137,8 @@ test.beforeEach(async (t) => {
 				gte: t.context.customTaskSpecVersionGteStub
 			};
 		},
+		getTask: async () => sinon.stub(),
+		getDescriptor: sinon.stub().resolves({task: async () => {}}),
 		getRequiredDependenciesCallback: t.context.getRequiredDependenciesCallbackStub,
 		getStepBased: async () => false,
 	};
@@ -703,10 +731,10 @@ test("Custom task is called correctly", async (t) => {
 	await taskRunner._tasks["myTask"].task();
 
 	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
-	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
+	t.is(specVersionGteStub.getCall(0).args[0], "5.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
-	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
-		"SpecificationVersion#gte got called with correct arguments on second call (step-based opt-in)");
+	t.is(specVersionGteStub.getCall(1).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on second call (no-callback branch)");
 	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
 
@@ -763,10 +791,10 @@ test("Custom task with legacy spec version", async (t) => {
 	await taskRunner._tasks["myTask"].task();
 
 	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
-	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
+	t.is(specVersionGteStub.getCall(0).args[0], "5.0",
 		"SpecificationVersion#gte got called with correct arguments on first call");
-	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
-		"SpecificationVersion#gte got called with correct arguments on second call (step-based opt-in)");
+	t.is(specVersionGteStub.getCall(1).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments on second call (no-callback branch)");
 	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
 
@@ -789,7 +817,10 @@ test("Custom task with legacy spec version", async (t) => {
 		"taskUtil#getInterface got called with correct argument");
 });
 
-test("Custom task with legacy spec version and requiredDependenciesCallback", async (t) => {
+// Below specVersion 5.0 the descriptor path is not taken, so the task extension's
+// getRequiredDependenciesCallback is never invoked by the runner. All direct dependencies
+// are provided by default when the task's specVersion is also below 3.0.
+test("Custom task with legacy spec version: requiredDependenciesCallback is not honored", async (t) => {
 	const {sinon, graph, taskUtil} = t.context;
 	const taskStub = sinon.stub();
 	const specVersionGteStub = sinon.stub().returns(false);
@@ -797,8 +828,8 @@ test("Custom task with legacy spec version and requiredDependenciesCallback", as
 		toString: () => "1.0",
 		gte: specVersionGteStub
 	};
-	const requiredDependenciesCallbackStub = sinon.stub().resolves(new Set(["dep.b"]));
-	const getRequiredDependenciesCallbackStub = sinon.stub().resolves(requiredDependenciesCallbackStub);
+	// The old getRequiredDependenciesCallback is no longer called below specVersion 5.0.
+	const getRequiredDependenciesCallbackStub = sinon.stub().resolves(sinon.stub().resolves(new Set(["dep.b"])));
 	graph.getExtension.returns({
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
@@ -815,36 +846,28 @@ test("Custom task with legacy spec version and requiredDependenciesCallback", as
 	await taskRunner._initTasks();
 
 	t.truthy(taskRunner._tasks["myTask"], "Custom tasks has been added to task map");
-	t.deepEqual(taskRunner._tasks["myTask"].requiredDependencies, new Set(["dep.b"]),
-		"Custom tasks requires all dependencies by default");
-
-	t.is(requiredDependenciesCallbackStub.callCount, 1, "requiredDependenciesCallback got called once");
-	t.deepEqual(requiredDependenciesCallbackStub.getCall(0).args[0], {
-		availableDependencies: new Set(["dep.a", "dep.b"]),
-		options: {
-			projectName: "project.b",
-			projectNamespace: "project/b",
-			configuration: "configuration",
-			taskName: "myTask"
-		}
-	}, "requiredDependenciesCallback got called with expected arguments");
+	// The callback is not honored below 5.0: the task defaults to all direct dependencies.
+	t.deepEqual(taskRunner._tasks["myTask"].requiredDependencies, new Set(["dep.a", "dep.b"]),
+		"Below specVersion 5.0, all direct dependencies are provided (callback not honored)");
+	t.is(getRequiredDependenciesCallbackStub.callCount, 0,
+		"getRequiredDependenciesCallback is not invoked below specVersion 5.0");
 
 	const createDependencyReaderStub = sinon.stub(taskRunner, "getDependenciesReader")
 		.resolves({getName: () => "dependencies"});
 	await taskRunner._tasks["myTask"].task();
 
 	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
-	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on first call");
-	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
-		"SpecificationVersion#gte got called with correct arguments on second call (step-based opt-in)");
+	t.is(specVersionGteStub.getCall(0).args[0], "5.0",
+		"SpecificationVersion#gte first call checks 5.0");
+	t.is(specVersionGteStub.getCall(1).args[0], "3.0",
+		"SpecificationVersion#gte second call checks 3.0 (no-callback branch)");
 	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
+		"SpecificationVersion#gte third call checks 3.0 (task execution)");
 
 	t.is(createDependencyReaderStub.callCount, 1, "getDependenciesReader got called once");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
-		new Set(["dep.b"]),
-		"getDependenciesReader got called with correct arguments");
+		new Set(["dep.a", "dep.b"]),
+		"All direct dependencies provided");
 
 	t.is(taskStub.callCount, 1, "Task got called once");
 	t.is(taskStub.getCall(0).args.length, 1, "Task got called with one argument");
@@ -860,112 +883,21 @@ test("Custom task with legacy spec version and requiredDependenciesCallback", as
 		"taskUtil#getInterface got called with correct argument");
 });
 
+// Below specVersion 5.0 there is no descriptor, so determineRequiredDependencies is not
+// available via the descriptor. A task at specVersion 3.0-4.x gets no dependencies by
+// default (gte("3.0") = true with no descriptor callback → empty set, no reader).
 test("Custom task with specVersion 3.0", async (t) => {
 	const {sinon, graph, taskUtil} = t.context;
 	const taskStub = sinon.stub();
-	const specVersionGteStub = sinon.stub().returns(true);
+	// gte("3.0") = true, gte("5.0") = false: V3 range, no descriptor.
+	const specVersionGteStub = sinon.stub().callsFake((v) => v === "3.0");
 	const mockSpecVersion = {
 		toString: () => "3.0",
 		gte: specVersionGteStub
 	};
 
-	const requiredDependenciesCallbackStub = sinon.stub().resolves(new Set(["dep.b"]));
-	const getRequiredDependenciesCallbackStub = sinon.stub()
-		.resolves(requiredDependenciesCallbackStub);
-
-	graph.getExtension.returns({
-		getTask: () => taskStub,
-		getSpecVersion: () => mockSpecVersion,
-		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
-		getStepBased: async () => false,
-	});
-
-	const project = getMockProject("module");
-	project.getCustomTasks = () => [
-		{name: "myTask", configuration: "configuration"}
-	];
-
-	const taskRunner = createTaskRunner(t, project);
-	await taskRunner._initTasks();
-
-	t.is(requiredDependenciesCallbackStub.callCount, 1, "requiredDependenciesCallback got called once");
-	const requiredDependenciesCallbackArgs = requiredDependenciesCallbackStub.getCall(0).args[0];
-
-	t.is(typeof requiredDependenciesCallbackArgs.getProject, "function", "getProject function provided");
-	requiredDependenciesCallbackArgs.getProject("some.project");
-	t.is(taskUtil.getProject.callCount, 1, "taskUtil.getProject got called once");
-	t.is(taskUtil.getProject.getCall(0).args[0], "some.project",
-		"taskUtil.getProject got called with expected arguments");
-	requiredDependenciesCallbackArgs.getProject = "getProject function";
-
-	t.is(typeof requiredDependenciesCallbackArgs.getDependencies, "function", "getDependencies function provided");
-	requiredDependenciesCallbackArgs.getDependencies("some.project");
-	t.is(taskUtil.getDependencies.callCount, 2, "taskUtil.getDependencies got called twice");
-	t.is(taskUtil.getDependencies.getCall(1).args[0], "some.project",
-		"taskUtil.getDependencies got called with expected arguments");
-	requiredDependenciesCallbackArgs.getDependencies = "getDependencies function";
-
-	t.deepEqual(requiredDependenciesCallbackArgs, {
-		availableDependencies: new Set(["dep.a", "dep.b"]),
-		getProject: "getProject function",
-		getDependencies: "getDependencies function",
-		options: {
-			projectName: "project.b",
-			projectNamespace: "project/b",
-			taskName: "myTask",
-			configuration: "configuration",
-		}
-	}, "requiredDependenciesCallback got called with expected arguments");
-
-	t.truthy(taskRunner._tasks["myTask"], "Custom tasks has been added to task map");
-	t.deepEqual(taskRunner._tasks["myTask"].requiredDependencies, new Set(["dep.b"]),
-		"Custom tasks requires all dependencies by default");
-	const createDependencyReaderStub = sinon.stub(taskRunner, "getDependenciesReader")
-		.resolves({getName: () => "dependencies"});
-	await taskRunner._tasks["myTask"].task();
-
-	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
-	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on first call");
-	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
-		"SpecificationVersion#gte got called with correct arguments on second call (step-based opt-in)");
-	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
-
-	t.is(taskUtil.getInterface.callCount, 2, "taskUtil#getInterface got called twice");
-	t.is(taskUtil.getInterface.getCall(0).args[0], mockSpecVersion,
-		"taskUtil#getInterface got called with correct argument on first call");
-	t.is(taskUtil.getInterface.getCall(1).args[0], mockSpecVersion,
-		"taskUtil#getInterface got called with correct argument on second call");
-
-	t.is(createDependencyReaderStub.callCount, 1, "getDependenciesReader got called once");
-	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
-		new Set(["dep.b"]),
-		"getDependenciesReader got called with correct arguments");
-
-	t.is(taskStub.callCount, 1, "Task got called once");
-	t.is(taskStub.getCall(0).args.length, 1, "Task got called with one argument");
-	const taskArgs = taskStub.getCall(0).args[0];
-	t.is(taskArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
-	t.is(taskArgs.dependencies.constructor.name, "MonitoredReader", "dependencies is MonitoredReader");
-	t.is(taskArgs.log, "group logger", "log is correct");
-	assertMonitoredTaskUtil(t, taskArgs.taskUtil);
-	t.is(taskArgs.options.projectName, "project.b", "projectName is correct");
-	t.is(taskArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
-	t.is(taskArgs.options.taskName, "myTask", "taskName is correct");
-	t.is(taskArgs.options.configuration, "configuration", "configuration is correct");
-});
-
-test("Custom task with specVersion 3.0 and no requiredDependenciesCallback", async (t) => {
-	const {sinon, graph, taskUtil} = t.context;
-	const taskStub = sinon.stub();
-	const specVersionGteStub = sinon.stub().returns(true);
-	const mockSpecVersion = {
-		toString: () => "3.0",
-		gte: specVersionGteStub
-	};
-
-	const getRequiredDependenciesCallbackStub = sinon.stub().resolves(undefined);
+	// Old getRequiredDependenciesCallback API is not called below V5.
+	const getRequiredDependenciesCallbackStub = sinon.stub().resolves(sinon.stub().resolves(new Set(["dep.b"])));
 
 	graph.getExtension.returns({
 		getName: () => "custom task name",
@@ -984,6 +916,71 @@ test("Custom task with specVersion 3.0 and no requiredDependenciesCallback", asy
 	await taskRunner._initTasks();
 
 	t.truthy(taskRunner._tasks["myTask"], "Custom tasks has been added to task map");
+	// Below V5, no descriptor callback; gte("3.0") = true → empty set (no reader).
+	t.deepEqual(taskRunner._tasks["myTask"].requiredDependencies, new Set(),
+		"Below V5, a V3 task with no descriptor callback gets no dependencies");
+	t.is(getRequiredDependenciesCallbackStub.callCount, 0,
+		"getRequiredDependenciesCallback is not called below V5");
+
+	const createDependencyReaderStub = sinon.stub(taskRunner, "getDependenciesReader")
+		.resolves({getName: () => "dependencies"});
+	await taskRunner._tasks["myTask"].task();
+
+	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
+	t.is(specVersionGteStub.getCall(0).args[0], "5.0",
+		"SpecificationVersion#gte first call checks 5.0 (isV5)");
+	t.is(specVersionGteStub.getCall(1).args[0], "3.0",
+		"SpecificationVersion#gte second call checks 3.0 (no-callback branch)");
+	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
+		"SpecificationVersion#gte third call checks 3.0 (task execution)");
+
+	t.is(taskUtil.getInterface.callCount, 1, "taskUtil#getInterface got called once");
+	t.is(taskUtil.getInterface.getCall(0).args[0], mockSpecVersion,
+		"taskUtil#getInterface got called with correct argument on first call");
+
+	t.is(createDependencyReaderStub.callCount, 0, "getDependenciesReader did not get called");
+
+	t.is(taskStub.callCount, 1, "Task got called once");
+	t.is(taskStub.getCall(0).args.length, 1, "Task got called with one argument");
+	const taskArgs = taskStub.getCall(0).args[0];
+	t.is(taskArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
+	t.is(taskArgs.log, "group logger", "log is correct");
+	assertMonitoredTaskUtil(t, taskArgs.taskUtil);
+	t.is(taskArgs.options.projectName, "project.b", "projectName is correct");
+	t.is(taskArgs.options.projectNamespace, "project/b", "projectNamespace is correct");
+	t.is(taskArgs.options.taskName, "myTask", "taskName is correct");
+	t.is(taskArgs.options.configuration, "configuration", "configuration is correct");
+});
+
+test("Custom task with specVersion 3.0 and no requiredDependenciesCallback", async (t) => {
+	const {sinon, graph, taskUtil} = t.context;
+	const taskStub = sinon.stub();
+	// All gte calls return true; this is treated as >= 5.0 and takes the descriptor path.
+	const specVersionGteStub = sinon.stub().returns(true);
+	const mockSpecVersion = {
+		toString: () => "3.0",
+		gte: specVersionGteStub
+	};
+
+	graph.getExtension.returns({
+		getName: () => "custom task name",
+		getTask: () => taskStub,
+		getSpecVersion: () => mockSpecVersion,
+		// Descriptor carries no determineRequiredDependencies callback, so the task gets no deps.
+		getDescriptor: sinon.stub().resolves({task: taskStub}),
+		getStepBased: async () => false,
+	});
+
+	const project = getMockProject("module");
+	project.getCustomTasks = () => [
+		{name: "myTask", configuration: "configuration"}
+	];
+
+	const taskRunner = createTaskRunner(t, project);
+	await taskRunner._initTasks();
+
+	t.truthy(taskRunner._tasks["myTask"], "Custom tasks has been added to task map");
+	// Descriptor has no determineRequiredDependencies → gte("3.0") check → no reader.
 	t.deepEqual(taskRunner._tasks["myTask"].requiredDependencies, new Set(),
 		"Custom tasks requires no dependencies by default");
 	const createDependencyReaderStub = sinon.stub(taskRunner, "getDependenciesReader")
@@ -991,12 +988,12 @@ test("Custom task with specVersion 3.0 and no requiredDependenciesCallback", asy
 	await taskRunner._tasks["myTask"].task();
 
 	t.is(specVersionGteStub.callCount, 3, "SpecificationVersion#gte got called three times");
-	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on first call");
-	t.is(specVersionGteStub.getCall(1).args[0], "5.0",
-		"SpecificationVersion#gte got called with correct arguments on second call (step-based opt-in)");
+	t.is(specVersionGteStub.getCall(0).args[0], "5.0",
+		"SpecificationVersion#gte first call checks 5.0 (isV5)");
+	t.is(specVersionGteStub.getCall(1).args[0], "3.0",
+		"SpecificationVersion#gte second call checks 3.0 (no-callback branch)");
 	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
-		"SpecificationVersion#gte got called with correct arguments on third call (task execution)");
+		"SpecificationVersion#gte third call checks 3.0 (task execution)");
 
 	t.is(taskUtil.getInterface.callCount, 1, "taskUtil#getInterface got called once");
 	t.is(taskUtil.getInterface.getCall(0).args[0], mockSpecVersion,
@@ -1022,6 +1019,7 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 	const taskStubB = sinon.stub();
 	const taskStubC = sinon.stub();
 	const taskStubD = sinon.stub();
+	// Tasks A and B are below V5 (legacy body path, gte all false).
 	const mockSpecVersionA = {
 		toString: () => "2.5",
 		gte: () => false
@@ -1030,6 +1028,8 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 		toString: () => "2.6",
 		gte: () => false
 	};
+	// Tasks C and D are V5 (gte all true, descriptor path). Their descriptors carry no
+	// determineRequiredDependencies, so both get no dependencies and no reader.
 	const mockSpecVersionC = {
 		toString: () => "3.0",
 		gte: () => true
@@ -1038,39 +1038,33 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 		toString: () => "3.0",
 		gte: () => true
 	};
-	const requiredDependenciesCallbackStubA = sinon.stub().resolves(new Set(["dep.b"]));
-	const requiredDependenciesCallbackStubD = sinon.stub().resolves(new Set(["dep.a"]));
-	const getRequiredDependenciesCallbackStub = sinon.stub()
-		.resolves(null)
-		.onCall(0).resolves(requiredDependenciesCallbackStubA)
-		.onCall(3).resolves(requiredDependenciesCallbackStubD);
 
 	graph.getExtension.onFirstCall().returns({
 		getName: () => "Task Name A",
 		getTask: () => taskStubA,
 		getSpecVersion: () => mockSpecVersionA,
-		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
 		getStepBased: async () => false,
 	});
 	graph.getExtension.onSecondCall().returns({
 		getName: () => "Task Name B",
 		getTask: () => taskStubB,
 		getSpecVersion: () => mockSpecVersionB,
-		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
 		getStepBased: async () => false,
 	});
 	graph.getExtension.onThirdCall().returns({
 		getName: () => "Task Name C",
 		getTask: () => taskStubC,
 		getSpecVersion: () => mockSpecVersionC,
-		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		// V5 descriptor with no determineRequiredDependencies → no deps.
+		getDescriptor: sinon.stub().resolves({task: taskStubC}),
 		getStepBased: async () => false,
 	});
 	graph.getExtension.onCall(3).returns({
 		getName: () => "Task Name D",
 		getTask: () => taskStubD,
 		getSpecVersion: () => mockSpecVersionD,
-		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		// V5 descriptor with no determineRequiredDependencies → no deps.
+		getDescriptor: sinon.stub().resolves({task: taskStubD}),
 		getStepBased: async () => false,
 	});
 	const project = getMockProject("module");
@@ -1083,29 +1077,20 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 	const taskRunner = createTaskRunner(t, project);
 	await taskRunner._initTasks();
 
-	// getRequiredDependenciesCallbackStub is only called for specVersion >= 3.0
-	t.is(getRequiredDependenciesCallbackStub.callCount, 4,
-		"getRequiredDependenciesCallback stub was called for all tasks");
-	t.is(requiredDependenciesCallbackStubA.callCount, 1,
-		"requiredDependenciesCallback stub for task A was called once");
-	t.is(requiredDependenciesCallbackStubD.callCount, 1,
-		"requiredDependenciesCallback stub for Task D stub was called once");
-
 	t.truthy(taskRunner._tasks["myTask"], "Custom tasks A has been added to task map");
 	t.truthy(taskRunner._tasks["myTask--2"], "Custom tasks B has been added to task map");
 	t.truthy(taskRunner._tasks["myTask--3"], "Custom tasks C has been added to task map");
 	t.truthy(taskRunner._tasks["myTask--4"], "Custom tasks D has been added to task map");
-	t.deepEqual(taskRunner._tasks["myTask"].requiredDependencies, new Set(["dep.b"]),
-		"Custom tasks with legacy specVersion and requiredDependenciesCallback defines " +
-		"required dependencies");
+	// A, B (legacy, gte all false → < 3.0 path): all deps.
+	t.deepEqual(taskRunner._tasks["myTask"].requiredDependencies, new Set(["dep.a", "dep.b"]),
+		"Legacy specVersion task A gets all dependencies by default");
 	t.deepEqual(taskRunner._tasks["myTask--2"].requiredDependencies, new Set(["dep.a", "dep.b"]),
-		"Custom tasks with legacy specVersion require all dependencies by default");
+		"Legacy specVersion task B gets all dependencies by default");
+	// C, D (V5, descriptor with no callback → gte("3.0")=true → no reader): empty set.
 	t.deepEqual(taskRunner._tasks["myTask--3"].requiredDependencies, new Set([]),
-		"Custom tasks with specVersion 3.0 but no requiredDependenciesCallback " +
-		"require no dependencies by default");
-	t.deepEqual(taskRunner._tasks["myTask--4"].requiredDependencies, new Set(["dep.a"]),
-		"Custom tasks with specVersion 3.0 and requiredDependenciesCallback defines " +
-		"required dependencies");
+		"V5 task C with no determineRequiredDependencies gets no dependencies");
+	t.deepEqual(taskRunner._tasks["myTask--4"].requiredDependencies, new Set([]),
+		"V5 task D with no determineRequiredDependencies gets no dependencies");
 
 	// "Last in is the first out"
 	t.deepEqual(taskRunner._taskExecutionOrder, [
@@ -1142,31 +1127,29 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 		"myTask--2",
 	], "ProjectBuildLogger#endTask got called with expected arguments");
 
-	t.is(taskUtil.getInterface.callCount, 5, "taskUtil#getInterface got called three times");
-	t.is(taskUtil.getInterface.getCall(0).args[0], mockSpecVersionD,
-		"taskUtil#getInterface got called with correct argument on first call");
-	t.is(taskUtil.getInterface.getCall(1).args[0], mockSpecVersionA,
-		"taskUtil#getInterface got called with correct argument on second call");
-	t.is(taskUtil.getInterface.getCall(2).args[0], mockSpecVersionD,
-		"taskUtil#getInterface got called with correct argument on third call");
-	t.is(taskUtil.getInterface.getCall(3).args[0], mockSpecVersionC,
-		"taskUtil#getInterface got called with correct argument on fourth call");
-	t.is(taskUtil.getInterface.getCall(4).args[0], mockSpecVersionB,
-		"taskUtil#getInterface got called with correct argument on fifth call");
+	// One getInterface call per task execution (four tasks run).
+	t.is(taskUtil.getInterface.callCount, 4, "taskUtil#getInterface got called four times");
+	t.is(taskUtil.getInterface.getCall(0).args[0], mockSpecVersionA,
+		"taskUtil#getInterface got called with correct argument on first call (Task A)");
+	t.is(taskUtil.getInterface.getCall(1).args[0], mockSpecVersionD,
+		"taskUtil#getInterface got called with correct argument on second call (Task D)");
+	t.is(taskUtil.getInterface.getCall(2).args[0], mockSpecVersionC,
+		"taskUtil#getInterface got called with correct argument on third call (Task C)");
+	t.is(taskUtil.getInterface.getCall(3).args[0], mockSpecVersionB,
+		"taskUtil#getInterface got called with correct argument on fourth call (Task B)");
 
-	t.is(createDependencyReaderStub.callCount, 4, "getDependenciesReader got called four times");
+	// Calls: (1) runTasks init pass with all direct deps, (2) Task A all deps, (3) Task B all deps.
+	// Tasks C and D have no reader (provideDependenciesReader = false).
+	t.is(createDependencyReaderStub.callCount, 3, "getDependenciesReader got called three times");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
 		new Set(["dep.a", "dep.b"]),
 		"getDependenciesReader got called with correct arguments on first call (runTasks init)");
 	t.deepEqual(createDependencyReaderStub.getCall(1).args[0],
-		new Set(["dep.b"]),
+		new Set(["dep.a", "dep.b"]),
 		"getDependenciesReader got called with correct arguments on second call (Task A)");
 	t.deepEqual(createDependencyReaderStub.getCall(2).args[0],
-		new Set(["dep.a"]),
-		"getDependenciesReader got called with correct arguments on third call (Task D)");
-	t.deepEqual(createDependencyReaderStub.getCall(3).args[0],
 		new Set(["dep.a", "dep.b"]),
-		"getDependenciesReader got called with correct arguments on fourth call (Task B)");
+		"getDependenciesReader got called with correct arguments on third call (Task B)");
 
 	t.is(taskStubA.callCount, 1, "Task A got called once");
 	t.is(taskStubA.getCall(0).args.length, 1, "Task A got called with one argument");
@@ -1201,7 +1184,6 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 	t.is(taskStubD.getCall(0).args.length, 1, "Task D got called with one argument");
 	const taskDArgs = taskStubD.getCall(0).args[0];
 	t.is(taskDArgs.workspace.constructor.name, "MonitoredReader", "workspace is MonitoredReader");
-	t.is(taskDArgs.dependencies.constructor.name, "MonitoredReader", "dependencies is MonitoredReader");
 	t.is(taskDArgs.log, "group logger", "log is correct");
 	assertMonitoredTaskUtil(t, taskDArgs.taskUtil);
 	t.is(taskDArgs.options.projectName, "project.b", "projectName is correct");
@@ -1219,15 +1201,18 @@ test("Custom task: requiredDependenciesCallback returns unknown dependency", asy
 		gte: specVersionGteStub
 	};
 
+	// At specVersion 5.0+, determineRequiredDependencies lives on the descriptor.
 	const requiredDependenciesCallbackStub = sinon.stub().resolves(new Set(["dep.b", "other.dep"]));
-	const getRequiredDependenciesCallbackStub = sinon.stub()
-		.resolves(requiredDependenciesCallbackStub);
+	const getDescriptorStub = sinon.stub().resolves({
+		task: taskStub,
+		determineRequiredDependencies: requiredDependenciesCallbackStub
+	});
 
 	graph.getExtension.returns({
 		getName: () => "custom.task.a",
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
-		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getDescriptor: getDescriptorStub,
 		getStepBased: async () => false,
 	});
 
@@ -1255,15 +1240,18 @@ test("Custom task: requiredDependenciesCallback returns Array instead of Set", a
 		gte: specVersionGteStub
 	};
 
+	// At specVersion 5.0+, determineRequiredDependencies lives on the descriptor.
 	const requiredDependenciesCallbackStub = sinon.stub().resolves(["dep.b"]);
-	const getRequiredDependenciesCallbackStub = sinon.stub()
-		.resolves(requiredDependenciesCallbackStub);
+	const getDescriptorStub = sinon.stub().resolves({
+		task: taskStub,
+		determineRequiredDependencies: requiredDependenciesCallbackStub
+	});
 
 	graph.getExtension.returns({
 		getName: () => "custom.task.a",
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
-		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
+		getDescriptor: getDescriptorStub,
 		getStepBased: async () => false,
 	});
 
@@ -1292,8 +1280,9 @@ test("Custom task attached to a disabled task", async (t) => {
 
 	// Standard tasks are step-based factories; the stub returns an empty step list so the step runner is
 	// a no-op and this test only exercises task ordering and the custom task's execution.
-	taskRepository.getTask = sinon.stub().returns({task: sinon.stub().returns([])});
-	customTask.getTask = () => customTaskFnStub;
+	taskRepository.getTask = sinon.stub().returns({task: sinon.stub().returns({steps: []})});
+	// For V5 custom tasks the task body comes from descriptor.task, not getTask().
+	customTask.getDescriptor = sinon.stub().resolves({task: customTaskFnStub});
 
 	const taskRunner = createTaskRunner(t, project);
 
@@ -1325,15 +1314,16 @@ test.serial("_addTask", async (t) => {
 	const {sinon, taskRepository} = t.context;
 
 	const taskStub = sinon.stub();
-	taskRepository.getTask.withArgs("standardTask").resolves({
-		task: taskStub
+	// The factory wraps the task stub as the single-stage body in the descriptor.
+	taskRepository.getTask.withArgs("standardTask").returns({
+		task: (opts) => ({task: taskStub})
 	});
 
 	const project = getMockProject("module");
 	const taskRunner = createTaskRunner(t, project);
 	await taskRunner._initTasks();
 
-	taskRunner._addTask("standardTask");
+	await taskRunner._addTask("standardTask");
 
 	t.truthy(taskRunner._tasks["standardTask"], "Task has been added to task map");
 	t.deepEqual(taskRunner._tasks["standardTask"].requiredDependencies, new Set(),
@@ -1365,7 +1355,7 @@ test.serial("_addTask with options", async (t) => {
 	const taskRunner = createTaskRunner(t, project);
 	await taskRunner._initTasks();
 
-	taskRunner._addTask("standardTask", {
+	await taskRunner._addTask("standardTask", {
 		requiresDependencies: true,
 		options: {
 			myTaskOption: "cat",
@@ -1433,7 +1423,7 @@ test.serial("Folds taskUtil project-reader reads into the recorded resource requ
 
 	const taskRunner = createTaskRunner(t, project);
 	await taskRunner._initTasks();
-	taskRunner._addTask("standardTask", {requiresDependencies: true, taskFunction: taskStub});
+	await taskRunner._addTask("standardTask", {requiresDependencies: true, taskFunction: taskStub});
 
 	// Warm the cached dependencies reader (normally done by runTasks)
 	await taskRunner.getDependenciesReader(new Set(["dep.a", "dep.b"]), true);
@@ -1457,15 +1447,13 @@ test("_addTask: Duplicate task", async (t) => {
 	const taskRunner = createTaskRunner(t, project);
 	await taskRunner._initTasks();
 
-	taskRunner._addTask("standardTask", {
+	await taskRunner._addTask("standardTask", {
 		taskFunction: () => {}
 	});
 
-	const err = t.throws(() => {
-		taskRunner._addTask("standardTask", {
-			taskFunction: () => {}
-		});
-	});
+	const err = await t.throwsAsync(taskRunner._addTask("standardTask", {
+		taskFunction: () => {}
+	}));
 	t.is(err.message, "Failed to add duplicate task standardTask for project project.b",
 		"Threw with expected error message");
 });
@@ -1476,11 +1464,9 @@ test("_addTask: Task already added to execution order", async (t) => {
 	await taskRunner._initTasks();
 
 	taskRunner._taskExecutionOrder.push("standardTask");
-	const err = t.throws(() => {
-		taskRunner._addTask("standardTask", {
-			taskFunction: () => {}
-		});
-	});
+	const err = await t.throwsAsync(taskRunner._addTask("standardTask", {
+		taskFunction: () => {}
+	}));
 	t.is(err.message,
 		"Failed to add task standardTask for project project.b. It has already been scheduled for execution",
 		"Threw with expected error message");
@@ -1502,6 +1488,13 @@ test("getRequiredDependencies: Default application", async (t) => {
 	// By default, builds of this project type always contain the "generateVersionInfo" task,
 	// which requires dependencies to be built.
 
+	const {taskRepository} = t.context;
+	// generateVersionInfo's factory returns requiresDependencies: true in the real module.
+	// Override the default stub so _addTask reads the correct flag from the descriptor.
+	taskRepository.getTask.withArgs("generateVersionInfo").returns({
+		task: () => ({task: async () => {}, requiresDependencies: true})
+	});
+
 	const project = getMockProject("application");
 	project.getBundles = () => [];
 	const taskRunner = createTaskRunner(t, project);
@@ -1520,6 +1513,16 @@ test("getRequiredDependencies: Default component", async (t) => {
 });
 
 test("getRequiredDependencies: Default library", async (t) => {
+	const {taskRepository} = t.context;
+	// Several library tasks return requiresDependencies: true from their descriptors.
+	// Override the stubs so _addTask reads the correct flag.
+	const requiresDepFactory = {task: () => ({task: async () => {}, requiresDependencies: true})};
+	taskRepository.getTask.withArgs("generateJsdoc").returns(requiresDepFactory);
+	taskRepository.getTask.withArgs("executeJsdocSdkTransformation").returns(requiresDepFactory);
+	taskRepository.getTask.withArgs("generateLibraryPreload").returns(requiresDepFactory);
+	taskRepository.getTask.withArgs("buildThemes").returns(requiresDepFactory);
+	taskRepository.getTask.withArgs("generateCachebusterInfo").returns(requiresDepFactory);
+
 	const project = getMockProject("library");
 	project.getBundles = () => [];
 	const taskRunner = createTaskRunner(t, project);
@@ -1528,6 +1531,13 @@ test("getRequiredDependencies: Default library", async (t) => {
 });
 
 test("getRequiredDependencies: Default theme-library", async (t) => {
+	const {taskRepository} = t.context;
+	// buildThemes and generateThemeDesignerResources return requiresDependencies: true from their descriptors.
+	const requiresDepFactory = {task: () => ({task: async () => {}, requiresDependencies: true})};
+	taskRepository.getTask.withArgs("buildThemes").returns(requiresDepFactory);
+	taskRepository.getTask.withArgs("generateThemeDesignerResources").returns(requiresDepFactory);
+	taskRepository.getTask.withArgs("generateCachebusterInfo").returns(requiresDepFactory);
+
 	const project = getMockProject("theme-library");
 
 	const taskRunner = createTaskRunner(t, project);
@@ -1681,6 +1691,7 @@ test("Step-based task: a per-step input change re-runs only that step; a restore
 				]),
 				customTasks: new Map(),
 			}),
+			getStandardDescriptor: makeStepBasedGetStandardDescriptor(),
 		};
 
 		let capturedInvocationData;
@@ -1737,6 +1748,10 @@ function createCustomTaskExtension(sinon, {taskFunction, gte, stepBased = false}
 		getSpecVersion: () => ({gte}),
 		getTask: async () => taskFunction,
 		getRequiredDependenciesCallback: sinon.stub().resolves(undefined),
+		// V5 path: descriptor carries either steps (step-based) or task (legacy body).
+		getDescriptor: sinon.stub().resolves(
+			stepBased ? {steps: taskFunction()} : {task: taskFunction}
+		),
 		getStepBased: async () => stepBased,
 	};
 }
@@ -1773,6 +1788,7 @@ test("Step-based task: a full stage-cache hit re-runs a read-free consumer when 
 			]),
 			customTasks: new Map(),
 		}),
+		getStandardDescriptor: makeStepBasedGetStandardDescriptor(),
 	};
 
 	// Per-stage invocation data, keyed by stage id so 'scan' and 'use' carry their own data forward.
@@ -1851,6 +1867,7 @@ test("Step-based task: the factory runs once per build and its steps are reused 
 			]),
 			customTasks: new Map(),
 		}),
+		getStandardDescriptor: makeStepBasedGetStandardDescriptor(),
 	};
 
 	// Only stages that setTasks created can be prepared, as in ProjectResources#useStage.
@@ -1906,6 +1923,7 @@ test("Step-based task: a factory returning a non-array throws a named error at d
 			]),
 			customTasks: new Map(),
 		}),
+		getStandardDescriptor: makeStepBasedGetStandardDescriptor(),
 	};
 
 	const project = getMockProject("module");
@@ -1936,6 +1954,7 @@ test("Step-based task: a duplicate step name throws at discovery, before setTask
 			]),
 			customTasks: new Map(),
 		}),
+		getStandardDescriptor: makeStepBasedGetStandardDescriptor(),
 	};
 
 	const project = getMockProject("module");
@@ -1974,6 +1993,7 @@ test("Step-based task: the factory is called once, so discovery and execution ca
 			]),
 			customTasks: new Map(),
 		}),
+		getStandardDescriptor: makeStepBasedGetStandardDescriptor(),
 	};
 
 	const createdStages = new Set();
@@ -2013,8 +2033,10 @@ test("Step-based task: the factory is called once, so discovery and execution ca
 // The discovered step array is kept on the task, frozen so a custom task cannot mutate the shared value, and
 // re-derived on the next build so a surviving TaskRunner (reused across ui5 serve rebuilds) never serves a
 // stale array. Options are fixed for a TaskRunner's lifetime (a changed ui5.yaml rebuilds the whole stack),
-// so re-deriving per build keeps the steps in step with the options without any explicit invalidation.
-test("Step-based task: the kept step array is frozen and re-derived on each build", async (t) => {
+// The step array in the descriptor is frozen at discovery time so a custom task cannot mutate the shared
+// value. Because the descriptor is memoized by TaskDefinitions (shared with the build-signature phase), the
+// same frozen array is reused across builds — a standard task factory is never called more than once.
+test("Step-based task: the kept step array is frozen and reused across builds", async (t) => {
 	const {sinon, taskUtil} = t.context;
 
 	let callCount = 0;
@@ -2030,6 +2052,7 @@ test("Step-based task: the kept step array is frozen and re-derived on each buil
 			]),
 			customTasks: new Map(),
 		}),
+		getStandardDescriptor: makeStepBasedGetStandardDescriptor(),
 	};
 
 	const createdStages = new Set();
@@ -2057,20 +2080,21 @@ test("Step-based task: the kept step array is frozen and re-derived on each buil
 	const taskRunner = createTaskRunner(t, project, {taskUtil, buildCache, taskDefinitions});
 	sinon.stub(taskRunner, "getDependenciesReader").resolves({getName: () => "dependencies"});
 
-	// First build: one factory call, the kept array is frozen.
+	// First build: factory called once via getStandardDescriptor, the kept array is frozen.
 	await taskRunner.runTasks();
-	t.is(callCount, 1, "The factory ran once for the first build");
+	t.is(callCount, 1, "The factory ran once at discovery");
 	const firstSteps = taskRunner._tasks["stepTask"].steps;
 	t.true(Object.isFrozen(firstSteps), "The kept step array is frozen");
 	t.throws(() => firstSteps.push({name: "injected"}), undefined,
 		"A custom task cannot mutate the frozen step array");
 
-	// Second build through the same TaskRunner: the factory runs again and the kept array is a fresh one.
+	// Second build through the same TaskRunner: the descriptor is memoized so the factory does not run again.
+	// The same frozen array is reused, so secondSteps === firstSteps.
 	await taskRunner.runTasks();
-	t.is(callCount, 2, "The factory ran once more for the second build (re-derived, not reused across builds)");
+	t.is(callCount, 1, "The factory is not called again on the second build (descriptor memoized)");
 	const secondSteps = taskRunner._tasks["stepTask"].steps;
-	t.not(secondSteps, firstSteps, "The second build keeps a fresh step array, not the previous one");
-	t.true(Object.isFrozen(secondSteps), "The re-derived array is frozen too");
+	t.is(secondSteps, firstSteps, "The second build reuses the same frozen step array from the memoized descriptor");
+	t.true(Object.isFrozen(secondSteps), "The reused array is still frozen");
 });
 
 // Integration: the custom-task path drives the same real MonitoredTaskUtil + StepRunner as the standard-task
@@ -2207,6 +2231,7 @@ test("Step-based task: recordStage passes stale outputs without mutating the del
 			]),
 			customTasks: new Map(),
 		}),
+		getStandardDescriptor: makeStepBasedGetStandardDescriptor(),
 	};
 	const buildCache = {
 		setTasks: sinon.stub(),
@@ -2293,6 +2318,7 @@ test("Step-based task: recordStage dedups the fold against the monitored request
 			]),
 			customTasks: new Map(),
 		}),
+		getStandardDescriptor: makeStepBasedGetStandardDescriptor(),
 	};
 	const buildCache = {
 		setTasks: sinon.stub(),
@@ -2389,7 +2415,11 @@ function createStepReportingFixture(t, {stepBased, fullyCached = false}) {
 			task: createCustomTaskExtension(sinon, {taskFunction: build, gte: () => true, stepBased: true}),
 		}],
 	]) : new Map();
-	const taskDefinitions = {getTaskDefinitions: async () => ({standardTasks, customTasks})};
+	const taskDefinitions = {
+		getTaskDefinitions: async () => ({standardTasks, customTasks}),
+		// Standard step-based tasks use taskFunction as the factory; resolve it to a descriptor.
+		getStandardDescriptor: makeStepBasedGetStandardDescriptor(),
+	};
 
 	const buildCache = {
 		...t.context.buildCache,
