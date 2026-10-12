@@ -43,7 +43,9 @@ const taskInfos = {
  *
  * @private
  * @typedef {object} @ui5/builder/tasks/taskRepository~TaskInfo
- * @property {Function} task Task function
+ * @property {Function} task The task module's default-export factory <code>(options) => descriptor</code>.
+ *   The returned descriptor carries the task's <code>steps</code> or <code>task</code> body plus the
+ *   optional <code>requiresDependencies</code> and <code>determineBuildSignature</code> callbacks.
  */
 
 /**

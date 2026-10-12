@@ -15,21 +15,32 @@ import manifestCreator from "../processors/manifestCreator.js";
  * @function default
  * @static
  *
+ * @param {object} options Options
+ * @param {string} options.projectName Project name
+ * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor
+ */
+export default function defineTask(options) {
+	return {task};
+}
+
+/**
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
- * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
+ * @returns {Promise<undefined>} Promise resolving once the library manifest has been written
  */
-export default function({workspace, taskUtil, options: {projectName}}) {
+function task({workspace, taskUtil, options: {projectName}}) {
 	// Note:
 	// *.library files are needed to identify libraries
 	// *.json files are needed to avoid overwriting them
 	// *.js files are needed to identify nested components
 	// *.less, *.css, *.theming and *.theme files are needed to identify supported themes
 	// *.properties to identify existence of i18n bundles (e.g. messagebundle.properties)
-	return workspace.byGlob("/resources/**/*.{js,json,library,less,css,theming,theme,properties}").then((resources) => {
+	return workspace.byGlob(
+		"/resources/**/*.{js,json,library,less,css,theming,theme,properties}"
+	).then((resources) => {
 		// Find all libraries and create a manifest.json file
 		return workspace.byGlob("/resources/**/.library").then((libraryIndicatorResources) => {
 			if (libraryIndicatorResources.length < 1) {

@@ -162,7 +162,7 @@ class TaskRunner {
 		const {standardTasks, customTasks} = await this._taskDefinitions.getTaskDefinitions();
 
 		for (const [taskName, taskDef] of standardTasks) {
-			this._addTask(taskName, taskDef);
+			await this._addTask(taskName, taskDef);
 		}
 
 		for (const [taskName, {taskDef, task}] of customTasks) {
@@ -211,26 +211,24 @@ class TaskRunner {
 		this._log.setTasks(allTasks);
 
 		// Expand step-based tasks into their per-step stages: each step is its own stage, so the
-		// stage list must enumerate a step-based task's step names in step order. The factory is pure over
-		// options (it may not read readers/taskUtil) and options are fixed for this build, so one factory
-		// call produces the steps that both create the stages here and run at execution. Keep the step array
-		// on the task so the execution path reuses it instead of calling the factory a second time. Freeze it
-		// so a custom task cannot mutate the shared value between the two uses; discovery re-derives it on the
-		// next build, so a surviving TaskRunner never serves a stale array.
-		const stageTasks = await Promise.all(allTasks.map(async (taskName) => {
+		// stage list must enumerate a step-based task's step names in step order. The descriptor (and its
+		// steps array) was resolved once by TaskDefinitions, shared with the build-signature phase, so read
+		// it here rather than calling the factory again. Freeze the array so a custom task cannot mutate the
+		// shared value; discovery re-derives it on the next build, so a surviving TaskRunner never serves a
+		// stale array.
+		const stageTasks = allTasks.map((taskName) => {
 			const taskDef = this._tasks[taskName];
-			if (!taskDef.stepBased) {
+			const steps = taskDef.descriptor?.steps;
+			if (!steps) {
 				return {taskName};
 			}
-			const factory = await taskDef.stepFactory();
-			const steps = await factory(taskDef.options);
 			// Validate the whole step list before it creates any stage: setTasks below derives a stage id per
 			// step name, so a duplicate name or a malformed declaration must be rejected here, not later when
 			// the step runs (by then two steps sharing a name have already created two stages with one id).
 			validateSteps(steps, {taskName});
 			taskDef.steps = Object.freeze(steps);
 			return {taskName, stepNames: steps.map((step) => step.name)};
-		}));
+		});
 		this._buildCache.setTasks(stageTasks);
 
 		for (let i = 0; i < allTasks.length; i++) {
@@ -291,23 +289,26 @@ class TaskRunner {
 	 * Adds an executable task to the builder
 	 *
 	 * The order this function is called defines the build order (FIFO).
-	 * Tasks can be explicitly skipped by setting taskFunction to null.
+	 * Tasks can be explicitly skipped by setting <code>skip</code> to true in the definition.
+	 *
+	 * The task's shape comes from the descriptor its factory (the task module's default export) returns:
+	 * a <code>steps</code> array drives the step runner (one stage per step), a <code>task</code> body runs
+	 * as a single legacy stage, and <code>requiresDependencies</code> decides whether a dependencies reader
+	 * is provided. A definition may instead supply its own <code>taskFunction</code> override (for example the
+	 * multi-bundle <code>generateBundle</code> wrapper that cannot live in @ui5/builder); it then runs as the
+	 * single-stage body and the definition's own <code>requiresDependencies</code> flag applies.
 	 *
 	 * @param {string} taskName Name of the task to add
-	 * @param {object} [parameters] Task parameters
-	 * @param {boolean} [parameters.requiresDependencies=false]
-	 *   Whether the task requires access to project dependencies
-	 * @param {boolean} [parameters.stepBased=false]
-	 *   Whether the task's default export is a step factory <code>build(options) => Step[]</code> driven
-	 *   by the step runner, rather than a legacy task body
-	 * @param {object} [parameters.options={}] Options to pass to the task
-	 * @param {Function|null} [parameters.taskFunction]
-	 *   Task function to execute, or null to explicitly skip the task
-	 * @returns {void}
+	 * @param {object} [taskDef] Task definition from the build definition
+	 * @param {boolean} [taskDef.requiresDependencies=false]
+	 *   Whether a <code>taskFunction</code>-overridden task requires access to project dependencies
+	 * @param {object} [taskDef.options={}] Options to pass to the task factory
+	 * @param {Function} [taskDef.taskFunction] Task body override; runs as the single legacy stage
+	 * @param {boolean} [taskDef.skip] Whether the task is explicitly skipped
+	 * @returns {Promise<void>}
 	 */
-	_addTask(taskName, {
-		requiresDependencies = false, stepBased = false, options = {}, taskFunction
-	} = {}) {
+	async _addTask(taskName, taskDef = {}) {
+		const {options = {}, taskFunction, skip} = taskDef;
 		if (this._tasks[taskName]) {
 			throw new Error(`Failed to add duplicate task ${taskName} for project ${this._project.getName()}`);
 		}
@@ -316,39 +317,38 @@ class TaskRunner {
 				`It has already been scheduled for execution`);
 		}
 
-		// Complete the options before the task is registered, not when it runs. runTasks calls a step-based
-		// task's factory at plan time to discover its step names, and the factory may branch on
-		// projectNamespace (generateThemeDesignerResources emits its libraryTheming step only for a
-		// namespace). Assigning these at execution time left the plan-time call reading an incomplete
-		// options object, so the discovered step set missed a stage the step runner then asked for.
+		// projectName/projectNamespace were completed into the options by TaskDefinitions before the first
+		// factory call, so the descriptor resolved there matches the options the task body sees here.
 		options.projectName = this._project.getName();
 		options.projectNamespace = this._project.getNamespace();
 
+		// The descriptor is resolved and memoized by TaskDefinitions (shared with the build-signature phase).
+		// A skipped or taskFunction-overridden task has no descriptor.
+		const descriptor = await this._taskDefinitions.getStandardDescriptor(taskName, taskDef);
+		const steps = descriptor?.steps;
+		const stepBased = !!steps;
+		// requiresDependencies comes from the descriptor for a normal task, or from the definition for a
+		// taskFunction override.
+		const requiresDependencies = descriptor ? !!descriptor.requiresDependencies : !!taskDef.requiresDependencies;
+		// The single-stage body is the descriptor's task, or the definition's taskFunction override.
+		const taskBody = descriptor ? descriptor.task : taskFunction;
+
 		let task;
-		if (taskFunction === null) {
+		if (skip) {
 			this._log.verbose(`Task ${taskName} is set to be explicitly skipped in definitions.`);
 			task = null;
 		} else {
 			task = async (log) => {
-				if (!taskFunction) {
-					const {task} = await this._taskRepository.getTask(taskName);
-					taskFunction = task;
-				}
-
 				if (stepBased) {
-					// Step-based task: the default export is a factory build(options) => Step[]. runTasks
-					// already called the factory at discovery and kept the returned step array on the task, so
-					// reuse it here instead of calling the factory a second time. The factory is pure over
-					// options, so one call per build is the single source of truth for both the stage list and
-					// execution. Fall back to a direct call for a task invoked outside runTasks, where no
-					// discovery ran. Each step is its own pipeline stage; the step runner drives one stage per
-					// step via the per-stage hooks below. Every input a step reads arrives through its
-					// arguments, so no task body closes over the readers or taskUtil.
-					const steps = this._tasks[taskName].steps ?? await taskFunction(options);
+					// Step-based task: the descriptor carried a steps array. runTasks already froze it on the
+					// task at discovery; reuse it here. Each step is its own pipeline stage; the step runner
+					// drives one stage per step via the per-stage hooks below. Every input a step reads arrives
+					// through its arguments, so no task body closes over the readers or taskUtil.
+					const stepList = this._tasks[taskName].steps ?? steps;
 					this._taskStart = performance.now();
 					const taskReport = this.#createTaskExecutionReport(taskName);
 					const stepDriver = new StepRunner({
-						steps,
+						steps: stepList,
 						taskName,
 						options,
 						...this.#createStepStageHooks(taskName, requiresDependencies),
@@ -375,7 +375,7 @@ class TaskRunner {
 					return;
 				}
 
-				// Legacy task: the default export is a task body, not a step factory. It has a single stage.
+				// Legacy task: the descriptor's task body (or a definition taskFunction override). Single stage.
 				const cacheInfo = await this._buildCache.prepareStageExecutionAndValidateCache(taskName);
 				if (cacheInfo === true) {
 					this._log.skipTask(taskName);
@@ -398,7 +398,7 @@ class TaskRunner {
 				}
 				this._log.startTask(taskName, !!cacheInfo);
 				this._taskStart = performance.now();
-				await taskFunction(params);
+				await taskBody(params);
 				if (this._log.isLevelEnabled("perf")) {
 					this._log.perf(
 						`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
@@ -423,14 +423,7 @@ class TaskRunner {
 		this._tasks[taskName] = {
 			task,
 			stepBased,
-			// Lazily resolves the task factory so runTasks can enumerate a step-based task's step names for
-			// setTasks (called only for tasks that actually run). A legacy task keeps this undefined.
-			stepFactory: stepBased ? (async () => {
-				if (!taskFunction) {
-					taskFunction = (await this._taskRepository.getTask(taskName)).task;
-				}
-				return taskFunction;
-			}) : undefined,
+			descriptor,
 			options,
 			requiredDependencies: requiresDependencies ? this._directDependencies : new Set()
 		};
@@ -462,11 +455,22 @@ class TaskRunner {
 		const project = this._project;
 		const taskUtil = this._taskUtil;
 
-		// Tasks can provide an optional callback to tell build process which dependencies they require
-		const requiredDependenciesCallback = await task.getRequiredDependenciesCallback();
-		// const buildSignatureCallback = await task.getBuildSignatureCallback();
-		// const expectedOutputCallback = await task.getExpectedOutputCallback();
 		const specVersion = task.getSpecVersion();
+		// From Specification Version 5.0 the default export is a factory returning a descriptor. Below 5.0 it
+		// is the legacy task body invoked directly (any value it returns is ignored), so there is no descriptor
+		// and none of its callbacks apply. The factory options match those used for the build signature in
+		// TaskDefinitions, so Task#getDescriptor memoizes one descriptor shared by both phases.
+		const isV5 = specVersion.gte("5.0");
+		const descriptorOptions = {
+			projectName: project.getName(),
+			projectNamespace: project.getNamespace(),
+			configuration: taskDef.configuration,
+			taskName
+		};
+		const descriptor = isV5 ? await task.getDescriptor(taskName, descriptorOptions) : undefined;
+
+		// Tasks can provide an optional callback to tell build process which dependencies they require
+		const requiredDependenciesCallback = descriptor?.determineRequiredDependencies;
 		let requiredDependencies;
 
 		// Always provide a dependencies-reader, even if empty. Unless the task is specVersion >=3.0
@@ -528,18 +532,9 @@ class TaskRunner {
 				}
 			});
 		}
-		// A custom task opts into the step-factory API with a static `stepBased` export, honored from
-		// Specification Version 5.0. Below 5.0 the export is ignored and the task runs as a legacy body.
-		const stepBased = specVersion.gte("5.0") && (await task.getStepBased()) === true;
-		// Options the factory is called with at step-name discovery (runTasks). The factory is pure over
-		// options, so discovering step names by calling it early is safe, and the step array it returns is
-		// kept on the task and reused for execution rather than calling the factory again.
-		const stepOptions = stepBased ? {
-			projectName: project.getName(),
-			projectNamespace: project.getNamespace(),
-			configuration: taskDef.configuration,
-			...(specVersion.gte("3.0") ? {taskName} : {}),
-		} : undefined;
+		// A custom task is step-based when its descriptor carries a steps array (Specification Version 5.0
+		// and later). Below 5.0 there is no descriptor and the task runs as a legacy body.
+		const stepBased = !!descriptor?.steps;
 		this._tasks[taskName] = {
 			task: this._createCustomTaskWrapper({
 				task,
@@ -548,16 +543,16 @@ class TaskRunner {
 				taskName,
 				taskConfiguration: taskDef.configuration,
 				provideDependenciesReader,
+				descriptor,
 				stepBased,
-				stepOptions,
 				getDependenciesReaderCb: () => {
 					// Create the dependencies reader on-demand
 					return this.getDependenciesReader(requiredDependencies);
 				},
 			}),
 			stepBased,
-			stepFactory: stepBased ? (async () => task.getTask()) : undefined,
-			options: stepOptions,
+			descriptor,
+			options: descriptorOptions,
 			requiredDependencies
 		};
 
@@ -604,18 +599,18 @@ class TaskRunner {
 	 *   Callback to get dependencies reader on-demand
 	 * @param {boolean} parameters.provideDependenciesReader
 	 *   Whether to provide dependencies reader to the task
+	 * @param {object} [parameters.descriptor]
+	 *   The task's resolved descriptor (Specification Version 5.0 and later). Absent below 5.0, where the
+	 *   default export is the legacy task body
 	 * @param {boolean} parameters.stepBased
-	 *   Whether the task's default export is a step factory (honored from Specification Version 5.0)
-	 * @param {object} [parameters.stepOptions]
-	 *   The options object a step factory is called with at discovery in {@link #runTasks}. Kept so the
-	 *   fallback path (a task invoked outside runTasks) calls the factory with the same options
+	 *   Whether the descriptor carries a steps array (Specification Version 5.0 and later)
 	 * @param {@ui5/project/specifications/Extension} parameters.task Task extension instance
 	 * @param {string} parameters.taskName Runtime name of the task (may include suffix)
 	 * @param {object} [parameters.taskConfiguration] Task configuration from ui5.yaml
 	 * @returns {Function} Async wrapper function for the custom task
 	 */
 	_createCustomTaskWrapper({
-		project, taskUtil, getDependenciesReaderCb, provideDependenciesReader, stepBased, stepOptions,
+		project, taskUtil, getDependenciesReaderCb, provideDependenciesReader, descriptor, stepBased,
 		task, taskName, taskConfiguration
 	}) {
 		return async () => {
@@ -643,7 +638,6 @@ class TaskRunner {
 			*/
 			const specVersion = task.getSpecVersion();
 			const taskUtilInterface = taskUtil.getInterface(specVersion);
-			const taskFunction = await task.getTask();
 			const isSpec3 = specVersion.gte("3.0");
 
 			const options = {
@@ -656,19 +650,16 @@ class TaskRunner {
 			}
 
 			if (stepBased) {
-				// Step-based custom task: gated at Specification Version 5.0 in _addCustomTask, which always
-				// provides a taskUtil interface. The default export is a factory build(options) => Step[];
-				// each step is its own pipeline stage, driven by the step runner via per-stage hooks. The
-				// factory receives options only. runTasks already called it at discovery and kept the step
-				// array on the task, so reuse it instead of calling the factory a second time (see the
-				// standard-task path). Fall back to a direct call for a task invoked outside runTasks.
-				const factoryOptions = stepOptions ?? options;
-				const steps = this._tasks[taskName].steps ?? await taskFunction(factoryOptions);
+				// Step-based custom task (Specification Version 5.0 and later): the descriptor carried a steps
+				// array. Each step is its own pipeline stage, driven by the step runner via per-stage hooks.
+				// runTasks already froze the step array on the task at discovery; reuse it, falling back to the
+				// descriptor's own array for a task invoked outside runTasks.
+				const steps = this._tasks[taskName].steps ?? descriptor.steps;
 				const taskReport = this.#createTaskExecutionReport(taskName);
 				const stepDriver = new StepRunner({
 					steps,
 					taskName,
-					options: factoryOptions,
+					options,
 					...this.#createStepStageHooks(taskName, provideDependenciesReader, taskUtilInterface),
 					returnValueStore: this._buildCache.getStepReturnValueStore(),
 					resolveInputValue: this._buildCache.getResolveInputValue(),
@@ -688,7 +679,10 @@ class TaskRunner {
 				return;
 			}
 
-			// Legacy custom task: the default export is a task body, not a step factory. It has a single stage.
+			// Legacy custom task: a single-stage body. From Specification Version 5.0 the body is the
+			// descriptor's task; below 5.0 the default export is the body itself (invoked directly), so any
+			// value it returns is ignored.
+			const taskFunction = descriptor ? descriptor.task : await task.getTask();
 			const cacheInfo = await this._buildCache.prepareStageExecutionAndValidateCache(taskName);
 			if (cacheInfo === true) {
 				this._log.skipTask(taskName);

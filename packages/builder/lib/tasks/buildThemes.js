@@ -180,12 +180,12 @@ async function isThemeAvailable(themeResource, combo, {librariesPattern, themesP
  * @param {string} [options.librariesPattern] Search pattern for .library files
  * @param {string} [options.themesPattern] Search pattern for sap.ui.core theme folders
  * @param {boolean} [options.compress=true]
- * @returns {object[]} The task's build steps
+ * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor with its build steps
  */
-export default function build({projectName, inputPattern, librariesPattern, themesPattern, compress}) {
+export default function defineTask({projectName, inputPattern, librariesPattern, themesPattern, compress}) {
 	compress = compress === undefined ? true : compress;
 
-	return [{
+	const buildThemesStep = {
 		name: "buildThemes",
 		// One key per theme's library.source.less, so a delta build rebuilds only the affected theme.
 		keys: async ({workspace}) => workspace.byGlob(inputPattern),
@@ -204,5 +204,10 @@ export default function build({projectName, inputPattern, librariesPattern, them
 			const processedResources = await buildThemeResources([themeResource], combo, compress, taskUtil);
 			await Promise.all(processedResources.map((resource) => workspace.write(resource)));
 		},
-	}];
+	};
+
+	return {
+		requiresDependencies: true,
+		steps: [buildThemesStep]
+	};
 }

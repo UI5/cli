@@ -16,18 +16,26 @@ import apiIndexGenerator from "../../processors/jsdoc/apiIndexGenerator.js";
  * @function default
  * @static
  *
+ * @param {object} options Options
+ * @param {string} options.projectName Project name
+ * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor
+ */
+export default function defineTask(options) {
+	return {
+		requiresDependencies: true,
+		task
+	};
+}
+
+/**
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
- * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
+ * @returns {Promise<undefined>} Promise resolving once the api-index.json resources have been written
  */
-export default async function({
-	workspace,
-	dependencies,
-	options: {projectName}
-}) {
+async function task({workspace, dependencies, options: {projectName}}) {
 	const combo = new ReaderCollectionPrioritized({
 		name: `generateApiIndex - workspace + dependencies: ${projectName}`,
 		readers: [workspace, dependencies]

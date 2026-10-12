@@ -32,7 +32,7 @@ test.serial("generateApiIndex", async (t) => {
 		write: writeStub
 	};
 	const dependencies = {};
-	await generateApiIndex({
+	await generateApiIndex().task({
 		workspace,
 		dependencies,
 		options: {
@@ -69,7 +69,7 @@ test.serial("generateApiIndex", async (t) => {
 
 test("generateApiIndex with missing parameters", async (t) => {
 	const {generateApiIndex} = t.context;
-	await t.throwsAsync(generateApiIndex(), {
+	await t.throwsAsync(generateApiIndex().task(), {
 		instanceOf: TypeError
 	}, "TypeError thrown");
 });

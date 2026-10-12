@@ -14,15 +14,28 @@ const MANIFEST_JSON = "manifest.json";
  * @function default
  * @static
  *
+ * @param {object} options Options
+ * @param {string} options.pattern Glob pattern for .library resources
+ * @param {object} options.rootProject Root project (used for its name and version)
+ * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor
+ */
+export default function defineTask(options) {
+	return {
+		requiresDependencies: true,
+		task
+	};
+}
+
+/**
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {object} parameters.options Options
  * @param {string} parameters.options.pattern Glob pattern for .library resources
- * @param {object} parameters.options.rootProject DuplexCollection to read and write files
- * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
+ * @param {object} parameters.options.rootProject Root project (used for its name and version)
+ * @returns {Promise<undefined>} Promise resolving once sap-ui-version.json has been written
  */
-export default async ({workspace, dependencies, options: {rootProject, pattern}}) => {
+async function task({workspace, dependencies, options: {rootProject, pattern}}) {
 	let resources = await dependencies.byGlob(pattern);
 
 	resources = resources.filter((res) => res.getProject()?.getType() === "library");
@@ -55,4 +68,4 @@ export default async ({workspace, dependencies, options: {rootProject, pattern}}
 		}
 	});
 	return workspace.write(versionInfoResource);
-};
+}

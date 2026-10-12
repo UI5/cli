@@ -19,25 +19,28 @@ async function readControlValue(rootPath) {
 	}
 }
 
-// Task body: appends the current control value to the application's test.js. This makes the built
-// output observably depend on the control file, so a served resource reflects its value.
-module.exports = async function ({taskUtil, workspace, options: {projectNamespace}}) {
-	log.verbose("build-signature-task executed");
+// Specification Version 5.0 descriptor: the task body and the determineBuildSignature callback are
+// properties of the object the default-export factory returns. Both derive their value from the control
+// file, so a test can change the returned value / produced output independently of any source change.
+module.exports = function build() {
+	return {
+		determineBuildSignature: async ({taskUtil}) => {
+			const controlValue = await readControlValue(taskUtil.getProject().getRootPath());
+			log.verbose(`build-signature-task determineBuildSignature: ${controlValue}`);
+			return controlValue;
+		},
+		// Task body: appends the current control value to the application's test.js. This makes the built
+		// output observably depend on the control file, so a served resource reflects its value.
+		task: async ({taskUtil, workspace, options: {projectNamespace}}) => {
+			log.verbose("build-signature-task executed");
 
-	const controlValue = await readControlValue(taskUtil.getProject().getRootPath());
-	const resource = await workspace.byPath(`/resources/${projectNamespace}/test.js`);
-	if (resource) {
-		const content = `${await resource.getString()}\n// build-signature-control: ${controlValue}\n`;
-		resource.setString(content);
-		await workspace.write(resource);
-	}
-};
-
-// determineBuildSignature is invoked by TaskDefinitions#getBuildSignatures() to contribute a value
-// to the project's build signature. We derive it from the same control file so that changing the
-// file changes the returned signature (and thus must invalidate the project's build cache).
-module.exports.determineBuildSignature = async function ({taskUtil}) {
-	const controlValue = await readControlValue(taskUtil.getProject().getRootPath());
-	log.verbose(`build-signature-task determineBuildSignature: ${controlValue}`);
-	return controlValue;
+			const controlValue = await readControlValue(taskUtil.getProject().getRootPath());
+			const resource = await workspace.byPath(`/resources/${projectNamespace}/test.js`);
+			if (resource) {
+				const content = `${await resource.getString()}\n// build-signature-control: ${controlValue}\n`;
+				resource.setString(content);
+				await workspace.write(resource);
+			}
+		}
+	};
 };

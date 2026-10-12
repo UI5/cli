@@ -3,7 +3,7 @@ import {getPackageVersion} from "./createBuildManifest.js";
 
 // Increment signature version to invalidate all existing build signatures
 // (e.g. after making a change that impacts build contents)
-const BUILD_SIG_VERSION = "0";
+const BUILD_SIG_VERSION = "1";
 
 export function getBaseSignature(buildConfig) {
 	const key = BUILD_SIG_VERSION + JSON.stringify(buildConfig);

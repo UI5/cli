@@ -2,13 +2,18 @@
 // the read is recorded against the useGitignore:false root manager. Exercises glob-based root tracking:
 // adding or removing a file matching the glob must invalidate the task's cache (root indices refresh by
 // re-globbing, so a newly matching file is detected).
-module.exports = async function ({taskUtil, workspace}) {
-	const {createResource} = taskUtil.resourceFactory;
-	const rootReader = taskUtil.getProject().getRootReader({useGitignore: false});
-	const configs = await rootReader.byGlob("/rootcfg/**/*.json");
-	const names = configs.map((r) => r.getPath()).sort();
-	await workspace.write(createResource({
-		path: "/rootGlobDigest.js",
-		string: `export const configs = ${JSON.stringify(names)};\n`,
-	}));
+// Specification Version 5.0 descriptor: the default export is a factory that returns the task body.
+module.exports = function build() {
+	return {
+		task: async ({taskUtil, workspace}) => {
+			const {createResource} = taskUtil.resourceFactory;
+			const rootReader = taskUtil.getProject().getRootReader({useGitignore: false});
+			const configs = await rootReader.byGlob("/rootcfg/**/*.json");
+			const names = configs.map((r) => r.getPath()).sort();
+			await workspace.write(createResource({
+				path: "/rootGlobDigest.js",
+				string: `export const configs = ${JSON.stringify(names)};\n`,
+			}));
+		}
+	};
 };

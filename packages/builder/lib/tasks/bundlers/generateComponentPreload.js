@@ -11,12 +11,33 @@ import {negateFilters} from "../../lbt/resources/ResourceFilterList.js";
  */
 
 /**
- * Task to for application bundling.
+ * Task for Component preload bundling.
+ *
+ * The default export is the task factory. It receives the task <code>options</code> and returns the task
+ * descriptor. The same <code>options</code> are passed to the task body at execution time.
  *
  * @public
  * @function default
  * @static
  *
+ * @param {object} options Options
+ * @param {string} options.projectName Project name
+ * @param {string[]} [options.excludes=[]] List of modules declared as glob patterns (resource name patterns)
+ * that should be excluded.
+ * A pattern ending with a slash '/' will, similarly to the use of a single '*' or double '**' asterisk,
+ * denote an arbitrary number of characters or folder names.
+ * Re-includes should be marked with a leading exclamation mark '!'. The order of filters is relevant; a later
+ * inclusion overrides an earlier exclusion, and vice versa.
+ * @param {string[]} [options.paths] Array of paths (or glob patterns) for component files
+ * @param {string[]} [options.namespaces] Array of component namespaces
+ * @param {string[]} [options.skipBundles] Names of bundles that should not be created
+ * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor
+ */
+export default function defineTask(options) {
+	return {task};
+}
+
+/**
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
@@ -31,9 +52,9 @@ import {negateFilters} from "../../lbt/resources/ResourceFilterList.js";
  * @param {string[]} [parameters.options.paths] Array of paths (or glob patterns) for component files
  * @param {string[]} [parameters.options.namespaces] Array of component namespaces
  * @param {string[]} [parameters.options.skipBundles] Names of bundles that should not be created
- * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
+ * @returns {Promise<undefined>} Promise resolving once the component preload bundles have been written
  */
-export default async function({
+async function task({
 	workspace, taskUtil, options: {projectName, paths, namespaces, skipBundles = [], excludes = []}
 }) {
 	let nonDbgWorkspace = workspace;
@@ -106,8 +127,9 @@ export default async function({
 				allNamespaces.forEach((ns) => {
 					if (ns !== namespace && ns.startsWith(`${namespace}/`)) {
 						filters.push(`!${ns}/`);
-						// Explicitly exclude manifest.json files of subcomponents since the general exclude above this
-						// comment only applies to the configured default file types, which do not include ".json"
+						// Explicitly exclude manifest.json files of subcomponents since the general exclude
+						// above this comment only applies to the configured default file types, which do
+						// not include ".json"
 						filters.push(`!${ns}/**/manifest.json`);
 					}
 				});
