@@ -487,8 +487,10 @@ test("Absolute resolution path", async (t) => {
 	});
 
 	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
-	t.is(err.message.includes(`Absolute resolution path (${path.resolve(__dirname, "../../fixtures/library.d")}) `+
-		`is not supported in dependency resolution configuration of workspace ${workspace.getName()}`), true);
+	t.log(err.message);
+	t.true(err.message.startsWith(`Absolute paths are not allowed in workspace configurations of dependencies. `+
+		`Found '${path.resolve(__dirname, "../../fixtures/library.d")}' in workspace '${workspace.getName()}'`),
+	"Starts with expected error message");
 });
 
 test("workspace/1.1: Basic validation with specified configPath for dependency", async (t) => {
@@ -534,7 +536,9 @@ test("workspace/1.1: Custom configPath for dependency but specVersion is workspa
 	});
 
 	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
-	t.is(err.message.includes("\"configPath\" is only supported for specVersion \"workspace/1.1\" and higher"), true);
+	t.log(err.message);
+	t.true(err.message.includes("\"configPath\" is only supported for specVersion \"workspace/1.1\" and higher"),
+		"Starts with expected error message");
 });
 
 test("workspace/1.1: Absolute custom configPath", async (t) => {
@@ -545,15 +549,19 @@ test("workspace/1.1: Absolute custom configPath", async (t) => {
 			dependencyManagement: {
 				resolutions: [{
 					path: "../../fixtures/library.d",
-					configPath: path.resolve(__dirname, "ui5.yaml") // Absolute configPath
+					configPath: path.resolve(__dirname, "../../fixtures/library.d/ui5.yaml") // Absolute configPath
 				}]
 			}
 		})
 	});
 
 	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
-	t.is(err.message.includes(`Absolute configPath (${path.resolve(__dirname, "ui5.yaml")}) ` +
-		`is not supported in dependency resolution configuration of workspace ${workspace.getName()}`), true);
+	t.log(err.message);
+	t.true(err.message.startsWith(`Absolute config paths ` +
+		`are not allowed in workspace configurations of dependencies. ` +
+		`Found '${path.resolve(__dirname, "../../fixtures/library.d/ui5.yaml")}' `+
+		`in workspace 'workspace-name'`),
+	"Starts with expected error message");
 });
 
 test("workspace/1.1: Custom configPath for dependency does not exist", async (t) => {
@@ -571,10 +579,12 @@ test("workspace/1.1: Custom configPath for dependency does not exist", async (t)
 	});
 
 	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
-	t.is(err.message.includes(`Failed to read configuration for module library.d at `+
+	t.log(err.message);
+	t.true(err.message.startsWith(`Failed to read configuration for module library.d at `+
 			`'${path.resolve(__dirname, "../../fixtures/library.d/not-existing-config-path.yaml")}'. ` +
 			`Error: ENOENT: no such file or directory, `+
-			`open '${path.resolve(__dirname, "../../fixtures/library.d/not-existing-config-path.yaml")}'`), true);
+			`open '${path.resolve(__dirname, "../../fixtures/library.d/not-existing-config-path.yaml")}'`),
+	"Starts with expected error message");
 });
 
 test("workspace/1.1: Custom relative configPath which is outside of the module dir", async (t) => {
