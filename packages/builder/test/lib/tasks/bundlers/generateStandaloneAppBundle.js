@@ -71,7 +71,7 @@ test.serial("execute module bundler and write results", async (t) => {
 			projectNamespace: "some/project/namespace"
 		}
 	};
-	await generateStandaloneAppBundle(params);
+	await generateStandaloneAppBundle().task(params);
 
 	t.is(t.context.moduleBundlerStub.callCount, 2);
 
@@ -118,7 +118,7 @@ test.serial("execute module bundler and write results without namespace", async 
 			projectName: "some.project.name"
 		}
 	};
-	await generateStandaloneAppBundle(params);
+	await generateStandaloneAppBundle().task(params);
 
 	t.is(t.context.moduleBundlerStub.callCount, 2);
 
@@ -165,7 +165,7 @@ test.serial("execute module bundler and write results in evo mode", async (t) =>
 			projectNamespace: "some/project/namespace"
 		}
 	};
-	await generateStandaloneAppBundle(params);
+	await generateStandaloneAppBundle().task(params);
 
 	t.is(t.context.moduleBundlerStub.callCount, 2);
 
@@ -222,7 +222,7 @@ test.serial("execute module bundler with taskUtil", async (t) => {
 			projectNamespace: "some/project/namespace"
 		}
 	};
-	await generateStandaloneAppBundle(params);
+	await generateStandaloneAppBundle().task(params);
 
 	t.is(taskUtil.getTag.callCount, 5, "TaskUtil#getTag got called six times");
 
@@ -419,7 +419,7 @@ test.serial("execute module bundler with taskUtil, UI5 Version >= 2", async (t) 
 			projectNamespace: "some/project/namespace"
 		}
 	};
-	await generateStandaloneAppBundle(params);
+	await generateStandaloneAppBundle().task(params);
 
 	t.is(taskUtil.getTag.callCount, 5, "TaskUtil#getTag got called six times");
 
@@ -590,7 +590,7 @@ test.serial("Error: Failed to resolve non-debug name", async (t) => {
 		}
 	};
 
-	await t.throwsAsync(generateStandaloneAppBundle(params), {
+	await t.throwsAsync(generateStandaloneAppBundle().task(params), {
 		message: "Failed to resolve non-debug name for /resources/ponyPath1.js"
 	});
 });

@@ -47,7 +47,7 @@ test.serial("generateLibraryPreload", async (t) => {
 		{getPath: sinon.stub().returns("/resources/my/lib/.library")}
 	]);
 
-	await generateLibraryPreload({
+	await generateLibraryPreload().task({
 		workspace,
 		dependencies,
 		options: {
@@ -172,7 +172,7 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library")}
 	]);
 
-	await generateLibraryPreload({
+	await generateLibraryPreload().task({
 		workspace,
 		dependencies,
 		options: {
@@ -508,7 +508,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 			createFilterReader: () => workspace
 		}
 	};
-	await generateLibraryPreload({
+	await generateLibraryPreload().task({
 		workspace,
 		dependencies,
 		taskUtil,
@@ -934,7 +934,7 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 	taskUtil.getTag
 		.withArgs(sinon.match.any, taskUtil.STANDARD_TAGS.HasDebugVariant)
 		.returns(true);
-	await generateLibraryPreload({
+	await generateLibraryPreload().task({
 		workspace,
 		dependencies,
 		taskUtil,
@@ -1345,7 +1345,7 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 			createFilterReader: () => workspace
 		}
 	};
-	await generateLibraryPreload({
+	await generateLibraryPreload().task({
 		workspace,
 		dependencies,
 		taskUtil,
@@ -1536,7 +1536,7 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 	taskUtil.getTag
 		.withArgs(resources[0], taskUtil.STANDARD_TAGS.HasDebugVariant)
 		.returns(true);
-	await generateLibraryPreload({
+	await generateLibraryPreload().task({
 		workspace,
 		dependencies,
 		taskUtil,
@@ -1725,7 +1725,7 @@ test.serial("Error: Failed to resolve non-debug name", async (t) => {
 		.withArgs(resources[0], taskUtil.STANDARD_TAGS.IsDebugVariant)
 		.returns(true);
 
-	await t.throwsAsync(generateLibraryPreload({
+	await t.throwsAsync(generateLibraryPreload().task({
 		workspace,
 		dependencies,
 		taskUtil,
@@ -1754,7 +1754,7 @@ test.serial("generateLibraryPreload with excludes", async (t) => {
 		{getPath: sinon.stub().returns("/resources/my/lib/.library")}
 	]);
 
-	await generateLibraryPreload({
+	await generateLibraryPreload().task({
 		workspace,
 		dependencies,
 		options: {
@@ -1826,7 +1826,7 @@ test.serial("generateLibraryPreload with invalid excludes", async (t) => {
 		{getPath: sinon.stub().returns("/resources/my/lib/.library")}
 	]);
 
-	await generateLibraryPreload({
+	await generateLibraryPreload().task({
 		workspace,
 		dependencies,
 		options: {
@@ -1926,7 +1926,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js), UI5 Versi
 			createFilterReader: () => workspace
 		}
 	};
-	await generateLibraryPreload({
+	await generateLibraryPreload().task({
 		workspace,
 		dependencies,
 		taskUtil,

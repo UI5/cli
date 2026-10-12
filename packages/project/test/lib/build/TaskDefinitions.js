@@ -57,9 +57,9 @@ test.beforeEach(async (t) => {
 		getAllTaskNames: sinon.stub().returns(["replaceVersion", "minify"]),
 	};
 
-	t.context.customTaskSpecVersionLtStub = sinon.stub().returns(false);
+	t.context.customTaskSpecVersionGteStub = sinon.stub().returns(false);
 	t.context.customTaskSpecVersion = {
-		lt: t.context.customTaskSpecVersionLtStub
+		gte: t.context.customTaskSpecVersionGteStub
 	};
 	t.context.getDetermineBuildSignatureCallbackStub = sinon.stub().resolves(undefined);
 	t.context.customTask = {
@@ -412,6 +412,10 @@ test("getBuildSignatures: Standard tasks without determineBuildSignature use opt
 		["taskA", {options: {foo: "bar"}}],
 		["taskB", {options: {hello: "world"}}],
 	]);
+	// The factory for each task returns a descriptor with no determineBuildSignature, so the
+	// signature loop falls back to JSON.stringify(taskDef.options).
+	taskRepository.getTask.withArgs("taskA").resolves({task: (opts) => ({task: async () => {}})});
+	taskRepository.getTask.withArgs("taskB").resolves({task: (opts) => ({task: async () => {}})});
 	const definitionStub = sinon.stub().returns(standardTasks);
 	const MockedTaskDefinitions = await esmock.p("../../../lib/build/TaskDefinitions.js", {}, {
 		"../../../lib/build/definitions/module.js": {
@@ -424,8 +428,8 @@ test("getBuildSignatures: Standard tasks without determineBuildSignature use opt
 	const sig = await taskDefinitions.getBuildSignatures();
 
 	const expectedKey = [
-		JSON.stringify({foo: "bar"}),
-		JSON.stringify({hello: "world"})
+		JSON.stringify({foo: "bar", projectName: "project.b", projectNamespace: "project/b"}),
+		JSON.stringify({hello: "world", projectName: "project.b", projectNamespace: "project/b"}),
 	].join("|");
 	const expectedHash = crypto.createHash("sha256").update(expectedKey).digest("hex");
 	t.is(sig, expectedHash, "Returns sha256 hash of joined task options");
@@ -435,8 +439,12 @@ test("getBuildSignatures: Standard task determineBuildSignature is awaited and u
 	const {graph, taskUtil, taskRepository} = t.context;
 	const sinon = t.context.sinon;
 	const determineBuildSignatureStub = sinon.stub().resolves("custom-sig");
+	// The factory returns a descriptor carrying the determineBuildSignature callback.
+	taskRepository.getTask.withArgs("taskA").resolves({
+		task: (opts) => ({task: async () => {}, determineBuildSignature: determineBuildSignatureStub})
+	});
 	const standardTasks = new Map([
-		["taskA", {determineBuildSignature: determineBuildSignatureStub}],
+		["taskA", {options: {}}],
 	]);
 	const definitionStub = sinon.stub().returns(standardTasks);
 	const MockedTaskDefinitions = await esmock.p("../../../lib/build/TaskDefinitions.js", {}, {
@@ -457,8 +465,14 @@ test("getBuildSignatures: Standard task determineBuildSignature is awaited and u
 test("getBuildSignatures: Standard task determineBuildSignature returning falsy is skipped", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const sinon = t.context.sinon;
+	// taskA has a determineBuildSignature that returns undefined; taskB has no callback and falls
+	// back to its options JSON.
+	taskRepository.getTask.withArgs("taskA").resolves({
+		task: (opts) => ({task: async () => {}, determineBuildSignature: sinon.stub().resolves(undefined)})
+	});
+	taskRepository.getTask.withArgs("taskB").resolves({task: (opts) => ({task: async () => {}})});
 	const standardTasks = new Map([
-		["taskA", {determineBuildSignature: sinon.stub().resolves(undefined)}],
+		["taskA", {options: {}}],
 		["taskB", {options: {a: 1}}],
 	]);
 	const definitionStub = sinon.stub().returns(standardTasks);
@@ -472,7 +486,9 @@ test("getBuildSignatures: Standard task determineBuildSignature returning falsy 
 	const taskDefinitions = new MockedTaskDefinitions(graph, project, taskUtil, taskRepository);
 	const sig = await taskDefinitions.getBuildSignatures();
 
-	const expectedHash = crypto.createHash("sha256").update(JSON.stringify({a: 1})).digest("hex");
+	const expectedHash = crypto.createHash("sha256").update(
+		JSON.stringify({a: 1, projectName: "project.b", projectNamespace: "project/b"})
+	).digest("hex");
 	t.is(sig, expectedHash, "Falsy signature returned by callback is skipped");
 });
 
@@ -492,8 +508,10 @@ test("getBuildSignatures: Custom task without determineBuildSignature falls back
 });
 
 test("getBuildSignatures: Custom task determineBuildSignature gets invoked correctly", async (t) => {
-	const {TaskDefinitions, graph, taskUtil, taskRepository, customTask, customTaskSpecVersion, sinon} =
-		t.context;
+	const {TaskDefinitions, graph, taskUtil, taskRepository, customTask, customTaskSpecVersion,
+		customTaskSpecVersionGteStub, sinon} = t.context;
+	// Make the task specVersion report >= 5.0 so the new code takes the descriptor path.
+	customTaskSpecVersionGteStub.withArgs("5.0").returns(true);
 	const determineBuildSignatureCallback = sinon.stub().resolves("my-custom-sig");
 	customTask.getDetermineBuildSignatureCallback = sinon.stub().resolves(determineBuildSignatureCallback);
 
@@ -525,7 +543,10 @@ test("getBuildSignatures: Custom task determineBuildSignature gets invoked corre
 });
 
 test("getBuildSignatures: Custom task determineBuildSignature returning falsy is skipped", async (t) => {
-	const {TaskDefinitions, graph, taskUtil, taskRepository, customTask, sinon} = t.context;
+	const {TaskDefinitions, graph, taskUtil, taskRepository, customTask, customTaskSpecVersionGteStub,
+		sinon} = t.context;
+	// Make the task specVersion report >= 5.0 so the new code takes the descriptor path.
+	customTaskSpecVersionGteStub.withArgs("5.0").returns(true);
 	const determineBuildSignatureCallback = sinon.stub().resolves(null);
 	customTask.getDetermineBuildSignatureCallback = sinon.stub().resolves(determineBuildSignatureCallback);
 
@@ -541,11 +562,12 @@ test("getBuildSignatures: Custom task determineBuildSignature returning falsy is
 	t.is(sig, expectedHash, "Falsy signature is omitted from hash input");
 });
 
-test("getBuildSignatures: Custom task with specVersion < 5.0 and determineBuildSignature throws", async (t) => {
+test("getBuildSignatures: Custom task with specVersion < 5.0 falls back to configuration", async (t) => {
 	const {TaskDefinitions, graph, taskUtil, taskRepository, customTask, sinon} = t.context;
+	// gte("5.0") returns false: below 5.0, the descriptor path is skipped and the signature falls
+	// back to JSON.stringify(taskDef.configuration) regardless of any callback.
 	const determineBuildSignatureCallback = sinon.stub().resolves("custom-sig");
 	customTask.getDetermineBuildSignatureCallback = sinon.stub().resolves(determineBuildSignatureCallback);
-	t.context.customTaskSpecVersionLtStub.withArgs("5.0").returns(true);
 
 	const project = getMockProject("module");
 	project.getCustomTasks = () => [
@@ -553,21 +575,27 @@ test("getBuildSignatures: Custom task with specVersion < 5.0 and determineBuildS
 	];
 	const taskDefinitions = new TaskDefinitions(graph, project, taskUtil, taskRepository);
 
-	const err = await t.throwsAsync(taskDefinitions.getBuildSignatures());
-	t.is(err.message,
-		`Custom task myTask of project project.b uses a determineBuildSignature callback, ` +
-		`which is not supported for tasks with specVersion < 5.0. ` +
-		`Please update the task's specVersion to at least 5.0.`,
-		"Threw with expected error message");
+	const sig = await taskDefinitions.getBuildSignatures();
+	const expectedHash = crypto.createHash("sha256").update(
+		JSON.stringify("configuration")
+	).digest("hex");
+	t.is(sig, expectedHash, "Below specVersion 5.0, signature falls back to configuration JSON");
 	t.is(determineBuildSignatureCallback.callCount, 0,
-		"determineBuildSignature callback was not invoked");
+		"determineBuildSignature callback is not invoked below specVersion 5.0");
 });
 
 test("getBuildSignatures: Combines standard and custom task signatures", async (t) => {
-	const {graph, taskUtil, taskRepository, customTask, sinon} = t.context;
+	const {graph, taskUtil, taskRepository, customTask, customTaskSpecVersionGteStub, sinon} = t.context;
+	// taskA: no determineBuildSignature → falls back to options JSON.
+	// taskB: descriptor carries determineBuildSignature returning "std-sig".
+	const stdSigStub = sinon.stub().resolves("std-sig");
+	taskRepository.getTask.withArgs("taskA").resolves({task: (opts) => ({task: async () => {}})});
+	taskRepository.getTask.withArgs("taskB").resolves({
+		task: (opts) => ({task: async () => {}, determineBuildSignature: stdSigStub})
+	});
 	const standardTasks = new Map([
 		["taskA", {options: {a: 1}}],
-		["taskB", {determineBuildSignature: sinon.stub().resolves("std-sig")}],
+		["taskB", {options: {}}],
 	]);
 	const definitionStub = sinon.stub().returns(standardTasks);
 	const MockedTaskDefinitions = await esmock.p("../../../lib/build/TaskDefinitions.js", {}, {
@@ -576,6 +604,8 @@ test("getBuildSignatures: Combines standard and custom task signatures", async (
 		}
 	});
 
+	// Make the custom task specVersion >= 5.0 so its determineBuildSignature is honored.
+	customTaskSpecVersionGteStub.withArgs("5.0").returns(true);
 	const determineBuildSignatureCallback = sinon.stub().resolves("custom-sig");
 	customTask.getDetermineBuildSignatureCallback = sinon.stub().resolves(determineBuildSignatureCallback);
 
@@ -587,7 +617,7 @@ test("getBuildSignatures: Combines standard and custom task signatures", async (
 	const sig = await taskDefinitions.getBuildSignatures();
 
 	const expectedKey = [
-		JSON.stringify({a: 1}),
+		JSON.stringify({a: 1, projectName: "project.b", projectNamespace: "project/b"}),
 		"std-sig",
 		"custom-sig"
 	].join("|");

@@ -56,7 +56,7 @@ test.serial("executeJsdocSdkTransformation", async (t) => {
 	const dependencies = {
 		byGlob: byGlobDependenciesStub
 	};
-	await executeJsdocSdkTransformation({
+	await executeJsdocSdkTransformation().task({
 		workspace,
 		dependencies,
 		options: {
@@ -105,7 +105,7 @@ test.serial("executeJsdocSdkTransformation", async (t) => {
 
 test("executeJsdocSdkTransformation with missing parameters", async (t) => {
 	const {executeJsdocSdkTransformation} = t.context;
-	await t.throwsAsync(executeJsdocSdkTransformation(), {
+	await t.throwsAsync(executeJsdocSdkTransformation().task(), {
 		instanceOf: TypeError
 	}, "TypeError thrown");
 });
@@ -131,7 +131,7 @@ test.serial("executeJsdocSdkTransformation with missing project api.json (skips 
 		byGlob: byGlobDependenciesStub
 	};
 
-	await executeJsdocSdkTransformation({
+	await executeJsdocSdkTransformation().task({
 		workspace,
 		dependencies,
 		options: {
@@ -170,7 +170,7 @@ test("executeJsdocSdkTransformation too many project api.json resources", async 
 		byGlob: byGlobDependenciesStub
 	};
 
-	const error = await t.throwsAsync(executeJsdocSdkTransformation({
+	const error = await t.throwsAsync(executeJsdocSdkTransformation().task({
 		workspace,
 		dependencies,
 		options: {
@@ -203,7 +203,7 @@ test("executeJsdocSdkTransformation missing project .library", async (t) => {
 		byGlob: byGlobDependenciesStub
 	};
 
-	const error = await t.throwsAsync(executeJsdocSdkTransformation({
+	const error = await t.throwsAsync(executeJsdocSdkTransformation().task({
 		workspace,
 		dependencies,
 		options: {
@@ -240,7 +240,7 @@ test("executeJsdocSdkTransformation too many project .library resources", async 
 		byGlob: byGlobDependenciesStub
 	};
 
-	const error = await t.throwsAsync(executeJsdocSdkTransformation({
+	const error = await t.throwsAsync(executeJsdocSdkTransformation().task({
 		workspace,
 		dependencies,
 		options: {
