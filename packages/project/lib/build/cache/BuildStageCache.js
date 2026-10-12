@@ -100,7 +100,7 @@ export default class BuildStageCache {
 		// future use case, bundling many files from outside the UI5 dirs (e.g. node_modules) into the
 		// build result, would want per-file delta re-runs like project/dependency; that needs a
 		// changed-root-path signal, list-valued root signatures in the stage delta candidates, and root
-		// reads threaded into step unit selection, and is left as a separate change.
+		// reads threaded into step invocation selection, and is left as a separate change.
 		this.#rootRequestManagers = rootRequestManagers ?? {
 			gitignore: new ResourceRequestManager(projectName, `${stageId}#root`, false),
 			noGitignore: new ResourceRequestManager(projectName, `${stageId}#root-no-gitignore`, false),

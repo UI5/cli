@@ -123,7 +123,7 @@ export default class ProjectBuildCache {
 	// setStepInvocationData.
 	#stepInvocationData = new Map();
 
-	// Compressed CAS rows for resources returned by the step runner, buffered per unit and flushed in
+	// Compressed CAS rows for resources returned by the step runner, buffered per invocation and flushed in
 	// one transaction per step via the return value store's flush() (see #flushStepReturns).
 	#pendingStepReturnCasRows = [];
 
@@ -1065,8 +1065,8 @@ export default class ProjectBuildCache {
 	 * Persists the content of resources a step returned and describes them for later
 	 * reconstruction. Content goes through the same compression and dedup pipeline as stage resources;
 	 * the compressed rows are buffered in {@link #pendingStepReturnCasRows} and written by
-	 * {@link #flushStepReturns}, which the driver calls once per step so a step returning many units
-	 * costs one transaction rather than one per unit. The descriptors are recorded in the step's
+	 * {@link #flushStepReturns}, which the driver calls once per step so a step returning many invocations
+	 * costs one transaction rather than one per invocation. The descriptors are recorded in the step's
 	 * invocation data. The CAS write uses INSERT OR IGNORE, so content shared with a stage output is
 	 * stored once and a build that later fails before the flush leaves nothing behind.
 	 *
@@ -1094,8 +1094,8 @@ export default class ProjectBuildCache {
 
 	/**
 	 * Writes the step-return CAS rows buffered since the last flush in a single transaction. The driver
-	 * calls this once per step (after the step's units have stored their returns), so one step costs one
-	 * transaction regardless of how many units returned resources. A no-op when nothing was buffered.
+	 * calls this once per step (after the step's invocations have stored their returns), so one step costs one
+	 * transaction regardless of how many invocations returned resources. A no-op when nothing was buffered.
 	 */
 	#flushStepReturns() {
 		if (!this.#pendingStepReturnCasRows.length) {

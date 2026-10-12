@@ -57,7 +57,7 @@ function mergeInputRecordings(base, extra) {
  * Folds a stage's per-key reads (the {@link StepRunner} fold) into the stage-level monitored requests,
  * deduping against what the base recording already requests.
  *
- * The recorder stores resolved paths and the glob patterns a unit issued, and a path or pattern is commonly
+ * The recorder stores resolved paths and the glob patterns an invocation issued, and a path or pattern is commonly
  * read by more than one key (a shared marker probe, a dependency each key resolves, a shared glob) and also
  * recorded at the stage level, so a plain concatenation carried duplicates that only collapse later in the
  * request graph (which keys on a Set). Deduping here keeps the recording the request graph rebuilds minimal;

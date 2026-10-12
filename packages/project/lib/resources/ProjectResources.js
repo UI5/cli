@@ -394,7 +394,7 @@ class ProjectResources {
 	 *
 	 * Used when a step-based task's stage was a full cache hit that must be re-run after all (a consumed
 	 * producer <code>needs</code> return changed): the fast-path restore had swapped in a read-only cached
-	 * stage via {@link #setStage}, so the stage has no writer, and re-running its units needs a writable
+	 * stage via {@link #setStage}, so the stage has no writer, and re-running its invocations needs a writable
 	 * one. The reopened stage reads all previous stages exactly as {@link #useStage} does; the re-run's
 	 * output goes into the fresh writer.
 	 *
