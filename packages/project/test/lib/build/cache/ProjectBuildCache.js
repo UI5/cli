@@ -1444,7 +1444,7 @@ test("writeCache does not rewrite a stage that was not re-recorded", async (t) =
 	t.is(writesAfterSecond, 1, "an unchanged stage row is not rewritten on a later build");
 });
 
-test("step return storage buffers per unit and flushes one transaction per step", async (t) => {
+test("step return storage buffers per invocation and flushes one transaction per step", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = new ProjectBuildCache(project, "sig", cacheManager);
@@ -1452,7 +1452,7 @@ test("step return storage buffers per unit and flushes one transaction per step"
 
 	const store = cache.getStepReturnValueStore();
 
-	// The driver calls store() once per returning unit. Three units each return one resource.
+	// The driver calls store() once per returning invocation. Three invocations each return one resource.
 	const resA = createMockResource("/out/a.js", "int-a", 10, 12, 1);
 	const resB = createMockResource("/out/b.js", "int-b", 20, 12, 2);
 	const resC = createMockResource("/out/c.js", "int-c", 30, 12, 3);
@@ -1461,7 +1461,7 @@ test("step return storage buffers per unit and flushes one transaction per step"
 	const dA = await store.store([resA]);
 	const dB = await store.store([resB]);
 	const dC = await store.store([resC]);
-	t.is(cacheManager.transaction.callCount, txBefore, "storing a unit's return opens no transaction");
+	t.is(cacheManager.transaction.callCount, txBefore, "storing an invocation's return opens no transaction");
 
 	// Descriptors are built from the metadata #prepareStageResources already computed, identical to
 	// re-reading each resource's integrity/size/lastModified/inode.
@@ -1471,8 +1471,8 @@ test("step return storage buffers per unit and flushes one transaction per step"
 
 	store.flush();
 	t.is(cacheManager.transaction.callCount, txBefore + 1,
-		"flush writes every buffered unit's content in exactly one transaction");
-	t.is(cacheManager.putCompressedContent.callCount, 3, "each unit's content written once");
+		"flush writes every buffered invocation's content in exactly one transaction");
+	t.is(cacheManager.putCompressedContent.callCount, 3, "each invocation's content written once");
 
 	store.flush();
 	t.is(cacheManager.transaction.callCount, txBefore + 1, "an empty flush opens no transaction");
@@ -2761,8 +2761,8 @@ test("validateCache: dependency-set change is general, not specific to the build
 	});
 
 // Integration: CAS-backed step return values through a real SQLite CacheManager. Proves a returned
-// resource is correct after a full build (stored), an unchanged rebuild (every unit restored from CAS),
-// and a delta build (the changed unit re-runs, the others restore from CAS). The map step's reassembled
+// resource is correct after a full build (stored), an unchanged rebuild (every invocation restored from CAS),
+// and a delta build (the changed invocation re-runs, the others restore from CAS). The map step's reassembled
 // returns are observed through a needs consumer, since runSteps() itself returns nothing.
 function createIntegrationWorkspace(sources = []) {
 	const store = new Map(sources.map((res) => [res.getPath(), res]));
@@ -2785,8 +2785,8 @@ test.serial("Integration: step return values round-trip through the real CAS", a
 	const buildCache = new ProjectBuildCache(project, "build-sig", cacheManager, Cache.Default);
 	const returnValueStore = buildCache.getStepReturnValueStore();
 
-	// A producer map step over keys "a" and "b": each unit reads its per-key input (so a change to that
-	// input re-runs the owning unit) and returns a freshly-built resource. A consumer scalar step captures
+	// A producer map step over keys "a" and "b": each invocation reads its per-key input (so a change to that
+	// input re-runs the owning invocation) and returns a freshly-built resource. A consumer scalar step captures
 	// the producer's reassembled returns via needs, the observable route now that runSteps returns nothing.
 	let captured;
 	const buildSteps = (marker, ran) => [
@@ -2827,7 +2827,7 @@ test.serial("Integration: step return values round-trip through the real CAS", a
 		}).runSteps();
 	}
 
-	// Build 1: full build. Every unit runs; returns are stored in the CAS.
+	// Build 1: full build. Every invocation runs; returns are stored in the CAS.
 	let producerData;
 	await runBuild({marker: "content", captureInvocation: (step, data) => {
 		if (step === "g") {
@@ -2837,7 +2837,7 @@ test.serial("Integration: step return values round-trip through the real CAS", a
 	t.is(await captured[0].getString(), "content-a", "Build 1 hands back the fresh resource for a");
 	t.is(await captured[1].getString(), "content-b", "Build 1 hands back the fresh resource for b");
 
-	// Build 2: unchanged rebuild. No changed paths, so no producer unit re-runs; both returns come from CAS.
+	// Build 2: unchanged rebuild. No changed paths, so no producer invocation re-runs; both returns come from CAS.
 	// Only the producer's persisted data is carried forward; the consumer re-runs to capture the returns.
 	const ran2 = [];
 	await runBuild({
@@ -2845,18 +2845,18 @@ test.serial("Integration: step return values round-trip through the real CAS", a
 		verdicts: {g: {changedProjectResourcePaths: [], changedDependencyResourcePaths: []}},
 		previousData: new Map([["g", producerData]]),
 	});
-	t.deepEqual(ran2, [], "No producer unit re-ran on the unchanged rebuild");
+	t.deepEqual(ran2, [], "No producer invocation re-ran on the unchanged rebuild");
 	t.is(await captured[0].getString(), "content-a", "Unchanged rebuild restored a from the CAS");
 	t.is(await captured[1].getString(), "content-b", "Unchanged rebuild restored b from the CAS");
 
-	// Build 3: delta build. Only /in/a changed, so unit "a" re-runs (fresh) while "b" restores from CAS.
+	// Build 3: delta build. Only /in/a changed, so invocation "a" re-runs (fresh) while "b" restores from CAS.
 	const ran3 = [];
 	await runBuild({
 		marker: "fresh", ran: ran3,
 		verdicts: {g: {changedProjectResourcePaths: ["/in/a"], changedDependencyResourcePaths: []}},
 		previousData: new Map([["g", producerData]]),
 	});
-	t.deepEqual(ran3, ["a"], "Delta build re-ran only the unit whose input changed");
-	t.is(await captured[0].getString(), "fresh-a", "Delta build handed back the re-run unit's fresh return");
-	t.is(await captured[1].getString(), "content-b", "Delta build restored the unchanged unit b from the CAS");
+	t.deepEqual(ran3, ["a"], "Delta build re-ran only the invocation whose input changed");
+	t.is(await captured[0].getString(), "fresh-a", "Delta build handed back the re-run invocation's fresh return");
+	t.is(await captured[1].getString(), "content-b", "Delta build restored the unchanged invocation b from the CAS");
 });

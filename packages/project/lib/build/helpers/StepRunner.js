@@ -7,7 +7,7 @@ import MonitoredTaskUtil from "./MonitoredTaskUtil.js";
 
 const log = getLogger("build:helpers:StepRunner");
 
-// Key identity of a scalar step's single implicit unit. A scalar step is a one-key group, so its
+// Key identity of a scalar step's single implicit invocation. A scalar step is a one-key group, so its
 // invocation data has exactly one entry under this fixed id.
 const SCALAR_KEY_ID = "scalar:0";
 
@@ -119,7 +119,7 @@ export function validateSteps(steps, {taskName} = {}) {
 }
 
 /**
- * Collects the reads and writes of a single step (a scalar step's implicit unit, or one key of a map
+ * Collects the reads and writes of a single step (a scalar step's implicit invocation, or one key of a map
  * step). Project reads (workspace) and dependency reads are kept apart so they can be folded back into
  * the task's project vs. dependency request graph independently: a dependency path folded into the
  * project graph would resolve against the wrong reader and corrupt the signature.
@@ -127,7 +127,7 @@ export function validateSteps(steps, {taskName} = {}) {
 class StepRecorder {
 	projectReads = new Set();
 	dependencyReads = new Set();
-	// Glob patterns a unit issued, kept so a cached key's glob stays in the stage request set: a stored
+	// Glob patterns an invocation issued, kept so a cached key's glob stays in the stage request set: a stored
 	// pattern is re-executed against the current reader on lookup, which is how a newly matching file moves
 	// the stage signature. Without it, a map-step key served from cache would drop its globs (its each body
 	// does not re-run), so an added match would not re-run the stage. Project and dependency patterns are
@@ -187,8 +187,8 @@ class RecordingReaderWriter extends AbstractReaderWriter {
 	 * @param {StepRecorder} recorder Recorder for this step
 	 * @param {Map<string, object>|null} writeBuffer Shared buffer for concurrent writes, or
 	 *   <code>null</code> to write through immediately (sequential mode)
-	 * @param {number} stepIndex Position of this unit in the key order, used to flush buffered writes
-	 *   deterministically and to detect two units writing the same path
+	 * @param {number} stepIndex Position of this invocation in the key order, used to flush buffered writes
+	 *   deterministically and to detect two invocations writing the same path
 	 */
 	constructor(workspace, recorder, writeBuffer, stepIndex) {
 		super(workspace.getName());
@@ -248,30 +248,30 @@ class RecordingReaderWriter extends AbstractReaderWriter {
  *     key set and <code>each</code> runs once per key</li>
  * </ul>
  *
- * Write contract: every write a unit makes must go through its own <code>workspace</code> (the recording
- * reader/writer passed in the unit's context). A write through any other handle (a stage workspace captured
- * in a closure, a writer reached some other way) is not attributed to the unit, so a delta build cannot drop
- * that output when the unit stops producing it: {@link #computeStaleOutputs} derives stale outputs from the
- * unit's recorded <code>writes</code>, so an unrecorded write leaves a stale file behind. The step API hands
- * a unit no writable handle other than its <code>workspace</code> (the factory receives <code>options</code>
+ * Write contract: every write an invocation makes must go through its own <code>workspace</code> (the recording
+ * reader/writer passed in the invocation's context). A write through any other handle (a stage workspace captured
+ * in a closure, a writer reached some other way) is not attributed to the invocation, so a delta build cannot drop
+ * that output when the invocation stops producing it: {@link #computeStaleOutputs} derives stale outputs from the
+ * invocation's recorded <code>writes</code>, so an unrecorded write leaves a stale file behind. The step API hands
+ * an invocation no writable handle other than its <code>workspace</code> (the factory receives <code>options</code>
  * only, and <code>taskUtil.getProject().getReader()</code> is read-only), so honoring this is the default; a
  * custom step that reaches a writer another way breaks the stale-output guarantee.
  *
  * Steps run in array order via {@link #runSteps}. A scalar step is a one-key group; a map step is a
- * multi-key group. Each unit runs against per-step recording readers and a per-step
+ * multi-key group. Each invocation runs against per-step recording readers and a per-step
  * [MonitoredTaskUtil]{@link @ui5/project/build/helpers/MonitoredTaskUtil} that record what it reads,
  * writes, returns, reads as a non-resource input, and tags. The recording lets a delta build re-run only
- * the units whose observed inputs changed and drop the outputs of units that no longer produce them,
- * without any delta bookkeeping in the task itself. A unit whose recorded non-resource input (an env var,
- * a dependency version) no longer resolves to its stored value re-runs; a unit whose consumed
- * <code>needs</code> return changed re-runs; a unit served from cache replays its recorded tag operations
+ * the invocations whose observed inputs changed and drop the outputs of invocations that no longer produce them,
+ * without any delta bookkeeping in the task itself. An invocation whose recorded non-resource input (an env var,
+ * a dependency version) no longer resolves to its stored value re-runs; an invocation whose consumed
+ * <code>needs</code> return changed re-runs; an invocation served from cache replays its recorded tag operations
  * so its tags reappear this build.
  *
  * A step lists earlier step names in <code>needs</code>, and those steps' returns arrive as
  * <code>needs.&lt;name&gt;</code>. A step may return resources (stored in the CAS by integrity, rebuilt on a
- * cache hit) or a JSON-serializable value (persisted inline with the unit's invocation data). Either is
+ * cache hit) or a JSON-serializable value (persisted inline with the invocation's invocation data). Either is
  * injected into a consumer via <code>needs</code>, and the return's signature folds into the consumer's
- * per-unit selection so a changed producer return re-runs the consumer.
+ * per-invocation selection so a changed producer return re-runs the consumer.
  *
  * A key is identified by content and identity: a resource key by its path and a content discriminator (the
  * path distinguishes resources that share content but produce different output, the discriminator makes a
@@ -314,8 +314,8 @@ export default class StepRunner {
 	 * @param {object} [parameters.options] Task options, passed through to each step's context
 	 * @param {function(string): Promise<(object|boolean)>} [parameters.prepareStage] Switches the project to
 	 *   the named step's stage and returns its cache verdict: <code>true</code> (fully cached, do not run),
-	 *   an object (delta cacheInfo for the map step's internal key-delta), or a falsy value (run every unit).
-	 *   Absent for standalone use (no cache): every unit runs. This verdict is read three ways in
+	 *   an object (delta cacheInfo for the map step's internal key-delta), or a falsy value (run every invocation).
+	 *   Absent for standalone use (no cache): every invocation runs. This verdict is read three ways in
 	 *   {@link #runSteps}: compared against <code>true</code> for the full-hit short-circuit, passed to
 	 *   <code>markStageExecuting</code> as a "was this a delta" flag, and treated as "run everything if
 	 *   falsy" by {@link #selectStepsToRun}. An explicit verdict shape would read more clearly, but it is
@@ -332,7 +332,7 @@ export default class StepRunner {
 	 * @param {function(): {workspace, dependencies, taskUtil, monitoredTaskUtil, getResourceRequests,
 	 *   getInputRecording}} parameters.createStageContext Returns a fresh per-stage context bound to the
 	 *   stage the last <code>prepareStage</code> switched to: the monitored workspace/dependencies readers,
-	 *   the pass-through <code>taskUtil</code> the step units wrap per key, and drains for the monitored
+	 *   the pass-through <code>taskUtil</code> the step invocations wrap per key, and drains for the monitored
 	 *   task-level requests and inputs. Called once per step that runs.
 	 * @param {function(string): (Map<string, object>|undefined)} [parameters.getPreviousInvocationData]
 	 *   Returns the named step's stage's previous per-key invocation data, or undefined on a first build.
@@ -340,21 +340,21 @@ export default class StepRunner {
 	 *   <code>store(resources)</code> (persist content, return path-aligned descriptors) and
 	 *   <code>restore(descriptor)</code> (rebuild a resource from a descriptor). Absent for standalone
 	 *   use without a build cache: resource returns are then handed back for the current build but not
-	 *   persisted, so a later delta build cannot restore a unit that is served from cache. Serializable
+	 *   persisted, so a later delta build cannot restore an invocation that is served from cache. Serializable
 	 *   returns persist inline and need no store.
 	 * @param {function(string, string): (string|undefined)} [parameters.resolveInputValue] Re-derives the
 	 *   current normalized value of a recorded non-resource input (env var, time bucket, dependency
-	 *   version, ...), the same resolver the task-level input lookup uses. A cached unit whose recorded
+	 *   version, ...), the same resolver the task-level input lookup uses. A cached invocation whose recorded
 	 *   input no longer resolves to its stored value is re-run. Absent for standalone use, where no input
-	 *   can be re-resolved and a unit is selected on its resource reads alone.
-	 * @param {function(Array<object>): void} [parameters.applyTagOperations] Replays a restored unit's
-	 *   recorded tag operations into the project tag collection, so a unit served from cache contributes
+	 *   can be re-resolved and an invocation is selected on its resource reads alone.
+	 * @param {function(Array<object>): void} [parameters.applyTagOperations] Replays a restored invocation's
+	 *   recorded tag operations into the project tag collection, so an invocation served from cache contributes
 	 *   the same tags it would have set had it run. Absent for standalone use, where tags are not persisted.
 	 * @param {function(boolean): void} [parameters.notifyStepExecution] Called once, before the first step
 	 *   that actually executes runs anything, with whether that step's stage carries a delta verdict. The
 	 *   TaskRunner reports the task started from it, so <code>task-start</code> precedes the work it
 	 *   announces. Not called when every step is served from cache (the task is reported skipped instead).
-	 * @param {AbortSignal} [parameters.signal] Build abort signal, checked between units
+	 * @param {AbortSignal} [parameters.signal] Build abort signal, checked between invocations
 	 */
 	constructor({
 		steps, options, prepareStage, recordStage, createStageContext, getPreviousInvocationData,
@@ -375,7 +375,7 @@ export default class StepRunner {
 	}
 
 	/**
-	 * Runs the step list in array order, caching each unit's result.
+	 * Runs the step list in array order, caching each invocation's result.
 	 *
 	 * A scalar step runs its <code>run</code> once; a map step enumerates keys via <code>keys</code> then
 	 * runs <code>each</code> per key. Before a step runs, a <code>needs</code> object is assembled from the
@@ -425,7 +425,7 @@ export default class StepRunner {
 			this.#signal?.throwIfAborted();
 
 			// Switch the project to this step's own stage and get its cache verdict. Standalone use (no
-			// prepareStage) always runs every unit.
+			// prepareStage) always runs every invocation.
 			let cacheInfo = this.#prepareStage ? await this.#prepareStage(step.name) : false;
 			const previous = this.#getPreviousInvocationData ?
 				this.#getPreviousInvocationData(step.name) : undefined;
@@ -459,9 +459,9 @@ export default class StepRunner {
 					`step '${step.name}': re-running despite a full stage-cache hit ` +
 					`(a consumed needs return changed, or the stage's invocation data cannot be restored)`);
 				// Reopen the stage (fresh writer) and re-run it as a full execution: the hook returns a
-				// falsy verdict, so #selectStepsToRun runs every unit rather than pruning. Reopening installs
+				// falsy verdict, so #selectStepsToRun runs every invocation rather than pruning. Reopening installs
 				// a fresh EMPTY writable stage (unlike a delta verdict, whose stage was pre-seeded with the
-				// cached outputs at import), so the units cannot be pruned without first re-seeding that
+				// cached outputs at import), so the invocations cannot be pruned without first re-seeding that
 				// stage; re-running the whole stage keeps the output complete without that machinery. No
 				// shipped multi-step task is penalized: generateThemeDesignerResources is the only task
 				// wiring needs, and a changed scan return means its themes must regenerate anyway. The cost
@@ -471,7 +471,7 @@ export default class StepRunner {
 			}
 
 			// A step past the fully-cached short-circuit executes its stage (fresh recording), even if it
-			// enumerates zero units this build (an empty map step). This is "the task ran" for reporting,
+			// enumerates zero invocations this build (an empty map step). This is "the task ran" for reporting,
 			// distinct from a stage served entirely from cache.
 			markStageExecuting(cacheInfo);
 
@@ -483,14 +483,14 @@ export default class StepRunner {
 			let callback;
 			let options;
 			if (isScalar) {
-				// A scalar step is a single implicit unit; writes persist immediately (sequential) so the
+				// A scalar step is a single implicit invocation; writes persist immediately (sequential) so the
 				// step reads back its own writes and later steps see them.
 				entries = [{key: undefined, index: 0, keyId: SCALAR_KEY_ID}];
-				callback = (key, unitCtx) => step.run(unitCtx);
+				callback = (key, invocationCtx) => step.run(invocationCtx);
 				options = {sequential: true};
 			} else {
 				entries = await this.#enumerateKeys(step, needs, ctx);
-				callback = (key, unitCtx) => step.each(key, unitCtx);
+				callback = (key, invocationCtx) => step.each(key, invocationCtx);
 				options = step.sequential ? {sequential: true} : undefined;
 			}
 
@@ -531,7 +531,7 @@ export default class StepRunner {
 	 * - <code>previous === undefined</code>: no sidecar at all. A scalar producer would restore an
 	 *   <code>undefined</code> return that crashes a consumer dereferencing it through <code>needs</code>.
 	 * - A scalar step whose <code>previous.size !== 1</code>: a scalar step records exactly its one implicit
-	 *   unit, so any other count means the sidecar does not match.
+	 *   invocation, so any other count means the sidecar does not match.
 	 * - A <code>needs</code>-declaring step whose <code>previous.size === 0</code>: {@link #needsReturnChanged}
 	 *   has no recorded <code>needsInputs</code> to compare against, so it cannot observe that a consumed
 	 *   producer return changed (the zero-key map step gated behind a <code>needs</code> flag). Re-running
@@ -611,26 +611,26 @@ export default class StepRunner {
 	}
 
 	/**
-	 * Output paths a stage produced on a previous build but no longer produces (a re-run unit that writes
+	 * Output paths a stage produced on a previous build but no longer produces (a re-run invocation that writes
 	 * fewer paths, or a key gone this build), so they can be dropped from the carried-forward stage. Scoped
 	 * to this one stage: a stage owns its outputs, so a path it stops producing is stale for it.
 	 *
 	 * A path is only dropped when nothing in the stage claims it this build, so the writes of every key
 	 * present this build are subtracted, including those of a key served from cache (which still owns the
-	 * paths it wrote on an earlier build). The re-run comparison, in contrast, runs over the units that
-	 * actually executed: a cached unit's entry is carried over from <code>previous</code> unchanged, so
+	 * paths it wrote on an earlier build). The re-run comparison, in contrast, runs over the invocations that
+	 * actually executed: a cached invocation's entry is carried over from <code>previous</code> unchanged, so
 	 * comparing it against itself could never report a dropped path anyway.
 	 *
-	 * This relies on each unit's recorded <code>writes</code> being a complete record of what it produced,
-	 * which holds only while units honor the write contract (see the class description): a write that went
-	 * through a handle other than the unit's <code>workspace</code> is absent from <code>writes</code>, so
+	 * This relies on each invocation's recorded <code>writes</code> being a complete record of what it produced,
+	 * which holds only while invocations honor the write contract (see the class description): a write that went
+	 * through a handle other than the invocation's <code>workspace</code> is absent from <code>writes</code>, so
 	 * this derivation cannot drop it and the stale output survives.
 	 *
 	 * @param {Map<string, object>|undefined} previous The stage's previous per-key invocation data
 	 * @param {Map<string, object>} invocationData The stage's complete per-key invocation data this build
-	 *   (re-run units merged over the carried-over cached ones)
+	 *   (re-run invocations merged over the carried-over cached ones)
 	 * @param {Array<{keyId: string}>} entries The stage's key entries this build
-	 * @param {Map<string, object>} freshInvocationData The per-key data of the units that ran this build
+	 * @param {Map<string, object>} freshInvocationData The per-key data of the invocations that ran this build
 	 * @returns {string[]} Paths to drop
 	 */
 	#computeStaleOutputs(previous, invocationData, entries, freshInvocationData) {
@@ -651,7 +651,7 @@ export default class StepRunner {
 			}
 			const reRun = freshInvocationData.get(keyId);
 			if (reRun) {
-				// Re-run unit: any path it owned but did not re-write is stale.
+				// Re-run invocation: any path it owned but did not re-write is stale.
 				prev.writes.forEach((path) => {
 					if (!reRun.writes.includes(path)) {
 						stale.add(path);
@@ -688,7 +688,7 @@ export default class StepRunner {
 	 * where these two checks run. The gap the needs checks close is specific to a single consumer stage whose
 	 * own signature omits the producer; aggregation closes it at the project level.
 	 *
-	 * The recorder stores resolved paths and the glob patterns a unit issued, and the same path or pattern is
+	 * The recorder stores resolved paths and the glob patterns an invocation issued, and the same path or pattern is
 	 * commonly read by more than one key (a shared marker probe, a dependency a map step's keys each resolve,
 	 * a shared glob), so the raw concatenation held one entry per read. The duplicates collapse downstream (the
 	 * request graph keys on a Set), but carrying them inflates the recording the TaskRunner folds onto the
@@ -739,10 +739,10 @@ export default class StepRunner {
 	 * Assembles the <code>needs</code> object passed to a step from the recorded returns of the steps it
 	 * names.
 	 *
-	 * One object is shared by the step's <code>keys</code> enumerator and all of its units, so it is
-	 * frozen: a unit assigning to <code>needs.&lt;producer&gt;</code> would otherwise leak into its
-	 * siblings and into the recorded <code>needsInputs</code> of whichever unit ran next, making a delta
-	 * build's per-unit selection depend on execution order. The freeze is shallow, since a producer may
+	 * One object is shared by the step's <code>keys</code> enumerator and all of its invocations, so it is
+	 * frozen: an invocation assigning to <code>needs.&lt;producer&gt;</code> would otherwise leak into its
+	 * siblings and into the recorded <code>needsInputs</code> of whichever invocation ran next, making a delta
+	 * build's per-invocation selection depend on execution order. The freeze is shallow, since a producer may
 	 * return resources whose own state must stay writable; a step that needs a mutable copy makes one.
 	 *
 	 * @param {string[]} [names] Names of earlier steps this step needs
@@ -759,7 +759,7 @@ export default class StepRunner {
 	}
 
 	/**
-	 * The current return signatures of the steps a step needs, for per-unit delta selection.
+	 * The current return signatures of the steps a step needs, for per-invocation delta selection.
 	 *
 	 * @param {string[]} [names] Names of earlier steps this step needs
 	 * @returns {Map<string, string>} Producer step name to its current return signature
@@ -803,9 +803,9 @@ export default class StepRunner {
 	}
 
 	/**
-	 * The combined return signature of a step, used by a consumer's per-unit selection to detect a changed
-	 * producer return. A scalar step's signature derives from its single unit's return; a map step's from the
-	 * order-independent set of its units' returns.
+	 * The combined return signature of a step, used by a consumer's per-invocation selection to detect a changed
+	 * producer return. A scalar step's signature derives from its single invocation's return; a map step's from the
+	 * order-independent set of its invocations' returns.
 	 *
 	 * The map case hashes a <code>keyId -&gt; signature</code> map sorted by <code>keyId</code>, not a
 	 * positional array in <code>entries</code> order. <code>entries</code> order is <code>keys()</code>
@@ -814,9 +814,9 @@ export default class StepRunner {
 	 * would otherwise move the signature and re-run every consumer for nothing.
 	 *
 	 * Both cases return a fixed-size SHA-256 hex digest rather than the raw serialization, so the value is
-	 * consistent with every other signature in the cache system and the per-unit <code>needsInputs</code>
+	 * consistent with every other signature in the cache system and the per-invocation <code>needsInputs</code>
 	 * each consumer records stays O(1) in size. The raw map serialization would be O(producer key count),
-	 * copied into every consumer unit, so a map producer feeding a map consumer would persist an
+	 * copied into every consumer invocation, so a map producer feeding a map consumer would persist an
 	 * O(producers x consumers) sidecar.
 	 *
 	 * @param {Map<string, object>} invocationData The step's per-key invocation data this build
@@ -826,7 +826,7 @@ export default class StepRunner {
 	 */
 	#computeStepReturnSignature(invocationData, entries, isScalar) {
 		if (isScalar) {
-			// A scalar step is a single implicit unit, so there is no key order to normalize.
+			// A scalar step is a single implicit invocation, so there is no key order to normalize.
 			const first = entries[0];
 			const raw = first ?
 				this.#returnDescriptorSignature(invocationData?.get(first.keyId)?.returns) : "none";
@@ -876,7 +876,7 @@ export default class StepRunner {
 		if (key && typeof key.getIntegrity === "function") {
 			// The path distinguishes resources that share content but produce different output (e.g. two
 			// libraries' identical library.source.less); the trailing component makes a content change a
-			// new key, so the unit re-runs and its previous output is dropped rather than served stale.
+			// new key, so the invocation re-runs and its previous output is dropped rather than served stale.
 			//
 			// That trailing component is tiered like isResourceUnchanged (utils.js), cheapest first, to
 			// avoid hashing every key's content on every build (a stale-cache sap.m build spent ~420 ms
@@ -888,7 +888,7 @@ export default class StepRunner {
 			//
 			// Residual staleness risk, identical to isResourceUnchanged's and accepted for the same
 			// reason: a content change that preserves BOTH lastModified and size keeps the same key, so
-			// the unit is not re-run. A real edit moves mtime; the gap is for mtime-preserving replacements
+			// the invocation is not re-run. A real edit moves mtime; the gap is for mtime-preserving replacements
 			// (cp -p, tar -x, atomic rename) that also hold size constant. The changed-path delta does not
 			// cover this case either, since it is derived through the same tiered comparison.
 			const lastModified = key.getLastModified?.();
@@ -906,14 +906,14 @@ export default class StepRunner {
 	}
 
 	/**
-	 * Validates a unit's return value and, for a resource return, persists its content in the CAS. A
+	 * Validates an invocation's return value and, for a resource return, persists its content in the CAS. A
 	 * serializable value is persisted inline in the invocation entry; a resource return is stored in the
 	 * CAS by integrity; anything else throws.
 	 *
-	 * @param {*} returnValue The value the unit returned
+	 * @param {*} returnValue The value the invocation returned
 	 * @returns {Promise<object|null>} The persisted return descriptor:
 	 *   <code>{kind: "resources", isArray, items: [{path, integrity, ...}]}</code>,
-	 *   <code>{kind: "value", value}</code>, or <code>null</code> when the unit returned nothing (or a
+	 *   <code>{kind: "value", value}</code>, or <code>null</code> when the invocation returned nothing (or a
 	 *   resource return has no store to persist against)
 	 */
 	async #recordReturn(returnValue) {
@@ -935,9 +935,9 @@ export default class StepRunner {
 	}
 
 	/**
-	 * Rebuilds a cached unit's return from the descriptor recorded on its previous run.
+	 * Rebuilds a cached invocation's return from the descriptor recorded on its previous run.
 	 *
-	 * @param {object|null} [returns] The recorded return descriptor, or falsy when the unit returned nothing
+	 * @param {object|null} [returns] The recorded return descriptor, or falsy when the invocation returned nothing
 	 * @returns {*} The value, the single resource, the array of resources, or <code>undefined</code>
 	 */
 	#restoreReturn(returns) {
@@ -959,10 +959,10 @@ export default class StepRunner {
 	 * Classifies a return value as nothing, resource(s), or a serializable value, throwing on anything
 	 * else (a returned array mixing resources and non-resources, or a value that is not JSON-serializable).
 	 *
-	 * @param {*} value The value the unit returned
+	 * @param {*} value The value the invocation returned
 	 * @returns {{kind: string, isArray: boolean|undefined, resources: object[]|undefined,
 	 *   value: *}|null} The classified
-	 *   return, or <code>null</code> when the unit returned nothing
+	 *   return, or <code>null</code> when the invocation returned nothing
 	 */
 	#normalizeReturn(value) {
 		if (value === undefined || value === null) {
@@ -995,8 +995,8 @@ export default class StepRunner {
 
 	#selectStepsToRun(entries, previous, needsSignatures, cacheInfo, isScalar) {
 		if (!cacheInfo || !previous || isScalar) {
-			// Full build, or a step with no previous data: run every unit. A scalar step always re-runs
-			// on a delta verdict too: it is a single implicit unit, so the per-unit reads delta cannot
+			// Full build, or a step with no previous data: run every invocation. A scalar step always re-runs
+			// on a delta verdict too: it is a single implicit invocation, so the per-invocation reads delta cannot
 			// prune it, and that delta cannot catch a file newly matching a glob the step evaluated. The
 			// recorder stores resolved paths, not patterns, so a file that did not exist on the previous
 			// build appears in no recorded read; the owning stage signature does change (the stage-level
@@ -1013,22 +1013,22 @@ export default class StepRunner {
 				// New key (a new string key, or a resource whose changed content yields a new integrity).
 				return true;
 			}
-			// A unit whose recorded reads intersect the changed paths must re-run: this is the reverse
+			// An invocation whose recorded reads intersect the changed paths must re-run: this is the reverse
 			// mapping that re-runs the owner of a changed cross-resource input (a .js whose .js.map
 			// changed, a theme whose gating marker was added or removed).
 			if (prev.reads.some((path) => changedProject.has(path)) ||
 				prev.dependencyReads.some((path) => changedDependency.has(path))) {
 				return true;
 			}
-			// A unit whose recorded non-resource input no longer resolves to its stored value must re-run,
-			// so only the unit that read a changed env var, rolled-over time bucket or bumped dependency
+			// An invocation whose recorded non-resource input no longer resolves to its stored value must re-run,
+			// so only the invocation that read a changed env var, rolled-over time bucket or bumped dependency
 			// version re-runs. Without a resolver (standalone use) an input cannot be re-derived, so the
-			// unit is selected on its resource reads alone.
+			// invocation is selected on its resource reads alone.
 			if (this.#resolveInputValue && prev.inputs?.some(
 				(input) => this.#resolveInputValue(input.type, input.name) !== input.value)) {
 				return true;
 			}
-			// A unit whose consumed needs return changed must re-run: the producer ran (or was restored)
+			// An invocation whose consumed needs return changed must re-run: the producer ran (or was restored)
 			// earlier this build, so its current return signature is known. A producer that re-ran with a
 			// changed return advances its signature; a restored producer keeps its previous one.
 			if (needsSignatures && prev.needsInputs?.some(
@@ -1040,12 +1040,12 @@ export default class StepRunner {
 	}
 
 	/**
-	 * Replays a restored unit's recorded tag operations into the project tag collection, so a unit served
+	 * Replays a restored invocation's recorded tag operations into the project tag collection, so an invocation served
 	 * from cache contributes the same tags it would have set had it run. <code>get</code> operations carry
 	 * no persistent effect and are skipped by the applier. A no-op without an applier (standalone use) or
-	 * when the unit recorded no tag operations.
+	 * when the invocation recorded no tag operations.
 	 *
-	 * @param {Array<object>} [tagOperations] The unit's recorded tag operations
+	 * @param {Array<object>} [tagOperations] The invocation's recorded tag operations
 	 */
 	#replayTagOperations(tagOperations) {
 		if (this.#applyTagOperations && tagOperations?.length) {
@@ -1057,7 +1057,7 @@ export default class StepRunner {
 		if (!cacheInfo || !previous) {
 			return current;
 		}
-		// A delta build re-runs only some units, so the persisted map must stay the complete set: keep a
+		// A delta build re-runs only some invocations, so the persisted map must stay the complete set: keep a
 		// previous entry whose key is still present but was not re-run, drop keys no longer present, and
 		// let a re-run entry supersede its predecessor.
 		const currentKeyIds = new Set(entries.map((entry) => entry.keyId));
@@ -1074,26 +1074,26 @@ export default class StepRunner {
 	}
 
 	/**
-	 * Runs one step's stage (a scalar step's implicit unit, or a map step's keys): selects the units to
-	 * run, restores the rest from cache, records each unit's reads/writes/inputs/tags/return, and merges
+	 * Runs one step's stage (a scalar step's implicit invocation, or a map step's keys): selects the invocations to
+	 * run, restores the rest from cache, records each invocation's reads/writes/inputs/tags/return, and merges
 	 * the result into the stage's persisted invocation data.
 	 *
 	 * @param {string} group Step name
 	 * @param {Array<{key: *, index: number, keyId: string}>} entries Resolved key entries
 	 * @param {object} [options] Optional settings ({sequential})
-	 * @param {Function} callback <code>async (key, unitCtx) => value?</code>
+	 * @param {Function} callback <code>async (key, invocationCtx) => value?</code>
 	 * @param {object} context
-	 * @param {object} [context.needs] The step's needs object, injected into each unit's context
+	 * @param {object} [context.needs] The step's needs object, injected into each invocation's context
 	 * @param {Map<string, string>} [context.needsSignatures] Current producer return signatures, recorded
-	 *   with each unit for the next build's selection
+	 *   with each invocation for the next build's selection
 	 * @param {object|boolean} [context.cacheInfo] The stage's delta cache verdict (map step internal key-delta)
 	 * @param {Map<string, object>} [context.previous] The stage's previous per-key invocation data
 	 * @param {object} context.ctx The per-stage context ({workspace, dependencies, taskUtil})
-	 * @param {boolean} [context.isScalar] Whether this stage is a scalar step (a single implicit unit),
+	 * @param {boolean} [context.isScalar] Whether this stage is a scalar step (a single implicit invocation),
 	 *   which is selected to run on any delta verdict (see {@link #selectStepsToRun})
 	 * @returns {Promise<{results: Array, invocationData: Map<string, object>,
 	 *   freshInvocationData: Map<string, object>}>} Per-key results aligned to <code>entries</code> order,
-	 *   the stage's complete per-key invocation data, and the subset of it recorded by the units that
+	 *   the stage's complete per-key invocation data, and the subset of it recorded by the invocations that
 	 *   ran this build
 	 */
 	async #runGroup(group, entries, options, callback,
@@ -1109,9 +1109,9 @@ export default class StepRunner {
 		const recordedNeeds = needsSignatures ?
 			[...needsSignatures].map(([name, value]) => ({name, value})) : [];
 
-		// A unit served from cache did not run, so its return is rebuilt from the previous run's recorded
+		// An invocation served from cache did not run, so its return is rebuilt from the previous run's recorded
 		// descriptor, and its recorded tag operations are replayed so its tags reappear this build. Its
-		// slots are disjoint from the re-run units below, so this can happen before or after they run.
+		// slots are disjoint from the re-run invocations below, so this can happen before or after they run.
 		for (const {keyId, index} of entries) {
 			if (toRunIndices.has(index)) {
 				continue;
@@ -1127,8 +1127,8 @@ export default class StepRunner {
 			const workspace = new RecordingReaderWriter(ctx.workspace, recorder, writeBuffer, index);
 			const dependencies = ctx.dependencies ?
 				new RecordingReader(ctx.dependencies, recorder) : undefined;
-			// A per-unit MonitoredTaskUtil wrapping the stage's taskUtil: it attributes the unit's
-			// non-resource inputs and tag operations to the unit for per-unit selection and restore, while
+			// A per-invocation MonitoredTaskUtil wrapping the stage's taskUtil: it attributes the invocation's
+			// non-resource inputs and tag operations to the invocation for per-invocation selection and restore, while
 			// reads still delegate through the stage's monitored readers.
 			const taskUtil = new MonitoredTaskUtil(ctx.taskUtil, {recordTagOperations: true});
 
@@ -1156,15 +1156,15 @@ export default class StepRunner {
 			}
 		}
 
-		// The return value store buffers each unit's returned content; flush this step's buffer in one
-		// transaction now that every unit has recorded its return. A no-op for a step that returned
+		// The return value store buffers each invocation's returned content; flush this step's buffer in one
+		// transaction now that every invocation has recorded its return. A no-op for a step that returned
 		// nothing, and for standalone use with no store.
 		this.#returnValueStore?.flush?.();
 
 		const invocationData = this.#mergeInvocationData(currentInvocationData, entries, previous, cacheInfo);
 
 		if (log.isLevelEnabled("verbose")) {
-			log.verbose(`step '${group}': ran ${toRun.length} of ${entries.length} unit(s)`);
+			log.verbose(`step '${group}': ran ${toRun.length} of ${entries.length} invocation(s)`);
 		}
 		return {results, invocationData, freshInvocationData: currentInvocationData};
 	}

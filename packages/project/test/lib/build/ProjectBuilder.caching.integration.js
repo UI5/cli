@@ -22,9 +22,9 @@ function themeOutputs(namespace) {
 // namespaces (`lib/one`, `lib/two`), each gated by its own `library.js` marker. Adding/removing a
 // marker changes which single theme should be (re)built, and the others must stay served from cache.
 //
-// buildThemes builds each theme as a map-step unit (CPOUI5FOUNDATION-1363), so adding a marker now
+// buildThemes builds each theme as a map-step invocation (CPOUI5FOUNDATION-1363), so adding a marker now
 // rebuilds only the newly enabled theme, and removing a marker rebuilds nothing: the removed input
-// yields a delta (ResourceRequestManager.getDeltas includes removed paths), the owning unit drops out,
+// yields a delta (ResourceRequestManager.getDeltas includes removed paths), the owning invocation drops out,
 // and its stale output is dropped from the carried-forward stage while the other theme stays cached.
 
 test.serial(
@@ -1063,7 +1063,7 @@ test.serial("Build application.a (custom task reads a root config file, tracked 
 // generateThemeDesignerResources opens with a scalar "scan" step whose body globs
 // `library.source.less` to decide whether the library has any themes, and writes that verdict into the
 // library `.theming` as the bIgnore flag (bIgnore true == no themes, so the SAP Theme Designer skips the
-// library). A scalar step is a single implicit unit, so the per-unit reads delta cannot prune or select
+// library). A scalar step is a single implicit invocation, so the per-invocation reads delta cannot prune or select
 // it, and that delta cannot see a file that newly matches the glob: the recorder stores resolved paths,
 // not patterns, so a file absent on the previous build appears in no recorded read. Re-running the scalar
 // step on any delta verdict (the owning stage signature does change, because the stage-level monitor

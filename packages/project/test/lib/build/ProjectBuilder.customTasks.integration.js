@@ -528,7 +528,7 @@ builder:
 	});
 });
 
-// The `.out` a unit of the step-based custom task fixture writes per `.src` key (see task.step-based.js).
+// The `.out` an invocation of the step-based custom task fixture writes per `.src` key (see task.step-based.js).
 // procEachOut is the virtual path recorded in writtenResources; procEachDist is the on-disk location,
 // where an application build has dropped the `/resources/id1/` namespace prefix.
 const procEachOut = (name) => `/resources/id1/procEach/${name}.out`;
@@ -540,9 +540,9 @@ test.serial("Build application.a (step-based custom task with per-step delta cac
 	await fixtureTester._initialize();
 
 	// The custom task "step-based-task" (Specification Version 5.0, a step-based factory) runs one
-	// cached map-step unit per `.src` file. Each unit reads its sibling `.dep` through the step workspace,
-	// so that `.dep` is a tracked input of the owning unit alone. Changing only `a.dep` must re-run only
-	// a's unit and leave b's unit served from cache, proving per-step delta caching for a custom task.
+	// cached map-step invocation per `.src` file. Each invocation reads its sibling `.dep` through the step workspace,
+	// so that `.dep` is a tracked input of the owning invocation alone. Changing only `a.dep` must re-run only
+	// a's invocation and leave b's invocation served from cache, proving per-step delta caching for a custom task.
 	const procEachDir = `${fixtureTester.fixturePath}/webapp/procEach`;
 	await fs.mkdir(procEachDir, {recursive: true});
 	await fs.writeFile(`${procEachDir}/a.src`, "source-a");
@@ -620,7 +620,7 @@ test.serial("Build application.a (step-based custom task with per-step delta cac
 
 
 // A map step's keys() enumerator owns no key of its own, so anything it does is attributed to the stage
-// rather than to a unit. For resource tags that matters across a fully cached stage: the enumerator does
+// rather than to an invocation. For resource tags that matters across a fully cached stage: the enumerator does
 // not run at all, and the tag has to come back from the stage's recorded tag operations.
 test.serial("Build application.a (step-based custom task: a tag set in keys() survives a cached stage)",
 	async (t) => {

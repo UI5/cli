@@ -143,7 +143,7 @@ function invocationDataOf(recorded, step) {
 
 // --- Step-factory API (runSteps) ---
 
-test("runSteps runs a scalar step once and records its single unit", async (t) => {
+test("runSteps runs a scalar step once and records its single invocation", async (t) => {
 	const {runner, recorded, workspace} = makeDriver({
 		steps: [
 			{name: "s", run: async ({workspace}) => {
@@ -155,7 +155,7 @@ test("runSteps runs a scalar step once and records its single unit", async (t) =
 	await runner.runSteps();
 
 	t.true(workspace.store.has("/out"), "Scalar step's write persisted");
-	t.is(invocationDataOf(recorded, "s").size, 1, "Scalar step recorded one implicit unit");
+	t.is(invocationDataOf(recorded, "s").size, 1, "Scalar step recorded one implicit invocation");
 });
 
 test("runSteps runs a map step's each once per enumerated key", async (t) => {
@@ -172,7 +172,7 @@ test("runSteps runs a map step's each once per enumerated key", async (t) => {
 	await runner.runSteps();
 
 	t.deepEqual(ran.sort(), ["a", "b"], "each ran once per key");
-	t.is(invocationDataOf(recorded, "m").size, 2, "Map step recorded one unit per key");
+	t.is(invocationDataOf(recorded, "m").size, 2, "Map step recorded one invocation per key");
 	t.true(workspace.store.has("/out/a") && workspace.store.has("/out/b"), "Both keys' writes persisted");
 });
 
@@ -444,7 +444,7 @@ test("Delta build re-runs a consumer when its producer's return changed", async 
 });
 
 test("Delta build keeps a map consumer cached when its producer is restored unchanged", async (t) => {
-	// A scalar step always re-runs on a delta verdict (a single implicit unit cannot be pruned), so the
+	// A scalar step always re-runs on a delta verdict (a single implicit invocation cannot be pruned), so the
 	// delta-path "keep the consumer cached when its producer is unchanged" behavior is exercised through a
 	// map consumer: its one key stays cached because the producer return it consumed did not change.
 	const stepsFor = (ran) => [
@@ -486,8 +486,8 @@ test("Delta build keeps a map consumer cached when its producer is restored unch
 test("Delta build re-runs a scalar step whose glob gains a newly matching file", async (t) => {
 	// A scalar step globs for themes. On build 1 the workspace has none, so the step records no reads and
 	// returns hasThemes:false. On build 2 a file matching the glob is added. The recorder stores resolved
-	// paths, not the glob pattern, so the added file is in no previous read and the per-unit reads delta
-	// cannot select the step. A scalar step is a single implicit unit, so it must re-run on any delta
+	// paths, not the glob pattern, so the added file is in no previous read and the per-invocation reads delta
+	// cannot select the step. A scalar step is a single implicit invocation, so it must re-run on any delta
 	// verdict rather than serve its stale cached return.
 	const stepsFor = (ran) => [
 		{name: "scan", run: async ({workspace}) => {
@@ -829,7 +829,7 @@ test("A map producer's changed return re-runs its consumer", async (t) => {
 test("A producer's return signature is a fixed-size digest, not a raw serialization", async (t) => {
 	// The consumer records each producer it needs under needsInputs[].value, which is the producer's
 	// return signature. That value must be a SHA-256 hex digest regardless of producer shape (finding 5):
-	// a raw map serialization is O(producer key count) and is copied into every consumer unit, so a map
+	// a raw map serialization is O(producer key count) and is copied into every consumer invocation, so a map
 	// producer feeding a map consumer would persist an O(producers x consumers) sidecar. A digest keeps the
 	// recorded value O(1) and consistent with every other signature in the cache system.
 	const digest = /^[0-9a-f]{64}$/;
@@ -1065,7 +1065,7 @@ test("Key identity changes when a resource's content changes", async (t) => {
 test("A content change drops the previous output rather than serving it stale", async (t) => {
 	// The property the integrity hash guaranteed, now carried by lastModified + size: when a key resource's
 	// content changes, its key identity changes, so the old key disappears and its output is dropped as stale,
-	// while the unit re-runs under the new key producing fresh output. A stale (not re-run, not dropped) key
+	// while the invocation re-runs under the new key producing fresh output. A stale (not re-run, not dropped) key
 	// would keep serving the old output. The output path is derived from the content so the drop is observable:
 	// the old key wrote /out/old, the re-run writes /out/new, and /out/old must be reported stale.
 	const stepsFor = (ran) => [
@@ -1085,7 +1085,7 @@ test("A content change drops the previous output rather than serving it stale", 
 
 	// A delta build whose changed-path verdict does NOT list /in/a: the re-run is driven solely by the new key
 	// identity, exactly the case the integrity hash existed to cover (a mtime-moving edit the stage's own
-	// changed-path delta did not surface, e.g. because no unit recorded a read of /in/a).
+	// changed-path delta did not surface, e.g. because no invocation recorded a read of /in/a).
 	const ran = [];
 	const build2 = makeDriver({
 		workspace: createWorkspace([createFsResource("/in/a", {content: "new", lastModified: 2000, size: 3})]),
@@ -1149,7 +1149,7 @@ test("A filesystem key and a memory key never collide on the same path", async (
 	t.not(fsKey, memKey, "A stat-tiered key and an integrity-tiered key for the same path differ");
 });
 
-test("A step's needs is frozen, so one unit cannot leak into its siblings", async (t) => {
+test("A step's needs is frozen, so one invocation cannot leak into its siblings", async (t) => {
 	const seen = [];
 	let keysError;
 	let eachError;
@@ -1173,9 +1173,9 @@ test("A step's needs is frozen, so one unit cannot leak into its siblings", asyn
 	await runner.runSteps();
 
 	t.truthy(keysError, "Assigning to needs from the keys enumerator throws");
-	t.truthy(eachError, "Assigning to needs from a unit throws");
+	t.truthy(eachError, "Assigning to needs from an invocation throws");
 	t.deepEqual(seen, [["a", "original"], ["b", "original"]],
-		"Every unit sees the producer's return, unaffected by its siblings");
+		"Every invocation sees the producer's return, unaffected by its siblings");
 });
 
 test("notifyStepExecution fires before the first executing step does any work", async (t) => {

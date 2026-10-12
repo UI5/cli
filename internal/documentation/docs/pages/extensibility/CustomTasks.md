@@ -316,7 +316,7 @@ There are two kinds of steps, run in array order:
 * **Scalar step** `{name, needs?, run}` — runs once. `run: async ({needs, workspace, dependencies, taskUtil, options}) => value?`
 * **Map step** `{name, needs?, keys, each}` — runs once per key. `keys: async ({needs, workspace, dependencies, taskUtil, options}) => keySet` enumerates the keys, and `each: async (key, {needs, workspace, dependencies, taskUtil, options}) => value?` processes one key. A key is a resource or a stable string.
 
-Each step gets its own `name` (a non-empty string, unique within the task). A map step is the usual cache-aware shape: the build cache treats every key as its own cached unit, so a delta build re-processes only the keys whose inputs changed.
+Each step gets its own `name` (a non-empty string, unique within the task). A map step is the usual cache-aware shape: the build cache treats every key as its own cached invocation, so a delta build re-processes only the keys whose inputs changed.
 
 A step may list earlier step names in `needs`; those steps' return values then arrive as `needs.<name>` in the step's callbacks. A step may reference only steps that come before it in the array, so there can be no cycle. A step's return value (resources, or any JSON-serializable value) folds into the cache signature of every step that consumes it, so a changed producer re-runs its consumers.
 
@@ -355,7 +355,7 @@ export const stepBased = true;
 export default function build(options) {
     return [{
         name: "render",
-        // One cached unit per Markdown file, so a delta build re-renders only the files that changed.
+        // One cached invocation per Markdown file, so a delta build re-renders only the files that changed.
         keys: async ({workspace}) => workspace.byGlob("**/*.md"),
         each: async (resource, {workspace, taskUtil}) => {
             // Import the processor lazily so a fully cached build does not load it
@@ -391,7 +391,7 @@ const log = getLogger("builder:tasks:renderMarkdownFiles");
 module.exports = function build(options) {
     return [{
         name: "render",
-        // One cached unit per Markdown file, so a delta build re-renders only the files that changed.
+        // One cached invocation per Markdown file, so a delta build re-renders only the files that changed.
         keys: async ({workspace}) => workspace.byGlob("**/*.md"),
         each: async (resource, {workspace, taskUtil}) => {
             // Import the processor lazily so a fully cached build does not load it
