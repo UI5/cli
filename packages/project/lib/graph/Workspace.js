@@ -146,13 +146,13 @@ class Workspace {
 			}
 			if (path.isAbsolute(resolutionConfig.path)) {
 				throw new Error(
-					`Absolute resolution path (${resolutionConfig.path}) is not supported in dependency resolution ` +
-					`configuration of workspace ${this.getName()}`);
+					`Absolute paths are not allowed in workspace configurations of dependencies. ` +
+					`Found '${resolutionConfig.path}' in workspace '${this.getName()}'`);
 			}
 			if (resolutionConfig.configPath && path.isAbsolute(resolutionConfig.configPath)) {
 				throw new Error(
-					`Absolute configPath (${resolutionConfig.configPath}) is not supported in dependency resolution ` +
-					`configuration of workspace ${this.getName()}`);
+					`Absolute config paths are not allowed in workspace configurations of dependencies. ` +
+					`Found '${resolutionConfig.configPath}' in workspace '${this.getName()}'`);
 			}
 			return await this._getModulesFromPath(
 				this.#cwd, resolutionConfig.path, resolutionConfig.configPath);
