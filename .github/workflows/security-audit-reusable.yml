@@ -1,0 +1,94 @@
+name: Security Audit (reusable)
+
+# Reusable engine for the audit workflows. Fans every selected target out into its own matrix job
+# (parallel, independent pass/fail), then a summary job merges all per-job artifacts into one job
+# summary — and it runs even when audit jobs fail, so the summary is always present.
+#
+# Audited repositories are cloned read-only by the driver and audited with "--ignore-scripts" (no
+# dependency code runs); there is no caching and permissions are empty, so the CodeQL "cache
+# poisoning" concern does not apply.
+
+on:
+  workflow_call:
+    inputs:
+      only:
+        description: "Comma-separated target ids to audit (empty = every target in targets.json)."
+        type: string
+        default: ""
+
+permissions: {}
+
+jobs:
+  # Turn targets.json (filtered by "only") into a matrix of target ids.
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      ids: ${{ steps.ids.outputs.ids }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Compute target ids
+        id: ids
+        shell: bash
+        env:
+          ONLY: ${{ inputs.only }}
+        run: |
+          ids="$(node -e '
+            const t = require("./.github/actions/dependency-audit/targets.json");
+            const all = [...t.repos, ...t.npm].map((x) => x.id);
+            const only = (process.env.ONLY || "").split(",").map((s) => s.trim()).filter(Boolean);
+            const selected = only.length ? all.filter((id) => only.includes(id)) : all;
+            console.log(JSON.stringify(selected));
+          ')"
+          echo "ids=${ids}" >> "${GITHUB_OUTPUT}"
+          echo "Targets: ${ids}"
+
+  # One job per target, in parallel. fail-fast:false so every target is audited even if one fails;
+  # each job fails independently (gate inside the action) when its target has findings.
+  audit:
+    needs: prepare
+    if: needs.prepare.outputs.ids != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        id: ${{ fromJSON(needs.prepare.outputs.ids) }}
+    name: ${{ matrix.id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Audit ${{ matrix.id }}
+        uses: ./.github/actions/dependency-audit
+        with:
+          id: ${{ matrix.id }}
+
+  # Always runs: merges every per-job artifact into one results dir and writes the job summary.
+  summary:
+    needs: audit
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+      - name: Download all per-target results
+        uses: actions/download-artifact@v4 # TODO: pin to a commit SHA
+        with:
+          path: ${{ runner.temp }}/dl
+          pattern: audit-*
+      - name: Merge results and write summary
+        shell: bash
+        run: |
+          node .github/actions/dependency-audit/scripts/merge-results.mjs \
+            --input "${{ runner.temp }}/dl" --output "${{ runner.temp }}/audit-results"
+          node .github/actions/dependency-audit/scripts/format-github.mjs \
+            --results "${{ runner.temp }}/audit-results"

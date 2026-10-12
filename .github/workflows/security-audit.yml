@@ -1,0 +1,74 @@
+name: Security Audit (manual)
+
+# On-demand audit. Tick the targets you want; the selected ids are passed to the reusable engine,
+# which fans them out into parallel jobs with an always-present summary. Keep the ids below in sync
+# with .github/actions/dependency-audit/targets.json.
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo-cli-main:
+        description: "Repo: UI5/cli@main"
+        type: boolean
+        default: true
+      repo-cli-v4:
+        description: "Repo: UI5/cli@v4"
+        type: boolean
+        default: true
+      repo-linter-main:
+        description: "Repo: UI5/linter@main"
+        type: boolean
+        default: true
+      repo-mcp-main:
+        description: "Repo: UI5/mcp-server@main"
+        type: boolean
+        default: true
+      npm-cli-v4:
+        description: "npm: @ui5/cli@^4.0.0"
+        type: boolean
+        default: true
+      npm-cli-v5:
+        description: "npm: @ui5/cli@next"
+        type: boolean
+        default: true
+      npm-linter:
+        description: "npm: @ui5/linter@latest"
+        type: boolean
+        default: true
+      npm-mcp:
+        description: "npm: @ui5/mcp-server@latest"
+        type: boolean
+        default: true
+
+permissions: {}
+
+jobs:
+  # Collect the ticked target ids into a comma-separated list for the reusable engine.
+  collect:
+    runs-on: ubuntu-latest
+    outputs:
+      only: ${{ steps.pick.outputs.only }}
+    steps:
+      - name: Select targets
+        id: pick
+        shell: bash
+        env:
+          TICKED: >-
+            ${{ inputs.repo-cli-main && 'repo-cli-main' || '' }}
+            ${{ inputs.repo-cli-v4 && 'repo-cli-v4' || '' }}
+            ${{ inputs.repo-linter-main && 'repo-linter-main' || '' }}
+            ${{ inputs.repo-mcp-main && 'repo-mcp-main' || '' }}
+            ${{ inputs.npm-cli-v4 && 'npm-cli-v4' || '' }}
+            ${{ inputs.npm-cli-v5 && 'npm-cli-v5' || '' }}
+            ${{ inputs.npm-linter && 'npm-linter' || '' }}
+            ${{ inputs.npm-mcp && 'npm-mcp' || '' }}
+        run: |
+          only="$(echo ${TICKED} | tr ' ' ',' | sed 's/,,*/,/g; s/^,//; s/,$//')"
+          echo "only=${only}" >> "${GITHUB_OUTPUT}"
+          echo "Selected targets: ${only:-<none>}"
+
+  audit:
+    needs: collect
+    uses: ./.github/workflows/security-audit-reusable.yml
+    with:
+      only: ${{ needs.collect.outputs.only }}

@@ -1,0 +1,17 @@
+name: Security Audit (scheduled)
+
+# Daily audit of every target in .github/actions/dependency-audit/targets.json. Delegates to the
+# reusable engine, which runs one parallel job per target and a summary job that is always present.
+
+on:
+  schedule:
+    - cron: "36 4 * * *" # once a day
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  audit:
+    uses: ./.github/workflows/security-audit-reusable.yml
+    with:
+      only: "" # all targets

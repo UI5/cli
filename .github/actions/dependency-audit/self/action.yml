@@ -1,0 +1,71 @@
+name: "Dependency security audit (self)"
+description: >
+  Self-audit for a repository that owns a published npm package: audits the checked-out source (three
+  scopes) AND the latest published version of the package, writes a comparison summary, and fails the
+  job on findings. Reuses the shared scripts in the sibling scripts/ directory. The per-target action
+  (../action.yml) is untouched.
+
+inputs:
+  node-version:
+    description: "Node.js version to set up (npm 11+ recommended for stable audit paths)."
+    default: "24"
+  package-name:
+    description: "npm package to audit as published. Empty = derive from <package-dir>/package.json."
+    default: ""
+  package-dir:
+    description: "Directory holding the package.json to derive the name from (relative to repo root)."
+    default: "."
+  dist-tag:
+    description: "Published version range/tag to audit (e.g. latest, next, ^4)."
+    default: "latest"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    # Audit the checked-out source (locked / dev+prod / prod) in the current workspace.
+    - name: Audit own source
+      shell: bash
+      run: >
+        node "${{ github.action_path }}/../scripts/audit-repo.mjs"
+        --label "source"
+        --results "${{ runner.temp }}/audit-results"
+
+    # Resolve the published package name: explicit input, else from <package-dir>/package.json.
+    - name: Resolve package name
+      id: pkg
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.package-name }}" ]; then
+          name="${{ inputs.package-name }}"
+        else
+          name="$(node -p "require('./${{ inputs.package-dir }}/package.json').name")"
+        fi
+        echo "name=${name}" >> "${GITHUB_OUTPUT}"
+        echo "Auditing published package: ${name}@${{ inputs.dist-tag }}"
+
+    # Audit the latest published artifact consumers actually install.
+    - name: Audit published package
+      shell: bash
+      run: >
+        node "${{ github.action_path }}/../scripts/audit-npm.mjs"
+        --label "${{ steps.pkg.outputs.name }}"
+        --results "${{ runner.temp }}/audit-results"
+        "${{ steps.pkg.outputs.name }}@${{ inputs.dist-tag }}"
+
+    # Write the summary BEFORE gating, so it is always rendered even when the gate fails the job.
+    - name: Write job summary
+      shell: bash
+      run: >
+        node "${{ github.action_path }}/../scripts/format-github.mjs"
+        --results "${{ runner.temp }}/audit-results"
+
+    - name: Fail on findings
+      shell: bash
+      run: >
+        node "${{ github.action_path }}/../scripts/gate.mjs"
+        --results "${{ runner.temp }}/audit-results"

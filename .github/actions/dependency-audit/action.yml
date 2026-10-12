@@ -1,11 +1,13 @@
-name: "Dependency security audit"
+name: "Dependency security audit (one target)"
 description: >
-  Audits the already-checked-out project's dependencies with audit-ci in three scopes — locked
-  (npm ci), latest (dev + prod), and latest (production only) — honouring the repository's own
-  audit-ci config (auto-detected). Operates on the current workspace; the caller performs the
-  checkout.
+  Audit a single target id (a repository or an npm package from targets.json), upload its results as
+  an artifact, and fail THIS job on findings. Used once per matrix job; the caller's summary job
+  merges all artifacts into one job summary.
 
 inputs:
+  id:
+    description: "Target id from targets.json (e.g. repo-cli-v4, npm-cli-v5)."
+    required: true
   node-version:
     description: "Node.js version to set up (npm 11+ recommended for stable audit paths)."
     default: "24"
@@ -18,6 +20,25 @@ runs:
       with:
         node-version: ${{ inputs.node-version }}
 
-    - name: Run dependency audit (all scopes)
+    # Produce results only — the audit script never fails. Repos are cloned by the driver, so no
+    # extra checkout of the audited project is needed (and no dependency code runs: --ignore-scripts).
+    - name: Audit ${{ inputs.id }}
       shell: bash
-      run: bash "${{ github.action_path }}/audit.sh"
+      run: >
+        node "${{ github.action_path }}/scripts/audit-all.mjs"
+        --targets "${{ github.action_path }}/targets.json"
+        --results "${{ runner.temp }}/audit-results"
+        --only "${{ inputs.id }}"
+
+    # Upload BEFORE gating (and always), so the summary job can render even when this job fails.
+    - name: Upload results
+      if: always()
+      uses: actions/upload-artifact@v4 # TODO: pin to a commit SHA
+      with:
+        name: audit-${{ inputs.id }}
+        path: ${{ runner.temp }}/audit-results
+        if-no-files-found: warn
+
+    - name: Fail on findings
+      shell: bash
+      run: node "${{ github.action_path }}/scripts/gate.mjs" --results "${{ runner.temp }}/audit-results"
