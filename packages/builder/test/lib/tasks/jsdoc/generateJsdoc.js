@@ -244,15 +244,16 @@ test.serial("generateJsdoc", async (t) => {
 	const taskUtil = {
 		registerCleanupTask: registerCleanupTaskStub
 	};
-	await generateJsdoc({
+	const {task} = generateJsdoc({
+		namespace: "some/project",
+		version: "some version"
+	});
+	await task({
 		taskUtil,
 		workspace,
 		dependencies: "dependencies",
 		options: {
-			pattern: "some pattern",
-			projectName: "some.project",
-			namespace: "some/project",
-			version: "some version"
+			projectName: "some.project"
 		}
 	});
 
@@ -267,7 +268,7 @@ test.serial("generateJsdoc", async (t) => {
 	t.is(writeResourcesToDirStub.callCount, 1, "writeResourcesToDir got called once");
 	t.deepEqual(writeResourcesToDirStub.getCall(0).args[0], {
 		workspace,
-		pattern: "some pattern",
+		pattern: ["/resources/**/*.js"],
 		targetPath: path.join("/", "some", "source", "path") // one's target is another one's source
 	}, "writeResourcesToDir got called with correct arguments");
 
@@ -321,15 +322,16 @@ test.serial("generateJsdoc with missing resources", async (t) => {
 	const taskUtil = {
 		registerCleanupTask: registerCleanupTaskStub
 	};
-	await generateJsdoc({
+	const {task} = generateJsdoc({
+		namespace: "some/project",
+		version: "some version"
+	});
+	await task({
 		taskUtil,
 		workspace,
 		dependencies: "dependencies",
 		options: {
-			pattern: "some pattern",
-			projectName: "some.project",
-			namespace: "some/project",
-			version: "some version"
+			projectName: "some.project"
 		}
 	});
 
@@ -339,7 +341,7 @@ test.serial("generateJsdoc with missing resources", async (t) => {
 
 	t.is(log.info.callCount, 1, "One message has been logged");
 	t.deepEqual(log.info.getCall(0).args[0], "Failed to find any input resources for project some.project " +
-		"using pattern some pattern. Skipping JSDoc generation...",
+		"using pattern /resources/**/*.js. Skipping JSDoc generation...",
 	"Correct message has been logged");
 
 	t.is(jsdocGeneratorStub.callCount, 0, "jsdocGenerator processor has *not* been called");
@@ -351,14 +353,15 @@ test.serial("generateJsdoc with missing resources", async (t) => {
 
 test.serial("generateJsdoc no parameters", async (t) => {
 	const {generateJsdoc} = t.context;
-	await t.throwsAsync(generateJsdoc(), {
+	t.throws(() => generateJsdoc(), {
 		instanceOf: TypeError
 	}, "TypeError thrown");
 });
 
 test.serial("generateJsdoc missing parameters", async (t) => {
 	const {generateJsdoc} = t.context;
-	const error = await t.throwsAsync(generateJsdoc({}));
+	const {task} = generateJsdoc({});
+	const error = await t.throwsAsync(task({options: {}}));
 	t.is(error.message, "[generateJsdoc]: One or more mandatory options not provided",
 		"Correct error message thrown");
 });

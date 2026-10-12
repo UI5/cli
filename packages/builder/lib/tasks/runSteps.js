@@ -58,9 +58,9 @@ class BufferedWriter extends AbstractReaderWriter {
 /**
  * Runs a step-based task's steps without a build cache.
  *
- * A step-based task default-exports a factory <code>build(options) => Step[]</code>. This runner is the
- * no-cache counterpart to the cached step runner in <code>@ui5/project</code> (which
- * <code>@ui5/builder</code> cannot import, the dependency direction being
+ * A step-based task default-exports a factory <code>build(options) => descriptor</code> whose descriptor
+ * carries a <code>steps</code> array. This runner is the no-cache counterpart to the cached step runner in
+ * <code>@ui5/project</code> (which <code>@ui5/builder</code> cannot import, the dependency direction being
  * <code>@ui5/cli -> @ui5/project -> @ui5/builder</code>): it runs every step in order, fans out every
  * map step's <code>keys</code> set, threads <code>needs</code> returns in memory, and buffers a
  * concurrent map step's writes so they flush in key order. It replaces the per-task batch fallback tasks
@@ -71,7 +71,8 @@ class BufferedWriter extends AbstractReaderWriter {
  *
  * @public
  * @module @ui5/builder/tasks/runSteps
- * @param {Function} build Task factory <code>build(options) => Step[]</code>
+ * @param {Function} build Task factory <code>build(options) => descriptor</code> whose descriptor
+ *   carries a <code>steps</code> array
  * @param {object} parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace Workspace to read and write files
  * @param {@ui5/fs/AbstractReader} [parameters.dependencies] Reader to read dependency files
@@ -80,7 +81,11 @@ class BufferedWriter extends AbstractReaderWriter {
  * @returns {Promise<undefined>} Resolves once all steps have run and their writes are flushed
  */
 export default async function runSteps(build, {workspace, dependencies, taskUtil, options} = {}) {
-	const steps = await build(options);
+	const {steps} = await build(options);
+	if (!steps) {
+		throw new Error(
+			"runSteps requires a step-based task whose factory returns a descriptor with a 'steps' array");
+	}
 	// Each step's return, so a later step's needs can consume it. A scalar step's return is its single
 	// value; a map step's is the array of its per-key returns in key order.
 	const returns = new Map();

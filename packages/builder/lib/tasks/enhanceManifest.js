@@ -22,10 +22,10 @@ import fsInterface from "@ui5/fs/fsInterface";
  *
  * @param {object} options Options
  * @param {string} options.projectNamespace Namespace of the application
- * @returns {object[]} The task's build steps
+ * @returns {object} The task descriptor with its build steps
  */
 export default function build({projectNamespace}) {
-	return [{
+	return {steps: [{
 		name: "enhanceManifest",
 		// One key per manifest.json. The i18n bundle reads made by manifestEnhancer go through the step's
 		// workspace and are thus tracked per step.
@@ -43,5 +43,5 @@ export default function build({projectNamespace}) {
 				await workspace.write(processed);
 			}
 		},
-	}];
+	}]};
 }

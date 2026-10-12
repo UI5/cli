@@ -3,17 +3,22 @@
 // Once /toggle.js is gone the task records no root read, so the previously recorded root request must
 // be cleared (and the emptied request set re-persisted), and a later change to /tsconfig.json must then
 // no longer invalidate this stage.
-module.exports = async function ({taskUtil, workspace, options: {projectNamespace}}) {
-	const {createResource} = taskUtil.resourceFactory;
-	const toggle = await workspace.byPath(`/resources/${projectNamespace}/toggle.js`);
-	let content = "root-not-read";
-	if (toggle) {
-		const rootReader = taskUtil.getProject().getRootReader();
-		const tsconfig = await rootReader.byPath("/tsconfig.json");
-		content = tsconfig ? await tsconfig.getString() : "no-tsconfig";
-	}
-	await workspace.write(createResource({
-		path: "/rootConditionalDigest.js",
-		string: `export const content = ${JSON.stringify(content)};\n`,
-	}));
+// Specification Version 5.0 descriptor: the default export is a factory that returns the task body.
+module.exports = function build() {
+	return {
+		task: async ({taskUtil, workspace, options: {projectNamespace}}) => {
+			const {createResource} = taskUtil.resourceFactory;
+			const toggle = await workspace.byPath(`/resources/${projectNamespace}/toggle.js`);
+			let content = "root-not-read";
+			if (toggle) {
+				const rootReader = taskUtil.getProject().getRootReader();
+				const tsconfig = await rootReader.byPath("/tsconfig.json");
+				content = tsconfig ? await tsconfig.getString() : "no-tsconfig";
+			}
+			await workspace.write(createResource({
+				path: "/rootConditionalDigest.js",
+				string: `export const content = ${JSON.stringify(content)};\n`,
+			}));
+		}
+	};
 };

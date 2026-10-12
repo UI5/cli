@@ -193,7 +193,7 @@ test.serial("integration: generateLibraryPreload", async (t) => {
 		virBasePath: "/"
 	});
 
-	await generateLibraryPreload({
+	await generateLibraryPreload().task({
 		workspace: duplexCollection,
 		dependencies: dependencies,
 		options: {
@@ -259,7 +259,7 @@ test.serial("integration: generateLibraryPreload with designtime and support fil
 		virBasePath: "/"
 	});
 
-	await generateLibraryPreload({
+	await generateLibraryPreload().task({
 		workspace: duplexCollection,
 		dependencies: dependencies,
 		options: {

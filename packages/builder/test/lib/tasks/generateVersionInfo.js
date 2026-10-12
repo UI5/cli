@@ -68,7 +68,7 @@ async function createOptions(t, options) {
 async function assertCreatedVersionInfo(t, oExpectedVersionInfo, oOptions) {
 	const {generateVersionInfo} = t.context;
 
-	await generateVersionInfo(oOptions);
+	await generateVersionInfo().task(oOptions);
 
 	const resource = await oOptions.workspace.byPath("/resources/sap-ui-version.json");
 	if (!resource) {
