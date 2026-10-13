@@ -2,7 +2,13 @@ import {getLogger} from "@ui5/logger";
 import composeTaskList from "./helpers/composeTaskList.js";
 import MonitoredTaskUtil from "./helpers/MonitoredTaskUtil.js";
 import StepRunner, {validateSteps} from "./helpers/StepRunner.js";
+import {getCustomTaskCacheExemption} from "./TaskDefinitions.js";
 import {createReaderCollection, createMonitor} from "@ui5/fs/resourceFactory";
+
+// Process-level guard for the single warning about custom tasks that are exempt from the build cache
+// because they declare a Specification Version below 5.0. A long-running `ui5 serve` process rebuilds
+// many times across many projects; the user needs to be told once, not on every rebuild.
+let warnedAboutUncacheableCustomTasks = false;
 
 const EMPTY_RESOURCE_REQUESTS = {paths: [], patterns: []};
 
@@ -219,15 +225,23 @@ class TaskRunner {
 		const stageTasks = allTasks.map((taskName) => {
 			const taskDef = this._tasks[taskName];
 			const steps = taskDef.descriptor?.steps;
-			if (!steps) {
-				return {taskName};
+			const stageTask = {taskName};
+			if (steps) {
+				// Validate the whole step list before it creates any stage: setTasks below derives a stage id
+				// per step name, so a duplicate name or a malformed declaration must be rejected here, not
+				// later when the step runs (by then two steps sharing a name have already created two stages
+				// with one id).
+				validateSteps(steps, {taskName});
+				taskDef.steps = Object.freeze(steps);
+				stageTask.stepNames = steps.map((step) => step.name);
 			}
-			// Validate the whole step list before it creates any stage: setTasks below derives a stage id per
-			// step name, so a duplicate name or a malformed declaration must be rejected here, not later when
-			// the step runs (by then two steps sharing a name have already created two stages with one id).
-			validateSteps(steps, {taskName});
-			taskDef.steps = Object.freeze(steps);
-			return {taskName, stepNames: steps.map((step) => step.name)};
+			// Only flag an exempt task; absence means cacheable (setTasks defaults to true). This keeps the
+			// payload minimal and reports the exemption to the user when such a task runs.
+			if (taskDef.cacheable === false) {
+				stageTask.cacheable = false;
+				this.#reportCacheExemption(taskDef.cacheExemption);
+			}
+			return stageTask;
 		});
 		this._buildCache.setTasks(stageTasks);
 
@@ -424,6 +438,9 @@ class TaskRunner {
 			stepBased,
 			descriptor,
 			options,
+			// Standard tasks are cacheable. A descriptor may still opt out via cache:false (none of the
+			// built-ins do), honored uniformly with custom tasks.
+			cacheable: descriptor ? descriptor.cache !== false : true,
 			requiredDependencies: requiresDependencies ? this._directDependencies : new Set()
 		};
 		this._taskExecutionOrder.push(taskName);
@@ -534,6 +551,11 @@ class TaskRunner {
 		// A custom task is step-based when its descriptor carries a steps array (Specification Version 5.0
 		// and later). Below 5.0 there is no descriptor and the task runs as a legacy body.
 		const stepBased = !!descriptor?.steps;
+		// Decide cache exemption from the same rule the ProjectBuildContext used to disable the result
+		// cache, over the same (memoized) descriptor and the isV5 flag already computed above (so no extra
+		// Specification Version comparison). An exempt task's stages are always executed and never stored
+		// (see ProjectBuildCache); runTasks reports the exemption to the user.
+		const cacheExemption = getCustomTaskCacheExemption(isV5, descriptor);
 		this._tasks[taskName] = {
 			task: this._createCustomTaskWrapper({
 				task,
@@ -552,6 +574,12 @@ class TaskRunner {
 			stepBased,
 			descriptor,
 			options: descriptorOptions,
+			cacheable: !cacheExemption,
+			cacheExemption: cacheExemption ? {
+				reason: cacheExemption.reason,
+				extensionName: task.getName(),
+				specVersion: specVersion.toString()
+			} : undefined,
 			requiredDependencies
 		};
 
@@ -724,6 +752,43 @@ class TaskRunner {
 			});
 			this._log.endTask(taskName, !!cacheInfo, writtenResourcePaths);
 		};
+	}
+
+	/**
+	 * Reports that a custom task is exempt from the build cache, so the user understands why that task runs
+	 * on every build.
+	 *
+	 * A task below Specification Version 5.0 is exempt implicitly (reason <code>"specVersion"</code>): its
+	 * legacy body may perform file I/O outside the resource model that the cache cannot track. This is
+	 * warned once per process (a long-running <code>ui5 serve</code> rebuilds repeatedly, and the user needs
+	 * telling once, not per rebuild). A Specification Version 5.0 task that set <code>cache: false</code>
+	 * (reason <code>"optOut"</code>) made a deliberate choice, so it is only logged at verbose level.
+	 *
+	 * @param {{reason: string, extensionName: string, specVersion: string}} [exemption] The task's exemption,
+	 *   or <code>undefined</code> for a cacheable task
+	 */
+	#reportCacheExemption(exemption) {
+		if (!exemption) {
+			return;
+		}
+		const projectName = this._project.getName();
+		if (exemption.reason === "specVersion") {
+			if (warnedAboutUncacheableCustomTasks) {
+				return;
+			}
+			warnedAboutUncacheableCustomTasks = true;
+			this._log.warn(
+				`Custom task ${exemption.extensionName} of project ${projectName} defines Specification ` +
+				`Version ${exemption.specVersion} and is therefore not cached. Tasks below Specification ` +
+				`Version 5.0 may read or write files outside the build's resource model, which the build ` +
+				`cache cannot track, so their results are never cached and such tasks run on every build. ` +
+				`This can slow down (incremental) builds. Update affected tasks to Specification Version 5.0 ` +
+				`to make them cacheable.`);
+		} else {
+			this._log.verbose(
+				`Custom task ${exemption.extensionName} of project ${projectName} opted out of the build ` +
+				`cache (cache: false in its task descriptor); it runs on every build.`);
+		}
 	}
 
 	/**

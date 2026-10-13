@@ -2,6 +2,38 @@ import crypto from "node:crypto";
 import {getLogger} from "@ui5/logger";
 import {validateDescriptor} from "./helpers/StepRunner.js";
 
+/**
+ * Decides whether a custom task is exempt from the build cache, the single rule shared by the
+ * build-signature phase (which disables the project's result cache, see
+ * [ProjectBuildContext]{@link @ui5/project/build/helpers/ProjectBuildContext}) and the TaskRunner
+ * (which marks the task's stages non-cacheable and emits the user-facing warning).
+ *
+ * A custom task below Specification Version 5.0 is always exempt: it has no descriptor, and its legacy
+ * body may perform file reads and writes outside the resource model that the cache cannot track, so a
+ * cached result could not be invalidated when those untracked inputs change. From 5.0 a task opts out
+ * explicitly by setting <code>cache: false</code> on its descriptor.
+ *
+ * Takes the already-resolved <code>isSpecV5</code> rather than the Specification Version object so the
+ * callers, which have computed it, do not repeat the comparison.
+ *
+ * @public
+ * @param {boolean} isSpecV5 Whether the custom task extension's own configured Specification Version is
+ *   5.0 or higher (unrelated to the Specification Version of the project being built)
+ * @param {object} [descriptor] The task's resolved descriptor (Specification Version 5.0 and later)
+ * @returns {{reason: string}|undefined} An exemption with its <code>reason</code>
+ *   (<code>"specVersion"</code> below 5.0, <code>"optOut"</code> for an explicit <code>cache: false</code>),
+ *   or <code>undefined</code> if the task is cacheable
+ */
+export function getCustomTaskCacheExemption(isSpecV5, descriptor) {
+	if (!isSpecV5) {
+		return {reason: "specVersion"};
+	}
+	if (descriptor && descriptor.cache === false) {
+		return {reason: "optOut"};
+	}
+	return undefined;
+}
+
 export default class TaskDefinitions {
 	#graph;
 	#project;
@@ -238,5 +270,50 @@ export default class TaskDefinitions {
 	 */
 	async getStandardDescriptor(taskName, taskDef) {
 		return this.#resolveStandardDescriptor(taskName, taskDef);
+	}
+
+	/**
+	 * Returns the cache exemptions of the project's configured custom tasks, keyed by runtime task name
+	 * (with the <code>--&lt;number&gt;</code> suffix a repeated configuration gets). A task is listed only
+	 * when it is exempt from the build cache; a cacheable task is absent.
+	 *
+	 * Shares one factory call per custom task with {@link #getBuildSignatures} (the descriptor is memoized
+	 * per runtime task name on the {@link @ui5/project/specifications/extensions/Task} extension), so this
+	 * adds no extra task-module evaluation. The {@link @ui5/project/build/helpers/ProjectBuildContext} uses
+	 * it to decide whether to disable the project's result cache; the exemptions are re-derived per task by
+	 * the TaskRunner from the same descriptors for the per-stage handling and the user-facing warning.
+	 *
+	 * @public
+	 * @returns {Promise<Map<string, {reason: string, extensionName: string, specVersion: string}>>}
+	 *   Exempt custom tasks and why (<code>reason</code> is <code>"specVersion"</code> or <code>"optOut"</code>,
+	 *   see {@link getCustomTaskCacheExemption})
+	 */
+	async getCustomTaskCacheExemptions() {
+		await this._initTasks();
+		const projectName = this.#project.getName();
+		const projectNamespace = this.#project.getNamespace();
+		const exemptions = new Map();
+		for (const [taskName, {taskDef, task}] of this.#customTasks) {
+			const specVersion = task.getSpecVersion();
+			const isSpecV5 = specVersion.gte("5.0");
+			// Below 5.0 there is no descriptor; the exemption rule only needs the descriptor to read the
+			// explicit opt-out flag, which exists from 5.0.
+			const descriptor = isSpecV5 ?
+				await task.getDescriptor(taskName, {
+					projectName,
+					projectNamespace,
+					configuration: taskDef.configuration,
+					taskName
+				}) : undefined;
+			const exemption = getCustomTaskCacheExemption(isSpecV5, descriptor);
+			if (exemption) {
+				exemptions.set(taskName, {
+					reason: exemption.reason,
+					extensionName: task.getName(),
+					specVersion: specVersion.toString()
+				});
+			}
+		}
+		return exemptions;
 	}
 }

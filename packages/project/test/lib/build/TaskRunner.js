@@ -164,6 +164,7 @@ test.beforeEach(async (t) => {
 		endTask: sinon.stub(),
 		skipTask: sinon.stub(),
 		verbose: sinon.stub(),
+		warn: sinon.stub(),
 		perf: sinon.stub(),
 		isLevelEnabled: sinon.stub().returns(true),
 	};
@@ -709,6 +710,7 @@ test("Custom task is called correctly", async (t) => {
 
 	const getRequiredDependenciesCallbackStub = sinon.stub().resolves(undefined);
 	graph.getExtension.returns({
+		getName: () => "custom task name",
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
@@ -768,6 +770,7 @@ test("Custom task with legacy spec version", async (t) => {
 	};
 	const getRequiredDependenciesCallbackStub = sinon.stub().resolves(undefined);
 	graph.getExtension.returns({
+		getName: () => "custom task name",
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
@@ -831,6 +834,7 @@ test("Custom task with legacy spec version: requiredDependenciesCallback is not 
 	// The old getRequiredDependenciesCallback is no longer called below specVersion 5.0.
 	const getRequiredDependenciesCallbackStub = sinon.stub().resolves(sinon.stub().resolves(new Set(["dep.b"])));
 	graph.getExtension.returns({
+		getName: () => "custom task name",
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
