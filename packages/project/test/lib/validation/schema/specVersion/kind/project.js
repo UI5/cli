@@ -1,6 +1,6 @@
 import test from "ava";
 import Ajv from "ajv";
-import ajvErrors from "ajv-errors";
+import ajvErrors from "../../../../../../lib/validation/ajvErrors/ajvErrors.cjs";
 import AjvCoverage from "../../../../../utils/AjvCoverage.js";
 import {_Validator as Validator} from "../../../../../../lib/validation/validator.js";
 import ValidationError from "../../../../../../lib/validation/ValidationError.js";

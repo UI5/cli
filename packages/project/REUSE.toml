@@ -9,3 +9,9 @@ path = "**"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 SAP SE or an SAP affiliate company and UI5 CLI contributors"
 SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "lib/validation/ajvErrors/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = ["2017 Evgeny Poberezkin"]
+SPDX-License-Identifier = "MIT"
