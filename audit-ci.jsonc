@@ -32,6 +32,15 @@
 
         // GHSA-v6wh-96g9-6wx3: launch-editor: NTLMv2 hash disclosure via UNC path handling on Windows
         // Not applicable as we don't use launch-editor.
-        "GHSA-v6wh-96g9-6wx3|vitepress>vite"
+        "GHSA-v6wh-96g9-6wx3|vitepress>vite",
+
+		// AI slop CVEs (not applicable) - See dependabot alert dismissals for details
+		"GHSA-ch52-4w7c-c8xp|http-cache-semantics",
+		"GHSA-hp3w-g68c-fv3c|@istanbuljs/esm-loader-hook>@istanbuljs/load-nyc-config>js-yaml>argparse>sprintf-js",
+		"GHSA-hp3w-g68c-fv3c|ava>supertap>js-yaml>argparse>sprintf-js",
+		"GHSA-hp3w-g68c-fv3c|babel-plugin-istanbul>@istanbuljs/load-nyc-config>js-yaml>argparse>sprintf-js>",
+		"GHSA-hp3w-g68c-fv3c|nyc>@istanbuljs/load-nyc-config>js-yaml>argparse>sprintf-js",
+		"GHSA-vfj7-8cjw-p6xm|globby>fast-glob>micromatch>braces",
+		"GHSA-vfj7-8cjw-p6xm|micromatch>braces>"
     ]
 }
