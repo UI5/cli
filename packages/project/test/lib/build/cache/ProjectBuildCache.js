@@ -2860,3 +2860,64 @@ test.serial("Integration: step return values round-trip through the real CAS", a
 	t.is(await captured[0].getString(), "fresh-a", "Delta build handed back the re-run unit's fresh return");
 	t.is(await captured[1].getString(), "content-b", "Delta build restored the unchanged unit b from the CAS");
 });
+
+test("Exempt stage is always executed and never consults the stage cache", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+
+	cache.setTasks([{taskName: "exemptTask", cacheable: false}]);
+
+	// Record the stage once so its BuildStageCache exists; a cacheable stage would then attempt a lookup
+	// on the next prepare. The exempt stage must not.
+	await cache.prepareStageExecutionAndValidateCache("exemptTask");
+	await cache.recordStageResult({
+		taskName: "exemptTask",
+		projectResourceRequests: {paths: new Set(), patterns: new Set()},
+		dependencyResourceRequests: {paths: new Set(), patterns: new Set()},
+	});
+
+	cacheManager.findExistingStageSignatures.resetHistory();
+	cacheManager.readStageCache.resetHistory();
+
+	const verdict = await cache.prepareStageExecutionAndValidateCache("exemptTask");
+	t.is(verdict, false, "The exempt stage is always executed (no cache verdict)");
+	t.is(cacheManager.findExistingStageSignatures.callCount, 0,
+		"No persistent stage-cache lookup is performed for an exempt stage");
+	t.is(cacheManager.readStageCache.callCount, 0,
+		"No stage cache is read for an exempt stage");
+});
+
+test("An exempt task is neither stored as a stage nor written to the result cache, " +
+	"while a cacheable sibling stage is stored", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+
+	cache.setTasks([
+		{taskName: "cacheableTask"},
+		{taskName: "exemptTask", cacheable: false},
+	]);
+
+	const emptyRequests = () => ({paths: new Set(), patterns: new Set()});
+	for (const taskName of ["cacheableTask", "exemptTask"]) {
+		await cache.prepareStageExecutionAndValidateCache(taskName);
+		await cache.recordStageResult({
+			taskName,
+			projectResourceRequests: emptyRequests(),
+			dependencyResourceRequests: emptyRequests(),
+		});
+	}
+	await cache.allTasksCompleted();
+	await cache.writeCache();
+
+	const stageWrites = cacheManager.writeStageCache.getCalls().map((call) => call.args[2]);
+	t.true(stageWrites.includes("task/cacheableTask"),
+		"The cacheable stage is persisted");
+	t.false(stageWrites.includes("task/exemptTask"),
+		"The exempt stage is never persisted");
+	t.is(cacheManager.writeResultMetadata.callCount, 0,
+		"The result cache is not written for a project that has an exempt task");
+});

@@ -643,3 +643,60 @@ test("getBuildSignatures: Empty project hashes the empty string", async (t) => {
 	const expectedHash = crypto.createHash("sha256").update("").digest("hex");
 	t.is(sig, expectedHash, "Returns sha256 hash of empty key string");
 });
+
+test("getCustomTaskCacheExemptions: a custom task below Specification Version 5.0 is exempt", async (t) => {
+	const {TaskDefinitions, graph, taskUtil, taskRepository, customTask} = t.context;
+	// Default spec-version stub reports gte("5.0") === false, i.e. a pre-5.0 custom task.
+	customTask.getSpecVersion = () => ({
+		gte: () => false,
+		toString: () => "4.0",
+	});
+	const project = getMockProject("module");
+	project.getCustomTasks = () => [{name: "legacyTask"}];
+	const taskDefinitions = new TaskDefinitions(graph, project, taskUtil, taskRepository);
+
+	const exemptions = await taskDefinitions.getCustomTaskCacheExemptions();
+	t.deepEqual([...exemptions.keys()], ["legacyTask"], "The pre-5.0 custom task is exempt");
+	t.deepEqual(exemptions.get("legacyTask"),
+		{reason: "specVersion", extensionName: "custom task name", specVersion: "4.0"},
+		"Exemption records the version reason and the extension's details");
+});
+
+test("getCustomTaskCacheExemptions: a 5.0 task opts out via cache:false", async (t) => {
+	const {TaskDefinitions, graph, taskUtil, taskRepository, customTask} = t.context;
+	customTask.getSpecVersion = () => ({
+		gte: () => true,
+		toString: () => "5.0",
+	});
+	customTask.getDescriptor = t.context.sinon.stub().resolves({task: () => {}, cache: false});
+	const project = getMockProject("module");
+	project.getCustomTasks = () => [{name: "optOutTask", configuration: {foo: "bar"}}];
+	const taskDefinitions = new TaskDefinitions(graph, project, taskUtil, taskRepository);
+
+	const exemptions = await taskDefinitions.getCustomTaskCacheExemptions();
+	t.deepEqual(exemptions.get("optOutTask"),
+		{reason: "optOut", extensionName: "custom task name", specVersion: "5.0"},
+		"Exemption records the opt-out reason");
+	t.deepEqual(customTask.getDescriptor.getCall(0).args[1], {
+		projectName: "project.b",
+		projectNamespace: "project/b",
+		configuration: {foo: "bar"},
+		taskName: "optOutTask",
+	}, "The descriptor is resolved with the task's completed options");
+});
+
+test("getCustomTaskCacheExemptions: a cacheable 5.0 task is not listed", async (t) => {
+	const {TaskDefinitions, graph, taskUtil, taskRepository, customTask} = t.context;
+	customTask.getSpecVersion = () => ({
+		gte: () => true,
+		toString: () => "5.0",
+	});
+	// No cache flag means cacheable.
+	customTask.getDescriptor = t.context.sinon.stub().resolves({task: () => {}});
+	const project = getMockProject("module");
+	project.getCustomTasks = () => [{name: "cacheableTask"}];
+	const taskDefinitions = new TaskDefinitions(graph, project, taskUtil, taskRepository);
+
+	const exemptions = await taskDefinitions.getCustomTaskCacheExemptions();
+	t.is(exemptions.size, 0, "A cacheable custom task is not exempt");
+});

@@ -5,6 +5,48 @@ import {createFixtureTesterFactory, registerBuildHooks} from "./__helper__/Proje
 const FixtureTester = createFixtureTesterFactory("customTasks");
 registerBuildHooks(test);
 
+/**
+ * Collects a project's executed and skipped task names from the `ui5.project-build-status` feed of the
+ * most recent build (the fixture tester resets the event stubs at the start of each build).
+ *
+ * @param {object} t AVA execution context
+ * @param {string} projectName Project to collect task statuses for
+ * @returns {{executed: string[], skipped: string[]}} Task names that ran (task-start) and were skipped
+ */
+function taskStatuses(t, projectName) {
+	const executed = [];
+	const skipped = [];
+	for (const [event] of t.context.projectBuildStatusEventStub.args) {
+		if (event.projectName !== projectName) {
+			continue;
+		}
+		if (event.status === "task-start") {
+			executed.push(event.taskName);
+		} else if (event.status === "task-skip") {
+			skipped.push(event.taskName);
+		}
+	}
+	return {executed, skipped};
+}
+
+/**
+ * Names of the projects that ran a build cycle in the most recent build, as opposed to being served
+ * wholesale from the result cache (which emits no `project-build-start`).
+ *
+ * @param {object} t AVA execution context
+ * @returns {string[]} Project names that started a build
+ */
+function builtProjects(t) {
+	const names = [];
+	for (const [event] of t.context.buildStatusEventStub.args) {
+		if (event.status === "project-build-start") {
+			names.push(event.projectName);
+		}
+	}
+	return names;
+}
+
+
 test.serial("Build application.a (custom task and tag handling)", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 	const destPath = fixtureTester.destPath;
@@ -660,3 +702,69 @@ test.serial("Build application.a (step-based custom task: a tag set in keys() su
 		await t.throwsAsync(fs.readFile(`${destPath}/procEach/keep.omitme`, {encoding: "utf8"}),
 			undefined, "#2 build (stage served from cache): the tagged resource is still omitted");
 	});
+
+test.serial("Build application.a (custom task below Specification Version 5.0 is never cached)", async (t) => {
+	const fixtureTester = new FixtureTester(t, "application.a");
+	const destPath = fixtureTester.destPath;
+
+	// #1 build (no cache): everything builds, the cache-exempt custom task runs.
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-cacheExempt-legacy.yaml"},
+		config: {destPath, cleanDest: true},
+	});
+	t.true(taskStatuses(t, "application.a").executed.includes("cache-exempt-task"),
+		"#1 build: the cache-exempt custom task ran");
+
+	// #2 build (no source changes): a cacheable dependency is served wholesale from the result cache and
+	// does not rebuild, but application.a rebuilds because its result cache is disabled by the exempt task.
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask-cacheExempt-legacy.yaml"},
+		config: {destPath, cleanDest: true},
+	});
+	const built = builtProjects(t);
+	t.true(built.includes("application.a"),
+		`#2 build: application.a rebuilt despite no changes (built: ${built})`);
+	t.false(built.includes("library.a"),
+		`#2 build: a cacheable dependency stayed fully served from cache (built: ${built})`);
+
+	const {executed, skipped} = taskStatuses(t, "application.a");
+	t.true(executed.includes("cache-exempt-task"),
+		"#2 build: the exempt task ran again on an unchanged rebuild");
+	t.false(skipped.includes("cache-exempt-task"),
+		"#2 build: the exempt task was never served from cache");
+	t.true(skipped.includes("minify"),
+		`#2 build: cacheable standard tasks were still served from cache (skipped: ${skipped})`);
+});
+
+test.serial("Build application.a (Specification Version 5.0 custom task opts out of caching via cache:false)",
+	async (t) => {
+		const fixtureTester = new FixtureTester(t, "application.a");
+		const destPath = fixtureTester.destPath;
+
+		// #1 build (no cache): everything builds, the opted-out custom task runs.
+		await fixtureTester.buildProject({
+			graphConfig: {rootConfigPath: "ui5-customTask-cacheExempt-optOut.yaml"},
+			config: {destPath, cleanDest: true},
+		});
+		t.true(taskStatuses(t, "application.a").executed.includes("cache-exempt-optout-task"),
+			"#1 build: the opted-out custom task ran");
+
+		// #2 build (no source changes): the task opted out via cache:false, so application.a rebuilds and
+		// the task runs again, while its cacheable standard tasks stay served from cache.
+		await fixtureTester.buildProject({
+			graphConfig: {rootConfigPath: "ui5-customTask-cacheExempt-optOut.yaml"},
+			config: {destPath, cleanDest: true},
+		});
+		const built = builtProjects(t);
+		t.true(built.includes("application.a"),
+			`#2 build: application.a rebuilt despite no changes (built: ${built})`);
+
+		const {executed, skipped} = taskStatuses(t, "application.a");
+		t.true(executed.includes("cache-exempt-optout-task"),
+			"#2 build: the opted-out task ran again on an unchanged rebuild");
+		t.false(skipped.includes("cache-exempt-optout-task"),
+			"#2 build: the opted-out task was never served from cache");
+		t.true(skipped.includes("minify"),
+			`#2 build: cacheable standard tasks were still served from cache (skipped: ${skipped})`);
+	});
+
