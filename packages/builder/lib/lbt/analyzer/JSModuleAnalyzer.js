@@ -691,10 +691,15 @@ class JSModuleAnalyzer {
 						});
 					}
 				} else {
-					log.warn("sap.ui.predefine call has a non supported type for module name (ignored)");
+					log.warn(`Cannot analyze a sap.ui.predefine call in ${defaultName}: ` +
+						`its module name argument is a ${args[0] && args[0].type} instead of a string literal, ` +
+						`so the predefined module is ignored. This usually means the bundled module is ` +
+						`malformed, e.g. a sap.ui.define factory wrapped in extra parentheses that moved the ` +
+						`injected module name into a sequence expression.`);
 				}
 			} else {
-				log.warn("sap.ui.predefine call is missing a module name (ignored)");
+				log.warn(`Cannot analyze a sap.ui.predefine call in ${defaultName}: ` +
+					`it has no module name argument, so the predefined module is ignored.`);
 			}
 		}
 
