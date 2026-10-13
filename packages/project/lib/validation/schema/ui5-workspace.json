@@ -25,12 +25,17 @@
 	"then": {
 		"properties": {
 			"dependencyManagement": {
+				"type": "object",
 				"properties": {
 					"resolutions": {
+						"type": "array",
 						"items": {
 							"if": {"type": "object"},
 							"then": {
-								"not": {"required": ["configPath"]},
+								"not": {
+									"type": "object",
+									"required": ["configPath"]
+								},
 								"errorMessage": "\"configPath\" is only supported for specVersion \"workspace/1.1\" and higher"
 							}
 						}
