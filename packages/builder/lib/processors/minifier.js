@@ -183,6 +183,13 @@ export default async function({
 
 	return Promise.all(resources.map(async (resource) => {
 		const resourcePath = resource.getPath();
+		// Deriving the debug variant path from the original resource path.
+		// Note: The "getDebugName" function from "lbt/utils/ModuleName.js" can't be used here directly
+		// as it would return "null" when the resource path already contains the "-dbg" suffix, which
+		// is valid input for the processor.
+		// This logic needs to be kept in sync with the resource filtering of the "minify" task, which
+		// skips a -dbg.js whose non-debug .js sibling is present. But a lone -dbg.js still reaches
+		// this processor and will produce a "-dbg-dbg.js" debug variant.
 		const dbgPath = resourcePath.replace(debugFileRegex, "-dbg$1");
 		const dbgFilename = posixPath.basename(dbgPath);
 
