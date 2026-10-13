@@ -30,6 +30,16 @@
         "GHSA-4mjr-xmp4-gh2g|@ui5/cli>@ui5/server>express>qs",
         "GHSA-4mjr-xmp4-gh2g|body-parser>qs",
         "GHSA-x5fp-wj9c-mxmx|@ui5/cli>@ui5/server>express>qs",
-        "GHSA-x5fp-wj9c-mxmx|body-parser>qs"
+        "GHSA-x5fp-wj9c-mxmx|body-parser>qs",
+		
+		// AI slop CVEs (not applicable) - See dependabot alert dismissals for details
+		"GHSA-hp3w-g68c-fv3c|depcheck>js-yaml>argparse>sprintf-js",
+		"GHSA-vfj7-8cjw-p6xm|@ui5/cli>@ui5/builder>@ui5/fs>micromatch>braces",
+		"GHSA-vfj7-8cjw-p6xm|@ui5/fs>micromatch>braces>",
+		"GHSA-vfj7-8cjw-p6xm|@ui5/project>@ui5/builder>@ui5/fs>micromatch>braces>",
+		"GHSA-vfj7-8cjw-p6xm|@ui5/server>@ui5/builder>@ui5/fs>micromatch>braces>",
+		"GHSA-vfj7-8cjw-p6xm|depcheck>findup-sync>micromatch>braces",
+		"GHSA-vfj7-8cjw-p6xm|globby>fast-glob>micromatch>braces>",
+		"GHSA-vfj7-8cjw-p6xm|micromatch>braces>"
     ]
 }
