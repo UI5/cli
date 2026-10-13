@@ -183,6 +183,10 @@ export default async function({
 
 	return Promise.all(resources.map(async (resource) => {
 		const resourcePath = resource.getPath();
+		// TODO: Check whether minifying a -dbg.js is correct here. For such an input this produces a
+		// -dbg-dbg.js debug variant, which is almost certainly unintended. A -dbg.js should probably be
+		// skipped instead. The minify task already skips a -dbg.js whose non-debug .js sibling is present;
+		// a lone -dbg.js still reaches this processor and gets the double suffix.
 		const dbgPath = resourcePath.replace(debugFileRegex, "-dbg$1");
 		const dbgFilename = posixPath.basename(dbgPath);
 

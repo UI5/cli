@@ -437,3 +437,53 @@ test.serial("integration: minify with taskUtil and resources tagged with OmitFro
 	const cleanupTask = taskUtil.registerCleanupTask.getCall(0).args[0];
 	await cleanupTask();
 });
+
+// A -dbg.js next to its .js in the sources is a broken input state: the minify task owns and generates
+// the -dbg.js, so a pre-existing one must not be there. The glob then matches both the .js and the -dbg.js
+// as separate map-step keys, and the .js key would write its generated debug variant to the -dbg.js path
+// that the -dbg.js key also writes - two concurrent keys writing one path, which crashes the build. To
+// stay robust, the .js and that -dbg.js are both skipped. Other .js files are minified as usual.
+test.serial("integration: minify skips a .js with an existing -dbg.js sibling and that -dbg.js",
+	async (t) => {
+		const {reader, writer, workspace} = createWorkspace();
+		const base = "/resources/my/namespace";
+		const content = `function a(x){return x;}\n`;
+
+		// A .js with an existing -dbg.js sibling - both must be skipped
+		await reader.write(resourceFactory.createResource({
+			path: `${base}/withDbg.js`,
+			string: content
+		}));
+		await reader.write(resourceFactory.createResource({
+			path: `${base}/withDbg-dbg.js`,
+			string: content
+		}));
+		// A plain .js without a sibling - must be minified as usual
+		await reader.write(resourceFactory.createResource({
+			path: `${base}/plain.js`,
+			string: content
+		}));
+
+		await runSteps(minify, {
+			workspace,
+			options: {
+				pattern: "/resources/**/*.js"
+			}
+		});
+
+		// The skipped .js and its -dbg.js are left untouched - the task writes neither them nor any derived
+		// resource (no source map, no overwrite of the existing -dbg.js).
+		t.is(await writer.byPath(`${base}/withDbg.js`), null, "Skipped .js is not written");
+		t.is(await writer.byPath(`${base}/withDbg-dbg.js`), null, "Existing -dbg.js is not written");
+		t.is(await writer.byPath(`${base}/withDbg.js.map`), null, "No source map for the skipped .js");
+
+		// The plain .js is minified as usual, producing a minified result, a debug variant and a source map.
+		const minified = await writer.byPath(`${base}/plain.js`);
+		t.truthy(minified, "Plain .js is written");
+		t.is(await minified.getString(), `function a(n){return n}\n${SOURCE_MAPPING_URL}=plain.js.map`,
+			"Plain .js is minified");
+		const dbg = await writer.byPath(`${base}/plain-dbg.js`);
+		t.truthy(dbg, "Debug variant for the plain .js is written");
+		t.is(await dbg.getString(), content, "Debug variant keeps the original content");
+		t.truthy(await writer.byPath(`${base}/plain.js.map`), "Source map for the plain .js is written");
+	});
