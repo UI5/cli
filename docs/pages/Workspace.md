@@ -147,14 +147,14 @@ Unless otherwise noted in the table below, UI5 CLI modules are backward-compatib
 
 Version | UI5 CLI Release
 --- | ---
-**`workspace/1.1`** | v5.0.0+ and v4.1.0+
+**`workspace/1.1`** | v4.1.0+
 **`workspace/1.0`** | v3.0.0+
 
 ### Specification Version `workspace/1.1`
 
 Added [`configPath`](#configpath) property to resolution entries.
 
-Specification Version `workspace/1.1` configurations are compatible with [UI5 CLI](https://github.com/SAP/ui5-cli) v5.0.0 and above, as well as v4.1.0 and above.
+Specification Version `workspace/1.1` configurations are compatible with [UI5 CLI](https://github.com/SAP/ui5-cli) v4.1.0 and above.
 
 ### Specification Version `workspace/1.0`
 
