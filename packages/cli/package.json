@@ -58,7 +58,7 @@
 		"chalk": "^6.0.1",
 		"data-with-position": "^0.5.0",
 		"import-local": "^3.2.0",
-		"js-yaml": "^5.4.2",
+		"js-yaml": "^5.4.3",
 		"open": "^11.0.4",
 		"pretty-hrtime": "^1.0.3",
 		"semver": "^7.8.5",
