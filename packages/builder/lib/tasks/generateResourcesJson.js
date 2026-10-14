@@ -42,7 +42,6 @@ function getCreatorOptions(projectName) {
  * @module @ui5/builder/tasks/generateResourcesJson
  */
 
-/* eslint "jsdoc/check-param-names": "off" */
 /**
  * Task for creating a resources.json file, describing all productive build resources.
  *
@@ -104,39 +103,45 @@ function getCreatorOptions(projectName) {
  * @function default
  * @static
  *
+ * @returns {object} The task descriptor
+ */
+export default function() {
+	return {
+		requiresDependencies: true,
+		task
+	};
+}
+
+/**
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
- * @returns {object} The task descriptor
+ * @returns {Promise<undefined>} Promise resolving once the resources.json has been written
  */
-export default function() {
-	return {requiresDependencies: true, task: async function(
-		{workspace, dependencies, taskUtil, options: {projectName}}
-	) {
-		let resources = await workspace.byGlob(["/resources/**/*"].concat(DEFAULT_EXCLUDES));
-		let dependencyResources =
-				await dependencies.byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}");
+async function task({workspace, dependencies, taskUtil, options: {projectName}}) {
+	let resources = await workspace.byGlob(["/resources/**/*"].concat(DEFAULT_EXCLUDES));
+	let dependencyResources =
+			await dependencies.byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}");
 
-		if (taskUtil) {
-			// Filter out resources that will be omitted from the build results
-			resources = resources.filter((resource) => {
-				return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
-			});
-			dependencyResources = dependencyResources.filter((resource) => {
-				return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
-			});
-		}
-
-		const resourceLists = await resourceListCreator({
-			resources,
-			dependencyResources,
-			options: getCreatorOptions(projectName),
+	if (taskUtil) {
+		// Filter out resources that will be omitted from the build results
+		resources = resources.filter((resource) => {
+			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
 		});
-		await Promise.all(
-			resourceLists.map((resourceList) => workspace.write(resourceList))
-		);
-	}};
+		dependencyResources = dependencyResources.filter((resource) => {
+			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
+		});
+	}
+
+	const resourceLists = await resourceListCreator({
+		resources,
+		dependencyResources,
+		options: getCreatorOptions(projectName),
+	});
+	await Promise.all(
+		resourceLists.map((resourceList) => workspace.write(resourceList))
+	);
 }

@@ -314,7 +314,6 @@ function getSapUiCoreBunDef(name, filters, preload) {
  * @module @ui5/builder/tasks/bundlers/generateLibraryPreload
  */
 
-/* eslint "jsdoc/check-param-names": "off" */
 /**
  * Task for library bundling.
  *
@@ -322,6 +321,13 @@ function getSapUiCoreBunDef(name, filters, preload) {
  * @function default
  * @static
  *
+ * @returns {object} The task descriptor
+ */
+export default function() {
+	return {task};
+}
+
+/**
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {@ui5/project/build/helpers/TaskUtil} [parameters.taskUtil] TaskUtil
@@ -334,303 +340,299 @@ function getSapUiCoreBunDef(name, filters, preload) {
  * denote an arbitrary number of characters or folder names.
  * Re-includes should be marked with a leading exclamation mark '!'. The order of filters is relevant; a later
  * inclusion overrides an earlier exclusion, and vice versa.
- * @returns {object} The task descriptor
+ * @returns {Promise<undefined>} Promise resolving once the library preload bundles have been written
  */
-export default function() {
-	return {task: async function(
-		{workspace, taskUtil, options: {skipBundles = [], excludes = [], projectName}}
-	) {
-		let nonDbgWorkspace = workspace;
-		if (taskUtil) {
-			nonDbgWorkspace = taskUtil.resourceFactory.createFilterReader({
-				reader: workspace,
-				callback: function(resource) {
-					// Remove any debug variants
-					return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
-				}
-			});
+async function task({workspace, taskUtil, options: {skipBundles = [], excludes = [], projectName}}) {
+	let nonDbgWorkspace = workspace;
+	if (taskUtil) {
+		nonDbgWorkspace = taskUtil.resourceFactory.createFilterReader({
+			reader: workspace,
+			callback: function(resource) {
+				// Remove any debug variants
+				return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
+			}
+		});
+	}
+	const coreVersion = taskUtil?.getProject("sap.ui.core")?.getVersion();
+	const allowStringBundling = taskUtil?.getProject().getSpecVersion().lt("4.0");
+	// Read the experimental flag through taskUtil.getEnv so that its usage is tracked as a task
+	// input by the incremental build cache (a changed value then invalidates this task's cached
+	// result). Fall back to a direct process.env read when the task runs without a TaskUtil.
+	const createBundleInfoPreload = taskUtil?.getEnv ?
+		!!taskUtil.getEnv("UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD") :
+		!!process.env.UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD;
+	const execModuleBundlerIfNeeded = ({options, resources}) => {
+		if (skipBundles.includes(options.bundleDefinition.name)) {
+			log.verbose(`Skipping generation of bundle ${options.bundleDefinition.name}`);
+			return null;
 		}
-		const coreVersion = taskUtil?.getProject("sap.ui.core")?.getVersion();
-		const allowStringBundling = taskUtil?.getProject().getSpecVersion().lt("4.0");
-		// Read the experimental flag through taskUtil.getEnv so that its usage is tracked as a task
-		// input by the incremental build cache (a changed value then invalidates this task's cached
-		// result). Fall back to a direct process.env read when the task runs without a TaskUtil.
-		const createBundleInfoPreload = taskUtil?.getEnv ?
-			!!taskUtil.getEnv("UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD") :
-			!!process.env.UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD;
-		const execModuleBundlerIfNeeded = ({options, resources}) => {
-			if (skipBundles.includes(options.bundleDefinition.name)) {
-				log.verbose(`Skipping generation of bundle ${options.bundleDefinition.name}`);
-				return null;
-			}
-			if (coreVersion) {
-				options.targetUi5CoreVersion = coreVersion;
-			}
-			options.bundleDefinition = applyDefaultsToBundleDefinition(options.bundleDefinition, taskUtil);
-			options.allowStringBundling = allowStringBundling;
-			return moduleBundler({options, resources});
-		};
+		if (coreVersion) {
+			options.targetUi5CoreVersion = coreVersion;
+		}
+		options.bundleDefinition = applyDefaultsToBundleDefinition(options.bundleDefinition, taskUtil);
+		options.allowStringBundling = allowStringBundling;
+		return moduleBundler({options, resources});
+	};
 
-		return nonDbgWorkspace.byGlob(
-			"/resources/**/*.{js,json,xml,html,properties,library,js.map}"
-		).then(async (resources) => {
-			// Find all libraries and create a library-preload.js bundle
+	return nonDbgWorkspace.byGlob(
+		"/resources/**/*.{js,json,xml,html,properties,library,js.map}"
+	).then(async (resources) => {
+		// Find all libraries and create a library-preload.js bundle
 
-			let p = Promise.resolve();
+		let p = Promise.resolve();
 
-			// Create core bundles for older versions (<1.97.0) which don't define bundle configuration in the ui5.yaml
-			// See: https://github.com/SAP/openui5/commit/ff127fd2d009162ea43ad312dec99d759ebc23a0
-			if (projectName === "sap.ui.core") {
-				// Instead of checking the sap.ui.core library version, the specVersion is checked against all versions
-				// that have been defined for sap.ui.core before the bundle configuration has been introduced.
-				// This is mainly to have an easier check without version parsing or using semver.
-				// If no project/specVersion is available, the bundles should also be created to not break potential
-				// existing use cases without a properly formed/formatted project tree.
-				if (!taskUtil || taskUtil.getProject().getSpecVersion().lte("2.0")) {
-					const isEvo = resources.find((resource) => {
-						return resource.getPath() === "/resources/ui5loader.js";
+		// Create core bundles for older versions (<1.97.0) which don't define bundle configuration in the ui5.yaml
+		// See: https://github.com/SAP/openui5/commit/ff127fd2d009162ea43ad312dec99d759ebc23a0
+		if (projectName === "sap.ui.core") {
+			// Instead of checking the sap.ui.core library version, the specVersion is checked against all versions
+			// that have been defined for sap.ui.core before the bundle configuration has been introduced.
+			// This is mainly to have an easier check without version parsing or using semver.
+			// If no project/specVersion is available, the bundles should also be created to not break potential
+			// existing use cases without a properly formed/formatted project tree.
+			if (!taskUtil || taskUtil.getProject().getSpecVersion().lte("2.0")) {
+				const isEvo = resources.find((resource) => {
+					return resource.getPath() === "/resources/ui5loader.js";
+				});
+
+				let unoptimizedModuleNameMapping;
+				let unoptimizedResources = resources;
+				if (taskUtil) {
+					const unoptimizedWorkspace = taskUtil.resourceFactory.createFilterReader({
+						reader: workspace,
+						callback: function(resource) {
+							// Remove any non-debug variants
+							return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
+						}
 					});
+					unoptimizedResources = await unoptimizedWorkspace.byGlob(
+						"/resources/**/*.{js,json,xml,html,properties,library,js.map}");
 
-					let unoptimizedModuleNameMapping;
-					let unoptimizedResources = resources;
-					if (taskUtil) {
-						const unoptimizedWorkspace = taskUtil.resourceFactory.createFilterReader({
-							reader: workspace,
-							callback: function(resource) {
-								// Remove any non-debug variants
-								return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
-							}
-						});
-						unoptimizedResources = await unoptimizedWorkspace.byGlob(
-							"/resources/**/*.{js,json,xml,html,properties,library,js.map}");
-
-						unoptimizedModuleNameMapping = createModuleNameMapping({
-							resources: unoptimizedResources,
-							taskUtil
-						});
-					}
-
-					let filters;
-					if (isEvo) {
-						filters = ["ui5loader-autoconfig.js"];
-					} else {
-						filters = ["jquery.sap.global.js"];
-					}
-					p = Promise.all([
-						execModuleBundlerIfNeeded({
-							options: getModuleBundlerOptions({name: "sap-ui-core.js", filters, preload: true}),
-							resources
-						}),
-						execModuleBundlerIfNeeded({
-							options: getModuleBundlerOptions({
-								name: "sap-ui-core-dbg.js", filters, preload: false,
-								moduleNameMapping: unoptimizedModuleNameMapping
-							}),
-							resources: unoptimizedResources
-						}),
-						execModuleBundlerIfNeeded({
-							options: getModuleBundlerOptions({
-								name: "sap-ui-core-nojQuery.js", filters, preload: true, provided: true
-							}),
-							resources
-						}),
-						execModuleBundlerIfNeeded({
-							options: getModuleBundlerOptions({
-								name: "sap-ui-core-nojQuery-dbg.js", filters, preload: false, provided: true,
-								moduleNameMapping: unoptimizedModuleNameMapping
-							}),
-							resources: unoptimizedResources
-						}),
-					]).then((results) => {
-						const bundles = Array.prototype.concat.apply([], results).filter(Boolean);
-						return Promise.all(bundles.map(({bundle, sourceMap}) => {
-							if (taskUtil) {
-								taskUtil.setTag(bundle, taskUtil.STANDARD_TAGS.IsBundle);
-								if (sourceMap) {
-									// Clear tag that might have been set by the minify task, in cases where
-									// the bundle name is identical to a source file
-									taskUtil.clearTag(sourceMap, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
-								}
-							}
-							const writes = [workspace.write(bundle)];
-							if (sourceMap) {
-								writes.push(workspace.write(sourceMap));
-							}
-							return Promise.all(writes);
-						}));
+					unoptimizedModuleNameMapping = createModuleNameMapping({
+						resources: unoptimizedResources,
+						taskUtil
 					});
 				}
-			}
 
-			return p.then(() => {
-				return workspace.byGlob("/resources/**/.library").then((libraryIndicatorResources) => {
-					if (libraryIndicatorResources.length > 0) {
-						return libraryIndicatorResources;
-					} else {
-						// Fallback to "library.js" as library indicator
-						log.verbose(
-							`Could not find a ".library" file for project ${projectName}, ` +
-							`falling back to "library.js".`);
-						return workspace.byGlob("/resources/**/library.js");
-					}
-				}).then((libraryIndicatorResources) => {
-					if (libraryIndicatorResources.length < 1) {
-						// No library found - nothing to do
-						log.verbose(
-							`Could not find a ".library" or "library.js" file for project ${projectName}. ` +
-							`Skipping library preload bundling.`);
-						return;
-					}
-
-					return Promise.all(libraryIndicatorResources.map(async (libraryIndicatorResource) => {
-						// Determine library namespace from library indicator file path
-						// ending with either ".library" or "library.js" (see fallback logic above)
-						// e.g. /resources/sap/foo/.library => sap/foo
-						//      /resources/sap/bar/library.js => sap/bar
-						const libraryNamespacePattern = /^\/resources\/(.*)\/(?:\.library|library\.js)$/;
-						const libraryIndicatorPath = libraryIndicatorResource.getPath();
-						const libraryNamespaceMatch = libraryIndicatorPath.match(libraryNamespacePattern);
-						if (libraryNamespaceMatch && libraryNamespaceMatch[1]) {
-							const libraryNamespace = libraryNamespaceMatch[1];
-							let results;
-							if (!createBundleInfoPreload) {
-								// Regular bundling
-								results = await Promise.all([
-									execModuleBundlerIfNeeded({
-										options: {
-											bundleDefinition: getBundleDefinition(libraryNamespace, excludes),
-											bundleOptions: {
-												optimize: true,
-												ignoreMissingModules: true
-											}
-										},
-										resources
-									}),
-									execModuleBundlerIfNeeded({
-										options: {
-											bundleDefinition: getDesigntimeBundleDefinition(libraryNamespace),
-											bundleOptions: {
-												optimize: true,
-												ignoreMissingModules: true,
-												skipIfEmpty: true
-											}
-										},
-										resources
-									}),
-									execModuleBundlerIfNeeded({
-										options: {
-											bundleDefinition: getSupportFilesBundleDefinition(libraryNamespace),
-											bundleOptions: {
-												optimize: false,
-												ignoreMissingModules: true,
-												skipIfEmpty: true
-											}
-											// Note: Although the bundle uses optimize=false, there is
-											// no moduleNameMapping needed, as support files are excluded from minify.
-										},
-										resources
-									})
-								]);
-							} else {
-								log.info(
-									`Using experimental bundling with bundle info preload ` +
-									`for library ${libraryNamespace} in project ${projectName}`);
-								log.info(`Detected sap.ui.core version is ${coreVersion || "unknown"}`);
-
-
-								if (skipBundles.includes(`${libraryNamespace}/library-preload.js`) &&
-									!skipBundles.includes(`${libraryNamespace}/_library-content.js`)) {
-									// If the standard preload bundle is skipped, also skip the content bundle,
-									// since they depend on each other
-									skipBundles.push(`${libraryNamespace}/_library-content.js`);
-								}
-
-								if (skipBundles.includes(`${libraryNamespace}/_library-content.js`) &&
-									!skipBundles.includes(`${libraryNamespace}/library-preload.js`)) {
-									// If the content bundle is skipped, the default preload bundle must be skipped too
-									throw new Error(
-										`A custom bundle '${libraryNamespace}/_library-content.js' has been defined, ` +
-										`but it also requires a corresponding custom bundle definition for ` +
-										`'${libraryNamespace}/library-preload.js'`);
-								}
-
-								// Experimental bundling with bundle info preload
-								results = await Promise.all([
-									execModuleBundlerIfNeeded({
-										options: {
-											bundleDefinition:
-												getBundleInfoPreloadDefinition(libraryNamespace, excludes, coreVersion),
-											bundleOptions: {
-												optimize: true,
-												ignoreMissingModules: true
-											}
-										},
-										resources
-									}),
-									execModuleBundlerIfNeeded({
-										options: {
-											bundleDefinition: getContentBundleDefinition(libraryNamespace, excludes),
-											bundleOptions: {
-												optimize: true,
-												ignoreMissingModules: true
-											}
-										},
-										resources
-									}),
-									execModuleBundlerIfNeeded({
-										options: {
-											bundleDefinition: getDesigntimeBundleDefinition(libraryNamespace),
-											bundleOptions: {
-												optimize: true,
-												ignoreMissingModules: true,
-												skipIfEmpty: true
-											}
-										},
-										resources
-									}),
-									execModuleBundlerIfNeeded({
-										options: {
-											bundleDefinition: getSupportFilesBundleDefinition(libraryNamespace),
-											bundleOptions: {
-												optimize: false,
-												ignoreMissingModules: true,
-												skipIfEmpty: true
-											}
-											// Note: Although the bundle uses optimize=false, there is
-											// no moduleNameMapping needed, as support files are excluded from minify.
-										},
-										resources
-									})
-								]);
+				let filters;
+				if (isEvo) {
+					filters = ["ui5loader-autoconfig.js"];
+				} else {
+					filters = ["jquery.sap.global.js"];
+				}
+				p = Promise.all([
+					execModuleBundlerIfNeeded({
+						options: getModuleBundlerOptions({name: "sap-ui-core.js", filters, preload: true}),
+						resources
+					}),
+					execModuleBundlerIfNeeded({
+						options: getModuleBundlerOptions({
+							name: "sap-ui-core-dbg.js", filters, preload: false,
+							moduleNameMapping: unoptimizedModuleNameMapping
+						}),
+						resources: unoptimizedResources
+					}),
+					execModuleBundlerIfNeeded({
+						options: getModuleBundlerOptions({
+							name: "sap-ui-core-nojQuery.js", filters, preload: true, provided: true
+						}),
+						resources
+					}),
+					execModuleBundlerIfNeeded({
+						options: getModuleBundlerOptions({
+							name: "sap-ui-core-nojQuery-dbg.js", filters, preload: false, provided: true,
+							moduleNameMapping: unoptimizedModuleNameMapping
+						}),
+						resources: unoptimizedResources
+					}),
+				]).then((results) => {
+					const bundles = Array.prototype.concat.apply([], results).filter(Boolean);
+					return Promise.all(bundles.map(({bundle, sourceMap}) => {
+						if (taskUtil) {
+							taskUtil.setTag(bundle, taskUtil.STANDARD_TAGS.IsBundle);
+							if (sourceMap) {
+								// Clear tag that might have been set by the minify task, in cases where
+								// the bundle name is identical to a source file
+								taskUtil.clearTag(sourceMap, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
 							}
-							const bundles = Array.prototype.concat.apply([], results).filter(Boolean);
-							return Promise.all(bundles.map(({bundle, sourceMap} = {}) => {
-								if (bundle) {
-									if (taskUtil) {
-										taskUtil.setTag(bundle, taskUtil.STANDARD_TAGS.IsBundle);
-										if (sourceMap) {
-											// Clear tag that might have been set by the minify task, in cases where
-											// the bundle name is identical to a source file
-											taskUtil.clearTag(sourceMap,
-												taskUtil.STANDARD_TAGS.OmitFromBuildResult);
-										}
-									}
-									const writes = [workspace.write(bundle)];
-									if (sourceMap) {
-										writes.push(workspace.write(sourceMap));
-									}
-									return Promise.all(writes);
-								}
-							}));
-						} else {
-							log.verbose(
-								`Could not determine library namespace from file "${libraryIndicatorPath}" ` +
-								`for project ${projectName}. Skipping library preload bundling.`);
-							return Promise.resolve();
 						}
+						const writes = [workspace.write(bundle)];
+						if (sourceMap) {
+							writes.push(workspace.write(sourceMap));
+						}
+						return Promise.all(writes);
 					}));
 				});
+			}
+		}
+
+		return p.then(() => {
+			return workspace.byGlob("/resources/**/.library").then((libraryIndicatorResources) => {
+				if (libraryIndicatorResources.length > 0) {
+					return libraryIndicatorResources;
+				} else {
+					// Fallback to "library.js" as library indicator
+					log.verbose(
+						`Could not find a ".library" file for project ${projectName}, ` +
+						`falling back to "library.js".`);
+					return workspace.byGlob("/resources/**/library.js");
+				}
+			}).then((libraryIndicatorResources) => {
+				if (libraryIndicatorResources.length < 1) {
+					// No library found - nothing to do
+					log.verbose(
+						`Could not find a ".library" or "library.js" file for project ${projectName}. ` +
+						`Skipping library preload bundling.`);
+					return;
+				}
+
+				return Promise.all(libraryIndicatorResources.map(async (libraryIndicatorResource) => {
+					// Determine library namespace from library indicator file path
+					// ending with either ".library" or "library.js" (see fallback logic above)
+					// e.g. /resources/sap/foo/.library => sap/foo
+					//      /resources/sap/bar/library.js => sap/bar
+					const libraryNamespacePattern = /^\/resources\/(.*)\/(?:\.library|library\.js)$/;
+					const libraryIndicatorPath = libraryIndicatorResource.getPath();
+					const libraryNamespaceMatch = libraryIndicatorPath.match(libraryNamespacePattern);
+					if (libraryNamespaceMatch && libraryNamespaceMatch[1]) {
+						const libraryNamespace = libraryNamespaceMatch[1];
+						let results;
+						if (!createBundleInfoPreload) {
+							// Regular bundling
+							results = await Promise.all([
+								execModuleBundlerIfNeeded({
+									options: {
+										bundleDefinition: getBundleDefinition(libraryNamespace, excludes),
+										bundleOptions: {
+											optimize: true,
+											ignoreMissingModules: true
+										}
+									},
+									resources
+								}),
+								execModuleBundlerIfNeeded({
+									options: {
+										bundleDefinition: getDesigntimeBundleDefinition(libraryNamespace),
+										bundleOptions: {
+											optimize: true,
+											ignoreMissingModules: true,
+											skipIfEmpty: true
+										}
+									},
+									resources
+								}),
+								execModuleBundlerIfNeeded({
+									options: {
+										bundleDefinition: getSupportFilesBundleDefinition(libraryNamespace),
+										bundleOptions: {
+											optimize: false,
+											ignoreMissingModules: true,
+											skipIfEmpty: true
+										}
+										// Note: Although the bundle uses optimize=false, there is
+										// no moduleNameMapping needed, as support files are excluded from minify.
+									},
+									resources
+								})
+							]);
+						} else {
+							log.info(
+								`Using experimental bundling with bundle info preload ` +
+								`for library ${libraryNamespace} in project ${projectName}`);
+							log.info(`Detected sap.ui.core version is ${coreVersion || "unknown"}`);
+
+
+							if (skipBundles.includes(`${libraryNamespace}/library-preload.js`) &&
+								!skipBundles.includes(`${libraryNamespace}/_library-content.js`)) {
+								// If the standard preload bundle is skipped, also skip the content bundle,
+								// since they depend on each other
+								skipBundles.push(`${libraryNamespace}/_library-content.js`);
+							}
+
+							if (skipBundles.includes(`${libraryNamespace}/_library-content.js`) &&
+								!skipBundles.includes(`${libraryNamespace}/library-preload.js`)) {
+								// If the content bundle is skipped, the default preload bundle must be skipped too
+								throw new Error(
+									`A custom bundle '${libraryNamespace}/_library-content.js' has been defined, ` +
+									`but it also requires a corresponding custom bundle definition for ` +
+									`'${libraryNamespace}/library-preload.js'`);
+							}
+
+							// Experimental bundling with bundle info preload
+							results = await Promise.all([
+								execModuleBundlerIfNeeded({
+									options: {
+										bundleDefinition:
+											getBundleInfoPreloadDefinition(libraryNamespace, excludes, coreVersion),
+										bundleOptions: {
+											optimize: true,
+											ignoreMissingModules: true
+										}
+									},
+									resources
+								}),
+								execModuleBundlerIfNeeded({
+									options: {
+										bundleDefinition: getContentBundleDefinition(libraryNamespace, excludes),
+										bundleOptions: {
+											optimize: true,
+											ignoreMissingModules: true
+										}
+									},
+									resources
+								}),
+								execModuleBundlerIfNeeded({
+									options: {
+										bundleDefinition: getDesigntimeBundleDefinition(libraryNamespace),
+										bundleOptions: {
+											optimize: true,
+											ignoreMissingModules: true,
+											skipIfEmpty: true
+										}
+									},
+									resources
+								}),
+								execModuleBundlerIfNeeded({
+									options: {
+										bundleDefinition: getSupportFilesBundleDefinition(libraryNamespace),
+										bundleOptions: {
+											optimize: false,
+											ignoreMissingModules: true,
+											skipIfEmpty: true
+										}
+										// Note: Although the bundle uses optimize=false, there is
+										// no moduleNameMapping needed, as support files are excluded from minify.
+									},
+									resources
+								})
+							]);
+						}
+						const bundles = Array.prototype.concat.apply([], results).filter(Boolean);
+						return Promise.all(bundles.map(({bundle, sourceMap} = {}) => {
+							if (bundle) {
+								if (taskUtil) {
+									taskUtil.setTag(bundle, taskUtil.STANDARD_TAGS.IsBundle);
+									if (sourceMap) {
+										// Clear tag that might have been set by the minify task, in cases where
+										// the bundle name is identical to a source file
+										taskUtil.clearTag(sourceMap,
+											taskUtil.STANDARD_TAGS.OmitFromBuildResult);
+									}
+								}
+								const writes = [workspace.write(bundle)];
+								if (sourceMap) {
+									writes.push(workspace.write(sourceMap));
+								}
+								return Promise.all(writes);
+							}
+						}));
+					} else {
+						log.verbose(
+							`Could not determine library namespace from file "${libraryIndicatorPath}" ` +
+							`for project ${projectName}. Skipping library preload bundling.`);
+						return Promise.resolve();
+					}
+				}));
 			});
 		});
-	}};
+	});
 }

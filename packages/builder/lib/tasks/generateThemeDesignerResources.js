@@ -121,7 +121,10 @@ export default function build(options) {
 	// Skip sap.ui.documentation since it is not intended to be available in SAP Theme Designer to create
 	// custom themes
 	if (namespace === "sap/ui/documentation") {
-		return {requiresDependencies: true, steps: []};
+		return {
+			requiresDependencies: true,
+			steps: []
+		};
 	}
 
 	let librarySourceLessPattern;
@@ -217,5 +220,8 @@ export default function build(options) {
 		},
 	});
 
-	return {requiresDependencies: true, steps};
+	return {
+		requiresDependencies: true,
+		steps
+	};
 }
