@@ -49,60 +49,58 @@ import {createAdapter} from "@ui5/fs/resourceFactory";
 export default function generateJsdoc(options) {
 	const {version, namespace, jsdocExcludes = []} = options;
 	const patterns = ["/resources/**/*.js", ...jsdocExcludes.map((p) => `!/resources/${p}`)];
+
+	const task = async function({taskUtil, workspace, dependencies, options = {}}) {
+		const {projectName} = options;
+
+		if (!projectName || !namespace || !version || !patterns.length) {
+			throw new Error("[generateJsdoc]: One or more mandatory options not provided");
+		}
+
+		const {sourcePath: resourcePath, targetPath, tmpPath, cleanup} =
+			await utils.createTmpDirs(projectName);
+
+		taskUtil?.registerCleanupTask(cleanup);
+
+		const [writtenResourcesCount] = await Promise.all([
+			utils.writeResourcesToDir({
+				workspace,
+				pattern: patterns,
+				targetPath: resourcePath
+			}),
+			utils.writeDependencyApisToDir({
+				dependencies,
+				targetPath: path.join(tmpPath, "dependency-apis")
+			})
+		]);
+
+		if (writtenResourcesCount === 0) {
+			log.info(`Failed to find any input resources for project ${projectName} using pattern ` +
+				`${patterns}. Skipping JSDoc generation...`);
+			return;
+		}
+
+		const createdResources = await jsdocGenerator({
+			sourcePath: resourcePath,
+			targetPath,
+			tmpPath,
+			options: {
+				projectName,
+				namespace,
+				version,
+				variants: ["apijson"]
+			}
+		});
+
+		await Promise.all(createdResources.map((resource) => {
+			return workspace.write(resource);
+		}));
+	};
+
 	return {
 		requiresDependencies: true,
 		determineBuildSignature: async () => version,
-		task: async function({
-			taskUtil,
-			workspace,
-			dependencies,
-			options = {}
-		}) {
-			const {projectName} = options;
-
-			if (!projectName || !namespace || !version || !patterns.length) {
-				throw new Error("[generateJsdoc]: One or more mandatory options not provided");
-			}
-
-			const {sourcePath: resourcePath, targetPath, tmpPath, cleanup} =
-				await utils.createTmpDirs(projectName);
-
-			taskUtil?.registerCleanupTask(cleanup);
-
-			const [writtenResourcesCount] = await Promise.all([
-				utils.writeResourcesToDir({
-					workspace,
-					pattern: patterns,
-					targetPath: resourcePath
-				}),
-				utils.writeDependencyApisToDir({
-					dependencies,
-					targetPath: path.join(tmpPath, "dependency-apis")
-				})
-			]);
-
-			if (writtenResourcesCount === 0) {
-				log.info(`Failed to find any input resources for project ${projectName} using pattern ` +
-					`${patterns}. Skipping JSDoc generation...`);
-				return;
-			}
-
-			const createdResources = await jsdocGenerator({
-				sourcePath: resourcePath,
-				targetPath,
-				tmpPath,
-				options: {
-					projectName,
-					namespace,
-					version,
-					variants: ["apijson"]
-				}
-			});
-
-			await Promise.all(createdResources.map((resource) => {
-				return workspace.write(resource);
-			}));
-		}
+		task
 	};
 }
 
