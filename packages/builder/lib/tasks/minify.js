@@ -27,7 +27,7 @@ import fsInterface from "@ui5/fs/fsInterface";
  * 		source files, such as TypeScript files, in the generated source map.
  * @returns {object} The task descriptor with its build steps
  */
-export default function build({pattern, omitSourceMapResources = false, useInputSourceMaps = true}) {
+export default function defineTask({pattern, omitSourceMapResources = false, useInputSourceMaps = true}) {
 	const minifierOptions = {
 		addSourceMappingUrl: !omitSourceMapResources,
 		readSourceMappingUrl: !!useInputSourceMaps,

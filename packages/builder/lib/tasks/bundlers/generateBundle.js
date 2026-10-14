@@ -29,7 +29,7 @@ import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
  * @returns {object} The task descriptor
  */
 /* eslint-enable max-len */
-export default function() {
+export default function defineTask() {
 	return {requiresDependencies: true, task: async function({
 		workspace, dependencies, taskUtil, options: {projectName, bundleDefinition, bundleOptions}
 	}) {

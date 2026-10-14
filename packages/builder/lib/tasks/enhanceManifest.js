@@ -24,7 +24,7 @@ import fsInterface from "@ui5/fs/fsInterface";
  * @param {string} options.projectNamespace Namespace of the application
  * @returns {object} The task descriptor with its build steps
  */
-export default function build({projectNamespace}) {
+export default function defineTask({projectNamespace}) {
 	return {steps: [{
 		name: "enhanceManifest",
 		// One key per manifest.json. The i18n bundle reads made by manifestEnhancer go through the step's

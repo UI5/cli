@@ -22,7 +22,7 @@ import stringReplacer from "../processors/stringReplacer.js";
  * @param {string} options.version Replacement version
  * @returns {object} The task descriptor with its build steps
  */
-export default function build({pattern, version}) {
+export default function defineTask({pattern, version}) {
 	const replacerOptions = {
 		pattern: /\$\{(?:project\.)?version\}/g,
 		replacement: version

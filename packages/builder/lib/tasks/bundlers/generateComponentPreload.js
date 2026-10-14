@@ -19,7 +19,7 @@ import {negateFilters} from "../../lbt/resources/ResourceFilterList.js";
  *
  * @returns {object} The task descriptor
  */
-export default function() {
+export default function defineTask() {
 	return {task};
 }
 

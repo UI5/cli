@@ -18,7 +18,7 @@ import apiIndexGenerator from "../../processors/jsdoc/apiIndexGenerator.js";
  *
  * @returns {object} The task descriptor
  */
-export default function() {
+export default function defineTask() {
 	return {
 		requiresDependencies: true,
 		task
