@@ -676,22 +676,13 @@ test("ES6 Template Literal in sap.ui.predefine", async (t) => {
 	});
 });
 
-// A rollup/webpack bundle can emit sap.ui.define with its factory wrapped in extra parentheses:
-// `sap.ui.define((function () { ... }))`. generateLibraryPreload injects the module name at the
-// position of the first argument (Builder.js injectModuleId), but the leading paren is not an AST
-// node, so the name lands inside it and the preload gets `sap.ui.predefine(("my/module", function
-// () { ... }))`. The first argument is then a SequenceExpression, not a string literal, so the
-// analyzer cannot read the module name: the submodule is not recorded and a warning is logged.
-//
-// The fix-minify-dbg-collision branch surfaced this: a .js with a pre-existing -dbg.js sibling is
-// left unminified and the -dbg.js (which carries the wrapped-factory form) is passed through into
-// generateLibraryPreload. Reproduced while building sap.cards.ap.transpiler.
-//
-// Marked test.serial.failing: AVA reports it as a pass while it fails and as an error once it
-// starts passing, so it keeps CI green today and turns into a signal once the module-name injection
-// in Builder.js stops moving the name into the parenthesised expression (then drop the `.failing`).
-// The real fix is in the bundle Builder, not in the analyzer.
-test.serial.failing("sap.ui.predefine with a parenthesis-wrapped factory", async (t) => {
+// A bundled factory can be wrapped in extra parentheses, so a preload ends up with
+// `sap.ui.predefine(("my/module", function () { ... }))`. The first argument is then a
+// SequenceExpression rather than a string literal. The analyzer unwraps such a sequence so it can
+// still read the module name and record the submodule instead of warning and dropping it.
+// (The resource is named differently from the predefined module, since a module is never recorded
+// as its own submodule.)
+test.serial("sap.ui.predefine with a parenthesis-wrapped factory", async (t) => {
 	const warnLogStub = sinon.stub();
 	const {default: StubbedJSModuleAnalyzer} =
 		await esmock("../../../../lib/lbt/analyzer/JSModuleAnalyzer.js", {
@@ -707,8 +698,8 @@ test.serial.failing("sap.ui.predefine with a parenthesis-wrapped factory", async
 	// The exact shape generateLibraryPreload produces for a wrapped sap.ui.define factory.
 	const content = `sap.ui.predefine(("my/module", function () { "use strict"; return {}; }));`;
 	const ast = parseJS(content, {comment: true});
-	const info = new ModuleInfo("my/module.js");
-	new StubbedJSModuleAnalyzer().analyze(ast, "my/module.js", info);
+	const info = new ModuleInfo("my/preload.js");
+	new StubbedJSModuleAnalyzer().analyze(ast, "my/preload.js", info);
 
 	t.deepEqual(info.subModules, ["my/module.js"],
 		"the predefined submodule should be recorded despite the wrapping parentheses");
