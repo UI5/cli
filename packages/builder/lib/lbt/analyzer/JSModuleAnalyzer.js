@@ -424,9 +424,21 @@ class JSModuleAnalyzer {
 						bIsUi5Module = true;
 					}
 					info.setFormat(ModuleFormat.UI5_DEFINE);
-					onSapUiPredefine(node, conditional);
 
-					const args = node.arguments;
+					// A bundled factory can be wrapped in extra parentheses, e.g.
+					// sap.ui.predefine(("name", [], fn)). That parses as a single SequenceExpression
+					// whose expressions are the real arguments (name, dependencies, factory). Unwrap
+					// it so both the module name/dependencies and the factory body are analyzed as if
+					// the call had been written with a plain argument list.
+					// The Builder already accounts for this scenario (see Builder.rewriteDefine),
+					// but hardening here ensures that the analyzer can still correctly interpret the arguments.
+					let args = node.arguments;
+					if (args.length === 1 && args[0].type === Syntax.SequenceExpression) {
+						args = args[0].expressions;
+					}
+
+					onSapUiPredefine(args, conditional);
+
 					let iArg = 0;
 					if ( iArg < args.length && isString(args[iArg]) ) {
 						iArg++;
@@ -668,8 +680,7 @@ class JSModuleAnalyzer {
 			}
 		}
 
-		function onSapUiPredefine(predefineCall, conditional) {
-			const args = predefineCall.arguments;
+		function onSapUiPredefine(args, conditional) {
 			const nArgs = args.length;
 			let i = 0;
 
@@ -693,9 +704,7 @@ class JSModuleAnalyzer {
 				} else {
 					log.warn(`Cannot analyze a sap.ui.predefine call in ${defaultName}: ` +
 						`its module name argument is a ${args[0] && args[0].type} instead of a string literal, ` +
-						`so the predefined module is ignored. This usually means the bundled module is ` +
-						`malformed, e.g. a sap.ui.define factory wrapped in extra parentheses that moved the ` +
-						`injected module name into a sequence expression.`);
+						`so the predefined module is ignored.`);
 				}
 			} else {
 				log.warn(`Cannot analyze a sap.ui.predefine call in ${defaultName}: ` +

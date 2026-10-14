@@ -3053,7 +3053,7 @@ test("rewriteDefine (with other module name as template literal)", async (t) => 
 	t.is(moduleSourceMap, undefined);
 });
 
-// Some bundlers wrap the factory in extra parentheses: `sap.ui.define((function () { ... }))`.
+// Some bundles have a factory wrapped in extra parentheses: `sap.ui.define((function () { ... }))`.
 // Inserting the module name at the argument's start would place it inside those parentheses, where
 // name and factory are read as one value and the name is lost. rewriteDefine therefore inserts the
 // name right after the call's opening "(", so it always stays the first argument:
