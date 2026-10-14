@@ -119,12 +119,12 @@ export function validateSteps(steps, {taskName} = {}) {
 }
 
 /**
- * Collects the reads and writes of a single step (a scalar step's implicit invocation, or one key of a map
+ * Collects the reads and writes of a single invocation (a scalar step's one invocation, or one key of a map
  * step). Project reads (workspace) and dependency reads are kept apart so they can be folded back into
  * the task's project vs. dependency request graph independently: a dependency path folded into the
  * project graph would resolve against the wrong reader and corrupt the signature.
  */
-class StepRecorder {
+class InvocationRecorder {
 	projectReads = new Set();
 	dependencyReads = new Set();
 	// Glob patterns an invocation issued, kept so a cached key's glob stays in the stage request set: a stored
@@ -180,22 +180,22 @@ class RecordingReaderWriter extends AbstractReaderWriter {
 	#workspace;
 	#recorder;
 	#writeBuffer;
-	#stepIndex;
+	#invocationIndex;
 
 	/**
 	 * @param {@ui5/fs/AbstractReaderWriter} workspace Task-level monitored workspace
-	 * @param {StepRecorder} recorder Recorder for this step
+	 * @param {InvocationRecorder} recorder Recorder for this invocation
 	 * @param {Map<string, object>|null} writeBuffer Shared buffer for concurrent writes, or
 	 *   <code>null</code> to write through immediately (sequential mode)
-	 * @param {number} stepIndex Position of this invocation in the key order, used to flush buffered writes
+	 * @param {number} invocationIndex Position of this invocation in the key order, used to flush buffered writes
 	 *   deterministically and to detect two invocations writing the same path
 	 */
-	constructor(workspace, recorder, writeBuffer, stepIndex) {
+	constructor(workspace, recorder, writeBuffer, invocationIndex) {
 		super(workspace.getName());
 		this.#workspace = workspace;
 		this.#recorder = recorder;
 		this.#writeBuffer = writeBuffer;
-		this.#stepIndex = stepIndex;
+		this.#invocationIndex = invocationIndex;
 	}
 
 	async _byGlob(virPattern, options) {
@@ -225,8 +225,8 @@ class RecordingReaderWriter extends AbstractReaderWriter {
 			// Concurrent mode: buffer and flush in key order once all keys finish. Concurrent keys are
 			// required to be independent, so two keys writing the same path is a contract violation
 			// rather than a last-wins race.
-			assertDistinctWrite(this.#writeBuffer, resourcePath, this.#stepIndex);
-			this.#writeBuffer.set(resourcePath, {resource, args: [options], index: this.#stepIndex});
+			assertDistinctWrite(this.#writeBuffer, resourcePath, this.#invocationIndex);
+			this.#writeBuffer.set(resourcePath, {resource, args: [options], index: this.#invocationIndex});
 			return;
 		}
 		// Sequential mode: persist immediately so a later key reads what this key wrote.
@@ -318,7 +318,7 @@ export default class StepRunner {
 	 *   Absent for standalone use (no cache): every invocation runs. This verdict is read three ways in
 	 *   {@link #runSteps}: compared against <code>true</code> for the full-hit short-circuit, passed to
 	 *   <code>markStageExecuting</code> as a "was this a delta" flag, and treated as "run everything if
-	 *   falsy" by {@link #selectStepsToRun}. An explicit verdict shape would read more clearly, but it is
+	 *   falsy" by {@link #selectInvocationsToRun}. An explicit verdict shape would read more clearly, but it is
 	 *   deferred: the shape is shared with the stage-signature code and reshaping it belongs with that work.
 	 * @param {function(string): Promise<(object|boolean)>} [parameters.reopenStage] Reopens the named step's
 	 *   stage with a fresh live writer after a full cache hit that must be re-run (a consumed
@@ -439,8 +439,8 @@ export default class StepRunner {
 				// Full stage-cache hit: the step's own stage signature matched. A consumed needs return is
 				// deliberately excluded from the stage signature (see #foldStageKeys), so a full hit can
 				// occur even though a producer this step needs re-ran this build with a changed return. The
-				// delta path catches that via needsInputs in #selectStepsToRun, but a full hit never runs
-				// #selectStepsToRun. Check it here: when a consumed return changed, reopen the stage with a
+				// delta path catches that via needsInputs in #selectInvocationsToRun, but a full hit never runs
+				// #selectInvocationsToRun. Check it here: when a consumed return changed, reopen the stage with a
 				// live writer and re-run it rather than serving stale cached output.
 				if (this.#canRestoreCachedStage(step, previous, isScalar) &&
 						!this.#needsReturnChanged(previous, needsSignatures)) {
@@ -459,8 +459,8 @@ export default class StepRunner {
 					`step '${step.name}': re-running despite a full stage-cache hit ` +
 					`(a consumed needs return changed, or the stage's invocation data cannot be restored)`);
 				// Reopen the stage (fresh writer) and re-run it as a full execution: the hook returns a
-				// falsy verdict, so #selectStepsToRun runs every invocation rather than pruning. Reopening installs
-				// a fresh EMPTY writable stage (unlike a delta verdict, whose stage was pre-seeded with the
+				// falsy verdict, so #selectInvocationsToRun runs every invocation rather than pruning. Reopening
+				// installs a fresh EMPTY writable stage (unlike a delta verdict, whose stage was pre-seeded with the
 				// cached outputs at import), so the invocations cannot be pruned without first re-seeding that
 				// stage; re-running the whole stage keeps the output complete without that machinery. No
 				// shipped multi-step task is penalized: generateThemeDesignerResources is the only task
@@ -560,7 +560,7 @@ export default class StepRunner {
 	/**
 	 * Whether any of a fully-cached stage's keys consumed a <code>needs</code> return whose current
 	 * signature differs from the value it recorded on its previous run. Mirrors the needs check in
-	 * {@link #selectStepsToRun}, applied to the full-hit path where that selection never runs. A stage with
+	 * {@link #selectInvocationsToRun}, applied to the full-hit path where that selection never runs. A stage with
 	 * no previous data, no <code>needs</code>, or unchanged returns reports <code>false</code>, so the
 	 * full-hit fast path is preserved for the common case.
 	 *
@@ -678,7 +678,7 @@ export default class StepRunner {
 	 *
 	 * Because a consumer stage's signature omits the producer return, a cached consumer's correctness rests
 	 * on two checks instead of the signature: {@link #needsReturnChanged} on the full-hit path and the
-	 * <code>needsInputs</code> comparison in {@link #selectStepsToRun} on the delta path. These are the only
+	 * <code>needsInputs</code> comparison in {@link #selectInvocationsToRun} on the delta path. These are the only
 	 * two paths that reach a cached stage through the StepRunner. A whole project restored from the
 	 * project-level result cache never runs the StepRunner at all (and <code>ProjectBuildCache.#importStages</code>
 	 * installs those stages blindly by signature), yet that is safe without a needs check: the result
@@ -993,7 +993,7 @@ export default class StepRunner {
 		return {kind: "value", value};
 	}
 
-	#selectStepsToRun(entries, previous, needsSignatures, cacheInfo, isScalar) {
+	#selectInvocationsToRun(entries, previous, needsSignatures, cacheInfo, isScalar) {
 		if (!cacheInfo || !previous || isScalar) {
 			// Full build, or a step with no previous data: run every invocation. A scalar step always re-runs
 			// on a delta verdict too: it is a single implicit invocation, so the per-invocation reads delta cannot
@@ -1090,7 +1090,7 @@ export default class StepRunner {
 	 * @param {Map<string, object>} [context.previous] The stage's previous per-key invocation data
 	 * @param {object} context.ctx The per-stage context ({workspace, dependencies, taskUtil})
 	 * @param {boolean} [context.isScalar] Whether this stage is a scalar step (a single implicit invocation),
-	 *   which is selected to run on any delta verdict (see {@link #selectStepsToRun})
+	 *   which is selected to run on any delta verdict (see {@link #selectInvocationsToRun})
 	 * @returns {Promise<{results: Array, invocationData: Map<string, object>,
 	 *   freshInvocationData: Map<string, object>}>} Per-key results aligned to <code>entries</code> order,
 	 *   the stage's complete per-key invocation data, and the subset of it recorded by the invocations that
@@ -1100,7 +1100,7 @@ export default class StepRunner {
 		{needs, needsSignatures, cacheInfo, previous, ctx, isScalar}) {
 		const sequential = options?.sequential ?? false;
 		const concurrent = !sequential;
-		const toRun = this.#selectStepsToRun(entries, previous, needsSignatures, cacheInfo, isScalar);
+		const toRun = this.#selectInvocationsToRun(entries, previous, needsSignatures, cacheInfo, isScalar);
 		const toRunIndices = new Set(toRun.map((entry) => entry.index));
 
 		const currentInvocationData = new Map();
@@ -1121,9 +1121,9 @@ export default class StepRunner {
 			this.#replayTagOperations(prev?.tagOperations);
 		}
 
-		const runStep = async ({key, keyId, index}) => {
+		const runInvocation = async ({key, keyId, index}) => {
 			this.#signal?.throwIfAborted();
-			const recorder = new StepRecorder();
+			const recorder = new InvocationRecorder();
 			const workspace = new RecordingReaderWriter(ctx.workspace, recorder, writeBuffer, index);
 			const dependencies = ctx.dependencies ?
 				new RecordingReader(ctx.dependencies, recorder) : undefined;
@@ -1148,11 +1148,11 @@ export default class StepRunner {
 		};
 
 		if (concurrent) {
-			await Promise.all(toRun.map(runStep));
+			await Promise.all(toRun.map(runInvocation));
 			await flushWriteBuffer(writeBuffer, ctx.workspace);
 		} else {
 			for (const entry of toRun) {
-				await runStep(entry);
+				await runInvocation(entry);
 			}
 		}
 
