@@ -794,8 +794,14 @@ async function rewriteDefine({moduleName, moduleContent, moduleSourceMap}) {
 				// asterisk marks the index: sap.ui.define(*)
 				index = defineCall.range[1] - 1;
 			} else {
-				// asterisk marks the index: sap.ui.define(*argument1)
-				index = defineCall.arguments[0].range[0];
+				// Inject right after the call's opening parenthesis rather than at the start of the
+				// first argument. A bundled factory can be wrapped in extra parentheses, e.g.
+				// sap.ui.define((function(){...})). The first argument's AST range excludes those
+				// wrapping parentheses, so injecting at arguments[0].range[0] would place the name
+				// inside the paren and turn it into a SequenceExpression that the analyzer cannot
+				// read. The opening paren of the call is stable regardless of such wrapping.
+				// asterisk marks the index: sap.ui.define(*argument1) / sap.ui.define(*(argument1))
+				index = moduleContent.indexOf("(", defineCall.callee.range[1]) + 1;
 				value += ", ";
 			}
 
