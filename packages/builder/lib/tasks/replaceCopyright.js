@@ -33,7 +33,7 @@ import stringReplacer from "../processors/stringReplacer.js";
  * @param {string} options.pattern Pattern to locate the files to be processed
  * @returns {object} The task descriptor with its build steps
  */
-export default function build({copyright, pattern}) {
+export default function defineTask({copyright, pattern}) {
 	if (!copyright) {
 		return {steps: []};
 	}

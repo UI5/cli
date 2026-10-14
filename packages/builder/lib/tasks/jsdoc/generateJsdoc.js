@@ -46,7 +46,7 @@ import {createAdapter} from "@ui5/fs/resourceFactory";
  * @param {string[]} [options.jsdocExcludes=[]] List of exclude patterns, relative to <code>/resources/</code>
  * @returns {object} The task descriptor
  */
-export default function generateJsdoc(options) {
+export default function defineTask(options) {
 	const {version, namespace, jsdocExcludes = []} = options;
 	const patterns = ["/resources/**/*.js", ...jsdocExcludes.map((p) => `!/resources/${p}`)];
 
@@ -204,5 +204,5 @@ const utils = {
 // Export utils for testing only
 /* istanbul ignore else */
 if (process.env.NODE_ENV === "test") {
-	generateJsdoc._utils = utils;
+	defineTask._utils = utils;
 }

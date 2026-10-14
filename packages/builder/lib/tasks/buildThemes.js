@@ -182,7 +182,7 @@ async function isThemeAvailable(themeResource, combo, {librariesPattern, themesP
  * @param {boolean} [options.compress=true]
  * @returns {object} The task descriptor with its build steps
  */
-export default function build({projectName, inputPattern, librariesPattern, themesPattern, compress}) {
+export default function defineTask({projectName, inputPattern, librariesPattern, themesPattern, compress}) {
 	compress = compress === undefined ? true : compress;
 
 	const buildThemesStep = {

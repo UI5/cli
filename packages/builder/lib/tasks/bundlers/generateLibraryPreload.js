@@ -323,7 +323,7 @@ function getSapUiCoreBunDef(name, filters, preload) {
  *
  * @returns {object} The task descriptor
  */
-export default function() {
+export default function defineTask() {
 	return {task};
 }
 

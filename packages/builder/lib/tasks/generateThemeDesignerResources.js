@@ -114,7 +114,7 @@ async function generateThemeDotTheming({workspace, combo, themeFolder}) {
  *   namespace. Omit for type <code>theme-library</code>
  * @returns {object} The task descriptor with its build steps
  */
-export default function build(options) {
+export default function defineTask(options) {
 	const {projectName, version} = options;
 	const namespace = options.projectNamespace;
 

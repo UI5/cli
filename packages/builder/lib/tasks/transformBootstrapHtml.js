@@ -8,7 +8,7 @@ import bootstrapHtmlTransformer from "../processors/bootstrapHtmlTransformer.js"
  * @module builder/tasks/transformBootstrapHtml
  * @returns {object} The task descriptor
  */
-export default function() {
+export default function defineTask() {
 	return {task};
 }
 

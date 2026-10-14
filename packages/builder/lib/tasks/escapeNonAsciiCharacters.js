@@ -22,7 +22,7 @@ import nonAsciiEscaper from "../processors/nonAsciiEscaper.js";
  * @param {string} options.encoding source file encoding either "UTF-8" or "ISO-8859-1"
  * @returns {object} The task descriptor with its build steps
  */
-export default function build({pattern, encoding}) {
+export default function defineTask({pattern, encoding}) {
 	if (!encoding) {
 		throw new Error("[escapeNonAsciiCharacters] Mandatory option 'encoding' not provided");
 	}
