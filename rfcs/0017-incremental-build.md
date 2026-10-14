@@ -182,13 +182,27 @@ Resource processors invoked from a task may return `undefined` for an input reso
 
 ##### Build Task API Changes
 
-A build task can opt into partial rebuilds by becoming a **step-based task**. A step-based task default-exports a `build(options) => Step[]` factory and declares a static `stepBased` flag. The factory returns an ordered list of steps that describe the work. Each step becomes its own build stage and is cached independently: on a rebuild, only the steps whose inputs changed are re-executed, and the rest are restored from cache (see [Step-Based Tasks](#step-based-tasks)).
+From Specification Version 5.0, a build task's default export is a **factory** with the signature `build(options) => descriptor`. The returned **descriptor** declares the task's whole contract in one object. This replaces an earlier design in which the opt-in was a static `stepBased` export and the signature and dependency callbacks were top-level named exports. The shape resembles established plugin APIs such as Vite's.
+
+The descriptor carries:
+
+* exactly one of
+	* `task`: a traditional single-stage task body (the regular task function), or
+	* `steps`: an ordered list of steps for a cache-aware task (see [Step-Based Tasks](#step-based-tasks))
+* `requiresDependencies`: whether the task receives a dependency reader
+* `determineRequiredDependencies`: optional, controls which dependencies are made available to the task (unchanged in intent from the existing `determineRequiredDependencies` callback)
+* `determineBuildSignature`: optional, contributes to the project's build signature (see below)
+* `specVersion`: optional. If set, it must equal the task extension's configured Specification Version
+
+A step-based task contributes one stage per step and caches each step independently: on a rebuild, only the steps whose inputs changed are re-executed, and the rest are restored from cache. A task with a `task` body is a single stage.
+
+The factory must be pure over `options`. It may branch on `options`, precompute values, and decide its steps, but it must not read or write resources or capture other build state. Every input a step reads arrives through the step callbacks. UI5 CLI calls the factory once per build and reuses the one descriptor for both the build-signature phase and task execution.
 
 The step API replaces an earlier design in which a task declared `supportsDifferentialBuilds()` and processed a list of changed resource paths. Moving delta bookkeeping into the build cache removes this work and its correctness risks from the task author.
 
-Step-based tasks are available to custom tasks from Specification Version 5.0. A task opts in with a static `stepBased` export set to `true`. Absent the flag, the default export is a regular task body and runs unchanged.
+The descriptor model is available to custom tasks from Specification Version 5.0. Below 5.0 the default export is the task body itself and runs unchanged. The descriptor and its callbacks do not apply, and any value the body returns is ignored.
 
-A separate, independent callback lets a task contribute to the project's build signature:
+The optional `determineBuildSignature` descriptor property lets a task contribute to the project's build signature:
 
 * **async determineBuildSignature({log, options, taskUtil})**
 	* `log`: A logger instance scoped to the task
@@ -205,15 +219,13 @@ The `determineBuildSignature` callback follows the existing [`determineRequiredD
 
 ##### Step-Based Tasks
 
-A step-based task decomposes its work into cacheable stages. Its default export is a factory with the signature `build(options) => Step[]` (an asynchronous factory is also supported). Each scalar or map step becomes one build stage. A map step contains a cache invocation for each key, so a rebuild can restore unchanged keys while it runs the affected keys again.
+A step-based task decomposes its work into cacheable stages. Its descriptor carries a `steps` array instead of a `task` body (an asynchronous factory is also supported). Each scalar or map step becomes one build stage. A map step contains a cache invocation for each key, so a rebuild can restore unchanged keys while it runs the affected keys again.
 
-Built-in tasks declare the step-based mode in their task definition. A custom task uses Specification Version 5.0 or higher and exports the static `stepBased` flag:
+Built-in and custom tasks opt in the same way: the factory returns a descriptor with a `steps` array. Custom tasks require Specification Version 5.0 or higher.
 
 ```js
-export const stepBased = true;
-
 export default function build(options) {
-	return [/* step descriptors */];
+	return {steps: [/* step descriptors */]};
 }
 ```
 
@@ -221,7 +233,7 @@ The Task Runner calls the factory once near the start of each build, before it c
 
 ###### Step List
 
-The factory must return an array. An empty array is valid. The Task Runner validates the complete array before it registers any step stage:
+The descriptor's `steps` must be an array. An empty array is valid. The Task Runner validates the complete array before it registers any step stage:
 
 * Every step must be an object with a non-empty `name` that is unique within the task. Keep the name stable between builds because it is part of the stage identity `task/<taskName>::step/<stepName>`.
 * A scalar step defines `run`. It must not also define the complete `keys` and `each` pair.
