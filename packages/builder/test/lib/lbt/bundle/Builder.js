@@ -3053,6 +3053,69 @@ test("rewriteDefine (with other module name as template literal)", async (t) => 
 	t.is(moduleSourceMap, undefined);
 });
 
+// Some bundlers wrap the factory in extra parentheses: `sap.ui.define((function () { ... }))`.
+// Inserting the module name at the argument's start would place it inside those parentheses, where
+// name and factory are read as one value and the name is lost. rewriteDefine therefore inserts the
+// name right after the call's opening "(", so it always stays the first argument:
+//   sap.ui.predefine("my/test/module", (function () { ... }))
+test("rewriteDefine (with parenthesis-wrapped factory)", async (t) => {
+	const {rewriteDefine} = __localFunctions__;
+
+	const {moduleContent, moduleSourceMap} = await rewriteDefine({
+		moduleName: "my/test/module.js",
+		moduleContent: "sap.ui.define((function(){return{};}));",
+		moduleSourceMap: undefined
+	});
+
+	t.is(moduleContent, `sap.ui.predefine("my/test/module", (function(){return{};}));`);
+	t.is(moduleSourceMap, undefined);
+});
+
+test("rewriteDefine (with parenthesis-wrapped factory and dependencies)", async (t) => {
+	const {rewriteDefine} = __localFunctions__;
+
+	const {moduleContent, moduleSourceMap} = await rewriteDefine({
+		moduleName: "my/test/module.js",
+		moduleContent: "sap.ui.define((['./dep'], function(dep){return{};}));",
+		moduleSourceMap: undefined
+	});
+
+	t.is(moduleContent,
+		`sap.ui.predefine("my/test/module", (['./dep'], function(dep){return{};}));`);
+	t.is(moduleSourceMap, undefined);
+});
+
+test("rewriteDefine (with parenthesis-wrapped factory and source map re-alignment)",
+	async (t) => {
+		const {rewriteDefine} = __localFunctions__;
+		const {decode: decodeMappings} = await import("@jridgewell/sourcemap-codec");
+
+		// The source map must still line up after the name is injected before the wrapping paren.
+		// Input segments map generated columns 0 ("sap"), 4 ("define"), 14 (the factory). Injecting
+		// "pre" at column 7 and `"my/test/module", ` at column 14 shifts only the segments that lie
+		// strictly after each injection point.
+		const {moduleContent, moduleSourceMap} = await rewriteDefine({
+			moduleName: "my/test/module.js",
+			moduleContent: "sap.ui.define((function(){return{};}));",
+			moduleSourceMap: {
+				"version": 3,
+				"file": "module.js",
+				"sources": ["my/test/module-dbg.js"],
+				"names": ["sap", "ui", "define"],
+				"mappings": "AAAA,IAAI,UAAU"
+			}
+		});
+
+		t.is(moduleContent, `sap.ui.predefine("my/test/module", (function(){return{};}));`);
+		t.deepEqual(decodeMappings(moduleSourceMap.mappings), [
+			[
+				[0, 0, 0, 0], // "sap" — before both injections, unchanged
+				[4, 0, 0, 4], // "ui.define" start — before both injections, unchanged
+				[35, 0, 0, 14] // factory — shifted by "pre" (+3) and the module name (+18)
+			]
+		]);
+	});
+
 test("rewriteDefine (with ESM content)", async (t) => {
 	const {rewriteDefine} = __localFunctions__;
 
