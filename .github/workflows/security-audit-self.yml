@@ -1,0 +1,39 @@
+name: Security Audit (self)
+
+# Audits this repository's own source AND its latest published npm package in one run. By default it
+# targets packages/cli (@ui5/cli); override the inputs to point at another package or dist-tag.
+
+on:
+  workflow_dispatch:
+    inputs:
+      package-dir:
+        description: "Directory of the package.json to derive the package name from."
+        default: packages/cli
+      package-name:
+        description: "Override the npm package name (empty = derive from package-dir)."
+        default: ""
+      dist-tag:
+        description: "Published version range/tag to audit (e.g. latest, next, ^4)."
+        default: latest
+
+permissions: {}
+
+jobs:
+  self-audit:
+    name: Security Audit (self)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Local ref: the self action lives in this repo and is available after checkout. Another repo
+      # self-audits by replacing this with the remote action, pinned to a commit SHA:
+      #   uses: d3xter666/ui5-cli-mono/.github/actions/dependency-audit/self@<sha>
+      - name: Self audit
+        uses: ./.github/actions/dependency-audit/self
+        with:
+          package-dir: ${{ inputs.package-dir }}
+          package-name: ${{ inputs.package-name }}
+          dist-tag: ${{ inputs.dist-tag }}

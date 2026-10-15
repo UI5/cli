@@ -1,0 +1,14 @@
+{
+  "repos": [
+    { "id": "repo-mcp-main", "repository": "UI5/mcp-server", "ref": "main" },
+    { "id": "repo-linter-main", "repository": "UI5/linter", "ref": "main" },
+    { "id": "repo-cli-main", "repository": "UI5/cli", "ref": "main" },
+    { "id": "repo-cli-v4", "repository": "UI5/cli", "ref": "v4" }
+  ],
+  "npm": [
+    { "id": "npm-cli-v4", "label": "CLI v4", "spec": "@ui5/cli@^4.0.0" },
+    { "id": "npm-cli-v5", "label": "CLI v5", "spec": "@ui5/cli@next" },
+    { "id": "npm-linter", "label": "Linter", "spec": "@ui5/linter@latest" },
+    { "id": "npm-mcp", "label": "MCP", "spec": "@ui5/mcp-server@latest" }
+  ]
+}
