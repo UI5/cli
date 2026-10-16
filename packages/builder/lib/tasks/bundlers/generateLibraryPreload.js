@@ -330,7 +330,7 @@ function getSapUiCoreBunDef(name, filters, preload) {
  * denote an arbitrary number of characters or folder names.
  * Re-includes should be marked with a leading exclamation mark '!'. The order of filters is relevant; a later
  * inclusion overrides an earlier exclusion, and vice versa.
- * @returns {object} The task descriptor
+ * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor
  */
 export default function defineTask(options) {
 	return {task};

@@ -112,7 +112,7 @@ async function generateThemeDotTheming({workspace, combo, themeFolder}) {
  * @param {string} options.version Project version
  * @param {string} [options.projectNamespace] If the project is of type <code>library</code>, provide its
  *   namespace. Omit for type <code>theme-library</code>
- * @returns {object} The task descriptor with its build steps
+ * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor with its build steps
  */
 export default function defineTask(options) {
 	const {projectName, version} = options;

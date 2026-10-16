@@ -22,7 +22,7 @@ import semver from "semver";
  *
  * @param {object} [options] Options
  * @param {string} [options.projectNamespace] Project Namespace
- * @returns {object} The task descriptor
+ * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor
  */
 export default function defineTask(options) {
 	return {task};

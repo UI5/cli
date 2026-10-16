@@ -44,7 +44,7 @@ import {createAdapter} from "@ui5/fs/resourceFactory";
  * @param {string} options.namespace Namespace to build (e.g. <code>some/project/name</code>)
  * @param {string} options.version Project version
  * @param {string[]} [options.jsdocExcludes=[]] List of exclude patterns, relative to <code>/resources/</code>
- * @returns {object} The task descriptor
+ * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor
  */
 export default function defineTask(options) {
 	const {version, namespace, jsdocExcludes = []} = options;

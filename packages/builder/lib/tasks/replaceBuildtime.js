@@ -34,7 +34,7 @@ function formatTimestamp(date) {
  *
  * @param {object} options Options
  * @param {string} options.pattern Pattern to locate the files to be processed
- * @returns {object} The task descriptor with its build steps
+ * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor with its build steps
  */
 export default function defineTask({pattern}) {
 	return {steps: [{
