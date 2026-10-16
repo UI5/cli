@@ -8,28 +8,25 @@ import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
  * @module @ui5/builder/tasks/bundlers/generateBundle
  */
 
-/* eslint-disable max-len */
 /**
  * Generates a bundle based on the given bundle definition
+ *
+ * The default export is the task factory. It receives the task <code>options</code> and returns the task
+ * descriptor. The same <code>options</code> are passed to the task body at execution time.
  *
  * @public
  * @function default
  * @static
  *
- * @param {object} parameters Parameters
- * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {@ui5/fs/ReaderCollection} parameters.dependencies Collection to read dependency files
- * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
- * @param {object} parameters.options Options
- * @param {string} parameters.options.projectName Project name
- * @param {module:@ui5/builder/processors/bundlers/moduleBundler~ModuleBundleDefinition} parameters.options.bundleDefinition Module
+ * @param {object} options Options
+ * @param {string} options.projectName Project name
+ * @param {module:@ui5/builder/processors/bundlers/moduleBundler~ModuleBundleDefinition} options.bundleDefinition Module
  * 			bundle definition
- * @param {module:@ui5/builder/processors/bundlers/moduleBundler~ModuleBundleOptions} [parameters.options.bundleOptions] Module
+ * @param {module:@ui5/builder/processors/bundlers/moduleBundler~ModuleBundleOptions} [options.bundleOptions] Module
  * 			bundle options
  * @returns {object} The task descriptor
  */
-/* eslint-enable max-len */
-export default function defineTask() {
+export default function defineTask(options) {
 	return {requiresDependencies: true, task: async function({
 		workspace, dependencies, taskUtil, options: {projectName, bundleDefinition, bundleOptions}
 	}) {

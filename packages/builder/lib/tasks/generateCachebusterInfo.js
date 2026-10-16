@@ -41,9 +41,12 @@ function getSigner(type) {
  * @function default
  * @static
  *
+ * @param {object} options Options
+ * @param {string} options.projectNamespace Namespace of the application
+ * @param {string} [options.signatureType='time'] Type of signature to be used ('time' or 'hash')
  * @returns {object} The task descriptor
  */
-export default function defineTask() {
+export default function defineTask(options) {
 	return {task};
 }
 

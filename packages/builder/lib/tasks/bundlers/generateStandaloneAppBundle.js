@@ -72,9 +72,12 @@ function getBundleDefinition(config) {
  * @function default
  * @static
  *
+ * @param {object} options Options
+ * @param {string} options.projectName Project name
+ * @param {string} [options.projectNamespace] Project namespace
  * @returns {object} The task descriptor
  */
-export default function defineTask() {
+export default function defineTask(options) {
 	return {
 		requiresDependencies: true,
 		task
