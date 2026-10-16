@@ -492,7 +492,7 @@ test("Absolute resolution path", async (t) => {
 	"Starts with expected error message");
 });
 
-test("workspace/1.1: Basic validation with specified configPath for dependency", async (t) => {
+test("[workspace/1.1] Basic validation with specified configPath for dependency", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
 		configuration: createWorkspaceConfig({
@@ -518,7 +518,7 @@ test("workspace/1.1: Basic validation with specified configPath for dependency",
 	t.is(projectNameMap.get("library.e")._configPath, "ui5.yaml");
 });
 
-test("workspace/1.1: Custom configPath for dependency but specVersion is workspace/1.0", async (t) => {
+test("[workspace/1.1] Custom configPath for dependency but specVersion is workspace/1.0", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
 		configuration: createWorkspaceConfig({
@@ -539,7 +539,7 @@ test("workspace/1.1: Custom configPath for dependency but specVersion is workspa
 		"Starts with expected error message");
 });
 
-test("workspace/1.1: Absolute custom configPath", async (t) => {
+test("[workspace/1.1] Absolute custom configPath", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
 		configuration: createWorkspaceConfig({
@@ -561,7 +561,7 @@ test("workspace/1.1: Absolute custom configPath", async (t) => {
 	"Starts with expected error message");
 });
 
-test("workspace/1.1: Custom configPath for dependency does not exist", async (t) => {
+test("[workspace/1.1] Custom configPath for dependency does not exist", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
 		configuration: createWorkspaceConfig({
@@ -583,7 +583,7 @@ test("workspace/1.1: Custom configPath for dependency does not exist", async (t)
 	"Starts with expected error message");
 });
 
-test("workspace/1.1: Custom relative configPath which is outside of the module dir", async (t) => {
+test("[workspace/1.1] Custom relative configPath which is outside of the module dir", async (t) => {
 	// This test covers a scenario where the custom relative configPath
 	// points to a location outside of the module directory.
 	// Config for library.d is located in library.e:
@@ -609,7 +609,7 @@ test("workspace/1.1: Custom relative configPath which is outside of the module d
 });
 
 
-test("workspace/1.1: Nested library collection scenario", async (t) => {
+test("[workspace/1.1] Nested library collection scenario", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
 		configuration: createWorkspaceConfig({
@@ -628,3 +628,29 @@ test("workspace/1.1: Nested library collection scenario", async (t) => {
 	t.is(projectNameMap.get("library.c")._configPath, `ui5.yaml`);
 	t.is(projectNameMap.get("library.d")._configPath, `ui5.yaml`);
 });
+
+test("[workspace/1.1] No configPath", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c",
+					configPath: "ui5-custom.yaml"
+				}]
+			}
+		})
+	});
+
+	const {projectNameMap} = await workspace._getResolvedModules();
+	t.is(projectNameMap.get("library.a.custom")._configPath,
+		path.resolve(__dirname, `../../fixtures/collection.c/library.a/ui5-custom.yaml`));
+	t.is(projectNameMap.get("library.b.custom")._configPath,
+		path.resolve(__dirname, `../../fixtures/collection.c/library.b/ui5-custom.yaml`));
+	t.is(projectNameMap.get("library.c.custom")._configPath,
+		path.resolve(__dirname, `../../fixtures/collection.c/collection.a/library.c/ui5-custom.yaml`));
+	t.is(projectNameMap.get("library.d.custom")._configPath,
+		path.resolve(__dirname, `../../fixtures/collection.c/collection.a/library.d/ui5-custom.yaml`));
+});
+
