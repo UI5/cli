@@ -260,7 +260,7 @@ class Workspace {
 				id: pkg.name,
 				version: pkg.version,
 				modulePath: nodePath,
-				configPath: configPath,
+				configPath: configPath ? path.resolve(nodePath, configPath) : undefined,
 			})];
 		}
 	}

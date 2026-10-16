@@ -607,3 +607,24 @@ test("workspace/1.1: Custom relative configPath which is outside of the module d
 	t.is(projectNameMap.get("library.d")._configPath,
 		path.resolve(__dirname, "../../fixtures/library.e/ui5-library.d-config.yaml"));
 });
+
+
+test("workspace/1.1: Nested library collection scenario", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c",
+				}]
+			}
+		})
+	});
+
+	const {projectNameMap} = await workspace._getResolvedModules();
+	t.is(projectNameMap.get("library.a")._configPath, `ui5.yaml`);
+	t.is(projectNameMap.get("library.b")._configPath, `ui5.yaml`);
+	t.is(projectNameMap.get("library.c")._configPath, `ui5.yaml`);
+	t.is(projectNameMap.get("library.d")._configPath, `ui5.yaml`);
+});

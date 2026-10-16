@@ -69,7 +69,7 @@ class Module {
 		this._id = id;
 		this._version = version;
 		this._modulePath = modulePath;
-		this._configPath = configPath ? path.resolve(modulePath, configPath) : DEFAULT_CONFIG_PATH;
+		this._configPath = configPath || DEFAULT_CONFIG_PATH;
 		this._dependencies = Object.create(null);
 
 		if (!Array.isArray(configuration)) {
@@ -308,8 +308,9 @@ class Module {
 			}
 			if (!configResource) {
 				if (configPath !== DEFAULT_CONFIG_PATH) {
-					throw new Error("Failed to read configuration for module " +
-							`${this.getId()}: Could not find configuration file in module at path '${configPath}'`);
+					throw new Error(`Failed to read configuration for module ` +
+							`${this.getId()}: Could not find configuration file in module at path `+
+							`'${this._configPath}'`);
 				}
 				return null;
 			}
