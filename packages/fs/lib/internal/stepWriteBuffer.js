@@ -16,10 +16,32 @@
  *
  * The buffer is a <code>Map</code> keyed by resource path (or, for a test fake without
  * <code>getPath</code>, by identity). Each entry has the shape
- * <code>{resource, args, index}</code>: <code>resource</code> is the resource to write, <code>args</code>
- * are the trailing arguments to replay to <code>workspace.write(resource, ...args)</code>, and
- * <code>index</code> is the unit's position in the key order.
+ * <code>{resource, args, index, inputName}</code>: <code>resource</code> is the resource to write,
+ * <code>args</code> are the trailing arguments to replay to <code>workspace.write(resource, ...args)</code>,
+ * <code>index</code> is the unit's position in the key order, and <code>inputName</code> is its string key or
+ * map-key resource path, if available.
  */
+
+function describeInput({index, inputName}) {
+	return inputName === undefined ? `#${index + 1}` : `'${inputName}'`;
+}
+
+/**
+ * Derives the <code>inputName</code> for a map key: the key itself when it is a string, or its resource
+ * path when it is a resource. Any other key (for example a test fake without <code>getPath</code>) has no
+ * name, so the buffer entry and the error message fall back to the positional <code>#N</code> form. Both
+ * runners feed this to {@link assertDistinctWrite} and the buffer entry, so it lives here with the rest of
+ * the write-buffer contract to keep the two runners from drifting.
+ *
+ * @param {*} value Map key of the writing unit
+ * @returns {string|undefined} String key, resource path, or <code>undefined</code> if the key has no name
+ */
+export function getInputName(value) {
+	if (typeof value === "string") {
+		return value;
+	}
+	return value && typeof value.getPath === "function" ? value.getPath() : undefined;
+}
 
 /**
  * Rejects a second concurrent key writing a path another key already buffered.
@@ -28,17 +50,22 @@
  * its own earlier write within one run. A different unit (different <code>index</code>) writing the same
  * path throws, because concurrent keys must be independent.
  *
- * @param {Map<string, {resource: @ui5/fs/Resource, args: object[], index: number}>} buffer Shared write
- *   buffer, keyed by resource path
+ * @param {Map<string, {resource: @ui5/fs/Resource, args: object[], index: number,
+ *   inputName: string|undefined}>} buffer Shared write buffer, keyed by resource path
  * @param {string} path Resource path being written, used as the buffer key
  * @param {number} index Position of the writing unit in the key order
+ * @param {string|undefined} inputName String map key or resource path of the writing unit, if available
+ * @param {string} stepName Name of the map step
+ * @param {string|undefined} taskName Name of the task, if available
  */
-export function assertDistinctWrite(buffer, path, index) {
+export function assertDistinctWrite(buffer, path, index, inputName, stepName, taskName) {
 	const existing = buffer.get(path);
 	if (existing && existing.index !== index) {
+		const taskContext = taskName ? ` in task '${taskName}'` : "";
 		throw new Error(
-			`Concurrent map-step keys must not write the same resource path ${path}. ` +
-			`Pass {sequential: true} if a later key must build on an earlier key's writes.`);
+			`Concurrent map step '${stepName}'${taskContext} tried to write '${path}' for invocations ` +
+			`${describeInput(existing)} and ${describeInput({index, inputName})}. ` +
+			`No two invocations may write to the same path.`);
 	}
 }
 
@@ -48,8 +75,8 @@ export function assertDistinctWrite(buffer, path, index) {
  * The buffered entries are replayed sorted by <code>index</code>, so the observable write sequence matches
  * the key order regardless of the order the concurrent units finished in.
  *
- * @param {Map<string, {resource: @ui5/fs/Resource, args: object[], index: number}>} buffer Shared write
- *   buffer, keyed by resource path
+ * @param {Map<string, {resource: @ui5/fs/Resource, args: object[], index: number,
+ *   inputName: string|undefined}>} buffer Shared write buffer, keyed by resource path
  * @param {@ui5/fs/AbstractReaderWriter} workspace Workspace the buffered writes are flushed to
  * @returns {Promise<undefined>} Resolves once every buffered write has been flushed
  */

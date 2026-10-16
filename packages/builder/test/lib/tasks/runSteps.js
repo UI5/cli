@@ -109,15 +109,17 @@ test("A sequential map step makes an earlier key's write visible to a later key"
 
 test("Concurrent map-step keys writing the same path throw", async (t) => {
 	const workspace = createWorkspace();
+	const inputA = createResource("/resources/first.js");
+	const inputB = createResource("/resources/second.js");
 	const err = await t.throwsAsync(runSteps(() => [
-		{name: "m", keys: async () => ["a", "b"], each: async (key, {workspace}) => {
+		{name: "m", keys: async () => [inputA, inputB], each: async (key, {workspace}) => {
 			await workspace.write(createResource("/same"));
 		}},
 	], {workspace}));
 	// The exact user-visible message, shared with the cached runner through @ui5/fs/internal/stepWriteBuffer.
 	t.is(err.message,
-		"Concurrent map-step keys must not write the same resource path /same. " +
-		"Pass {sequential: true} if a later key must build on an earlier key's writes.",
+		"Concurrent map step 'm' tried to write '/same' for invocations '/resources/first.js' and " +
+		"'/resources/second.js'. No two invocations may write to the same path.",
 		"The same-path guard surfaces the shared message verbatim");
 });
 

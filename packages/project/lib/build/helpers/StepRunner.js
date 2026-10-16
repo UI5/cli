@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import AbstractReader from "@ui5/fs/AbstractReader";
 import AbstractReaderWriter from "@ui5/fs/AbstractReaderWriter";
-import {assertDistinctWrite, flushWriteBuffer} from "@ui5/fs/internal/stepWriteBuffer";
+import {assertDistinctWrite, flushWriteBuffer, getInputName} from "@ui5/fs/internal/stepWriteBuffer";
 import {getLogger} from "@ui5/logger";
 import MonitoredTaskUtil from "./MonitoredTaskUtil.js";
 
@@ -181,6 +181,9 @@ class RecordingReaderWriter extends AbstractReaderWriter {
 	#recorder;
 	#writeBuffer;
 	#invocationIndex;
+	#inputName;
+	#stepName;
+	#taskName;
 
 	/**
 	 * @param {@ui5/fs/AbstractReaderWriter} workspace Task-level monitored workspace
@@ -189,13 +192,19 @@ class RecordingReaderWriter extends AbstractReaderWriter {
 	 *   <code>null</code> to write through immediately (sequential mode)
 	 * @param {number} invocationIndex Position of this invocation in the key order, used to flush buffered writes
 	 *   deterministically and to detect two invocations writing the same path
+	 * @param {string|undefined} inputName String map key or resource path, if available
+	 * @param {string} stepName Name of the map step
+	 * @param {string|undefined} taskName Name of the task, if available
 	 */
-	constructor(workspace, recorder, writeBuffer, invocationIndex) {
+	constructor(workspace, recorder, writeBuffer, invocationIndex, inputName, stepName, taskName) {
 		super(workspace.getName());
 		this.#workspace = workspace;
 		this.#recorder = recorder;
 		this.#writeBuffer = writeBuffer;
 		this.#invocationIndex = invocationIndex;
+		this.#inputName = inputName;
+		this.#stepName = stepName;
+		this.#taskName = taskName;
 	}
 
 	async _byGlob(virPattern, options) {
@@ -225,8 +234,14 @@ class RecordingReaderWriter extends AbstractReaderWriter {
 			// Concurrent mode: buffer and flush in key order once all keys finish. Concurrent keys are
 			// required to be independent, so two keys writing the same path is a contract violation
 			// rather than a last-wins race.
-			assertDistinctWrite(this.#writeBuffer, resourcePath, this.#invocationIndex);
-			this.#writeBuffer.set(resourcePath, {resource, args: [options], index: this.#invocationIndex});
+			assertDistinctWrite(this.#writeBuffer, resourcePath, this.#invocationIndex, this.#inputName,
+				this.#stepName, this.#taskName);
+			this.#writeBuffer.set(resourcePath, {
+				resource,
+				args: [options],
+				index: this.#invocationIndex,
+				inputName: this.#inputName,
+			});
 			return;
 		}
 		// Sequential mode: persist immediately so a later key reads what this key wrote.
@@ -284,6 +299,7 @@ class RecordingReaderWriter extends AbstractReaderWriter {
  */
 export default class StepRunner {
 	#steps;
+	#taskName;
 	#options;
 	#prepareStage;
 	#reopenStage;
@@ -311,6 +327,7 @@ export default class StepRunner {
 	 *
 	 * @param {object} parameters
 	 * @param {object[]} [parameters.steps] Ordered step list from the task factory (factory path)
+	 * @param {string} [parameters.taskName] Name of the task that owns the steps
 	 * @param {object} [parameters.options] Task options, passed through to each step's context
 	 * @param {function(string): Promise<(object|boolean)>} [parameters.prepareStage] Switches the project to
 	 *   the named step's stage and returns its cache verdict: <code>true</code> (fully cached, do not run),
@@ -357,10 +374,11 @@ export default class StepRunner {
 	 * @param {AbortSignal} [parameters.signal] Build abort signal, checked between invocations
 	 */
 	constructor({
-		steps, options, prepareStage, recordStage, createStageContext, getPreviousInvocationData,
+		steps, taskName, options, prepareStage, recordStage, createStageContext, getPreviousInvocationData,
 		returnValueStore, resolveInputValue, applyTagOperations, notifyStepExecution, signal, reopenStage
 	}) {
 		this.#steps = steps;
+		this.#taskName = taskName;
 		this.#options = options;
 		this.#prepareStage = prepareStage;
 		this.#reopenStage = reopenStage;
@@ -1124,7 +1142,8 @@ export default class StepRunner {
 		const runInvocation = async ({key, keyId, index}) => {
 			this.#signal?.throwIfAborted();
 			const recorder = new InvocationRecorder();
-			const workspace = new RecordingReaderWriter(ctx.workspace, recorder, writeBuffer, index);
+			const workspace = new RecordingReaderWriter(ctx.workspace, recorder, writeBuffer, index,
+				getInputName(key), group, this.#taskName);
 			const dependencies = ctx.dependencies ?
 				new RecordingReader(ctx.dependencies, recorder) : undefined;
 			// A per-invocation MonitoredTaskUtil wrapping the stage's taskUtil: it attributes the invocation's
