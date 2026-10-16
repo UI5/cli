@@ -3,6 +3,7 @@ import posixPath from "node:path/posix";
 import {promisify} from "node:util";
 import ComponentProject from "../ComponentProject.js";
 import * as resourceFactory from "@ui5/fs/resourceFactory";
+import parseJSON from "../../utils/json.js";
 
 /**
  * Library
@@ -507,10 +508,13 @@ class Library extends ComponentProject {
 				const resource = manifestResources[0];
 				try {
 					return {
-						content: JSON.parse(await resource.getString()),
+						content: parseJSON(await resource.getString(), resource.getPath()),
 						filePath: resource.getPath()
 					};
 				} catch (err) {
+					if (err.code === "ERR_EMPTY_JSON") {
+						throw err;
+					}
 					throw new Error(
 						`Failed to read ${resource.getPath()} for project ${this.getName()}: ${err.message}`);
 				}

@@ -579,6 +579,26 @@ test("_getManifest: invalid JSON", async (t) => {
 	t.is(byPathStub.getCall(0).args[0], "/some-manifest.json", "byPath got called with the correct argument");
 });
 
+test("_getManifest: empty file", async (t) => {
+	const {projectInput, sinon} = t.context;
+	const project = await Specification.create(projectInput);
+
+	const byPathStub = sinon.stub().resolves({
+		getString: async () => ""
+	});
+
+	project._getRawSourceReader = () => {
+		return {
+			byPath: byPathStub
+		};
+	};
+
+	const error = await t.throwsAsync(project._getManifest("/some-manifest.json"));
+	t.is(error.message, `The file "src/some-manifest.json" is empty.`,
+		"Rejected with the clear empty-file error message (not wrapped)");
+	t.is(error.code, "ERR_EMPTY_JSON", "Error carries the expected code");
+});
+
 test.serial("_getManifest: File does not exist", async (t) => {
 	const {projectInput} = t.context;
 	const project = await Specification.create(projectInput);

@@ -2,6 +2,7 @@ import fsPath from "node:path";
 import posixPath from "node:path/posix";
 import ComponentProject from "../ComponentProject.js";
 import {createReader} from "@ui5/fs/resourceFactory";
+import parseJSON from "../../utils/json.js";
 
 /**
  * Component
@@ -282,8 +283,11 @@ class Component extends ComponentProject {
 					throw new Error(
 						`Could not find resource ${filePath} in project ${this.getName()}`);
 				}
-				return JSON.parse(await resource.getString());
+				return parseJSON(await resource.getString(), `${this._srcPath}${filePath}`);
 			}).catch((err) => {
+				if (err.code === "ERR_EMPTY_JSON") {
+					throw err;
+				}
 				throw new Error(
 					`Failed to read ${filePath} for project ` +
 					`${this.getName()}: ${err.message}`);
