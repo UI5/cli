@@ -1,0 +1,10 @@
+{
+  "name": "collection",
+  "version": "1.0.0",
+  "description": "Simple Collection",
+  "workspaces": [
+    "library.a",
+    "library.b",
+    "collection.a"
+  ]
+}
