@@ -79,7 +79,7 @@ test("Empty config", async (t) => {
 				keyword: "errorMessage",
 				message: `Unsupported "specVersion"
 Your UI5 CLI installation might be outdated.
-Supported specification versions: "workspace/1.0"
+Supported specification versions: "workspace/1.0", "workspace/1.1".
 For details, see: https://ui5.github.io/cli/stable/pages/Workspace/#workspace-specification-versions`,
 				params: {
 					errors: [
@@ -280,7 +280,7 @@ test("Invalid fields", async (t) => {
 				keyword: "errorMessage",
 				message: `Unsupported "specVersion"
 Your UI5 CLI installation might be outdated.
-Supported specification versions: "workspace/1.0"
+Supported specification versions: "workspace/1.0", "workspace/1.1".
 For details, see: https://ui5.github.io/cli/stable/pages/Workspace/#workspace-specification-versions`,
 				params: {
 					errors: [
@@ -341,7 +341,7 @@ test("Invalid types", async (t) => {
 				keyword: "errorMessage",
 				message: `Unsupported "specVersion"
 Your UI5 CLI installation might be outdated.
-Supported specification versions: "workspace/1.0"
+Supported specification versions: "workspace/1.0", "workspace/1.1".
 For details, see: https://ui5.github.io/cli/stable/pages/Workspace/#workspace-specification-versions`,
 				params: {
 					errors: [
