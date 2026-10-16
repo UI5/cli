@@ -71,6 +71,42 @@ class BufferedWriter extends AbstractReaderWriter {
  *
  * @public
  * @module @ui5/builder/tasks/runSteps
+ */
+
+/**
+ * The descriptor a task factory returns from its default export, from
+ * [Specification Version](https://ui5.github.io/cli/stable/pages/Configuration/#specification-versions) 5.0.
+ * It carries the whole task in one object: the task body, its optional callbacks, and an optional declared
+ * Specification Version.
+ *
+ * The factory must stay pure and cheap. UI5 CLI calls it once per build, early also for the build signature,
+ * so it must not read or write resources, and it must not import heavy processors. The work happens in the
+ * <code>task</code> body or in the step callbacks.
+ *
+ * @public
+ * @typedef {object} TaskDescriptor
+ * @property {object[]} [steps] The build steps of a cache-aware, step-based task. Give exactly one of
+ *   <code>steps</code> or <code>task</code>. A step is a scalar step <code>{name, needs?, run}</code> or a
+ *   map step <code>{name, needs?, sequential?, keys, each}</code>; the build cache re-runs only the steps,
+ *   and within a map step only the keys, whose inputs changed.
+ * @property {Function} [task] The task body <code>async (parameters) => Promise&lt;undefined&gt;</code> of a
+ *   traditional task. Give exactly one of <code>steps</code> or <code>task</code>.
+ * @property {boolean} [requiresDependencies=false] Whether the task needs access to the resources of the
+ *   project's dependencies. When <code>false</code>, the <code>dependencies</code> reader is not provided.
+ * @property {Function} [determineRequiredDependencies] Optional callback that reduces the set of dependencies
+ *   made available through the <code>dependencies</code> reader.
+ * @property {Function} [determineBuildSignature] Optional callback that contributes to the project's build
+ *   signature, so a change outside the project's own resources can invalidate the task's cached output.
+ * @property {string} [specVersion] Optional Specification Version. When set, it must be equal to the task
+ *   extension's configured Specification Version.
+ */
+
+/**
+ * Runs a step-based task's steps without a build cache.
+ *
+ * @public
+ * @function default
+ * @static
  * @param {Function} defineTask Task factory <code>defineTask(options) => descriptor</code> whose descriptor
  *   carries a <code>steps</code> array
  * @param {object} parameters

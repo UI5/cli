@@ -180,7 +180,7 @@ async function isThemeAvailable(themeResource, combo, {librariesPattern, themesP
  * @param {string} [options.librariesPattern] Search pattern for .library files
  * @param {string} [options.themesPattern] Search pattern for sap.ui.core theme folders
  * @param {boolean} [options.compress=true]
- * @returns {object} The task descriptor with its build steps
+ * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor with its build steps
  */
 export default function defineTask({projectName, inputPattern, librariesPattern, themesPattern, compress}) {
 	compress = compress === undefined ? true : compress;

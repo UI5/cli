@@ -22,7 +22,7 @@ import fsInterface from "@ui5/fs/fsInterface";
  *
  * @param {object} options Options
  * @param {string} options.projectNamespace Namespace of the application
- * @returns {object} The task descriptor with its build steps
+ * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor with its build steps
  */
 export default function defineTask({projectNamespace}) {
 	return {steps: [{

@@ -21,7 +21,7 @@ import sdkTransformer from "../../processors/jsdoc/sdkTransformer.js";
  * @param {object} options Options
  * @param {string|Array} options.dotLibraryPattern Pattern to locate the .library resource to be processed
  * @param {string} options.projectName Project name
- * @returns {object} The task descriptor
+ * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor
  */
 export default function defineTask(options) {
 	return {

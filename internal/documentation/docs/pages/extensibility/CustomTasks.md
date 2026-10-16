@@ -109,6 +109,7 @@ From [Specification Version](../Configuration.md#specification-versions) 5.0, a 
 
 * `task` — a traditional task body (see the signature below), **or**
 * `steps` — an array of steps for a [cache-aware task](#cache-aware-tasks) (exactly one of `task` or `steps` must be defined)
+* `requiresDependencies` — optional; whether the task needs access to the resources of the project's dependencies. When `false` (the default), the `dependencies` reader is not provided
 * `determineRequiredDependencies` — optional, see [Required Dependencies](#required-dependencies)
 * `determineBuildSignature` — optional callback contributing to the project's build signature
 * `specVersion` — optional; if set, it must equal the task extension's configured Specification Version

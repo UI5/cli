@@ -105,7 +105,7 @@ function getCreatorOptions(projectName) {
  *
  * @param {object} options Options
  * @param {string} options.projectName Project name
- * @returns {object} The task descriptor
+ * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor
  */
 export default function defineTask(options) {
 	return {

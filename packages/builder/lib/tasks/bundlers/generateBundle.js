@@ -24,7 +24,7 @@ import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
  * 			bundle definition
  * @param {module:@ui5/builder/processors/bundlers/moduleBundler~ModuleBundleOptions} [options.bundleOptions] Module
  * 			bundle options
- * @returns {object} The task descriptor
+ * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor
  */
 export default function defineTask(options) {
 	return {requiresDependencies: true, task: async function({
