@@ -20,9 +20,11 @@ import semver from "semver";
  * @function default
  * @static
  *
+ * @param {object} [options] Options
+ * @param {string} [options.projectNamespace] Project Namespace
  * @returns {object} The task descriptor
  */
-export default function defineTask() {
+export default function defineTask(options) {
 	return {task};
 }
 

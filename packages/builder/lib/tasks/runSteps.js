@@ -49,7 +49,7 @@ class BufferedWriter extends AbstractReaderWriter {
 /**
  * Runs a step-based task's steps without a build cache.
  *
- * A step-based task default-exports a factory <code>build(options) => descriptor</code> whose descriptor
+ * A step-based task default-exports a factory <code>defineTask(options) => descriptor</code> whose descriptor
  * carries a <code>steps</code> array. This runner is the no-cache counterpart to the cached step runner in
  * <code>@ui5/project</code> (which <code>@ui5/builder</code> cannot import, the dependency direction being
  * <code>@ui5/cli -> @ui5/project -> @ui5/builder</code>): it runs every step in order, fans out every
@@ -62,7 +62,7 @@ class BufferedWriter extends AbstractReaderWriter {
  *
  * @public
  * @module @ui5/builder/tasks/runSteps
- * @param {Function} build Task factory <code>build(options) => descriptor</code> whose descriptor
+ * @param {Function} defineTask Task factory <code>defineTask(options) => descriptor</code> whose descriptor
  *   carries a <code>steps</code> array
  * @param {object} parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace Workspace to read and write files
@@ -71,8 +71,8 @@ class BufferedWriter extends AbstractReaderWriter {
  * @param {object} [parameters.options] Task options, passed to the factory and each step
  * @returns {Promise<undefined>} Resolves once all steps have run and their writes are flushed
  */
-export default async function runSteps(build, {workspace, dependencies, taskUtil, options} = {}) {
-	const {steps} = await build(options);
+export default async function runSteps(defineTask, {workspace, dependencies, taskUtil, options} = {}) {
+	const {steps} = await defineTask(options);
 	if (!steps) {
 		throw new Error(
 			"runSteps requires a step-based task whose factory returns a descriptor with a 'steps' array");

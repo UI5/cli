@@ -321,9 +321,18 @@ function getSapUiCoreBunDef(name, filters, preload) {
  * @function default
  * @static
  *
+ * @param {object} options Options
+ * @param {string} options.projectName Project name
+ * @param {string[]} [options.skipBundles] Names of bundles that should not be created
+ * @param {string[]} [options.excludes=[]] List of modules declared as glob patterns (resource name patterns)
+ * that should be excluded from the library-preload.js bundle.
+ * A pattern ending with a slash '/' will, similarly to the use of a single '*' or double '**' asterisk,
+ * denote an arbitrary number of characters or folder names.
+ * Re-includes should be marked with a leading exclamation mark '!'. The order of filters is relevant; a later
+ * inclusion overrides an earlier exclusion, and vice versa.
  * @returns {object} The task descriptor
  */
-export default function defineTask() {
+export default function defineTask(options) {
 	return {task};
 }
 

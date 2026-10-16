@@ -14,9 +14,12 @@ const MANIFEST_JSON = "manifest.json";
  * @function default
  * @static
  *
+ * @param {object} options Options
+ * @param {string} options.pattern Glob pattern for .library resources
+ * @param {object} options.rootProject Root project (used for its name and version)
  * @returns {object} The task descriptor
  */
-export default function defineTask() {
+export default function defineTask(options) {
 	return {
 		requiresDependencies: true,
 		task

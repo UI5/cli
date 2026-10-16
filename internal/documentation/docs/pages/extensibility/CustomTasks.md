@@ -393,7 +393,7 @@ const log = getLogger("builder:tasks:renderMarkdownFiles");
 /*
 * Render all .md (Markdown) files in the project to HTML
 */
-export default function build(options) {
+export default function(options) {
     return {steps: [{
         name: "render",
         // One cached unit per Markdown file, so a delta build re-renders only the files that changed.
@@ -429,7 +429,7 @@ const log = getLogger("builder:tasks:renderMarkdownFiles");
 /*
 * Render all .md (Markdown) files in the project to HTML
 */
-module.exports = function build(options) {
+module.exports = function(options) {
     return {steps: [{
         name: "render",
         // One cached unit per Markdown file, so a delta build re-renders only the files that changed.

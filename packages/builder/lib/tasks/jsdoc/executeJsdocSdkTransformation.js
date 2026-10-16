@@ -18,9 +18,12 @@ import sdkTransformer from "../../processors/jsdoc/sdkTransformer.js";
  * @function default
  * @static
  *
+ * @param {object} options Options
+ * @param {string|Array} options.dotLibraryPattern Pattern to locate the .library resource to be processed
+ * @param {string} options.projectName Project name
  * @returns {object} The task descriptor
  */
-export default function defineTask() {
+export default function defineTask(options) {
 	return {
 		requiresDependencies: true,
 		task
