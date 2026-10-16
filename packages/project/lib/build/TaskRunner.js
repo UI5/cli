@@ -349,6 +349,7 @@ class TaskRunner {
 					const taskReport = this.#createTaskExecutionReport(taskName);
 					const stepDriver = new StepRunner({
 						steps,
+						taskName,
 						options,
 						...this.#createStepStageHooks(taskName, requiresDependencies),
 						returnValueStore: this._buildCache.getStepReturnValueStore(),
@@ -666,6 +667,7 @@ class TaskRunner {
 				const taskReport = this.#createTaskExecutionReport(taskName);
 				const stepDriver = new StepRunner({
 					steps,
+					taskName,
 					options: factoryOptions,
 					...this.#createStepStageHooks(taskName, provideDependenciesReader, taskUtilInterface),
 					returnValueStore: this._buildCache.getStepReturnValueStore(),
