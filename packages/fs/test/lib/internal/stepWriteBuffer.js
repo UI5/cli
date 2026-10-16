@@ -4,8 +4,9 @@ import {assertDistinctWrite, flushWriteBuffer} from "../../../lib/internal/stepW
 // The exact user-visible message. Both step runners surface this verbatim, so pin it here as the single
 // definition: a change to the shared message must update this assertion deliberately.
 const SAME_PATH_MESSAGE =
-	"Concurrent map-step keys must not write the same resource path /a.out. " +
-	"Pass {sequential: true} if a later key must build on an earlier key's writes.";
+	"Concurrent map step 'compile' in task 'buildResources' tried to write '/a.out' for invocations " +
+	"'/resources/first.js' and " +
+	"'/resources/second.js'. No two invocations may write to the same path.";
 
 test("assertDistinctWrite passes for an empty buffer", (t) => {
 	t.notThrows(() => assertDistinctWrite(new Map(), "/a.out", 0));
@@ -18,9 +19,23 @@ test("assertDistinctWrite passes when the same unit overwrites its own buffered 
 });
 
 test("assertDistinctWrite throws the exact message when a different unit writes the same path", (t) => {
-	const buffer = new Map([["/a.out", {resource: {}, args: [], index: 0}]]);
-	const err = t.throws(() => assertDistinctWrite(buffer, "/a.out", 1));
+	const buffer = new Map([["/a.out", {
+		resource: {},
+		args: [],
+		index: 0,
+		inputName: "/resources/first.js",
+	}]]);
+	const err = t.throws(() => assertDistinctWrite(
+		buffer, "/a.out", 1, "/resources/second.js", "compile", "buildResources"));
 	t.is(err.message, SAME_PATH_MESSAGE, "The user-visible message has one definition");
+});
+
+test("assertDistinctWrite identifies non-resource invocations by position", (t) => {
+	const buffer = new Map([["/a.out", {resource: {}, args: [], index: 0}]]);
+	const err = t.throws(() => assertDistinctWrite(buffer, "/a.out", 1, undefined, "compile"));
+	t.is(err.message,
+		"Concurrent map step 'compile' tried to write '/a.out' for invocations #1 and #2. " +
+		"No two invocations may write to the same path.");
 });
 
 test("flushWriteBuffer replays writes in key order regardless of insertion order", async (t) => {

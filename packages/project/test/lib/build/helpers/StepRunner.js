@@ -106,11 +106,12 @@ function createReturnValueStore() {
 function makeDriver({
 	steps, options, workspace = createWorkspace(), dependencies, taskUtil = {}, returnValueStore,
 	resolveInputValue, applyTagOperations, signal, cacheVerdicts = {}, previousData = new Map(),
-	notifyStepExecution,
+	notifyStepExecution, taskName = "test-task",
 }) {
 	const recorded = new Map();
 	const runner = new StepRunner({
 		steps,
+		taskName,
 		options,
 		returnValueStore,
 		resolveInputValue,
@@ -179,7 +180,7 @@ test("runSteps runs a map step's each once per enumerated key", async (t) => {
 test("Concurrent map-step keys writing the same path throw the shared message", async (t) => {
 	const {runner} = makeDriver({
 		steps: [
-			{name: "m", keys: async () => ["a", "b"], each: async (key, {workspace}) => {
+			{name: "m", keys: async () => ["first", "second"], each: async (key, {workspace}) => {
 				await workspace.write(createResource("/same"));
 			}},
 		],
@@ -188,8 +189,9 @@ test("Concurrent map-step keys writing the same path throw the shared message", 
 	const err = await t.throwsAsync(runner.runSteps());
 	// The exact user-visible message, shared with the uncached runner through @ui5/fs/internal/stepWriteBuffer.
 	t.is(err.message,
-		"Concurrent map-step keys must not write the same resource path /same. " +
-		"Pass {sequential: true} if a later key must build on an earlier key's writes.",
+		"Concurrent map step 'm' in task 'test-task' tried to write '/same' " +
+		"for invocations 'first' and 'second'. " +
+		"No two invocations may write to the same path.",
 		"The same-path guard surfaces the shared message verbatim");
 });
 
