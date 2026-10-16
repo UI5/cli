@@ -21,6 +21,7 @@
 
 import {fromUI5LegacyName} from "../utils/ModuleName.js";
 import {getLogger} from "@ui5/logger";
+import parseJSON from "../../utils/json.js";
 const log = getLogger("lbt:analyzer:ComponentAnalyzer");
 
 // ---------------------------------------------------------------------------------------------------------
@@ -55,7 +56,7 @@ class ComponentAnalyzer {
 			const manifestResource = await this._pool.findResource(manifestName).catch(() => null);
 			if ( manifestResource ) {
 				const fileContent = await manifestResource.buffer();
-				this._analyzeManifest( JSON.parse(fileContent.toString()), info );
+				this._analyzeManifest( parseJSON(fileContent.toString(), manifestName), info );
 			} else {
 				log.verbose(`No manifest found for '${resource.name}', skipping analysis`);
 			}
