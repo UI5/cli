@@ -62,7 +62,7 @@
 		"globals": "^16.5.0",
 		"handlebars": "^4.7.10",
 		"jsdoc": "^4.0.5",
-		"local-web-server": "^5.4.0",
+		"local-web-server": "^5.4.2",
 		"open-cli": "^9.0.0",
 		"traverse": "^0.6.14"
 	}
