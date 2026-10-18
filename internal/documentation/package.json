@@ -37,18 +37,18 @@
 		"download-packages": "./scripts/downloadPackages.sh"
 	},
 	"devDependencies": {
-		"@apidevtools/json-schema-ref-parser": "^16.0.3",
+		"@apidevtools/json-schema-ref-parser": "^16.0.5",
 		"@tailwindcss/vite": "^4.3.3",
 		"@types/node": "^26.6.5",
 		"autoprefixer": "^10.6.1",
-		"cssnano": "^9.5.0",
+		"cssnano": "^9.9.0",
 		"handlebars": "^4.7.10",
 		"jsdoc": "^4.0.5",
 		"markdown-it-implicit-figures": "^0.12.0",
-		"postcss": "^8.5.28",
+		"postcss": "^8.5.30",
 		"tailwindcss": "^4.2.2",
 		"traverse": "^0.6.14",
 		"vitepress": "^1.6.4",
-		"vue": "^3.5.43"
+		"vue": "^3.5.44"
 	}
 }
