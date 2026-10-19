@@ -252,6 +252,31 @@ dependencyManagement:
 | `collection.a/library.c` | `ui5-another-custom.yaml`
 | `collection.a/library.d` | `ui5-custom.yaml`
 
+### ✅ Case 1.10: [workspace/1.1] Two custom configPaths for the same single lib (ordering isolation)
+
+**WHEN**
+
+```yaml
+specVersion: "workspace/1.1"
+metadata:
+  name: default
+dependencyManagement:
+  resolutions:
+    - path: ../root.collection/library.a
+      configPath: ui5-custom.yaml
+    - path: ../root.collection/library.a # same lib, later resolution
+      configPath: ui5-another-custom.yaml
+```
+
+**THEN**
+
+| Resolved library | Config file used |
+|------------------|------------------|
+| `library.a`         | `ui5-another-custom.yaml`
+
+Only `library.a` is resolved (the two resolutions collapse into a single module).
+This case isolates the concept **the last resolution wins** from the original logic "("specificity wins").
+
 ---
 ---
 
