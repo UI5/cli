@@ -29,7 +29,7 @@ root.collection/
 
 ---
 
-### Case 1
+### ✅ Case 1.1: [workspace/1.1] No configPath
 
 **WHEN**
 
@@ -52,7 +52,7 @@ dependencyManagement:
 | `collection.a/library.d` | `ui5.yaml`
 
 
-### Case 2
+### ✅ Case 1.2: [workspace/1.1] Custom configPath for all libs
 
 **WHEN**
 
@@ -76,7 +76,7 @@ dependencyManagement:
 | `collection.a/library.d` | `ui5-custom.yaml`
 
 
-### Case 3
+### ✅ Case 1.3: [workspace/1.1] No configPath + Custom configPath for single lib
 
 **WHEN**
 
@@ -100,7 +100,7 @@ dependencyManagement:
 | `collection.a/library.c` | `ui5.yaml`
 | `collection.a/library.d` | `ui5.yaml`
 
-### Case 4
+### ✅ Case 1.4: [workspace/1.1] Custom configPath for single lib + No configPath for all libs
 
 **WHEN**
 
@@ -124,7 +124,7 @@ dependencyManagement:
 | `collection.a/library.c` | `ui5.yaml`
 | `collection.a/library.d` | `ui5.yaml`
 
-### Case 5
+### ✅ Case 1.5: [workspace/1.1] Custom configPath for all libs + No configPath for single lib
 
 **WHEN**
 
@@ -148,7 +148,7 @@ dependencyManagement:
 | `collection.a/library.c` | `ui5-custom.yaml`
 | `collection.a/library.d` | `ui5-custom.yaml`
 
-### Case 6
+### ✅ Case 1.6: [workspace/1.1] No configPath for all libs + Custom configPaths for two libs
 
 **WHEN**
 
@@ -174,7 +174,7 @@ dependencyManagement:
 | `collection.a/library.c` | `ui5.yaml`
 | `collection.a/library.d` | `ui5.yaml`
 
-### Case 7
+### ✅ Case 1.7: [workspace/1.1] No configPath for all libs + Two custom configPaths for single lib
 
 **WHEN**
 
@@ -202,7 +202,7 @@ dependencyManagement:
 
 **Remark:** For the validation, maybe log a warning (because multiple resolutions for the same library exist).
 
-### Case 8
+### ✅ Case 1.8: [workspace/1.1] No configPath for all libs + Custom configPath for sub collection
 
 **WHEN**
 
@@ -226,7 +226,7 @@ dependencyManagement:
 | `collection.a/library.c` | `ui5-custom.yaml`
 | `collection.a/library.d` | `ui5-custom.yaml`
 
-### Case 9
+### ✅ Case 1.9: [workspace/1.1] No configPath for all libs + Custom configPaths for sub collection & single lib
 
 **WHEN**
 
@@ -282,7 +282,7 @@ root.collection/
 
 ---
 
-### Case 1
+### Case 2.1: [workspace/1.1] No configPath -- **⚠️ NO AUTOMATED TEST**
 
 **WHEN**
 
@@ -305,7 +305,7 @@ dependencyManagement:
 | `collection.a/library.d` | `ui5.yaml`
 
 
-### Case 2
+### ✅ Case 2.2: [workspace/1.1] Custom configPath for all libs -> File not existing for single lib
 
 **WHEN**
 
@@ -324,7 +324,7 @@ dependencyManagement:
 Error: `Cannot find config file 'ui5-custom.yaml' for path '../root.collection/library.a'`
 
 
-### Case 3
+### ✅ Case 2.3: [workspace/1.1] Custom configPath for single lib -> File not existing for single lib
 
 **WHEN**
 
@@ -343,7 +343,7 @@ dependencyManagement:
 
 Error: `Cannot find config file 'ui5-custom.yaml' for path '../root.collection/library.a'`
 
-### Case 4
+### ✅ Case 2.4: [workspace/1.1] Not existing configPath for single lib overwritten by No configPath for all libs
 
 **WHEN**
 
@@ -367,7 +367,7 @@ dependencyManagement:
 | `collection.a/library.c` | `ui5.yaml`
 | `collection.a/library.d` | `ui5.yaml`
 
-### Case 5
+### ✅ Case 2.5: [workspace/1.1] Not existing configPath for single lib overwritten by No configPath for the same lib
 
 **WHEN**
 
@@ -391,7 +391,7 @@ dependencyManagement:
 | `collection.a/library.c` | `ui5-custom.yaml`
 | `collection.a/library.d` | `ui5-custom.yaml`
 
-### Case 6
+### ✅ Case 2.6: [workspace/1.1] Not existing configPath for single lib overwritten by Custom configPath for the same lib
 
 **WHEN**
 
