@@ -60,7 +60,7 @@ function getTimestamp() {
  */
 const processManifest = async (manifestResource) => {
 	const manifestContent = await manifestResource.getString();
-	const manifestObject = parseJSON(manifestContent, () => manifestResource.getPath());
+	const manifestObject = parseJSON(manifestContent, manifestResource.getPath());
 	const manifestInfo = Object.create(null);
 
 	// sap.ui5/dependencies is used for the "manifestHints/libs"

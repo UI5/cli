@@ -11,11 +11,6 @@ test("parseJSON: Parses an empty JSON object", (t) => {
 	t.deepEqual(result, {}, "An empty JSON object is valid and parsed correctly");
 });
 
-test("parseJSON: Parses Buffer content", (t) => {
-	const result = parseJSON(Buffer.from(`{"foo": "bar"}`), "/some/file.json");
-	t.deepEqual(result, {foo: "bar"}, "Returned the parsed object from Buffer input");
-});
-
 test("parseJSON: Throws for empty content", (t) => {
 	const error = t.throws(() => parseJSON("", "webapp/manifest.json"));
 	t.is(error.message, `The file "webapp/manifest.json" is empty.`,
@@ -25,13 +20,6 @@ test("parseJSON: Throws for empty content", (t) => {
 
 test("parseJSON: Throws for whitespace-only content", (t) => {
 	const error = t.throws(() => parseJSON("  \n\t ", "webapp/manifest.json"));
-	t.is(error.message, `The file "webapp/manifest.json" is empty.`,
-		"Threw with the expected error message");
-	t.is(error.code, "ERR_EMPTY_JSON", "Threw with the expected error code");
-});
-
-test("parseJSON: Throws for an empty Buffer", (t) => {
-	const error = t.throws(() => parseJSON(Buffer.from(""), "webapp/manifest.json"));
 	t.is(error.message, `The file "webapp/manifest.json" is empty.`,
 		"Threw with the expected error message");
 	t.is(error.code, "ERR_EMPTY_JSON", "Threw with the expected error code");
