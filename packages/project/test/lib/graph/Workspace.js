@@ -726,7 +726,7 @@ test("[workspace/1.1] Custom configPath for all libs + No configPath for single 
 
 	const collectionPath = path.resolve(__dirname, "../../fixtures/collection.c");
 
-	const {projectNameMap} = await workspace._getResolvedModules(); // FIXME: Works but we assumed a failure
+	const {projectNameMap} = await workspace._getResolvedModules();
 	t.is(projectNameMap.get("library.a")._configPath, "ui5.yaml");
 	t.is(projectNameMap.get("library.b.custom")._configPath,
 		collectionPath + "/library.b/ui5-custom.yaml");
@@ -804,6 +804,7 @@ test("[workspace/1.1] No configPath for all libs + Two custom configPaths for si
 		"ui5.yaml");
 	t.is(projectNameMap.get("library.d")._configPath,
 		"ui5.yaml");
+	t.is(projectNameMap.size, 4, "Exactly 4 libs resolved, library.a not duplicated");
 });
 
 // DEBUG: Case 1.8
@@ -870,6 +871,31 @@ test("[workspace/1.1] No configPath for all libs + Custom configPaths for sub co
 		path.resolve(collectionPath, "collection.a/library.c/ui5-another-custom.yaml"));
 	t.is(projectNameMap.get("library.d.custom")._configPath,
 		path.resolve(collectionPath, "collection.a/library.d/ui5-custom.yaml"));
+});
+
+// DEBUG: Case 1.10 (ordering isolation: two direct resolutions, same lib)
+test("[workspace/1.1] Two custom configPaths for the same single lib -> last one wins", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c/library.a",
+					configPath: "ui5-custom.yaml"
+				},
+				{
+					path: "../../fixtures/collection.c/library.a", // same lib, later resolution
+					configPath: "ui5-another-custom.yaml"
+				}]
+			}
+		})
+	});
+
+	const {projectNameMap} = await workspace._getResolvedModules();
+	t.is(projectNameMap.get("library.a.another.custom")._configPath,
+		path.resolve(__dirname, "../../fixtures/collection.c/library.a/ui5-another-custom.yaml"));
+	t.is(projectNameMap.size, 1, "Exactly 1 lib resolved, library.a not duplicated");
 });
 
 // DEBUG: Case 2.2
@@ -974,7 +1000,7 @@ test("[workspace/1.1] Not existing configPath for single lib overwritten by No c
 
 		const collectionPath = path.resolve(__dirname, "../../fixtures/collection.c.noCustomConfigForLibA");
 
-		const {projectNameMap} = await workspace._getResolvedModules(); // FIXME: Works but we assumed a failure
+		const {projectNameMap} = await workspace._getResolvedModules();
 		t.is(projectNameMap.get("library.a")._configPath, "ui5.yaml");
 		t.is(projectNameMap.get("library.b.custom")._configPath,
 			collectionPath + "/library.b/ui5-custom.yaml");
