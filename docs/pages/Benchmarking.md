@@ -84,14 +84,16 @@ The following is a walk-through on how to evaluate the performance impact of an 
     1. In the project, start your first benchmark
         ```sh
         hyperfine --warmup 1 \
-        'UI5_CLI_NO_LOCAL=X node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs build' \
-        --export-markdown ./baseline.md
+          --env 'UI5_CLI_NO_LOCAL=X' \
+          'node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs build' \
+          --export-markdown ./baseline.md
         ```
         On Windows:
         ```sh
         hyperfine --warmup 1 \
-        'set UI5_CLI_NO_LOCAL=X node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs build' \
-        --export-markdown ./baseline.md
+          --env 'UI5_CLI_NO_LOCAL=X' \
+          'node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs build' \
+          --export-markdown ./baseline.md
         ```
     1. Your baseline benchmark is now stored in `baseline.md` and should look similar to this:
 
@@ -114,14 +116,16 @@ The following is a walk-through on how to evaluate the performance impact of an 
     1. In the project, start your second benchmark
         ```sh
         hyperfine --warmup 1 \
-        'UI5_CLI_NO_LOCAL=X node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs build' \
-        --export-markdown ./my_change.md
+          --env 'UI5_CLI_NO_LOCAL=X' \
+          'node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs build' \
+          --export-markdown ./my_change.md
         ```
         On Windows:
         ```sh
         hyperfine --warmup 1 \
-        'set UI5_CLI_NO_LOCAL=X node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs build' \
-        --export-markdown ./my_change.md
+          --env 'UI5_CLI_NO_LOCAL=X' \
+          'node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs build' \
+          --export-markdown ./my_change.md
         ```
     1. Your change's benchmark is now stored in `my_change.md`
 
