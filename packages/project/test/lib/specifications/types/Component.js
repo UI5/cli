@@ -573,8 +573,10 @@ test("_getManifest: invalid JSON", async (t) => {
 	};
 
 	const error = await t.throwsAsync(project._getManifest("/some-manifest.json"));
-	t.regex(error.message, /^Failed to read \/some-manifest\.json for project component\.a: /,
-		"Rejected with correct error message");
+	t.is(error.code, "ERR_INVALID_JSON",
+		"Rejected with the ERR_INVALID_JSON code (not wrapped)");
+	t.true(error.message.startsWith(`Failed to parse "src/some-manifest.json" as JSON:`),
+		"Rejected with the clear invalid-JSON error message (not wrapped)");
 	t.is(byPathStub.callCount, 1, "byPath got called once");
 	t.is(byPathStub.getCall(0).args[0], "/some-manifest.json", "byPath got called with the correct argument");
 });

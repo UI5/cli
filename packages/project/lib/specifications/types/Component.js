@@ -285,7 +285,7 @@ class Component extends ComponentProject {
 				}
 				return parseJSON(await resource.getString(), `${this._srcPath}${filePath}`);
 			}).catch((err) => {
-				if (err.code === "ERR_EMPTY_JSON") {
+				if (err.code === "ERR_EMPTY_JSON" || err.code === "ERR_INVALID_JSON") {
 					throw err;
 				}
 				throw new Error(
