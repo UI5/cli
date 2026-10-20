@@ -275,7 +275,7 @@ dependencyManagement:
 | `library.a`         | `ui5-another-custom.yaml`
 
 Only `library.a` is resolved (the two resolutions collapse into a single module).
-This case isolates the concept **the last resolution wins** from the original logic "("specificity wins").
+This case isolates the concept **the last resolution wins** from the original logic("specificity wins").
 
 ---
 ---
