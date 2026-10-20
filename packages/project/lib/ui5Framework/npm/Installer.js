@@ -1,5 +1,6 @@
 import path from "node:path";
 import {mkdirp} from "../../utils/fs.js";
+import parseJSON from "../../utils/json.js";
 import fs from "graceful-fs";
 import {promisify} from "node:util";
 import Registry from "./Registry.js";
@@ -49,7 +50,7 @@ class Installer extends AbstractInstaller {
 	}
 
 	async readJson(jsonPath) {
-		return JSON.parse(await readFile(jsonPath, {encoding: "utf8"}));
+		return parseJSON(await readFile(jsonPath, {encoding: "utf8"}), jsonPath);
 	}
 
 	async fetchPackageVersions({pkgName}) {

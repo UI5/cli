@@ -7,6 +7,7 @@ import ui5YamlSchema from "./helpers/ui5YamlSchema.js";
 import {createReader} from "@ui5/fs/resourceFactory";
 import Specification from "../specifications/Specification.js";
 import {validate} from "../validation/validator.js";
+import parseJSON from "../utils/json.js";
 
 import {getLogger} from "@ui5/logger";
 
@@ -395,7 +396,7 @@ class Module {
 		const reader = this.getReader();
 		const buildManifestResource = await reader.byPath("/.ui5/build-manifest.json");
 		if (buildManifestResource) {
-			return JSON.parse(await buildManifestResource.getString());
+			return parseJSON(await buildManifestResource.getString(), buildManifestResource.getPath());
 		}
 	}
 

@@ -6,6 +6,7 @@ import {promisify} from "node:util";
 import {getLogger} from "@ui5/logger";
 import Module from "./Module.js";
 import {validateWorkspace} from "../validation/validator.js";
+import parseJSON from "../utils/json.js";
 
 const readFile = promisify(fs.readFile);
 const log = getLogger("graph:Workspace");
@@ -261,8 +262,9 @@ class Workspace {
 	 * @returns {object} Package json content
 	 */
 	async _readPackageJson(modulePath) {
-		const content = await readFile(path.join(modulePath, "package.json"), "utf8");
-		return JSON.parse(content);
+		const packageJsonPath = path.join(modulePath, "package.json");
+		const content = await readFile(packageJsonPath, "utf8");
+		return parseJSON(content, packageJsonPath);
 	}
 
 	async _validateConfig() {
