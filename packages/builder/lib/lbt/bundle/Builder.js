@@ -18,6 +18,7 @@ import {SectionType} from "./BundleDefinition.js";
 import BundleWriter from "./BundleWriter.js";
 import {getLogger} from "@ui5/logger";
 import semver from "semver";
+import parseJSON from "../../utils/json.js";
 const log = getLogger("lbt:bundle:Builder");
 
 const sourceMappingUrlPattern = /\/\/# sourceMappingURL=(\S+)\s*$/;
@@ -502,9 +503,9 @@ class BundleBuilder {
 			let fileContent = stripBOM((await resource.buffer()).toString());
 			if ( this.optimize ) {
 				try {
-					fileContent = JSON.stringify( JSON.parse( fileContent) );
+					fileContent = JSON.stringify( parseJSON( fileContent, moduleName) );
 				} catch (e) {
-					log.verbose(`Failed to parse JSON file ${moduleName}. Ignoring error, skipping compression.`);
+					log.verbose(`Skipping compression of module ${moduleName}.`);
 					log.verbose(e);
 				}
 			}
@@ -730,7 +731,7 @@ class BundleBuilder {
 
 
 		if (moduleSourceMap) {
-			moduleSourceMap = JSON.parse(moduleSourceMap);
+			moduleSourceMap = parseJSON(moduleSourceMap, `${moduleName}.map`);
 
 			// Check for index map, which is currently not supported
 			if (Array.isArray(moduleSourceMap.sections)) {

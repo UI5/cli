@@ -1,6 +1,7 @@
 import {getLogger} from "@ui5/logger";
 const log = getLogger("builder:processors:bundlers:flexChangesBundler");
 import {createResource} from "@ui5/fs/resourceFactory";
+import parseJSON from "../../utils/json.js";
 
 /**
  * @public
@@ -170,7 +171,7 @@ export default function({resources, options: {pathPrefix, hasFlexBundleVersion},
 
 	return Promise.all(resources.map((resource) => {
 		return resource.getBuffer().then((buffer) => {
-			return JSON.parse(buffer.toString());
+			return parseJSON(buffer.toString(), resource.getPath());
 		});
 	})).then((changesContent) => {
 		const nNumberOfChanges = changesContent.length;

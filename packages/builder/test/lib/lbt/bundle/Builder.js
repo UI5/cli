@@ -66,9 +66,10 @@ test.serial("writePreloadModule: with invalid json content", async (t) => {
 	const result = await builder.writePreloadModule("invalid.json", undefined, invalidJsonResource);
 
 	t.is(verboseLogStub.callCount, 2, "called 2 times");
-	t.is(verboseLogStub.firstCall.args[0], "Failed to parse JSON file invalid.json. Ignoring error, skipping compression.",
+	t.is(verboseLogStub.firstCall.args[0], "Skipping compression of module invalid.json.",
 		"first verbose log argument 0 is correct");
 	t.true(verboseLogStub.secondCall.args[0] instanceof SyntaxError, "second verbose log with SyntaxError");
+	t.is(verboseLogStub.secondCall.args[0].code, "ERR_INVALID_JSON", "second verbose log error has ERR_INVALID_JSON code");
 	t.regex(verboseLogStub.secondCall.args[0].message, /JSON/, "second verbose log about incorrect JSON");
 
 	t.true(result, "result is true");

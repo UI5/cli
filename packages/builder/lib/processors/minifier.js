@@ -5,6 +5,7 @@ import os from "node:os";
 import workerpool from "workerpool";
 import Resource from "@ui5/fs/Resource";
 import {getLogger} from "@ui5/logger";
+import parseJSON from "../utils/json.js";
 const log = getLogger("builder:processors:minifier");
 import {setTimeout as setTimeoutPromise} from "node:timers/promises";
 
@@ -230,7 +231,7 @@ export default async function({
 				});
 
 				if (sourceMapContent) {
-					const sourceMapJson = JSON.parse(sourceMapContent);
+					const sourceMapJson = parseJSON(sourceMapContent, resourcePath);
 
 					if (sourceMapJson.sections) {
 						// TODO 5.0

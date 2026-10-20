@@ -252,6 +252,7 @@ test.serial("generateThemeDesignerResources: Library sap.ui.core with existing l
 	};
 
 	const coreLibraryDotThemingResource = {
+		getPath: () => "/resources/sap/ui/core/.theming",
 		getString: async () => JSON.stringify({
 			sEntity: "Library",
 			sId: "sap/ui/core",
@@ -348,6 +349,7 @@ test.serial("generateThemeDesignerResources: Library sap.ui.core without themes,
 	const {sinon, generateThemeDesignerResources, libraryLessGeneratorStub, fsInterfaceStub, ResourceStub} = t.context;
 
 	const coreLibraryDotThemingResource = {
+		getPath: () => "/resources/sap/ui/core/.theming",
 		getString: async () => JSON.stringify({
 			sEntity: "Library",
 			sId: "sap/ui/core",
