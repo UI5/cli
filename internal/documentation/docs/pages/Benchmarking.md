@@ -6,6 +6,39 @@ In general we only benchmark calls to the UI5 CLI. However, we might add scripte
 
 The following is a walk-through on how to evaluate the performance impact of changes to the UI5 CLI `build` command.
 
+## Quckstart
+
+To quickly benchmark one branch against another, you can use this [hyperfine](https://github.com/sharkdp/hyperfine#installation) command. For a more elaborate setup, follow the setup steps below. Make sure that the branches are rebased beforehand.
+
+```sh
+cd /my/ui5/app
+hyperfine --warmup 3 --runs 10 \
+  --parameter-list branch main,feature-1 \
+  --env 'UI5_CLI_NO_LOCAL=X UI5_BUILD_NO_WRITE_DEST=X UI5_BUILD_NO_WRITE_CACHE=X' \
+  --setup 'cd /path/to/ui5-cli/ && git switch {branch} && npm ci' \
+  --prepare 'rm -rf ~/.ui5/buildCache' \
+  --command-name '{branch}' \
+  'node /path/to/ui5-cli/packages/cli/bin/ui5.cjs build' \
+  --export-markdown ./bench.md
+terminal-notifier -title "Benchmark finished" -message "Done"
+```
+
+**Explanation**
+
+* **warmup**: performs one initial, untimed execution before the actual measurements begin. This reduces the influence of cold caches (e.g. filesystem or OS-level caches) on the first timed run, leading to more consistent results
+* **runs**: *optional*. Pins the number of timed executions per command to a fixed count. By default, hyperfine automatically determines the number of runs based on the command's duration. Fixing it ensures a consistent sample size, making results more comparable across different benchmarking sessions
+* **parameter-list**: defines a variable named `branch` with the values `main` and `feature-1`. hyperfine runs the full benchmark for each value, substituting `{branch}` wherever it appears in the setup, command-name, and command. This is what enables the side-by-side comparison of the two branches
+* **env**:
+    * `UI5_CLI_NO_LOCAL=X` - ensures that target UI5 CLI won't launch a UI5 CLI version installed in the project (default behavior)
+    * `UI5_BUILD_NO_WRITE_DEST=X` - disables writing the build result to disk. Without this flag, your benchmark will inevitably be influenced by your disk's I/O performance at any given time
+    * `UI5_BUILD_NO_WRITE_CACHE=X` - disables caching of build results in `~/.ui5/buildCache`
+* **setup**: executed once per parameter-list value (i.e. per branch) before the benchmarking runs begin. It changes into the UI5 CLI directory, switches to the given `{branch}`, and runs `npm ci` to ensure the correct dependencies are in place for that branch. You can omit `npm ci` if there are no `package*.json` changes between the two branches
+* **prepare**: executed before *each* timing run. It removes the `~/.ui5/buildCache` directory to guarantee that every run starts from a clean state, preventing cached results from skewing the measurements
+* **command-name**: assigns a readable name (the current `{branch}`) to each benchmarked command, making the results easier to interpret in the output
+* **command**: the actual command being benchmarked—invoking the UI5 CLI `build` command directly via Node.js from the target UI5 CLI installation
+* **export-markdown**: writes the benchmark results to `./bench.md` as a Markdown table, which is convenient for including in documentation or sharing
+* **terminal-notifier**: *optional*. The final line sends a desktop notification once the benchmark completes, which is handy for long-running benchmarks. It requires [terminal-notifier](https://github.com/julienxx/terminal-notifier) to be installed and is macOS-only. Feel free to omit this line or replace it with an equivalent notification tool for your platform
+
 ## Setup
 
 1. Install [hyperfine](https://github.com/sharkdp/hyperfine#installation)
@@ -72,8 +105,9 @@ The following is a walk-through on how to evaluate the performance impact of cha
     1. In the project, start your first benchmark
         ```sh
         hyperfine --warmup 1 \
-        'UI5_CLI_NO_LOCAL=X node /my/home/UI5/cli/packages/cli/bin/ui5.cjs build' \
-        --export-markdown ./baseline.md
+		  --env 'UI5_CLI_NO_LOCAL=X' \
+          'node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs build' \
+          --export-markdown ./baseline.md
         ```
         On Windows:
         ```sh
@@ -102,8 +136,9 @@ The following is a walk-through on how to evaluate the performance impact of cha
     1. In the project, start your second benchmark
         ```sh
         hyperfine --warmup 1 \
-        'UI5_CLI_NO_LOCAL=X node /my/home/UI5/cli/packages/cli/bin/ui5.cjs build' \
-        --export-markdown ./my_change.md
+		  --env 'UI5_CLI_NO_LOCAL=X' \
+          'node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs build' \
+          --export-markdown ./my_change.md
         ```
         On Windows:
         ```sh
