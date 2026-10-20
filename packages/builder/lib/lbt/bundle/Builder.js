@@ -674,6 +674,7 @@ class BundleBuilder {
 
 	async getSourceMapForModule({moduleName, moduleContent, resourcePath}) {
 		let moduleSourceMap = null;
+		let sourceMapOriginPath = null;
 		let newModuleContent = moduleContent;
 
 		const sourceMapUrlMatch = moduleContent.match(sourceMappingUrlPattern);
@@ -692,6 +693,7 @@ class BundleBuilder {
 					if (sourceMapUrl.startsWith(expectedTypeAndEncoding)) {
 						const base64Content = sourceMapUrl.slice(expectedTypeAndEncoding.length);
 						moduleSourceMap = Buffer.from(base64Content, "base64").toString();
+						sourceMapOriginPath = `${moduleName} (inline source map)`;
 					} else {
 						log.warn(
 							`Source map reference in module ${moduleName} is a data URI but has an unexpected` +
@@ -710,6 +712,7 @@ class BundleBuilder {
 					try {
 						const sourceMapResource = await this.pool.findResource(sourceMapPath);
 						moduleSourceMap = (await sourceMapResource.buffer()).toString();
+						sourceMapOriginPath = sourceMapPath;
 					} catch (e) {
 						// No input source map
 						log.warn(`Unable to read source map for module ${moduleName}: ${e.message}`);
@@ -723,6 +726,7 @@ class BundleBuilder {
 			try {
 				const sourceMapResource = await this.pool.findResource(sourceMapFileCandidate);
 				moduleSourceMap = (await sourceMapResource.buffer()).toString();
+				sourceMapOriginPath = sourceMapFileCandidate;
 			} catch (e) {
 				// No input source map
 				log.silly(`Could not find a source map for module ${moduleName}: ${e.message}`);
@@ -731,7 +735,7 @@ class BundleBuilder {
 
 
 		if (moduleSourceMap) {
-			moduleSourceMap = parseJSON(moduleSourceMap, `${moduleName}.map`);
+			moduleSourceMap = parseJSON(moduleSourceMap, sourceMapOriginPath);
 
 			// Check for index map, which is currently not supported
 			if (Array.isArray(moduleSourceMap.sections)) {

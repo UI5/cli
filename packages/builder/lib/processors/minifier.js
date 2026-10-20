@@ -231,7 +231,7 @@ export default async function({
 				});
 
 				if (sourceMapContent) {
-					const sourceMapJson = parseJSON(sourceMapContent, resourcePath);
+					const sourceMapJson = parseJSON(sourceMapContent, resourcePath + ".map");
 
 					if (sourceMapJson.sections) {
 						// TODO 5.0

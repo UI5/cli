@@ -74,8 +74,9 @@ class Validator {
 		// AJV therefore resolves nested $ref values against the file system layout and passes them
 		// here as paths relative to this schema directory (e.g. "specVersion/kind/extension/task.json").
 		const schemaUrl = new URL(`./schema/${schemaPath}`, import.meta.url);
-		const schemaFile = await readFile(fileURLToPath(schemaUrl), {encoding: "utf8"});
-		return parseJSON(schemaFile, schemaPath);
+		const schemaFilePath = fileURLToPath(schemaUrl);
+		const schemaFile = await readFile(schemaFilePath, {encoding: "utf8"});
+		return parseJSON(schemaFile, schemaFilePath);
 	}
 }
 
