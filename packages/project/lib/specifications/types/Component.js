@@ -280,12 +280,14 @@ class Component extends ComponentProject {
 		return this._pManifests[filePath] = this._getRawSourceReader().byPath(filePath)
 			.then(async (resource) => {
 				if (!resource) {
-					throw new Error(
+					const error = new Error(
 						`Could not find resource ${filePath} in project ${this.getName()}`);
+					error.code = "ENOENT"; // "File or directory does not exist"
+					throw error;
 				}
 				return parseJSON(await resource.getString(), `${this._srcPath}${filePath}`);
 			}).catch((err) => {
-				if (err.code === "ERR_EMPTY_JSON" || err.code === "ERR_INVALID_JSON") {
+				if (err.code === "ENOENT") {
 					throw err;
 				}
 				throw new Error(

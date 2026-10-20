@@ -247,7 +247,7 @@ class Application extends ComponentProject {
 				}
 				return parseJSON(await resource.getString(), `${this._webappPath}${filePath}`);
 			}).catch((err) => {
-				if (err.code === "ENOENT" || err.code === "ERR_EMPTY_JSON" || err.code === "ERR_INVALID_JSON") {
+				if (err.code === "ENOENT") {
 					throw err;
 				}
 				throw new Error(

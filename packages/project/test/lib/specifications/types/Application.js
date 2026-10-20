@@ -575,10 +575,10 @@ test("_getManifest: invalid JSON", async (t) => {
 	};
 
 	const error = await t.throwsAsync(project._getManifest("/some-manifest.json"));
-	t.is(error.code, "ERR_INVALID_JSON",
-		"Rejected with the ERR_INVALID_JSON code (not wrapped)");
-	t.true(error.message.startsWith(`Failed to parse "webapp/some-manifest.json" as JSON:`),
-		"Rejected with the clear invalid-JSON error message (not wrapped)");
+	t.true(error.message.startsWith(
+		`Failed to read /some-manifest.json for project application.a: ` +
+		`Failed to parse "webapp/some-manifest.json" as JSON`),
+	"Rejected with the wrapped invalid-JSON error message");
 	t.is(byPathStub.callCount, 1, "byPath got called once");
 	t.is(byPathStub.getCall(0).args[0], "/some-manifest.json", "byPath got called with the correct argument");
 });
@@ -598,9 +598,9 @@ test("_getManifest: empty file", async (t) => {
 	};
 
 	const error = await t.throwsAsync(project._getManifest("/some-manifest.json"));
-	t.is(error.message, `The file "webapp/some-manifest.json" is empty.`,
-		"Rejected with the clear empty-file error message (not wrapped)");
-	t.is(error.code, "ERR_EMPTY_JSON", "Error carries the expected code");
+	t.is(error.message,
+		`Failed to read /some-manifest.json for project application.a: The file "webapp/some-manifest.json" is empty.`,
+		"Rejected with the wrapped empty-file error message");
 });
 
 test.serial("_getManifest: File does not exist", async (t) => {

@@ -499,7 +499,9 @@ class Library extends ComponentProject {
 		return this._pManifest = this._getRawSourceReader().byGlob("**/manifest.json")
 			.then(async (manifestResources) => {
 				if (!manifestResources.length) {
-					throw new Error(`Could not find manifest.json file for project ${this.getName()}`);
+					const error = new Error(`Could not find manifest.json file for project ${this.getName()}`);
+					error.code = "ENOENT"; // "File or directory does not exist"
+					throw error;
 				}
 				if (manifestResources.length > 1) {
 					throw new Error(`Found multiple (${manifestResources.length}) manifest.json files ` +
@@ -512,7 +514,7 @@ class Library extends ComponentProject {
 						filePath: resource.getPath()
 					};
 				} catch (err) {
-					if (err.code === "ERR_EMPTY_JSON" || err.code === "ERR_INVALID_JSON") {
+					if (err.code === "ENOENT") {
 						throw err;
 					}
 					throw new Error(
