@@ -31,7 +31,7 @@ import stringReplacer from "../processors/stringReplacer.js";
  * @param {object} options Options
  * @param {string} options.copyright Replacement copyright
  * @param {string} options.pattern Pattern to locate the files to be processed
- * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor with its build steps
+ * @returns {module:@ui5/builder/tasks/runTask~TaskDescriptor} The task descriptor with its build steps
  */
 export default function defineTask({copyright, pattern}) {
 	if (!copyright) {

@@ -9,7 +9,7 @@
  *
  * Two runners implement this: the cache-aware runner in <code>@ui5/project</code>
  * (<code>build/helpers/StepRunner</code>) and the cache-free runner in <code>@ui5/builder</code>
- * (<code>tasks/runSteps</code>). <code>@ui5/builder</code> cannot import <code>@ui5/project</code>
+ * (<code>tasks/runTask</code>). <code>@ui5/builder</code> cannot import <code>@ui5/project</code>
  * (the dependency direction is <code>@ui5/cli -> @ui5/project -> @ui5/builder</code>), so the two runners
  * stay separate, but the same-path guard, its user-visible error message and the key-order flush live here
  * so both runners share one definition.

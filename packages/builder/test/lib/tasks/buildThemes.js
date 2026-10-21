@@ -2,7 +2,7 @@ import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
 import {deserializeResources} from "../../../lib/processors/themeBuilderWorker.js";
-import runSteps from "../../../lib/tasks/runSteps.js";
+import runTask from "../../../lib/tasks/runTask.js";
 let buildThemes;
 
 test.before(async () => {
@@ -63,7 +63,7 @@ test.serial("buildThemes", async (t) => {
 		jsonParametersResource
 	]);
 
-	await runSteps(buildThemes, {
+	await runTask(buildThemes, {
 		workspace,
 		options: {
 			projectName: "sap.ui.demo.app",
@@ -116,7 +116,7 @@ test.serial("buildThemes (compress = false)", async (t) => {
 		jsonParametersResource
 	]);
 
-	await runSteps(buildThemes, {
+	await runTask(buildThemes, {
 		workspace,
 		options: {
 			projectName: "sap.ui.demo.app",
@@ -191,7 +191,7 @@ test.serial("buildThemes (filtering libraries)", async (t) => {
 	// One step per surviving theme; a fresh result per call so concurrent writes stay independent.
 	t.context.themeBuilderStub.callsFake(() => [{}]);
 
-	await runSteps(buildThemes, {
+	await runTask(buildThemes, {
 		workspace,
 		options: {
 			projectName: "sap.ui.test.lib1",
@@ -267,7 +267,7 @@ test.serial("buildThemes (filtering themes)", async (t) => {
 	// One step per surviving theme; a fresh result per call so concurrent writes stay independent.
 	t.context.themeBuilderStub.callsFake(() => [{}]);
 
-	await runSteps(buildThemes, {
+	await runTask(buildThemes, {
 		workspace,
 		options: {
 			projectName: "sap.ui.test.lib1",
@@ -381,7 +381,7 @@ test.serial("buildThemes (filtering libraries + themes)", async (t) => {
 	// One step per surviving theme; a fresh result per call so concurrent writes stay independent.
 	t.context.themeBuilderStub.callsFake(() => [{}]);
 
-	await runSteps(buildThemes, {
+	await runTask(buildThemes, {
 		workspace,
 		options: {
 			projectName: "sap.ui.test.lib1",
@@ -452,7 +452,7 @@ test.serial("buildThemes (useWorkers = true)", async (t) => {
 		jsonParametersResource
 	]);
 
-	await runSteps(buildThemes, {
+	await runTask(buildThemes, {
 		workspace,
 		taskUtil: taskUtilMock,
 		options: {
@@ -523,7 +523,7 @@ test.serial("buildThemes with taskUtil and unexpected termination of the workerp
 		mkdir: (...args) => args[args.length - 1](null, {}),
 	});
 
-	await runSteps(buildThemes, {
+	await runTask(buildThemes, {
 		workspace,
 		taskUtil: taskUtilMock,
 		options: {

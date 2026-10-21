@@ -17,7 +17,7 @@ import manifestCreator from "../processors/manifestCreator.js";
  *
  * @param {object} options Options
  * @param {string} options.projectName Project name
- * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor
+ * @returns {module:@ui5/builder/tasks/runTask~TaskDescriptor} The task descriptor
  */
 export default function defineTask(options) {
 	return {task};

@@ -70,7 +70,7 @@ class BufferedWriter extends AbstractReaderWriter {
  * absent here; every step runs.
  *
  * @public
- * @module @ui5/builder/tasks/runSteps
+ * @module @ui5/builder/tasks/runTask
  */
 
 /**
@@ -116,11 +116,11 @@ class BufferedWriter extends AbstractReaderWriter {
  * @param {object} [parameters.options] Task options, passed to the factory and each step
  * @returns {Promise<undefined>} Resolves once all steps have run and their writes are flushed
  */
-export default async function runSteps(defineTask, {workspace, dependencies, taskUtil, options} = {}) {
+export default async function runTask(defineTask, {workspace, dependencies, taskUtil, options} = {}) {
 	const {steps} = await defineTask(options);
 	if (!steps) {
 		throw new Error(
-			"runSteps requires a step-based task whose factory returns a descriptor with a 'steps' array");
+			"runTask requires a step-based task whose factory returns a descriptor with a 'steps' array");
 	}
 	// Each step's return, so a later step's needs can consume it. A scalar step's return is its single
 	// value; a map step's is the array of its per-key returns in key order.

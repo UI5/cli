@@ -1,5 +1,5 @@
 import test from "ava";
-import runSteps from "../../../lib/tasks/runSteps.js";
+import runTask from "../../../lib/tasks/runTask.js";
 import sinonGlobal from "sinon";
 import esmock from "esmock";
 import {createAdapter, createResource} from "@ui5/fs/resourceFactory";
@@ -72,7 +72,7 @@ test.serial("Transforms single manifest.json resource", async (t) => {
 
 	t.context.manifestEnhancerStub.returns([resource]);
 
-	await runSteps(enhanceManifest, {
+	await runTask(enhanceManifest, {
 		workspace,
 		options: {
 			projectNamespace: "sap/ui/demo/app"
@@ -179,7 +179,7 @@ test.serial("Transforms all manifest.json resources", async (t) => {
 	t.context.manifestEnhancerStub.callsFake(({resources}) =>
 		resources[0] === resourceReuseComp2 ? [] : [resources[0]]);
 
-	await runSteps(enhanceManifest, {
+	await runTask(enhanceManifest, {
 		workspace,
 		options: {
 			projectNamespace: "sap/ui/demo/lib"
@@ -279,7 +279,7 @@ test.serial("Transforms multiple manifest.json resources", async (t) => {
 	// One step per manifest.json: each changed manifest is written back at its own path.
 	t.context.manifestEnhancerStub.callsFake(({resources}) => [resources[0]]);
 
-	await runSteps(enhanceManifest, {
+	await runTask(enhanceManifest, {
 		workspace,
 		options: {
 			projectNamespace: "sap/ui/demo/lib"
@@ -323,7 +323,7 @@ test.serial("Should not rewrite the manifest.json if no changes were made", asyn
 
 	t.context.manifestEnhancerStub.returns([]);
 
-	await runSteps(enhanceManifest, {
+	await runTask(enhanceManifest, {
 		workspace,
 		options: {
 			projectNamespace: "sap/ui/demo/app"

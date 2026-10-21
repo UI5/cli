@@ -17,7 +17,7 @@ const MANIFEST_JSON = "manifest.json";
  * @param {object} options Options
  * @param {string} options.pattern Glob pattern for .library resources
  * @param {object} options.rootProject Root project (used for its name and version)
- * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor
+ * @returns {module:@ui5/builder/tasks/runTask~TaskDescriptor} The task descriptor
  */
 export default function defineTask(options) {
 	return {
