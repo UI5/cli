@@ -138,6 +138,21 @@ class Workspace {
 			};
 		}
 
+		// Detect duplicate resolutions targeting the same library
+		const seenLibraryNames = [];
+		for (const {path: resolutionPath} of resolutions) {
+			if (!resolutionPath) {
+				continue;
+			}
+			const libraryName = path.basename(resolutionPath); // "../collection/library.a" -> "library.a"
+			if (seenLibraryNames.includes(libraryName)) {
+				throw new Error(
+					`Multiple resolutions for the same library '${libraryName}' ` +
+					`in workspace '${this.getName()}' exist.`);
+			}
+			seenLibraryNames.push(libraryName);
+		}
+
 		let resolvedModules = await Promise.all(resolutions.map(async (resolutionConfig) => {
 			if (!resolutionConfig.path) {
 				throw new Error(
