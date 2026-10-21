@@ -1480,13 +1480,18 @@ function collectClassInfo(extendCall, classDoclet) {
 				}
 			};
 			each(settings.parameters, "type", (pName, pSettings, pDoclet) => {
+				const optional = pName.endsWith("?");
+				if (optional) {
+					pName = pName.slice(0, -1);
+				}
 				info.parameters[pName] = {
 					name : pName,
 					doc : pDoclet && pDoclet.description,
 					deprecation : pDoclet && pDoclet.deprecated,
 					since : pDoclet && pDoclet.since,
 					experimental : pDoclet && pDoclet.experimental,
-					type : pSettings && pSettings.type ? pSettings.type.value.value : ""
+					type : pSettings && pSettings.type ? pSettings.type.value.value : "",
+					optional
 				};
 			});
 		});
@@ -2353,8 +2358,11 @@ function createAutoDoc(oClassInfo, classComment, doclet, node, parser, filename,
 			"@param {object} oControlEvent.getParameters"
 		];
 		for (const pName in info.parameters ) {
+			const optional = info.parameters[pName].optional;
 			lines.push(
-				"@param {" + (info.parameters[pName].type || "") + "} oControlEvent.getParameters." + pName + " " + (info.parameters[pName].doc || "")
+				"@param {" + (info.parameters[pName].type || "") + "} "
+					+ (optional ? "[" : "") + "oControlEvent.getParameters." + pName +  (optional ? "]" : "")
+					+ " " + (info.parameters[pName].doc || "")
 			);
 		}
 		lines.push(visibilityTags);
@@ -2691,7 +2699,7 @@ exports.defineTags = function(dictionary) {
 		mustHaveValue: true,
 		onTagged: function(doclet, tag) {
 			if (isSemVer(doclet.experimental)) {
-				error(`@since and @ui5-experimental-since must not be used both for the same API (${doclet.meta?.lineno})`);
+				warning(`@since and @ui5-experimental-since must not be used both for the same API (${doclet.meta?.lineno})`);
 			}
 			doclet.since = tag.value;
 		}
@@ -2743,7 +2751,7 @@ exports.defineTags = function(dictionary) {
 		mustHaveValue: true,
 		onTagged: function(doclet, tag) {
 			if (doclet.since || doclet.experimental) {
-				error(`@experimental/@since and @ui5-experimental-since must not be used together for the same API (${doclet.meta?.lineno})`);
+				warning(`@experimental/@since and @ui5-experimental-since must not be used together for the same API (${doclet.meta?.lineno})`);
 			}
 			const version = tag.value?.trim() ?? "";
 			if (!isSemVer(version)) {
