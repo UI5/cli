@@ -819,25 +819,17 @@ test("[workspace/1.1] No configPath for all libs + Two custom configPaths for si
 					configPath: "ui5-custom.yaml"
 				},
 				{
-					path: "../../fixtures/collection.c/library.a", // double assignment
+					path: "../../fixtures/collection.c/library.a", // duplicate resolution
 					configPath: "ui5-another-custom.yaml"
 				}]
 			}
 		})
 	});
 
-	const collectionPath = path.resolve(__dirname, "../../fixtures/collection.c");
-
-	const {projectNameMap} = await workspace._getResolvedModules();
-	t.is(projectNameMap.get("library.a.another.custom")._configPath,
-		collectionPath + "/library.a/ui5-another-custom.yaml"); // FIXME: Currently failing (gets "library.a.custom")
-	t.is(projectNameMap.get("library.b")._configPath,
-		"ui5.yaml");
-	t.is(projectNameMap.get("library.c")._configPath,
-		"ui5.yaml");
-	t.is(projectNameMap.get("library.d")._configPath,
-		"ui5.yaml");
-	t.is(projectNameMap.size, 4, "Exactly 4 libs resolved, library.a not duplicated");
+	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+	t.is(err.message,
+		`Multiple resolutions for the same library 'library.a' ` +
+		`in workspace '${workspace.getName()}' exist.`);
 });
 
 // DEBUG: Case 1.7.1
@@ -856,24 +848,17 @@ test("[workspace/1.1] Two custom configPaths for single lib + No configPath for 
 						path: "../../fixtures/collection.c",
 					},
 					{
-						path: "../../fixtures/collection.c/library.a", // double assignment
+						path: "../../fixtures/collection.c/library.a", // duplicate resolution
 						configPath: "ui5-another-custom.yaml"
 					}]
 				}
 			})
 		});
 
-		const collectionPath = path.resolve(__dirname, "../../fixtures/collection.c");
-
-		const {projectNameMap} = await workspace._getResolvedModules();
-		t.is(projectNameMap.get("library.a.another.custom")._configPath,
-			collectionPath + "/library.a/ui5-another-custom.yaml");
-		t.is(projectNameMap.get("library.b")._configPath,
-			"ui5.yaml");
-		t.is(projectNameMap.get("library.c")._configPath,
-			"ui5.yaml");
-		t.is(projectNameMap.get("library.d")._configPath,
-			"ui5.yaml");
+		const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+		t.is(err.message,
+			`Multiple resolutions for the same library 'library.a' ` +
+			`in workspace '${workspace.getName()}' exist.`);
 	}
 );
 
@@ -1013,7 +998,7 @@ test("[workspace/1.1] Custom configPaths for sub collection & single lib + No co
 });
 
 // DEBUG: Case 1.10 (ordering isolation: two direct resolutions, same lib)
-test("[workspace/1.1] Two custom configPaths for the same single lib -> last one wins", async (t) => {
+test("[workspace/1.1] Two custom configPaths for the same single lib -> error on duplicate", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
 		configuration: createWorkspaceConfig({
@@ -1024,17 +1009,92 @@ test("[workspace/1.1] Two custom configPaths for the same single lib -> last one
 					configPath: "ui5-custom.yaml"
 				},
 				{
-					path: "../../fixtures/collection.c/library.a", // same lib, later resolution
+					path: "../../fixtures/collection.c/library.a", // duplicate resolution
 					configPath: "ui5-another-custom.yaml"
 				}]
 			}
 		})
 	});
 
-	const {projectNameMap} = await workspace._getResolvedModules();
-	t.is(projectNameMap.get("library.a.another.custom")._configPath,
-		path.resolve(__dirname, "../../fixtures/collection.c/library.a/ui5-another-custom.yaml"));
-	t.is(projectNameMap.size, 1, "Exactly 1 lib resolved, library.a not duplicated");
+	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+	t.is(err.message,
+		`Multiple resolutions for the same library 'library.a' ` +
+		`in workspace '${workspace.getName()}' exist.`);
+});
+
+// DEBUG: Case 1.11
+test("[workspace/1.1] Duplicate library via different path strings (no configPath)", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c/library.a"
+				},
+				{
+					// Different path string, same resolved directory
+					path: "../../fixtures/collection.c/../collection.c/library.a"
+				}]
+			}
+		})
+	});
+
+	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+	t.is(err.message,
+		`Multiple resolutions for the same library 'library.a' ` +
+		`in workspace '${workspace.getName()}' exist.`);
+});
+
+// DEBUG: Case 1.11.1
+test("[workspace/1.1] Duplicate library via different path strings (with configPath)", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c/library.a",
+					configPath: "ui5-custom.yaml"
+				},
+				{
+					// Different path string, same resolved directory
+					path: "../../fixtures/collection.c/../collection.c/library.a",
+					configPath: "ui5-another-custom.yaml"
+				}]
+			}
+		})
+	});
+
+	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+	t.is(err.message,
+		`Multiple resolutions for the same library 'library.a' ` +
+		`in workspace '${workspace.getName()}' exist.`);
+});
+
+// DEBUG: Case 1.11.2
+test("[workspace/1.1] Duplicate library name via different directories", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c/library.a",
+					configPath: "ui5-custom.yaml"
+				},
+				{
+					// Different directory, but same library (directory) name 'library.a'
+					path: "../../fixtures/collection/library.a"
+				}]
+			}
+		})
+	});
+
+	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+	t.is(err.message,
+		`Multiple resolutions for the same library 'library.a' ` +
+		`in workspace '${workspace.getName()}' exist.`);
 });
 
 // DEBUG: Case 2.2
@@ -1155,7 +1215,7 @@ test("[workspace/1.1] Not existing configPath for single lib overwritten by No c
 );
 
 // DEBUG: Case 2.6
-test("[workspace/1.1] Not existing configPath for single lib overwritten by Custom configPath for the same lib",
+test("[workspace/1.1] Duplicate resolutions for single lib (with missing config) -> error on duplicate",
 	async (t) => {
 		const workspace = new t.context.Workspace({
 			cwd: __dirname,
@@ -1170,26 +1230,24 @@ test("[workspace/1.1] Not existing configPath for single lib overwritten by Cust
 						configPath: "ui5-custom.yaml" // not existing
 					},
 					{
-						path: "../../fixtures/collection.c.noCustomConfigForLibA/library.a",
-						configPath: "ui5-another-custom.yaml" // double assignment
+						path: "../../fixtures/collection.c.noCustomConfigForLibA/library.a", // duplicate resolution
+						configPath: "ui5-another-custom.yaml"
 					}]
 				}
 			})
 		});
 
-		const collectionPath = path.resolve(__dirname, "../../fixtures/collection.c.noCustomConfigForLibA");
-
-		const {projectNameMap} = await workspace._getResolvedModules(); // FIXME: Currently failing for library.a
-		t.is(projectNameMap.get("library.a.another.custom")._configPath,
-			collectionPath + "/library.a/ui5-another-custom.yaml");
-		t.is(projectNameMap.get("library.b")._configPath, "ui5.yaml");
-		t.is(projectNameMap.get("library.c")._configPath, "ui5.yaml");
-		t.is(projectNameMap.get("library.d")._configPath, "ui5.yaml");
+		// The duplicate is detected before any config file is read, so the missing
+		// 'ui5-custom.yaml' never causes an ENOENT; the duplicate error wins.
+		const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+		t.is(err.message,
+			`Multiple resolutions for the same library 'library.a' ` +
+			`in workspace '${workspace.getName()}' exist.`);
 	}
 );
 
 // DEBUG: Case 2.6.1
-test("[workspace/1.1] Not existing configPath for single lib wins as last same-specificity resolution",
+test("[workspace/1.1] Duplicate resolutions for single lib (missing config last) -> error on duplicate",
 	async (t) => {
 		const workspace = new t.context.Workspace({
 			cwd: __dirname,
@@ -1204,20 +1262,19 @@ test("[workspace/1.1] Not existing configPath for single lib wins as last same-s
 						configPath: "ui5-another-custom.yaml"
 					},
 					{
-						path: "../../fixtures/collection.c.noCustomConfigForLibA/library.a",
-						configPath: "ui5-custom.yaml" // not existing, wins as last resolution
+						path: "../../fixtures/collection.c.noCustomConfigForLibA/library.a", // duplicate resolution
+						configPath: "ui5-custom.yaml" // not existing
 					}]
 				}
 			})
 		});
 
-		const collectionPath = path.resolve(__dirname, "../../fixtures/collection.c.noCustomConfigForLibA");
+		// The duplicate is detected before any config file is read, so the missing
+		// 'ui5-custom.yaml' never causes an ENOENT; the duplicate error wins.
 		const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
-		t.true(err.message.startsWith(`Failed to read configuration for module library.a at `+
-				`'${collectionPath}/library.a/ui5-custom.yaml'. ` +
-				`Error: ENOENT: no such file or directory, `+
-				`open '${collectionPath}/library.a/ui5-custom.yaml'`),
-		"Starts with expected error message");
+		t.is(err.message,
+			`Multiple resolutions for the same library 'library.a' ` +
+			`in workspace '${workspace.getName()}' exist.`);
 	}
 );
 
