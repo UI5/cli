@@ -30,9 +30,11 @@
         // No fix available for Vite 5.x; patches exist only for Vite >= 6.4.3.
         "GHSA-fx2h-pf6j-xcff|vitepress>vite",
 
-        // GHSA-v6wh-96g9-6wx3: launch-editor: NTLMv2 hash disclosure via UNC path handling on Windows
         // Not applicable as we don't use launch-editor.
         "GHSA-v6wh-96g9-6wx3|vitepress>vite",
+		"GHSA-587h-7wmj-h5pm|vitepress>vite",
+		"GHSA-698v-4r3x-3vcv|vitepress>vite",
+		"GHSA-r825-w8mm-5pxw|vitepress>vite",
 
 		// AI slop CVEs (not applicable) - See dependabot alert dismissals for details
 		"GHSA-hp3w-g68c-fv3c|@istanbuljs/esm-loader-hook>@istanbuljs/load-nyc-config>js-yaml>argparse>sprintf-js",
