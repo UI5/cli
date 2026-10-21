@@ -48,6 +48,7 @@ test("check number of exports", (t) => {
 	"tasks/replaceCopyright",
 	"tasks/replaceVersion",
 	"tasks/replaceBuildtime",
+	"tasks/runTask",
 	"tasks/transformBootstrapHtml",
 	"tasks/enhanceManifest",
 

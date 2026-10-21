@@ -13,7 +13,7 @@ import {validateDescriptor} from "../../build/helpers/StepRunner.js";
  * @hideconstructor
  */
 class Task extends Extension {
-	#descriptorPromises = new Map();
+	#descriptorPromisesByProject = new Map();
 
 	constructor(parameters) {
 		super(parameters);
@@ -35,11 +35,10 @@ class Task extends Extension {
 
 	/**
 	 * Resolves and validates the task descriptor by calling the task factory (the default export) once with
-	 * the given options. The result is memoized per runtime <code>taskName</code>, so a factory that branches
-	 * on <code>options</code> (for example on <code>projectNamespace</code>) is called exactly once per build
-	 * and the same descriptor is shared by the build-signature phase and task execution. Keyed by
-	 * <code>taskName</code> rather than once per instance because one task extension can back more than one
-	 * runtime task (a repeated configuration gets a <code>--&lt;number&gt;</code> suffix) with different options.
+	 * the given options. The result is memoized per project and runtime <code>taskName</code>, so a factory that
+	 * branches on <code>options</code> (for example on <code>projectNamespace</code>) is called once for each
+	 * project/task pair. The build-signature phase and task execution share that descriptor. The runtime task
+	 * name keeps repeated configurations (which get a <code>--&lt;number&gt;</code> suffix) separate.
 	 *
 	 * Only valid from Specification Version 5.0. If the descriptor declares a <code>specVersion</code>, it must
 	 * be equal to this task extension's configured Specification Version (the task extension's own
@@ -51,7 +50,12 @@ class Task extends Extension {
 	 * @returns {Promise<object>} The validated descriptor
 	 */
 	async getDescriptor(taskName, options) {
-		let descriptorPromise = this.#descriptorPromises.get(taskName);
+		let descriptorPromises = this.#descriptorPromisesByProject.get(options.projectName);
+		if (!descriptorPromises) {
+			descriptorPromises = new Map();
+			this.#descriptorPromisesByProject.set(options.projectName, descriptorPromises);
+		}
+		let descriptorPromise = descriptorPromises.get(taskName);
 		if (!descriptorPromise) {
 			descriptorPromise = (async () => {
 				const factory = (await this._getImplementation()).default;
@@ -66,7 +70,7 @@ class Task extends Extension {
 				}
 				return descriptor;
 			})();
-			this.#descriptorPromises.set(taskName, descriptorPromise);
+			descriptorPromises.set(taskName, descriptorPromise);
 		}
 		return descriptorPromise;
 	}

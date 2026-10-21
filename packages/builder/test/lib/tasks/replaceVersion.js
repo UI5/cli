@@ -1,5 +1,5 @@
 import test from "ava";
-import runSteps from "../../../lib/tasks/runSteps.js";
+import runTask from "../../../lib/tasks/runTask.js";
 import replaceVersion from "../../../lib/tasks/replaceVersion.js";
 import {createAdapter, createResource} from "@ui5/fs/resourceFactory";
 import DuplexCollection from "@ui5/fs/DuplexCollection";
@@ -22,7 +22,7 @@ test("integration: replace version", async (t) => {
 
 	const workspace = new DuplexCollection({reader, writer});
 	await reader.write(resource);
-	await runSteps(replaceVersion, {
+	await runTask(replaceVersion, {
 		workspace,
 		options: {
 			pattern: "/test.js",

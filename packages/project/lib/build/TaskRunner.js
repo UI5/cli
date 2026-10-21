@@ -457,9 +457,9 @@ class TaskRunner {
 
 		const specVersion = task.getSpecVersion();
 		// From Specification Version 5.0 the default export is a factory returning a descriptor. Below 5.0 it
-		// is the legacy task body invoked directly (any value it returns is ignored), so there is no descriptor
-		// and none of its callbacks apply. The factory options match those used for the build signature in
-		// TaskDefinitions, so Task#getDescriptor memoizes one descriptor shared by both phases.
+		// is the legacy task body invoked directly (any value it returns is ignored), so there is no descriptor.
+		// The factory options match those used for the build signature in TaskDefinitions, so Task#getDescriptor
+		// memoizes one descriptor shared by both phases.
 		const isV5 = specVersion.gte("5.0");
 		const descriptorOptions = {
 			projectName: project.getName(),
@@ -470,7 +470,8 @@ class TaskRunner {
 		const descriptor = isV5 ? await task.getDescriptor(taskName, descriptorOptions) : undefined;
 
 		// Tasks can provide an optional callback to tell build process which dependencies they require
-		const requiredDependenciesCallback = descriptor?.determineRequiredDependencies;
+		const requiredDependenciesCallback =
+			await task.getRequiredDependenciesCallback(taskName, descriptorOptions);
 		let requiredDependencies;
 
 		// Always provide a dependencies-reader, even if empty. Unless the task is specVersion >=3.0

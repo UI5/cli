@@ -1,7 +1,7 @@
 import test from "ava";
 import sinonGlobal from "sinon";
 import esmock from "esmock";
-import runSteps from "../../../lib/tasks/runSteps.js";
+import runTask from "../../../lib/tasks/runTask.js";
 
 test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
@@ -68,7 +68,7 @@ test("minify: Default params", async (t) => {
 		}]
 	]);
 	minifierStub.callsFake(({resources}) => Promise.resolve([processedByInput.get(resources[0])]));
-	await runSteps(minify, {
+	await runTask(minify, {
 		workspace,
 		taskUtil,
 		options: {
@@ -134,7 +134,7 @@ test("minify: omitSourceMapResources: true, useInputSourceMaps: false", async (t
 		}]
 	]);
 	minifierStub.callsFake(({resources}) => Promise.resolve([processedByInput.get(resources[0])]));
-	await runSteps(minify, {
+	await runTask(minify, {
 		workspace,
 		taskUtil,
 		options: {
@@ -214,7 +214,7 @@ test("minify: No taskUtil", async (t) => {
 		}]
 	]);
 	minifierStub.callsFake(({resources}) => Promise.resolve([processedByInput.get(resources[0])]));
-	await runSteps(minify, {
+	await runTask(minify, {
 		workspace,
 		options: {
 			pattern: "**"
@@ -259,7 +259,7 @@ test("minify: Skips and warns for an existing -dbg.js next to its .js", async (t
 	]);
 	minifierStub.callsFake(({resources}) => Promise.resolve([processedByInput.get(resources[0])]));
 
-	await runSteps(minify, {
+	await runTask(minify, {
 		workspace,
 		taskUtil,
 		options: {

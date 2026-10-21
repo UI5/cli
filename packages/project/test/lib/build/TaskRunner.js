@@ -817,10 +817,7 @@ test("Custom task with legacy spec version", async (t) => {
 		"taskUtil#getInterface got called with correct argument");
 });
 
-// Below specVersion 5.0 the descriptor path is not taken, so the task extension's
-// getRequiredDependenciesCallback is never invoked by the runner. All direct dependencies
-// are provided by default when the task's specVersion is also below 3.0.
-test("Custom task with legacy spec version: requiredDependenciesCallback is not honored", async (t) => {
+test("Custom task with legacy spec version and requiredDependenciesCallback", async (t) => {
 	const {sinon, graph, taskUtil} = t.context;
 	const taskStub = sinon.stub();
 	const specVersionGteStub = sinon.stub().returns(false);
@@ -828,8 +825,8 @@ test("Custom task with legacy spec version: requiredDependenciesCallback is not 
 		toString: () => "1.0",
 		gte: specVersionGteStub
 	};
-	// The old getRequiredDependenciesCallback is no longer called below specVersion 5.0.
-	const getRequiredDependenciesCallbackStub = sinon.stub().resolves(sinon.stub().resolves(new Set(["dep.b"])));
+	const requiredDependenciesCallbackStub = sinon.stub().resolves(new Set(["dep.b"]));
+	const getRequiredDependenciesCallbackStub = sinon.stub().resolves(requiredDependenciesCallbackStub);
 	graph.getExtension.returns({
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
@@ -846,11 +843,19 @@ test("Custom task with legacy spec version: requiredDependenciesCallback is not 
 	await taskRunner._initTasks();
 
 	t.truthy(taskRunner._tasks["myTask"], "Custom tasks has been added to task map");
-	// The callback is not honored below 5.0: the task defaults to all direct dependencies.
-	t.deepEqual(taskRunner._tasks["myTask"].requiredDependencies, new Set(["dep.a", "dep.b"]),
-		"Below specVersion 5.0, all direct dependencies are provided (callback not honored)");
-	t.is(getRequiredDependenciesCallbackStub.callCount, 0,
-		"getRequiredDependenciesCallback is not invoked below specVersion 5.0");
+	t.deepEqual(taskRunner._tasks["myTask"].requiredDependencies, new Set(["dep.b"]),
+		"The callback selects the required dependency");
+	t.is(getRequiredDependenciesCallbackStub.callCount, 1,
+		"getRequiredDependenciesCallback is invoked below Specification Version 5.0");
+	t.deepEqual(getRequiredDependenciesCallbackStub.firstCall.args, [
+		"myTask",
+		{
+			projectName: "project.b",
+			projectNamespace: "project/b",
+			configuration: "configuration",
+			taskName: "myTask"
+		}
+	], "getRequiredDependenciesCallback receives the runtime task name and options");
 
 	const createDependencyReaderStub = sinon.stub(taskRunner, "getDependenciesReader")
 		.resolves({getName: () => "dependencies"});
@@ -860,14 +865,14 @@ test("Custom task with legacy spec version: requiredDependenciesCallback is not 
 	t.is(specVersionGteStub.getCall(0).args[0], "5.0",
 		"SpecificationVersion#gte first call checks 5.0");
 	t.is(specVersionGteStub.getCall(1).args[0], "3.0",
-		"SpecificationVersion#gte second call checks 3.0 (no-callback branch)");
+		"SpecificationVersion#gte second call checks 3.0 for callback parameters");
 	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
 		"SpecificationVersion#gte third call checks 3.0 (task execution)");
 
 	t.is(createDependencyReaderStub.callCount, 1, "getDependenciesReader got called once");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
-		new Set(["dep.a", "dep.b"]),
-		"All direct dependencies provided");
+		new Set(["dep.b"]),
+		"The dependency reader contains the callback selection");
 
 	t.is(taskStub.callCount, 1, "Task got called once");
 	t.is(taskStub.getCall(0).args.length, 1, "Task got called with one argument");
@@ -883,9 +888,6 @@ test("Custom task with legacy spec version: requiredDependenciesCallback is not 
 		"taskUtil#getInterface got called with correct argument");
 });
 
-// Below specVersion 5.0 there is no descriptor, so determineRequiredDependencies is not
-// available via the descriptor. A task at specVersion 3.0-4.x gets no dependencies by
-// default (gte("3.0") = true with no descriptor callback → empty set, no reader).
 test("Custom task with specVersion 3.0", async (t) => {
 	const {sinon, graph, taskUtil} = t.context;
 	const taskStub = sinon.stub();
@@ -896,8 +898,8 @@ test("Custom task with specVersion 3.0", async (t) => {
 		gte: specVersionGteStub
 	};
 
-	// Old getRequiredDependenciesCallback API is not called below V5.
-	const getRequiredDependenciesCallbackStub = sinon.stub().resolves(sinon.stub().resolves(new Set(["dep.b"])));
+	const requiredDependenciesCallbackStub = sinon.stub().resolves(new Set(["dep.b"]));
+	const getRequiredDependenciesCallbackStub = sinon.stub().resolves(requiredDependenciesCallbackStub);
 
 	graph.getExtension.returns({
 		getName: () => "custom task name",
@@ -916,11 +918,10 @@ test("Custom task with specVersion 3.0", async (t) => {
 	await taskRunner._initTasks();
 
 	t.truthy(taskRunner._tasks["myTask"], "Custom tasks has been added to task map");
-	// Below V5, no descriptor callback; gte("3.0") = true → empty set (no reader).
-	t.deepEqual(taskRunner._tasks["myTask"].requiredDependencies, new Set(),
-		"Below V5, a V3 task with no descriptor callback gets no dependencies");
-	t.is(getRequiredDependenciesCallbackStub.callCount, 0,
-		"getRequiredDependenciesCallback is not called below V5");
+	t.deepEqual(taskRunner._tasks["myTask"].requiredDependencies, new Set(["dep.b"]),
+		"The legacy callback selects the required dependency");
+	t.is(getRequiredDependenciesCallbackStub.callCount, 1,
+		"getRequiredDependenciesCallback is invoked below Specification Version 5.0");
 
 	const createDependencyReaderStub = sinon.stub(taskRunner, "getDependenciesReader")
 		.resolves({getName: () => "dependencies"});
@@ -930,15 +931,19 @@ test("Custom task with specVersion 3.0", async (t) => {
 	t.is(specVersionGteStub.getCall(0).args[0], "5.0",
 		"SpecificationVersion#gte first call checks 5.0 (isV5)");
 	t.is(specVersionGteStub.getCall(1).args[0], "3.0",
-		"SpecificationVersion#gte second call checks 3.0 (no-callback branch)");
+		"SpecificationVersion#gte second call checks 3.0 for callback parameters");
 	t.is(specVersionGteStub.getCall(2).args[0], "3.0",
 		"SpecificationVersion#gte third call checks 3.0 (task execution)");
 
-	t.is(taskUtil.getInterface.callCount, 1, "taskUtil#getInterface got called once");
+	t.is(taskUtil.getInterface.callCount, 2, "taskUtil#getInterface got called twice");
 	t.is(taskUtil.getInterface.getCall(0).args[0], mockSpecVersion,
 		"taskUtil#getInterface got called with correct argument on first call");
+	t.is(taskUtil.getInterface.getCall(1).args[0], mockSpecVersion,
+		"taskUtil#getInterface got called with correct argument on second call");
 
-	t.is(createDependencyReaderStub.callCount, 0, "getDependenciesReader did not get called");
+	t.is(createDependencyReaderStub.callCount, 1, "getDependenciesReader got called once");
+	t.deepEqual(createDependencyReaderStub.getCall(0).args[0], new Set(["dep.b"]),
+		"The dependency reader contains the callback selection");
 
 	t.is(taskStub.callCount, 1, "Task got called once");
 	t.is(taskStub.getCall(0).args.length, 1, "Task got called with one argument");
@@ -955,8 +960,7 @@ test("Custom task with specVersion 3.0", async (t) => {
 test("Custom task with specVersion 3.0 and no requiredDependenciesCallback", async (t) => {
 	const {sinon, graph, taskUtil} = t.context;
 	const taskStub = sinon.stub();
-	// All gte calls return true; this is treated as >= 5.0 and takes the descriptor path.
-	const specVersionGteStub = sinon.stub().returns(true);
+	const specVersionGteStub = sinon.stub().callsFake((v) => v === "3.0");
 	const mockSpecVersion = {
 		toString: () => "3.0",
 		gte: specVersionGteStub
@@ -966,8 +970,7 @@ test("Custom task with specVersion 3.0 and no requiredDependenciesCallback", asy
 		getName: () => "custom task name",
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
-		// Descriptor carries no determineRequiredDependencies callback, so the task gets no deps.
-		getDescriptor: sinon.stub().resolves({task: taskStub}),
+		getRequiredDependenciesCallback: sinon.stub().resolves(undefined),
 		getStepBased: async () => false,
 	});
 
@@ -980,7 +983,7 @@ test("Custom task with specVersion 3.0 and no requiredDependenciesCallback", asy
 	await taskRunner._initTasks();
 
 	t.truthy(taskRunner._tasks["myTask"], "Custom tasks has been added to task map");
-	// Descriptor has no determineRequiredDependencies → gte("3.0") check → no reader.
+	// A task at Specification Version 3.0 or later gets no reader when the legacy callback is absent.
 	t.deepEqual(taskRunner._tasks["myTask"].requiredDependencies, new Set(),
 		"Custom tasks requires no dependencies by default");
 	const createDependencyReaderStub = sinon.stub(taskRunner, "getDependenciesReader")
@@ -1043,12 +1046,14 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 		getName: () => "Task Name A",
 		getTask: () => taskStubA,
 		getSpecVersion: () => mockSpecVersionA,
+		getRequiredDependenciesCallback: sinon.stub().resolves(undefined),
 		getStepBased: async () => false,
 	});
 	graph.getExtension.onSecondCall().returns({
 		getName: () => "Task Name B",
 		getTask: () => taskStubB,
 		getSpecVersion: () => mockSpecVersionB,
+		getRequiredDependenciesCallback: sinon.stub().resolves(undefined),
 		getStepBased: async () => false,
 	});
 	graph.getExtension.onThirdCall().returns({
@@ -1057,6 +1062,7 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 		getSpecVersion: () => mockSpecVersionC,
 		// V5 descriptor with no determineRequiredDependencies → no deps.
 		getDescriptor: sinon.stub().resolves({task: taskStubC}),
+		getRequiredDependenciesCallback: sinon.stub().resolves(undefined),
 		getStepBased: async () => false,
 	});
 	graph.getExtension.onCall(3).returns({
@@ -1065,6 +1071,7 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 		getSpecVersion: () => mockSpecVersionD,
 		// V5 descriptor with no determineRequiredDependencies → no deps.
 		getDescriptor: sinon.stub().resolves({task: taskStubD}),
+		getRequiredDependenciesCallback: sinon.stub().resolves(undefined),
 		getStepBased: async () => false,
 	});
 	const project = getMockProject("module");
@@ -1213,6 +1220,7 @@ test("Custom task: requiredDependenciesCallback returns unknown dependency", asy
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getDescriptor: getDescriptorStub,
+		getRequiredDependenciesCallback: sinon.stub().resolves(requiredDependenciesCallbackStub),
 		getStepBased: async () => false,
 	});
 
@@ -1252,6 +1260,7 @@ test("Custom task: requiredDependenciesCallback returns Array instead of Set", a
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getDescriptor: getDescriptorStub,
+		getRequiredDependenciesCallback: sinon.stub().resolves(requiredDependenciesCallbackStub),
 		getStepBased: async () => false,
 	});
 

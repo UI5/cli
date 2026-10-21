@@ -1,6 +1,7 @@
 import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
+import runTask from "../../../../lib/tasks/runTask.js";
 
 test.beforeEach(async (t) => {
 	t.context.log = {
@@ -50,7 +51,7 @@ test.serial("generateComponentPreload - one namespace", async (t) => {
 		}
 	]);
 
-	await generateComponentPreload().task({
+	await runTask(generateComponentPreload, {
 		workspace,
 		dependencies,
 		options: {

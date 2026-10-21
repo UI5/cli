@@ -101,7 +101,7 @@ async function generateThemeDotTheming({workspace, combo, themeFolder}) {
  * <code>library.less</code>, reading the core <code>.theming</code> and the less imports through its own
  * combo so those reads are recorded per step. A delta build regenerates only the affected theme. The
  * later steps consume the scan result through <code>needs</code>, so they stay cached while a library has
- * themes even as individual themes change. Standalone invocation runs every step through runSteps.
+ * themes even as individual themes change. Standalone invocation runs every step through runTask.
  *
  * @public
  * @function default
@@ -112,7 +112,7 @@ async function generateThemeDotTheming({workspace, combo, themeFolder}) {
  * @param {string} options.version Project version
  * @param {string} [options.projectNamespace] If the project is of type <code>library</code>, provide its
  *   namespace. Omit for type <code>theme-library</code>
- * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor with its build steps
+ * @returns {module:@ui5/builder/tasks/runTask~TaskDescriptor} The task descriptor with its build steps
  */
 export default function defineTask(options) {
 	const {projectName, version} = options;

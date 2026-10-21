@@ -168,7 +168,7 @@ async function isThemeAvailable(themeResource, combo, {librariesPattern, themesP
  * A step-based task: the default export is a factory returning one map step with a key per theme's
  * <code>library.source.less</code>. A step probes only the gating marker and imports of its own theme,
  * so a delta build rebuilds only the affected theme and leaves the others served from cache. Standalone
- * invocation runs every theme through @ui5/builder's runSteps.
+ * invocation runs every theme through @ui5/builder's runTask.
  *
  * @public
  * @function default
@@ -180,7 +180,7 @@ async function isThemeAvailable(themeResource, combo, {librariesPattern, themesP
  * @param {string} [options.librariesPattern] Search pattern for .library files
  * @param {string} [options.themesPattern] Search pattern for sap.ui.core theme folders
  * @param {boolean} [options.compress=true]
- * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor with its build steps
+ * @returns {module:@ui5/builder/tasks/runTask~TaskDescriptor} The task descriptor with its build steps
  */
 export default function defineTask({projectName, inputPattern, librariesPattern, themesPattern, compress}) {
 	compress = compress === undefined ? true : compress;
