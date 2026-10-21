@@ -2691,7 +2691,7 @@ exports.defineTags = function(dictionary) {
 		mustHaveValue: true,
 		onTagged: function(doclet, tag) {
 			if (isSemVer(doclet.experimental)) {
-				warning(`@since and @ui5-experimental-since must not be used both for the same API (${doclet.meta?.lineno})`);
+				error(`@since and @ui5-experimental-since must not be used both for the same API (${doclet.meta?.lineno})`);
 			}
 			doclet.since = tag.value;
 		}
@@ -2743,7 +2743,7 @@ exports.defineTags = function(dictionary) {
 		mustHaveValue: true,
 		onTagged: function(doclet, tag) {
 			if (doclet.since || doclet.experimental) {
-				warning(`@experimental/@since and @ui5-experimental-since must not be used together for the same API (${doclet.meta?.lineno})`);
+				error(`@experimental/@since and @ui5-experimental-since must not be used together for the same API (${doclet.meta?.lineno})`);
 			}
 			const version = tag.value?.trim() ?? "";
 			if (!isSemVer(version)) {
@@ -3551,6 +3551,23 @@ exports.astNodeVisitor = {
 			tagInfo.type = getTypeStrings(tagInfo.parsedType);
 			// console.info("new parse result", tagInfo.type);
 		}
+		// #### BEGIN: MODIFIED BY SAP
+		if (tagInfo && tagInfo.name && /^\[|=/.test(tagInfo.name)) {
+			// debug("tag info before post-processing the name-portion", tagInfo);
+			let name = tagInfo.name;
+			if (name.startsWith("[") && name.endsWith("]")) {
+				name = name.slice(1,-1).trim();
+				tagInfo.optional = true;
+			}
+			const p = name.indexOf("=");
+			if (p > 0) { // intentionaly checks for != 0 (no empty name allowed)
+				tagInfo.defaultvalue = name.slice(p + 1).trim();
+				name = name.slice(0, p).trim();
+			}
+			tagInfo.name = name;
+			// debug("tag info after post-processing the name-portion", tagInfo);
+		}
+		// #### END: MODIFIED BY SAP
 		return tagInfo;
 	};
 }());
