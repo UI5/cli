@@ -1,7 +1,7 @@
 import test from "ava";
 import sinonGlobal from "sinon";
 import minify from "../../../lib/tasks/minify.js";
-import runSteps from "../../../lib/tasks/runSteps.js";
+import runTask from "../../../lib/tasks/runTask.js";
 import * as resourceFactory from "@ui5/fs/resourceFactory";
 import DuplexCollection from "@ui5/fs/DuplexCollection";
 
@@ -55,7 +55,7 @@ test();`;
 	});
 	await reader.write(testResource);
 
-	await runSteps(minify, {
+	await runTask(minify, {
 		workspace,
 		taskUtil,
 		options: {
@@ -135,7 +135,7 @@ test();`;
 	});
 	await reader.write(testResource);
 
-	await runSteps(minify, {
+	await runTask(minify, {
 		workspace,
 		taskUtil,
 		options: {
@@ -200,7 +200,7 @@ test();`;
 	});
 	await reader.write(testResource);
 
-	await runSteps(minify, {
+	await runTask(minify, {
 		workspace,
 		options: {
 			pattern: "/test.js",
@@ -247,7 +247,7 @@ test();`;
 	});
 	await reader.write(testResource);
 
-	await runSteps(minify, {
+	await runTask(minify, {
 		workspace,
 		options: {
 			pattern: "/test.js",
@@ -304,7 +304,7 @@ return;`;
 	await reader.write(testResource);
 
 	await t.throwsAsync(() => {
-		return runSteps(minify, {
+		return runTask(minify, {
 			workspace,
 			taskUtil,
 			options: {
@@ -336,7 +336,7 @@ return;`;
 	await reader.write(testResource);
 
 	await t.throwsAsync(() => {
-		return runSteps(minify, {
+		return runTask(minify, {
 			workspace,
 			options: {
 				pattern: "/resources/my/namespace/test.js",
@@ -388,7 +388,7 @@ test.serial("integration: minify with taskUtil and resources tagged with OmitFro
 		registerCleanupTask: t.context.sinon.stub()
 	};
 
-	await runSteps(minify, {
+	await runTask(minify, {
 		workspace,
 		taskUtil,
 		options: {
@@ -464,7 +464,7 @@ test.serial("integration: minify skips a .js with an existing -dbg.js sibling an
 			string: content
 		}));
 
-		await runSteps(minify, {
+		await runTask(minify, {
 			workspace,
 			options: {
 				pattern: "/resources/**/*.js"

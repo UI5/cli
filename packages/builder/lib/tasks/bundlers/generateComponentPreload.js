@@ -31,7 +31,7 @@ import {negateFilters} from "../../lbt/resources/ResourceFilterList.js";
  * @param {string[]} [options.paths] Array of paths (or glob patterns) for component files
  * @param {string[]} [options.namespaces] Array of component namespaces
  * @param {string[]} [options.skipBundles] Names of bundles that should not be created
- * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor
+ * @returns {module:@ui5/builder/tasks/runTask~TaskDescriptor} The task descriptor
  */
 export default function defineTask(options) {
 	return {task};

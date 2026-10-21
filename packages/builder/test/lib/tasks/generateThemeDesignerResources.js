@@ -1,7 +1,7 @@
 import test from "ava";
 import sinonGlobal from "sinon";
 import esmock from "esmock";
-import runSteps from "../../../lib/tasks/runSteps.js";
+import runTask from "../../../lib/tasks/runTask.js";
 
 test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
@@ -83,7 +83,7 @@ test.serial("generateThemeDesignerResources: Library", async (t) => {
 	]);
 	libraryLessGeneratorStub.callsFake(async ({resources}) => [lessByTheme.get(resources[0])]);
 
-	await runSteps(generateThemeDesignerResources, {
+	await runTask(generateThemeDesignerResources, {
 		workspace,
 		dependencies,
 		options: {
@@ -188,7 +188,7 @@ test.serial("generateThemeDesignerResources: Library sap.ui.core", async (t) => 
 
 	libraryLessGeneratorStub.resolves([libraryLessResource]);
 
-	await runSteps(generateThemeDesignerResources, {
+	await runTask(generateThemeDesignerResources, {
 		workspace,
 		dependencies,
 		options: {
@@ -288,7 +288,7 @@ test.serial("generateThemeDesignerResources: Library sap.ui.core with existing l
 
 	libraryLessGeneratorStub.resolves([libraryLessResource]);
 
-	await runSteps(generateThemeDesignerResources, {
+	await runTask(generateThemeDesignerResources, {
 		workspace,
 		dependencies,
 		options: {
@@ -380,7 +380,7 @@ test.serial("generateThemeDesignerResources: Library sap.ui.core without themes,
 
 	libraryLessGeneratorStub.resolves([libraryLessResource]);
 
-	await runSteps(generateThemeDesignerResources, {
+	await runTask(generateThemeDesignerResources, {
 		workspace,
 		dependencies,
 		options: {
@@ -449,7 +449,7 @@ test.serial("generateThemeDesignerResources: Library sap.ui.core with existing i
 
 	libraryLessGeneratorStub.resolves([libraryLessResource]);
 
-	await t.throwsAsync(runSteps(generateThemeDesignerResources, {
+	await t.throwsAsync(runTask(generateThemeDesignerResources, {
 		workspace,
 		dependencies,
 		options: {
@@ -482,7 +482,7 @@ test.serial("generateThemeDesignerResources: Library sap.ui.documentation is ski
 		write: sinon.stub()
 	};
 
-	await runSteps(generateThemeDesignerResources, {
+	await runTask(generateThemeDesignerResources, {
 		workspace: {},
 		dependencies: {},
 		options: {
@@ -510,7 +510,7 @@ test.serial("generateThemeDesignerResources: Library without themes", async (t) 
 		write: sinon.stub()
 	};
 
-	await runSteps(generateThemeDesignerResources, {
+	await runTask(generateThemeDesignerResources, {
 		workspace,
 		dependencies: {},
 		options: {
@@ -568,7 +568,7 @@ test.serial("generateThemeDesignerResources: Theme-Library", async (t) => {
 
 	libraryLessGeneratorStub.resolves([libraryLessResource]);
 
-	await runSteps(generateThemeDesignerResources, {
+	await runTask(generateThemeDesignerResources, {
 		workspace,
 		dependencies,
 		options: {
@@ -646,7 +646,7 @@ test.serial("generateThemeDesignerResources: .theming file missing in sap.ui.cor
 
 	libraryLessGeneratorStub.resolves([libraryLessResource]);
 
-	await t.throwsAsync(runSteps(generateThemeDesignerResources, {
+	await t.throwsAsync(runTask(generateThemeDesignerResources, {
 		workspace,
 		dependencies,
 		options: {
@@ -701,7 +701,7 @@ test.serial("generateThemeDesignerResources: Failed to extract library name from
 	};
 	const dependencies = {};
 
-	await t.throwsAsync(runSteps(generateThemeDesignerResources, {
+	await t.throwsAsync(runTask(generateThemeDesignerResources, {
 		workspace,
 		dependencies,
 		options: {

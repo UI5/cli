@@ -44,7 +44,7 @@ function getSigner(type) {
  * @param {object} options Options
  * @param {string} options.projectNamespace Namespace of the application
  * @param {string} [options.signatureType='time'] Type of signature to be used ('time' or 'hash')
- * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor
+ * @returns {module:@ui5/builder/tasks/runTask~TaskDescriptor} The task descriptor
  */
 export default function defineTask(options) {
 	return {task};

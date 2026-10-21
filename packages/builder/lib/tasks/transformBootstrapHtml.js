@@ -6,7 +6,7 @@ import bootstrapHtmlTransformer from "../processors/bootstrapHtmlTransformer.js"
  * Task for transforming the application bootstrap HTML file.
  *
  * @module builder/tasks/transformBootstrapHtml
- * @returns {module:@ui5/builder/tasks/runSteps~TaskDescriptor} The task descriptor
+ * @returns {module:@ui5/builder/tasks/runTask~TaskDescriptor} The task descriptor
  */
 export default function defineTask() {
 	return {task};

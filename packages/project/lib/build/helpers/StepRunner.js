@@ -273,11 +273,11 @@ class RecordingReaderWriter extends AbstractReaderWriter {
 		return this.#workspace.byPath(virPath, options);
 	}
 
-	// Overrides _write rather than the public write (unlike @ui5/builder's runSteps BufferedWriter) because
+	// Overrides _write rather than the public write (unlike @ui5/builder's runTask BufferedWriter) because
 	// this writer also records every write for the build cache, and AbstractReaderWriter.write has already
 	// defaulted options by the time it delegates here. The buffered entry therefore stores the defaulted
 	// options as the single replay argument, which flushWriteBuffer replays via write(resource, ...args).
-	// The same-path guard, its error message and the key-order flush are shared with runSteps through
+	// The same-path guard, its error message and the key-order flush are shared with runTask through
 	// @ui5/fs/internal/stepWriteBuffer so the two runners cannot drift.
 	async _write(resource, options) {
 		const resourcePath = resource.getPath();
