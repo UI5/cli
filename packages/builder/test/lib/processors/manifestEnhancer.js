@@ -3043,6 +3043,16 @@ test("ManifestEnhancer#run: multiple parallel executions are not supported", asy
 	});
 });
 
+test("ManifestEnhancer: empty manifest content throws a clear error", (t) => {
+	const {fs} = t.context;
+	const {ManifestEnhancer} = t.context.__internals__;
+
+	const error = t.throws(() => new ManifestEnhancer("", "/manifest.json", fs));
+	t.is(error.message, `The file "/manifest.json" is empty.`,
+		"Threw with the clear empty-file error message");
+	t.is(error.code, "ERR_EMPTY_JSON", "Threw with the expected error code");
+});
+
 test("manifestEnhancer#getSupportedLocales", async (t) => {
 	const {fs} = t.context;
 	const {ManifestEnhancer} = t.context.__internals__;

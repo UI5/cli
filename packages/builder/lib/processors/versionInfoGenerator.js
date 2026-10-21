@@ -2,6 +2,7 @@ import {getLogger} from "@ui5/logger";
 const log = getLogger("builder:processors:versionInfoGenerator");
 import {createResource} from "@ui5/fs/resourceFactory";
 import posixPath from "node:path/posix";
+import parseJSON from "../utils/json.js";
 
 /**
  * @public
@@ -59,7 +60,7 @@ function getTimestamp() {
  */
 const processManifest = async (manifestResource) => {
 	const manifestContent = await manifestResource.getString();
-	const manifestObject = JSON.parse(manifestContent);
+	const manifestObject = parseJSON(manifestContent, manifestResource.getPath());
 	const manifestInfo = Object.create(null);
 
 	// sap.ui5/dependencies is used for the "manifestHints/libs"

@@ -3,6 +3,7 @@ const {SemVer: Version, lt} = semver;
 import {promisify} from "node:util";
 import path from "node:path/posix";
 import {getLogger} from "@ui5/logger";
+import parseJSON from "../utils/json.js";
 const log = getLogger("builder:processors:manifestEnhancer");
 
 const APP_DESCRIPTOR_V22 = new Version("1.21.0");
@@ -180,7 +181,7 @@ class ManifestEnhancer {
 		this.fsReadDir = promisify(fs.readdir);
 		this.cwd = path.dirname(filePath);
 		this.filePath = filePath;
-		this.manifest = JSON.parse(manifest);
+		this.manifest = parseJSON(manifest, filePath);
 
 		this.isModified = false;
 		this.runInvoked = false;

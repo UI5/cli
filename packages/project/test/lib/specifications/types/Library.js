@@ -715,8 +715,32 @@ test("_getManifest: Invalid JSON", async (t) => {
 	};
 	project._pManifest = null; // Clear cache from instantiation
 	const error = await t.throwsAsync(project._getManifest());
-	t.regex(error.message, /^Failed to read some path for project library\.d: /,
-		"Rejected with correct error message");
+	t.true(error.message.startsWith(
+		`Failed to read some path for project library.d: Failed to parse "some path" as JSON`),
+	"Rejected with the wrapped invalid-JSON error message");
+	t.is(byGlobStub.callCount, 1, "byGlob got called once");
+	t.is(byGlobStub.getCall(0).args[0], "**/manifest.json", "byGlob got called with the expected arguments");
+});
+
+test("_getManifest: Empty file", async (t) => {
+	const {projectInput, sinon} = t.context;
+
+	const project = await (new Library().init(projectInput));
+	const byGlobStub = sinon.stub().resolves([{
+		getString: async () => "",
+		getPath: () => "some path"
+	}]);
+
+	project._getRawSourceReader = () => {
+		return {
+			byGlob: byGlobStub
+		};
+	};
+	project._pManifest = null; // Clear cache from instantiation
+	const error = await t.throwsAsync(project._getManifest());
+	t.is(error.message,
+		`Failed to read some path for project library.d: The file "some path" is empty.`,
+		"Rejected with the wrapped empty-file error message");
 	t.is(byGlobStub.callCount, 1, "byGlob got called once");
 	t.is(byGlobStub.getCall(0).args[0], "**/manifest.json", "byGlob got called with the expected arguments");
 });

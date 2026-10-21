@@ -1,6 +1,7 @@
 import fsPath from "node:path";
 import ComponentProject from "../ComponentProject.js";
 import {createReader} from "@ui5/fs/resourceFactory";
+import parseJSON from "../../utils/json.js";
 
 /**
  * Application
@@ -244,7 +245,7 @@ class Application extends ComponentProject {
 					error.code = "ENOENT"; // "File or directory does not exist"
 					throw error;
 				}
-				return JSON.parse(await resource.getString());
+				return parseJSON(await resource.getString(), `${this._webappPath}${filePath}`);
 			}).catch((err) => {
 				if (err.code === "ENOENT") {
 					throw err;

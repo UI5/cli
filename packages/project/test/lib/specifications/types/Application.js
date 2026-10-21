@@ -575,10 +575,32 @@ test("_getManifest: invalid JSON", async (t) => {
 	};
 
 	const error = await t.throwsAsync(project._getManifest("/some-manifest.json"));
-	t.regex(error.message, /^Failed to read \/some-manifest\.json for project application\.a: /,
-		"Rejected with correct error message");
+	t.true(error.message.startsWith(
+		`Failed to read /some-manifest.json for project application.a: ` +
+		`Failed to parse "webapp/some-manifest.json" as JSON`),
+	"Rejected with the wrapped invalid-JSON error message");
 	t.is(byPathStub.callCount, 1, "byPath got called once");
 	t.is(byPathStub.getCall(0).args[0], "/some-manifest.json", "byPath got called with the correct argument");
+});
+
+test("_getManifest: empty file", async (t) => {
+	const {projectInput, sinon} = t.context;
+	const project = await Specification.create(projectInput);
+
+	const byPathStub = sinon.stub().resolves({
+		getString: async () => ""
+	});
+
+	project._getRawSourceReader = () => {
+		return {
+			byPath: byPathStub
+		};
+	};
+
+	const error = await t.throwsAsync(project._getManifest("/some-manifest.json"));
+	t.is(error.message,
+		`Failed to read /some-manifest.json for project application.a: The file "webapp/some-manifest.json" is empty.`,
+		"Rejected with the wrapped empty-file error message");
 });
 
 test.serial("_getManifest: File does not exist", async (t) => {

@@ -2,6 +2,7 @@ import {getLogger} from "@ui5/logger";
 const log = getLogger("builder:tasks:bundlers:generateFlexChangesBundle");
 import flexChangesBundler from "../../processors/bundlers/flexChangesBundler.js";
 import semver from "semver";
+import parseJSON from "../../utils/json.js";
 
 /**
  * @public
@@ -79,7 +80,7 @@ export default async function({workspace, taskUtil, options = {}}) {
 			log.verbose("No manifest.json found, skipping update of sap.ui.fl dependency and flexBundle flag");
 			return;
 		}
-		const manifestContent = JSON.parse(await manifestResource.getString());
+		const manifestContent = parseJSON(await manifestResource.getString(), manifestResource.getPath());
 
 		updateJson(manifestContent, flexBundleFlag);
 		manifestResource.setString(JSON.stringify(manifestContent, null, "\t"));
@@ -93,7 +94,7 @@ export default async function({workspace, taskUtil, options = {}}) {
 			log.verbose("No manifest.json found, cannot read minUI5Version");
 			return [];
 		}
-		const manifestContent = JSON.parse(await manifestResource.getString());
+		const manifestContent = parseJSON(await manifestResource.getString(), manifestResource.getPath());
 
 		manifestContent["sap.ui5"] = manifestContent["sap.ui5"] || {};
 		manifestContent["sap.ui5"].dependencies = manifestContent["sap.ui5"].dependencies || {};
@@ -123,7 +124,7 @@ export default async function({workspace, taskUtil, options = {}}) {
 			hasFlexBundleVersion = true;
 			const flexBundleResource = await workspace.byPath(`${pathPrefix}/changes/flexibility-bundle.json`);
 			if (flexBundleResource) {
-				flexBundle = JSON.parse(await flexBundleResource.getString());
+				flexBundle = parseJSON(await flexBundleResource.getString(), flexBundleResource.getPath());
 			}
 		}
 		flexChangesBundleResult = await flexChangesBundler({
