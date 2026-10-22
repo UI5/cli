@@ -1,5 +1,6 @@
 import {getLogger} from "@ui5/logger";
 import crypto from "node:crypto";
+import fs from "node:fs";
 import ResourceRequestManager from "./ResourceRequestManager.js";
 import TaskInputSet from "./index/TaskInputSet.js";
 import {createStageSignature} from "./stageSignature.js";
@@ -9,6 +10,33 @@ const log = getLogger("build:cache:BuildStageCache");
 // list. Both root request sets are empty for every stage of a standard build (no shipped builder task
 // reads through getRootReader), so getRootSignature returns this constant instead of re-hashing.
 const EMPTY_ROOT_SIGNATURE = crypto.createHash("sha256").update("").digest("hex");
+
+// Tool-content signature of a stage that loaded no tracked external tool (CPOUI5FOUNDATION-1386): the
+// sha256 digest of an empty input. Returned as a stable constant so every tool-free stage (the common
+// case) folds the same value and existing cache behavior is unperturbed.
+const EMPTY_TOOLCONTENT_SIGNATURE = crypto.createHash("sha256").update("").digest("hex");
+
+// Content-hashes a set of tool files into one digest. Full-refresh, like root: the whole set is hashed
+// (no per-file delta), so any change re-runs the stage. Read synchronously because the set is a handful
+// of files and the digest is needed inside the synchronous signature composition. A missing file folds
+// a marker so a deleted tool file still moves the digest.
+function computeToolContentSignature(paths) {
+	if (paths.length === 0) {
+		return EMPTY_TOOLCONTENT_SIGNATURE;
+	}
+	const hash = crypto.createHash("sha256");
+	for (const filePath of [...paths].sort()) {
+		hash.update(filePath);
+		hash.update("\0");
+		try {
+			hash.update(fs.readFileSync(filePath));
+		} catch {
+			hash.update("<missing>");
+		}
+		hash.update("\0");
+	}
+	return hash.digest("hex");
+}
 
 // Serialized form of an empty, unmodified request manager. Restoring a root manager from this (rather
 // than constructing a fresh one) marks it clean, so a stage that recorded no root reads is not
@@ -67,6 +95,16 @@ export default class BuildStageCache {
 	// that toCacheObjects/hasNewOrModifiedCacheEntries know it must be persisted.
 	#inputSetModified = false;
 
+	// Absolute paths of the external tool files this stage loaded during its last execution
+	// (CPOUI5FOUNDATION-1386). Only the path list is persisted; the content digest is recomputed from
+	// disk so a tool whose content changed (a version bump, a patch, a relinked file:) misses the cached
+	// stage. Mirrors the root model: a single full-refresh digest, no per-file delta.
+	#toolPaths;
+	#toolContentSignature;
+	// Whether the recorded tool path list changed since it was restored/recorded, so toCacheObjects/
+	// hasNewOrModifiedCacheEntries know it must be persisted.
+	#toolSetModified = false;
+
 	/**
 	 * Creates a new BuildStageCache instance
 	 *
@@ -80,9 +118,10 @@ export default class BuildStageCache {
 	 * @param {TaskInputSet} [inputSet] Optional pre-existing task input set from cache
 	 * @param {{gitignore: ResourceRequestManager, noGitignore: ResourceRequestManager}} [rootRequestManagers]
 	 * 	Optional pre-existing root request managers from cache, keyed by useGitignore
+	 * @param {string[]} [toolPaths] Optional pre-existing tool file paths from cache
 	 */
 	constructor(projectName, stageId, stepBased, projectRequestManager, dependencyRequestManager,
-		inputSet, rootRequestManagers) {
+		inputSet, rootRequestManagers, toolPaths) {
 		this.#projectName = projectName;
 		this.#stageId = stageId;
 		this.#stepBased = stepBased;
@@ -94,6 +133,11 @@ export default class BuildStageCache {
 		this.#dependencyRequestManager = dependencyRequestManager ??
 			new ResourceRequestManager(projectName, stageId, stepBased);
 		this.#inputSet = inputSet ?? new TaskInputSet();
+		// Tool paths are restored from cache (or empty for a fresh stage). The content digest is computed
+		// from the current on-disk content now, so a restored stage's tool-content signature already
+		// reflects any change made since the cache was written (the full-refresh model).
+		this.#toolPaths = toolPaths ?? [];
+		this.#toolContentSignature = computeToolContentSignature(this.#toolPaths);
 		// Root requests use full-refresh signatures, not the differential deltas project and dependency
 		// requests use: a changed root file re-runs the whole stage rather than a differential update.
 		// This fits the current use case, tracking a few root config files such as tsconfig.json. A
@@ -123,11 +167,12 @@ export default class BuildStageCache {
 	 * @param {object} [options.inputSet] Cached stage input set data
 	 * @param {object} [options.rootRequests] Cached useGitignore:true root request manager data
 	 * @param {object} [options.rootNoGitignoreRequests] Cached useGitignore:false root request manager data
+	 * @param {object} [options.toolContentRequests] Cached tool-content data ({paths: string[]})
 	 * @returns {BuildStageCache} Restored stage cache instance
 	 */
 	static fromCache({
 		projectName, stageId, stepBased, projectRequests, dependencyRequests,
-		inputSet, rootRequests, rootNoGitignoreRequests,
+		inputSet, rootRequests, rootNoGitignoreRequests, toolContentRequests,
 	}) {
 		const projectRequestManager = ResourceRequestManager.fromCache(projectName, stageId,
 			stepBased, projectRequests);
@@ -143,8 +188,12 @@ export default class BuildStageCache {
 				projectName, `${stageId}#root-no-gitignore`, false,
 				rootNoGitignoreRequests ?? emptyRequestManagerCache()),
 		};
+		// Tool-content metadata is optional: absent for stages that loaded no tracked tool, and absent in
+		// caches written before tool tracking existed.
+		const toolPaths = toolContentRequests?.paths;
 		return new BuildStageCache(projectName, stageId, stepBased,
-			projectRequestManager, dependencyRequestManager, TaskInputSet.fromCache(inputSet), rootRequestManagers);
+			projectRequestManager, dependencyRequestManager, TaskInputSet.fromCache(inputSet),
+			rootRequestManagers, toolPaths);
 	}
 
 	// ===== METADATA ACCESS =====
@@ -186,7 +235,8 @@ export default class BuildStageCache {
 			this.#dependencyRequestManager.hasNewOrModifiedCacheEntries() ||
 			this.#rootRequestManagers.gitignore.hasNewOrModifiedCacheEntries() ||
 			this.#rootRequestManagers.noGitignore.hasNewOrModifiedCacheEntries() ||
-			this.#inputSetModified;
+			this.#inputSetModified ||
+			this.#toolSetModified;
 	}
 
 	/**
@@ -259,6 +309,49 @@ export default class BuildStageCache {
 			return EMPTY_ROOT_SIGNATURE;
 		}
 		return crypto.createHash("sha256").update(signatures.sort().join("\0")).digest("hex");
+	}
+
+	/**
+	 * Records the external tool files this stage loaded during execution (CPOUI5FOUNDATION-1386), and
+	 * recomputes the tool-content digest from their current on-disk content. Marks the stage for
+	 * persistence if the recorded path list changed (the path list is what is persisted; the content is
+	 * re-hashed on the next build).
+	 *
+	 * @public
+	 * @param {string[]} [toolFiles] Absolute paths of the tool files observed during execution
+	 */
+	recordToolFiles(toolFiles = []) {
+		const newPaths = [...new Set(toolFiles)].sort();
+		if (newPaths.join("\0") !== this.#toolPaths.join("\0")) {
+			this.#toolSetModified = true;
+		}
+		this.#toolPaths = newPaths;
+		this.#toolContentSignature = computeToolContentSignature(newPaths);
+	}
+
+	/**
+	 * Whether this stage loaded any tracked external tool files.
+	 *
+	 * @public
+	 * @returns {boolean}
+	 */
+	hasToolContent() {
+		return this.#toolPaths.length > 0;
+	}
+
+	/**
+	 * Returns the content digest of the external tool files this stage loaded, folded into the stage
+	 * signature so a tool content change (version bump, patch, relinked file:) misses the cached stage.
+	 * A stage that loaded no tracked tool yields a stable empty digest that stays constant across builds.
+	 *
+	 * Unlike project and dependency components this is not delta-tracked: the digest is one value, so any
+	 * tool change re-runs the whole stage (the tool's content is a stage-level input).
+	 *
+	 * @public
+	 * @returns {string} Tool-content signature
+	 */
+	getToolContentSignature() {
+		return this.#toolContentSignature;
 	}
 
 	/**
@@ -397,11 +490,12 @@ export default class BuildStageCache {
 	getStageSignatures(resolveInputValue) {
 		const inputSignature = this.getInputSignature(resolveInputValue);
 		const rootSignature = this.getRootSignature();
+		const toolContentSignature = this.getToolContentSignature();
 		const signatures = [];
 		for (const projectSignature of this.getProjectIndexSignatures()) {
 			for (const dependencySignature of this.getDependencyIndexSignatures()) {
 				signatures.push(createStageSignature(
-					[projectSignature, dependencySignature, inputSignature, rootSignature]));
+					[projectSignature, dependencySignature, inputSignature, rootSignature, toolContentSignature]));
 			}
 		}
 		return signatures;
@@ -436,12 +530,15 @@ export default class BuildStageCache {
 	 *   Root resource requests, keyed by the useGitignore flag they were read with
 	 * @param {function(boolean): module:@ui5/fs.AbstractReader} [options.getRootReader]
 	 *   Factory returning a project root reader for the given useGitignore flag
+	 * @param {string[]} [options.toolFilesRecording]
+	 *   Absolute paths of external tool files the stage loaded during execution
 	 * @returns {Promise<string[]>}
-	 *   Array containing [projectSignature, dependencySignature, inputSignature, rootSignature]
+	 *   Array containing [projectSignature, dependencySignature, inputSignature, rootSignature,
+	 *   toolContentSignature]
 	 */
 	async recordRequests({
 		projectRequestRecording, dependencyRequestRecording, projectReader, dependencyReader,
-		inputRecording = [], rootRequestRecording, getRootReader,
+		inputRecording = [], rootRequestRecording, getRootReader, toolFilesRecording,
 	}) {
 		const {
 			setId: projectReqSetId, signature: projectReqSignature
@@ -489,7 +586,12 @@ export default class BuildStageCache {
 			]);
 		}
 
-		return [projectReqSignature, dependencyReqSignature, this.#inputSet.getSignature(), this.getRootSignature()];
+		// Record the external tool files this stage loaded and recompute the tool-content digest from
+		// their current content.
+		this.recordToolFiles(toolFilesRecording);
+
+		return [projectReqSignature, dependencyReqSignature, this.#inputSet.getSignature(),
+			this.getRootSignature(), this.getToolContentSignature()];
 	}
 
 	/**
@@ -502,7 +604,7 @@ export default class BuildStageCache {
 	 * @public
 	 * @returns {Array<object|undefined>} Array containing
 	 *   [projectCacheObject, dependencyCacheObject, inputCacheObject,
-	 *    rootCacheObject, rootNoGitignoreCacheObject]
+	 *    rootCacheObject, rootNoGitignoreCacheObject, toolContentCacheObject]
 	 */
 	toCacheObjects() {
 		const {gitignore, noGitignore} = this.#rootRequestManagers;
@@ -515,6 +617,9 @@ export default class BuildStageCache {
 			// metadata, keeping a stage without root reads free of root rows.
 			gitignore.hasRequests() || gitignore.wasCleared() ? gitignore.toCacheObject() : undefined,
 			noGitignore.hasRequests() || noGitignore.wasCleared() ? noGitignore.toCacheObject() : undefined,
+			// Persist the tool path list for a stage that loaded a tracked tool. A stage with no tool
+			// content writes no tool-content row.
+			this.#toolPaths.length ? {paths: this.#toolPaths} : undefined,
 		];
 	}
 }

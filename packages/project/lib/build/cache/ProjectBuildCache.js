@@ -80,6 +80,12 @@ export default class ProjectBuildCache {
 	// dependency resource changed (root files are not reported through the incremental change signal).
 	#cachedRootAggregateSignature;
 
+	// Aggregated tool-content signature this build resolved against (CPOUI5FOUNDATION-1386), the sibling
+	// of #cachedRootAggregateSignature for external tool packages. A mismatch on the next in-session
+	// validateCache means a tracked tool's content changed (a version bump, a patch, a relinked file:),
+	// forcing result-cache revalidation even when no source or dependency resource changed.
+	#cachedToolContentAggregateSignature;
+
 	// Dependency-set identity: a hash over the project's transitive dependency ids, computed by the
 	// caller from the graph and passed into validateCache. #cachedDependencySetIdentity is restored
 	// from the persisted source index, #currentDependencySetIdentity reflects the current graph. A
@@ -302,6 +308,24 @@ export default class ProjectBuildCache {
 					`Refreshed root indices for project ${this.#project.getName()} ` +
 					`in ${(performance.now() - rootStart).toFixed(2)} ms`);
 			}
+		}
+
+		// Tool-content (external tool packages a task loaded, CPOUI5FOUNDATION-1386) is the sibling of root:
+		// it lives outside the source and dependency readers and is not reported through the incremental
+		// change signal. The digest is recomputed from disk per build (in each stage's getToolContentSignature),
+		// so here we only compare the current aggregate against the one the cache was last validated against,
+		// forcing result-cache revalidation in-session when a tool changed without a source or dependency
+		// change. A fresh instance (undefined cached aggregate) relies on the result signature instead, which
+		// already folds the aggregate.
+		if (this.#combinedIndexState === INDEX_STATES.FRESH && this.#anyStageHasToolContent()) {
+			const toolAggregate = this.#getAggregatedToolContentSignature();
+			if (this.#cachedToolContentAggregateSignature !== undefined &&
+				toolAggregate !== this.#cachedToolContentAggregateSignature) {
+				log.verbose(`Tool dependencies changed for project ${this.#project.getName()}, ` +
+					`revalidating result cache`);
+				this.#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
+			}
+			this.#cachedToolContentAggregateSignature = toolAggregate;
 		}
 
 		if (this.#resultCacheState === RESULT_CACHE_STATES.PENDING_VALIDATION) {
@@ -577,11 +601,13 @@ export default class ProjectBuildCache {
 		// before the per-stage cache checks).
 		const aggregatedInputSignature = this.#getAggregatedInputSignature();
 		const aggregatedRootSignature = this.#getAggregatedRootSignature();
+		const aggregatedToolContentSignature = this.#getAggregatedToolContentSignature();
 
 		return dependencySignaturesCombinations.map((dependencySignatures) => {
 			const combinedDepSignature = createDependencySignature(dependencySignatures);
 			return createStageSignature(
-				[projectSourceSignature, combinedDepSignature, aggregatedInputSignature, aggregatedRootSignature]);
+				[projectSourceSignature, combinedDepSignature, aggregatedInputSignature, aggregatedRootSignature,
+					aggregatedToolContentSignature]);
 		});
 	}
 
@@ -608,8 +634,10 @@ export default class ProjectBuildCache {
 		const combinedDepSignature = createDependencySignature(dependencySignatures);
 		const aggregatedInputSignature = this.#getAggregatedInputSignature();
 		const aggregatedRootSignature = this.#getAggregatedRootSignature();
+		const aggregatedToolContentSignature = this.#getAggregatedToolContentSignature();
 		return createStageSignature(
-			[projectSourceSignature, combinedDepSignature, aggregatedInputSignature, aggregatedRootSignature]);
+			[projectSourceSignature, combinedDepSignature, aggregatedInputSignature, aggregatedRootSignature,
+				aggregatedToolContentSignature]);
 	}
 
 	/**
@@ -683,6 +711,35 @@ export default class ProjectBuildCache {
 		return crypto.createHash("sha256").update(rootSignatures.sort().join("\0")).digest("hex");
 	}
 
+	/**
+	 * Whether any stage cache loaded a tracked external tool (CPOUI5FOUNDATION-1386).
+	 *
+	 * @returns {boolean}
+	 */
+	#anyStageHasToolContent() {
+		for (const stageCache of this.#stageCaches.values()) {
+			if (stageCache.hasToolContent()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Aggregates the current tool-content signatures across all stage caches into one signature, used to
+	 * detect whether any tracked tool's content changed since the cache was last validated. Order-
+	 * independent: the per-stage signatures are sorted before hashing.
+	 *
+	 * @returns {string} Aggregated tool-content signature
+	 */
+	#getAggregatedToolContentSignature() {
+		const toolSignatures = [];
+		for (const stageCache of this.#stageCaches.values()) {
+			toolSignatures.push(stageCache.getToolContentSignature());
+		}
+		return crypto.createHash("sha256").update(toolSignatures.sort().join("\0")).digest("hex");
+	}
+
 	// ===== STAGE MANAGEMENT =====
 
 	/**
@@ -750,6 +807,7 @@ export default class ProjectBuildCache {
 		// before this build's stages run.
 		const inputSignature = stageCache.getInputSignature(this.#resolveInputValue);
 		const rootSignature = stageCache.getRootSignature();
+		const toolContentSignature = stageCache.getToolContentSignature();
 		const stageSignatures = stageCache.getStageSignatures(this.#resolveInputValue);
 
 		const cachedStage = this.#findStageCache(stageId, stageSignatures);
@@ -796,7 +854,7 @@ export default class ProjectBuildCache {
 			const provenanceBySignature = new Map();
 			const addDeltaCandidate = (projectSig, projectDeltaInfo, dependencySig, dependencyDeltaInfo) => {
 				const signature = createStageSignature(
-					[projectSig, dependencySig, inputSignature, rootSignature]);
+					[projectSig, dependencySig, inputSignature, rootSignature, toolContentSignature]);
 				deltaSignatures.push(signature);
 				provenanceBySignature.set(signature, {
 					newProjectSig: projectDeltaInfo?.newSignature ?? projectSig,
@@ -838,11 +896,12 @@ export default class ProjectBuildCache {
 					}
 				}
 
-				// Pair the delta's resolved project and dependency components with the current input and
-				// root signatures. For a dependency-only delta the project component is the one the stage
-				// was recorded under, carried through unchanged.
+				// Pair the delta's resolved project and dependency components with the current input, root,
+				// and tool-content signatures. For a dependency-only delta the project component is the one
+				// the stage was recorded under, carried through unchanged.
 				const newStageTuple =
-					[provenance.newProjectSig, provenance.newDependencySig, inputSignature, rootSignature];
+					[provenance.newProjectSig, provenance.newDependencySig, inputSignature, rootSignature,
+						toolContentSignature];
 				const newSignature = createStageSignature(newStageTuple);
 				this.#currentStageSignatures.set(stageId, newStageTuple);
 
@@ -1159,10 +1218,12 @@ export default class ProjectBuildCache {
 	 * @param {object} dependencyResourceRequests Complete dependency requests, if the stage reads dependencies
 	 * @param {Array<object>} inputRecording Recorded non-resource inputs
 	 * @param {object} rootResourceRequests Recorded root requests
-	 * @returns {Promise<string[]>} The [project, dependency, input, root] stage-signature tuple
+	 * @param {string[]} [toolFiles] Recorded external tool file paths
+	 * @returns {Promise<string[]>} The [project, dependency, input, root, toolContent] stage-signature tuple
 	 */
 	async #foldStepReads(
-		stageId, stageCache, projectResourceRequests, dependencyResourceRequests, inputRecording, rootResourceRequests
+		stageId, stageCache, projectResourceRequests, dependencyResourceRequests, inputRecording,
+		rootResourceRequests, toolFiles
 	) {
 		return stageCache.recordRequests({
 			projectRequestRecording: projectResourceRequests,
@@ -1172,6 +1233,7 @@ export default class ProjectBuildCache {
 			inputRecording,
 			rootRequestRecording: rootResourceRequests,
 			getRootReader: this.#getRootReaderFactory(),
+			toolFilesRecording: toolFiles,
 		});
 	}
 
@@ -1198,13 +1260,15 @@ export default class ProjectBuildCache {
 	 * @param {string[]} [options.changedProjectResourcePaths] On a delta merge, the project resource paths
 	 *   to drop from the carried-forward stage: the verdict's own changed paths plus any stale outputs the
 	 *   caller derived. Defaults to the verdict's <code>changedProjectResourcePaths</code>.
+	 * @param {string[]} [options.toolFiles] Absolute paths of external tool files the task loaded during
+	 *   execution (CPOUI5FOUNDATION-1386), observed by the ToolDependencyRecorder
 	 * @returns {Promise<string[]|undefined>} The resource paths written by the stage,
 	 *   or <code>undefined</code> if caching is disabled
 	 */
 	async recordStageResult({
 		taskName, projectResourceRequests, dependencyResourceRequests, cacheInfo,
 		inputRecording = [], rootResourceRequests, stepBased = false, stepName,
-		changedProjectResourcePaths,
+		changedProjectResourcePaths, toolFiles,
 	}) {
 		if (this.#cacheMode === Cache.Off) {
 			return;
@@ -1309,7 +1373,7 @@ export default class ProjectBuildCache {
 				// build looks the stage up under a signature that tracks every current input (open-gaps §7).
 				const foldedStageTuple = await this.#foldStepReads(
 					stageId, stageCache, projectResourceRequests, dependencyResourceRequests,
-					inputRecording, rootResourceRequests);
+					inputRecording, rootResourceRequests, toolFiles);
 				this.#currentStageSignatures.set(stageId, foldedStageTuple);
 				stageSignature = createStageSignature(foldedStageTuple);
 			}
@@ -1324,6 +1388,7 @@ export default class ProjectBuildCache {
 				inputRecording,
 				rootRequestRecording: rootResourceRequests,
 				getRootReader: this.#getRootReaderFactory(),
+				toolFilesRecording: toolFiles,
 			});
 			if (log.isLevelEnabled("perf")) {
 				log.perf(
@@ -1718,6 +1783,8 @@ export default class ProjectBuildCache {
 		// Root managers are held on the (now cleared) stage caches; drop the remembered aggregate so the
 		// re-initialized caches re-establish it on the next validateCache.
 		this.#cachedRootAggregateSignature = undefined;
+		// Same for the tool-content aggregate (CPOUI5FOUNDATION-1386), re-established on the next validateCache.
+		this.#cachedToolContentAggregateSignature = undefined;
 		// Clear per-build state so a failed build does not leak into the next one.
 		// #currentResultSignature drives the #findResultCache early return; #currentStageSignatures
 		// drives the isInitialImport/setStage guards in #importStages.
@@ -1793,6 +1860,10 @@ export default class ProjectBuildCache {
 		// Record the root aggregate this build resolved against, so a later in-session validateCache can
 		// detect a root file changing without a source or dependency change.
 		this.#cachedRootAggregateSignature = this.#getAggregatedRootSignature();
+
+		// Same for the tool-content aggregate (CPOUI5FOUNDATION-1386): records what external tool content
+		// this build resolved against, so a later in-session validateCache detects a tool change.
+		this.#cachedToolContentAggregateSignature = this.#getAggregatedToolContentSignature();
 
 		this.#currentResultSignature = this.#getResultStageSignature();
 
@@ -1921,6 +1992,10 @@ export default class ProjectBuildCache {
 						this.#project.getId(), this.#buildSignature, stageId, "root");
 					const rootNoGitignoreRequests = this.#cacheManager.readStageRequestMetadata(
 						this.#project.getId(), this.#buildSignature, stageId, "root-no-gitignore");
+					// Tool-content metadata is optional too: absent for stages that loaded no tracked tool,
+					// and absent in caches written before tool tracking existed.
+					const toolContentRequests = this.#cacheManager.readStageRequestMetadata(
+						this.#project.getId(), this.#buildSignature, stageId, "tool-content");
 					return BuildStageCache.fromCache({
 						projectName: this.#project.getName(),
 						stageId,
@@ -1930,6 +2005,7 @@ export default class ProjectBuildCache {
 						inputSet: inputTree,
 						rootRequests,
 						rootNoGitignoreRequests,
+						toolContentRequests,
 					});
 				})
 			);
@@ -2296,8 +2372,8 @@ export default class ProjectBuildCache {
 			if (!stageCache.hasNewOrModifiedCacheEntries()) {
 				continue;
 			}
-			const [projectRequests, dependencyRequests, inputTree, rootRequests, rootNoGitignoreRequests] =
-				stageCache.toCacheObjects();
+			const [projectRequests, dependencyRequests, inputTree, rootRequests, rootNoGitignoreRequests,
+				toolContentRequests] = stageCache.toCacheObjects();
 			log.verbose(`Preparing cache metadata for stage ${stageId} in project ${this.#project.getName()}`);
 			if (projectRequests) {
 				out.push({stageId, type: "project", metadata: projectRequests});
@@ -2313,6 +2389,9 @@ export default class ProjectBuildCache {
 			}
 			if (rootNoGitignoreRequests) {
 				out.push({stageId, type: "root-no-gitignore", metadata: rootNoGitignoreRequests});
+			}
+			if (toolContentRequests) {
+				out.push({stageId, type: "tool-content", metadata: toolContentRequests});
 			}
 		}
 		return out;
