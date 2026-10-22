@@ -2,6 +2,7 @@ import {getLogger} from "@ui5/logger";
 import composeTaskList from "./helpers/composeTaskList.js";
 import MonitoredTaskUtil from "./helpers/MonitoredTaskUtil.js";
 import StepRunner, {validateSteps} from "./helpers/StepRunner.js";
+import * as toolDependencyRecorder from "./helpers/ToolDependencyRecorder.js";
 import {createReaderCollection, createMonitor} from "@ui5/fs/resourceFactory";
 
 const EMPTY_RESOURCE_REQUESTS = {paths: [], patterns: []};
@@ -398,7 +399,15 @@ class TaskRunner {
 				}
 				this._log.startTask(taskName, !!cacheInfo);
 				this._taskStart = performance.now();
-				await taskBody(params);
+				// Observe which external tool files the task loads during execution, so their content can
+				// be folded into the stage signature (CPOUI5FOUNDATION-1386).
+				const toolCapture = toolDependencyRecorder.startCapture();
+				let toolFiles;
+				try {
+					await taskBody(params);
+				} finally {
+					toolFiles = toolDependencyRecorder.stopCapture(toolCapture);
+				}
 				if (this._log.isLevelEnabled("perf")) {
 					this._log.perf(
 						`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
@@ -416,6 +425,7 @@ class TaskRunner {
 					dependencyResourceRequests: dependencyRequests,
 					inputRecording,
 					rootResourceRequests: taskUtilRequests.root,
+					toolFiles,
 				});
 				this._log.endTask(taskName, !!cacheInfo, writtenResourcePaths);
 			};
@@ -710,7 +720,14 @@ class TaskRunner {
 			}
 
 			this._log.startTask(taskName, !!cacheInfo);
-			await taskFunction(params);
+			// Observe which external tool files the custom task loads (CPOUI5FOUNDATION-1386).
+			const toolCapture = toolDependencyRecorder.startCapture();
+			let toolFiles;
+			try {
+				await taskFunction(params);
+			} finally {
+				toolFiles = toolDependencyRecorder.stopCapture(toolCapture);
+			}
 
 			const taskUtilRequests = monitoredTaskUtil?.getResourceRequests();
 			const projectRequests = mergeResourceRequests(workspace.getResourceRequests(), taskUtilRequests?.project);
@@ -724,6 +741,7 @@ class TaskRunner {
 				dependencyResourceRequests: dependencyRequests,
 				inputRecording,
 				rootResourceRequests: taskUtilRequests?.root,
+				toolFiles,
 			});
 			this._log.endTask(taskName, !!cacheInfo, writtenResourcePaths);
 		};

@@ -455,14 +455,14 @@ test("getDependencyIndexDeltas: returns deltas when enabled", async (t) => {
 
 // ===== STAGE SIGNATURE TESTS =====
 
-test("getStageSignatures: composes the [project, dependency, input, root] tuple", async (t) => {
+test("getStageSignatures: composes the [project, dependency, input, root, toolContent] tuple", async (t) => {
 	const cache = new BuildStageCache("test.project", "testTask", false);
 	const projectResource = createMockResource("/test.js");
 	const depResource = createMockResource("/dep.js");
 	const projectReader = createMockReader([projectResource]);
 	const dependencyReader = createMockReader([depResource]);
 
-	const [projectSig, dependencySig, inputSig, rootSig] = await cache.recordRequests({
+	const [projectSig, dependencySig, inputSig, rootSig, toolSig] = await cache.recordRequests({
 		projectRequestRecording: {paths: new Set(["/test.js"]), patterns: new Set()},
 		dependencyRequestRecording: {paths: new Set(["/dep.js"]), patterns: new Set()},
 		projectReader,
@@ -471,15 +471,16 @@ test("getStageSignatures: composes the [project, dependency, input, root] tuple"
 
 	const stageSignatures = cache.getStageSignatures();
 
-	t.deepEqual(stageSignatures, [`${projectSig}-${dependencySig}-${inputSig}-${rootSig}`],
-		"The single exact-match signature is the four components joined in tuple order");
+	t.deepEqual(stageSignatures, [`${projectSig}-${dependencySig}-${inputSig}-${rootSig}-${toolSig}`],
+		"The single exact-match signature is the five components joined in tuple order");
 });
 
-test("getStageSignatures: empty-input and empty-root components are the stable empty-set digests",
+test("getStageSignatures: empty-input, empty-root and empty-tool components are the stable empty-set digests",
 	async (t) => {
-		// A stage that reads only resources, with no non-resource inputs and no root reads: the input and
-		// root slots must still carry the empty-set digests getInputSignature()/getRootSignature() return,
-		// so a later lookup recomposes the same signature.
+		// A stage that reads only resources, with no non-resource inputs, no root reads and no tool loads:
+		// the input, root and tool-content slots must still carry the empty-set digests
+		// getInputSignature()/getRootSignature()/getToolContentSignature() return, so a later lookup
+		// recomposes the same signature.
 		const cache = new BuildStageCache("test.project", "testTask", false);
 		const projectReader = createMockReader([createMockResource("/test.js")]);
 		const dependencyReader = createMockReader([createMockResource("/dep.js")]);
@@ -492,10 +493,11 @@ test("getStageSignatures: empty-input and empty-root components are the stable e
 		});
 
 		const [signature] = cache.getStageSignatures();
-		const [, , inputComponent, rootComponent] = signature.split("-");
+		const [, , inputComponent, rootComponent, toolComponent] = signature.split("-");
 
 		t.is(inputComponent, cache.getInputSignature(), "Input slot is the empty-input digest");
 		t.is(rootComponent, cache.getRootSignature(), "Root slot is the empty-root digest");
+		t.is(toolComponent, cache.getToolContentSignature(), "Tool-content slot is the empty-tool digest");
 	});
 
 test("getStageSignatures: one signature per project x dependency index-signature combination",
