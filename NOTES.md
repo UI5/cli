@@ -279,6 +279,18 @@ invisible to the resource index. Pruning the `@ui5/fs` subtree removes redundant
 coverage. The tool's own transform deps are *not* pruned (they're in the tool subtree), so an overridden
 `postcss` under less-openui5 is still caught.
 
+**Prune by reachability, not by node identity.** A package is in the tool set iff it is reachable from
+`@ui5/builder` via a path that never crosses a barrier: BFS from `@ui5/builder`, and when a barrier node
+(`@ui5/{fs,project,logger}`) is hit, keep it but **don't expand it** — every other edge is still traversed.
+This matters when a package `P` is a dependency of *both* the tool and a barrier (a diamond): because `P`
+retains a tool-side path, it stays tracked — reachability through the tool wins over the pruned barrier
+edge. If npm instead nested two copies of `P` (version conflict), each resolves to a distinct physical path
+and is pruned independently, so the tool's copy is kept and the barrier's copy dropped. This falls out for
+free because the hash is keyed on **resolved physical paths**, not package names. The danger would be
+node-first pruning (marking everything under a barrier as excluded up front), which would wrongly drop a
+shared `P` and risk stale output; a BFS that merely refuses to expand barrier nodes cannot — its worst case
+is over-capture (one spurious rebuild), never under-capture.
+
 ## Appendix C — Options, in detail
 
 Options 1-3 are about **scoping** (which packages belong to a stage). Content-hash vs versions is the
@@ -321,6 +333,25 @@ the existing `root` requests, for three reasons:
 So: a dedicated `tool-content` request type with its own adapter (reaching the resolved absolute paths,
 gitignore ignored), folded as a **dedicated signature component** (preferred — a factor-1 constant in the
 result-stage product, shape bump free while unreleased) or into the `rootSignature` value (acceptable).
+
+**Path form: absolute while recording, package-relative when persisted.** The path wants a different form
+at each stage, and persisting the wrong one re-breaks portability:
+
+- **Recorder (in-memory, one run)** emits **absolute** paths — the `resolve` hook yields them and the prune
+  needs them, because physical identity is what separates a deduped copy from a nested one (the diamond in
+  Appendix B). Transient; nothing absolute survives the run.
+- **Index (`stage_request_metadata`)** stores **package-relative** paths plus a re-resolvable tool identity,
+  never absolute. An absolute path pins the entry to one machine's layout (`/Users/…` vs `/home/ci/…`,
+  local vs global vs `npx`) — the same non-portability the existing cache avoids by excluding the absolute
+  `getRootPath`/`getSourcePath` accessors from input tracking. The anchor is each **tool package root**
+  (not the project root — under a global/`npx` install the tool sits outside the project tree), so
+  less-openui5 persists `["lib/Builder.js", …, "package.json"]`. Paired with the **integrity** (which keys
+  the CAS and is portable), the stored `(relative-path, integrity)` tuple is fully portable.
+- **Lookup** re-resolves each package anchor to an absolute root and stats the relative set. Re-resolution
+  is **parent-relative**: a nested `@adobe/css-tools` under less-openui5 must be resolved *from
+  less-openui5's location*, or lookup would stat the hoisted top-level copy instead. So the persisted
+  identity is really `(parent chain → package → relative path)` — the same physical identity the absolute
+  path gave the recorder, in portable form.
 
 ## Appendix E — jsdoc detail
 
