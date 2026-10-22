@@ -41,19 +41,11 @@ no new `@ui5/builder` release -> the build ships CSS from the old less-openui5.
 
 ---
 
-## Options
+## Options: Scoping — which packages belong to a stage?
 
-The ticket's options split across **two independent axes**. Pick one from each.
-
-- **Axis 1 — how to determine a task's dependency tree** (which external packages it pulls in).
-  Options 1, 2, 3 are three answers.
-- **Axis 2 — what to fold per dependency** (how to detect that it changed): a version string, or a
-  content hash. Option 4 is the content-hash answer.
-
-Options 1-3 are *not* alternatives to Option 4 — they sit on different axes. The original options
-implicitly assumed a version string on axis 2; Option 4 swaps that out.
-
-### Axis 1 — determining the dependency tree
+Three options for answering: *given a running stage, which external tool packages should the cache track?*
+The question is purely about **scoping** — none of the three says anything yet about how to detect a change
+once the set is known (that's the hashing section below).
 
 | | 1 — Declaration | 2 — package-lock | 3 — registerHooks (chosen) |
 |---|---|---|---|
@@ -67,24 +59,30 @@ implicitly assumed a version string on axis 2; Option 4 swaps that out.
 - **Option 1** rejected: a forgotten/stale declaration silently serves stale output — the ticket's own
   bug, no backstop.
 - **Option 2** rejected as a scoping mechanism: the lockfile is the whole tree, so it can't say which deps
-  belong to a stage; also fragile (absent / format varies across npm/yarn/pnpm). At most a version source.
+  belong to a stage; also fragile (absent / format varies across npm/yarn/pnpm).
 - **Option 3** chosen: observes exactly what each stage loads, no declaration, extends to custom tasks for
   free. Cost: complexity + a prior run; out-of-process tools (jsdoc) handled separately.
 
-### Axis 2 — what to fold per dependency
+**-> Option 3.**
 
-| | Versions | Content-hash (Option 4, chosen) |
+---
+
+## Hashing approach — what to fold per dependency
+
+Once the scoped package set is known (from Option 3), the cache still needs a value to fold per package so
+it can detect changes. Two approaches:
+
+| | Version string | Content-hash (chosen) |
 |---|---|---|
 | Detects a registry version bump | yes | yes |
-| Detects `file:` / `link:` / patched (no version move) | **no** | **yes** |
-| New logic | specifier-authority mapping, re-resolution, `tool-deps` type | reuses `HashTree`; a `tool-content` request type |
+| Detects `file:` / `link:` / patched tool (no version move) | **no** | **yes** |
+| What's needed | specifier-authority mapping, re-resolution | reuses `HashTree`; a `tool-content` request type |
 | Cost (measured) | a few `package.json` reads | sub-ms warm stat, single-digit-ms hash |
 
-A content hash **subsumes** the version — any version change is a content change, and so are the cases a
-version string misses — so Option 4 *replaces* version tracking rather than complementing it: strictly
-more correct and, once scoped by Option 3, cheap (Appendix C).
+A content hash **subsumes** the version — any version bump is a content change, and content-hash also
+catches the cases version strings miss. Tracking versions alongside hashes is redundant.
 
-**-> Option 3 to determine the tree, content-hash (Option 4) to fold.**
+**-> Content-hash. Drop version tracking.**
 
 ---
 
@@ -283,7 +281,8 @@ coverage. The tool's own transform deps are *not* pruned (they're in the tool su
 
 ## Appendix C — Options, in detail
 
-Options 1-3 are axis 1 (determining the dependency tree); Option 4 is axis 2 (what to fold).
+Options 1-3 are about **scoping** (which packages belong to a stage). Content-hash vs versions is the
+separate **hashing** question addressed in the dedicated section above.
 
 - **Option 1 — Declaration.** Deterministic, no hooks, uniform across in/out-of-process. Decisive con:
   **unsafe failure mode** — a forgotten/stale declaration -> stale stage, no backstop; burden lands on
@@ -292,8 +291,7 @@ Options 1-3 are axis 1 (determining the dependency tree); Option 4 is axis 2 (wh
   scope** (folding the whole tree keys the cache on every dep); also fragile (absent / format varies).
 - **Option 3 — registerHooks.** Scopes precisely for free; safe; extends to custom tasks. Con: complexity
   and needs a prior run; doesn't cover out-of-process tools (jsdoc handled separately).
-- **Option 4 — content-hash.** Subsumes the version, so it *replaces* version tracking. Feasibility
-  measured on the real tools:
+- **Content-hash feasibility** — measured on the real tools:
 
   | | files | size | hash | stat (warm lookup) |
   |---|---|---|---|---|
