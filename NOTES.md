@@ -168,6 +168,68 @@ flowchart TD
 
 ---
 
+## Scenarios
+
+Concrete triggers and the cache behavior each must produce — doubles as the acceptance / test matrix.
+
+### A. The bug, and basic cache correctness
+
+| Scenario | Expected | Mechanism |
+|---|---|---|
+| less-openui5 bumped via npm, no `@ui5/builder` release (**the ticket**) | buildThemes re-runs, fresh CSS | content-hash of less-openui5 files |
+| `ui5 serve` again, nothing changed | full cache hit, zero task execution, tool never loaded | tiered stat, all signatures match |
+| a `.less` source edited | buildThemes re-runs; tool unchanged | resource index (existing), orthogonal |
+
+### B. What content-hash catches that versions-only would miss
+
+| Scenario | Expected | Mechanism |
+|---|---|---|
+| less-openui5 `npm link`ed, a source file edited, version unchanged | buildThemes re-runs | content-hash (version wouldn't move) |
+| `patch-package` patches terser, version unchanged | minify re-runs | content-hash (version wouldn't move) |
+| transitive dep bumped (`@adobe/css-tools` under less-openui5), less-openui5 unchanged | buildThemes re-runs | content-hash of the tool subtree (not pruned) |
+
+### C. Scoping correctness
+
+| Scenario | Expected | Mechanism |
+|---|---|---|
+| terser bumped | only minify re-runs; buildThemes stays cached | per-stage `tool-content` isolation |
+| fast-glob bumped (dep of `@ui5/fs`), no `@ui5/fs` release | buildThemes does **not** re-run from tool-content (safe: fast-glob's effect is resource-mediated, caught by the resource index if it matters) | barrier prune (`@ui5/fs` subtree excluded) |
+| `workerpool` bumped (builder plumbing) | minify re-runs needlessly | accepted residual over-capture (correctness-safe) |
+
+### D. Lifecycle, jsdoc, and known gaps
+
+| Scenario | Expected | Mechanism |
+|---|---|---|
+| `npm ci`, same versions (mtimes move, content identical) | one re-hash, **no** re-run | tiered `isResourceUnchanged` (integrity matches) |
+| a task stops loading a tool | `tool-content` set shrinks -> re-runs once, then stable | recorded set shrinks |
+| first build, cold cache | records each stage's tool files; discovers the set on first run | record pass |
+| `npx` / global install (tool files outside the project tree) | still tracked | dedicated `tool-content` adapter reaches them |
+| jsdoc package bumped | jsdoc stage re-runs | static content-hash of the `jsdoc` package |
+| jsdoc *transitive* dep bumped, jsdoc unchanged | **not** caught (unless the static dep-walk is added) | known narrowing (Appendix E) |
+| tool package with non-deterministic content (postinstall-generated) | cache not portable across machines | out of scope (documented) |
+
+### Sample fixtures
+
+Three sample projects exercise the three tools; scenarios are produced by manipulating their installed
+tool packages under `node_modules`.
+
+- **theme-lib** — a library with `src/.../themes/base/library.source.less` -> `buildThemes` + less-openui5
+  (scenarios A1-A3, B1, B3, C2).
+- **minify-app** — a project with non-trivial `.js` -> `minify` + terser (B2, C1, C3).
+- **jsdoc-lib** — a library whose `api.json` is generated -> `jsdoc` (D5, D6).
+
+Tool-state manipulations (each a reusable test setup against a sample's `node_modules`):
+
+- **bump** — `npm i less-openui5@<newer>`, or edit the installed `package.json` version plus one source line.
+- **link** — `npm link` / a `file:` dep, then edit a source file (no version change).
+- **patch** — `patch-package`, or a manual edit to one installed file.
+- **transitive bump** — an `overrides` entry (e.g. `@adobe/css-tools`).
+- **barrier bump** — edit a file under `@ui5/fs`'s `fast-glob` (expect no buildThemes re-run).
+- **reinstall** — `npm ci` with the lockfile unchanged (mtimes move, content identical).
+- **relocate** — run via `npx` / a global `@ui5/cli` so the tool files sit outside the project tree.
+
+---
+
 ## Implementation plan
 
 | Phase | What | Standalone? |
