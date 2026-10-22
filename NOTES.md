@@ -246,6 +246,31 @@ a central denylist is the lever if it ever proves noisy.
 **Out of scope:** non-deterministic package content (postinstall-generated files — a portability edge);
 out-of-process transitive deps of jsdoc unless the static dep-walk is added; custom tasks (follow-up 1396).
 
+### Test strategy
+
+Write the acceptance matrix **red-first**. The repo already has the convention — `test.serial.failing()`
+with an explanatory comment (see `BuildServer.buildSignature.integration.js`, a near-identical "input
+changed, served output stale" bug): AVA counts a `.failing` test as a pass while it throws and hard-errors
+the moment it starts passing, so a committed scenario keeps CI green and auto-flips to a signal when the
+fix lands (drop `.failing` then).
+
+- **Behavioral scenarios (A/B/C) → `.failing()` now.** Drive them at **ProjectBuilder** level (fresh
+  `buildProject()` per step), not BuildServer: a running server memoizes the signature for its lifetime
+  (a separate parked gap) and caches a `require`d tool in-process, so it cannot observe a tool change. The
+  observable is **"did the stage re-run"** via `project-build-status` events (`taskStatusOf` →
+  `{started, skipped}`), *not* produced bytes — the in-process module cache means a re-run reloads
+  nothing, so asserting new output would be wrong at this level.
+- **Hermetic tool via a stub-tool custom task.** Standard tasks resolve their tool from `@ui5/builder`'s
+  install, not the fixture's `node_modules`, so a planted tool isn't what the worker loads. A custom task
+  that loads a controllable stub tool from the fixture's own `node_modules` is the stand-in, and it covers
+  the custom-task path (1396) at once. Skeleton: `ProjectBuilder.toolContent.integration.js`.
+- **Literal less-openui5 / terser / jsdoc wiring → e2e.** The byte-faithful, fresh-process variant lives
+  in `internal/e2e-tests` (throwaway install you fully control); jsdoc additionally spawns a process.
+- **Recorder / adapter units → `test.todo()` now, real tests with the code.** `.failing()` needs a body
+  that runs and asserts; importing a not-yet-existing module throws at import instead. Anything calling
+  `module.registerHooks` also needs a Node-version guard until the engines bump lands (the behavioral
+  `.failing` tests don't call it directly, so they sit red regardless and flip only once the feature is in).
+
 ---
 
 ## Appendix A — Validation findings (checked with spikes, not assumed)
