@@ -435,7 +435,7 @@ test("Corrupt configuration in file", async (t) => {
 
 	t.true(err.message.startsWith(
 		`Failed to parse configuration for project application.a.id at ` +
-		`'${path.resolve(__dirname, "../../fixtures/application.a/ui5-test-corrupt.yaml")}'`),
+		`'ui5-test-corrupt.yaml'`),
 	`Should throw with parsing error.`);
 });
 
@@ -512,10 +512,8 @@ test("Incorrect config path", async (t) => {
 	const err = await t.throwsAsync(ui5Module.getSpecifications());
 
 	t.is(err.message,
-		`Failed to read configuration for module application.a.id at `+
-		`'${path.resolve(__dirname, "../../fixtures/application.a/ui5-does-not-exist.yaml")}'. `+
-		`Error: ENOENT: no such file or directory, open `+
-		`'${path.resolve(__dirname, "../../fixtures/application.a/ui5-does-not-exist.yaml")}'`,
+		`Failed to read configuration for module application.a.id: ` +
+		`Could not find configuration file in module at path 'ui5-does-not-exist.yaml'`,
 		"Should throw with parsing error.");
 });
 
