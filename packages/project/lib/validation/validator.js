@@ -1,5 +1,6 @@
 import {fileURLToPath} from "node:url";
 import {readFile} from "node:fs/promises";
+import parseJSON from "../utils/json.js";
 
 /**
  * @module @ui5/project/validation/validator
@@ -72,10 +73,10 @@ class Validator {
 		// The root schemas declare a relative $id (e.g. "ui5.json"); nested schemas declare none.
 		// AJV therefore resolves nested $ref values against the file system layout and passes them
 		// here as paths relative to this schema directory (e.g. "specVersion/kind/extension/task.json").
-		const schemaFile = await readFile(
-			fileURLToPath(new URL(`./schema/${schemaPath}`, import.meta.url)), {encoding: "utf8"}
-		);
-		return JSON.parse(schemaFile);
+		const schemaUrl = new URL(`./schema/${schemaPath}`, import.meta.url);
+		const schemaFilePath = fileURLToPath(schemaUrl);
+		const schemaFile = await readFile(schemaFilePath, {encoding: "utf8"});
+		return parseJSON(schemaFile, schemaFilePath);
 	}
 }
 

@@ -66,9 +66,10 @@ test.serial("writePreloadModule: with invalid json content", async (t) => {
 	const result = await builder.writePreloadModule("invalid.json", undefined, invalidJsonResource);
 
 	t.is(verboseLogStub.callCount, 2, "called 2 times");
-	t.is(verboseLogStub.firstCall.args[0], "Failed to parse JSON file invalid.json. Ignoring error, skipping compression.",
+	t.is(verboseLogStub.firstCall.args[0], "Skipping compression of module invalid.json.",
 		"first verbose log argument 0 is correct");
 	t.true(verboseLogStub.secondCall.args[0] instanceof SyntaxError, "second verbose log with SyntaxError");
+	t.is(verboseLogStub.secondCall.args[0].code, "ERR_INVALID_JSON", "second verbose log error has ERR_INVALID_JSON code");
 	t.regex(verboseLogStub.secondCall.args[0].message, /JSON/, "second verbose log about incorrect JSON");
 
 	t.true(result, "result is true");
@@ -3286,6 +3287,75 @@ ${SOURCE_MAPPING_URL}=data:application/pony;charset=utf-8;base64,AAAA`
 		],
 		version: 3,
 	}, "Expected transitive source map has been generated");
+});
+
+test("getSourceMapForModule: Data URI with malformed JSON reports inline origin in error", async (t) => {
+	const pool = new ResourcePool();
+	const builder = new Builder(pool);
+	await t.throwsAsync(
+		builder.getSourceMapForModule({
+			moduleName: "my/test/module",
+			resourcePath: "/resources/my/test/module.js",
+			moduleContent: `// Some content
+${SOURCE_MAPPING_URL}=data:application/json;charset=utf-8;base64,${Buffer.from("not json").toString("base64")}`
+		}),
+		{
+			instanceOf: SyntaxError,
+			message: /my\/test\/module \(inline source map\)/
+		},
+		"Error message references the inline source map origin"
+	);
+});
+
+test("getSourceMapForModule: Relative URL with malformed JSON reports resolved path in error", async (t) => {
+	const pool = new ResourcePool();
+	pool.addResource({
+		name: "my/test/module.js.map",
+		getPath: () => "my/test/module.js.map",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "not json"
+	});
+	const builder = new Builder(pool);
+	await t.throwsAsync(
+		builder.getSourceMapForModule({
+			moduleName: "my/test/module",
+			resourcePath: "/resources/my/test/module.js",
+			moduleContent: `// Some content
+${SOURCE_MAPPING_URL}=module.js.map`
+		}),
+		{
+			instanceOf: SyntaxError,
+			message: /my\/test\/module\.js\.map/
+		},
+		"Error message references the resolved source map file path"
+	);
+});
+
+test("getSourceMapForModule: Fallback file with malformed JSON reports candidate path in error", async (t) => {
+	const pool = new ResourcePool();
+	pool.addResource({
+		name: "my/test/module.js.map",
+		getPath: () => "my/test/module.js.map",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "not json"
+	});
+	const builder = new Builder(pool);
+	await t.throwsAsync(
+		builder.getSourceMapForModule({
+			moduleName: "my/test/module",
+			resourcePath: "/resources/my/test/module.js",
+			moduleContent: "// Some content\n"
+		}),
+		{
+			instanceOf: SyntaxError,
+			message: /my\/test\/module\.js\.map/
+		},
+		"Error message references the fallback source map candidate path"
+	);
 });
 
 test("createTransientSourceMap: includeContent=false", (t) => {

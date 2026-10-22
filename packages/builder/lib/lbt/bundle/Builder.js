@@ -18,6 +18,7 @@ import {SectionType} from "./BundleDefinition.js";
 import BundleWriter from "./BundleWriter.js";
 import {getLogger} from "@ui5/logger";
 import semver from "semver";
+import parseJSON from "../../utils/json.js";
 const log = getLogger("lbt:bundle:Builder");
 
 const sourceMappingUrlPattern = /\/\/# sourceMappingURL=(\S+)\s*$/;
@@ -502,9 +503,9 @@ class BundleBuilder {
 			let fileContent = stripBOM((await resource.buffer()).toString());
 			if ( this.optimize ) {
 				try {
-					fileContent = JSON.stringify( JSON.parse( fileContent) );
+					fileContent = JSON.stringify( parseJSON( fileContent, moduleName) );
 				} catch (e) {
-					log.verbose(`Failed to parse JSON file ${moduleName}. Ignoring error, skipping compression.`);
+					log.verbose(`Skipping compression of module ${moduleName}.`);
 					log.verbose(e);
 				}
 			}
@@ -673,6 +674,7 @@ class BundleBuilder {
 
 	async getSourceMapForModule({moduleName, moduleContent, resourcePath}) {
 		let moduleSourceMap = null;
+		let sourceMapOriginPath = null;
 		let newModuleContent = moduleContent;
 
 		const sourceMapUrlMatch = moduleContent.match(sourceMappingUrlPattern);
@@ -691,6 +693,7 @@ class BundleBuilder {
 					if (sourceMapUrl.startsWith(expectedTypeAndEncoding)) {
 						const base64Content = sourceMapUrl.slice(expectedTypeAndEncoding.length);
 						moduleSourceMap = Buffer.from(base64Content, "base64").toString();
+						sourceMapOriginPath = `${moduleName} (inline source map)`;
 					} else {
 						log.warn(
 							`Source map reference in module ${moduleName} is a data URI but has an unexpected` +
@@ -709,6 +712,7 @@ class BundleBuilder {
 					try {
 						const sourceMapResource = await this.pool.findResource(sourceMapPath);
 						moduleSourceMap = (await sourceMapResource.buffer()).toString();
+						sourceMapOriginPath = sourceMapPath;
 					} catch (e) {
 						// No input source map
 						log.warn(`Unable to read source map for module ${moduleName}: ${e.message}`);
@@ -722,6 +726,7 @@ class BundleBuilder {
 			try {
 				const sourceMapResource = await this.pool.findResource(sourceMapFileCandidate);
 				moduleSourceMap = (await sourceMapResource.buffer()).toString();
+				sourceMapOriginPath = sourceMapFileCandidate;
 			} catch (e) {
 				// No input source map
 				log.silly(`Could not find a source map for module ${moduleName}: ${e.message}`);
@@ -730,7 +735,7 @@ class BundleBuilder {
 
 
 		if (moduleSourceMap) {
-			moduleSourceMap = JSON.parse(moduleSourceMap);
+			moduleSourceMap = parseJSON(moduleSourceMap, sourceMapOriginPath);
 
 			// Check for index map, which is currently not supported
 			if (Array.isArray(moduleSourceMap.sections)) {

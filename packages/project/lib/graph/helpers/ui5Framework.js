@@ -5,6 +5,7 @@ import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:helpers:ui5Framework");
 import Configuration from "../../config/Configuration.js";
 import path from "node:path";
+import parseJSON from "../../utils/json.js";
 
 class ProjectProcessor {
 	constructor({libraryMetadata, graph, workspace}) {
@@ -233,7 +234,7 @@ const utils = {
 			});
 		} else if (project.getId().startsWith("@openui5/")) {
 			const packageResource = await project.getRootReader().byPath("/package.json");
-			const packageInfo = JSON.parse(await packageResource.getString());
+			const packageInfo = parseJSON(await packageResource.getString(), "/package.json");
 
 			dependencies = Object.keys(
 				packageInfo.dependencies || {}

@@ -91,6 +91,7 @@ test("flexChangesBundler with 2 changes", async (t) => {
 	flexBundle.forEach((change) => {
 		resources.push({
 			name: "flexChange",
+			getPath: () => "/test/change.json",
 			getBuffer: async () => JSON.stringify(change)
 		});
 	});
@@ -127,6 +128,7 @@ test("includes annotation_changes in flexibility-bundle when hasFlexBundleVersio
 
 	const resources = [{
 		name: "flexChange",
+		getPath: () => "/test/change.json",
 		getBuffer: async () => JSON.stringify(change)
 	}];
 
@@ -156,6 +158,7 @@ test("annotation_changes triggers error when hasFlexBundleVersion = false", asyn
 
 	const resources = [{
 		name: "flexChange",
+		getPath: () => "/test/change.json",
 		getBuffer: async () => JSON.stringify(change)
 	}];
 
@@ -431,6 +434,7 @@ test("flexChangesBundler has ctrl_variant and hasFlexBundleVersion = true", asyn
 		entities.forEach((change) => {
 			resources.push({
 				name: "flexChange",
+				getPath: () => "/test/change.json",
 				getBuffer: async () => JSON.stringify(change)
 			});
 		});
@@ -531,12 +535,14 @@ test("flexChangesBundler has ctrl_variant and hasFlexBundleVersion = false", asy
 	change.forEach((change) => {
 		resources.push({
 			name: "flexChange",
+			getPath: () => "/test/change.json",
 			getBuffer: async () => JSON.stringify(change)
 		});
 	});
 	ctrlVariant.forEach((change) => {
 		resources.push({
 			name: "flexChange",
+			getPath: () => "/test/change.json",
 			getBuffer: async () => JSON.stringify(change)
 		});
 	});
@@ -937,36 +943,42 @@ test("flexChangesBundler with existing flexibility-bundle.json", async (t) => {
 	changeList.forEach((change) => {
 		resources.push({
 			name: "flexChange",
+			getPath: () => "/test/change.json",
 			getBuffer: async () => JSON.stringify(change)
 		});
 	});
 	compVariants.forEach((change) => {
 		resources.push({
 			name: "flexChange",
+			getPath: () => "/test/change.json",
 			getBuffer: async () => JSON.stringify(change)
 		});
 	});
 	variantDependentControlChange.forEach((change) => {
 		resources.push({
 			name: "flexChange",
+			getPath: () => "/test/change.json",
 			getBuffer: async () => JSON.stringify(change)
 		});
 	});
 	ctrlVariantChange.forEach((change) => {
 		resources.push({
 			name: "flexChange",
+			getPath: () => "/test/change.json",
 			getBuffer: async () => JSON.stringify(change)
 		});
 	});
 	ctrlVariantManagementChange.forEach((change) => {
 		resources.push({
 			name: "flexChange",
+			getPath: () => "/test/change.json",
 			getBuffer: async () => JSON.stringify(change)
 		});
 	});
 	ctrlVariant.forEach((change) => {
 		resources.push({
 			name: "flexChange",
+			getPath: () => "/test/change.json",
 			getBuffer: async () => JSON.stringify(change)
 		});
 	});
@@ -1243,36 +1255,42 @@ test("flexChangesBundler with existing flexibility-bundle.json and missing/wrong
 	changeList.forEach((change) => {
 		resources.push({
 			name: "flexChange",
+			getPath: () => "/test/change.json",
 			getBuffer: async () => JSON.stringify(change)
 		});
 	});
 	compVariants.forEach((change) => {
 		resources.push({
 			name: "flexChange",
+			getPath: () => "/test/change.json",
 			getBuffer: async () => JSON.stringify(change)
 		});
 	});
 	variantDependentControlChange.forEach((change) => {
 		resources.push({
 			name: "flexChange",
+			getPath: () => "/test/change.json",
 			getBuffer: async () => JSON.stringify(change)
 		});
 	});
 	ctrlVariantChange.forEach((change) => {
 		resources.push({
 			name: "flexChange",
+			getPath: () => "/test/change.json",
 			getBuffer: async () => JSON.stringify(change)
 		});
 	});
 	ctrlVariantManagementChange.forEach((change) => {
 		resources.push({
 			name: "flexChange",
+			getPath: () => "/test/change.json",
 			getBuffer: async () => JSON.stringify(change)
 		});
 	});
 	ctrlVariant.forEach((change) => {
 		resources.push({
 			name: "flexChange",
+			getPath: () => "/test/change.json",
 			getBuffer: async () => JSON.stringify(change)
 		});
 	});
@@ -1396,6 +1414,7 @@ test("flexChangesBundler with existing flexibility-bundle.json and version lower
 	flexBundle.forEach((change) => {
 		resources.push({
 			name: "flexChange",
+			getPath: () => "/test/change.json",
 			getBuffer: async () => JSON.stringify(change)
 		});
 	});

@@ -1,5 +1,7 @@
+import parseJSON from "../../utils/json.js";
+
 export async function updateLibraryDotTheming({resource, namespace, version, hasThemes}) {
-	const dotTheming = JSON.parse(await resource.getString());
+	const dotTheming = parseJSON(await resource.getString(), resource.getPath());
 
 	if (!dotTheming.sEntity) {
 		throw new Error(`Missing 'sEntity' property in ${resource.getPath()}`);
