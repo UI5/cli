@@ -90,7 +90,7 @@ export default function build({pattern, omitSourceMapResources = false, useInput
 						`exists next to it. The minify task generates the debug variant itself, so sources ` +
 						`normally must not contain one. If this is intentional (for example the file uses ` +
 						`ECMAScript syntax the minify task does not support yet), list both ${resourcePath} ` +
-						`and ${dbgPath} in the "builder.minification.excludes" configuration of the ` +
+						`and ${dbgPath} in the 'builder.minification.excludes' configuration of the ` +
 						`project's ui5.yaml.`);
 					return false;
 				}
