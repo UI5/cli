@@ -2,6 +2,9 @@
 
 **CPOUI5FOUNDATION-1386** — design review for the FND team.
 
+> Reading order follows the review: problem → scenarios (align on behavior) → the two questions a fix must
+> answer → scoping → change detection → the design → decisions we need. Appendices hold the detail.
+
 ---
 
 ## TL;DR
@@ -16,10 +19,8 @@
 - **Why this one.** It fails **safe** (worst case is a spurious rebuild of one stage, never stale output),
   needs **no annotation** to maintain, is **strictly correct** (also catches `file:` / `link:` / patched
   tools), and is **cheap** (measured: sub-ms warm lookup, single-digit-ms hash).
-- **Decisions we want from the team.**
-  1. Content-hash over versions-only (strictly more correct; cost measured negligible).
-  2. A dedicated `tool-content` signature component vs. folding into `rootSignature`.
-  3. Green-light the record-side worker instrumentation (`module.registerHooks` in the two workers).
+- **Decisions we want from the team.** See the dedicated section — three calls (content-hash over versions,
+  a dedicated `tool-content` component, green-light worker instrumentation).
 
 ---
 
@@ -41,11 +42,87 @@ no new `@ui5/builder` release -> the build ships CSS from the old less-openui5.
 
 ---
 
-## Options: Scoping — which packages belong to a stage?
+## Scenarios — what *should* the cache do?
 
-Three options for answering: *given a running stage, which external tool packages should the cache track?*
-The question is purely about **scoping** — none of the three says anything yet about how to detect a change
-once the set is known (that's the hashing section below).
+Start here: concrete triggers in someone's `node_modules`, and the behavior each must produce. This doubles
+as the acceptance / test matrix. The dangerous cases are the ones where output changes but no signature
+moves today (A1, B1, B2, B3).
+
+### A. The bug, and basic cache correctness
+
+| Scenario | Expected | Mechanism |
+|---|---|---|
+| less-openui5 bumped via npm, no `@ui5/builder` release (**the ticket**) | buildThemes re-runs, fresh CSS | content-hash of less-openui5 files |
+| `ui5 serve` again, nothing changed | full cache hit, zero task execution, tool never loaded | tiered stat, all signatures match |
+| a `.less` source edited | buildThemes re-runs; tool unchanged | resource index (existing), orthogonal |
+
+### B. What content-hash catches that versions-only would miss
+
+| Scenario | Expected | Mechanism |
+|---|---|---|
+| less-openui5 `npm link`ed, a source file edited, version unchanged | buildThemes re-runs | content-hash (version wouldn't move) |
+| `patch-package` patches terser, version unchanged | minify re-runs | content-hash (version wouldn't move) |
+| transitive dep bumped (`@adobe/css-tools` under less-openui5), less-openui5 unchanged | buildThemes re-runs | content-hash of the tool subtree (not pruned) |
+
+### C. Scoping correctness
+
+| Scenario | Expected | Mechanism |
+|---|---|---|
+| terser bumped | only minify re-runs; buildThemes stays cached | per-stage `tool-content` isolation |
+| fast-glob bumped (dep of `@ui5/fs`), no `@ui5/fs` release | buildThemes does **not** re-run from tool-content (safe: fast-glob's effect is resource-mediated, caught by the resource index if it matters) | barrier prune (`@ui5/fs` subtree excluded) |
+| `workerpool` bumped (builder plumbing) | minify re-runs needlessly | accepted residual over-capture (correctness-safe) |
+
+### D. Lifecycle, jsdoc, and known gaps
+
+| Scenario | Expected | Mechanism |
+|---|---|---|
+| `npm ci`, same versions (mtimes move, content identical) | one re-hash, **no** re-run | tiered `isResourceUnchanged` (integrity matches) |
+| a task stops loading a tool | `tool-content` set shrinks -> re-runs once, then stable | recorded set shrinks |
+| first build, cold cache | records each stage's tool files; discovers the set on first run | record pass |
+| `npx` / global install (tool files outside the project tree) | still tracked | dedicated `tool-content` adapter reaches them |
+| jsdoc package bumped | jsdoc stage re-runs | static content-hash of the `jsdoc` package |
+| jsdoc *transitive* dep bumped, jsdoc unchanged | **not** caught (unless the static dep-walk is added) | known narrowing (Appendix E) |
+| tool package with non-deterministic content (postinstall-generated) | cache not portable across machines | out of scope (documented) |
+
+### Sample fixtures
+
+Three sample projects exercise the three tools; scenarios are produced by manipulating their installed
+tool packages under `node_modules`.
+
+- **theme-lib** — a library with `src/.../themes/base/library.source.less` -> `buildThemes` + less-openui5
+  (scenarios A1-A3, B1, B3, C2).
+- **minify-app** — a project with non-trivial `.js` -> `minify` + terser (B2, C1, C3).
+- **jsdoc-lib** — a library whose `api.json` is generated -> `jsdoc` (D5, D6).
+
+Tool-state manipulations (each a reusable test setup against a sample's `node_modules`):
+
+- **bump** — `npm i less-openui5@<newer>`, or edit the installed `package.json` version plus one source line.
+- **link** — `npm link` / a `file:` dep, then edit a source file (no version change).
+- **patch** — `patch-package`, or a manual edit to one installed file.
+- **transitive bump** — an `overrides` entry (e.g. `@adobe/css-tools`).
+- **barrier bump** — edit a file under `@ui5/fs`'s `fast-glob` (expect no buildThemes re-run).
+- **reinstall** — `npm ci` with the lockfile unchanged (mtimes move, content identical).
+- **relocate** — run via `npx` / a global `@ui5/cli` so the tool files sit outside the project tree.
+
+---
+
+## The two questions a fix must answer
+
+The scenarios split cleanly into two independent questions. Conflating them is what made the ticket feel
+bigger than it is:
+
+1. **Scoping** — given a running stage, *which* external packages should we track? (Not the whole tree.)
+2. **Change detection** — once the set is known, how do we tell a package changed? Version string, or
+   content hash?
+
+The ticket's three options are all answers to **scoping**. Content-hashing is an answer to **change
+detection**. The next two sections take them in order.
+
+---
+
+## Scoping — which packages belong to a stage?
+
+Three options. None of them says anything yet about *how* to detect a change — that's the next section.
 
 | | 1 — Declaration | 2 — package-lock | 3 — registerHooks (chosen) |
 |---|---|---|---|
@@ -63,14 +140,16 @@ once the set is known (that's the hashing section below).
 - **Option 3** chosen: observes exactly what each stage loads, no declaration, extends to custom tasks for
   free. Cost: complexity + a prior run; out-of-process tools (jsdoc) handled separately.
 
+The deciding factor is the failure mode: Option 3 over-captures at worst (a spurious rebuild of one stage)
+and never serves stale; Option 1 can serve stale. Detail in Appendix C.
+
 **-> Option 3.**
 
 ---
 
-## Hashing approach — what to fold per dependency
+## Change detection — what to fold per dependency
 
-Once the scoped package set is known (from Option 3), the cache still needs a value to fold per package so
-it can detect changes. Two approaches:
+Once the scoped set is known, the cache needs a value to fold per package. Two approaches:
 
 | | Version string | Content-hash (chosen) |
 |---|---|---|
@@ -79,8 +158,36 @@ it can detect changes. Two approaches:
 | What's needed | specifier-authority mapping, re-resolution | reuses `HashTree`; a `tool-content` request type |
 | Cost (measured) | a few `package.json` reads | sub-ms warm stat, single-digit-ms hash |
 
-A content hash **subsumes** the version — any version bump is a content change, and content-hash also
-catches the cases version strings miss. Tracking versions alongside hashes is redundant.
+### Worked examples
+
+What each approach folds into the signature, using buildThemes -> less-openui5:
+
+```
+version string:  key = "less-openui5@1.2.3"            -> toolSig = sha256(key)
+content-hash:     key = integrity(lib/Builder.js) ⊕ … ⊕ integrity(package.json)  -> toolSig = merkle root
+```
+
+| Event | version sig moves? | content sig moves? | Correct result |
+|---|---|---|---|
+| `npm i less-openui5@1.2.4` (registry bump) | ✅ yes | ✅ yes | both rebuild — agree |
+| `npm link` to a local checkout at the *same* `1.2.3`, edit a source file | ❌ **no → stale** | ✅ yes | only content is correct |
+| `patch-package` edits terser in place, version untouched | ❌ **no → stale** | ✅ yes | only content is correct |
+| `overrides` bumps `@adobe/css-tools` under less-openui5, less-openui5 stays `1.2.3` | ❌ **no → stale** (unless every transitive version is folded) | ✅ yes | only content is correct |
+| `npm ci`, identical `1.2.3` (mtimes move, bytes identical) | ✅ skip | ✅ skip (integrity matches) | both skip — content does **not** false-fire |
+
+Rows 2–4 are the argument: real ways a tool's behavior changes with its version string frozen. Row 5 is the
+counter-worry — content does not over-fire on a same-version reinstall, because the tiered stat compares
+integrity.
+
+Version hashing is also *more* machinery to get even partially right: **specifier-authority mapping**
+(`require.resolve("terser")` lands in `terser/dist/bundle.min.js`, whose nearest `package.json` is named
+`"dist"` — you must walk up to the one named `terser`), and **transitive coverage** (row 4) would mean
+folding every version in the tool's subtree — a scoped, worse `package-lock`. Content-hashing needs neither:
+it hashes file bytes, so it never needs a package's name or version, and the transitive file is already in
+the set.
+
+A content hash **subsumes** the version — any version bump is a content change, and content also catches
+the cases version strings miss. Tracking versions alongside hashes is redundant.
 
 **-> Content-hash. Drop version tracking.**
 
@@ -166,65 +273,25 @@ flowchart TD
 
 ---
 
-## Scenarios
+## Decisions we need from the team
 
-Concrete triggers and the cache behavior each must produce — doubles as the acceptance / test matrix.
+Three calls to make in the review:
 
-### A. The bug, and basic cache correctness
+1. **Content-hash over version strings.** Strictly more correct (catches `file:` / `link:` / patched,
+   rows 2–4 above), measured cost negligible. Drop version tracking entirely?
+2. **A dedicated `tool-content` signature component** vs. folding into the existing `rootSignature`.
+   Recommendation: dedicated — cleaner provenance, and it reaches tool files outside the project tree under
+   a global / `npx` install (Appendix D).
+3. **Green-light the worker instrumentation** — registering `module.registerHooks` inside
+   `themeBuilderWorker.js` and `minifierWorker.js`. Needs the engines range
+   `^22.22.3 || ^24.15.0 || >=26`, so an engines bump rides along.
 
-| Scenario | Expected | Mechanism |
-|---|---|---|
-| less-openui5 bumped via npm, no `@ui5/builder` release (**the ticket**) | buildThemes re-runs, fresh CSS | content-hash of less-openui5 files |
-| `ui5 serve` again, nothing changed | full cache hit, zero task execution, tool never loaded | tiered stat, all signatures match |
-| a `.less` source edited | buildThemes re-runs; tool unchanged | resource index (existing), orthogonal |
+Scoping calls already **made** (flagged, not for re-litigation):
 
-### B. What content-hash catches that versions-only would miss
-
-| Scenario | Expected | Mechanism |
-|---|---|---|
-| less-openui5 `npm link`ed, a source file edited, version unchanged | buildThemes re-runs | content-hash (version wouldn't move) |
-| `patch-package` patches terser, version unchanged | minify re-runs | content-hash (version wouldn't move) |
-| transitive dep bumped (`@adobe/css-tools` under less-openui5), less-openui5 unchanged | buildThemes re-runs | content-hash of the tool subtree (not pruned) |
-
-### C. Scoping correctness
-
-| Scenario | Expected | Mechanism |
-|---|---|---|
-| terser bumped | only minify re-runs; buildThemes stays cached | per-stage `tool-content` isolation |
-| fast-glob bumped (dep of `@ui5/fs`), no `@ui5/fs` release | buildThemes does **not** re-run from tool-content (safe: fast-glob's effect is resource-mediated, caught by the resource index if it matters) | barrier prune (`@ui5/fs` subtree excluded) |
-| `workerpool` bumped (builder plumbing) | minify re-runs needlessly | accepted residual over-capture (correctness-safe) |
-
-### D. Lifecycle, jsdoc, and known gaps
-
-| Scenario | Expected | Mechanism |
-|---|---|---|
-| `npm ci`, same versions (mtimes move, content identical) | one re-hash, **no** re-run | tiered `isResourceUnchanged` (integrity matches) |
-| a task stops loading a tool | `tool-content` set shrinks -> re-runs once, then stable | recorded set shrinks |
-| first build, cold cache | records each stage's tool files; discovers the set on first run | record pass |
-| `npx` / global install (tool files outside the project tree) | still tracked | dedicated `tool-content` adapter reaches them |
-| jsdoc package bumped | jsdoc stage re-runs | static content-hash of the `jsdoc` package |
-| jsdoc *transitive* dep bumped, jsdoc unchanged | **not** caught (unless the static dep-walk is added) | known narrowing (Appendix E) |
-| tool package with non-deterministic content (postinstall-generated) | cache not portable across machines | out of scope (documented) |
-
-### Sample fixtures
-
-Three sample projects exercise the three tools; scenarios are produced by manipulating their installed
-tool packages under `node_modules`.
-
-- **theme-lib** — a library with `src/.../themes/base/library.source.less` -> `buildThemes` + less-openui5
-  (scenarios A1-A3, B1, B3, C2).
-- **minify-app** — a project with non-trivial `.js` -> `minify` + terser (B2, C1, C3).
-- **jsdoc-lib** — a library whose `api.json` is generated -> `jsdoc` (D5, D6).
-
-Tool-state manipulations (each a reusable test setup against a sample's `node_modules`):
-
-- **bump** — `npm i less-openui5@<newer>`, or edit the installed `package.json` version plus one source line.
-- **link** — `npm link` / a `file:` dep, then edit a source file (no version change).
-- **patch** — `patch-package`, or a manual edit to one installed file.
-- **transitive bump** — an `overrides` entry (e.g. `@adobe/css-tools`).
-- **barrier bump** — edit a file under `@ui5/fs`'s `fast-glob` (expect no buildThemes re-run).
-- **reinstall** — `npm ci` with the lockfile unchanged (mtimes move, content identical).
-- **relocate** — run via `npx` / a global `@ui5/cli` so the tool files sit outside the project tree.
+- **Residual over-capture accepted** — builder plumbing like `workerpool` survives the prune (the loader
+  can't tell plumbing from tool). Correctness-safe; a central denylist is the lever if it ever proves noisy.
+- **jsdoc narrowing accepted** — out-of-process, so we content-hash its known package root and don't see its
+  transitive deps unless we add a dep-walk (Appendix E).
 
 ---
 
@@ -238,10 +305,6 @@ Tool-state manipulations (each a reusable test setup against a sample's `node_mo
 | 4 | **Fold** — dedicated `tool-content` request type + adapter + signature component (Appendix D) | — |
 | 5 | **jsdoc** — content-hash the statically-known `jsdoc` package files (out-of-process, Appendix E) | — |
 | 6 | **Verify** — overhead, async-interleaving attribution, full suite on real Node 22/24 | — |
-
-**Residual decision (parked, Appendix C/decision 7):** after pruning, builder plumbing like `workerpool`
-is still hashed (the loader can't tell plumbing from tool). Accepted — it's correctness-safe over-capture;
-a central denylist is the lever if it ever proves noisy.
 
 **Out of scope:** non-deterministic package content (postinstall-generated files — a portability edge);
 out-of-process transitive deps of jsdoc unless the static dep-walk is added; custom tasks (follow-up 1396).
@@ -270,6 +333,20 @@ fix lands (drop `.failing` then).
   that runs and asserts; importing a not-yet-existing module throws at import instead. Anything calling
   `module.registerHooks` also needs a Node-version guard until the engines bump lands (the behavioral
   `.failing` tests don't call it directly, so they sit red regardless and flip only once the feature is in).
+
+---
+
+## Open questions
+
+- **Shared cache across projects.** Tool files are byte-identical for every project in a build (one
+  `node_modules`). The CAS already dedups file *content* across projects/builds/machines by integrity; the
+  redundant *work* (re-stat/hash per project) is killed by a **`BuildContext`-scoped path→hash memo**
+  (hoisted above the per-project `ProjectBuildCache`). Confirm that's the home.
+- **jsdoc transitive dep-walk.** Add a static walk of jsdoc's `package.json` closure to cover its transitive
+  deps, or accept the narrowing (jsdoc's own content only)?
+- **Cross-machine portability.** Content is portable via the CAS (integrity-keyed), but the stat shortcut is
+  machine-local (mtimes differ per checkout) and non-deterministic package content breaks it. Likely a later
+  step; the portable key is package-relative path + integrity, not an absolute path (Appendix D).
 
 ---
 
@@ -319,7 +396,7 @@ is over-capture (one spurious rebuild), never under-capture.
 ## Appendix C — Options, in detail
 
 Options 1-3 are about **scoping** (which packages belong to a stage). Content-hash vs versions is the
-separate **hashing** question addressed in the dedicated section above.
+separate **change-detection** question addressed in the dedicated section above.
 
 - **Option 1 — Declaration.** Deterministic, no hooks, uniform across in/out-of-process. Decisive con:
   **unsafe failure mode** — a forgotten/stale declaration -> stale stage, no backstop; burden lands on
@@ -339,7 +416,7 @@ separate **hashing** question addressed in the dedicated section above.
   single-digit-ms. Caveats (none decisive): redundant-but-cheap for registry installs; one re-hash after a
   same-version `npm ci` (no false re-run); non-deterministic package content hurts portability (rare).
 
-- **Residual (decision 7):** builder plumbing (`workerpool`) survives the prune because the loader can't
+- **Residual (over-capture):** builder plumbing (`workerpool`) survives the prune because the loader can't
   tell plumbing from tool. **Accept** (A) — correctness-safe over-capture bounded to one stage; a central
   **denylist** (C) is the safe lever; a per-task **declaration** (B) is rejected (reintroduces the unsafe
   failure mode).
