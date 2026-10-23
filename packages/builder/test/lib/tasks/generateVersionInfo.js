@@ -91,6 +91,14 @@ async function assertCreatedVersionInfo(t, oExpectedVersionInfo, oOptions) {
 		return libraryA.name.localeCompare(libraryB.name);
 	});
 
+	// The "framework" object is always emitted. When the expectation does not assert it
+	// explicitly, verify it defaults to empty strings and remove it to allow deep comparison.
+	if (!("framework" in oExpectedVersionInfo)) {
+		t.deepEqual(currentVersionInfo.framework, {name: "", version: ""},
+			"framework defaults to empty strings when no framework is resolved");
+		delete currentVersionInfo.framework;
+	}
+
 	t.deepEqual(currentVersionInfo, oExpectedVersionInfo, "Correct content");
 }
 

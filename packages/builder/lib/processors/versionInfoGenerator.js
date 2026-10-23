@@ -379,6 +379,9 @@ const processLibraryInfo = async (libraryInfo) => {
  *   }
  *   ```
  *
+ * @param {object} [parameters.options.framework] Framework info to embed as the top-level
+ *				`framework` object, e.g. `{name: "OpenUI5", version: "1.136.0"}`. Resolved by the
+ *				caller (generateVersionInfo task). Defaults to `{name: "", version: ""}` when omitted.
  * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with an array containing the versionInfo resource
  */
 
@@ -463,6 +466,7 @@ export default async function({options}) {
 		buildTimestamp: buildTimestamp,
 		scmRevision: "", // TODO: insert current application scm revision here
 		// gav: "", // TODO: insert current application id + version here
+		framework: options.framework ?? {name: "", version: ""},
 		libraries,
 		components
 	};
