@@ -140,18 +140,19 @@ class Workspace {
 		}
 
 		// Detect duplicate resolutions targeting the same library
-		const seenLibraryNames = [];
+		// (same exact absolute paths should throw):
+		const seenAbsolutePaths = [];
 		for (const {path: resolutionPath} of resolutions) {
 			if (!resolutionPath) {
 				continue;
 			}
-			const libraryName = path.basename(resolutionPath); // "../collection/library.a" -> "library.a"
-			if (seenLibraryNames.includes(libraryName)) {
+			const absolutePath = path.resolve(resolutionPath);
+			if (seenAbsolutePaths.includes(absolutePath)) {
 				throw new Error(
-					`Multiple resolutions for the same library '${libraryName}' ` +
-					`in workspace '${this.getName()}' exist.`);
+					`Multiple resolutions for the same library '${path.basename(absolutePath)}' ` +
+					`(resolved to '${absolutePath}') in workspace '${this.getName()}' exist.`);
 			}
-			seenLibraryNames.push(libraryName);
+			seenAbsolutePaths.push(absolutePath);
 		}
 
 		let resolvedModules = await Promise.all(resolutions.map(async (resolutionConfig) => {
