@@ -29,6 +29,7 @@ const createProjectMetadata = (names, version, type) => {
 		getNamespace: () => names.join("/"),
 		getVersion: () => version || "3.0.0-" + key,
 		getType: () => type || "library",
+		getId: () => key,
 		getFrameworkName: () => undefined,
 		getFrameworkVersion: () => undefined
 	};
@@ -1267,5 +1268,102 @@ test.serial("task: unrecognized framework name yields empty framework", async (t
 		"scmRevision": "",
 		"version": "1.33.7",
 		"libraries": []
+	}, oOptions);
+});
+
+function createScopedDepProject(names, {id, version = "1.136.0"} = {}) {
+	const key = names.join(".");
+	return {
+		getName: () => key,
+		getNamespace: () => names.join("/"),
+		getVersion: () => version,
+		getType: () => "library",
+		getId: () => id ?? key,
+		getFrameworkName: () => undefined,
+		getFrameworkVersion: () => undefined
+	};
+}
+
+test.serial("task: scans @openui5/sap.ui.core dep and resolves OpenUI5 with core version", async (t) => {
+	const workspace = createWorkspace();
+	const dep = resourceFactory.createAdapter({
+		virBasePath: "/",
+		project: createScopedDepProject(["sap", "ui", "core"], {id: "@openui5/sap.ui.core", version: "1.136.0"})
+	});
+	await dep.write(resourceFactory.createResource({
+		path: "/resources/sap/ui/core/.library",
+		string: `<library><name>sap.ui.core</name></library>`
+	}));
+	const rootProject = {
+		getName: () => "myapp", getVersion: () => "1.0.0",
+		getFrameworkName: () => undefined, getFrameworkVersion: () => undefined
+	};
+	const oOptions = {
+		workspace,
+		dependencies: dep,
+		options: {pattern: "/resources/**/.library", rootProject}
+	};
+	await assertCreatedVersionInfo(t, {
+		"name": "myapp",
+		"scmRevision": "",
+		"version": "1.0.0",
+		"framework": {"name": "OpenUI5", "version": "1.136.0"},
+		"libraries": [{"name": "sap.ui.core", "scmRevision": "", "version": "1.136.0"}]
+	}, oOptions);
+});
+
+test.serial("task: scans @sapui5/ dep and resolves SAPUI5 with empty version (Scenario 5)", async (t) => {
+	const workspace = createWorkspace();
+	const dep = resourceFactory.createAdapter({
+		virBasePath: "/",
+		project: createScopedDepProject(["sap", "m"], {id: "@sapui5/sap.m", version: "1.136.0"})
+	});
+	await dep.write(resourceFactory.createResource({
+		path: "/resources/sap/m/.library",
+		string: `<library><name>sap.m</name></library>`
+	}));
+	const rootProject = {
+		getName: () => "myapp", getVersion: () => "1.0.0",
+		getFrameworkName: () => undefined, getFrameworkVersion: () => undefined
+	};
+	const oOptions = {
+		workspace,
+		dependencies: dep,
+		options: {pattern: "/resources/**/.library", rootProject}
+	};
+	await assertCreatedVersionInfo(t, {
+		"name": "myapp",
+		"scmRevision": "",
+		"version": "1.0.0",
+		"framework": {"name": "SAPUI5", "version": ""},
+		"libraries": [{"name": "sap.m", "scmRevision": "", "version": "1.136.0"}]
+	}, oOptions);
+});
+
+test.serial("task: explicit ui5.yaml config wins over @sapui5/ scan result", async (t) => {
+	const workspace = createWorkspace();
+	const dep = resourceFactory.createAdapter({
+		virBasePath: "/",
+		project: createScopedDepProject(["sap", "m"], {id: "@sapui5/sap.m", version: "1.136.0"})
+	});
+	await dep.write(resourceFactory.createResource({
+		path: "/resources/sap/m/.library",
+		string: `<library><name>sap.m</name></library>`
+	}));
+	const rootProject = {
+		getName: () => "myapp", getVersion: () => "1.0.0",
+		getFrameworkName: () => "OpenUI5", getFrameworkVersion: () => "1.138.0"
+	};
+	const oOptions = {
+		workspace,
+		dependencies: dep,
+		options: {pattern: "/resources/**/.library", rootProject}
+	};
+	await assertCreatedVersionInfo(t, {
+		"name": "myapp",
+		"scmRevision": "",
+		"version": "1.0.0",
+		"framework": {"name": "OpenUI5", "version": "1.138.0"},
+		"libraries": [{"name": "sap.m", "scmRevision": "", "version": "1.136.0"}]
 	}, oOptions);
 });

@@ -54,6 +54,32 @@ export default async ({workspace, dependencies, options: {rootProject, pattern}}
 		framework = {name: frameworkName, version: rootProject.getFrameworkVersion()};
 	}
 
+	// Fallback: scan dependency npm IDs for framework signal
+	if (!framework) {
+		let openui5Detected = false;
+		let openui5CoreVersion = "";
+		for (const res of resources) {
+			const id = res.getProject().getId?.();
+			// If at least one SAPUI5 library is present, use "SAPUI5",
+			// but leave version empty if no SAPUI5 dist version is known
+			if (id?.startsWith("@sapui5/")) {
+				framework = {name: "SAPUI5", version: ""};
+				break;
+			}
+			// If only OpenUI5 libraries are present, use "OpenUI5" and version
+			// from "sap.ui.core" project
+			if (id?.startsWith("@openui5/")) {
+				openui5Detected = true;
+				if (res.getProject().getName() === "sap.ui.core") {
+					openui5CoreVersion = res.getProject().getVersion();
+				}
+			}
+		}
+		if (!framework && openui5Detected) {
+			framework = {name: "OpenUI5", version: openui5CoreVersion};
+		}
+	}
+
 	const [versionInfoResource] = await versionInfoGenerator({
 		options: {
 			rootProjectName: rootProject.getName(),
