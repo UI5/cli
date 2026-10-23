@@ -834,7 +834,7 @@ class TaskRunner {
 				return {workspace, dependencies, taskUtil: monitoredTaskUtil, monitoredTaskUtil};
 			},
 			recordStage: async (stepName, outcome) => {
-				const {ctx, cacheInfo, invocationData, staleOutputs, foldedReads, foldedInputs} = outcome;
+				const {ctx, cacheInfo, invocationData, staleOutputs, foldedReads, foldedInputs, toolFiles} = outcome;
 				const {workspace, dependencies, monitoredTaskUtil} = ctx;
 				const taskUtilRequests = monitoredTaskUtil.getResourceRequests();
 				let projectRequests =
@@ -880,6 +880,7 @@ class TaskRunner {
 					stepBased: true,
 					stepName,
 					changedProjectResourcePaths,
+					toolFiles,
 				});
 			},
 		};

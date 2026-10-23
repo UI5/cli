@@ -4,6 +4,7 @@ import AbstractReaderWriter from "@ui5/fs/AbstractReaderWriter";
 import {assertDistinctWrite, flushWriteBuffer, getInputName} from "@ui5/fs/internal/stepWriteBuffer";
 import {getLogger} from "@ui5/logger";
 import MonitoredTaskUtil from "./MonitoredTaskUtil.js";
+import * as toolDependencyRecorder from "./ToolDependencyRecorder.js";
 
 const log = getLogger("build:helpers:StepRunner");
 
@@ -564,9 +565,22 @@ export default class StepRunner {
 				options = step.sequential ? {sequential: true} : undefined;
 			}
 
-			const {results, invocationData, freshInvocationData} = await this.#runGroup(
-				step.name, entries, options, callback,
-				{needs, needsSignatures, cacheInfo, previous, ctx, isScalar});
+			// Observe which external tool files the step's invocations load (CPOUI5FOUNDATION-1386), so
+			// their content folds into the stage signature. Brackets the whole group: a step-based task's
+			// processor (terser for minify, less-openui5 for buildThemes) loads inside the invocation
+			// bodies. Only observable when the tool runs in-process (UI5_CLI_NO_WORKERS); worker-thread
+			// tools need the hook registered inside the worker (deferred).
+			const toolCapture = toolDependencyRecorder.startCapture();
+			let runGroupResult;
+			let toolFiles;
+			try {
+				runGroupResult = await this.#runGroup(
+					step.name, entries, options, callback,
+					{needs, needsSignatures, cacheInfo, previous, ctx, isScalar});
+			} finally {
+				toolFiles = toolDependencyRecorder.stopCapture(toolCapture);
+			}
+			const {results, invocationData, freshInvocationData} = runGroupResult;
 
 			this.#returns.set(step.name, isScalar ? results[0] : results);
 			this.#returnSignatures.set(step.name,
@@ -581,6 +595,7 @@ export default class StepRunner {
 				const {reads, inputs} = this.#foldStageKeys(invocationData);
 				const stageWritten = await this.#recordStage(step.name, {
 					ctx, cacheInfo, invocationData, staleOutputs, foldedReads: reads, foldedInputs: inputs,
+					toolFiles,
 				});
 				if (stageWritten) {
 					writtenResourcePaths.push(...stageWritten);
