@@ -829,6 +829,7 @@ test("[workspace/1.1] No configPath for all libs + Two custom configPaths for si
 	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 	t.is(err.message,
 		`Multiple resolutions for the same library 'library.a' ` +
+		`(resolved to '${path.resolve("../../fixtures/collection.c/library.a")}') ` +
 		`in workspace '${workspace.getName()}' exist.`);
 });
 
@@ -858,6 +859,7 @@ test("[workspace/1.1] Two custom configPaths for single lib + No configPath for 
 		const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 		t.is(err.message,
 			`Multiple resolutions for the same library 'library.a' ` +
+			`(resolved to '${path.resolve("../../fixtures/collection.c/library.a")}') ` +
 			`in workspace '${workspace.getName()}' exist.`);
 	}
 );
@@ -1019,6 +1021,7 @@ test("[workspace/1.1] Two custom configPaths for the same single lib -> error on
 	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 	t.is(err.message,
 		`Multiple resolutions for the same library 'library.a' ` +
+		`(resolved to '${path.resolve("../../fixtures/collection.c/library.a")}') ` +
 		`in workspace '${workspace.getName()}' exist.`);
 });
 
@@ -1043,6 +1046,7 @@ test("[workspace/1.1] Duplicate library via different path strings (no configPat
 	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 	t.is(err.message,
 		`Multiple resolutions for the same library 'library.a' ` +
+		`(resolved to '${path.resolve("../../fixtures/collection.c/library.a")}') ` +
 		`in workspace '${workspace.getName()}' exist.`);
 });
 
@@ -1069,6 +1073,7 @@ test("[workspace/1.1] Duplicate library via different path strings (with configP
 	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 	t.is(err.message,
 		`Multiple resolutions for the same library 'library.a' ` +
+		`(resolved to '${path.resolve("../../fixtures/collection.c/library.a")}') ` +
 		`in workspace '${workspace.getName()}' exist.`);
 });
 
@@ -1091,10 +1096,10 @@ test("[workspace/1.1] Duplicate library name via different directories", async (
 		})
 	});
 
-	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
-	t.is(err.message,
-		`Multiple resolutions for the same library 'library.a' ` +
-		`in workspace '${workspace.getName()}' exist.`);
+	const {projectNameMap} = await workspace._getResolvedModules();
+	t.is(projectNameMap.get("library.a.custom")._configPath,
+		path.resolve(__dirname, "../../fixtures/collection.c/library.a/ui5-custom.yaml"));
+	t.is(projectNameMap.get("library.a")._configPath, "ui5.yaml");
 });
 
 // DEBUG: Case 2.2
@@ -1242,6 +1247,7 @@ test("[workspace/1.1] Duplicate resolutions for single lib (with missing config)
 		const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 		t.is(err.message,
 			`Multiple resolutions for the same library 'library.a' ` +
+			`(resolved to '${path.resolve("../../fixtures/collection.c.noCustomConfigForLibA/library.a")}') ` +
 			`in workspace '${workspace.getName()}' exist.`);
 	}
 );
@@ -1274,6 +1280,7 @@ test("[workspace/1.1] Duplicate resolutions for single lib (missing config last)
 		const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 		t.is(err.message,
 			`Multiple resolutions for the same library 'library.a' ` +
+			`(resolved to '${path.resolve("../../fixtures/collection.c.noCustomConfigForLibA/library.a")}') ` +
 			`in workspace '${workspace.getName()}' exist.`);
 	}
 );

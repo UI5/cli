@@ -398,7 +398,7 @@ dependencyManagement:
 
 ⚠️ Error: `Multiple resolutions for the same library 'library.a' in workspace config '<workspace config path>' exist.`
 
-### ⚠️ Case 1.11.2: [workspace/1.1] Duplicate library name via different directories
+### 🔎 Case 1.11.2: [workspace/1.1] Duplicate library name via different directories
 
 **WHEN**
 
@@ -416,7 +416,11 @@ dependencyManagement:
 
 **THEN**
 
-⚠️ Error: `Multiple resolutions for the same library 'library.a' in workspace config '<workspace config path>' exist.`
+| Resolved library | Config file used |
+|------------------|------------------|
+| `root.collection/library.a`         | `ui5-custom.yaml`
+| `another.root.collection/library.a` | `ui5-another-custom.yaml`
+
 
 ---
 ---
