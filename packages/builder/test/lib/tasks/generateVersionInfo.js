@@ -28,7 +28,9 @@ const createProjectMetadata = (names, version, type) => {
 		getName: () => key,
 		getNamespace: () => names.join("/"),
 		getVersion: () => version || "3.0.0-" + key,
-		getType: () => type || "library"
+		getType: () => type || "library",
+		getFrameworkName: () => undefined,
+		getFrameworkVersion: () => undefined
 	};
 };
 
@@ -1191,4 +1193,79 @@ test.serial("integration: Library of type 'module'", async (t) => {
 	}, oOptions);
 
 	t.is(infoLogStub.callCount, 0);
+});
+
+test.serial("task: explicit OpenUI5 framework config is forwarded", async (t) => {
+	const workspace = createWorkspace();
+	const rootProject = {
+		getName: () => "myname",
+		getVersion: () => "1.33.7",
+		getFrameworkName: () => "OpenUI5",
+		getFrameworkVersion: () => "1.136.0"
+	};
+	const oOptions = {
+		workspace,
+		dependencies: resourceFactory.createAdapter({virBasePath: "/resources/"}),
+		options: {
+			pattern: "/resources/**/.library",
+			rootProject
+		}
+	};
+	await assertCreatedVersionInfo(t, {
+		"name": "myname",
+		"scmRevision": "",
+		"version": "1.33.7",
+		"framework": {"name": "OpenUI5", "version": "1.136.0"},
+		"libraries": []
+	}, oOptions);
+});
+
+test.serial("task: explicit SAPUI5 framework config is forwarded", async (t) => {
+	const workspace = createWorkspace();
+	const rootProject = {
+		getName: () => "myname",
+		getVersion: () => "1.33.7",
+		getFrameworkName: () => "SAPUI5",
+		getFrameworkVersion: () => "1.136.0"
+	};
+	const oOptions = {
+		workspace,
+		dependencies: resourceFactory.createAdapter({virBasePath: "/resources/"}),
+		options: {
+			pattern: "/resources/**/.library",
+			rootProject
+		}
+	};
+	await assertCreatedVersionInfo(t, {
+		"name": "myname",
+		"scmRevision": "",
+		"version": "1.33.7",
+		"framework": {"name": "SAPUI5", "version": "1.136.0"},
+		"libraries": []
+	}, oOptions);
+});
+
+test.serial("task: unrecognized framework name yields empty framework", async (t) => {
+	const workspace = createWorkspace();
+	const rootProject = {
+		getName: () => "myname",
+		getVersion: () => "1.33.7",
+		getFrameworkName: () => "CustomFramework",
+		getFrameworkVersion: () => "1.0.0"
+	};
+	const oOptions = {
+		workspace,
+		dependencies: resourceFactory.createAdapter({virBasePath: "/resources/"}),
+		options: {
+			pattern: "/resources/**/.library",
+			rootProject
+		}
+	};
+	// framework not in expected → assertCreatedVersionInfo verifies it defaults to {name:"",version:""}
+	await assertCreatedVersionInfo(t, {
+		"name": "myname",
+		"scmRevision": "",
+		"version": "1.33.7",
+		"libraries": []
+	}, oOptions);
 });
