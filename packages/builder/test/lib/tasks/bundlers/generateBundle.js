@@ -88,7 +88,7 @@ test.serial("generateBundle: No taskUtil, no bundleOptions", async (t) => {
 	// bundleDefinition can be empty here as the moduleBundler is mocked
 	const bundleDefinition = {};
 
-	await generateBundle({
+	await generateBundle().task({
 		workspace,
 		dependencies,
 		options: {
@@ -160,7 +160,7 @@ test.serial("generateBundle: No bundleOptions, with taskUtil", async (t) => {
 	// bundleDefinition can be empty here as the moduleBundler is mocked
 	const bundleDefinition = {};
 
-	await generateBundle({
+	await generateBundle().task({
 		workspace,
 		dependencies,
 		taskUtil,
@@ -277,7 +277,7 @@ test.serial("generateBundle: No bundleOptions, with taskUtil and specVersion < 4
 	// bundleDefinition can be empty here as the moduleBundler is mocked
 	const bundleDefinition = {};
 
-	await generateBundle({
+	await generateBundle().task({
 		workspace,
 		dependencies,
 		taskUtil,
@@ -395,7 +395,7 @@ test.serial("generateBundle: bundleOptions: optimize=false, with taskUtil", asyn
 	const bundleDefinition = {};
 	const bundleOptions = {optimize: false};
 
-	await generateBundle({
+	await generateBundle().task({
 		workspace,
 		dependencies,
 		taskUtil,
@@ -522,7 +522,7 @@ test.serial("generateBundle: bundleOptions: sourceMap=false, with taskUtil", asy
 	const bundleDefinition = {};
 	const bundleOptions = {sourceMap: false};
 
-	await generateBundle({
+	await generateBundle().task({
 		workspace,
 		dependencies,
 		taskUtil,
@@ -621,7 +621,7 @@ test.serial("generateBundle: Empty bundle (skipIfEmpty=true)", async (t) => {
 	const bundleDefinition = {};
 	const bundleOptions = {skipIfEmpty: true};
 
-	await generateBundle({
+	await generateBundle().task({
 		workspace,
 		dependencies,
 		taskUtil,
@@ -703,7 +703,7 @@ test.serial("generateBundle: Throws error when non-debug name can't be resolved"
 	taskUtil.getTag.returns(true);
 	getNonDebugName.returns(false);
 
-	await t.throwsAsync(generateBundle({
+	await t.throwsAsync(generateBundle().task({
 		workspace,
 		dependencies,
 		taskUtil,
@@ -755,7 +755,7 @@ test.serial("generateBundle: No bundleOptions, with taskUtil, UI5 Version >= 2",
 	// bundleDefinition can be empty here as the moduleBundler is mocked
 	const bundleDefinition = {};
 
-	await generateBundle({
+	await generateBundle().task({
 		workspace,
 		dependencies,
 		taskUtil,

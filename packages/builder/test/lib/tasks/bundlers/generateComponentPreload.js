@@ -1,6 +1,7 @@
 import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
+import runTask from "../../../../lib/tasks/runTask.js";
 
 test.beforeEach(async (t) => {
 	t.context.log = {
@@ -50,7 +51,7 @@ test.serial("generateComponentPreload - one namespace", async (t) => {
 		}
 	]);
 
-	await generateComponentPreload({
+	await runTask(generateComponentPreload, {
 		workspace,
 		dependencies,
 		options: {
@@ -162,7 +163,7 @@ test.serial("generateComponentPreload - one namespace, with taskUtil and specVer
 		}
 	};
 
-	await generateComponentPreload({
+	await generateComponentPreload().task({
 		workspace,
 		dependencies,
 		taskUtil,
@@ -276,7 +277,7 @@ test.serial("generateComponentPreload - one namespace, with taskUtil and specVer
 		}
 	};
 
-	await generateComponentPreload({
+	await generateComponentPreload().task({
 		workspace,
 		dependencies,
 		taskUtil,
@@ -368,7 +369,7 @@ test.serial("generateComponentPreload - one namespace - excludes", async (t) => 
 		}
 	]);
 
-	await generateComponentPreload({
+	await generateComponentPreload().task({
 		workspace,
 		dependencies,
 		options: {
@@ -485,7 +486,7 @@ test.serial("generateComponentPreload - one namespace - excludes w/o namespace",
 			createFilterReader: () => workspace
 		}
 	};
-	await generateComponentPreload({
+	await generateComponentPreload().task({
 		workspace,
 		dependencies,
 		taskUtil,
@@ -604,7 +605,7 @@ test.serial("generateComponentPreload - multiple namespaces - excludes", async (
 		}
 	]);
 
-	await generateComponentPreload({
+	await generateComponentPreload().task({
 		workspace,
 		dependencies,
 		options: {
@@ -754,7 +755,7 @@ test.serial("generateComponentPreload - one namespace - invalid exclude", async 
 	];
 	byGlob.resolves(resources);
 
-	await generateComponentPreload({
+	await generateComponentPreload().task({
 		workspace,
 		dependencies,
 		options: {
@@ -792,7 +793,7 @@ test.serial("generateComponentPreload - nested namespaces - excludes", async (t)
 	];
 	byGlob.resolves(resources);
 
-	await generateComponentPreload({
+	await generateComponentPreload().task({
 		workspace,
 		dependencies,
 		options: {

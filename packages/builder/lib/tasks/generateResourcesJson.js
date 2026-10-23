@@ -103,15 +103,27 @@ function getCreatorOptions(projectName) {
  * @function default
  * @static
  *
+ * @param {object} options Options
+ * @param {string} options.projectName Project name
+ * @returns {module:@ui5/builder/tasks/runTask~TaskDescriptor} The task descriptor
+ */
+export default function defineTask(options) {
+	return {
+		requiresDependencies: true,
+		task
+	};
+}
+
+/**
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
- * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
+ * @returns {Promise<undefined>} Promise resolving once the resources.json has been written
  */
-export default async function({workspace, dependencies, taskUtil, options: {projectName}}) {
+async function task({workspace, dependencies, taskUtil, options: {projectName}}) {
 	let resources = await workspace.byGlob(["/resources/**/*"].concat(DEFAULT_EXCLUDES));
 	let dependencyResources =
 			await dependencies.byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}");

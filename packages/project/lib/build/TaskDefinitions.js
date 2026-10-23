@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import {getLogger} from "@ui5/logger";
+import {validateDescriptor} from "./helpers/StepRunner.js";
 
 export default class TaskDefinitions {
 	#graph;
@@ -66,7 +67,45 @@ export default class TaskDefinitions {
 			getTask: this.#taskRepository.getTask
 		});
 
+		// Complete the project-derived options every standard task's factory is called with, before any
+		// factory runs. The factory is called once per build (early for the build signature, then reused for
+		// execution), and some factories branch on these values (generateThemeDesignerResources emits its
+		// libraryTheming step only for a namespace), so an incomplete options object at signature time would
+		// produce a different descriptor than execution. Completing them here keeps one memoized descriptor
+		// valid for both phases.
+		for (const taskDef of this.#standardTasks.values()) {
+			taskDef.options = taskDef.options ?? {};
+			taskDef.options.projectName = this.#project.getName();
+			taskDef.options.projectNamespace = this.#project.getNamespace();
+		}
+
 		this.#customTasks = await this._getCustomTasks(this.#project, this.#taskUtil);
+	}
+
+	/**
+	 * Resolves and memoizes a standard task's descriptor by calling its factory (the task module's default
+	 * export) once with the completed options. A task the definition explicitly skips (<code>skip</code>) or
+	 * overrides with its own <code>taskFunction</code> has no descriptor to resolve.
+	 *
+	 * @private
+	 * @param {string} taskName Task name
+	 * @param {object} taskDef Standard task definition
+	 * @returns {Promise<object|undefined>} The validated descriptor, or <code>undefined</code> for a skipped
+	 *   or taskFunction-overridden task
+	 */
+	async #resolveStandardDescriptor(taskName, taskDef) {
+		if (taskDef.skip || taskDef.taskFunction) {
+			return undefined;
+		}
+		if (!taskDef.descriptorPromise) {
+			taskDef.descriptorPromise = (async () => {
+				const {task: factory} = await this.#taskRepository.getTask(taskName);
+				const descriptor = factory(taskDef.options);
+				validateDescriptor(descriptor, {taskName});
+				return descriptor;
+			})();
+		}
+		return taskDef.descriptorPromise;
 	}
 
 	async _getCustomTasks() {
@@ -129,14 +168,16 @@ export default class TaskDefinitions {
 		await this._initTasks();
 
 		const sigKeys = [];
-		for (const taskDef of this.#standardTasks.values()) {
-			if (taskDef.determineBuildSignature) {
-				const sig = await taskDef.determineBuildSignature();
+		for (const [taskName, taskDef] of this.#standardTasks) {
+			const descriptor = await this.#resolveStandardDescriptor(taskName, taskDef);
+			if (descriptor?.determineBuildSignature) {
+				const sig = await descriptor.determineBuildSignature();
 				if (sig) {
 					sigKeys.push(sig);
 				}
 			} else {
-				// Fallback to task options
+				// A skipped or taskFunction-overridden task has no descriptor; a descriptor without a
+				// determineBuildSignature callback falls back to its options. Both hash the task options.
 				sigKeys.push(JSON.stringify(taskDef.options));
 			}
 		}
@@ -145,25 +186,23 @@ export default class TaskDefinitions {
 		const projectNamespace = this.#project.getNamespace();
 		for (const [taskName, {taskDef, task}] of this.#customTasks) {
 			const specVersion = task.getSpecVersion();
-			const determineBuildSignatureCallback = await task.getDetermineBuildSignatureCallback();
+			const sigOptions = {
+				projectName,
+				projectNamespace,
+				configuration: taskDef.configuration,
+				taskName
+			};
+			// The determineBuildSignature callback is a descriptor property, available only from
+			// Specification Version 5.0. Below 5.0 the default export is the legacy task body, so there is no
+			// callback to honor and the signature falls back to the task configuration.
+			const determineBuildSignatureCallback = specVersion.gte("5.0") ?
+				await task.getDetermineBuildSignatureCallback(taskName, sigOptions) : undefined;
 			if (determineBuildSignatureCallback) {
-				if (specVersion.lt("5.0")) {
-					throw new Error(
-						`Custom task ${taskDef.name} of project ${projectName} uses a ` +
-						`determineBuildSignature callback, which is not supported for tasks with specVersion < 5.0. ` +
-						`Please update the task's specVersion to at least 5.0.`
-					);
-				}
 				const taskUtil = this.#taskUtil.getReadOnlyInterface(specVersion);
 				const log = getLogger(`TaskDefinitions:custom-task:${taskName}`);
 				const sig = await determineBuildSignatureCallback({
 					log,
-					options: {
-						projectName,
-						projectNamespace,
-						configuration: taskDef.configuration,
-						taskName
-					},
+					options: sigOptions,
 					taskUtil
 				});
 				if (sig) {
@@ -185,5 +224,19 @@ export default class TaskDefinitions {
 			standardTasks: this.#standardTasks,
 			customTasks: this.#customTasks
 		};
+	}
+
+	/**
+	 * Returns the memoized descriptor of a standard task (the object its factory returns), or
+	 * <code>undefined</code> for a skipped or <code>taskFunction</code>-overridden task. Shares one factory
+	 * call with {@link #getBuildSignatures}.
+	 *
+	 * @public
+	 * @param {string} taskName Task name
+	 * @param {object} taskDef Standard task definition
+	 * @returns {Promise<object|undefined>} The validated descriptor, or <code>undefined</code>
+	 */
+	async getStandardDescriptor(taskName, taskDef) {
+		return this.#resolveStandardDescriptor(taskName, taskDef);
 	}
 }

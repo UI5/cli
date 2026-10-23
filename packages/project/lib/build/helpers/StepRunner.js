@@ -119,6 +119,58 @@ export function validateSteps(steps, {taskName} = {}) {
 }
 
 /**
+ * Validates a task descriptor: the object a task factory returns from its default export, from
+ * Specification Version 5.0 (and for every built-in task). A descriptor carries the whole task
+ * contract in one object instead of the former scattered exports and flags: exactly one of
+ * <code>steps</code> (the step-based path) or <code>task</code> (a legacy single-stage body), plus the
+ * optional <code>determineRequiredDependencies</code> / <code>determineBuildSignature</code> callbacks
+ * and an optional declared <code>specVersion</code>.
+ *
+ * The rules are static over the descriptor; the factory that produced it must stay pure and cheap (it is
+ * called once per build, including early for the build signature), so it must not read or write resources
+ * or import heavy processors. The step-equality check against the task extension's configured
+ * Specification Version is NOT done here (it needs a
+ * [SpecificationVersion]{@link @ui5/project/specifications/SpecificationVersion} instance only the caller
+ * holds); this helper only validates that a declared <code>specVersion</code> is a string.
+ *
+ * @param {*} descriptor The value the task factory returned
+ * @param {object} [parameters]
+ * @param {string} [parameters.taskName] The task name, named in the error messages
+ * @throws {Error} If the descriptor is invalid
+ */
+export function validateDescriptor(descriptor, {taskName} = {}) {
+	const where = taskName ? ` for task '${taskName}'` : "";
+	if (!descriptor || typeof descriptor !== "object") {
+		throw new Error(
+			`Task factory${where} must return a descriptor object, got ${describeValue(descriptor)}`);
+	}
+	const hasSteps = descriptor.steps !== undefined;
+	const hasTask = descriptor.task !== undefined;
+	if (hasSteps === hasTask) {
+		throw new Error(
+			`Task descriptor${where} must define exactly one of 'steps' or 'task'`);
+	}
+	if (hasSteps) {
+		validateSteps(descriptor.steps, {taskName});
+	}
+	if (hasTask && typeof descriptor.task !== "function") {
+		throw new Error(
+			`Task descriptor${where} 'task' must be a function, got ${describeValue(descriptor.task)}`);
+	}
+	for (const cb of ["determineRequiredDependencies", "determineBuildSignature", "determineExpectedOutput"]) {
+		if (descriptor[cb] !== undefined && typeof descriptor[cb] !== "function") {
+			throw new Error(
+				`Task descriptor${where} '${cb}' must be a function, got ${describeValue(descriptor[cb])}`);
+		}
+	}
+	if (descriptor.specVersion !== undefined && typeof descriptor.specVersion !== "string") {
+		throw new Error(
+			`Task descriptor${where} 'specVersion' must be a string, ` +
+			`got ${describeValue(descriptor.specVersion)}`);
+	}
+}
+
+/**
  * Collects the reads and writes of a single invocation (a scalar step's one invocation, or one key of a map
  * step). Project reads (workspace) and dependency reads are kept apart so they can be folded back into
  * the task's project vs. dependency request graph independently: a dependency path folded into the
@@ -221,11 +273,11 @@ class RecordingReaderWriter extends AbstractReaderWriter {
 		return this.#workspace.byPath(virPath, options);
 	}
 
-	// Overrides _write rather than the public write (unlike @ui5/builder's runSteps BufferedWriter) because
+	// Overrides _write rather than the public write (unlike @ui5/builder's runTask BufferedWriter) because
 	// this writer also records every write for the build cache, and AbstractReaderWriter.write has already
 	// defaulted options by the time it delegates here. The buffered entry therefore stores the defaulted
 	// options as the single replay argument, which flushWriteBuffer replays via write(resource, ...args).
-	// The same-path guard, its error message and the key-order flush are shared with runSteps through
+	// The same-path guard, its error message and the key-order flush are shared with runTask through
 	// @ui5/fs/internal/stepWriteBuffer so the two runners cannot drift.
 	async _write(resource, options) {
 		const resourcePath = resource.getPath();

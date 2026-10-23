@@ -27,68 +27,81 @@ import {createAdapter} from "@ui5/fs/resourceFactory";
 /**
  * Task to execute a JSDoc build for UI5 projects
  *
+ * A factory returning the task descriptor. The factory assembles the glob patterns from
+ * <code>options.jsdocExcludes</code> and captures <code>options.namespace</code> and
+ * <code>options.version</code>, which the project definition supplies in place of the project-derived
+ * values that used to be wrapped around this task. The <code>task</code> body then uses these closure
+ * values; the per-run <code>options.projectName</code> is read from the task-run options.
+ *
+ * The factory stays pure and cheap: the heavy jsdocGenerator processor is only reached inside the
+ * <code>task</code> body, so calling the factory for the build signature loads no processor.
+ *
  * @public
  * @function default
  * @static
  *
- * @param {object} parameters Parameters
- * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
- * @param {module:@ui5/builder/tasks/jsdoc/generateJsdoc~GenerateJsdocOptions} parameters.options Options
- * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
- * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
+ * @param {object} options Options
+ * @param {string} options.namespace Namespace to build (e.g. <code>some/project/name</code>)
+ * @param {string} options.version Project version
+ * @param {string[]} [options.jsdocExcludes=[]] List of exclude patterns, relative to <code>/resources/</code>
+ * @returns {module:@ui5/builder/tasks/runTask~TaskDescriptor} The task descriptor
  */
-export default async function generateJsdoc({
-	taskUtil,
-	workspace,
-	dependencies,
-	options = {}
-}) {
-	const {projectName, namespace, version, pattern} =
-	/** @type {module:@ui5/builder/tasks/jsdoc/generateJsdoc~GenerateJsdocOptions} */ (options);
+export default function defineTask(options) {
+	const {version, namespace, jsdocExcludes = []} = options;
+	const patterns = ["/resources/**/*.js", ...jsdocExcludes.map((p) => `!/resources/${p}`)];
 
-	if (!projectName || !namespace || !version || !pattern) {
-		throw new Error("[generateJsdoc]: One or more mandatory options not provided");
-	}
+	const task = async function({taskUtil, workspace, dependencies, options = {}}) {
+		const {projectName} = options;
 
-	const {sourcePath: resourcePath, targetPath, tmpPath, cleanup} =
-		await utils.createTmpDirs(projectName);
-
-	taskUtil?.registerCleanupTask(cleanup);
-
-	const [writtenResourcesCount] = await Promise.all([
-		utils.writeResourcesToDir({
-			workspace,
-			pattern,
-			targetPath: resourcePath
-		}),
-		utils.writeDependencyApisToDir({
-			dependencies,
-			targetPath: path.join(tmpPath, "dependency-apis")
-		})
-	]);
-
-	if (writtenResourcesCount === 0) {
-		log.info(`Failed to find any input resources for project ${projectName} using pattern ` +
-			`${pattern}. Skipping JSDoc generation...`);
-		return;
-	}
-
-	const createdResources = await jsdocGenerator({
-		sourcePath: resourcePath,
-		targetPath,
-		tmpPath,
-		options: {
-			projectName,
-			namespace,
-			version,
-			variants: ["apijson"]
+		if (!projectName || !namespace || !version || !patterns.length) {
+			throw new Error("[generateJsdoc]: One or more mandatory options not provided");
 		}
-	});
 
-	await Promise.all(createdResources.map((resource) => {
-		return workspace.write(resource);
-	}));
+		const {sourcePath: resourcePath, targetPath, tmpPath, cleanup} =
+			await utils.createTmpDirs(projectName);
+
+		taskUtil?.registerCleanupTask(cleanup);
+
+		const [writtenResourcesCount] = await Promise.all([
+			utils.writeResourcesToDir({
+				workspace,
+				pattern: patterns,
+				targetPath: resourcePath
+			}),
+			utils.writeDependencyApisToDir({
+				dependencies,
+				targetPath: path.join(tmpPath, "dependency-apis")
+			})
+		]);
+
+		if (writtenResourcesCount === 0) {
+			log.info(`Failed to find any input resources for project ${projectName} using pattern ` +
+				`${patterns}. Skipping JSDoc generation...`);
+			return;
+		}
+
+		const createdResources = await jsdocGenerator({
+			sourcePath: resourcePath,
+			targetPath,
+			tmpPath,
+			options: {
+				projectName,
+				namespace,
+				version,
+				variants: ["apijson"]
+			}
+		});
+
+		await Promise.all(createdResources.map((resource) => {
+			return workspace.write(resource);
+		}));
+	};
+
+	return {
+		requiresDependencies: true,
+		determineBuildSignature: async () => version,
+		task
+	};
 }
 
 const utils = {
@@ -191,5 +204,5 @@ const utils = {
 // Export utils for testing only
 /* istanbul ignore else */
 if (process.env.NODE_ENV === "test") {
-	generateJsdoc._utils = utils;
+	defineTask._utils = utils;
 }

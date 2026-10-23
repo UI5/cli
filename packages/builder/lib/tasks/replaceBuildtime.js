@@ -34,10 +34,10 @@ function formatTimestamp(date) {
  *
  * @param {object} options Options
  * @param {string} options.pattern Pattern to locate the files to be processed
- * @returns {object[]} The task's build steps
+ * @returns {module:@ui5/builder/tasks/runTask~TaskDescriptor} The task descriptor with its build steps
  */
-export default function build({pattern}) {
-	return [{
+export default function defineTask({pattern}) {
+	return {steps: [{
 		name: "replaceBuildtime",
 		// One key per matched resource, so a delta build re-processes only the resources that changed.
 		keys: async ({workspace}) => workspace.byGlob(pattern),
@@ -53,5 +53,5 @@ export default function build({pattern}) {
 				await workspace.write(processed);
 			}
 		},
-	}];
+	}]};
 }

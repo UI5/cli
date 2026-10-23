@@ -2,25 +2,28 @@ import {getLogger} from "@ui5/logger";
 const log = getLogger("builder:tasks:transformBootstrapHtml");
 import bootstrapHtmlTransformer from "../processors/bootstrapHtmlTransformer.js";
 
-/* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
 /**
  * Task for transforming the application bootstrap HTML file.
  *
  * @module builder/tasks/transformBootstrapHtml
+ * @returns {module:@ui5/builder/tasks/runTask~TaskDescriptor} The task descriptor
+ */
+export default function defineTask() {
+	return {task};
+}
+
+/**
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @param {string} [parameters.options.projectNamespace] Project namespace
- * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
+ * @returns {Promise<undefined>} Promise resolving once the bootstrap HTML has been transformed
  */
-export default async function({workspace, options}) {
-	const {projectName} = options;
-	const namespace = options.projectNamespace;
-
+async function task({workspace, options: {projectName, projectNamespace}}) {
 	let indexPath;
-	if (namespace) {
-		indexPath = `/resources/${namespace}/index.html`;
+	if (projectNamespace) {
+		indexPath = `/resources/${projectNamespace}/index.html`;
 	} else {
 		indexPath = "/index.html";
 	}

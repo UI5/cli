@@ -1,5 +1,5 @@
 import test from "ava";
-import runSteps from "../../../lib/tasks/runSteps.js";
+import runTask from "../../../lib/tasks/runTask.js";
 
 function createResource(resourcePath, content = resourcePath) {
 	return {
@@ -34,13 +34,13 @@ function createWorkspace(initial = []) {
 test("Runs a scalar step and threads its return into a consumer via needs", async (t) => {
 	const workspace = createWorkspace();
 	let consumed;
-	await runSteps((options) => [
+	await runTask((options) => ({steps: [
 		{name: "scan", run: async () => ({flag: options.flag})},
 		{name: "use", needs: ["scan"], run: async ({needs, workspace}) => {
 			consumed = needs.scan;
 			await workspace.write(createResource("/out"));
 		}},
-	], {workspace, options: {flag: 42}});
+	]}), {workspace, options: {flag: 42}});
 
 	t.deepEqual(consumed, {flag: 42}, "The producer's return arrived as needs.scan");
 	t.true(workspace.store.has("/out"), "The consumer's write persisted");
@@ -49,12 +49,12 @@ test("Runs a scalar step and threads its return into a consumer via needs", asyn
 test("Fans out a map step's keys and writes each", async (t) => {
 	const workspace = createWorkspace();
 	const ran = [];
-	await runSteps(() => [
+	await runTask(() => ({steps: [
 		{name: "m", keys: async () => ["a", "b", "c"], each: async (key, {workspace}) => {
 			ran.push(key);
 			await workspace.write(createResource(`/out/${key}`));
 		}},
-	], {workspace});
+	]}), {workspace});
 
 	t.deepEqual(ran.sort(), ["a", "b", "c"], "each ran once per key");
 	t.true(workspace.store.has("/out/a") && workspace.store.has("/out/b") && workspace.store.has("/out/c"),
@@ -64,20 +64,20 @@ test("Fans out a map step's keys and writes each", async (t) => {
 test("A producer return reaches a map step's keys and each", async (t) => {
 	const workspace = createWorkspace();
 	const eachSaw = [];
-	await runSteps(() => [
+	await runTask(() => ({steps: [
 		{name: "scan", run: async () => ({wanted: ["x", "y"]})},
 		{name: "build", needs: ["scan"], keys: async ({needs}) => needs.scan.wanted,
 			each: async (key, {needs}) => {
 				eachSaw.push([key, needs.scan.wanted.length]);
 			}},
-	], {workspace});
+	]}), {workspace});
 
 	t.deepEqual(eachSaw.sort(), [["x", 2], ["y", 2]], "each saw the producer return per key");
 });
 
 test("A concurrent map step flushes its writes in key order", async (t) => {
 	const workspace = createWorkspace();
-	await runSteps(() => [
+	await runTask(() => ({steps: [
 		{name: "m", keys: async () => ["a", "b", "c"], each: async (key, {workspace}) => {
 			// Reverse the natural completion order so the key-order flush is observable.
 			if (key === "a") {
@@ -85,7 +85,7 @@ test("A concurrent map step flushes its writes in key order", async (t) => {
 			}
 			await workspace.write(createResource(`/${key}.out`));
 		}},
-	], {workspace});
+	]}), {workspace});
 
 	t.deepEqual(workspace.writeOrder, ["/a.out", "/b.out", "/c.out"],
 		"Buffered writes flushed in key order regardless of completion order");
@@ -94,7 +94,7 @@ test("A concurrent map step flushes its writes in key order", async (t) => {
 test("A sequential map step makes an earlier key's write visible to a later key", async (t) => {
 	const workspace = createWorkspace();
 	let secondSawFirst = false;
-	await runSteps(() => [
+	await runTask(() => ({steps: [
 		{name: "m", sequential: true, keys: async () => ["first", "second"], each: async (key, {workspace}) => {
 			if (key === "first") {
 				await workspace.write(createResource("/shared"));
@@ -102,7 +102,7 @@ test("A sequential map step makes an earlier key's write visible to a later key"
 				secondSawFirst = !!(await workspace.byPath("/shared"));
 			}
 		}},
-	], {workspace});
+	]}), {workspace});
 
 	t.true(secondSawFirst, "The second key read the first key's write");
 });
@@ -111,11 +111,11 @@ test("Concurrent map-step keys writing the same path throw", async (t) => {
 	const workspace = createWorkspace();
 	const inputA = createResource("/resources/first.js");
 	const inputB = createResource("/resources/second.js");
-	const err = await t.throwsAsync(runSteps(() => [
+	const err = await t.throwsAsync(runTask(() => ({steps: [
 		{name: "m", keys: async () => [inputA, inputB], each: async (key, {workspace}) => {
 			await workspace.write(createResource("/same"));
 		}},
-	], {workspace}));
+	]}), {workspace}));
 	// The exact user-visible message, shared with the cached runner through @ui5/fs/internal/stepWriteBuffer.
 	t.is(err.message,
 		"Concurrent map step 'm' tried to write '/same' for invocations '/resources/first.js' and " +
@@ -125,7 +125,7 @@ test("Concurrent map-step keys writing the same path throw", async (t) => {
 
 test("A concurrent map step preserves each key's write arguments through the flush", async (t) => {
 	const workspace = createWorkspace();
-	await runSteps(() => [
+	await runTask(() => ({steps: [
 		{name: "m", keys: async () => ["with", "without"], each: async (key, {workspace}) => {
 			if (key === "with") {
 				await workspace.write(createResource("/with"), {drain: true});
@@ -134,7 +134,7 @@ test("A concurrent map step preserves each key's write arguments through the flu
 				await workspace.write(createResource("/without"));
 			}
 		}},
-	], {workspace});
+	]}), {workspace});
 
 	t.deepEqual(workspace.writeOrder, ["/with", "/without"], "Flushed in key order");
 	t.deepEqual(workspace.writeArgs, [[{drain: true}], []],
@@ -144,14 +144,14 @@ test("A concurrent map step preserves each key's write arguments through the flu
 test("A later step sees an earlier step's write", async (t) => {
 	const workspace = createWorkspace();
 	let laterSaw = false;
-	await runSteps(() => [
+	await runTask(() => ({steps: [
 		{name: "first", run: async ({workspace}) => {
 			await workspace.write(createResource("/from-first"));
 		}},
 		{name: "second", run: async ({workspace}) => {
 			laterSaw = !!(await workspace.byPath("/from-first"));
 		}},
-	], {workspace});
+	]}), {workspace});
 
 	t.true(laterSaw, "The second step read the first step's write");
 });
@@ -161,11 +161,11 @@ test("taskUtil and dependencies are passed through to steps", async (t) => {
 	const taskUtil = {marker: "taskUtil"};
 	const dependencies = {marker: "dependencies"};
 	let seen;
-	await runSteps(() => [
+	await runTask(() => ({steps: [
 		{name: "s", run: async (ctx) => {
 			seen = {taskUtil: ctx.taskUtil, dependencies: ctx.dependencies};
 		}},
-	], {workspace, taskUtil, dependencies});
+	]}), {workspace, taskUtil, dependencies});
 
 	t.is(seen.taskUtil, taskUtil, "taskUtil passed through");
 	t.is(seen.dependencies, dependencies, "dependencies passed through");
@@ -173,6 +173,126 @@ test("taskUtil and dependencies are passed through to steps", async (t) => {
 
 test("An empty step list is a no-op", async (t) => {
 	const workspace = createWorkspace();
-	await runSteps(() => [], {workspace});
+	await runTask(() => ({steps: []}), {workspace});
 	t.is(workspace.store.size, 0, "Nothing written");
+});
+
+test("Runs a non-step-based task", async (t) => {
+	const workspace = createWorkspace();
+	const dependencies = {marker: "dependencies"};
+	const taskUtil = {marker: "taskUtil"};
+	const options = {marker: "options"};
+	let receivedParameters;
+
+	await runTask((receivedOptions) => {
+		t.is(receivedOptions, options, "Options passed to the task factory");
+		return {
+			task: async (parameters) => {
+				receivedParameters = parameters;
+				await parameters.workspace.write(createResource("/out"));
+			},
+		};
+	}, {workspace, dependencies, taskUtil, options});
+
+	t.deepEqual(receivedParameters, {workspace, dependencies, taskUtil, options},
+		"The task body received all runTask parameters");
+	t.true(workspace.store.has("/out"), "The task body completed before runTask resolved");
+});
+
+test("Descriptor validation accepts supported metadata", async (t) => {
+	const workspace = createWorkspace();
+	await t.notThrowsAsync(runTask(() => ({
+		steps: [],
+		determineRequiredDependencies: () => [],
+		determineBuildSignature: () => "signature",
+		determineExpectedOutput: () => [],
+		specVersion: "5.0",
+	}), {workspace}));
+});
+
+test("Descriptor validation rejects invalid declarations", async (t) => {
+	const workspace = createWorkspace();
+	const cases = [
+		{
+			descriptor: undefined,
+			options: {taskName: "myTask"},
+			message: "Task factory for task 'myTask' must return a descriptor object, got undefined",
+		},
+		{
+			descriptor: null,
+			message: "Task factory must return a descriptor object, got null",
+		},
+		{
+			descriptor: "task",
+			message: "Task factory must return a descriptor object, got a string",
+		},
+		{
+			descriptor: {},
+			message: "Task descriptor must define exactly one of 'steps' or 'task'",
+		},
+		{
+			descriptor: {steps: [], task: async () => {}},
+			message: "Task descriptor must define exactly one of 'steps' or 'task'",
+		},
+		{
+			descriptor: {task: {}},
+			message: "Task descriptor 'task' must be a function, got a plain object",
+		},
+		{
+			descriptor: {task: new Date()},
+			message: "Task descriptor 'task' must be a function, got a Date",
+		},
+		...(["determineRequiredDependencies", "determineBuildSignature", "determineExpectedOutput"].map(
+			(callback) => ({
+				descriptor: {steps: [], [callback]: true},
+				message: `Task descriptor '${callback}' must be a function, got a boolean`,
+			}))),
+		{
+			descriptor: {steps: [], specVersion: 5},
+			message: "Task descriptor 'specVersion' must be a string, got a number",
+		},
+	];
+
+	for (const {descriptor, options, message} of cases) {
+		await t.throwsAsync(runTask(() => descriptor, {workspace, options}), {message});
+	}
+});
+
+test("Descriptor validation rejects invalid step declarations before execution", async (t) => {
+	const workspace = createWorkspace();
+	let firstStepRan = false;
+	const cases = [
+		{steps: undefined, message: "Task descriptor must define exactly one of 'steps' or 'task'"},
+		{steps: {}, message: "Step factory must return an array of step objects, got a plain object"},
+		{steps: [null], message: "Step at index 0 must be an object, got null"},
+		{steps: [{run: async () => {}}], message: "Step at index 0 must have a non-empty string 'name'"},
+		{steps: [{name: "", run: async () => {}}],
+			message: "Step at index 0 must have a non-empty string 'name'"},
+		{steps: [{name: "duplicate", run: async () => {}}, {name: "duplicate", run: async () => {}}],
+			message: "Duplicate step name 'duplicate'"},
+		{steps: [{name: "map", keys: async () => []}],
+			message: "Map step 'map' must define both 'keys' and 'each' functions"},
+		{steps: [{name: "map", each: async () => {}}],
+			message: "Map step 'map' must define both 'keys' and 'each' functions"},
+		{steps: [{name: "bad"}],
+			message: "Step 'bad' must be either a scalar step ({name, run}) or a map step ({name, keys, each})"},
+		{steps: [{name: "bad", run: async () => {}, keys: async () => [], each: async () => {}}],
+			message: "Step 'bad' must be either a scalar step ({name, run}) or a map step ({name, keys, each})"},
+		{steps: [{name: "first", run: async () => {}}, {name: "second", needs: "first", run: async () => {}}],
+			message: "Step 'second' 'needs' must be an array of earlier step names, got a string"},
+		{steps: [{name: "first", run: async () => {}}, {name: "second", needs: [1], run: async () => {}}],
+			message: "Step 'second' 'needs' entries must be strings; entry 0 is a number"},
+		{steps: [
+			{name: "first", run: async () => {
+				firstStepRan = true;
+			}},
+			{name: "second", needs: ["later"], run: async () => {}},
+			{name: "later", run: async () => {}},
+		], message: "Step 'second' needs 'later', which is not an earlier step"},
+	];
+
+	for (const {steps, message} of cases) {
+		await t.throwsAsync(runTask(() => ({steps}), {workspace}), {message});
+	}
+	t.false(firstStepRan, "The complete step list was validated before the first step ran");
 });

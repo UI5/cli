@@ -17,7 +17,7 @@ async function assertCreatedManifest(t, oExpectedManifest) {
 
 	await Promise.all(resources.map((resource) => workspace.write(resource)));
 
-	await generateLibraryManifest({
+	await generateLibraryManifest().task({
 		workspace,
 		taskUtil: {
 			getProject: () => {

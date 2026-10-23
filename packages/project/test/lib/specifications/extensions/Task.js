@@ -124,6 +124,46 @@ test("getExpectedOutputCallback (ESM)", async (t) => {
 	t.is(callback, undefined, "Returns undefined when not exported");
 });
 
+test.serial("getDescriptor memoizes descriptors per project and runtime task name", async (t) => {
+	const taskInput = clone(basicEsmTaskInput);
+	taskInput.configuration.specVersion = "5.0";
+	const extension = await Specification.create(taskInput);
+	const factory = sinon.stub().callsFake((options) => ({
+		task: async () => options.projectName,
+		determineBuildSignature: async () => options.projectName
+	}));
+	sinon.stub(extension, "_getImplementation").resolves({default: factory});
+
+	const projectAOptions = {
+		projectName: "project.a",
+		projectNamespace: "project/a",
+		configuration: {value: "a"}
+	};
+	const projectBOptions = {
+		projectName: "project.b",
+		projectNamespace: "project/b",
+		configuration: {value: "b"}
+	};
+
+	const projectASignature =
+		await extension.getDetermineBuildSignatureCallback("task-a", projectAOptions);
+	const projectBSignature =
+		await extension.getDetermineBuildSignatureCallback("task-a", projectBOptions);
+	const projectADescriptor = await extension.getDescriptor("task-a", projectAOptions);
+	const projectASecondCall = await extension.getDescriptor("task-a", {...projectAOptions});
+	const projectBDescriptor = await extension.getDescriptor("task-a", projectBOptions);
+	const projectASecondTask = await extension.getDescriptor("task-a--2", projectAOptions);
+
+	t.is(projectASecondCall, projectADescriptor, "Reused the descriptor within one project");
+	t.not(projectBDescriptor, projectADescriptor, "Created a separate descriptor for another project");
+	t.not(projectASecondTask, projectADescriptor, "Created a separate descriptor for another runtime task");
+	t.is(await projectASignature(), "project.a", "The first signature callback captured project A's options");
+	t.is(await projectBSignature(), "project.b", "The second signature callback captured project B's options");
+	t.is(await projectADescriptor.task(), "project.a", "The first descriptor captured project A's options");
+	t.is(await projectBDescriptor.task(), "project.b", "The second descriptor captured project B's options");
+	t.is(factory.callCount, 3, "Called the factory once per project and runtime task");
+});
+
 test("Extension abstract class cannot be directly instantiated", (t) => {
 	t.throws(() => new Extension({configuration: {}}), {
 		instanceOf: TypeError,

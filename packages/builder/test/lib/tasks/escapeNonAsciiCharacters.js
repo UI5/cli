@@ -1,5 +1,5 @@
 import test from "ava";
-import runSteps from "../../../lib/tasks/runSteps.js";
+import runTask from "../../../lib/tasks/runTask.js";
 import escapeNonAsciiCharacters from "../../../lib/tasks/escapeNonAsciiCharacters.js";
 import {createAdapter, createResource} from "@ui5/fs/resourceFactory";
 import DuplexCollection from "@ui5/fs/DuplexCollection";
@@ -33,7 +33,7 @@ city=Ort:`;
 	});
 
 	await workspace.write(resource);
-	await runSteps(escapeNonAsciiCharacters, {
+	await runTask(escapeNonAsciiCharacters, {
 		workspace,
 		options: {
 			encoding: "UTF-8",
@@ -80,7 +80,7 @@ city=Ort:`;
 	});
 
 	await workspace.write(resource);
-	await runSteps(escapeNonAsciiCharacters, {
+	await runTask(escapeNonAsciiCharacters, {
 		workspace,
 		options: {
 			encoding: "ISO-8859-1",

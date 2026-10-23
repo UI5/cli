@@ -65,7 +65,6 @@ function getBundleDefinition(config) {
  * @module @ui5/builder/tasks/bundlers/generateStandaloneAppBundle
  */
 
-/* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
 /**
  * Task for bundling standalone applications.
  *
@@ -73,6 +72,19 @@ function getBundleDefinition(config) {
  * @function default
  * @static
  *
+ * @param {object} options Options
+ * @param {string} options.projectName Project name
+ * @param {string} [options.projectNamespace] Project namespace
+ * @returns {module:@ui5/builder/tasks/runTask~TaskDescriptor} The task descriptor
+ */
+export default function defineTask(options) {
+	return {
+		requiresDependencies: true,
+		task
+	};
+}
+
+/**
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
@@ -80,11 +92,10 @@ function getBundleDefinition(config) {
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @param {string} [parameters.options.projectNamespace] Project namespace
- * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
+ * @returns {Promise<undefined>} Promise resolving once the standalone app bundle has been written
  */
-export default async function({workspace, dependencies, taskUtil, options}) {
-	const {projectName} = options;
-	const namespace = options.projectNamespace;
+async function task({workspace, dependencies, taskUtil, options: {projectName, projectNamespace}}) {
+	const namespace = projectNamespace;
 	const coreVersion = taskUtil?.getProject("sap.ui.core")?.getVersion();
 
 	if (!namespace) {

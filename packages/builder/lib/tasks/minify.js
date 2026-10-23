@@ -28,9 +28,9 @@ const log = getLogger("builder:tasks:minify");
  * @param {boolean} [options.useInputSourceMaps=true] Whether to make use of any existing source
  * 		maps referenced in the resources to be minified. Use this option to preserve reference to the original
  * 		source files, such as TypeScript files, in the generated source map.
- * @returns {object[]} The task's build steps
+ * @returns {module:@ui5/builder/tasks/runTask~TaskDescriptor} The task descriptor with its build steps
  */
-export default function build({pattern, omitSourceMapResources = false, useInputSourceMaps = true}) {
+export default function defineTask({pattern, omitSourceMapResources = false, useInputSourceMaps = true}) {
 	const minifierOptions = {
 		addSourceMappingUrl: !omitSourceMapResources,
 		readSourceMappingUrl: !!useInputSourceMaps,
@@ -66,7 +66,7 @@ export default function build({pattern, omitSourceMapResources = false, useInput
 		]);
 	};
 
-	return [{
+	return {steps: [{
 		name: "minify",
 		// One key per matched resource, so a delta build re-minifies only the resources whose inputs
 		// changed. The input source map is read through the step's workspace and thus tracked per step.
@@ -118,5 +118,5 @@ export default function build({pattern, omitSourceMapResources = false, useInput
 			});
 			await tagAndWrite(processed, workspace, taskUtil);
 		},
-	}];
+	}]};
 }

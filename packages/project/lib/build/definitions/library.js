@@ -14,7 +14,6 @@ import {enhanceBundlesWithDefaults} from "../../validation/validator.js";
 export default function({project, taskUtil, getTask}) {
 	const tasks = new Map();
 	tasks.set("escapeNonAsciiCharacters", {
-		stepBased: true,
 		options: {
 			encoding: project.getPropertiesFileSourceEncoding(),
 			pattern: "/**/*.properties"
@@ -22,7 +21,6 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("replaceCopyright", {
-		stepBased: true,
 		options: {
 			copyright: project.getCopyright(),
 			pattern: "/**/*.{js,library,css,less,theme,html}"
@@ -30,7 +28,6 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("replaceVersion", {
-		stepBased: true,
 		options: {
 			version: project.getVersion(),
 			pattern: "/**/*.{js,json,library,css,less,theme,html}"
@@ -38,43 +35,22 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("replaceBuildtime", {
-		stepBased: true,
 		options: {
 			pattern: "/resources/sap/ui/{Global,core/Core}.js"
 		}
 	});
 
+	// The task's requiresDependencies flag and its determineBuildSignature callback live on the task
+	// module's descriptor now; the definition only supplies the project-derived options the factory needs.
 	tasks.set("generateJsdoc", {
-		requiresDependencies: true,
-		determineBuildSignature: async () => {
-			return project.getVersion();
-		},
-		taskFunction: async ({workspace, dependencies, taskUtil, options}) => {
-			const patterns = ["/resources/**/*.js"];
-			// Add excludes
-			const excludes = project.getJsdocExcludes();
-			if (excludes.length) {
-				patterns.push(...excludes.map((pattern) => {
-					return `!/resources/${pattern}`;
-				}));
-			}
-			const generateJsdocTask = await getTask("generateJsdoc");
-			return generateJsdocTask.task({
-				workspace,
-				dependencies,
-				taskUtil,
-				options: {
-					projectName: options.projectName,
-					namespace: project.getNamespace(),
-					version: project.getVersion(),
-					pattern: patterns
-				}
-			});
+		options: {
+			namespace: project.getNamespace(),
+			version: project.getVersion(),
+			jsdocExcludes: project.getJsdocExcludes()
 		}
 	});
 
 	tasks.set("executeJsdocSdkTransformation", {
-		requiresDependencies: true,
 		options: {
 			dotLibraryPattern: "/resources/**/*.library",
 		}
@@ -90,7 +66,6 @@ export default function({project, taskUtil, getTask}) {
 	}
 
 	tasks.set("minify", {
-		stepBased: true,
 		options: {
 			pattern: minificationPattern
 		}
@@ -100,10 +75,10 @@ export default function({project, taskUtil, getTask}) {
 	if (project.getSpecVersion().lt("5.0") || project.isFrameworkProject()) {
 		tasks.set("generateLibraryManifest", {});
 	} else {
-		tasks.set("generateLibraryManifest", {taskFunction: null});
+		tasks.set("generateLibraryManifest", {skip: true});
 	}
 
-	tasks.set("enhanceManifest", {stepBased: true});
+	tasks.set("enhanceManifest", {});
 
 	const bundles = project.getBundles();
 	const existingBundleDefinitionNames =
@@ -121,7 +96,7 @@ export default function({project, taskUtil, getTask}) {
 			}
 		});
 	} else {
-		tasks.set("generateComponentPreload", {taskFunction: null});
+		tasks.set("generateComponentPreload", {skip: true});
 	}
 
 	tasks.set("generateLibraryPreload", {
@@ -132,16 +107,21 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	if (bundles.length) {
+		// The generateBundle task module resolves one bundle per call. Resolving the per-bundle defaults
+		// needs enhanceBundlesWithDefaults, which lives in @ui5/project and cannot move into @ui5/builder, so
+		// the multi-bundle wrapper stays here. It reads the task module's descriptor via getTask and drives
+		// descriptor.task once per bundle.
 		tasks.set("generateBundle", {
 			requiresDependencies: true,
 			taskFunction: async ({workspace, dependencies, taskUtil, options}) => {
-				const generateBundleTask = await getTask("generateBundle");
+				const {task} = await getTask("generateBundle");
+				const {task: generateBundle} = task(options);
 				// Async resolve default values for bundle definitions and options
 				const bundlesDefaults = await enhanceBundlesWithDefaults(bundles, taskUtil.getProject());
 
 				return bundlesDefaults.reduce(function(sequence, bundle) {
 					return sequence.then(function() {
-						return generateBundleTask.task({
+						return generateBundle({
 							workspace,
 							dependencies,
 							taskUtil,
@@ -156,12 +136,10 @@ export default function({project, taskUtil, getTask}) {
 			}
 		});
 	} else {
-		tasks.set("generateBundle", {taskFunction: null});
+		tasks.set("generateBundle", {skip: true});
 	}
 
 	tasks.set("buildThemes", {
-		stepBased: true,
-		requiresDependencies: true,
 		options: {
 			projectName: project.getName(),
 			librariesPattern: !taskUtil.isRootProject() ? "/resources/**/(*.library|library.js)" : undefined,
@@ -172,19 +150,15 @@ export default function({project, taskUtil, getTask}) {
 
 	if (project.isFrameworkProject()) {
 		tasks.set("generateThemeDesignerResources", {
-			stepBased: true,
-			requiresDependencies: true,
 			options: {
 				version: project.getVersion()
 			}
 		});
 	} else {
-		tasks.set("generateThemeDesignerResources", {taskFunction: null});
+		tasks.set("generateThemeDesignerResources", {skip: true});
 	}
 
-	tasks.set("generateResourcesJson", {
-		requiresDependencies: true
-	});
+	tasks.set("generateResourcesJson", {});
 
 	return tasks;
 }

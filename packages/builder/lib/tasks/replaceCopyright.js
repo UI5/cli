@@ -31,16 +31,16 @@ import stringReplacer from "../processors/stringReplacer.js";
  * @param {object} options Options
  * @param {string} options.copyright Replacement copyright
  * @param {string} options.pattern Pattern to locate the files to be processed
- * @returns {object[]} The task's build steps
+ * @returns {module:@ui5/builder/tasks/runTask~TaskDescriptor} The task descriptor with its build steps
  */
-export default function build({copyright, pattern}) {
+export default function defineTask({copyright, pattern}) {
 	if (!copyright) {
-		return [];
+		return {steps: []};
 	}
 
 	const replacePattern = /(?:\$\{copyright\}|@copyright@)/g;
 
-	return [{
+	return {steps: [{
 		name: "replaceCopyright",
 		// One key per matched resource, so a delta build re-processes only the resources that changed.
 		keys: async ({workspace}) => workspace.byGlob(pattern),
@@ -59,5 +59,5 @@ export default function build({copyright, pattern}) {
 				await workspace.write(processed);
 			}
 		},
-	}];
+	}]};
 }

@@ -50,25 +50,21 @@ test("Standard build", (t) => {
 
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
-			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
-			stepBased: true,
 			options: {
 				copyright: "copyright", pattern: "/**/*.{js,json}"
 			},
 		},
 		replaceVersion: {
-			stepBased: true,
 			options: {
 				version: "version", pattern: "/**/*.{js,json}"
 			},
 		},
 		minify: {
-			stepBased: true,
 			options: {
 				pattern: [
 					"/**/*.js",
@@ -76,7 +72,7 @@ test("Standard build", (t) => {
 				]
 			},
 		},
-		enhanceManifest: {stepBased: true},
+		enhanceManifest: {},
 		generateFlexChangesBundle: {},
 		generateComponentPreload: {
 			options: {
@@ -85,15 +81,10 @@ test("Standard build", (t) => {
 				skipBundles: []
 			}
 		},
-		generateStandaloneAppBundle: {
-			requiresDependencies: true
-		},
+		generateStandaloneAppBundle: {},
 		transformBootstrapHtml: {},
-		generateBundle: {
-			taskFunction: null
-		},
+		generateBundle: {skip: true},
 		generateVersionInfo: {
-			requiresDependencies: true,
 			options: {
 				rootProject: project,
 				pattern: "/resources/**/.library"
@@ -104,12 +95,8 @@ test("Standard build", (t) => {
 				signatureType: "PONY"
 			}
 		},
-		generateApiIndex: {
-			requiresDependencies: true
-		},
-		generateResourcesJson: {
-			requiresDependencies: true
-		}
+		generateApiIndex: {},
+		generateResourcesJson: {}
 	}, "Correct task definitions");
 
 	t.is(taskUtil.getBuildOption.callCount, 0, "taskUtil#getBuildOption has not been called");
@@ -134,25 +121,21 @@ test("Standard build with legacy spec version", (t) => {
 
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
-			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
-			stepBased: true,
 			options: {
 				copyright: "copyright", pattern: "/**/*.{js,json}"
 			},
 		},
 		replaceVersion: {
-			stepBased: true,
 			options: {
 				version: "version", pattern: "/**/*.{js,json}"
 			},
 		},
 		minify: {
-			stepBased: true,
 			options: {
 				pattern: [
 					"/**/*.js",
@@ -160,7 +143,7 @@ test("Standard build with legacy spec version", (t) => {
 				]
 			},
 		},
-		enhanceManifest: {stepBased: true},
+		enhanceManifest: {},
 		generateFlexChangesBundle: {},
 		generateComponentPreload: {
 			options: {
@@ -169,15 +152,10 @@ test("Standard build with legacy spec version", (t) => {
 				skipBundles: []
 			}
 		},
-		generateStandaloneAppBundle: {
-			requiresDependencies: true
-		},
+		generateStandaloneAppBundle: {},
 		transformBootstrapHtml: {},
-		generateBundle: {
-			taskFunction: null
-		},
+		generateBundle: {skip: true},
 		generateVersionInfo: {
-			requiresDependencies: true,
 			options: {
 				rootProject: project,
 				pattern: "/resources/**/.library"
@@ -188,12 +166,8 @@ test("Standard build with legacy spec version", (t) => {
 				signatureType: "PONY"
 			}
 		},
-		generateApiIndex: {
-			requiresDependencies: true
-		},
-		generateResourcesJson: {
-			requiresDependencies: true
-		}
+		generateApiIndex: {},
+		generateResourcesJson: {}
 	}, "Correct task definitions");
 });
 
@@ -240,8 +214,9 @@ test("Custom bundles", async (t) => {
 	}];
 
 	const generateBundleTaskStub = sinon.stub();
+	const generateBundleFactoryStub = sinon.stub().returns({task: generateBundleTaskStub});
 	getTask.returns({
-		task: generateBundleTaskStub
+		task: generateBundleFactoryStub
 	});
 
 	const tasks = application({
@@ -251,25 +226,21 @@ test("Custom bundles", async (t) => {
 
 	t.deepEqual(Object.fromEntries(tasks), {
 		escapeNonAsciiCharacters: {
-			stepBased: true,
 			options: {
 				encoding: "UTF-412", pattern: "/**/*.properties"
 			}
 		},
 		replaceCopyright: {
-			stepBased: true,
 			options: {
 				copyright: "copyright", pattern: "/**/*.{js,json}"
 			},
 		},
 		replaceVersion: {
-			stepBased: true,
 			options: {
 				version: "version", pattern: "/**/*.{js,json}"
 			},
 		},
 		minify: {
-			stepBased: true,
 			options: {
 				pattern: [
 					"/**/*.js",
@@ -277,7 +248,7 @@ test("Custom bundles", async (t) => {
 				]
 			},
 		},
-		enhanceManifest: {stepBased: true},
+		enhanceManifest: {},
 		generateFlexChangesBundle: {},
 		generateComponentPreload: {
 			options: {
@@ -289,16 +260,13 @@ test("Custom bundles", async (t) => {
 				]
 			}
 		},
-		generateStandaloneAppBundle: {
-			requiresDependencies: true
-		},
+		generateStandaloneAppBundle: {},
 		transformBootstrapHtml: {},
 		generateBundle: {
 			requiresDependencies: true,
 			taskFunction: generateBundleTaskDefinition.taskFunction
 		},
 		generateVersionInfo: {
-			requiresDependencies: true,
 			options: {
 				rootProject: project,
 				pattern: "/resources/**/.library"
@@ -309,12 +277,8 @@ test("Custom bundles", async (t) => {
 				signatureType: "PONY"
 			}
 		},
-		generateApiIndex: {
-			requiresDependencies: true
-		},
-		generateResourcesJson: {
-			requiresDependencies: true
-		}
+		generateApiIndex: {},
+		generateResourcesJson: {}
 	}, "Correct task definitions");
 
 
@@ -402,7 +366,6 @@ test("Minification excludes", (t) => {
 
 	const taskDefinition = tasks.get("minify");
 	t.deepEqual(taskDefinition, {
-		stepBased: true,
 		options: {
 			pattern: [
 				"/**/*.js",
@@ -429,7 +392,6 @@ test("Minification excludes not applied for legacy specVersion", (t) => {
 
 	const taskDefinition = tasks.get("minify");
 	t.deepEqual(taskDefinition, {
-		stepBased: true,
 		options: {
 			pattern: [
 				"/**/*.js",
