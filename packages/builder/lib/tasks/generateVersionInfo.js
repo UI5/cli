@@ -47,10 +47,18 @@ export default async ({workspace, dependencies, options: {rootProject, pattern}}
 	});
 	const libraryInfos = await Promise.all(libraryInfosPromises);
 
+	// Resolve framework from explicit ui5.yaml configuration
+	const frameworkName = rootProject.getFrameworkName?.();
+	let framework;
+	if (frameworkName === "OpenUI5" || frameworkName === "SAPUI5") {
+		framework = {name: frameworkName, version: rootProject.getFrameworkVersion()};
+	}
+
 	const [versionInfoResource] = await versionInfoGenerator({
 		options: {
 			rootProjectName: rootProject.getName(),
 			rootProjectVersion: rootProject.getVersion(),
+			framework,
 			libraryInfos
 		}
 	});
