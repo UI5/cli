@@ -57,7 +57,7 @@
 	},
 	"devDependencies": {
 		"@istanbuljs/esm-loader-hook": "^0.3.0",
-		"ava": "^8.0.2",
+		"ava": "^8.1.2",
 		"cross-env": "^10.1.0",
 		"eslint": "^10.13.0",
 		"nyc": "^18.0.0",

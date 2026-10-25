@@ -88,7 +88,7 @@
 		"@ui5/builder": "^5.0.0-alpha.13",
 		"@ui5/fs": "^5.0.0-alpha.13",
 		"@ui5/logger": "^5.0.0-alpha.13",
-		"body-parser": "^2.3.0",
+		"body-parser": "^2.4.0",
 		"compression": "^1.8.2",
 		"cors": "^2.8.6",
 		"devcert-sanscache": "^0.5.1",
@@ -105,7 +105,7 @@
 	"devDependencies": {
 		"@istanbuljs/esm-loader-hook": "^0.3.0",
 		"@ui5/project": "^5.0.0-alpha.13",
-		"ava": "^8.0.2",
+		"ava": "^8.1.2",
 		"connect": "^3.7.0",
 		"cross-env": "^10.1.0",
 		"eslint": "^10.13.0",

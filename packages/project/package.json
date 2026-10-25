@@ -75,7 +75,7 @@
 		"make-fetch-happen": "^16.0.1",
 		"micromatch": "^4.0.8",
 		"node-stream-zip": "^1.16.0",
-		"pacote": "^22.0.0",
+		"pacote": "^22.0.1",
 		"pretty-hrtime": "^1.0.3",
 		"read-package-up": "^12.0.0",
 		"read-pkg": "^10.1.0",
@@ -94,7 +94,7 @@
 	},
 	"devDependencies": {
 		"@istanbuljs/esm-loader-hook": "^0.3.0",
-		"ava": "^8.0.2",
+		"ava": "^8.1.2",
 		"cross-env": "^10.1.0",
 		"eslint": "^10.13.0",
 		"esmock": "^2.8.0",
