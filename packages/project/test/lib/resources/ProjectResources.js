@@ -3,7 +3,11 @@ import sinon from "sinon";
 import {createProxy, createResource} from "@ui5/fs/resourceFactory";
 import ProjectResources from "../../../lib/resources/ProjectResources.js";
 
-function createProjectResources({frozenSourceReader} = {}) {
+test.afterEach.always(() => {
+	sinon.restore();
+});
+
+function createProjectResources({frozenSourceReader, buildManifest = null} = {}) {
 	const sourceReader = {
 		byGlob: sinon.stub().resolves([]),
 		byPath: sinon.stub().resolves(null),
@@ -18,7 +22,7 @@ function createProjectResources({frozenSourceReader} = {}) {
 		applyStyleToReader: sinon.stub().callsFake((reader) => reader),
 		createWriter: sinon.stub().returns(writer),
 		addReadersForWriter: sinon.stub(),
-		buildManifest: null,
+		buildManifest,
 	});
 	if (frozenSourceReader) {
 		pr.setFrozenSourceReader(frozenSourceReader);
@@ -26,8 +30,103 @@ function createProjectResources({frozenSourceReader} = {}) {
 	return {pr, sourceReader, writer};
 }
 
-test.afterEach.always(() => {
-	sinon.restore();
+function createTagResource(pr) {
+	return createResource({
+		path: "/resources/test/file.js",
+		string: "source",
+		project: {getResourceTagCollection: (resource, tag) => pr.getResourceTagCollection(resource, tag)}
+	});
+}
+
+for (const cached of [false, true]) {
+	for (const readResultTags of [false, true]) {
+		test(`buildFinished: ${cached ? "cached" : "live"} tags, result lookup=${readResultTags}`, (t) => {
+			const {pr, writer} = createProjectResources();
+			const resource = createTagResource(pr);
+			const path = resource.getPath();
+			pr.initStages(["task/tag"]);
+			pr.useStage("task/tag");
+			if (cached) {
+				pr.setStage("task/tag", writer,
+					new Map([[path, new Map([["ui5:HasDebugVariant", true]])]]),
+					new Map([[path, new Map([["ui5:OmitFromBuildResult", true]])]]));
+			} else {
+				pr.getResourceTagCollection(resource, "ui5:HasDebugVariant")
+					.setTag(resource, "ui5:HasDebugVariant");
+				pr.getResourceTagCollection(resource, "ui5:OmitFromBuildResult")
+					.setTag(resource, "ui5:OmitFromBuildResult");
+			}
+			pr.useResultStage();
+			if (readResultTags) {
+				t.true(pr.getResourceTagCollection(resource, "ui5:OmitFromBuildResult")
+					.getTag(resource, "ui5:OmitFromBuildResult"), "Output filtering can read build tags");
+			}
+			pr.buildFinished();
+
+			t.true(resource.getTags()["ui5:HasDebugVariant"], "Resource reads retain project tags");
+			t.true(pr.getProjectResourceTagCollection().getTag(resource, "ui5:HasDebugVariant"));
+			t.is(pr.getResourceTagCollection(resource, "ui5:OmitFromBuildResult")
+				.getTag(resource, "ui5:OmitFromBuildResult"), undefined, "Build tags stay cleared after reads");
+			pr.buildFinished();
+			t.is(pr.getResourceTagCollection(resource, "ui5:OmitFromBuildResult")
+				.getTag(resource, "ui5:OmitFromBuildResult"), undefined, "Completion is idempotent");
+		});
+	}
+}
+
+test("useResultStage refreshes the project-tag snapshot after the last task", (t) => {
+	const {pr} = createProjectResources();
+	const resource = createTagResource(pr);
+	pr.initStages(["task/first", "task/last"]);
+	pr.useStage("task/first");
+	pr.getResourceTagCollection(resource, "project:State").setTag(resource, "project:State", "first");
+	pr.useStage("task/last");
+	const collection = pr.getResourceTagCollection(resource, "project:State");
+	collection.setTag(resource, "project:State", "last");
+	t.is(resource.getTags()["project:State"], "first", "The task hashes its input tags");
+	pr.useResultStage();
+	t.is(resource.getTags()["project:State"], "last", "The result exposes the final tags");
+});
+
+for (const method of ["initStages", "reset"]) {
+	test(`${method} discards tag stores and monitors from an unfinished build`, (t) => {
+		const {pr} = createProjectResources();
+		const resource = createTagResource(pr);
+		pr.getResourceTagCollection(resource, "project:State").setTag(resource, "project:State", "old");
+		pr.getResourceTagCollection(resource, "build:State").setTag(resource, "build:State", "old");
+		pr[method]([]);
+		t.is(pr.getResourceTagCollection(resource, "project:State").getTag(resource, "project:State"), undefined);
+		t.is(pr.getResourceTagCollection(resource, "build:State").getTag(resource, "build:State"), undefined);
+		t.is(pr.getResourceTagOperations().projectTagOperations.size, 0);
+		t.is(pr.getResourceTagOperations().buildTagOperations.size, 0);
+	});
+}
+
+test("Cached build tags can be replayed in subsequent builds", (t) => {
+	const {pr, writer} = createProjectResources();
+	const resource = createTagResource(pr);
+	const buildTags = new Map([[resource.getPath(), new Map([["build:State", "cached"]])]]);
+	for (let build = 0; build < 3; build++) {
+		pr.initStages(["task/tag"]);
+		pr.setStage("task/tag", writer, new Map(), buildTags);
+		pr.useResultStage();
+		t.is(pr.getResourceTagCollection(resource, "build:State").getTag(resource, "build:State"), "cached");
+		pr.buildFinished();
+		t.is(pr.getResourceTagCollection(resource, "build:State").getTag(resource, "build:State"), undefined);
+	}
+});
+
+test("Build tags do not share storage with build manifest tags", (t) => {
+	const tags = {"/resources/test/file.js": {"ui5:HasDebugVariant": true}};
+	const {pr} = createProjectResources({buildManifest: {tags}});
+	const resource = createTagResource(pr);
+	pr.getResourceTagCollection(resource, "ui5:OmitFromBuildResult")
+		.setTag(resource, "ui5:OmitFromBuildResult");
+	t.deepEqual(tags, {"/resources/test/file.js": {"ui5:HasDebugVariant": true}});
+	t.deepEqual(pr.getProjectResourceTagCollection().getAllTags(), tags);
+	pr.buildFinished();
+	t.is(pr.getResourceTagCollection(resource, "ui5:OmitFromBuildResult")
+		.getTag(resource, "ui5:OmitFromBuildResult"), undefined);
 });
 
 test("setFrozenSourceReader: frozen reader is included in getReader chain", (t) => {
