@@ -73,6 +73,13 @@ test("Create project from application project providing a build manifest", async
 		"Found requested resource in archive project");
 	t.is(resources[0].getPath(), "/resources/id1/test.js",
 		"Resource has expected path");
+
+	const expectedTags = structuredClone(metadata.buildManifest.tags);
+	project.getResourceTagCollection(resources[0], "ui5:OmitFromBuildResult")
+		.setTag(resources[0], "ui5:OmitFromBuildResult");
+	const nextMetadata = await createBuildManifest(project, buildConfig, taskRepository, "zzz");
+	t.deepEqual(nextMetadata.buildManifest.tags, expectedTags, "Build manifests retain only project tags");
+	t.deepEqual(metadata.buildManifest.tags, expectedTags, "Build tags leave the input manifest unchanged");
 });
 
 test("Create project from library project providing a build manifest", async (t) => {

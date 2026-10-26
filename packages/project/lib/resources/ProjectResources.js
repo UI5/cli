@@ -247,6 +247,9 @@ class ProjectResources {
 		this.#currentStageWorkspace = null;
 		this.#frozenSourceReader = null;
 		this.#projectResourceTagCollection = null;
+		this.#buildResourceTagCollection = null;
+		this.#monitoredProjectResourceTagCollection = null;
+		this.#monitoredBuildResourceTagCollection = null;
 	}
 
 	#addReaderForStage(stage, readers, style = "buildtime") {
@@ -283,7 +286,7 @@ class ProjectResources {
 	 *
 	 * Used to recover from a build that threw mid-execution. Such a build leaves the
 	 * current stage pointed at the failing task's writer (holding partial output) and
-	 * the tag collections populated, none of which a later build clears on its own.
+	 * the tag collections populated.
 	 * After this call the next {@link #getStage} reports the <code>initial</code> stage,
 	 * so the build cache re-initializes stages and re-imports cached results.
 	 *
@@ -291,11 +294,6 @@ class ProjectResources {
 	 */
 	reset() {
 		this.#initStageMetadata();
-		// #initStageMetadata resets the project tag collection and stage pipeline but not
-		// the build-level or monitored collections, which a failed build may have populated.
-		this.#buildResourceTagCollection = null;
-		this.#monitoredProjectResourceTagCollection = null;
-		this.#monitoredBuildResourceTagCollection = null;
 	}
 
 	/**
@@ -422,8 +420,10 @@ class ProjectResources {
 	}
 
 	buildFinished() {
-		// Clear build resource tag collections. They must not be provided to dependent projects
+		// Apply pending result tags before cleanup so later reads cannot replay build tags.
+		this.#applyCachedResourceTags();
 		this.#buildResourceTagCollection = null;
+		this.#monitoredBuildResourceTagCollection = null;
 	}
 
 	/**
@@ -567,8 +567,7 @@ class ProjectResources {
 		if (!this.#buildResourceTagCollection) {
 			this.#buildResourceTagCollection = new ResourceTagCollection({
 				allowedTags: ["ui5:OmitFromBuildResult", "ui5:IsBundle"],
-				allowedNamespaces: ["build"],
-				tags: this.#buildManifest?.tags
+				allowedNamespaces: ["build"]
 			});
 		}
 		return this.#buildResourceTagCollection;
