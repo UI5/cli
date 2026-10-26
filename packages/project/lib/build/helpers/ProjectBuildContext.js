@@ -252,9 +252,9 @@ class ProjectBuildContext {
 	/**
 	 * Gets the appropriate resource tag collection for a resource and tag
 	 *
-	 * Determines which tag collection (project-specific or build-level) should be used
-	 * for the given resource and tag combination. Associates the resource with the current
-	 * project if not already associated.
+	 * Project tags belong to the resource's owner. Build tags belong to the executing
+	 * project, including tags on dependency resources. Associates unowned resources
+	 * with the executing project.
 	 *
 	 * @param {@ui5/fs/Resource} resource Resource to get tag collection for
 	 * @param {string} tag Tag to check acceptance for
@@ -266,7 +266,9 @@ class ProjectBuildContext {
 			this._log.silly(`Associating resource ${resource.getPath()} with project ${this._project.getName()}`);
 			resource.setProject(this._project);
 		}
-		return resource.getProject().getResourceTagCollection(resource, tag);
+		const project = this._project.getProjectResources().acceptsProjectTag(tag) ?
+			resource.getProject() : this._project;
+		return project.getResourceTagCollection(resource, tag);
 	}
 
 	/**

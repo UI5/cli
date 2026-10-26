@@ -427,11 +427,21 @@ class ProjectResources {
 	}
 
 	/**
+	 * Check whether a tag belongs to the resource owner's project.
+	 * This check does not import cached tags or create a stage monitor.
+	 *
+	 * @param {string} [tag] Tag to classify. An omitted tag selects project tags.
+	 * @returns {boolean} Whether the tag belongs to the project collection
+	 */
+	acceptsProjectTag(tag) {
+		return !tag || this.#getProjectResourceTagCollection().acceptsTag(tag);
+	}
+
+	/**
 	 * Gets the appropriate resource tag collection for a resource and tag
 	 *
-	 * Determines which tag collection (project-specific or build-level) should be used
-	 * for the given resource and tag combination. Associates the resource with the current
-	 * project if not already associated.
+	 * Selects this project's collection by tag. The resource can belong to a dependency
+	 * when a task stores build tags for that resource in the executing project's collection.
 	 *
 	 * @param {@ui5/fs/Resource} resource Resource to get tag collection for
 	 * @param {string} tag Tag to check acceptance for

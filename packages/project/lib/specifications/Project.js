@@ -333,9 +333,8 @@ class Project extends Specification {
 	/**
 	 * Gets the appropriate resource tag collection for a resource and tag
 	 *
-	 * Determines which tag collection (project-specific or build-level) should be used
-	 * for the given resource and tag combination. Associates the resource with the current
-	 * project if not already associated.
+	 * Selects this project's collection by tag. ProjectBuildContext routes project tags
+	 * to the resource's owner and build tags to the executing project.
 	 *
 	 * @param {@ui5/fs/Resource} resource Resource to get tag collection for
 	 * @param {string} tag Tag to check acceptance for
