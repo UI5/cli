@@ -1,5 +1,5 @@
 import test from "ava";
-import StepRunner from "../../../../lib/build/helpers/StepRunner.js";
+import StepRunner, {validateDescriptor} from "../../../../lib/build/helpers/StepRunner.js";
 
 function createResource(resourcePath, content = resourcePath) {
 	return {
@@ -1406,3 +1406,20 @@ test("A cached key's glob pattern stays in the stage fold on a delta build (find
 		"The re-run key's glob pattern is folded in too");
 });
 
+
+test("validateDescriptor: a 'cache' flag must be a boolean", (t) => {
+	// cache:false (opt out) and cache:true (explicit opt in) are both accepted.
+	t.notThrows(() => validateDescriptor({task: () => {}, cache: false}));
+	t.notThrows(() => validateDescriptor({task: () => {}, cache: true}));
+	// Omitting it is accepted and means cacheable.
+	t.notThrows(() => validateDescriptor({task: () => {}}));
+});
+
+test("validateDescriptor: a non-boolean 'cache' flag throws", (t) => {
+	t.throws(() => validateDescriptor({task: () => {}, cache: "no"}, {taskName: "myTask"}), {
+		message: "Task descriptor for task 'myTask' 'cache' must be a boolean, got a string",
+	});
+	t.throws(() => validateDescriptor({task: () => {}, cache: 0}), {
+		message: /'cache' must be a boolean, got a number/,
+	});
+});

@@ -164,6 +164,7 @@ test.beforeEach(async (t) => {
 		endTask: sinon.stub(),
 		skipTask: sinon.stub(),
 		verbose: sinon.stub(),
+		warn: sinon.stub(),
 		perf: sinon.stub(),
 		isLevelEnabled: sinon.stub().returns(true),
 	};
@@ -709,6 +710,7 @@ test("Custom task is called correctly", async (t) => {
 
 	const getRequiredDependenciesCallbackStub = sinon.stub().resolves(undefined);
 	graph.getExtension.returns({
+		getName: () => "custom task name",
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
@@ -768,6 +770,7 @@ test("Custom task with legacy spec version", async (t) => {
 	};
 	const getRequiredDependenciesCallbackStub = sinon.stub().resolves(undefined);
 	graph.getExtension.returns({
+		getName: () => "custom task name",
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
@@ -828,6 +831,7 @@ test("Custom task with legacy spec version and requiredDependenciesCallback", as
 	const requiredDependenciesCallbackStub = sinon.stub().resolves(new Set(["dep.b"]));
 	const getRequiredDependenciesCallbackStub = sinon.stub().resolves(requiredDependenciesCallbackStub);
 	graph.getExtension.returns({
+		getName: () => "custom task name",
 		getTask: () => taskStub,
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
@@ -2473,3 +2477,80 @@ for (const path of ["standard", "custom"]) {
 		t.deepEqual(order, [`skipTask:${taskName}`], "A task whose every stage was cached only reports a skip");
 	});
 }
+
+test("Custom task below Specification Version 5.0 is exempt from caching and warns once", async (t) => {
+	const {taskRepository, projectBuildLogger, buildCache, sinon, customTask} = t.context;
+	const project = getMockProject("application");
+	project.getBundles = emptyarray;
+	project.getCustomTasks = () => [
+		{name: "legacyTask", afterTask: "minify"}
+	];
+	// Standard tasks are step-based factories returning an empty step list, so the step runner is a no-op.
+	taskRepository.getTask = sinon.stub().returns({task: sinon.stub().returns({steps: []})});
+	// A pre-5.0 custom task: no descriptor, body from getTask(), always exempt from caching.
+	customTask.getSpecVersion = () => ({gte: () => false, toString: () => "4.0"});
+	customTask.getTask = async () => sinon.stub();
+
+	const taskRunner = createTaskRunner(t, project);
+	await taskRunner.runTasks();
+
+	const stageTasks = buildCache.setTasks.firstCall.firstArg;
+	const legacyEntry = stageTasks.find((entry) => entry.taskName === "legacyTask");
+	t.deepEqual(legacyEntry, {taskName: "legacyTask", cacheable: false},
+		"The exempt task is flagged cacheable:false for the build cache");
+	const minifyEntry = stageTasks.find((entry) => entry.taskName === "minify");
+	t.false("cacheable" in minifyEntry,
+		"A cacheable standard task carries no cacheable flag (absence means cacheable)");
+
+	t.is(projectBuildLogger.warn.callCount, 1, "A single warning was logged");
+	t.regex(projectBuildLogger.warn.firstCall.firstArg,
+		/custom task name of project project\.b defines Specification Version 4\.0 and is therefore not cached/,
+		"The warning names the task, project and Specification Version");
+});
+
+test("Multiple custom tasks below Specification Version 5.0 warn only once per process", async (t) => {
+	const {taskRepository, projectBuildLogger, sinon, customTask} = t.context;
+	const project = getMockProject("application");
+	project.getBundles = emptyarray;
+	// Two configurations of the same pre-5.0 extension; both are exempt.
+	project.getCustomTasks = () => [
+		{name: "legacyTask", afterTask: "minify"},
+		{name: "legacyTask", afterTask: "minify"}
+	];
+	taskRepository.getTask = sinon.stub().returns({task: sinon.stub().returns({steps: []})});
+	customTask.getSpecVersion = () => ({gte: () => false, toString: () => "4.0"});
+	customTask.getTask = async () => sinon.stub();
+
+	const taskRunner = createTaskRunner(t, project);
+	await taskRunner.runTasks();
+
+	t.is(projectBuildLogger.warn.callCount, 1,
+		"Only one warning is logged even though two exempt custom tasks run");
+});
+
+test("Specification Version 5.0 custom task opts out of caching via cache:false", async (t) => {
+	const {taskRepository, projectBuildLogger, buildCache, sinon, customTask} = t.context;
+	const project = getMockProject("application");
+	project.getBundles = emptyarray;
+	project.getCustomTasks = () => [
+		{name: "optOutTask", afterTask: "minify"}
+	];
+	taskRepository.getTask = sinon.stub().returns({task: sinon.stub().returns({steps: []})});
+	// A 5.0 task that opts out: the body comes from descriptor.task, cache:false marks it exempt.
+	customTask.getSpecVersion = () => ({gte: () => true, toString: () => "5.0"});
+	customTask.getDescriptor = sinon.stub().resolves({task: sinon.stub(), cache: false});
+
+	const taskRunner = createTaskRunner(t, project);
+	await taskRunner.runTasks();
+
+	const stageTasks = buildCache.setTasks.firstCall.firstArg;
+	const optOutEntry = stageTasks.find((entry) => entry.taskName === "optOutTask");
+	t.deepEqual(optOutEntry, {taskName: "optOutTask", cacheable: false},
+		"The opted-out task is flagged cacheable:false for the build cache");
+
+	t.is(projectBuildLogger.warn.callCount, 0,
+		"A deliberate opt-out does not warn");
+	t.true(projectBuildLogger.verbose.getCalls().some((call) =>
+		/opted out of the build cache \(cache: false/.test(call.firstArg)),
+	"The deliberate opt-out is logged at verbose level");
+});
