@@ -30,6 +30,14 @@
         // No fix available for Vite 5.x; patches exist only for Vite >= 6.4.3.
         "GHSA-fx2h-pf6j-xcff|vitepress>vite",
 
+        // vitepress>vite: CVEs are dev server only; build unaffected -> not consumer facing
+        //
+        // No fix available for Vite 5.x; patches exist only for Vite >= 6.4.4 (6.4.4 / 7.3.7 / 8.1.6 / 8.2.4 / 8.3.3).
+        // Upgrading Vite is not possible because VitePress offers no newer stable release (latest is 1.6.4, which
+        // depends on vite@^5.4.14); a fix would require VitePress 2.x, available only as an alpha.
+        "GHSA-9jrq-w75r-8gcw|vitepress>vite",
+		"GHSA-rq7h-c2jc-7f22|vitepress>vite",
+
         // Not applicable as we don't use launch-editor.
         "GHSA-v6wh-96g9-6wx3|vitepress>vite",
 		"GHSA-587h-7wmj-h5pm|vitepress>vite",
