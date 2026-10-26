@@ -1245,12 +1245,9 @@ export default class ProjectBuildCache {
 				]);
 			}
 
-			// Import the previous stage cache's tag operations into the tag collections so that
-			// subsequent stages can access them. Delta builds only record tags set during delta
-			// execution, so the previous build's tags must be imported explicitly.
+			// Apply the merged operations so later stages see retained tags and the delta's current values.
 			this.#project.getProjectResources().importTagOperations(
-				cacheInfo.previousStageCache.projectTagOperations,
-				cacheInfo.previousStageCache.buildTagOperations);
+				projectTagOperations, buildTagOperations);
 
 			stageSignature = cacheInfo.newSignature;
 			// Add resources from previous stage cache to current stage
