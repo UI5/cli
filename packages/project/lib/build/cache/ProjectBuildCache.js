@@ -109,6 +109,19 @@ export default class ProjectBuildCache {
 	#combinedIndexState = INDEX_STATES.RESTORING_PROJECT_INDICES;
 	#resultCacheState = RESULT_CACHE_STATES.PENDING_VALIDATION;
 
+	// Stage ids of tasks exempt from the build cache (a custom task below Specification Version 5.0, or one
+	// that opted out via its descriptor). Populated by setTasks from the per-task cacheable flag. An exempt
+	// stage is always executed (never served from its stage cache) and its result is not stored, so a task
+	// doing untracked out-of-bound file I/O runs on every build. See setTasks and
+	// prepareStageExecutionAndValidateCache.
+	#cacheExemptStageIds = new Set();
+
+	// Whether the project's result cache is disabled because it has at least one cache-exempt custom task.
+	// Set by disableResultCache (from ProjectBuildContext, before validateCache runs) so the project-level
+	// result cache never skips the task loop that must reach the exempt task; also re-derived in setTasks
+	// from the exempt stage ids for callers that bypass ProjectBuildContext (e.g. tests).
+	#resultCacheDisabled = false;
+
 	// Per-stage step-runner invocation data (see lib/build/helpers/StepRunner.js), keyed by stage id.
 	// Each value is a Map of key identity -> {reads, dependencyReads, writes, inputs, needsInputs,
 	// tagOperations, returns} recorded during the stage's last run. It lets a delta build map a changed
@@ -405,12 +418,27 @@ export default class ProjectBuildCache {
 	 * @returns {boolean} True if the cache is fresh
 	 */
 	isFresh() {
-		// When cache=Off, always return false to force rebuilds
-		if (this.#cacheMode === Cache.Off) {
+		// A disabled result cache requires task execution even after a successful build in this session.
+		if (this.#cacheMode === Cache.Off || this.#resultCacheDisabled) {
 			return false;
 		}
 		return this.#combinedIndexState === INDEX_STATES.FRESH &&
 			this.#resultCacheState === RESULT_CACHE_STATES.FRESH_AND_IN_USE;
+	}
+
+	/**
+	 * Disables the project-level result cache for this project.
+	 *
+	 * Called by the {@link @ui5/project/build/helpers/ProjectBuildContext} when the project has at least one
+	 * cache-exempt custom task, before {@link #validateCache} runs. With the result cache disabled,
+	 * validateCache never reports the project fresh from cache, so the build always runs its task loop and
+	 * reaches the exempt task. The project's cacheable stages are still served from their individual stage
+	 * caches within that loop; only the whole-project skip and the result-cache write are suppressed.
+	 *
+	 * @public
+	 */
+	disableResultCache() {
+		this.#resultCacheDisabled = true;
 	}
 
 	/**
@@ -425,6 +453,15 @@ export default class ProjectBuildCache {
 	 *   or false if no cache found
 	 */
 	#findResultCache() {
+		if (this.#resultCacheDisabled) {
+			// The project has a cache-exempt task that must run on every build. Never serve the whole
+			// project from the result cache, so the task loop always runs and reaches that task. The
+			// cacheable stages are still served from their individual stage caches during that loop.
+			log.verbose(
+				`Result cache is disabled for project ${this.#project.getName()} ` +
+				`due to a cache-exempt task; forcing a build`);
+			return false;
+		}
 		const resultSignatures = this.#getPossibleResultStageSignatures();
 		if (resultSignatures.includes(this.#currentResultSignature)) {
 			log.verbose(
@@ -712,6 +749,14 @@ export default class ProjectBuildCache {
 		// Switch project to new stage
 		this.#project.getProjectResources().useStage(stageId);
 		log.verbose(`Preparing execution for stage ${stageId} in project ${this.#project.getName()}...`);
+		if (this.#cacheExemptStageIds.has(stageId)) {
+			// A cache-exempt task's stage: never consult the cache, always execute. recordStageResult
+			// likewise does not store it (see there), so a task doing untracked out-of-bound file I/O
+			// runs on every build. There is no restorable "previous" per-key data for the stage.
+			log.verbose(`Stage ${stageId} is exempt from caching; executing without a cache lookup`);
+			this.#stepInvocationData.set(stageId, undefined);
+			return false;
+		}
 		if (!stageCache) {
 			log.verbose(`No stage cache found`);
 			// No cached stage to restore from: this build has no "previous" per-key data for the stage.
@@ -1342,10 +1387,17 @@ export default class ProjectBuildCache {
 		// Store resulting stage in stage cache. The step runner set the stage's per-key map via
 		// setStepInvocationData immediately before this call (undefined for a legacy task), so it travels
 		// with the stage under this signature and is persisted inside the stage's own metadata row.
-		this.#stageCache.addSignature(
-			stageId, stageSignature, this.#project.getProjectResources().getStage(),
-			writtenResourcePaths, projectTagOperations, buildTagOperations,
-			this.#stepInvocationData.get(stageId));
+		//
+		// A cache-exempt stage is the exception: it is never stored, so it cannot be served from cache on a
+		// later build and its owning task always re-runs. Everything above still ran (the signature tuple,
+		// the request indices, the written-path accounting) so the result-signature machinery stays
+		// consistent; only the stage output and its per-key map are withheld from the cache.
+		if (!this.#cacheExemptStageIds.has(stageId)) {
+			this.#stageCache.addSignature(
+				stageId, stageSignature, this.#project.getProjectResources().getStage(),
+				writtenResourcePaths, projectTagOperations, buildTagOperations,
+				this.#stepInvocationData.get(stageId));
+		}
 
 		// Update stage cache with new metadata
 		log.verbose(`Stage ${stageId} produced ${writtenResourcePaths.length} resources`);
@@ -1437,20 +1489,40 @@ export default class ProjectBuildCache {
 	 * step order, so each step is cached and folded into the result-stage signature independently. The step
 	 * names are discovered by the caller from the task factory before the build runs.
 	 *
+	 * A task with <code>cacheable: false</code> is exempt from the build cache: all its stages are marked
+	 * exempt, so each is always executed and never stored (see
+	 * {@link #prepareStageExecutionAndValidateCache} and {@link #recordStageResult}). The presence of any
+	 * exempt stage also disables the project's result cache, matching what the
+	 * {@link @ui5/project/build/helpers/ProjectBuildContext} already set before validateCache, so a caller
+	 * that drives this cache without that context (e.g. a test) gets the same behavior.
+	 *
 	 * @public
-	 * @param {Array<{taskName: string, stepNames: string[]|undefined}>} tasks Tasks to initialize stages for, in
-	 *   execution order. <code>stepNames</code> (in step order) is present for a step-based task.
+	 * @param {Array<{taskName: string, stepNames: string[]|undefined, cacheable: boolean|undefined}>} tasks
+	 *   Tasks to initialize stages for, in execution order. <code>stepNames</code> (in step order) is present
+	 *   for a step-based task. <code>cacheable</code> defaults to <code>true</code>; <code>false</code> marks
+	 *   the task's stages exempt from the cache.
 	 */
 	setTasks(tasks) {
 		const stageIds = [];
-		for (const {taskName, stepNames} of tasks) {
+		this.#cacheExemptStageIds = new Set();
+		for (const {taskName, stepNames, cacheable} of tasks) {
+			const taskStageIds = [];
 			if (stepNames && stepNames.length) {
 				for (const stepName of stepNames) {
-					stageIds.push(this.#stageIdFor(taskName, stepName));
+					taskStageIds.push(this.#stageIdFor(taskName, stepName));
 				}
 			} else {
-				stageIds.push(this.#stageIdFor(taskName));
+				taskStageIds.push(this.#stageIdFor(taskName));
 			}
+			if (cacheable === false) {
+				for (const stageId of taskStageIds) {
+					this.#cacheExemptStageIds.add(stageId);
+				}
+			}
+			stageIds.push(...taskStageIds);
+		}
+		if (this.#cacheExemptStageIds.size) {
+			this.#resultCacheDisabled = true;
 		}
 		this.#project.getProjectResources().initStages(stageIds);
 		// Remember the order so the dependency signature is composed over stages deterministically.
@@ -2093,6 +2165,12 @@ export default class ProjectBuildCache {
 	 * @returns {{projectId: string, buildSignature: string, stageSignature: string, metadata: object}|null}
 	 */
 	#prepareResultCache() {
+		if (this.#resultCacheDisabled) {
+			// A cache-exempt task disabled this project's result cache (see disableResultCache). Writing a
+			// result row would reference the exempt stage, whose output is deliberately not stored, and it
+			// could never be matched anyway (#findResultCache force-misses), so write nothing.
+			return null;
+		}
 		const stageSignature = this.#currentResultSignature;
 		if (stageSignature === this.#cachedResultSignature) {
 			// No changes to already cached result stage
