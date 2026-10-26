@@ -2,6 +2,8 @@ import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
 import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
+import {createResource} from "@ui5/fs/resourceFactory";
+import ProjectResources from "../../../../lib/resources/ProjectResources.js";
 
 test.beforeEach((t) => {
 	t.context.resourceTagCollection = new ResourceTagCollection({
@@ -137,67 +139,72 @@ test("executeCleanupTasks", (t) => {
 	t.is(task2.callCount, 1, "my task 2", "Cleanup task 2 got called");
 });
 
-test.serial("getResourceTagCollection", async (t) => {
-	const ProjectBuildContext = (await import("../../../../lib/build/helpers/ProjectBuildContext.js")).default;
-	const buildContext = createBuildContextStub();
+function createTagProject(name) {
+	const resources = new ProjectResources({getName: () => name, createWriter: () => ({})});
 	const project = {
-		getName: () => "project",
-		getType: () => "type",
+		getName: () => name,
+		getType: () => "library",
+		getProjectResources: () => resources,
+		getResourceTagCollection: (resource, tag) => resources.getResourceTagCollection(resource, tag),
 	};
-	const projectBuildContext = new ProjectBuildContext(
-		buildContext,
-		project
-	);
+	const context = new ProjectBuildContext(createBuildContextStub(), project);
+	return {project, resources, taskUtil: context.getTaskUtil()};
+}
 
-	const fakeCollection = {
-		acceptsTag: sinon.stub().returns(true)
-	};
-	const getResourceTagCollectionStub = sinon.stub().returns(fakeCollection);
-	const fakeResource = {
-		getProject: () => {
-			return {
-				getResourceTagCollection: getResourceTagCollectionStub
-			};
-		},
-		getPath: () => "/resource/path",
-		hasProject: () => true
-	};
-	const collection = projectBuildContext.getResourceTagCollection(fakeResource, "some-tag");
-	t.is(collection, fakeCollection, "Returned tag collection from resource's project");
-	t.is(getResourceTagCollectionStub.callCount, 1, "getResourceTagCollection called once");
-	t.is(getResourceTagCollectionStub.firstCall.args[0], fakeResource, "Called with resource");
-	t.is(getResourceTagCollectionStub.firstCall.args[1], "some-tag", "Called with tag");
-});
+for (const tag of ["ui5:OmitFromBuildResult", "ui5:IsBundle", "build:CustomTag"]) {
+	test(`Build tag ${tag} on a dependency belongs to the executing project`, (t) => {
+		const dependency = createTagProject("dependency");
+		const first = createTagProject("first");
+		const second = createTagProject("second");
+		const resource = createResource({path: "/resources/dependency/file.js", project: dependency.project});
+		dependency.taskUtil.setTag(resource, tag, "producer");
+		t.is(first.taskUtil.getTag(resource, tag), undefined, "The producer's tag is not inherited");
+		first.taskUtil.setTag(resource, tag, "first");
+		second.taskUtil.setTag(resource, tag, "second");
+		t.is(first.taskUtil.getTag(resource, tag), "first");
+		t.is(second.taskUtil.getTag(resource, tag), "second");
+		t.is(dependency.taskUtil.getTag(resource, tag), "producer");
+		t.is(first.resources.getResourceTagOperations().buildTagOperations.get(resource.getPath()).get(tag), "first",
+			"The executing project's stage records the tag");
+		first.taskUtil.clearTag(resource, tag);
+		t.is(first.taskUtil.getTag(resource, tag), undefined);
+		t.is(second.taskUtil.getTag(resource, tag), "second", "Clearing a tag is local to the executing project");
+		first.resources.useResultStage();
+		first.resources.buildFinished();
+		t.is(second.taskUtil.getTag(resource, tag), "second", "Finishing another project preserves local tags");
+		t.is(resource.getProject(), dependency.project, "Tagging preserves resource ownership");
+	});
+}
+
+for (const tag of ["ui5:IsDebugVariant", "ui5:HasDebugVariant", "project:CustomTag"]) {
+	test(`Project tag ${tag} on a dependency remains shared`, (t) => {
+		const dependency = createTagProject("dependency");
+		const first = createTagProject("first");
+		const second = createTagProject("second");
+		const resource = createResource({path: "/resources/dependency/file.js", project: dependency.project});
+		first.taskUtil.setTag(resource, tag);
+		t.true(second.taskUtil.getTag(resource, tag));
+		t.true(dependency.taskUtil.getTag(resource, tag));
+		second.taskUtil.clearTag(resource, tag);
+		t.is(first.taskUtil.getTag(resource, tag), undefined);
+		t.is(first.resources.getResourceTagOperations().projectTagOperations.size, 0);
+	});
+}
 
 test("getResourceTagCollection: Assigns project to resource if necessary", (t) => {
-	const fakeProject = {
-		getName: () => "project",
-		getType: () => "type",
-	};
-	const buildContext = createBuildContextStub();
-	const projectBuildContext = new ProjectBuildContext(
-		buildContext,
-		fakeProject
-	);
+	const {project, taskUtil} = createTagProject("project");
+	const resource = createResource({path: "/resource/path"});
+	taskUtil.setTag(resource, "build:MyTag");
+	t.is(resource.getProject(), project);
+	t.true(taskUtil.getTag(resource, "build:MyTag"));
+});
 
-	const setProjectStub = sinon.stub();
-	const fakeResource = {
-		getProject: () => {
-			return {
-				getResourceTagCollection: () => {
-					return {
-						acceptsTag: () => false
-					};
-				}
-			};
-		},
-		getPath: () => "/resource/path",
-		hasProject: () => false,
-		setProject: setProjectStub
-	};
-	projectBuildContext.getResourceTagCollection(fakeResource, "build:MyTag");
-	t.is(setProjectStub.callCount, 1, "setProject got called once");
-	t.is(setProjectStub.getCall(0).args[0], fakeProject, "setProject got called with correct argument");
+test("getResourceTagCollection: Rejects unsupported tags", (t) => {
+	const {taskUtil} = createTagProject("project");
+	const resource = createResource({path: "/resource/path"});
+	t.throws(() => taskUtil.setTag(resource, "other:Tag"), {
+		message: "Could not find collection for resource /resource/path and tag other:Tag"
+	});
 });
 
 test("getProject", (t) => {

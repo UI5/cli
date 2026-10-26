@@ -63,8 +63,8 @@ class TaskUtil {
 			HasDebugVariant: "ui5:HasDebugVariant",
 
 			// "Build" tags:
-			// Will be stored on the project build context
-			// They are only available to the build tasks of a single project
+			// Stored on the executing project's ProjectResources, including tags on dependency resources
+			// Available to that project's build tasks and output filtering until the build finishes
 			OmitFromBuildResult: "ui5:OmitFromBuildResult",
 			IsBundle: "ui5:IsBundle"
 		});

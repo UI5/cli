@@ -116,6 +116,25 @@ test("Cached build tags can be replayed in subsequent builds", (t) => {
 	}
 });
 
+test("acceptsProjectTag classifies tags without importing operations or creating a monitor", (t) => {
+	const {pr, writer} = createProjectResources();
+	const resource = createTagResource(pr);
+	const tags = new Map([["project:State", "original"]]);
+	pr.initStages(["task/cached", "task/next"]);
+	pr.setStage("task/cached", writer, new Map([[resource.getPath(), tags]]), new Map());
+	pr.useStage("task/next");
+	for (const tag of [undefined, "ui5:IsDebugVariant", "ui5:HasDebugVariant", "project:State"]) {
+		t.true(pr.acceptsProjectTag(tag));
+	}
+	for (const tag of ["ui5:IsBundle", "ui5:OmitFromBuildResult", "build:State", "other:Tag"]) {
+		t.false(pr.acceptsProjectTag(tag));
+	}
+	t.is(pr.getResourceTagOperations().projectTagOperations.size, 0);
+	t.is(pr.getResourceTagOperations().buildTagOperations.size, 0);
+	tags.set("project:State", "updated");
+	t.is(resource.getTags()["project:State"], "updated", "The first read imports and snapshots the cached tags");
+});
+
 test("Build tags do not share storage with build manifest tags", (t) => {
 	const tags = {"/resources/test/file.js": {"ui5:HasDebugVariant": true}};
 	const {pr} = createProjectResources({buildManifest: {tags}});
