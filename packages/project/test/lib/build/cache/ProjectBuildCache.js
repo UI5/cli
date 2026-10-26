@@ -618,9 +618,9 @@ test("recordStageResult with cacheInfo: calls importTagOperations with previous 
 
 		const importStub = project.getProjectResources().importTagOperations;
 		t.true(importStub.calledOnce, "importTagOperations called once");
-		t.is(importStub.firstCall.args[0], prevProjectTags,
+		t.deepEqual(importStub.firstCall.args[0], prevProjectTags,
 			"Called with previous stage projectTagOperations");
-		t.is(importStub.firstCall.args[1], prevBuildTags,
+		t.deepEqual(importStub.firstCall.args[1], prevBuildTags,
 			"Called with previous stage buildTagOperations");
 	});
 
@@ -664,6 +664,7 @@ test("recordStageResult with cacheInfo: merges tag operations with current delta
 				]),
 				buildTagOperations: new Map([
 					["/a.js", new Map([["ui5:OldBuildTag", "old"]])],
+					["/c.js", new Map([["ui5:NewBuildTag", "previous"]])],
 				]),
 			},
 			newSignature: "merged-sig",
@@ -679,6 +680,10 @@ test("recordStageResult with cacheInfo: merges tag operations with current delta
 			dependencyResourceRequests: dependencyRequests,
 			cacheInfo,
 		});
+
+		const [projectTags, buildTags] = project.getProjectResources().importTagOperations.firstCall.args;
+		t.is(projectTags.get("/a.js").get("ui5:IsDebugVariant"), false, "Later stages see the current project tag");
+		t.is(buildTags.get("/c.js").get("ui5:NewBuildTag"), "val", "Later stages see the current build tag");
 
 		// Verify merged tags via writeCache -> cacheManager.writeStageCache
 		await cache.writeCache();
