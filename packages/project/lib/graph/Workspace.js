@@ -146,7 +146,7 @@ class Workspace {
 			if (!resolutionPath) {
 				continue;
 			}
-			const absolutePath = path.resolve(resolutionPath);
+			const absolutePath = path.resolve(this.#cwd, resolutionPath);
 			if (seenAbsolutePaths.includes(absolutePath)) {
 				throw new Error(
 					`Multiple resolutions for the same library '${path.basename(absolutePath)}' ` +
