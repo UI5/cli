@@ -92,6 +92,7 @@ The `enhanceManifest` task fills the `supportedLocales` property in the `manifes
 #### Requirements
 
 This feature only becomes active under the following conditions:
+
 - The `_version` property in the `manifest.json` is set to `1.21.0` or higher
 - The specified resource bundle is located inside the project and within the namespace defined in the `manifest.json`
 
