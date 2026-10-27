@@ -4,6 +4,35 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v4.0.6...HEAD).
 
+## [5.0.0-alpha.14](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.13...project-v5.0.0-alpha.14) (2026-10-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* Require Node.js ^22.22.3
+
+### Features
+
+* **project:** Add the step-based build task API with per-step stage caching ([9aeb8dc](https://github.com/UI5/cli/commit/9aeb8dc274d9a19a56ad2370bd4463a4c5b50e9e))
+
+
+### Bug Fixes
+
+* Build crashing when the consumer has more than 1 resolved versions of ajv package ([#1644](https://github.com/UI5/cli/issues/1644)) ([5adb6cc](https://github.com/UI5/cli/commit/5adb6cc170d00a69bc942da5166bcbb5f5679885))
+
+
+### Dependencies
+
+* Bump the npm group across 1 directory with 3 updates ([8425f53](https://github.com/UI5/cli/commit/8425f5305053820bcfeeb14c698a699968261dbe))
+* Bump the npm group with 3 updates ([#1631](https://github.com/UI5/cli/issues/1631)) ([9e5c985](https://github.com/UI5/cli/commit/9e5c985cf2427669f4bff31fd3832876684a493c))
+* Require Node.js ^22.22.3 ([6d6d2f3](https://github.com/UI5/cli/commit/6d6d2f36a7388d15525d02896d20e3d89b7eb20d))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/fs bumped from ^5.0.0-alpha.13 to ^5.0.0-alpha.14
+    * @ui5/logger bumped from ^5.0.0-alpha.13 to ^5.0.0-alpha.14
+  * peerDependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.13 to ^5.0.0-alpha.14
+
 ## [5.0.0-alpha.13](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.12...project-v5.0.0-alpha.13) (2026-10-01)
 
 
