@@ -4,6 +4,19 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logger/compare/v4.0.2...HEAD).
 
+## [5.0.0-alpha.14](https://github.com/UI5/cli/compare/logger-v5.0.0-alpha.13...logger-v5.0.0-alpha.14) (2026-10-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* Require Node.js ^22.22.3
+
+### Dependencies
+
+* Bump slice-ansi from 5.0.0 to 9.0.1 ([a7bdf15](https://github.com/UI5/cli/commit/a7bdf15a0050217dcb98988e36a21e5f6c0bca43))
+* Bump the npm group with 3 updates ([#1631](https://github.com/UI5/cli/issues/1631)) ([9e5c985](https://github.com/UI5/cli/commit/9e5c985cf2427669f4bff31fd3832876684a493c))
+* Require Node.js ^22.22.3 ([6d6d2f3](https://github.com/UI5/cli/commit/6d6d2f36a7388d15525d02896d20e3d89b7eb20d))
+
 ## [5.0.0-alpha.13](https://github.com/UI5/cli/compare/logger-v5.0.0-alpha.12...logger-v5.0.0-alpha.13) (2026-10-01)
 
 
