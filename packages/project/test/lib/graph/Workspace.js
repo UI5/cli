@@ -595,7 +595,7 @@ test("[workspace/1.1] Custom relative configPath which is outside of the module 
 			dependencyManagement: {
 				resolutions: [{
 					path: "../../fixtures/library.d",
-					configPath: "../library.e/ui5-library.d-config.yaml" // Out-of-root path
+					configPath: "../library.e/ui5-library.d-config.yaml" // Out-of-root path (is valid)
 				}]
 			}
 		})
@@ -608,7 +608,6 @@ test("[workspace/1.1] Custom relative configPath which is outside of the module 
 		path.resolve(__dirname, "../../fixtures/library.e/ui5-library.d-config.yaml"));
 });
 
-// DEBUG: Case 1.1
 test("[workspace/1.1] No configPath", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
@@ -629,7 +628,6 @@ test("[workspace/1.1] No configPath", async (t) => {
 	t.is(projectNameMap.get("library.d")._configPath, "ui5.yaml");
 });
 
-// DEBUG: Case 1.2
 test("[workspace/1.1] Custom configPath for all libs", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
@@ -655,7 +653,6 @@ test("[workspace/1.1] Custom configPath for all libs", async (t) => {
 		path.resolve(__dirname, `../../fixtures/collection.c/collection.a/library.d/ui5-custom.yaml`));
 });
 
-// DEBUG: Case 1.3
 test("[workspace/1.1] No configPath + Custom configPath for single lib", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
@@ -681,7 +678,6 @@ test("[workspace/1.1] No configPath + Custom configPath for single lib", async (
 	t.is(projectNameMap.get("library.d")._configPath, "ui5.yaml");
 });
 
-// DEBUG: Case 1.4
 test("[workspace/1.1] Custom configPath for single lib + No configPath for all libs", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
@@ -700,8 +696,6 @@ test("[workspace/1.1] Custom configPath for single lib + No configPath for all l
 	});
 
 	const {projectNameMap} = await workspace._getResolvedModules();
-	// "Specific one wins": the specific library.a resolution beats the broader
-	// collection resolution regardless of order.
 	t.is(projectNameMap.get("library.a.custom")._configPath,
 		path.resolve(__dirname, "../../fixtures/collection.c/library.a/ui5-custom.yaml"));
 	t.is(projectNameMap.get("library.b")._configPath, "ui5.yaml");
@@ -709,7 +703,6 @@ test("[workspace/1.1] Custom configPath for single lib + No configPath for all l
 	t.is(projectNameMap.get("library.d")._configPath, "ui5.yaml");
 });
 
-// DEBUG: Case 1.5
 test("[workspace/1.1] Custom configPath for all libs + No configPath for single lib", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
@@ -739,7 +732,6 @@ test("[workspace/1.1] Custom configPath for all libs + No configPath for single 
 		path.join(collectionPath, "collection.a", "library.d", "ui5-custom.yaml"));
 });
 
-// DEBUG: Case 1.5.1
 test("[workspace/1.1] No configPath for single lib + Custom configPath for all libs", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
@@ -769,7 +761,6 @@ test("[workspace/1.1] No configPath for single lib + Custom configPath for all l
 		path.join(collectionPath, "collection.a", "library.d", "ui5-custom.yaml"));
 });
 
-// DEBUG: Case 1.6
 test("No configPath for all libs + Custom configPaths for two libs", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
@@ -804,7 +795,6 @@ test("No configPath for all libs + Custom configPaths for two libs", async (t) =
 		"ui5.yaml");
 });
 
-// DEBUG: Case 1.7
 test("[workspace/1.1] No configPath for all libs + Two custom configPaths for single lib", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
@@ -833,7 +823,6 @@ test("[workspace/1.1] No configPath for all libs + Two custom configPaths for si
 		`in workspace '${workspace.getName()}' exist.`);
 });
 
-// DEBUG: Case 1.7.1
 test("[workspace/1.1] Two custom configPaths for single lib + No configPath for all libs (interleaved)",
 	async (t) => {
 		const workspace = new t.context.Workspace({
@@ -864,7 +853,6 @@ test("[workspace/1.1] Two custom configPaths for single lib + No configPath for 
 	}
 );
 
-// DEBUG: Case 1.8
 test("[workspace/1.1] No configPath for all libs + Custom configPath for sub collection", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
@@ -895,7 +883,6 @@ test("[workspace/1.1] No configPath for all libs + Custom configPath for sub col
 		path.resolve(collectionPath, "collection.a/library.d/ui5-custom.yaml"));
 });
 
-// DEBUG: Case 1.8.1
 test("[workspace/1.1] Custom configPath for sub collection + No configPath for all libs", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
@@ -915,8 +902,6 @@ test("[workspace/1.1] Custom configPath for sub collection + No configPath for a
 
 	const collectionPath = path.resolve(__dirname, "../../fixtures/collection.c");
 
-	// "Specific one wins": the sub collection resolution beats the broader collection
-	// resolution regardless of order (mirror of Case 1.8 with reversed order).
 	const {projectNameMap} = await workspace._getResolvedModules();
 	t.is(projectNameMap.get("library.a")._configPath,
 		"ui5.yaml");
@@ -928,7 +913,6 @@ test("[workspace/1.1] Custom configPath for sub collection + No configPath for a
 		path.resolve(collectionPath, "collection.a/library.d/ui5-custom.yaml"));
 });
 
-// DEBUG: Case 1.9
 test("[workspace/1.1] No configPath for all libs + Custom configPaths for sub collection & single lib", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
@@ -963,7 +947,6 @@ test("[workspace/1.1] No configPath for all libs + Custom configPaths for sub co
 		path.resolve(collectionPath, "collection.a/library.d/ui5-custom.yaml"));
 });
 
-// DEBUG: Case 1.9.1
 test("[workspace/1.1] Custom configPaths for sub collection & single lib + No configPath for all libs " +
 	"(interleaved)", async (t) => {
 	const workspace = new t.context.Workspace({
@@ -999,7 +982,6 @@ test("[workspace/1.1] Custom configPaths for sub collection & single lib + No co
 		path.resolve(collectionPath, "collection.a/library.d/ui5-custom.yaml"));
 });
 
-// DEBUG: Case 1.10 (ordering isolation: two direct resolutions, same lib)
 test("[workspace/1.1] Two custom configPaths for the same single lib -> error on duplicate", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
@@ -1025,7 +1007,6 @@ test("[workspace/1.1] Two custom configPaths for the same single lib -> error on
 		`in workspace '${workspace.getName()}' exist.`);
 });
 
-// DEBUG: Case 1.11
 test("[workspace/1.1] Duplicate library via different path strings (no configPath)", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
@@ -1050,7 +1031,6 @@ test("[workspace/1.1] Duplicate library via different path strings (no configPat
 		`in workspace '${workspace.getName()}' exist.`);
 });
 
-// DEBUG: Case 1.11.1
 test("[workspace/1.1] Duplicate library via different path strings (with configPath)", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
@@ -1077,7 +1057,6 @@ test("[workspace/1.1] Duplicate library via different path strings (with configP
 		`in workspace '${workspace.getName()}' exist.`);
 });
 
-// DEBUG: Case 1.11.2
 test("[workspace/1.1] Duplicate library name via different directories", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
@@ -1090,6 +1069,7 @@ test("[workspace/1.1] Duplicate library name via different directories", async (
 				},
 				{
 					// Different directory, but same library (directory) name 'library.a'
+					// --> is valid: should not conflict with the other library resolution
 					path: "../../fixtures/collection/library.a"
 				}]
 			}
@@ -1102,7 +1082,6 @@ test("[workspace/1.1] Duplicate library name via different directories", async (
 	t.is(projectNameMap.get("library.a")._configPath, "ui5.yaml");
 });
 
-// DEBUG: Case 2.2
 test("[workspace/1.1] Custom configPath for all libs -> File not existing for single lib", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
@@ -1127,7 +1106,6 @@ test("[workspace/1.1] Custom configPath for all libs -> File not existing for si
 	"Starts with expected error message");
 });
 
-// DEBUG: Case 2.3
 test("[workspace/1.1] Custom configPath for single lib -> File not existing for single lib", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
@@ -1156,7 +1134,6 @@ test("[workspace/1.1] Custom configPath for single lib -> File not existing for 
 	"Starts with expected error message");
 });
 
-// DEBUG: Case 2.4
 test("[workspace/1.1] Not existing configPath for single lib overwritten by No configPath for all libs",
 	async (t) => {
 		const workspace = new t.context.Workspace({
@@ -1179,8 +1156,6 @@ test("[workspace/1.1] Not existing configPath for single lib overwritten by No c
 
 		const collectionPath = path.resolve(__dirname, "../../fixtures/collection.c.noCustomConfigForLibA");
 		const configPath = path.join(collectionPath, "library.a", "ui5-custom.yaml");
-		// "Specific one wins": the specific library.a + ui5-custom.yaml resolution beats the
-		// broader collection resolution regardless of order, so the missing file throws.
 		const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 		t.true(err.message.startsWith(`Failed to read configuration for module library.a at `+
 				`'${configPath}'. ` +
@@ -1190,7 +1165,6 @@ test("[workspace/1.1] Not existing configPath for single lib overwritten by No c
 	}
 );
 
-// DEBUG: Case 2.5
 test("[workspace/1.1] Not existing configPath for single lib overwritten by No configPath for the same lib",
 	async (t) => {
 		const workspace = new t.context.Workspace({
@@ -1200,7 +1174,7 @@ test("[workspace/1.1] Not existing configPath for single lib overwritten by No c
 				dependencyManagement: {
 					resolutions: [{
 						path: "../../fixtures/collection.c.noCustomConfigForLibA",
-						configPath: "ui5-custom.yaml" // not existing for library.a
+						configPath: "ui5-custom.yaml" // not existing
 					},
 					{
 						path: "../../fixtures/collection.c.noCustomConfigForLibA/library.a",
@@ -1222,7 +1196,6 @@ test("[workspace/1.1] Not existing configPath for single lib overwritten by No c
 	}
 );
 
-// DEBUG: Case 2.6
 test("[workspace/1.1] Duplicate resolutions for single lib (with missing config) -> error on duplicate",
 	async (t) => {
 		const workspace = new t.context.Workspace({
@@ -1245,8 +1218,6 @@ test("[workspace/1.1] Duplicate resolutions for single lib (with missing config)
 			})
 		});
 
-		// The duplicate is detected before any config file is read, so the missing
-		// 'ui5-custom.yaml' never causes an ENOENT; the duplicate error wins.
 		const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 		t.is(err.message,
 			`Multiple resolutions for the same library 'library.a' ` +
@@ -1255,7 +1226,6 @@ test("[workspace/1.1] Duplicate resolutions for single lib (with missing config)
 	}
 );
 
-// DEBUG: Case 2.6.1
 test("[workspace/1.1] Duplicate resolutions for single lib (missing config last) -> error on duplicate",
 	async (t) => {
 		const workspace = new t.context.Workspace({
@@ -1278,8 +1248,6 @@ test("[workspace/1.1] Duplicate resolutions for single lib (missing config last)
 			})
 		});
 
-		// The duplicate is detected before any config file is read, so the missing
-		// 'ui5-custom.yaml' never causes an ENOENT; the duplicate error wins.
 		const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 		t.is(err.message,
 			`Multiple resolutions for the same library 'library.a' ` +
@@ -1287,5 +1255,3 @@ test("[workspace/1.1] Duplicate resolutions for single lib (missing config last)
 			`in workspace '${workspace.getName()}' exist.`);
 	}
 );
-
-
