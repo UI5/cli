@@ -130,7 +130,7 @@ dependencyManagement:
           configPath: custom-config.yaml
 ```
 
-By default, UI5 CLI looks for a `ui5.yaml` at the root of the resolved module. The optional `configPath` property allows pointing to a different configuration file within the module directory. The path must be written in POSIX notation and must be **relative to the resolution `path`**.
+By default, UI5 CLI looks for a `ui5.yaml` at the root of the resolved module. The optional `configPath` property allows pointing to a different configuration file within the module directory. The path must be written in POSIX notation and must be **relative to the root of the resolved module**.
 
 ## Workspace Specification Versions
 A workspace configuration must define a Specification Version by setting the `specVersion` property. UI5 CLI uses this information to detect whether the currently installed version is compatible with a workspace's configuration.
