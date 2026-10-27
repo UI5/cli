@@ -349,6 +349,7 @@ test.serial("integration: Library with dependencies and subcomponent complex sce
 		"name": "myname",
 		"scmRevision": "",
 		"version": "1.33.7",
+		"framework": {"name": "", "version": ""},
 		"libraries": [{
 			"name": "lib.a",
 			"scmRevision": "",
