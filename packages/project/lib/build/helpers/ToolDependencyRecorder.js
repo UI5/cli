@@ -85,7 +85,39 @@ export function startCapture() {
 }
 
 /**
- * Closes a capture window and returns the tool files observed in it, as absolute paths.
+ * Derives the `package.json` URL of the package a tool file belongs to.
+ *
+ * The resolver reads a package's `package.json` as metadata, but the tool never `import`s it, so it is
+ * absent from the observed resolutions. Folding it into the tracked set anyway makes "content subsumes
+ * version" literally true (a version-only bump whose shipped files are byte-identical still moves the
+ * digest) and captures declared-surface changes — `dependencies` ranges, `exports`/`main` — that alter
+ * resolution without changing a currently-loaded file.
+ *
+ * The package root is the segment after the LAST `/node_modules/` (two segments for an `@scope/name`
+ * package), so a nested dependency resolves to its own `package.json`, not a hoisted copy.
+ *
+ * @param {string} fileUrl A file: URL under a node_modules
+ * @returns {string|null} The package's `package.json` file: URL, or null if none can be derived
+ */
+function packageJsonUrlOf(fileUrl) {
+	const marker = "/node_modules/";
+	const markerStart = fileUrl.lastIndexOf(marker);
+	if (markerStart === -1) {
+		return null;
+	}
+	const afterMarker = markerStart + marker.length;
+	const segments = fileUrl.slice(afterMarker).split("/");
+	const packageSegmentCount = segments[0].startsWith("@") ? 2 : 1;
+	if (segments.length < packageSegmentCount) {
+		return null;
+	}
+	const packagePath = segments.slice(0, packageSegmentCount).join("/");
+	return `${fileUrl.slice(0, afterMarker)}${packagePath}/package.json`;
+}
+
+/**
+ * Closes a capture window and returns the tool files observed in it, as absolute paths. Each tracked
+ * package's `package.json` is folded in alongside the observed files (see {@link packageJsonUrlOf}).
  *
  * @public
  * @param {object} handle The handle returned by {@link startCapture}
@@ -93,12 +125,16 @@ export function startCapture() {
  */
 export function stopCapture(handle) {
 	activeCapture = handle.previous;
-	const files = [];
+	const files = new Set();
 	for (const url of handle.capture) {
-		if (isToolFile(url)) {
-			files.push(fileURLToPath(url));
+		if (!isToolFile(url)) {
+			continue;
+		}
+		files.add(fileURLToPath(url));
+		const packageJsonUrl = packageJsonUrlOf(url);
+		if (packageJsonUrl) {
+			files.add(fileURLToPath(packageJsonUrl));
 		}
 	}
-	files.sort();
-	return files;
+	return [...files].sort();
 }
