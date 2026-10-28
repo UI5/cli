@@ -379,9 +379,12 @@ const processLibraryInfo = async (libraryInfo) => {
  *   }
  *   ```
  *
- * @param {object} [parameters.options.framework] Framework info to embed as the top-level
- *				`framework` object, e.g. `{name: "OpenUI5", version: "1.136.0"}`. Resolved by the
- *				caller (generateVersionInfo task). Defaults to `{name: "", version: ""}` when omitted.
+ * @param {object} [parameters.options.framework] Framework info embedded as the top-level
+ *				`framework` object in sap-ui-version.json. Defaults to `{name: "", version: ""}`
+ *				when omitted.
+ * @param {string} parameters.options.framework.name Framework name, e.g. "OpenUI5" or "SAPUI5"
+ * @param {string} parameters.options.framework.version Framework version, e.g. "1.136.0";
+ *				may be an empty string if the version is unknown
  * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with an array containing the versionInfo resource
  */
 

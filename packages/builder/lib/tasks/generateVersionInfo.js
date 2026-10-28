@@ -8,6 +8,45 @@ const MANIFEST_JSON = "manifest.json";
  */
 
 /**
+ * Determines the UI5 framework (name and version) for the version info.
+ *
+ * Resolution order:
+ * 1. Explicit framework configuration from the root project's ui5.yaml
+ * 2. Dependency npm-scope scan (@sapui5/ → SAPUI5, @openui5/ → OpenUI5)
+ * 3. <code>undefined</code> if no framework signal is found
+ *
+ * @private
+ * @param {object} rootProject The root project instance
+ * @param {module:@ui5/fs/Resource[]} resources Filtered library dependency resources
+ * @returns {{name: string, version: string}|undefined} Framework object or undefined
+ */
+function resolveFramework(rootProject, resources) {
+	const frameworkName = rootProject.getFrameworkName?.();
+	if (frameworkName === "OpenUI5" || frameworkName === "SAPUI5") {
+		return {name: frameworkName, version: rootProject.getFrameworkVersion()};
+	}
+
+	let openui5Detected = false;
+	let openui5CoreVersion = "";
+	for (const res of resources) {
+		const id = res.getProject().getId?.();
+		if (id?.startsWith("@sapui5/")) {
+			return {name: "SAPUI5", version: ""};
+		}
+		if (id?.startsWith("@openui5/")) {
+			openui5Detected = true;
+			if (res.getProject().getName() === "sap.ui.core") {
+				openui5CoreVersion = res.getProject().getVersion();
+			}
+		}
+	}
+	if (openui5Detected) {
+		return {name: "OpenUI5", version: openui5CoreVersion};
+	}
+	return undefined;
+}
+
+/**
  * Task to create sap-ui-version.json
  *
  * @public
@@ -47,38 +86,7 @@ export default async ({workspace, dependencies, options: {rootProject, pattern}}
 	});
 	const libraryInfos = await Promise.all(libraryInfosPromises);
 
-	// Resolve framework from explicit ui5.yaml configuration
-	const frameworkName = rootProject.getFrameworkName?.();
-	let framework;
-	if (frameworkName === "OpenUI5" || frameworkName === "SAPUI5") {
-		framework = {name: frameworkName, version: rootProject.getFrameworkVersion()};
-	}
-
-	// Fallback: scan dependency npm IDs for framework signal
-	if (!framework) {
-		let openui5Detected = false;
-		let openui5CoreVersion = "";
-		for (const res of resources) {
-			const id = res.getProject().getId?.();
-			// If at least one SAPUI5 library is present, use "SAPUI5",
-			// but leave version empty if no SAPUI5 dist version is known
-			if (id?.startsWith("@sapui5/")) {
-				framework = {name: "SAPUI5", version: ""};
-				break;
-			}
-			// If only OpenUI5 libraries are present, use "OpenUI5" and version
-			// from "sap.ui.core" project
-			if (id?.startsWith("@openui5/")) {
-				openui5Detected = true;
-				if (res.getProject().getName() === "sap.ui.core") {
-					openui5CoreVersion = res.getProject().getVersion();
-				}
-			}
-		}
-		if (!framework && openui5Detected) {
-			framework = {name: "OpenUI5", version: openui5CoreVersion};
-		}
-	}
+	const framework = resolveFramework(rootProject, resources);
 
 	const [versionInfoResource] = await versionInfoGenerator({
 		options: {
