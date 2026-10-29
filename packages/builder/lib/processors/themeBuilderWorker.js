@@ -1,6 +1,7 @@
 import workerpool from "workerpool";
 import {createResource} from "@ui5/fs/resourceFactory";
 import {Buffer} from "node:buffer";
+import {installToolDependencyHook, collectToolDependencies} from "./toolDependencyCollector.js";
 
 /**
  * Task to build library themes.
@@ -14,7 +15,9 @@ import {Buffer} from "node:buffer";
  * @param {object[]} parameters.themeResources Input array of Uint8Array transferable objects
  * 	that are the less sources to build upon. By nature those are @ui5/fs/Resource.
  * @param {object} parameters.options Less compiler options
- * @returns {Promise<object[]>} Resulting array of Uint8Array transferable objects
+ * @returns {Promise<object>} Resolves with <code>{data, toolDependencies}</code>: <code>data</code> is the
+ * 	resulting array of Uint8Array transferable objects, <code>toolDependencies</code> the absolute paths of
+ * 	the external tool files observed in this worker (CPOUI5FOUNDATION-1386)
  */
 export default async function execThemeBuild({
 	fsInterfacePort,
@@ -34,7 +37,12 @@ export default async function execThemeBuild({
 		options
 	});
 
-	return serializeResources(result);
+	// Return the tool files this worker observed (less-openui5 and its subtree) alongside the result, so
+	// the main thread can fold them into the stage's tool-content signature (CPOUI5FOUNDATION-1386).
+	return {
+		data: await serializeResources(result),
+		toolDependencies: collectToolDependencies()
+	};
 }
 
 /**
@@ -274,7 +282,8 @@ export class FsWorkerThreadInterface {
 /* istanbul ignore else */
 if (!workerpool.isMainThread) {
 	// Script got loaded through workerpool
-	// => Create a worker and register public functions
+	// => Install the tool-dependency hook before any tool import, then register public functions
+	installToolDependencyHook();
 	workerpool.worker({
 		execThemeBuild
 	});

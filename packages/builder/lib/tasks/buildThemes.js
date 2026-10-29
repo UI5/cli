@@ -7,6 +7,7 @@ import {fileURLToPath} from "node:url";
 import os from "node:os";
 import workerpool from "workerpool";
 import {deserializeResources, serializeResources, FsMainThreadInterface} from "../processors/themeBuilderWorker.js";
+import * as toolDependencyStore from "../processors/toolDependencyStore.js";
 import {setTimeout as setTimeoutPromise} from "node:timers/promises";
 
 let pool;
@@ -58,7 +59,11 @@ function getPool(taskUtil) {
 async function buildThemeInWorker(taskUtil, options, transferList) {
 	const toTransfer = transferList ? {transfer: transferList} : undefined;
 
-	return getPool(taskUtil).exec("execThemeBuild", [options], toTransfer);
+	const {data, toolDependencies} = await getPool(taskUtil).exec("execThemeBuild", [options], toTransfer);
+	// Forward the worker-observed tool files (less-openui5) to the main-thread store, so the owning stage
+	// folds them into its tool-content signature (CPOUI5FOUNDATION-1386).
+	toolDependencyStore.add(toolDependencies);
+	return data;
 }
 
 /**

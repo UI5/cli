@@ -1,5 +1,8 @@
 import workerpool from "workerpool";
-import {minify} from "terser";
+import {installToolDependencyHook, collectToolDependencies} from "./toolDependencyCollector.js";
+// terser is imported lazily inside execMinification (not statically): a static ESM import is resolved at
+// link time, before the tool-dependency hook runs, so the hook could never observe it
+// (CPOUI5FOUNDATION-1386).
 
 /**
  * @private
@@ -32,7 +35,9 @@ const copyrightCommentsAndBundleCommentPattern = /copyright|\(c\)(?:[0-9]+|\s+[0
  * @param {string} parameters.code
  * @param {string} parameters.resourcePath
  * @param {object} parameters.sourceMapOptions
- * @returns {Promise<undefined>} Promise resolving once minification of the resource has finished
+ * @returns {Promise<object>} Resolves with <code>{data, toolDependencies}</code>: <code>data</code> is the
+ * 	terser minify result, <code>toolDependencies</code> the absolute paths of the external tool files
+ * 	observed in this worker (CPOUI5FOUNDATION-1386)
  */
 export default async function execMinification({
 	filename,
@@ -41,8 +46,9 @@ export default async function execMinification({
 	resourcePath,
 	sourceMapOptions
 }) {
+	const {minify} = await import("terser");
 	try {
-		return await minify({
+		const result = await minify({
 			// Use debug-name since this will be referenced in the source map "sources"
 			[dbgFilename]: code
 		}, {
@@ -60,6 +66,12 @@ export default async function execMinification({
 			},
 			sourceMap: sourceMapOptions
 		});
+		// Return the tool files this worker observed (terser and its subtree) alongside the result, so the
+		// main thread can fold them into the stage's tool-content signature (CPOUI5FOUNDATION-1386).
+		return {
+			data: result,
+			toolDependencies: collectToolDependencies()
+		};
 	} catch (err) {
 		// Note: err.filename contains the debug-name
 		throw new Error(
@@ -74,7 +86,8 @@ export default async function execMinification({
 /* istanbul ignore else */
 if (!workerpool.isMainThread) {
 	// Script got loaded through workerpool
-	// => Create a worker and register public functions
+	// => Install the tool-dependency hook before any tool import, then register public functions
+	installToolDependencyHook();
 	workerpool.worker({
 		execMinification
 	});

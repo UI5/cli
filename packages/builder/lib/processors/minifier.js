@@ -6,6 +6,7 @@ import workerpool from "workerpool";
 import Resource from "@ui5/fs/Resource";
 import {getLogger} from "@ui5/logger";
 import parseJSON from "../utils/json.js";
+import * as toolDependencyStore from "./toolDependencyStore.js";
 const log = getLogger("builder:processors:minifier");
 import {setTimeout as setTimeoutPromise} from "node:timers/promises";
 
@@ -62,7 +63,11 @@ function getPool(taskUtil) {
 }
 
 async function minifyInWorker(options, taskUtil) {
-	return getPool(taskUtil).exec("execMinification", [options]);
+	const {data, toolDependencies} = await getPool(taskUtil).exec("execMinification", [options]);
+	// Forward the worker-observed tool files (terser) to the main-thread store, so the owning stage folds
+	// them into its tool-content signature (CPOUI5FOUNDATION-1386).
+	toolDependencyStore.add(toolDependencies);
+	return data;
 }
 
 async function extractAndRemoveSourceMappingUrl(resource) {
@@ -178,8 +183,10 @@ export default async function({
 		}
 		minify = minifyInWorker;
 	} else {
-		// Do not use workerpool
-		minify = (await import("./minifierWorker.js")).default;
+		// Do not use workerpool. The processor runs in this (main) thread, so the project-side recorder
+		// already observes the tool load; unwrap the worker envelope and drop its (empty) tool set.
+		const execMinification = (await import("./minifierWorker.js")).default;
+		minify = async (options) => (await execMinification(options)).data;
 	}
 
 	return Promise.all(resources.map(async (resource) => {
