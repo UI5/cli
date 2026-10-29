@@ -32,7 +32,9 @@ const createProjectMetadata = (names, version, type) => {
 		getName: () => key,
 		getNamespace: () => names.join("/"),
 		getVersion: () => version || "3.0.0-" + key,
-		getType: () => type || "library"
+		getType: () => type || "library",
+		getFrameworkName: () => undefined,
+		getFrameworkVersion: () => undefined
 	};
 };
 
@@ -272,6 +274,10 @@ test.serial("test all inner API calls within middleware", async (t) => {
 	const versionInfoGeneratorOptions = versionInfoGeneratorStub.getCall(0).args[0].options;
 	t.is(versionInfoGeneratorOptions.rootProjectName, "myname");
 	t.is(versionInfoGeneratorOptions.rootProjectVersion, "1.33.7");
+	t.is(versionInfoGeneratorOptions.frameworkName, undefined,
+		"frameworkName forwarded from root project (undefined when not configured)");
+	t.is(versionInfoGeneratorOptions.frameworkVersion, undefined,
+		"frameworkVersion forwarded from root project (undefined when not configured)");
 	t.is(versionInfoGeneratorOptions.libraryInfos.length, 3);
 	t.is(versionInfoGeneratorOptions.libraryInfos[0].name, "lib.a");
 	t.is(await versionInfoGeneratorOptions.libraryInfos[0].libraryManifest.getString(), "mocked manifest.json 1");
@@ -443,4 +449,99 @@ test.serial("integration: Library with dependencies and subcomponent complex sce
 	};
 
 	await middleware(undefined, res, next);
+});
+
+test.serial("integration: middleware resolves framework for configured OpenUI5 project", async (t) => {
+	const workspace = createWorkspace();
+	await createDotLibrary(workspace, resourceFactory, ["test", "lib"]);
+
+	const coreProject = {
+		getName: () => "sap.ui.core",
+		getNamespace: () => "sap/ui/core",
+		getVersion: () => "1.136.0",
+		getType: () => "library",
+		getFrameworkName: () => undefined,
+		getFrameworkVersion: () => undefined,
+		getId: () => "@openui5/sap.ui.core"
+	};
+	const dep = resourceFactory.createAdapter({virBasePath: "/", project: coreProject});
+	coreProject.getSourceReader = () => dep;
+	await createDotLibrary(dep, resourceFactory, ["sap", "ui", "core"], "1.136.0");
+	await createManifestResource(dep, resourceFactory, ["sap", "ui", "core"], []);
+
+	const resources = {
+		dependencies: resourceFactory.createReaderCollection({
+			name: "dependencies",
+			readers: [dep]
+		})
+	};
+
+	const middlewareUtil = {
+		getProject: () => ({
+			getName: () => "myapp",
+			getVersion: () => "1.0.0",
+			getFrameworkName: () => "OpenUI5",
+			getFrameworkVersion: () => "1.136.0"
+		})
+	};
+
+	const versionInfoMiddleware = await t.context.createVersionInfoMiddleware();
+	const middleware = versionInfoMiddleware({resources, middlewareUtil});
+
+	const expectedVersionInfo = {
+		"name": "myapp",
+		"scmRevision": "",
+		"version": "1.0.0",
+		"framework": {"name": "OpenUI5", "version": "1.136.0"},
+		"libraries": [{"name": "sap.ui.core", "scmRevision": "", "version": "1.136.0"}]
+	};
+
+	const res = {
+		writeHead: function() {},
+		end: async function(versionInfoContent) {
+			await assertCreatedVersionInfo(t, expectedVersionInfo, versionInfoContent);
+		}
+	};
+	await middleware(undefined, res, function(err) {
+		throw err;
+	});
+});
+
+test.serial("integration: middleware emits empty string version for name-only framework config", async (t) => {
+	const workspace = createWorkspace();
+	await createDotLibrary(workspace, resourceFactory, ["test", "lib"]);
+
+	const resources = {
+		dependencies: resourceFactory.createReaderCollection({name: "dependencies", readers: []})
+	};
+
+	const middlewareUtil = {
+		getProject: () => ({
+			getName: () => "myapp",
+			getVersion: () => "1.0.0",
+			getFrameworkName: () => "SAPUI5",
+			getFrameworkVersion: () => undefined
+		})
+	};
+
+	const versionInfoMiddleware = await t.context.createVersionInfoMiddleware();
+	const middleware = versionInfoMiddleware({resources, middlewareUtil});
+
+	const expectedVersionInfo = {
+		"name": "myapp",
+		"scmRevision": "",
+		"version": "1.0.0",
+		"framework": {"name": "SAPUI5", "version": ""},
+		"libraries": []
+	};
+
+	const res = {
+		writeHead: function() {},
+		end: async function(versionInfoContent) {
+			await assertCreatedVersionInfo(t, expectedVersionInfo, versionInfoContent);
+		}
+	};
+	await middleware(undefined, res, function(err) {
+		throw err;
+	});
 });

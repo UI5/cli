@@ -1312,7 +1312,7 @@ test.serial("task: scans @openui5/sap.ui.core dep and resolves OpenUI5 with core
 	}, oOptions);
 });
 
-test.serial("task: scans @sapui5/ dep and resolves SAPUI5 with empty version (Scenario 5)", async (t) => {
+test.serial("task: scans @sapui5/ dep and resolves SAPUI5 with empty version", async (t) => {
 	const workspace = createWorkspace();
 	const dep = resourceFactory.createAdapter({
 		virBasePath: "/",

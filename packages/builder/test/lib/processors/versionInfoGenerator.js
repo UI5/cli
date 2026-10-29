@@ -1,6 +1,7 @@
 import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
+import {resolveFramework} from "../../../lib/processors/versionInfoGenerator.js";
 
 test.beforeEach(async (t) => {
 	t.context.warnLogStub = sinon.stub();
@@ -66,15 +67,76 @@ test.serial("versionInfoGenerator empty libraryInfos parameter", async (t) => {
 });
 
 
-test.serial("versionInfoGenerator passes through framework option", async (t) => {
+test.serial("versionInfoGenerator resolves framework from explicit frameworkName/frameworkVersion", async (t) => {
 	const {versionInfoGenerator} = t.context;
 	const versionInfos = await versionInfoGenerator({options: {
 		rootProjectName: "myname", rootProjectVersion: "1.33.7", libraryInfos: [],
-		framework: {name: "OpenUI5", version: "1.136.0"}}});
+		frameworkName: "OpenUI5", frameworkVersion: "1.136.0"}});
 
 	const result = JSON.parse(await versionInfos[0].getString());
-	t.deepEqual(result.framework, {name: "OpenUI5", version: "1.136.0"},
-		"framework object is emitted from the provided option");
+	t.deepEqual(result.framework, {name: "OpenUI5", version: "1.136.0"});
+});
+
+// --- resolveFramework unit tests (pure function, no esmock needed) ---
+
+test("resolveFramework: explicit OpenUI5 returns name and version", (t) => {
+	t.deepEqual(resolveFramework("OpenUI5", "1.136.0", []), {name: "OpenUI5", version: "1.136.0"});
+});
+
+test("resolveFramework: explicit SAPUI5 returns name and version", (t) => {
+	t.deepEqual(resolveFramework("SAPUI5", "1.136.0", []), {name: "SAPUI5", version: "1.136.0"});
+});
+
+test("resolveFramework: name-only config coalesces missing version to empty string (fixes #3)", (t) => {
+	t.deepEqual(resolveFramework("SAPUI5", undefined, []), {name: "SAPUI5", version: ""});
+	t.deepEqual(resolveFramework("OpenUI5", undefined, []), {name: "OpenUI5", version: ""});
+});
+
+test("resolveFramework: explicit config wins over dependency scan", (t) => {
+	const libs = [{id: "@sapui5/sap.m", name: "sap.m", version: "1.136.0"}];
+	t.deepEqual(resolveFramework("OpenUI5", "1.138.0", libs), {name: "OpenUI5", version: "1.138.0"});
+});
+
+test("resolveFramework: unrecognized frameworkName falls through to scan and then fallback", (t) => {
+	t.deepEqual(resolveFramework("CustomFramework", "1.0.0", []), {name: "", version: ""});
+});
+
+test("resolveFramework: scans @openui5/ dep and resolves OpenUI5 with sap.ui.core version", (t) => {
+	const libs = [
+		{id: "@openui5/sap.m", name: "sap.m", version: "1.136.0"},
+		{id: "@openui5/sap.ui.core", name: "sap.ui.core", version: "1.136.0"}
+	];
+	t.deepEqual(resolveFramework(undefined, undefined, libs), {name: "OpenUI5", version: "1.136.0"});
+});
+
+test("resolveFramework: scans @openui5/ dep without sap.ui.core yields empty version", (t) => {
+	const libs = [{id: "@openui5/sap.m", name: "sap.m", version: "1.136.0"}];
+	t.deepEqual(resolveFramework(undefined, undefined, libs), {name: "OpenUI5", version: ""});
+});
+
+test("resolveFramework: scans @sapui5/ dep and resolves SAPUI5 with empty version", (t) => {
+	const libs = [{id: "@sapui5/sap.m", name: "sap.m", version: "1.136.0"}];
+	t.deepEqual(resolveFramework(undefined, undefined, libs), {name: "SAPUI5", version: ""});
+});
+
+test("resolveFramework: @sapui5/ dep short-circuits before @openui5/ accumulation", (t) => {
+	const libs = [
+		{id: "@openui5/sap.ui.core", name: "sap.ui.core", version: "1.136.0"},
+		{id: "@sapui5/sap.m", name: "sap.m", version: "1.136.0"}
+	];
+	t.deepEqual(resolveFramework(undefined, undefined, libs), {name: "SAPUI5", version: ""});
+});
+
+test("resolveFramework: libs without id are ignored in scan (no-id fallback)", (t) => {
+	const libs = [
+		{name: "sap.m", version: "1.136.0"},
+		{id: undefined, name: "sap.ui.core", version: "1.136.0"}
+	];
+	t.deepEqual(resolveFramework(undefined, undefined, libs), {name: "", version: ""});
+});
+
+test("resolveFramework: empty libraryInfos returns fallback", (t) => {
+	t.deepEqual(resolveFramework(undefined, undefined, []), {name: "", version: ""});
 });
 
 
