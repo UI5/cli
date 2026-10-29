@@ -40,7 +40,8 @@ function createMiddleware({resources, middlewareUtil}) {
 					libraryManifest,
 					embeddedManifests,
 					name: dotLibResource.getProject().getName(),
-					version: dotLibResource.getProject().getVersion()
+					version: dotLibResource.getProject().getVersion(),
+					id: dotLibResource.getProject().getId?.()
 				};
 			});
 			const rootProject = middlewareUtil.getProject();
@@ -49,6 +50,8 @@ function createMiddleware({resources, middlewareUtil}) {
 				options: {
 					rootProjectName: rootProject.getName(),
 					rootProjectVersion: rootProject.getVersion(),
+					frameworkName: rootProject.getFrameworkName?.(),
+					frameworkVersion: rootProject.getFrameworkVersion?.(),
 					libraryInfos
 				}
 			});
