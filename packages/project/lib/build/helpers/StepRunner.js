@@ -5,6 +5,7 @@ import {assertDistinctWrite, flushWriteBuffer, getInputName} from "@ui5/fs/inter
 import {getLogger} from "@ui5/logger";
 import MonitoredTaskUtil from "./MonitoredTaskUtil.js";
 import * as toolDependencyRecorder from "./ToolDependencyRecorder.js";
+import * as toolDependencyStore from "@ui5/builder/processors/toolDependencyStore";
 
 const log = getLogger("build:helpers:StepRunner");
 
@@ -568,8 +569,8 @@ export default class StepRunner {
 			// Observe which external tool files the step's invocations load (CPOUI5FOUNDATION-1386), so
 			// their content folds into the stage signature. Brackets the whole group: a step-based task's
 			// processor (terser for minify, less-openui5 for buildThemes) loads inside the invocation
-			// bodies. Only observable when the tool runs in-process (UI5_CLI_NO_WORKERS); worker-thread
-			// tools need the hook registered inside the worker (deferred).
+			// bodies. In-process tools (UI5_CLI_NO_WORKERS) are seen by the main-thread hook; worker-thread
+			// tools are observed inside the worker and drained from the builder-side store below.
 			const toolCapture = toolDependencyRecorder.startCapture();
 			let runGroupResult;
 			let toolFiles;
@@ -578,7 +579,13 @@ export default class StepRunner {
 					step.name, entries, options, callback,
 					{needs, needsSignatures, cacheInfo, previous, ctx, isScalar});
 			} finally {
-				toolFiles = toolDependencyRecorder.stopCapture(toolCapture);
+				// Merge the main-thread capture (in-process tools) with the builder-side store (tools
+				// observed inside build workers), so both worker and in-process tasks fold their tool
+				// content into the stage signature (CPOUI5FOUNDATION-1386).
+				toolFiles = [...new Set([
+					...toolDependencyRecorder.stopCapture(toolCapture),
+					...toolDependencyStore.drain(),
+				])].sort();
 			}
 			const {results, invocationData, freshInvocationData} = runGroupResult;
 

@@ -3,6 +3,7 @@ import composeTaskList from "./helpers/composeTaskList.js";
 import MonitoredTaskUtil from "./helpers/MonitoredTaskUtil.js";
 import StepRunner, {validateSteps} from "./helpers/StepRunner.js";
 import * as toolDependencyRecorder from "./helpers/ToolDependencyRecorder.js";
+import * as toolDependencyStore from "@ui5/builder/processors/toolDependencyStore";
 import {createReaderCollection, createMonitor} from "@ui5/fs/resourceFactory";
 
 const EMPTY_RESOURCE_REQUESTS = {paths: [], patterns: []};
@@ -406,7 +407,10 @@ class TaskRunner {
 				try {
 					await taskBody(params);
 				} finally {
-					toolFiles = toolDependencyRecorder.stopCapture(toolCapture);
+					toolFiles = [...new Set([
+						...toolDependencyRecorder.stopCapture(toolCapture),
+						...toolDependencyStore.drain(),
+					])].sort();
 				}
 				if (this._log.isLevelEnabled("perf")) {
 					this._log.perf(
@@ -726,7 +730,10 @@ class TaskRunner {
 			try {
 				await taskFunction(params);
 			} finally {
-				toolFiles = toolDependencyRecorder.stopCapture(toolCapture);
+				toolFiles = [...new Set([
+					...toolDependencyRecorder.stopCapture(toolCapture),
+					...toolDependencyStore.drain(),
+				])].sort();
 			}
 
 			const taskUtilRequests = monitoredTaskUtil?.getResourceRequests();
