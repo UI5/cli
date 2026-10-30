@@ -1,4 +1,6 @@
 import test from "ava";
+import {createResource} from "@ui5/fs/resourceFactory";
+import {setLimit} from "../../utils/__helper__/limits.js";
 import path from "node:path";
 import sinonGlobal from "sinon";
 import Library from "../../../../lib/specifications/types/Library.js";
@@ -664,6 +666,7 @@ test("_getManifest: Reads correctly", async (t) => {
 
 	const project = await (new Library().init(projectInput));
 	const byGlobStub = sinon.stub().resolves([{
+		getSize: async () => 0,
 		getString: async () => `{"pony": "no unicorn"}`,
 		getPath: () => "some path"
 	}]);
@@ -704,6 +707,7 @@ test("_getManifest: Invalid JSON", async (t) => {
 
 	const project = await (new Library().init(projectInput));
 	const byGlobStub = sinon.stub().resolves([{
+		getSize: async () => 0,
 		getString: async () => `no pony`,
 		getPath: () => "some path"
 	}]);
@@ -727,6 +731,7 @@ test("_getManifest: Empty file", async (t) => {
 
 	const project = await (new Library().init(projectInput));
 	const byGlobStub = sinon.stub().resolves([{
+		getSize: async () => 0,
 		getString: async () => "",
 		getPath: () => "some path"
 	}]);
@@ -768,9 +773,11 @@ test("_getManifest: Multiple manifest.json files", async (t) => {
 
 	const project = await (new Library().init(projectInput));
 	const byGlobStub = sinon.stub().resolves([{
+		getSize: async () => 0,
 		getString: async () => `{"pony": "no unicorn"}`,
 		getPath: () => "some path"
 	}, {
+		getSize: async () => 0,
 		getString: async () => `{"pony": "no shark"}`,
 		getPath: () => "some other path"
 	}]);
@@ -791,6 +798,7 @@ test("_getManifest: Result is cached", async (t) => {
 
 	const project = await (new Library().init(projectInput));
 	const byGlobStub = sinon.stub().resolves([{
+		getSize: async () => 0,
 		getString: async () => `{"pony": "no unicorn"}`,
 		getPath: () => "some path"
 	}]);
@@ -1668,3 +1676,44 @@ test("getVirtualPath: throws for unknown path", async (t) => {
 	const err = t.throws(() => project.getVirtualPath(unknownPath));
 	t.true(err.message.includes("Unable to convert source path"));
 });
+
+for (const filePath of ["/manifest.json"]) {
+	for (const mode of ["bytes", "depth", "boundary"]) {
+		test.serial(`_getManifest: ${filePath} ${mode} limit`, async (t) => {
+			const {sinon} = t.context;
+			const project = new Library();
+			sinon.stub(project, "getName").returns("limit.test");
+			const string = JSON.stringify({a: {text: String.fromCharCode(233)}});
+			const size = Buffer.byteLength(string);
+			setLimit(t, "UI5_MANIFEST_MAX_BYTES", mode === "bytes" ? size - 1 : size);
+			setLimit(t, "UI5_JSON_MAX_DEPTH", mode === "depth" ? 1 : 2);
+			const resource = createResource({path: filePath, string});
+			const getString = sinon.spy(resource, "getString");
+			sinon.stub(project, "_getRawSourceReader").returns({
+				byGlob: async () => [resource]
+			});
+			if (mode === "boundary") {
+				const result = await project._getManifest(filePath);
+				t.deepEqual(result.content, JSON.parse(string));
+			} else {
+				const code = mode === "bytes" ? "ERR_CONFIG_TOO_LARGE" : "ERR_CONFIG_TOO_DEEP";
+				const error = await t.throwsAsync(project._getManifest(filePath), {code});
+				t.true(error.message.includes(filePath));
+				t.true(error.message.includes(mode === "bytes" ? `${size - 1} bytes` : "depth of 1"));
+				if (mode === "bytes") {
+					t.false(getString.called);
+				}
+			}
+		});
+	}
+}
+
+for (const code of ["ERR_CONFIG_TOO_LARGE", "ERR_CONFIG_TOO_DEEP", "ERR_CONFIG_INVALID_LIMIT"]) {
+	test(`_getNamespaceFromManifest: propagates ${code} without fallback`, async (t) => {
+		const {sinon} = t.context;
+		const project = new Library();
+		const error = Object.assign(new Error("manifest limit"), {code});
+		sinon.stub(project, "_getManifest").rejects(error);
+		t.is(await t.throwsAsync(project._getNamespaceFromManifest(), {code}), error);
+	});
+}
