@@ -325,16 +325,16 @@ When `useMetadata` is enabled, the `workspace.byPath(metadataPath)` call is part
 
 ###### Standalone Execution
 
-`@ui5/builder/tasks/runSteps` runs the same factory outside the cached build:
+`@ui5/builder/tasks/runTask` runs a task factory outside the cached build. It accepts both descriptor forms: it runs a `task` body directly, and for a step-based descriptor it runs the steps.
 
 ```js
-import runSteps from "@ui5/builder/tasks/runSteps";
+import runTask from "@ui5/builder/tasks/runTask";
 import build from "./task.js";
 
-await runSteps(build, {workspace, dependencies, taskUtil, options});
+await runTask(build, {workspace, dependencies, taskUtil, options});
 ```
 
-The helper preserves step order, `needs` values, map concurrency, ordered write flushing, and `sequential` behavior. It runs every step and key because standalone execution has no delta selection, cache persistence, or tag replay.
+The helper preserves step order, `needs` values, map concurrency, ordered write flushing, and `sequential` behavior. For a step-based task it runs every step and key, because standalone execution has no delta selection, cache persistence, or tag replay.
 
 ##### Non-Resource Task Inputs
 
