@@ -442,10 +442,27 @@ test.serial("integration: minify with taskUtil and resources tagged with OmitFro
 // the -dbg.js, so a pre-existing one must not be there. The glob then matches both the .js and the -dbg.js
 // as separate map-step keys, and the .js key would write its generated debug variant to the -dbg.js path
 // that the -dbg.js key also writes - two concurrent keys writing one path, which crashes the build. To
-// stay robust, the .js and that -dbg.js are both skipped. Other .js files are minified as usual.
-test.serial("integration: minify skips a .js with an existing -dbg.js sibling and that -dbg.js",
+// stay robust, the .js and that -dbg.js are both skipped, but must still receive their debug tags.
+// Other .js files are minified as usual.
+test.serial("integration: minify skips and tags a .js with an existing -dbg.js sibling and that -dbg.js",
 	async (t) => {
 		const {reader, writer, workspace} = createWorkspace();
+		const taskUtil = {
+			getEnv: (name) => process.env[name],
+			setTag: t.context.sinon.stub(),
+			getTag: t.context.sinon.stub().returns(false),
+			STANDARD_TAGS: {
+				HasDebugVariant: "has debug variant",
+				IsDebugVariant: "is debug variant",
+				OmitFromBuildResult: "omit from build result"
+			},
+			registerCleanupTask: t.context.sinon.stub()
+		};
+		t.teardown(async () => {
+			for (const call of taskUtil.registerCleanupTask.getCalls()) {
+				await call.firstArg();
+			}
+		});
 		const base = "/resources/my/namespace";
 		const content = `function a(x){return x;}\n`;
 
@@ -466,10 +483,19 @@ test.serial("integration: minify skips a .js with an existing -dbg.js sibling an
 
 		await runTask(minify, {
 			workspace,
+			taskUtil,
 			options: {
 				pattern: "/resources/**/*.js"
 			}
 		});
+
+		const tagsByPath = new Map(taskUtil.setTag.getCalls().map(({args: [resource, tag]}) => [
+			resource.getPath(), tag
+		]));
+		t.is(tagsByPath.get(base + "/withDbg.js"), taskUtil.STANDARD_TAGS.HasDebugVariant,
+			"Skipped .js is tagged as having a debug variant");
+		t.is(tagsByPath.get(base + "/withDbg-dbg.js"), taskUtil.STANDARD_TAGS.IsDebugVariant,
+			"Existing -dbg.js is tagged as a debug variant");
 
 		// The skipped .js and its -dbg.js are left untouched - the task writes neither them nor any derived
 		// resource (no source map, no overwrite of the existing -dbg.js).

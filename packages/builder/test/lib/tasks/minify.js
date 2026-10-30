@@ -242,7 +242,7 @@ test("minify: No taskUtil", async (t) => {
 	});
 });
 
-test("minify: Skips and warns for an existing -dbg.js next to its .js", async (t) => {
+test("minify: Skips, tags and warns for an existing -dbg.js next to its .js", async (t) => {
 	const {minify, workspace, taskUtil, minifierStub, log} = t.context;
 	// A .js with an existing -dbg.js sibling (broken input state), plus a plain .js without a sibling.
 	const normal = {getPath: () => "/resources/normal.js"};
@@ -277,6 +277,12 @@ test("minify: Skips and warns for an existing -dbg.js next to its .js", async (t
 	"Warning names the .js and its existing debug variant");
 	t.true(log.warn.firstCall.firstArg.includes("builder.minification.excludes"),
 		"Warning hints at the minification excludes configuration");
+
+	// TODO: is testing setTag() enough? (testing getTag() would be cleaner)
+	t.true(taskUtil.setTag.calledWithExactly(withDbg, taskUtil.STANDARD_TAGS.HasDebugVariant),
+		"Skipped .js is tagged as having a debug variant");
+	t.true(taskUtil.setTag.calledWithExactly(existingDbg, taskUtil.STANDARD_TAGS.IsDebugVariant),
+		"Existing -dbg.js is tagged as a debug variant");
 
 	// Neither the skipped .js nor its -dbg.js got written back.
 	t.is(workspace.write.callCount, 3, "workspace#write got called only for the plain .js and its derived resources");
