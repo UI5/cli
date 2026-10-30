@@ -3,6 +3,7 @@ import os from "node:os";
 import semver from "semver";
 import AbstractResolver from "./AbstractResolver.js";
 import Installer from "./maven/Installer.js";
+import validateUrl, {redactUrl} from "./maven/validateUrl.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("ui5Framework:Sapui5MavenSnapshotResolver");
 
@@ -25,9 +26,9 @@ const DIST_ARTIFACT_ID = "sapui5-sdk-dist";
 class Sapui5MavenSnapshotResolver extends AbstractResolver {
 	/**
 	 * @param {*} options options
-	 * @param {string} [options.snapshotEndpointUrl] Maven Repository Snapshot URL. Can by overruled
-	 *	by setting the <code>UI5_MAVEN_SNAPSHOT_ENDPOINT_URL</code> environment variable. If neither is provided,
-	 *	falling back to the standard Maven settings.xml file (if existing).
+	 * @param {string} [options.snapshotEndpointUrl] Trusted Maven repository snapshot URL. Must use HTTPS.
+	 * The <code>UI5_MAVEN_SNAPSHOT_ENDPOINT_URL</code> environment variable overrides this option.
+	 * If neither is set, the resolver reads the UI5 CLI configuration with a fallback to Maven settings.xml.
 	 * @param {string} options.version SAPUI5 version to use
 	 * @param {boolean} [options.sources=false] Whether to install framework libraries as sources or
 	 * pre-built (with build manifest)
@@ -168,6 +169,7 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 			// are already cached, this is actually not necessary and could be skipped
 			return Sapui5MavenSnapshotResolver._resolveSnapshotEndpointUrl;
 		} else {
+			snapshotEndpointUrl = validateUrl(snapshotEndpointUrl);
 			return () => Promise.resolve(snapshotEndpointUrl);
 		}
 	}
@@ -183,12 +185,14 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 		const config = await Configuration.fromFile();
 		let url = config.getMavenSnapshotEndpointUrl();
 		if (url) {
-			log.verbose(`Using UI5 CLI configuration for mavenSnapshotEndpointUrl: ${url}`);
+			url = validateUrl(url);
+			log.verbose(`Using UI5 CLI configuration for mavenSnapshotEndpointUrl: ${redactUrl(url)}`);
 		} else {
 			log.verbose(`No mavenSnapshotEndpointUrl configuration found`);
 			url = await Sapui5MavenSnapshotResolver._resolveSnapshotEndpointUrlFromMaven();
 			if (url) {
-				log.verbose(`Updating UI5 CLI configuration with new mavenSnapshotEndpointUrl: ${url}`);
+				url = validateUrl(url);
+				log.verbose(`Updating UI5 CLI configuration with resolved mavenSnapshotEndpointUrl: ${redactUrl(url)}`);
 				const configJson = config.toJson();
 				configJson.mavenSnapshotEndpointUrl = url;
 				await Configuration.toFile(new Configuration(configJson));
@@ -252,18 +256,20 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 			return null;
 		}
 
+		url = validateUrl(url);
 		const {default: yesno} = await import("yesno");
 		const ok = await yesno({
 			question:
 				"\nA Maven repository endpoint URL is required for consuming snapshot versions of UI5 libraries.\n" +
 				"You can configure one using the command: 'ui5 config set mavenSnapshotEndpointUrl <url>'\n\n" +
-				`The following URL has been found in a Maven configuration file at ${settingsXML}:\n${url}\n\n` +
+				`The following URL has been found in a Maven configuration file at ${settingsXML}:\n` +
+				`${redactUrl(url)}\n\n` +
 				`Continue with this endpoint URL and remember it for the future? (yes)`,
 			defaultValue: true,
 		});
 
 		if (ok) {
-			log.verbose(`Using Maven snapshot endpoint URL resolved from Maven configuration file: ${url}`);
+			log.verbose(`Using Maven snapshot endpoint URL resolved from Maven configuration file: ${redactUrl(url)}`);
 			return url;
 		} else {
 			log.verbose(`User rejected usage of the resolved URL`);

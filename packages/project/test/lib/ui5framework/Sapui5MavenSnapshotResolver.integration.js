@@ -12,7 +12,7 @@ const fakeBaseDir = path.join(__dirname, "fake-tmp");
 test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
 
-	process.env.UI5_MAVEN_SNAPSHOT_ENDPOINT_URL = "_SNAPSHOT_URL_";
+	process.env.UI5_MAVEN_SNAPSHOT_ENDPOINT_URL = "https://snapshot.example/registry";
 
 	t.context.logStub = {
 		info: sinon.stub(),
@@ -94,7 +94,7 @@ test.afterEach.always((t) => {
 test.serial("resolveVersion", async (t) => {
 	const {Sapui5MavenSnapshotResolver, makeFetchHappen, logStub, sinon} = t.context;
 
-	makeFetchHappen.withArgs("_SNAPSHOT_URL_/com/sap/ui5/dist/sapui5-sdk-dist/maven-metadata.xml")
+	makeFetchHappen.withArgs("https://snapshot.example/registry/com/sap/ui5/dist/sapui5-sdk-dist/maven-metadata.xml")
 		.resolves({
 			ok: true,
 			buffer: sinon.stub().resolves(`

@@ -333,30 +333,38 @@ class Installer extends AbstractInstaller {
 
 				await mkdirp(stagingDir);
 
-				const {artifactPath, removeArtifact} = await this.installArtifact(coordinates);
+				try {
+					const {artifactPath, removeArtifact} = await this.installArtifact(coordinates);
 
-				log.verbose(`Extracting archive at ${artifactPath} to ${stagingDir}...`);
-				const zip = new StreamZip({file: artifactPath});
-				let rootDir = null;
-				if (extension === "jar") {
-					rootDir = "META-INF";
+					log.verbose(`Extracting archive at ${artifactPath} to ${stagingDir}...`);
+					const zip = new StreamZip({file: artifactPath});
+					let rootDir = null;
+					if (extension === "jar") {
+						rootDir = "META-INF";
+					}
+					try {
+						await zip.extract(rootDir, stagingDir);
+					} finally {
+						await zip.close();
+					}
+
+					// Check whether target dir already exists and remove it
+					if (await this._pathExists(targetDir)) {
+						log.verbose(`Removing existing target directory at ${targetDir}...`);
+						await rmrf(targetDir);
+					}
+
+					// Do not create target dir itself to prevent EPERM error in following rename operation
+					// (https://github.com/UI5/cli/issues/487)
+					await mkdirp(path.dirname(targetDir));
+					log.verbose(`Promoting staging directory from ${stagingDir} to ${targetDir}...`);
+					await rename(stagingDir, targetDir);
+
+					await removeArtifact();
+				} catch (err) {
+					await rmrf(stagingDir);
+					throw err;
 				}
-				await zip.extract(rootDir, stagingDir);
-				await zip.close();
-
-				// Check whether target dir already exists and remove it
-				if (await this._pathExists(targetDir)) {
-					log.verbose(`Removing existing target directory at ${targetDir}...`);
-					await rmrf(targetDir);
-				}
-
-				// Do not create target dir itself to prevent EPERM error in following rename operation
-				// (https://github.com/UI5/cli/issues/487)
-				await mkdirp(path.dirname(targetDir));
-				log.verbose(`Promoting staging directory from ${stagingDir} to ${targetDir}...`);
-				await rename(stagingDir, targetDir);
-
-				await removeArtifact();
 			});
 		} else {
 			log.verbose(`Already installed: ${pkgName} in SNAPSHOT version ${revision}`);
@@ -425,13 +433,18 @@ class Installer extends AbstractInstaller {
 				// TODO: Stream response body to installPackage and unzip directly via
 				// https://github.com/isaacs/minizlib (already in dependencies through pacote)
 				// This way we do not store the archive unnecessarily
-				const reg = await this.getRegistry();
-				await reg.requestArtifact(coordinates, stagingPath);
+				try {
+					const reg = await this.getRegistry();
+					await reg.requestArtifact(coordinates, stagingPath);
 
-				await mkdirp(path.dirname(targetPath));
-				log.verbose(
-					`Promoting artifact from staging path ${stagingPath} to target path at ${targetPath}...`);
-				await rename(stagingPath, targetPath);
+					await mkdirp(path.dirname(targetPath));
+					log.verbose(
+						`Promoting artifact from staging path ${stagingPath} to target path at ${targetPath}...`);
+					await rename(stagingPath, targetPath);
+				} catch (err) {
+					await rm(stagingPath, {force: true});
+					throw err;
+				}
 			});
 		} else {
 			log.verbose(`Already installed: ${artifactId} in version ${revision}`);
