@@ -1,0 +1,171 @@
+Tasks
+
+escapeNonAsciiCharacters
+replaceCopyright
+replaceVersion
+replaceBuildtime
+minify
+generateLibraryManifest
+enhanceManifest
+generateLibraryPreload
+buildThemes
+							+++ generateThemeDesignerResources
++++ generateResourcesJson
+
+UI5_CLI_NO_LOCAL=X ui5_dev build --cache off --exclude-task \
+escapeNonAsciiCharacters \
+replaceCopyright \
+replaceVersion \
+replaceBuildtime \
+minify \
+generateLibraryManifest \
+enhanceManifest \
+generateLibraryPreload \
+buildThemes \
+--include-task generateThemeDesignerResources generateResourcesJson
+
+---------------------
+automize: for this directory, running a UI5 CLI build (v5) returns in a warning:
+"warn lbt:analyzer:JSModuleAnalyzer sap.ui.predefine call has a non supported type for module name (ignored)".
+This occurs only for some combinations of UI5 CLI tasks.
+
+Here is a list of the standard tasks (when --include-task and --exclude-task are empty):
+escapeNonAsciiCharacters
+replaceCopyright
+replaceVersion
+replaceBuildtime
+minify
+generateLibraryManifest
+enhanceManifest
+generateLibraryPreload
+buildThemes
+
+----
+
+[1] clean: minify, generateLibraryPreload (4.69s)
+[2] clean: escapeNonAsciiCharacters, generateLibraryPreload (3.51s)
+[3] clean: replaceCopyright, generateLibraryPreload (3.34s)
+[4] clean: replaceVersion, generateLibraryPreload (3.51s)
+[5] clean: replaceBuildtime, generateLibraryPreload (2.77s)
+[6] clean: generateLibraryManifest, generateLibraryPreload (2.67s)
+[7] clean: enhanceManifest, generateLibraryPreload (2.88s)
+[8] clean: generateLibraryPreload, buildThemes (2.9s)
+[9] clean: generateLibraryPreload, generateThemeDesignerResources (2.1s)
+[10] WARNING: generateLibraryPreload, generateResourcesJson (3.14s)
+Testing 3-task combinations...
+[11] WARNING: minify, generateLibraryPreload, generateResourcesJson (5.75s)
+[12] WARNING: escapeNonAsciiCharacters, generateLibraryPreload, generateResourcesJson (4.18s)
+[13] WARNING: replaceCopyright, generateLibraryPreload, generateResourcesJson (4.18s)
+[14] WARNING: replaceVersion, generateLibraryPreload, generateResourcesJson (4.08s)
+[15] WARNING: replaceBuildtime, generateLibraryPreload, generateResourcesJson (4.04s)
+[16] WARNING: generateLibraryManifest, generateLibraryPreload, generateResourcesJson (4.04s)
+[17] WARNING: enhanceManifest, generateLibraryPreload, generateResourcesJson (4.2s)
+[18] WARNING: generateLibraryPreload, buildThemes, generateResourcesJson (4.17s)
+[19] WARNING: generateLibraryPreload, generateThemeDesignerResources, generateResourcesJson (2.89s)
+Completed: 19 new builds, 0 reused results, 10 warnings, 0 failures.
+Results: /var/folders/pf/9l9nb_r512bd2rqp16hjgznw0000gn/T/ui5-task-combinations-vixo31hs/results.jsonl
+
+------------------
+Scenario #1 ======================
+
+adaptivecards-dbg.js > sap.ui.define((function () { ... }))
+adaptivecards.js > sap.ui.define( function () { ... } )
+
+minify.js > DO NOTHING FOR adaptivecards-dbg.js and adaptivecards.js
+
+adaptivecards-dbg.js > sap.ui.define((function () { ... }))
+adaptivecards.js > sap.ui.define( function () { ... } )
+
+generateLibraryPreload.js
+
+adaptivecards-dbg.js > sap.ui.predefine(("module-name",function () { ... })) <-- INCORRECT
+adaptivecards.js > sap.ui.predefine( "module-name", function () { ... } )   <-- CORRECT
+
+generateResourcesJson.js
+
+adaptivecards-dbg.js > sap.ui.predefine(("module-name",function () { ... })) <-- WARNING
+
+
+Scenario #2 ======================
+
+adaptivecards-dbg.js > sap.ui.define((function () { ... }))
+adaptivecards.js > sap.ui.define( function () { ... } )
+
+generateLibraryPreload.js
+
+adaptivecards-dbg.js > sap.ui.predefine(("module-name",function () { ... })) <-- INCORRECT
+adaptivecards.js > sap.ui.predefine( "module-name", function () { ... } )   <-- CORRECT
+
+generateResourcesJson.js
+
+adaptivecards-dbg.js > sap.ui.predefine(("module-name",function () { ... })) <-- WARNING
+
+
+Scenario #3 ======================
+
+adaptivecards.js > sap.ui.define( function () { ... } )
+
+minify.js
+
+adaptivecards-dbg.js > sap.ui.define( function () { ... } ) > Tag: IsDebugVariant
+adaptivecards.js > sap.ui.define( function () { ... } )
+
+generateLibraryPreload.js > DO NOTHING FOR adaptivecards-dbg.js
+
+adaptivecards-dbg.js > sap.ui.define( function () { ... } ) > Tag: IsDebugVariant
+adaptivecards.js > sap.ui.predefine( "module-name", function () { ... } )   <-- CORRECT
+
+generateResourcesJson.js
+
+adaptivecards-dbg.js > sap.ui.define( function () { ... } ) > Tag: IsDebugVariant
+adaptivecards.js > sap.ui.predefine( "module-name", function () { ... } )
+
+
+Scenario #4 ======================
+
+adaptivecards.js > sap.ui.define((function () { ... }))
+
+minify.js
+
+adaptivecards-dbg.js > sap.ui.define((function () { ... })) > Tag: IsDebugVariant
+adaptivecards.js > sap.ui.define( function () { ... } )
+
+generateLibraryPreload.js > DO NOTHING FOR adaptivecards-dbg.js
+
+adaptivecards-dbg.js > sap.ui.define((function () { ... })) > Tag: IsDebugVariant
+adaptivecards.js > sap.ui.predefine( "module-name", function () { ... } )   <-- CORRECT
+
+generateResourcesJson.js
+
+adaptivecards-dbg.js > sap.ui.define((function () { ... })) > Tag: IsDebugVariant
+adaptivecards.js > sap.ui.predefine( "module-name", function () { ... } )
+
+
+Scenario #5 ====================== (excluded minify)
+
+adaptivecards.js > sap.ui.define((function () { ... }))
+
+generateLibraryPreload.js >
+
+adaptivecards.js > sap.ui.predefine(( "module-name", function () { ... } ))   <-- INCORRECT
+
+generateResourcesJson.js >
+
+adaptivecards.js > sap.ui.predefine(( "module-name", function () { ... } )) --> WARNING
+
+
+⬇️ Conclusion ======================
+
+Warning happens when sap.ui.define((function () { ... })) > sap.ui.predefine(("module-name",function () { ... }))
+	--> afterwards generateResourcesJson.js works with sap.ui.predefine(("module-name",function () { ... }))
+
+
+- A: minify task must properly set debug tags
+- B: generateLibraryPreload: must set the debug tags as well (based on the path endings)
+	- if: none of the two tags is set (HasDebugVariant, IsDebugVariant)
+- C: generateLibraryPreload: parentheses handling
+	- if special case with double parentheses: DO NOT output double parentheses
+
+For A: tests implemented:
+- packages/builder/test/lib/tasks/minify.js - line #245 -> ❌currently failing
+- packages/builder/test/lib/tasks/minify.integration.js #447 -> ❌currently failing
