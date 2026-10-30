@@ -118,7 +118,8 @@ tree.handler = async function(argv) {
 				process.stdout.write(
 					`${baseString}${connectorString} ${name} ` +
 					`${project.getNamespace() ? chalk.inverse(project.getNamespace()) + " " : ""}` +
-					chalk.dim(`(${project.getVersion()}, ${project.getType()}) `) +
+					chalk.dim(`(${project.getVersion()}, ${project.getType()}, ` +
+						`specVersion: ${project.getSpecVersion()}) `) +
 					chalk.dim.italic(`${project.getRootPath()}`)
 				);
 				process.stdout.write("\n");
@@ -174,7 +175,8 @@ tree.handler = async function(argv) {
 			const connectorString = idx === lastIdx ? "╰─" : "├─";
 			process.stdout.write(
 				`${connectorString} ${extensionName} ` +
-				chalk.dim(`(${extension.getVersion()}, ${extension.getType()}) `) +
+				chalk.dim(`(${extension.getVersion()}, ${extension.getType()}, ` +
+					`specVersion: ${extension.getSpecVersion()}) `) +
 				chalk.dim.italic(`${extension.getRootPath()}`));
 			process.stdout.write("\n");
 		});
