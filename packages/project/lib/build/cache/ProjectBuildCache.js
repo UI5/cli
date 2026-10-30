@@ -757,10 +757,10 @@ export default class ProjectBuildCache {
 		// with the current input and root signatures (BuildStageCache.getStageSignatures). The input and
 		// root signatures are re-evaluated against the current environment, graph, and project root, so a
 		// changed input or root file misses the cached stage. Root indices were refreshed in validateCache
-		// before this build's stages run.
-		const inputSignature = stageCache.getInputSignature(this.#resolveInputValue);
-		const rootSignature = stageCache.getRootSignature();
-		const stageSignatures = stageCache.getStageSignatures(this.#resolveInputValue);
+		// before this build's stages run. getStageSignatures returns the four components alongside the
+		// candidates, so the delta path below reuses them instead of recomputing.
+		const {stageSignatures, inputSignature, rootSignature, projectSignatures, dependencySignatures} =
+			stageCache.getStageSignatures(this.#resolveInputValue);
 
 		const cachedStage = this.#findStageCache(stageId, stageSignatures);
 		const oldStageTuple = this.#currentStageSignatures.get(stageId);
@@ -791,8 +791,6 @@ export default class ProjectBuildCache {
 				`Attempting to find delta cached stage...`);
 			const projectDeltas = stageCache.getProjectIndexDeltas();
 			const depDeltas = stageCache.getDependencyIndexDeltas();
-			const projectSignatures = stageCache.getProjectIndexSignatures();
-			const dependencySignatures = stageCache.getDependencyIndexSignatures();
 
 			// Build the delta candidates and carry each one's provenance alongside it: the resolved new
 			// project and dependency components and the changed-path lists. The winner is looked up by its
