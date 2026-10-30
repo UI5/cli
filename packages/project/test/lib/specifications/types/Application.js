@@ -1,4 +1,5 @@
 import test from "ava";
+import {setLimit} from "../../utils/__helper__/limits.js";
 import path from "node:path";
 import {createResource} from "@ui5/fs/resourceFactory";
 import sinonGlobal from "sinon";
@@ -565,6 +566,7 @@ test("_getManifest: invalid JSON", async (t) => {
 	const project = await Specification.create(projectInput);
 
 	const byPathStub = sinon.stub().resolves({
+		getSize: async () => 0,
 		getString: async () => "no json"
 	});
 
@@ -588,6 +590,7 @@ test("_getManifest: empty file", async (t) => {
 	const project = await Specification.create(projectInput);
 
 	const byPathStub = sinon.stub().resolves({
+		getSize: async () => 0,
 		getString: async () => ""
 	});
 
@@ -619,6 +622,7 @@ test.serial("_getManifest: result is cached", async (t) => {
 	const project = await Specification.create(projectInput);
 
 	const byPathStub = sinon.stub().resolves({
+		getSize: async () => 0,
 		getString: async () => `{"pony": "no unicorn"}`
 	});
 
@@ -645,6 +649,7 @@ test.serial("_getManifest: Caches successes and failures", async (t) => {
 		.onFirstCall().rejects(new Error("EPON: Pony Error"))
 		.onSecondCall().resolves(`{"pony": "no unicorn"}`);
 	const byPathStub = sinon.stub().resolves({
+		getSize: async () => 0,
 		getString: getStringStub
 	});
 
@@ -702,3 +707,34 @@ test("namespace: detect namespace from pom.xml via ${appId} from properties", as
 	t.deepEqual(error.message, "Failed to resolve namespace of project application.h: \"${appId}\"" +
 		" couldn't be resolved from maven property \"appId\" of pom.xml of project application.h");
 });
+
+for (const filePath of ["/manifest.json", "/manifest.appdescr_variant"]) {
+	for (const mode of ["bytes", "depth", "boundary"]) {
+		test.serial(`_getManifest: ${filePath} ${mode} limit`, async (t) => {
+			const {sinon} = t.context;
+			const project = new Application();
+			sinon.stub(project, "getName").returns("limit.test");
+			const string = JSON.stringify({a: {text: String.fromCharCode(233)}});
+			const size = Buffer.byteLength(string);
+			setLimit(t, "UI5_MANIFEST_MAX_BYTES", mode === "bytes" ? size - 1 : size);
+			setLimit(t, "UI5_JSON_MAX_DEPTH", mode === "depth" ? 1 : 2);
+			const resource = createResource({path: filePath, string});
+			const getString = sinon.spy(resource, "getString");
+			sinon.stub(project, "_getRawSourceReader").returns({
+				byPath: async () => resource
+			});
+			if (mode === "boundary") {
+				const result = await project._getManifest(filePath);
+				t.deepEqual(result, JSON.parse(string));
+			} else {
+				const code = mode === "bytes" ? "ERR_CONFIG_TOO_LARGE" : "ERR_CONFIG_TOO_DEEP";
+				const error = await t.throwsAsync(project._getManifest(filePath), {code});
+				t.true(error.message.includes(filePath));
+				t.true(error.message.includes(mode === "bytes" ? `${size - 1} bytes` : "depth of 1"));
+				if (mode === "bytes") {
+					t.false(getString.called);
+				}
+			}
+		});
+	}
+}

@@ -1,3 +1,5 @@
+import {assertJsonDepth, getJsonMaxDepth} from "./limits.js";
+
 /**
  * Parses JSON content, attaching the file path to any parse failure so the
  * root cause (empty file vs. syntax error) is always identifiable.
@@ -11,8 +13,10 @@
  * @returns {object} Parsed JSON
  * @throws {SyntaxError} with code "ERR_EMPTY_JSON" if content is empty/whitespace-only
  * @throws {SyntaxError} with code "ERR_INVALID_JSON" if content is malformed JSON
+ * @throws {Error} with code "ERR_CONFIG_TOO_DEEP" if content exceeds UI5_JSON_MAX_DEPTH
  */
 export default function parseJSON(content, filePath) {
+	assertJsonDepth(content, {input: filePath, limit: getJsonMaxDepth()});
 	try {
 		return JSON.parse(content);
 	} catch (err) {
