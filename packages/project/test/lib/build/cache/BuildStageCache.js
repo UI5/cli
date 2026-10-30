@@ -500,6 +500,31 @@ test("getStageSignatures: empty-input, empty-root and empty-tool components are 
 		t.is(toolComponent, cache.getToolContentSignature(), "Tool-content slot is the empty-tool digest");
 	});
 
+test("recordToolFiles: an empty capture does not overwrite a known non-empty set (sticky)", (t) => {
+	const cache = new BuildStageCache("test.project", "testTask", false);
+
+	cache.recordToolFiles(["/node_modules/toolA/index.js", "/node_modules/toolA/package.json"]);
+	t.true(cache.hasToolContent(), "records the captured tool files");
+	const sig = cache.getToolContentSignature();
+
+	// An empty capture means the resolve hook was blind (a cached require does not re-fire it), not that
+	// the tool is gone. It must not shrink a known set, or the signature would flip across builds.
+	cache.recordToolFiles([]);
+	t.true(cache.hasToolContent(), "an empty capture keeps the previously recorded set");
+	t.is(cache.getToolContentSignature(), sig, "tool-content signature is unchanged by an empty capture");
+
+	// A non-empty capture still replaces the set (e.g. dropping one tool while still loading another).
+	cache.recordToolFiles(["/node_modules/toolB/index.js"]);
+	t.not(cache.getToolContentSignature(), sig, "a non-empty capture updates the set");
+});
+
+test("recordToolFiles: an empty capture on a fresh stage records nothing", (t) => {
+	const cache = new BuildStageCache("test.project", "testTask", false);
+
+	cache.recordToolFiles([]);
+	t.false(cache.hasToolContent(), "no tool files recorded for a stage that loaded none");
+});
+
 test("getStageSignatures: one signature per project x dependency index-signature combination",
 	async (t) => {
 		// With a single project request set and a single dependency request set the cartesian product is

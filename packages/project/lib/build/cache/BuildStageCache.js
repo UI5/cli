@@ -317,11 +317,22 @@ export default class BuildStageCache {
 	 * persistence if the recorded path list changed (the path list is what is persisted; the content is
 	 * re-hashed on the next build).
 	 *
+	 * An **empty** capture is treated as "the resolve hook was blind", not "the tool is no longer used": a
+	 * cached CJS require (or an already-instantiated static import) does not re-fire the hook (NOTES A.8),
+	 * so a stage that re-runs after its in-process tool is already loaded would otherwise record an empty
+	 * set, flip its tool-content signature, and spuriously invalidate across builds. So an empty capture
+	 * never overwrites a known non-empty set. Trade-off: a task that genuinely stops using *all* its tools
+	 * keeps them tracked (safe over-capture, matching the D2 stance); dropping *some* tools while still
+	 * loading others still shrinks the set, because that capture is non-empty.
+	 *
 	 * @public
 	 * @param {string[]} [toolFiles] Absolute paths of the tool files observed during execution
 	 */
 	recordToolFiles(toolFiles = []) {
 		const newPaths = [...new Set(toolFiles)].sort();
+		if (newPaths.length === 0 && this.#toolPaths.length > 0) {
+			return;
+		}
 		if (newPaths.join("\0") !== this.#toolPaths.join("\0")) {
 			this.#toolSetModified = true;
 		}
