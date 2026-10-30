@@ -2,6 +2,7 @@ import test from "ava";
 import sinonGlobal from "sinon";
 import esmock from "esmock";
 import path from "node:path";
+import {Readable} from "node:stream";
 
 const __dirname = import.meta.dirname;
 
@@ -92,12 +93,12 @@ test.afterEach.always((t) => {
 });
 
 test.serial("resolveVersion", async (t) => {
-	const {Sapui5MavenSnapshotResolver, makeFetchHappen, logStub, sinon} = t.context;
+	const {Sapui5MavenSnapshotResolver, makeFetchHappen, logStub} = t.context;
 
 	makeFetchHappen.withArgs("_SNAPSHOT_URL_/com/sap/ui5/dist/sapui5-sdk-dist/maven-metadata.xml")
-		.resolves({
+		.callsFake(async () => ({
 			ok: true,
-			buffer: sinon.stub().resolves(`
+			body: Readable.from([`
 			<?xml version="1.0" encoding="UTF-8"?>
 			<metadata>
 			  <versioning>
@@ -112,8 +113,8 @@ test.serial("resolveVersion", async (t) => {
 				</versions>
 			  </versioning>
 			</metadata>
-			`)
-		});
+			`])
+		}));
 
 
 	// Exact SNAPSHOT versions
