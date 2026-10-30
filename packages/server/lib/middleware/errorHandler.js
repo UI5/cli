@@ -2,6 +2,7 @@ import {readFileSync} from "node:fs";
 import escapeHtml from "escape-html";
 import {INJECT_SCRIPT_TAG} from "../liveReload/constants.js";
 import isDocumentNavigation from "./helper/isDocumentNavigation.js";
+import redactPaths from "./helper/redactPaths.js";
 
 // Load the error-page template once at module load, as serveIndex.cjs does for directory.html.
 const ERROR_PAGE_TEMPLATE = readFileSync(new URL("./errorPage.html", import.meta.url), "utf8");
@@ -48,8 +49,8 @@ export default function createErrorHandler({liveReload} = {}) {
 		if (res.headersSent) {
 			return next(err);
 		}
-		const message = err?.message || String(err);
-		const stack = err?.stack || "";
+		const message = redactPaths(err?.message || String(err));
+		const stack = redactPaths(err?.stack || "");
 		const plainBody = stack || message;
 
 		// Only browser document navigations get the styled HTML error page. Subresource
