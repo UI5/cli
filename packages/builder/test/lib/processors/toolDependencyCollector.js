@@ -21,6 +21,12 @@ test.serial("collects a required tool's files, including its package.json, and p
 	t.false(first.some((file) => file.includes("/node_modules/@ui5/")),
 		"excludes @ui5/* barrier packages");
 
+	// workerpool is build plumbing (it hosts the worker), not a content-transform tool, so it must be
+	// denylisted even though it is a non-@ui5 node_modules package (CPOUI5FOUNDATION-1386).
+	require("workerpool");
+	t.false(collectToolDependencies().some((file) => file.includes("/node_modules/workerpool/")),
+		"excludes workerpool (build plumbing) via the denylist");
+
 	// A second require of the same module is served from the module cache and does not re-fire the hook,
 	// yet the accumulated set persists — this is what lets a reused worker return the full set on every
 	// call (CPOUI5FOUNDATION-1386).

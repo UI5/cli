@@ -24,16 +24,25 @@ import {fileURLToPath} from "node:url";
 const toolFiles = new Set();
 let hookInstalled = false;
 
+// Build plumbing the loader resolves alongside the tool but which is not a content-transform tool:
+// workerpool is the worker-pool runtime that hosts this very worker. A change to it cannot alter a task's
+// output, so tracking it would only cause spurious stage re-runs. The @ui5/* packages are excluded for the
+// same reason (barriers — already covered by the folded @ui5/* versions and the resource indices).
+const PLUMBING_DENYLIST = ["workerpool"];
+
 /**
  * Whether a resolved file URL counts as a tracked tool file: it must live under a node_modules (an
- * installed package) and not belong to an @ui5/* package (those are barriers — already covered by the
- * folded @ui5/* versions and the resource indices).
+ * installed package), not belong to an @ui5/* package, and not be known build plumbing
+ * ({@link PLUMBING_DENYLIST}).
  *
  * @param {string} fileUrl A file: URL
  * @returns {boolean}
  */
 function isToolFile(fileUrl) {
-	return fileUrl.includes("/node_modules/") && !fileUrl.includes("/node_modules/@ui5/");
+	if (!fileUrl.includes("/node_modules/") || fileUrl.includes("/node_modules/@ui5/")) {
+		return false;
+	}
+	return !PLUMBING_DENYLIST.some((name) => fileUrl.includes(`/node_modules/${name}/`));
 }
 
 /**
