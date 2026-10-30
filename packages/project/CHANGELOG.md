@@ -4,6 +4,23 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v4.0.6...HEAD).
 
+## [5.0.0-alpha.15](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.14...project-v5.0.0-alpha.15) (2026-10-30)
+
+
+### Bug Fixes
+
+* **project:** Require HTTPS for Maven snapshot requests ([ab7bcc0](https://github.com/UI5/cli/commit/ab7bcc0ce7832305ebf65d4281565526788c9997))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/fs bumped from ^5.0.0-alpha.14 to ^5.0.0-alpha.15
+    * @ui5/logger bumped from ^5.0.0-alpha.14 to ^5.0.0-alpha.15
+  * peerDependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.14 to ^5.0.0-alpha.15
+
 ## [5.0.0-alpha.14](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.13...project-v5.0.0-alpha.14) (2026-10-27)
 
 
