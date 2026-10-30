@@ -28,6 +28,11 @@ let hookInstalled = false;
 // The Set collecting resolved file: URLs while a capture is active, or null when not capturing.
 let activeCapture = null;
 
+// Build plumbing the loader resolves alongside a tool but which is not a content-transform tool:
+// workerpool is the worker-pool runtime. A change to it cannot alter a task's output, so tracking it would
+// only cause spurious stage re-runs. Mirrors the denylist in @ui5/builder's toolDependencyCollector.
+const PLUMBING_DENYLIST = ["workerpool"];
+
 /**
  * Installs the resolve hook once per thread. Idempotent.
  */
@@ -53,9 +58,10 @@ function ensureHookInstalled() {
  * Whether a resolved file URL counts as a tracked tool file.
  *
  * POC filter (stand-in for the import-graph barrier prune): the file must live under a node_modules (an
- * installed package), and must not belong to an @ui5/* package. The @ui5/* subtrees are barriers: their
- * effect on the build is already covered by the @ui5/{builder,fs,project} version fold and the resource
- * indices, so tracking them would be redundant over-capture.
+ * installed package), must not belong to an @ui5/* package, and must not be known build plumbing
+ * ({@link PLUMBING_DENYLIST}). The @ui5/* subtrees are barriers: their effect on the build is already
+ * covered by the @ui5/{builder,fs,project} version fold and the resource indices, so tracking them would
+ * be redundant over-capture.
  *
  * @param {string} fileUrl A file: URL
  * @returns {boolean}
@@ -65,6 +71,9 @@ function isToolFile(fileUrl) {
 		return false;
 	}
 	if (fileUrl.includes("/node_modules/@ui5/")) {
+		return false;
+	}
+	if (PLUMBING_DENYLIST.some((name) => fileUrl.includes(`/node_modules/${name}/`))) {
 		return false;
 	}
 	return true;

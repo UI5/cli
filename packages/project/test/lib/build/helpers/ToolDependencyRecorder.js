@@ -27,3 +27,14 @@ test.serial("stopCapture folds each tracked package's package.json into the set"
 	t.true(files.some((file) => file.endsWith(path.join("stub-tool", "package.json"))),
 		"folds the tool package's package.json into the set even though it is not imported");
 });
+
+test.serial("stopCapture denylists build plumbing (workerpool)", (t) => {
+	const handle = startCapture();
+	// workerpool is a non-@ui5 node_modules package, but it is build plumbing, not a content-transform
+	// tool, so it must be excluded via the denylist (CPOUI5FOUNDATION-1386).
+	requireFromStubTool("workerpool");
+	const files = stopCapture(handle);
+
+	t.false(files.some((file) => file.includes(`${path.sep}workerpool${path.sep}`)),
+		"excludes workerpool (build plumbing)");
+});
