@@ -541,6 +541,8 @@ At runtime, each materialized request set references a `SharedHashTree` represen
 | `ui5:OmitFromBuildResult` | Build | No (cleared after each build) | Exclude resources from output |
 | `ui5:IsBundle` | Build | No | Mark bundled resources |
 
+The scope decides which project's collection stores a tag. A **project** tag (`ui5:IsDebugVariant`, `ui5:HasDebugVariant`) is stored on the resource's owner project. A **build** tag (`ui5:OmitFromBuildResult`, `ui5:IsBundle`) is stored on the executing project, even when a task sets it on a dependency's resource, matching the v4 build-context scope. `ProjectBuildContext.#getResourceTagCollection` routes by tag: it classifies the tag via `ProjectResources.acceptsProjectTag(tag)` (which does not import cached tags or create a stage monitor) and picks the resource owner for a project tag or the executing project for a build tag.
+
 ### Tag Flow Through Stages
 
 ```
