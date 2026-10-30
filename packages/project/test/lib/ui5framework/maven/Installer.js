@@ -59,6 +59,7 @@ test.beforeEach(async (t) => {
 			"async": t.context.zipStub
 		}
 	});
+	sinon.stub(t.context.Installer.prototype, "_extractArchive").resolves();
 });
 
 test.afterEach.always((t) => {

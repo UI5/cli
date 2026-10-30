@@ -1,4 +1,5 @@
 import path from "node:path";
+import {pipeline} from "node:stream/promises";
 import {mkdirp} from "../../utils/fs.js";
 import parseJSON from "../../utils/json.js";
 import fs from "graceful-fs";
@@ -8,8 +9,13 @@ import {promisify} from "node:util";
 import Registry from "./Registry.js";
 import AbstractInstaller from "../AbstractInstaller.js";
 import SnapshotCache from "./SnapshotCache.js";
+import {
+	getMavenLimits, assertMaxBytes, assertEntryCount, assertCompressionRatio, createByteCounter, createDeadline
+} from "./limits.js";
 import {rmrf} from "../../utils/fs.js";
 const stat = promisify(fs.stat);
+const open = promisify(fs.open);
+const close = promisify(fs.close);
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
 const rename = promisify(fs.rename);
@@ -331,32 +337,31 @@ class Installer extends AbstractInstaller {
 					await rmrf(stagingDir);
 				}
 
-				await mkdirp(stagingDir);
+				let removeArtifact;
+				try {
+					await mkdirp(stagingDir);
+					const artifact = await this.installArtifact(coordinates);
+					removeArtifact = artifact.removeArtifact;
+					await this._extractArchive(artifact.artifactPath, stagingDir, coordinates);
+					await removeArtifact();
+					removeArtifact = null;
 
-				const {artifactPath, removeArtifact} = await this.installArtifact(coordinates);
+					if (await this._pathExists(targetDir)) {
+						log.verbose(`Removing existing target directory at ${targetDir}...`);
+						await rmrf(targetDir);
+					}
 
-				log.verbose(`Extracting archive at ${artifactPath} to ${stagingDir}...`);
-				const zip = new StreamZip({file: artifactPath});
-				let rootDir = null;
-				if (extension === "jar") {
-					rootDir = "META-INF";
+					// Create only the parent to prevent EPERM in rename (https://github.com/UI5/cli/issues/487).
+					await mkdirp(path.dirname(targetDir));
+					log.verbose(`Promoting staging directory from ${stagingDir} to ${targetDir}...`);
+					await rename(stagingDir, targetDir);
+				} catch (err) {
+					await rmrf(stagingDir);
+					if (removeArtifact) {
+						await removeArtifact();
+					}
+					throw err;
 				}
-				await zip.extract(rootDir, stagingDir);
-				await zip.close();
-
-				// Check whether target dir already exists and remove it
-				if (await this._pathExists(targetDir)) {
-					log.verbose(`Removing existing target directory at ${targetDir}...`);
-					await rmrf(targetDir);
-				}
-
-				// Do not create target dir itself to prevent EPERM error in following rename operation
-				// (https://github.com/UI5/cli/issues/487)
-				await mkdirp(path.dirname(targetDir));
-				log.verbose(`Promoting staging directory from ${stagingDir} to ${targetDir}...`);
-				await rename(stagingDir, targetDir);
-
-				await removeArtifact();
 			});
 		} else {
 			log.verbose(`Already installed: ${pkgName} in SNAPSHOT version ${revision}`);
@@ -418,20 +423,22 @@ class Installer extends AbstractInstaller {
 					log.verbose(`Removing existing file in staging dir at ${stagingPath}...`);
 					await rm(stagingPath);
 				}
-				await mkdirp(path.dirname(stagingPath));
+				try {
+					await mkdirp(path.dirname(stagingPath));
 
-				log.verbose(`Installing ${artifactId} in version ${version} to ${stagingPath}...`);
+					log.verbose(`Installing ${artifactId} in version ${version} to ${stagingPath}...`);
 
-				// TODO: Stream response body to installPackage and unzip directly via
-				// https://github.com/isaacs/minizlib (already in dependencies through pacote)
-				// This way we do not store the archive unnecessarily
-				const reg = await this.getRegistry();
-				await reg.requestArtifact(coordinates, stagingPath);
+					const reg = await this.getRegistry();
+					await reg.requestArtifact(coordinates, stagingPath);
 
-				await mkdirp(path.dirname(targetPath));
-				log.verbose(
-					`Promoting artifact from staging path ${stagingPath} to target path at ${targetPath}...`);
-				await rename(stagingPath, targetPath);
+					await mkdirp(path.dirname(targetPath));
+					log.verbose(
+						`Promoting artifact from staging path ${stagingPath} to target path at ${targetPath}...`);
+					await rename(stagingPath, targetPath);
+				} catch (err) {
+					await rm(stagingPath, {force: true});
+					throw err;
+				}
 			});
 		} else {
 			log.verbose(`Already installed: ${artifactId} in version ${revision}`);
@@ -442,6 +449,87 @@ class Installer extends AbstractInstaller {
 				return rm(targetPath);
 			}
 		};
+	}
+
+	async _extractArchive(artifactPath, stagingDir, coordinates) {
+		const limits = getMavenLimits();
+		const input = this._generateLogIdFromCoordinates(coordinates);
+		const deadline = createDeadline({input, limit: limits.extractionTime,
+			name: "UI5_MAVEN_MAX_EXTRACTION_TIME", code: "ERR_MAVEN_EXTRACTION_TIMEOUT"});
+		const entryLimit = {input, limit: limits.entryBytes,
+			name: "UI5_MAVEN_MAX_ENTRY_BYTES", code: "ERR_MAVEN_ENTRY_TOO_LARGE"};
+		const expandedLimit = {input, limit: limits.expandedBytes,
+			name: "UI5_MAVEN_MAX_EXPANDED_BYTES", code: "ERR_MAVEN_ARCHIVE_TOO_LARGE"};
+		let fd;
+		let zip;
+		let ready = false;
+		try {
+			log.verbose(`Extracting archive at ${artifactPath} to ${stagingDir}...`);
+			// Own the descriptor so a failed directory read can be closed before the async ZIP API is ready.
+			fd = await open(artifactPath, "r");
+			deadline.check();
+			zip = new StreamZip({fd});
+			let entryCount = 0;
+			zip.on("entry", () => {
+				deadline.check();
+				// Stop directory parsing before it retains an unbounded entry map. Count duplicate names too.
+				assertEntryCount(++entryCount, {input, limit: limits.archiveEntries});
+			});
+			const count = await deadline.wait(zip.entriesCount);
+			ready = true;
+			assertEntryCount(count, {input, limit: limits.archiveEntries});
+			const entries = Object.values(await zip.entries());
+			const {size: archiveBytes} = await stat(artifactPath);
+			let declaredBytes = 0;
+			for (const entry of entries) {
+				deadline.check();
+				assertMaxBytes(entry.size, entryLimit);
+				declaredBytes += entry.size;
+				assertMaxBytes(declaredBytes, expandedLimit);
+			}
+			const ratioLimit = {input, limit: limits.compressionRatio};
+			assertCompressionRatio(declaredBytes, archiveBytes, ratioLimit);
+
+			const root = coordinates.extension === "jar" ? "META-INF/" : "";
+			const stagingRoot = path.resolve(stagingDir);
+			let expandedBytes = 0;
+			for (const entry of entries) {
+				deadline.check();
+				if (!entry.name.startsWith(root)) {
+					continue;
+				}
+				const destination = path.resolve(stagingRoot, entry.name.slice(root.length));
+				if (destination !== stagingRoot && !destination.startsWith(stagingRoot + path.sep)) {
+					throw new Error(`Invalid archive entry path for ${input}`);
+				}
+				if (entry.isDirectory) {
+					await mkdirp(destination);
+					continue;
+				}
+				await mkdirp(path.dirname(destination));
+				const stream = await zip.stream(entry);
+				const counter = createByteCounter((bytes, chunkBytes) => {
+					deadline.check();
+					assertMaxBytes(bytes, entryLimit);
+					expandedBytes += chunkBytes;
+					assertMaxBytes(expandedBytes, expandedLimit);
+					assertCompressionRatio(expandedBytes, archiveBytes, ratioLimit);
+				});
+				await pipeline(stream, counter, fs.createWriteStream(destination), {signal: deadline.signal});
+			}
+			deadline.check();
+		} catch (cause) {
+			const err = deadline.signal.reason || cause;
+			deadline.abort(err);
+			throw err;
+		} finally {
+			deadline.clear();
+			if (ready) {
+				await zip.close();
+			} else if (fd !== undefined) {
+				await close(fd);
+			}
+		}
 	}
 
 	async _projectExists(targetDir) {

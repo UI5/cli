@@ -2,16 +2,17 @@ import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
 import {promisify} from "node:util";
+import {Readable} from "node:stream";
 
 test.beforeEach(async (t) => {
 	t.context.pipelineStub = sinon.stub().resolves();
 	t.context.streamPipelineStub = sinon.stub().resolves();
 
-	t.context.promisifyStub = sinon.stub();
+	t.context.promisifyStub = sinon.stub().callsFake(promisify);
 
 	t.context.fetchStub = sinon.stub().resolves({
 		ok: true,
-		buffer: sinon.stub().resolves("<metadata>Some metadata</metadata>")
+		body: Readable.from(["<metadata>Some metadata</metadata>"])
 	});
 
 	t.context.fsCreateWriteStreamStub = sinon.stub().resolves();
@@ -134,7 +135,7 @@ test.serial("Registry: requestMavenMetadata No metadata/bad xml", async (t) => {
 
 	fetchStub.resolves({
 		ok: true,
-		buffer: sinon.stub().resolves("<metadata></metadata>")
+		body: Readable.from(["<metadata></metadata>"])
 	});
 
 	await t.throwsAsync(
@@ -146,10 +147,7 @@ test.serial("Registry: requestMavenMetadata No metadata/bad xml", async (t) => {
 		{
 			message:
 				"Failed to retrieve maven-metadata.xml for ui5.corp:great-thing:1.75.0-SNAPSHOT: " +
-				"Empty or unexpected response body:\n" +
-				"<metadata></metadata>\n" +
-				"Parsed as:\n" +
-				"{\"metadata\":\"\"}"
+				"Empty or unexpected Maven metadata at some-url/ui5/corp/great-thing/1.75.0-SNAPSHOT/maven-metadata.xml"
 		}
 	);
 });
@@ -157,10 +155,8 @@ test.serial("Registry: requestMavenMetadata No metadata/bad xml", async (t) => {
 test.serial("Registry: requestArtifact", async (t) => {
 	const {Registry, fetchStub, streamPipelineStub, fsCreateWriteStreamStub} = t.context;
 
-	fetchStub.resolves({
-		ok: true,
-		body: "content body"
-	});
+	const body = Readable.from(["content body"]);
+	fetchStub.resolves({ok: true, body});
 
 	const reg = new Registry({
 		cwd: "/cwd/",
@@ -175,7 +171,7 @@ test.serial("Registry: requestArtifact", async (t) => {
 	}, "/target/path/");
 
 	t.is(streamPipelineStub.callCount, 1, "Pipeline is called");
-	t.is(streamPipelineStub.args[0][0], "content body", "Pipeline called with response body as argument");
+	t.is(streamPipelineStub.args[0][0], body, "Pipeline called with response body as argument");
 	t.is(fsCreateWriteStreamStub.callCount, 1, "writeStream called");
 	t.deepEqual(fsCreateWriteStreamStub.args[0], ["/target/path/"], "writeStream called with the target path");
 });
