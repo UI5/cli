@@ -1,4 +1,6 @@
 import test from "ava";
+import os from "node:os";
+import path from "node:path";
 import createErrorHandler from "../../../../lib/middleware/errorHandler.js";
 import {INJECT_SCRIPT_TAG, CLIENT_SCRIPT_PATH} from "../../../../lib/liveReload/constants.js";
 
@@ -44,6 +46,7 @@ function mockReq(headers = {}) {
 test("Non-navigation request: plain-text stack response", (t) => {
 	const handler = createErrorHandler();
 	const err = new Error("boom");
+	err.stack = "Error: boom\n    at build (/opt/ui5/build.js:12:3)";
 	const res = mockRes();
 	let nextCalled = false;
 
@@ -165,6 +168,7 @@ test("Sec-Fetch-Dest: script — plain-text response even with live reload activ
 	// the app breaks in a way the developer wouldn't expect from an error page.
 	const handler = createErrorHandler({liveReload: {active: true, token: "abc"}});
 	const err = new Error("boom");
+	err.stack = "Error: boom\n    at build (/opt/ui5/build.js:12:3)";
 	const res = mockRes();
 
 	handler(err, mockReq({
@@ -269,3 +273,66 @@ test("Request with no Accept header and no Sec-Fetch-Dest — plain-text respons
 
 	t.is(res.state.contentType, "text/plain; charset=utf-8");
 });
+
+for (const [format, headers] of [
+	["HTML", {"sec-fetch-dest": "document"}],
+	["plain text", {accept: "*/*"}],
+]) {
+	test(`${format}: redacts current and foreign POSIX home paths in message and stack`, (t) => {
+		const homePath = path.join(os.homedir(), "project", "webapp", "Component.js") + ":42:3";
+		const foreignPath = "/Users/someone/project/webapp/Component.js:12:3";
+		const message = `Failed to build ${homePath} and ${foreignPath}`;
+		const stack = `Error: ${message}\n    at build (${homePath})\n    at build (${foreignPath})`;
+		const expectedMessage = `Failed to build ~${path.sep}` +
+			path.join("project", "webapp", "Component.js") + ":42:3 and ~/project/webapp/Component.js:12:3";
+		const handler = createErrorHandler();
+
+		for (const err of [{message, stack}, {message}]) {
+			const res = mockRes();
+			handler(err, mockReq(headers), res, () => t.fail("next should not be called"));
+
+			t.is(res.state.statusCode, 500);
+			t.false(res.state.body.includes(os.homedir()));
+			t.false(res.state.body.includes("/Users/"));
+			t.true(res.state.body.includes(expectedMessage));
+			if (err.stack) {
+				t.true(res.state.body.includes("at build (~/project/webapp/Component.js:12:3)"));
+			}
+		}
+	});
+
+	test(`${format}: redacts Windows home paths in message and stack`, (t) => {
+		const filePath = "C:\\Users\\someone\\project\\webapp\\Component.js:12:3";
+		const message = `Failed to build ${filePath}`;
+		const stack = `Error: ${message}\n    at build (${filePath})`;
+		const handler = createErrorHandler();
+
+		for (const err of [{message, stack}, {message}]) {
+			const res = mockRes();
+			handler(err, mockReq(headers), res, () => t.fail("next should not be called"));
+
+			t.is(res.state.statusCode, 500);
+			t.false(res.state.body.includes("C:\\Users"));
+			t.true(res.state.body.includes("Failed to build ~\\project\\webapp\\Component.js:12:3"));
+			if (err.stack) {
+				t.true(res.state.body.includes("at build (~\\project\\webapp\\Component.js:12:3)"));
+			}
+		}
+	});
+
+	test(`${format}: preserves resource URLs and paths outside home directories`, (t) => {
+		const message = "Cannot load /resources/sap/ui/core/Component.js from /opt/ui5 or /var/cache/ui5";
+		const res = mockRes();
+		createErrorHandler()({message}, mockReq(headers), res, () => t.fail("next should not be called"));
+
+		t.true(res.state.body.includes(message));
+	});
+
+	test(`${format}: handles null errors`, (t) => {
+		const res = mockRes();
+		createErrorHandler()(null, mockReq(headers), res, () => t.fail("next should not be called"));
+
+		t.is(res.state.statusCode, 500);
+		t.true(res.state.body.includes("null"));
+	});
+}
