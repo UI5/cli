@@ -4,6 +4,8 @@ import esmock from "esmock";
 import path from "node:path";
 import os from "node:os";
 
+const httpsError = {message: /require a valid HTTPS URL.*mavenSnapshotEndpointUrl/};
+
 test.beforeEach(async (t) => {
 	t.context.InstallerStub = sinon.stub();
 	t.context.fetchPackageVersionsStub = sinon.stub();
@@ -17,7 +19,7 @@ test.beforeEach(async (t) => {
 		};
 	});
 
-	process.env.UI5_MAVEN_SNAPSHOT_ENDPOINT_URL = "_SNAPSHOT_URL_";
+	process.env.UI5_MAVEN_SNAPSHOT_ENDPOINT_URL = "https://snapshot.example/registry";
 
 	t.context.yesnoStub = sinon.stub();
 	t.context.promisifyStub = sinon.stub();
@@ -423,10 +425,12 @@ test.serial("_createSnapshotEndpointUrlCallback: Environment variable", async (t
 	const {Sapui5MavenSnapshotResolver} = t.context;
 	const createSnapshotEndpointUrlCallback = Sapui5MavenSnapshotResolver._createSnapshotEndpointUrlCallback;
 
-	const endpointCallback = await createSnapshotEndpointUrlCallback("my url");
+	const endpointCallback = await createSnapshotEndpointUrlCallback("http://api.example/repository");
 
-	t.is(await endpointCallback(), "_SNAPSHOT_URL_",
+	t.is(await endpointCallback(), "https://snapshot.example/registry",
 		"Returned a callback resolving to value of env variable");
+	process.env.UI5_MAVEN_SNAPSHOT_ENDPOINT_URL = "http://registry.example/repository";
+	t.throws(() => createSnapshotEndpointUrlCallback(), httpsError);
 });
 
 test.serial("_createSnapshotEndpointUrlCallback: Parameter", async (t) => {
@@ -434,10 +438,11 @@ test.serial("_createSnapshotEndpointUrlCallback: Parameter", async (t) => {
 	const createSnapshotEndpointUrlCallback = Sapui5MavenSnapshotResolver._createSnapshotEndpointUrlCallback;
 
 	delete process.env.UI5_MAVEN_SNAPSHOT_ENDPOINT_URL; // Delete env variable for this test
-	const endpointCallback = await createSnapshotEndpointUrlCallback("my url");
+	const endpointCallback = await createSnapshotEndpointUrlCallback("https://api.example/repository");
 
-	t.is(await endpointCallback(), "my url",
+	t.is(await endpointCallback(), "https://api.example/repository",
 		"Returned a callback resolving to value of env variable");
+	t.throws(() => createSnapshotEndpointUrlCallback("http://api.example/repository"), httpsError);
 });
 
 test.serial("_createSnapshotEndpointUrlCallback: Fallback to configuration files", async (t) => {
@@ -457,30 +462,33 @@ test.serial("_resolveSnapshotEndpointUrl: From configuration", async (t) => {
 	const {configFromFile, configToFile, Configuration, Sapui5MavenSnapshotResolver} = t.context;
 	const resolveSnapshotEndpointUrl = Sapui5MavenSnapshotResolver._resolveSnapshotEndpointUrl;
 
-	configFromFile.resolves(new Configuration({mavenSnapshotEndpointUrl: "config-url"}));
+	configFromFile.resolves(new Configuration({mavenSnapshotEndpointUrl: "https://config.example/repository"}));
 	const fromMavenStub = sinon.stub(Sapui5MavenSnapshotResolver, "_resolveSnapshotEndpointUrlFromMaven").resolves();
 
 	const endpoint = await resolveSnapshotEndpointUrl();
 
-	t.is(endpoint, "config-url", "Returned URL extracted from UI5 CLI configuration");
+	t.is(endpoint, "https://config.example/repository", "Returned URL extracted from UI5 CLI configuration");
 	t.is(configFromFile.callCount, 1, "Configuration has been read once");
 	t.is(configToFile.callCount, 0, "Configuration has not been written");
 	t.is(fromMavenStub.callCount, 0, "Maven configuration has not been requested");
+
+	configFromFile.resolves(new Configuration({mavenSnapshotEndpointUrl: "http://config.example/repository"}));
+	await t.throwsAsync(resolveSnapshotEndpointUrl(), httpsError);
 });
 
 test.serial("_resolveSnapshotEndpointUrl: Maven fallback with config update", async (t) => {
 	const {configFromFile, configToFile, Sapui5MavenSnapshotResolver} = t.context;
 	const resolveSnapshotEndpointUrl = Sapui5MavenSnapshotResolver._resolveSnapshotEndpointUrl;
 
-	sinon.stub(Sapui5MavenSnapshotResolver, "_resolveSnapshotEndpointUrlFromMaven").resolves("maven-url");
+	sinon.stub(Sapui5MavenSnapshotResolver, "_resolveSnapshotEndpointUrlFromMaven").resolves("https://maven.example/repository");
 
 	const endpoint = await resolveSnapshotEndpointUrl();
 
-	t.is(endpoint, "maven-url", "Returned URL extracted from Maven settings.xml");
+	t.is(endpoint, "https://maven.example/repository", "Returned URL extracted from Maven settings.xml");
 	t.is(configFromFile.callCount, 1, "Configuration has been read once");
 	t.is(configToFile.callCount, 1, "Configuration has been written once");
 	t.deepEqual(configToFile.firstCall.firstArg.toJson(), {
-		mavenSnapshotEndpointUrl: "maven-url",
+		mavenSnapshotEndpointUrl: "https://maven.example/repository",
 		ui5DataDir: undefined
 	}, "Correct configuration has been written");
 });
@@ -513,7 +521,7 @@ test.serial("_resolveSnapshotEndpointUrlFromMaven", async (t) => {
 		  <pluginRepositories>
 			<pluginRepository>
 			  <id>artifactory</id>
-			  <url>/build-snapshots/</url>
+			  <url>https://maven.example/build-snapshots/</url>
 			</pluginRepository>
 		  </pluginRepositories>
 		</profile>
@@ -524,7 +532,14 @@ test.serial("_resolveSnapshotEndpointUrlFromMaven", async (t) => {
 
 	const endpoint = await resolveSnapshotEndpointUrl();
 
-	t.is(endpoint, "/build-snapshots/", "URL Extracted from settings.xml");
+	t.is(endpoint, "https://maven.example/build-snapshots/", "URL Extracted from settings.xml");
+
+	readStub.resolves(`<settings><profiles><profile><id>snapshot.build</id><repositories><repository>
+		<url>http://maven.example/build-snapshots/</url>
+	</repository></repositories></profile></profiles></settings>`);
+	yesnoStub.resetHistory();
+	await t.throwsAsync(resolveSnapshotEndpointUrl(), httpsError);
+	t.false(yesnoStub.called, "Reject HTTP before prompting to save the endpoint");
 });
 
 test.serial("_resolveSnapshotEndpointUrlFromMaven: No snapshot.build attribute", async (t) => {
@@ -541,7 +556,7 @@ test.serial("_resolveSnapshotEndpointUrlFromMaven: No snapshot.build attribute",
 		  <pluginRepositories>
 			<pluginRepository>
 			  <id>artifactory</id>
-			  <url>/build-snapshots/</url>
+			  <url>https://maven.example/build-snapshots/</url>
 			</pluginRepository>
 		  </pluginRepositories>
 		</profile>
@@ -572,7 +587,7 @@ test.serial("_resolveSnapshotEndpointUrlFromMaven fails", async (t) => {
 				<repositories>
 					<repository>
 					<id>artifactory</id>
-					<url>/build-snapshots/</url>
+					<url>https://maven.example/build-snapshots/</url>
 					</repository>
 				</repositories>
 				</profile>
@@ -631,7 +646,7 @@ test.serial("_resolveSnapshotEndpointUrlFromMaven no TTY", async (t) => {
 		  <pluginRepositories>
 			<pluginRepository>
 			  <id>artifactory</id>
-			  <url>/build-snapshots/</url>
+			  <url>https://maven.example/build-snapshots/</url>
 			</pluginRepository>
 		  </pluginRepositories>
 		</profile>

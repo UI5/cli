@@ -50,7 +50,8 @@ test.beforeEach(async (t) => {
 		"../../../../lib/ui5Framework/maven/Registry.js": t.context.RegistryConstructorStub,
 		"../../../../lib/ui5Framework/AbstractInstaller.js": t.context.AbstractInstaller,
 		"../../../../lib/utils/fs.js": {
-			mkdirp: t.context.mkdirpStub
+			mkdirp: t.context.mkdirpStub,
+			rmrf: t.context.rmrfStub
 		},
 		"node:util": {
 			"promisify": t.context.promisifyStub,
@@ -277,6 +278,31 @@ test.serial("installPackage", async (t) => {
 		extension: "zip",
 	}, "installArtifact got called with the expected parameters");
 	t.is(removeArtifactStub.callCount, 1, "removeArtifact got called once");
+});
+
+test.serial("installPackage: Failed download removes staging and releases locks", async (t) => {
+	const {Installer, registryRequestArtifactStub, rmStub, rmrfStub, renameStub, lockStub, unlockStub} = t.context;
+	const installer = new Installer({ui5DataDir: "/ui5Data/", snapshotEndpointUrlCb: () => "https://registry.example"});
+	const coordinates = {
+		pkgName: "test", groupId: "test", artifactId: "test", version: "1.0.0-SNAPSHOT", extension: "zip"
+	};
+	sinon.stub(installer, "_getLocalArtifactMetadata").resolves({lastCheck: Date.now(), revision: "1"});
+	sinon.stub(installer, "_pathExists").resolves(false);
+	lockStub.yieldsAsync();
+	unlockStub.yieldsAsync();
+	const failure = new Error("Download failed");
+	registryRequestArtifactStub.rejects(failure);
+
+	await t.throwsAsync(installer.installPackage(coordinates), {is: failure});
+	t.deepEqual(rmStub.args, [[path.join("/ui5Data/framework/staging", "test_test_1_zip"), {force: true}]]);
+	t.deepEqual(rmrfStub.args, [[path.join("/ui5Data/framework/staging", "test-1")]]);
+	t.false(renameStub.called, "Failed output is not promoted");
+	t.is(unlockStub.callCount, 3, "Metadata, package, and artifact locks are released");
+
+	registryRequestArtifactStub.resolves();
+	await installer.installPackage(coordinates);
+	t.is(renameStub.callCount, 2, "A later attempt promotes the artifact and package");
+	t.is(unlockStub.callCount, 6);
 });
 
 test.serial("installPackage: No classifier", async (t) => {
