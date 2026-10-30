@@ -4,6 +4,7 @@ import sinon from "sinon";
 import esmock from "esmock";
 import {fileURLToPath} from "node:url";
 import jsdocGenerator from "../../../../lib/processors/jsdoc/jsdocGenerator.js";
+import * as toolDependencyStore from "../../../../lib/processors/toolDependencyStore.js";
 
 test.serial("generateJsdocConfig", async (t) => {
 	const res = await jsdocGenerator._generateJsdocConfig({
@@ -74,6 +75,21 @@ test.serial("writeJsdocConfig", async (t) => {
 	const res = await jsdocGenerator._writeJsdocConfig("/some/path", "some config");
 
 	t.deepEqual(res, path.join("/", "some", "path", "jsdoc-config.json"), "Correct config path returned");
+});
+
+test.serial("recordJsdocToolDependencies", async (t) => {
+	const jsdocRoot = path.dirname(fileURLToPath(import.meta.resolve("jsdoc/jsdoc.js")));
+
+	toolDependencyStore.drain(); // clear any residue from earlier tests
+	await jsdocGenerator._recordJsdocToolDependencies(jsdocRoot);
+	const recorded = toolDependencyStore.drain();
+
+	t.true(recorded.some((file) => file.includes(`${path.sep}jsdoc${path.sep}`)),
+		"records jsdoc's own files");
+	t.true(recorded.some((file) => file.endsWith(path.join("jsdoc", "package.json"))),
+		"includes jsdoc's package.json so a version-only bump is observed");
+	t.false(recorded.some((file) => file.includes(path.join("jsdoc", "node_modules"))),
+		"excludes jsdoc's nested node_modules (transitive deps) — accepted narrowing");
 });
 
 test.serial("buildJsdoc", async (t) => {

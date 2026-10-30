@@ -3,8 +3,10 @@ import fs from "graceful-fs";
 import path from "node:path";
 import {promisify} from "node:util";
 const writeFile = promisify(fs.writeFile);
+const readdir = promisify(fs.readdir);
 import {createAdapter} from "@ui5/fs/resourceFactory";
 import {fileURLToPath} from "node:url";
+import * as toolDependencyStore from "../toolDependencyStore.js";
 
 /**
  * @public
@@ -156,8 +158,18 @@ async function writeJsdocConfig(targetDirPath, config) {
  * @returns {Promise<undefined>}
  */
 async function buildJsdoc({sourcePath, configPath}) {
+	const jsdocMain = fileURLToPath(import.meta.resolve("jsdoc/jsdoc.js"));
+
+	// Record jsdoc's own files as tool dependencies (CPOUI5FOUNDATION-1386). jsdoc runs out-of-process
+	// (spawned below), so the resolve hook cannot observe it like the in-worker tools. Instead enumerate
+	// the statically-known jsdoc package and hand its files to the main-thread store, which TaskRunner
+	// drains into the generateJsdoc stage's tool-content signature. The jsdoc package root is the directory
+	// of its entry point; nested node_modules (transitive deps) are excluded — accepted narrowing, jsdoc's
+	// own content only. The UI5 plugin/template are builder code and already covered by the builder version.
+	await recordJsdocToolDependencies(path.dirname(jsdocMain));
+
 	const args = [
-		fileURLToPath(import.meta.resolve("jsdoc/jsdoc.js")),
+		jsdocMain,
 		"-c",
 		configPath,
 		"--verbose",
@@ -176,6 +188,36 @@ async function buildJsdoc({sourcePath, configPath}) {
 	}
 }
 
+/**
+ * Enumerates the jsdoc package's own files (excluding its nested node_modules) and registers them with the
+ * tool-dependency store, so a jsdoc change — a version bump, a patch, a relinked file: — content-hashes
+ * into the generateJsdoc stage signature.
+ *
+ * @private
+ * @param {string} rootDir Absolute path to the jsdoc package root
+ * @returns {Promise<void>}
+ */
+async function recordJsdocToolDependencies(rootDir) {
+	const files = [];
+	const walk = async (dir) => {
+		const entries = await readdir(dir, {withFileTypes: true});
+		await Promise.all(entries.map(async (entry) => {
+			if (entry.name === "node_modules") {
+				return; // transitive deps are not observable out-of-process; accepted narrowing
+			}
+			const entryPath = path.join(dir, entry.name);
+			if (entry.isDirectory()) {
+				await walk(entryPath);
+			} else if (entry.isFile()) {
+				files.push(entryPath);
+			}
+		}));
+	};
+	await walk(rootDir);
+	toolDependencyStore.add(files);
+}
+
 jsdocGenerator._generateJsdocConfig = generateJsdocConfig;
 jsdocGenerator._writeJsdocConfig = writeJsdocConfig;
 jsdocGenerator._buildJsdoc = buildJsdoc;
+jsdocGenerator._recordJsdocToolDependencies = recordJsdocToolDependencies;
