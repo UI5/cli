@@ -3,6 +3,7 @@ import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
 import chalk from "chalk";
+import SpecificationVersion from "@ui5/project/specifications/SpecificationVersion";
 
 function getDefaultArgv() {
 	// This has been taken from the actual argv object yargs provides
@@ -65,6 +66,7 @@ test.serial("ui5 tree (Without dependencies)", async (t) => {
 				getName: sinon.stub().returns("project1"),
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("5.0")),
 				getType: sinon.stub().returns("application"),
 				getRootPath: sinon.stub().returns("/home/project1"),
 				isFrameworkProject: sinon.stub().returns(false),
@@ -85,7 +87,7 @@ test.serial("ui5 tree (Without dependencies)", async (t) => {
 
 	t.is(t.context.consoleOutput,
 		`${chalk.bold.underline("Dependencies (1):")}
-╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application) ")}\
+╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application, specVersion: 5.0) ")}\
 ${chalk.dim.italic("/home/project1")}
 
 ${chalk.bold.underline("Extensions (0):")}
@@ -102,6 +104,7 @@ test.serial("ui5 tree", async (t) => {
 				getName: sinon.stub().returns("project1"),
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("5.0")),
 				getType: sinon.stub().returns("application"),
 				getRootPath: sinon.stub().returns("/home/project1"),
 				isFrameworkProject: sinon.stub().returns(false),
@@ -113,6 +116,7 @@ test.serial("ui5 tree", async (t) => {
 				getName: sinon.stub().returns("dependency2"),
 				getNamespace: sinon.stub().returns("test/dependency2"),
 				getVersion: sinon.stub().returns("2.0.0"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("3.0")),
 				getType: sinon.stub().returns("library"),
 				getRootPath: sinon.stub().returns("/home/dependency2"),
 				isFrameworkProject: sinon.stub().returns(false),
@@ -124,6 +128,7 @@ test.serial("ui5 tree", async (t) => {
 				getName: sinon.stub().returns("dependency1"),
 				getNamespace: sinon.stub().returns(null),
 				getVersion: sinon.stub().returns("1.1.1"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("2.6")),
 				getType: sinon.stub().returns("library"),
 				getRootPath: sinon.stub().returns("/home/dependency1"),
 				isFrameworkProject: sinon.stub().returns(false),
@@ -135,6 +140,7 @@ test.serial("ui5 tree", async (t) => {
 				getName: sinon.stub().returns("dependency3"),
 				getNamespace: sinon.stub().returns(null),
 				getVersion: sinon.stub().returns("3.3.3"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("4.0")),
 				getType: sinon.stub().returns("library"),
 				getRootPath: sinon.stub().returns("/home/dependency3"),
 				isFrameworkProject: sinon.stub().returns(true),
@@ -155,16 +161,17 @@ test.serial("ui5 tree", async (t) => {
 
 	t.is(t.context.consoleOutput,
 		`${chalk.bold.underline("Dependencies (4):")}
-╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application) ")}\
+╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application, specVersion: 5.0) ")}\
 ${chalk.dim.italic("/home/project1")}
-    ├─ ${chalk.bold("dependency1")} ${chalk.dim("(1.1.1, library) ")}\
+    ├─ ${chalk.bold("dependency1")} ${chalk.dim("(1.1.1, library, specVersion: 2.6) ")}\
 ${chalk.dim.italic("/home/dependency1")}
-    │   ╰─ ${chalk.blue.bold("dependency3")} ${chalk.dim("(3.3.3, library) ")}\
+    │   ╰─ ${chalk.blue.bold("dependency3")} ${chalk.dim("(3.3.3, library, specVersion: 4.0) ")}\
 ${chalk.dim.italic("/home/dependency3")}
     ╰─ ${chalk.bold("dependency2")} ${chalk.inverse("test/dependency2")} \
-${chalk.dim("(2.0.0, library) ")}${chalk.dim.italic("/home/dependency2")}
-        ╰─ ${chalk.bold("dependency1")} ${chalk.dim("(1.1.1, library) ")}${chalk.dim.italic("/home/dependency1")}
-            ╰─ ${chalk.blue.bold("dependency3")} ${chalk.dim("(3.3.3, library) ")}\
+${chalk.dim("(2.0.0, library, specVersion: 3.0) ")}${chalk.dim.italic("/home/dependency2")}
+        ╰─ ${chalk.bold("dependency1")} \
+${chalk.dim("(1.1.1, library, specVersion: 2.6) ")}${chalk.dim.italic("/home/dependency1")}
+            ╰─ ${chalk.blue.bold("dependency3")} ${chalk.dim("(3.3.3, library, specVersion: 4.0) ")}\
 ${chalk.dim.italic("/home/dependency3")}
 
 ${chalk.bold.underline("Extensions (0):")}
@@ -181,6 +188,7 @@ test.serial("ui5 tree --flat", async (t) => {
 				getName: sinon.stub().returns("project1"),
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("5.0")),
 				getType: sinon.stub().returns("application"),
 				getRootPath: sinon.stub().returns("/home/project1"),
 				isFrameworkProject: sinon.stub().returns(false),
@@ -192,6 +200,7 @@ test.serial("ui5 tree --flat", async (t) => {
 				getName: sinon.stub().returns("dependency2"),
 				getNamespace: sinon.stub().returns("test/dependency2"),
 				getVersion: sinon.stub().returns("2.0.0"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("3.0")),
 				getType: sinon.stub().returns("library"),
 				getRootPath: sinon.stub().returns("/home/dependency2"),
 				isFrameworkProject: sinon.stub().returns(false),
@@ -203,6 +212,7 @@ test.serial("ui5 tree --flat", async (t) => {
 				getName: sinon.stub().returns("dependency1"),
 				getNamespace: sinon.stub().returns(null),
 				getVersion: sinon.stub().returns("1.1.1"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("2.6")),
 				getType: sinon.stub().returns("library"),
 				getRootPath: sinon.stub().returns("/home/dependency1"),
 				isFrameworkProject: sinon.stub().returns(false),
@@ -214,6 +224,7 @@ test.serial("ui5 tree --flat", async (t) => {
 				getName: sinon.stub().returns("dependency3"),
 				getNamespace: sinon.stub().returns(null),
 				getVersion: sinon.stub().returns("3.3.3"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("4.0")),
 				getType: sinon.stub().returns("library"),
 				getRootPath: sinon.stub().returns("/home/dependency3"),
 				isFrameworkProject: sinon.stub().returns(true),
@@ -235,13 +246,13 @@ test.serial("ui5 tree --flat", async (t) => {
 
 	t.is(t.context.consoleOutput,
 		`${chalk.bold.underline("Dependencies (4):")}
-├─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application) ")}\
+├─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application, specVersion: 5.0) ")}\
 ${chalk.dim.italic("/home/project1")}
 ├─ ${chalk.bold("dependency2")} ${chalk.inverse("test/dependency2")} \
-${chalk.dim("(2.0.0, library) ")}${chalk.dim.italic("/home/dependency2")}
-├─ ${chalk.bold("dependency1")} ${chalk.dim("(1.1.1, library) ")}\
+${chalk.dim("(2.0.0, library, specVersion: 3.0) ")}${chalk.dim.italic("/home/dependency2")}
+├─ ${chalk.bold("dependency1")} ${chalk.dim("(1.1.1, library, specVersion: 2.6) ")}\
 ${chalk.dim.italic("/home/dependency1")}
-╰─ ${chalk.blue.bold("dependency3")} ${chalk.dim("(3.3.3, library) ")}\
+╰─ ${chalk.blue.bold("dependency3")} ${chalk.dim("(3.3.3, library, specVersion: 4.0) ")}\
 ${chalk.dim.italic("/home/dependency3")}
 
 ${chalk.bold.underline("Extensions (0):")}
@@ -258,6 +269,7 @@ test.serial("ui5 tree --level 1", async (t) => {
 				getName: sinon.stub().returns("project1"),
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("5.0")),
 				getType: sinon.stub().returns("application"),
 				getRootPath: sinon.stub().returns("/home/project1"),
 				isFrameworkProject: sinon.stub().returns(false),
@@ -269,6 +281,7 @@ test.serial("ui5 tree --level 1", async (t) => {
 				getName: sinon.stub().returns("dependency2"),
 				getNamespace: sinon.stub().returns("test/dependency2"),
 				getVersion: sinon.stub().returns("2.0.0"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("3.0")),
 				getType: sinon.stub().returns("library"),
 				getRootPath: sinon.stub().returns("/home/dependency2"),
 				isFrameworkProject: sinon.stub().returns(false),
@@ -280,6 +293,7 @@ test.serial("ui5 tree --level 1", async (t) => {
 				getName: sinon.stub().returns("dependency1"),
 				getNamespace: sinon.stub().returns(null),
 				getVersion: sinon.stub().returns("1.1.1"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("2.6")),
 				getType: sinon.stub().returns("library"),
 				getRootPath: sinon.stub().returns("/home/dependency1"),
 				isFrameworkProject: sinon.stub().returns(false),
@@ -291,6 +305,7 @@ test.serial("ui5 tree --level 1", async (t) => {
 				getName: sinon.stub().returns("dependency3"),
 				getNamespace: sinon.stub().returns(null),
 				getVersion: sinon.stub().returns("3.3.3"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("4.0")),
 				getType: sinon.stub().returns("library"),
 				getRootPath: sinon.stub().returns("/home/dependency3"),
 				isFrameworkProject: sinon.stub().returns(true),
@@ -312,13 +327,13 @@ test.serial("ui5 tree --level 1", async (t) => {
 
 	t.is(t.context.consoleOutput,
 		`${chalk.bold.underline("Dependencies (4):")}
-╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application) ")}\
+╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application, specVersion: 5.0) ")}\
 ${chalk.dim.italic("/home/project1")}
-    ├─ ${chalk.bold("dependency1")} ${chalk.dim("(1.1.1, library) ")}\
+    ├─ ${chalk.bold("dependency1")} ${chalk.dim("(1.1.1, library, specVersion: 2.6) ")}\
 ${chalk.dim.italic("/home/dependency1")}
     │   ╰─ ${chalk.dim.italic("Dependencies below Level 1 are hidden")}
     ╰─ ${chalk.bold("dependency2")} ${chalk.inverse("test/dependency2")} \
-${chalk.dim("(2.0.0, library) ")}${chalk.dim.italic("/home/dependency2")}
+${chalk.dim("(2.0.0, library, specVersion: 3.0) ")}${chalk.dim.italic("/home/dependency2")}
         ╰─ ${chalk.dim.italic("Dependencies below Level 1 are hidden")}
 
 ${chalk.bold.underline("Extensions (0):")}
@@ -335,6 +350,7 @@ test.serial("ui5 tree --level 'string' throws", async (t) => {
 				getName: sinon.stub().returns("project1"),
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("5.0")),
 				getType: sinon.stub().returns("application"),
 				getRootPath: sinon.stub().returns("/home/project1"),
 				isFrameworkProject: sinon.stub().returns(false),
@@ -359,6 +375,7 @@ test.serial("ui5 tree (With extensions)", async (t) => {
 				getName: sinon.stub().returns("project1"),
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("5.0")),
 				getType: sinon.stub().returns("application"),
 				getRootPath: sinon.stub().returns("/home/project1"),
 				isFrameworkProject: sinon.stub().returns(false),
@@ -371,12 +388,14 @@ test.serial("ui5 tree (With extensions)", async (t) => {
 	getExtension.onFirstCall().returns({
 		getName: sinon.stub().returns("extension1"),
 		getVersion: sinon.stub().returns("3.0.0"),
+		getSpecVersion: sinon.stub().returns(new SpecificationVersion("3.0")),
 		getType: sinon.stub().returns("task"),
 		getRootPath: sinon.stub().returns("/home/extension1"),
 		isFrameworkProject: sinon.stub().returns(false),
 	}).onSecondCall().returns({
 		getName: sinon.stub().returns("extension2"),
 		getVersion: sinon.stub().returns("5.0.0"),
+		getSpecVersion: sinon.stub().returns(new SpecificationVersion("2.6")),
 		getType: sinon.stub().returns("middleware"),
 		getRootPath: sinon.stub().returns("/home/extension2"),
 		isFrameworkProject: sinon.stub().returns(false),
@@ -402,13 +421,13 @@ test.serial("ui5 tree (With extensions)", async (t) => {
 
 	t.is(t.context.consoleOutput,
 		`${chalk.bold.underline("Dependencies (1):")}
-╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application) ")}\
+╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application, specVersion: 5.0) ")}\
 ${chalk.dim.italic("/home/project1")}
 
 ${chalk.bold.underline("Extensions (2):")}
-├─ extension1 ${chalk.dim("(3.0.0, task) ")}\
+├─ extension1 ${chalk.dim("(3.0.0, task, specVersion: 3.0) ")}\
 ${chalk.dim.italic("/home/extension1")}
-╰─ extension2 ${chalk.dim("(5.0.0, middleware) ")}\
+╰─ extension2 ${chalk.dim("(5.0.0, middleware, specVersion: 2.6) ")}\
 ${chalk.dim.italic("/home/extension2")}
 `);
 });
@@ -422,6 +441,7 @@ test.serial("ui5 tree --perf", async (t) => {
 				getName: sinon.stub().returns("project1"),
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("5.0")),
 				getType: sinon.stub().returns("application"),
 				getRootPath: sinon.stub().returns("/home/project1"),
 				isFrameworkProject: sinon.stub().returns(false),
@@ -448,7 +468,7 @@ test.serial("ui5 tree --perf", async (t) => {
 
 	t.is(t.context.consoleOutput,
 		`${chalk.bold.underline("Dependencies (1):")}
-╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application) ")}\
+╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application, specVersion: 5.0) ")}\
 ${chalk.dim.italic("/home/project1")}
 
 ${chalk.bold.underline("Extensions (0):")}
@@ -469,6 +489,7 @@ test.serial("ui5 tree --framework-version", async (t) => {
 				getName: sinon.stub().returns("project1"),
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("5.0")),
 				getType: sinon.stub().returns("application"),
 				getRootPath: sinon.stub().returns("/home/project1"),
 				isFrameworkProject: sinon.stub().returns(false),
@@ -489,7 +510,7 @@ test.serial("ui5 tree --framework-version", async (t) => {
 
 	t.is(t.context.consoleOutput,
 		`${chalk.bold.underline("Dependencies (1):")}
-╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application) ")}\
+╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application, specVersion: 5.0) ")}\
 ${chalk.dim.italic("/home/project1")}
 
 ${chalk.bold.underline("Extensions (0):")}
@@ -508,6 +529,7 @@ test.serial("ui5 tree --snapshot-cache", async (t) => {
 				getName: sinon.stub().returns("project1"),
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("5.0")),
 				getType: sinon.stub().returns("application"),
 				getRootPath: sinon.stub().returns("/home/project1"),
 				isFrameworkProject: sinon.stub().returns(false)
@@ -528,7 +550,7 @@ test.serial("ui5 tree --snapshot-cache", async (t) => {
 
 	t.is(t.context.consoleOutput,
 		`${chalk.bold.underline("Dependencies (1):")}
-╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application) ")}\
+╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application, specVersion: 5.0) ")}\
 ${chalk.dim.italic("/home/project1")}
 
 ${chalk.bold.underline("Extensions (0):")}
@@ -548,6 +570,7 @@ test.serial("ui5 tree --config", async (t) => {
 				getName: sinon.stub().returns("project1"),
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("5.0")),
 				getType: sinon.stub().returns("application"),
 				getRootPath: sinon.stub().returns("/home/project1"),
 				isFrameworkProject: sinon.stub().returns(false),
@@ -568,7 +591,7 @@ test.serial("ui5 tree --config", async (t) => {
 
 	t.is(t.context.consoleOutput,
 		`${chalk.bold.underline("Dependencies (1):")}
-╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application) ")}\
+╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application, specVersion: 5.0) ")}\
 ${chalk.dim.italic("/home/project1")}
 
 ${chalk.bold.underline("Extensions (0):")}
@@ -587,6 +610,7 @@ test.serial("ui5 tree --workspace", async (t) => {
 				getName: sinon.stub().returns("project1"),
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("5.0")),
 				getType: sinon.stub().returns("application"),
 				getRootPath: sinon.stub().returns("/home/project1"),
 				isFrameworkProject: sinon.stub().returns(false),
@@ -607,7 +631,7 @@ test.serial("ui5 tree --workspace", async (t) => {
 
 	t.is(t.context.consoleOutput,
 		`${chalk.bold.underline("Dependencies (1):")}
-╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application) ")}\
+╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application, specVersion: 5.0) ")}\
 ${chalk.dim.italic("/home/project1")}
 
 ${chalk.bold.underline("Extensions (0):")}
@@ -626,6 +650,7 @@ test.serial("ui5 tree --no-workspace", async (t) => {
 				getName: sinon.stub().returns("project1"),
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("5.0")),
 				getType: sinon.stub().returns("application"),
 				getRootPath: sinon.stub().returns("/home/project1"),
 				isFrameworkProject: sinon.stub().returns(false),
@@ -646,7 +671,7 @@ test.serial("ui5 tree --no-workspace", async (t) => {
 
 	t.is(t.context.consoleOutput,
 		`${chalk.bold.underline("Dependencies (1):")}
-╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application) ")}\
+╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application, specVersion: 5.0) ")}\
 ${chalk.dim.italic("/home/project1")}
 
 ${chalk.bold.underline("Extensions (0):")}
@@ -666,6 +691,7 @@ test.serial("ui5 tree --workspace-config", async (t) => {
 				getName: sinon.stub().returns("project1"),
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("5.0")),
 				getType: sinon.stub().returns("application"),
 				getRootPath: sinon.stub().returns("/home/project1"),
 				isFrameworkProject: sinon.stub().returns(false),
@@ -686,7 +712,7 @@ test.serial("ui5 tree --workspace-config", async (t) => {
 
 	t.is(t.context.consoleOutput,
 		`${chalk.bold.underline("Dependencies (1):")}
-╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application) ")}\
+╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application, specVersion: 5.0) ")}\
 ${chalk.dim.italic("/home/project1")}
 
 ${chalk.bold.underline("Extensions (0):")}
@@ -706,6 +732,7 @@ test.serial("ui5 tree --dependency-definition", async (t) => {
 				getName: sinon.stub().returns("project1"),
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("5.0")),
 				getType: sinon.stub().returns("application"),
 				getRootPath: sinon.stub().returns("/home/project1"),
 				isFrameworkProject: sinon.stub().returns(false),
@@ -724,7 +751,7 @@ test.serial("ui5 tree --dependency-definition", async (t) => {
 
 	t.is(t.context.consoleOutput,
 		`${chalk.bold.underline("Dependencies (1):")}
-╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application) ")}\
+╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application, specVersion: 5.0) ")}\
 ${chalk.dim.italic("/home/project1")}
 
 ${chalk.bold.underline("Extensions (0):")}
@@ -746,6 +773,7 @@ test.serial("ui5 tree --dependency-definition --config", async (t) => {
 				getName: sinon.stub().returns("project1"),
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
+				getSpecVersion: sinon.stub().returns(new SpecificationVersion("5.0")),
 				getType: sinon.stub().returns("application"),
 				getRootPath: sinon.stub().returns("/home/project1"),
 				isFrameworkProject: sinon.stub().returns(false),
