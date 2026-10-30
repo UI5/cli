@@ -4,6 +4,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v4.0.26...HEAD).
 
+## [5.0.0-alpha.15](https://github.com/UI5/cli/compare/cli-v5.0.0-alpha.14...cli-v5.0.0-alpha.15) (2026-10-30)
+
+
+### Features
+
+* **cli:** Display specVersion in tree output ([cfb7637](https://github.com/UI5/cli/commit/cfb7637bf879d55700a4eac083c8a2de5b4e9ee0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.14 to ^5.0.0-alpha.15
+    * @ui5/fs bumped from ^5.0.0-alpha.14 to ^5.0.0-alpha.15
+    * @ui5/logger bumped from ^5.0.0-alpha.14 to ^5.0.0-alpha.15
+    * @ui5/project bumped from ^5.0.0-alpha.14 to ^5.0.0-alpha.15
+    * @ui5/server bumped from ^5.0.0-alpha.14 to ^5.0.0-alpha.15
+
 ## [5.0.0-alpha.14](https://github.com/UI5/cli/compare/cli-v5.0.0-alpha.13...cli-v5.0.0-alpha.14) (2026-10-27)
 
 

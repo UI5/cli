@@ -4,6 +4,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v4.0.7...HEAD).
 
+## [5.0.0-alpha.15](https://github.com/UI5/cli/compare/server-v5.0.0-alpha.14...server-v5.0.0-alpha.15) (2026-10-30)
+
+
+### Bug Fixes
+
+* **server:** Redact home directory paths from dev-server error responses ([ded7e44](https://github.com/UI5/cli/commit/ded7e44a072d028f8ea7cde616b73e33799ba98e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.14 to ^5.0.0-alpha.15
+    * @ui5/fs bumped from ^5.0.0-alpha.14 to ^5.0.0-alpha.15
+    * @ui5/logger bumped from ^5.0.0-alpha.14 to ^5.0.0-alpha.15
+  * devDependencies
+    * @ui5/project bumped from ^5.0.0-alpha.14 to ^5.0.0-alpha.15
+
 ## [5.0.0-alpha.14](https://github.com/UI5/cli/compare/server-v5.0.0-alpha.13...server-v5.0.0-alpha.14) (2026-10-27)
 
 
