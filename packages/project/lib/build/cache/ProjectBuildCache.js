@@ -670,8 +670,18 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Aggregates the current root signatures across all stage caches into one signature, used to detect
-	 * whether any recorded root file changed since the cache was last validated.
+	 * Aggregates the current root signatures across all stage caches into one signature. Order-independent:
+	 * the per-stage signatures are sorted before hashing.
+	 *
+	 * Two callers compute the same value in one validateCache pass by design:
+	 *   - The change-detection gate in validateCache (conditional on #anyStageHasRootRequests()) compares it
+	 *     against #cachedRootAggregateSignature and forces result-cache revalidation when a root file moved.
+	 *   - {@link #getPossibleResultStageSignatures} / {@link #getResultStageSignature} use it (unconditionally)
+	 *     as one slot of the result stage signature, a sibling of the input slot
+	 *     ({@link #getAggregatedInputSignature}), so a changed root file invalidates the result cache.
+	 *
+	 * Nothing changes the root indices or stage caches between the two calls, so recomputing rather than
+	 * memoizing keeps the conditional gate and the unconditional slot decoupled for one small hash.
 	 *
 	 * @returns {string} Aggregated root signature
 	 */
