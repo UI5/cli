@@ -5,6 +5,8 @@ import {promisify} from "node:util";
 import {pipeline} from "node:stream/promises";
 import fs from "graceful-fs";
 import validateUrl, {redactUrl} from "./validateUrl.js";
+import {getMavenLimits, assertMaxBytes, createByteCounter, createDeadline} from "./limits.js";
+const rm = promisify(fs.rm);
 const log = getLogger("ui5Framework:maven:Registry");
 
 // Status codes that make-fetch-happen returns unfollowed in manual redirect mode
@@ -43,25 +45,48 @@ class Registry {
 	 * 	If not provided, the resulting metadata will list all versions available for the artifact.
 	 */
 	async requestMavenMetadata({groupId, artifactId, version}) {
+		let deadline;
+		let res;
 		try {
 			const optionalVersion = version ? version + "/" : "";
 			const url = this._endpointUrl +
 				`${groupId.replaceAll(".", "/")}/${artifactId}/${optionalVersion}maven-metadata.xml`;
 
-			const res = await this._fetch(url);
+			const limits = getMavenLimits();
+			deadline = createDeadline({input: url, limit: limits.fetchTimeout,
+				name: "UI5_MAVEN_FETCH_TIMEOUT", code: "ERR_MAVEN_FETCH_TIMEOUT"});
+			res = await deadline.wait(this._fetch(url, {signal: deadline.signal}));
 
 			const parser = new xml2js.Parser({
 				explicitArray: false,
 				ignoreAttrs: true
 			});
 			const readXML = promisify(parser.parseString);
-			const content = await res.buffer();
-			const parsedXml = await readXML(content);
+			const chunks = [];
+			let bytes = 0;
+			for await (const chunk of res.body) {
+				deadline.check();
+				const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+				bytes += buffer.length;
+				assertMaxBytes(bytes, {input: url, limit: limits.metadataBytes,
+					name: "UI5_MAVEN_MAX_METADATA_BYTES", code: "ERR_MAVEN_METADATA_TOO_LARGE"});
+				chunks.push(buffer);
+			}
+			deadline.check();
+			let parsedXml;
+			try {
+				parsedXml = await readXML(Buffer.concat(chunks, bytes));
+			} catch {
+				throw new Error(`Invalid Maven metadata XML at ${url}`);
+			}
+			deadline.check();
 			if (!parsedXml?.metadata) {
-				throw new Error("Empty or unexpected Maven metadata response");
+				throw new Error(`Empty or unexpected Maven metadata at ${redactUrl(url)}`);
 			}
 			return parsedXml.metadata;
-		} catch (err) {
+		} catch (cause) {
+			const err = deadline?.signal.reason || cause;
+			deadline?.abort(err);
 			if (err.code === "ENOTFOUND") {
 				throw new Error(
 					`Failed to connect to Maven registry at ${redactUrl(this._endpointUrl)}. ` +
@@ -73,12 +98,20 @@ class Registry {
 				// `You may be able to continue working offline. For this, set --snapshot-cache to "force"`);
 				// ` or use the --offline flag`); // TODO: Implement --offline flag
 			}
-			throw new Error(
+			const error = new Error(
 				`Failed to retrieve maven-metadata.xml for ${groupId}:${artifactId}:${version}: ${err.message}`);
+			error.code = err.code;
+			throw error;
+		} finally {
+			deadline?.clear();
+			res?.body?.destroy();
 		}
 	}
 
 	async requestArtifact({groupId, artifactId, version, revision, classifier, extension}, targetPath) {
+		let deadline;
+		let res;
+		let writing = false;
 		try {
 			// Classifier can be null, e.g. for the default "jar" artifact
 			const optionalClassifier = classifier ? `-${classifier}` : "";
@@ -86,7 +119,11 @@ class Registry {
 				`${groupId.replaceAll(".", "/")}/${artifactId}/${version}/` +
 				`${artifactId}-${revision}${optionalClassifier}.${extension}`;
 
-			const res = await this._fetch(url, {
+			const limits = getMavenLimits();
+			deadline = createDeadline({input: url, limit: limits.fetchTimeout,
+				name: "UI5_MAVEN_FETCH_TIMEOUT", code: "ERR_MAVEN_FETCH_TIMEOUT"});
+			res = await deadline.wait(this._fetch(url, {
+				signal: deadline.signal,
 				cache: "no-store", // Do not cache these large artifacts. We store them right away anyways
 
 				// Disable usage of shared keep-alive agents.
@@ -96,10 +133,23 @@ class Registry {
 				// Also see: https://github.com/node-modules/agentkeepalive/issues/106
 				// The same applies in npm/Registry.js
 				agent: false,
-			});
+			}));
 			// Write to target
-			await pipeline(res.body, fs.createWriteStream(targetPath));
-		} catch (err) {
+			deadline.check();
+			const counter = createByteCounter((bytes) => {
+				deadline.check();
+				assertMaxBytes(bytes, {input: url, limit: limits.artifactBytes,
+					name: "UI5_MAVEN_MAX_ARTIFACT_BYTES", code: "ERR_MAVEN_ARTIFACT_TOO_LARGE"});
+			});
+			writing = true;
+			await pipeline(res.body, counter, fs.createWriteStream(targetPath), {signal: deadline.signal});
+			deadline.check();
+		} catch (cause) {
+			const err = deadline?.signal.reason || cause;
+			deadline?.abort(err);
+			if (writing) {
+				await rm(targetPath, {force: true});
+			}
 			if (err.code === "ENOTFOUND") {
 				throw new Error(
 					`Failed to connect to Maven registry at ${redactUrl(this._endpointUrl)}. ` +
@@ -111,8 +161,13 @@ class Registry {
 				// `You may be able to continue working offline. For this, set --snapshot-cache to "force"`);
 				// ` or use the --offline flag`); // TODO: Implement --offline flag
 			}
-			throw new Error(`Failed to retrieve artifact ` +
+			const error = new Error(`Failed to retrieve artifact ` +
 				`${groupId}:${artifactId}:${version}:${classifier}:${extension} ${err.message}`);
+			error.code = err.code;
+			throw error;
+		} finally {
+			deadline?.clear();
+			res?.body?.destroy();
 		}
 	}
 
