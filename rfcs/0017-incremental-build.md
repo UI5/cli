@@ -465,9 +465,9 @@ The database stores these entities:
 |-------|-------------|-------|
 | `content` | `integrity` | A single resource's content, gzip-compressed. The content-addressable store (CAS). |
 | `index_cache` | `project_id`, `build_signature`, `kind` | The source [index](#index-cache) (hash tree + stage list). `kind` is `"source"`. |
-| `stage_metadata` | `project_id`, `build_signature`, `stage_id`, `stage_signature` | One stage's output ([Stage Metadata](#stage-metadata)): resource metadata, tag operations, and (for step stages) per-key invocation data. |
 | `stage_request_metadata` | `project_id`, `build_signature`, `stage_id`, `type` | One stage's recorded inputs ([Build Stage Metadata](#build-stage-metadata)): resource request graphs and non-resource inputs. `type` is one of `project`, `dependencies`, `input`, `root`, `root-no-gitignore`. |
-| `result_metadata` | `project_id`, `build_signature`, `stage_signature` | The mapping from one project state to the set of stages that produced its [build result](#result-metadata). Here `stage_signature` is a *result* signature (decomposed below). |
+| `stage_metadata` | `project_id`, `build_signature`, `stage_id`, `stage_signature` | One stage's output ([Stage Metadata](#stage-metadata)): resource metadata, tag operations, and (for step stages) per-key invocation data. |
+| `result_metadata` | `project_id`, `build_signature`, `result_stage_signature` | The mapping from one project state to the set of stages that produced its [build result](#result-metadata). Here `result_stage_signature` is a *result* signature (decomposed below). |
 
 `stage_id` is the id of a stage: `task/<taskName>` for a regular task, or `task/<taskName>::step/<stepName>` for a step-based task's step.
 
@@ -497,7 +497,7 @@ The build signature is one SHA-256 hex digest over these values in order:
 
 Keeping the four as separate slots lets a delta lookup pair a changed project or dependency signature with the *current* input and root signatures directly, without a reverse mapping from a combined value.
 
-#### Result-Signature Composition
+#### Result-Stage-Signature Composition
 
 `result_metadata` stores a complete project state under a tuple of four `-`-joined components:
 
