@@ -18,7 +18,7 @@
 		"lint": "eslint ."
 	},
 	"devDependencies": {
-		"eslint": "^10.13.0",
+		"eslint": "^10.14.0",
 		"js-yaml": "^5.5.0"
 	}
 }
