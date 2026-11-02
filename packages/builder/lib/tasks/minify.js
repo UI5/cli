@@ -70,7 +70,7 @@ export default function defineTask({pattern, omitSourceMapResources = false, use
 		name: "minify",
 		// One key per matched resource, so a delta build re-minifies only the resources whose inputs
 		// changed. The input source map is read through the step's workspace and thus tracked per step.
-		keys: async ({workspace}) => {
+		keys: async ({workspace, taskUtil}) => {
 			const resources = await workspace.byGlob(pattern);
 
 			// A -dbg.js next to its .js in the sources is unexpected: the minify task owns the -dbg.js
@@ -92,11 +92,17 @@ export default function defineTask({pattern, omitSourceMapResources = false, use
 						`ECMAScript syntax the minify task does not support yet), list both ${resourcePath} ` +
 						`and ${dbgPath} in the 'builder.minification.excludes' configuration of the ` +
 						`project's ui5.yaml.`);
+					if (taskUtil) {
+						taskUtil.setTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
+					}
 					return false;
 				}
 				const nonDbgPath = getNonDebugName(resourcePath);
 				if (nonDbgPath && paths.has(nonDbgPath)) {
 					// Skip the -dbg.js itself when its non-debug .js sibling is also present
+					if (taskUtil) {
+						taskUtil.setTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
+					}
 					return false;
 				}
 				return true;

@@ -278,7 +278,6 @@ test("minify: Skips, tags and warns for an existing -dbg.js next to its .js", as
 	t.true(log.warn.firstCall.firstArg.includes("builder.minification.excludes"),
 		"Warning hints at the minification excludes configuration");
 
-	// TODO: is testing setTag() enough? (testing getTag() would be cleaner)
 	t.true(taskUtil.setTag.calledWithExactly(withDbg, taskUtil.STANDARD_TAGS.HasDebugVariant),
 		"Skipped .js is tagged as having a debug variant");
 	t.true(taskUtil.setTag.calledWithExactly(existingDbg, taskUtil.STANDARD_TAGS.IsDebugVariant),
