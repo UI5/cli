@@ -4,6 +4,16 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v4.0.2...HEAD).
 
+## [5.0.0-alpha.15](https://github.com/UI5/cli/compare/fs-v5.0.0-alpha.14...fs-v5.0.0-alpha.15) (2026-11-02)
+
+
+### Dependencies
+
+* Bump minimatch from 10.2.6 to 11.0.3 ([#1693](https://github.com/UI5/cli/issues/1693)) ([d0549d5](https://github.com/UI5/cli/commit/d0549d50e710c302fff8a57856a26d1e4792c28f))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/logger bumped from ^5.0.0-alpha.14 to ^5.0.0-alpha.15
+
 ## [5.0.0-alpha.14](https://github.com/UI5/cli/compare/fs-v5.0.0-alpha.13...fs-v5.0.0-alpha.14) (2026-10-27)
 
 
