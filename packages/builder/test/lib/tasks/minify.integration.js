@@ -513,3 +513,62 @@ test.serial("integration: minify skips and tags a .js with an existing -dbg.js s
 		t.is(await dbg.getString(), content, "Debug variant keeps the original content");
 		t.truthy(await writer.byPath(`${base}/plain.js.map`), "Source map for the plain .js is written");
 	});
+
+test.serial("integration: minify processes a standalone -dbg.js without a .js sibling", async (t) => {
+	// This test covers a scenario where a -dbg.js file exists WITHOUT a corresponding normal .js sibling.
+	// This could happen e.g. if (for whatever reason) the resource was simply named "..-dbg.js"
+	// (-> valid case)
+	const {reader, writer, workspace} = createWorkspace();
+	const taskUtil = {
+		getEnv: (name) => process.env[name],
+		setTag: t.context.sinon.stub(),
+		getTag: t.context.sinon.stub().returns(false),
+		STANDARD_TAGS: {
+			HasDebugVariant: "has debug variant",
+			IsDebugVariant: "is debug variant",
+			OmitFromBuildResult: "omit from build result"
+		},
+		registerCleanupTask: t.context.sinon.stub()
+	};
+	t.teardown(async () => {
+		for (const call of taskUtil.registerCleanupTask.getCalls()) {
+			await call.firstArg();
+		}
+	});
+	const base = "/resources/my/namespace";
+	const content = `function a(x){return x;}\n`;
+
+	// A standalone -dbg.js without a normal .js sibling must be minified as usual.
+	await reader.write(resourceFactory.createResource({
+		path: `${base}/standalone-dbg.js`,
+		string: content
+	}));
+
+	await runTask(minify, {
+		workspace,
+		taskUtil,
+		options: {
+			pattern: "/resources/**/*.js"
+		}
+	});
+
+	const tagsByPath = new Map(taskUtil.setTag.getCalls().map(({args: [resource, tag]}) => [
+		resource.getPath(), tag
+	]));
+	t.is(tagsByPath.get(base + "/standalone-dbg.js"), taskUtil.STANDARD_TAGS.HasDebugVariant,
+		"The standalone file is tagged as having a generated debug variant");
+	t.is(tagsByPath.get(base + "/standalone-dbg-dbg.js"), taskUtil.STANDARD_TAGS.IsDebugVariant,
+		"The generated debug variant receives its debug tag");
+
+	t.is(await workspace.byPath(`${base}/standalone.js`), null, "No normal .js sibling exists");
+
+	// The standalone file produces a minified result, a debug variant and a source map.
+	const minified = await writer.byPath(`${base}/standalone-dbg.js`);
+	t.truthy(minified, "Standalone -dbg.js is written");
+	t.is(await minified.getString(), `function a(n){return n}\n${SOURCE_MAPPING_URL}=standalone-dbg.js.map`,
+		"Standalone -dbg.js is minified");
+	const dbg = await writer.byPath(`${base}/standalone-dbg-dbg.js`);
+	t.truthy(dbg, "Debug variant for the standalone file is written");
+	t.is(await dbg.getString(), content, "Debug variant keeps the original content");
+	t.truthy(await writer.byPath(`${base}/standalone-dbg.js.map`), "Source map for the standalone file is written");
+});

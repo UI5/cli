@@ -289,3 +289,47 @@ test("minify: Skips, tags and warns for an existing -dbg.js next to its .js", as
 		t.is(workspace.write.getCall(idx).firstArg, resName, "workspace#write got called for expected resource");
 	});
 });
+
+test("minify: Processes a standalone -dbg.js without a .js sibling", async (t) => {
+	// This test covers a scenario where a -dbg.js file exists WITHOUT a corresponding normal .js sibling.
+	// This could happen e.g. if (for whatever reason) the resource was simply named "..-dbg.js"
+	// (-> valid case)
+	const {minify, workspace, taskUtil, minifierStub, log} = t.context;
+	const standalone = {getPath: () => "/resources/standalone-dbg.js"};
+	workspace.byGlob.resolves([standalone]);
+
+	const processedByInput = new Map([
+		[standalone, {
+			resource: "resource standalone",
+			dbgResource: "dbgResource standalone",
+			sourceMapResource: "sourceMapResource standalone",
+		}]
+	]);
+	minifierStub.callsFake(({resources}) => Promise.resolve([processedByInput.get(resources[0])]));
+
+	await runTask(minify, {
+		workspace,
+		taskUtil,
+		options: {
+			pattern: "**"
+		}
+	});
+
+	t.is(minifierStub.callCount, 1, "minifier got called once - for the standalone -dbg.js");
+	t.deepEqual(minifierStub.firstCall.firstArg.resources, [standalone],
+		"minifier processed the standalone -dbg.js");
+
+	t.is(log.warn.callCount, 0, "No warning got logged for the standalone -dbg.js");
+
+	t.true(taskUtil.setTag.calledWithExactly("resource standalone", taskUtil.STANDARD_TAGS.HasDebugVariant),
+		"The standalone file is tagged as having a generated debug variant");
+	t.false(taskUtil.setTag.calledWith(standalone, taskUtil.STANDARD_TAGS.IsDebugVariant),
+		"The standalone file is not tagged as a debug variant based on its name");
+	t.true(taskUtil.setTag.calledWithExactly("dbgResource standalone", taskUtil.STANDARD_TAGS.IsDebugVariant),
+		"The generated debug variant receives its debug tag");
+
+	t.is(workspace.write.callCount, 3, "workspace#write got called for the standalone file and its derived resources");
+	["resource standalone", "dbgResource standalone", "sourceMapResource standalone"].forEach((resName, idx) => {
+		t.is(workspace.write.getCall(idx).firstArg, resName, "workspace#write got called for expected resource");
+	});
+});
