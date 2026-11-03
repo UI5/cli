@@ -1,7 +1,8 @@
 import test from "ava";
 import path from "node:path";
-import {createAdapter, createResource} from "@ui5/fs/resourceFactory";
+import {createAdapter, createResource, createFilterReader} from "@ui5/fs/resourceFactory";
 import DuplexCollection from "@ui5/fs/DuplexCollection";
+import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
 import {graphFromObject} from "@ui5/project/graph";
 import {directoryDeepEqual, fileEqual, findFiles} from "../../../utils/fshelper.js";
 import generateLibraryPreload from "../../../../lib/tasks/bundlers/generateLibraryPreload.js";
@@ -417,3 +418,113 @@ const libraryNTreeLegacy = {
 		}
 	}
 };
+
+test.serial("integration: generateLibraryPreload excludes a -dbg.js with a .js sibling", async (t) => {
+	// This test covers a scenario where a -dbg.js file exists WITH a corresponding normal .js sibling.
+	// This could happen e.g. if a build step already has already been executed manually (before the UI5 CLI ran).
+	// (-> bad pattern)
+	const tags = new ResourceTagCollection({allowedNamespaces: ["ui5"]});
+	const taskUtil = {
+		STANDARD_TAGS: {
+			IsDebugVariant: "ui5:IsDebugVariant",
+			HasDebugVariant: "ui5:HasDebugVariant",
+			IsBundle: "ui5:IsBundle",
+			OmitFromBuildResult: "ui5:OmitFromBuildResult"
+		},
+		getTag: tags.getTag.bind(tags),
+		setTag: tags.setTag.bind(tags),
+		clearTag: tags.clearTag.bind(tags),
+		getProject: (name) => name ? undefined : {getSpecVersion: () => ({lt: () => false})},
+		getEnv: () => undefined,
+		resourceFactory: {createFilterReader}
+	};
+
+	const reader = createAdapter({
+		virBasePath: "/"
+	});
+	await reader.write(createResource({
+		path: "/resources/my/test/lib/library.js",
+		string: ""
+	}));
+	await reader.write(createResource({
+		path: "/resources/my/test/lib/Example.js",
+		string: "sap.ui.define([], function() {});"
+	}));
+	await reader.write(createResource({
+		path: "/resources/my/test/lib/Example-dbg.js",
+		string: "sap.ui.define([], function() {});"
+	}));
+
+	const writer = createAdapter({
+		virBasePath: "/"
+	});
+	const duplexCollection = new DuplexCollection({reader, writer});
+
+	await generateLibraryPreload().task({
+		workspace: duplexCollection,
+		taskUtil,
+		options: {
+			projectName: "my.test.lib"
+		}
+	});
+
+	const libraryPreload = await writer.byPath("/resources/my/test/lib/library-preload.js");
+	t.truthy(libraryPreload, "library-preload.js should have been created");
+	const libraryPreloadContent = await libraryPreload.getString();
+	t.regex(libraryPreloadContent, /"my\/test\/lib\/Example"/,
+		"library-preload should include the normal .js sibling");
+	t.notRegex(libraryPreloadContent, /"my\/test\/lib\/Example-dbg"/,
+		"library-preload should exclude the -dbg.js sibling");
+});
+
+test.serial("integration: generateLibraryPreload includes a -dbg.js without a .js sibling", async (t) => {
+	// This test covers a scenario where a -dbg.js file exists WITHOUT a corresponding normal .js sibling.
+	// This could happen e.g. if (for whatever reason) the resource was simply named "..-dbg.js"
+	// (-> valid case)
+	const tags = new ResourceTagCollection({allowedNamespaces: ["ui5"]});
+	const taskUtil = {
+		STANDARD_TAGS: {
+			IsDebugVariant: "ui5:IsDebugVariant",
+			HasDebugVariant: "ui5:HasDebugVariant",
+			IsBundle: "ui5:IsBundle",
+			OmitFromBuildResult: "ui5:OmitFromBuildResult"
+		},
+		getTag: tags.getTag.bind(tags),
+		setTag: tags.setTag.bind(tags),
+		clearTag: tags.clearTag.bind(tags),
+		getProject: (name) => name ? undefined : {getSpecVersion: () => ({lt: () => false})},
+		getEnv: () => undefined,
+		resourceFactory: {createFilterReader}
+	};
+
+	const reader = createAdapter({
+		virBasePath: "/"
+	});
+	await reader.write(createResource({
+		path: "/resources/my/test/lib/library.js",
+		string: ""
+	}));
+	await reader.write(createResource({
+		path: "/resources/my/test/lib/Example-dbg.js",
+		string: "sap.ui.define([], function() {});"
+	}));
+
+	const writer = createAdapter({
+		virBasePath: "/"
+	});
+	const duplexCollection = new DuplexCollection({reader, writer});
+
+	await generateLibraryPreload().task({
+		workspace: duplexCollection,
+		taskUtil,
+		options: {
+			projectName: "my.test.lib"
+		}
+	});
+
+	const libraryPreload = await writer.byPath("/resources/my/test/lib/library-preload.js");
+	t.truthy(libraryPreload, "library-preload.js should have been created");
+	const libraryPreloadContent = await libraryPreload.getString();
+	t.regex(libraryPreloadContent, /"my\/test\/lib\/Example-dbg"/,
+		"library-preload should include the standalone -dbg.js");
+});
