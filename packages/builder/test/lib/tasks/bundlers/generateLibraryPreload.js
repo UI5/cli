@@ -612,15 +612,15 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 	t.deepEqual(workspace.byGlob.getCall(2).args, ["/resources/**/.library"],
 		"workspace.byGlob should have been called with expected pattern");
 
-	t.is(taskUtil.getTag.callCount, 2, "TaskUtil#getTag got called two times");
-	t.is(taskUtil.getTag.getCall(0).args[0], resources[2],
-		"TaskUtil#getTag got called with expected resource on first call");
-	t.is(taskUtil.getTag.getCall(0).args[1], "<IsDebugVariant>",
-		"TaskUtil#getTag got called with expected tag on first call");
-	t.is(taskUtil.getTag.getCall(1).args[0], resources[1],
-		"TaskUtil#getTag got called with expected resource on second call");
-	t.is(taskUtil.getTag.getCall(1).args[1], "<IsDebugVariant>",
-		"TaskUtil#getTag got called with expected tag on second call");
+	t.is(taskUtil.getTag.callCount, 11, "TaskUtil#getTag got called eleven times");
+	t.is(taskUtil.getTag.getCall(9).args[0], resources[2],
+		"TaskUtil#getTag got called with expected resource on tenth call");
+	t.is(taskUtil.getTag.getCall(9).args[1], "<IsDebugVariant>",
+		"TaskUtil#getTag got called with expected tag on tenth call");
+	t.is(taskUtil.getTag.getCall(10).args[0], resources[1],
+		"TaskUtil#getTag got called with expected resource on eleventh call");
+	t.is(taskUtil.getTag.getCall(10).args[1], "<IsDebugVariant>",
+		"TaskUtil#getTag got called with expected tag on eleventh call");
 
 	t.is(moduleBundlerStub.callCount, 7, "moduleBundler should have been called 7 times");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
@@ -2030,15 +2030,15 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js), UI5 Versi
 	t.deepEqual(workspace.byGlob.getCall(2).args, ["/resources/**/.library"],
 		"workspace.byGlob should have been called with expected pattern");
 
-	t.is(taskUtil.getTag.callCount, 2, "TaskUtil#getTag got called two times");
-	t.is(taskUtil.getTag.getCall(0).args[0], resources[2],
-		"TaskUtil#getTag got called with expected resource on first call");
-	t.is(taskUtil.getTag.getCall(0).args[1], "<IsDebugVariant>",
-		"TaskUtil#getTag got called with expected tag on first call");
-	t.is(taskUtil.getTag.getCall(1).args[0], resources[1],
-		"TaskUtil#getTag got called with expected resource on second call");
-	t.is(taskUtil.getTag.getCall(1).args[1], "<IsDebugVariant>",
-		"TaskUtil#getTag got called with expected tag on second call");
+	t.is(taskUtil.getTag.callCount, 11, "TaskUtil#getTag got called eleven times");
+	t.is(taskUtil.getTag.getCall(9).args[0], resources[2],
+		"TaskUtil#getTag got called with expected resource on tenth call");
+	t.is(taskUtil.getTag.getCall(9).args[1], "<IsDebugVariant>",
+		"TaskUtil#getTag got called with expected tag on tenth call");
+	t.is(taskUtil.getTag.getCall(10).args[0], resources[1],
+		"TaskUtil#getTag got called with expected resource on eleventh call");
+	t.is(taskUtil.getTag.getCall(10).args[1], "<IsDebugVariant>",
+		"TaskUtil#getTag got called with expected tag on eleventh call");
 
 	t.is(moduleBundlerStub.callCount, 7, "moduleBundler should have been called 7 times");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{

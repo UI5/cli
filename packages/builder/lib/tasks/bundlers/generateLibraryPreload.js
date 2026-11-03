@@ -5,6 +5,7 @@ import moduleBundler from "../../processors/bundlers/moduleBundler.js";
 import {applyDefaultsToBundleDefinition} from "./utils/applyDefaultsToBundleDefinition.js";
 import {negateFilters} from "../../lbt/resources/ResourceFilterList.js";
 import createModuleNameMapping from "./utils/createModuleNameMapping.js";
+import {getDebugName, getNonDebugName} from "../../lbt/utils/ModuleName.js";
 
 function getDefaultLibraryPreloadFilters(namespace, excludes) {
 	const filters = [
@@ -352,16 +353,6 @@ export default function defineTask(options) {
  * @returns {Promise<undefined>} Promise resolving once the library preload bundles have been written
  */
 async function task({workspace, taskUtil, options: {skipBundles = [], excludes = [], projectName}}) {
-	let nonDbgWorkspace = workspace;
-	if (taskUtil) {
-		nonDbgWorkspace = taskUtil.resourceFactory.createFilterReader({
-			reader: workspace,
-			callback: function(resource) {
-				// Remove any debug variants
-				return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
-			}
-		});
-	}
 	const coreVersion = taskUtil?.getProject("sap.ui.core")?.getVersion();
 	const allowStringBundling = taskUtil?.getProject().getSpecVersion().lt("4.0");
 	// Read the experimental flag through taskUtil.getEnv so that its usage is tracked as a task
@@ -383,9 +374,31 @@ async function task({workspace, taskUtil, options: {skipBundles = [], excludes =
 		return moduleBundler({options, resources});
 	};
 
-	return nonDbgWorkspace.byGlob(
+	return workspace.byGlob(
 		"/resources/**/*.{js,json,xml,html,properties,library,js.map}"
 	).then(async (resources) => {
+		if (taskUtil) {
+			const paths = new Set(resources.map((resource) => resource.getPath()));
+			resources = resources.filter((resource) => {
+				if (!taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant) &&
+					!taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant)) {
+					// Check for -dbg.js/.js pairs and tag them accordingly
+					const resourcePath = resource.getPath();
+					const debugPath = getDebugName(resourcePath);
+					if (debugPath && paths.has(debugPath)) {
+						taskUtil.setTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
+					}
+					const nonDebugPath = getNonDebugName(resourcePath);
+					if (nonDebugPath && paths.has(nonDebugPath)) {
+						taskUtil.setTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
+					}
+				}
+
+				// Remove these debug variants (+ those already tagged by earlier tasks)
+				return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
+			});
+		}
+
 		// Find all libraries and create a library-preload.js bundle
 
 		let p = Promise.resolve();
