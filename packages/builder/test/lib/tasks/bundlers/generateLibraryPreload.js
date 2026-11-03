@@ -32,6 +32,90 @@ test.afterEach.always(() => {
 	sinon.restore();
 });
 
+test.serial("generateLibraryPreload tags a -dbg.js with a .js sibling", async (t) => {
+	// This test covers a scenario where a -dbg.js file exists WITH a corresponding normal .js sibling.
+	// This could happen e.g. if a build step already has already been executed manually (before the UI5 CLI ran).
+	// (-> bad pattern)
+
+	const {generateLibraryPreload, workspace, dependencies, firstByGlob} = t.context;
+	const resources = [
+		{getPath: sinon.stub().returns("/resources/my/lib/Example.js")},
+		{getPath: sinon.stub().returns("/resources/my/lib/Example-dbg.js")}
+	];
+	firstByGlob.resolves(resources);
+	workspace.byGlob.resolves([
+		{getPath: sinon.stub().returns("/resources/my/lib/.library")}
+	]);
+
+	const taskUtil = {
+		getTag: sinon.stub().returns(false),
+		setTag: sinon.stub(),
+		getProject: (name) => name ? undefined : {getSpecVersion: () => ({lt: () => false})},
+		STANDARD_TAGS: {
+			IsDebugVariant: "<IsDebugVariant>",
+			HasDebugVariant: "<HasDebugVariant>"
+		},
+		resourceFactory: {
+			createFilterReader: ({reader, callback}) => ({
+				byGlob: async (pattern) => (await reader.byGlob(pattern)).filter(callback)
+			})
+		}
+	};
+	await generateLibraryPreload().task({
+		workspace,
+		dependencies,
+		taskUtil,
+		options: {projectName: "Test Library"}
+	});
+
+	t.true(taskUtil.setTag.calledWithExactly(resources[1], taskUtil.STANDARD_TAGS.IsDebugVariant),
+		"The -dbg.js sibling is tagged as a debug variant");
+	t.true(taskUtil.setTag.calledWithExactly(resources[0], taskUtil.STANDARD_TAGS.HasDebugVariant),
+		"The normal .js sibling is tagged as having a debug variant");
+	t.false(taskUtil.setTag.calledWith(resources[0], taskUtil.STANDARD_TAGS.IsDebugVariant),
+		"The normal .js sibling is not tagged as a debug variant");
+});
+
+test.serial("generateLibraryPreload does not tag a -dbg.js without a .js sibling", async (t) => {
+	// This test covers a scenario where a -dbg.js file exists WITHOUT a corresponding normal .js sibling.
+	// This could happen e.g. if (for whatever reason) the resource was simply named "..-dbg.js"
+	// (-> valid case)
+
+	const {generateLibraryPreload, workspace, dependencies, firstByGlob} = t.context;
+	const resources = [
+		{getPath: sinon.stub().returns("/resources/my/lib/Example-dbg.js")}
+		// WITHOUT the normal .js sibling
+	];
+	firstByGlob.resolves(resources);
+	workspace.byGlob.resolves([
+		{getPath: sinon.stub().returns("/resources/my/lib/.library")}
+	]);
+
+	const taskUtil = {
+		getTag: sinon.stub().returns(false),
+		setTag: sinon.stub(),
+		getProject: (name) => name ? undefined : {getSpecVersion: () => ({lt: () => false})},
+		STANDARD_TAGS: {
+			IsDebugVariant: "<IsDebugVariant>",
+			HasDebugVariant: "<HasDebugVariant>"
+		},
+		resourceFactory: {
+			createFilterReader: ({reader, callback}) => ({
+				byGlob: async (pattern) => (await reader.byGlob(pattern)).filter(callback)
+			})
+		}
+	};
+	await generateLibraryPreload().task({
+		workspace,
+		dependencies,
+		taskUtil,
+		options: {projectName: "Test Library"}
+	});
+
+	t.false(taskUtil.setTag.calledWith(resources[0], taskUtil.STANDARD_TAGS.IsDebugVariant),
+		"A standalone -dbg.js is not tagged as a debug variant");
+});
+
 test.serial("generateLibraryPreload", async (t) => {
 	const {
 		generateLibraryPreload, moduleBundlerStub,
