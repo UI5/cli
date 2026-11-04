@@ -1229,25 +1229,29 @@ export default class ProjectBuildCache {
 
 		let stageSignature;
 		if (cacheInfo) {
-			// Merge tag operations from the previous stage cache with the current delta's tag operations.
-			// Delta builds only record tags set during the delta execution, so we need to include
-			// tags from the original full build. Current delta ops take precedence over previous ops.
-			if (cacheInfo.previousStageCache.projectTagOperations) {
-				projectTagOperations = new Map([
-					...cacheInfo.previousStageCache.projectTagOperations,
-					...projectTagOperations,
-				]);
-			}
-			if (cacheInfo.previousStageCache.buildTagOperations) {
-				buildTagOperations = new Map([
-					...cacheInfo.previousStageCache.buildTagOperations,
-					...buildTagOperations,
-				]);
-			}
+			// StepRunner already recorded the complete current operations: freshly executed keys plus
+			// replayed surviving cached keys (and the keys callback). Merging previous operations would
+			// resurrect tags of removed keys or tags a re-executed key no longer sets.
+			if (!stepBased) {
+				// Legacy delta tasks only record the delta's operations, so retain previous operations
+				// with the current delta taking precedence.
+				if (cacheInfo.previousStageCache.projectTagOperations) {
+					projectTagOperations = new Map([
+						...cacheInfo.previousStageCache.projectTagOperations,
+						...projectTagOperations,
+					]);
+				}
+				if (cacheInfo.previousStageCache.buildTagOperations) {
+					buildTagOperations = new Map([
+						...cacheInfo.previousStageCache.buildTagOperations,
+						...buildTagOperations,
+					]);
+				}
 
-			// Apply the merged operations so later stages see retained tags and the delta's current values.
-			this.#project.getProjectResources().importTagOperations(
-				projectTagOperations, buildTagOperations);
+				// Apply the merged operations so later stages see retained tags and the delta's current values.
+				this.#project.getProjectResources().importTagOperations(
+					projectTagOperations, buildTagOperations);
+			}
 
 			stageSignature = cacheInfo.newSignature;
 			// Add resources from previous stage cache to current stage
