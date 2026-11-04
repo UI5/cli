@@ -1271,6 +1271,16 @@ export default class ProjectBuildCache {
 			// verdict's own list when the caller passes none.
 			const changedPathSet = new Set(
 				changedProjectResourcePaths ?? cacheInfo.changedProjectResourcePaths ?? []);
+			if (stepBased) {
+				// A delta can include paths changed on an earlier build. StepRunner's complete invocation
+				// map owns output retention: do not drop an output a surviving cached key still produces.
+				// Re-executed keys record only their current writes, so stale outputs remain in the set.
+				for (const invocation of this.#stepInvocationData.get(stageId)?.values() ?? []) {
+					for (const resourcePath of invocation.writes) {
+						changedPathSet.delete(resourcePath);
+					}
+				}
+			}
 			// Set form for the membership check below; the array is retained for the
 			// ordered downstream uses (recordStageCache, verbose counts).
 			const writtenResourcePathSet = new Set(writtenResourcePaths);

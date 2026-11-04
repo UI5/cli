@@ -773,6 +773,36 @@ for (const keepTags of [true, false]) {
 	});
 }
 
+test("recordStageResult: step-based delta retains outputs still owned by cached invocations", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+	cache.setTasks([{taskName: "myTask", stepNames: ["map"]}]);
+	await cache.prepareStageExecutionAndValidateCache("myTask", "map");
+	cache.setStepInvocationData("task/myTask::step/map", new Map([
+		["retained-key", {writes: ["/retained.js"]}],
+	]));
+	const write = sinon.stub().resolves();
+	project.getProjectResources().getStage.returns({
+		getId: () => "task/myTask::step/map",
+		getWriter: () => ({byGlob: async () => [], write}),
+	});
+	const retained = createMockResource("/retained.js");
+	const removed = createMockResource("/removed.js");
+	await cache.recordStageResult({
+		taskName: "myTask", stepName: "map", stepBased: true,
+		projectResourceRequests: {paths: [], patterns: []},
+		cacheInfo: {
+			previousStageCache: {stage: {byGlob: async () => [retained, removed]}},
+			// An in-memory delta can still include a path changed on an earlier build. StepRunner's
+			// invocation map, not this superset, determines which outputs are still produced.
+			changedProjectResourcePaths: ["/retained.js", "/removed.js"],
+		},
+	});
+	t.true(write.calledOnceWithExactly(retained), "Keep the surviving invocation's output, drop the removed key's");
+});
+
 test("recordStageResult with cacheInfo: uses cacheInfo.newSignature as stage signature",
 	async (t) => {
 		const project = createMockProject();
