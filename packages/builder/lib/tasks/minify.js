@@ -1,4 +1,5 @@
 import fsInterface from "@ui5/fs/fsInterface";
+import micromatch from "micromatch";
 import {getDebugName, getNonDebugName} from "../lbt/utils/ModuleName.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("builder:tasks:minify");
@@ -25,8 +26,10 @@ const log = getLogger("builder:tasks:minify");
  *
  * @param {object} options Options
  * @param {string|string[]} options.pattern Patterns defining the resource scope, including existing debug pairs
- * @param {string|string[]} [options.minificationPattern=options.pattern] Patterns selecting resources to minify.
- *   Existing pairs within <code>pattern</code> are tagged even when excluded by these patterns.
+ * @param {string[]} [options.excludes=[]] Minification exclusions relative to <code>/resources/</code>.
+ *   A leading <code>!</code> re-includes matches; later entries take precedence. Support rules
+ *   (<code>*.support.js</code>) are excluded by default, unless explicitly re-included.
+ *   Exclusions do not affect discovery or tagging of existing debug pairs.
  * @param {boolean} [options.omitSourceMapResources=false] Whether source map resources shall
  * 		be tagged as "OmitFromBuildResult" and no sourceMappingURL shall be added to the minified resource
  * @param {boolean} [options.useInputSourceMaps=true] Whether to make use of any existing source
@@ -35,8 +38,28 @@ const log = getLogger("builder:tasks:minify");
  * @returns {module:@ui5/builder/tasks/runTask~TaskDescriptor} The task descriptor with its build steps
  */
 export default function defineTask({
-	pattern, minificationPattern = pattern, omitSourceMapResources = false, useInputSourceMaps = true,
+	pattern, excludes = [], omitSourceMapResources = false, useInputSourceMaps = true,
 }) {
+	// Compile once per task, not once per resource or delta build. Match backwards so the last
+	// matching exclusion/re-inclusion wins.
+	const filters = excludes.map((exclude) => {
+		const include = exclude.startsWith("!");
+		const pattern = include ? exclude.slice(1) : exclude;
+		return {
+			include,
+			matches: micromatch.matcher(`/resources/${pattern}`, {dot: true}),
+		};
+	}).reverse();
+	const shouldMinify = (resourcePath) => {
+		for (const {include, matches} of filters) {
+			if (matches(resourcePath)) {
+				return include;
+			}
+		}
+		// Support rules should not be minified to have readable code in the Support Assistant.
+		// This is a minification default, not a discovery filter: existing support pairs still get tags.
+		return !resourcePath.endsWith(".support.js");
+	};
 	const minifierOptions = {
 		addSourceMappingUrl: !omitSourceMapResources,
 		readSourceMappingUrl: !!useInputSourceMaps,
@@ -77,26 +100,22 @@ export default function defineTask({
 		// Ordinary resource keys retain their content-based identity and source-map dependency tracking.
 		// Existing pairs use string keys and do not load/hash their content during key enumeration.
 		keys: async ({workspace}) => {
-			// Discover pairs independently of minification exclusions, using the reader's glob semantics
-			// for both queries (including re-inclusions). Reuse the query when the scopes are identical.
-			const discovered = workspace.byGlob(pattern);
-			const [allResources, resources] = await Promise.all([
-				discovered,
-				minificationPattern === pattern ? discovered : workspace.byGlob(minificationPattern),
-			]);
-			const paths = new Set(allResources.map((resource) => resource.getPath()));
-			const matchedByPath = new Map(resources.map((resource) => [resource.getPath(), resource]));
+			// The single discovery query records every input needed for pairing. Exclusions only select
+			// minification keys; they are task options and therefore already part of the build signature.
+			const resources = await workspace.byGlob(pattern);
+			const paths = new Set(resources.map((resource) => resource.getPath()));
+			const minificationPaths = new Set([...paths].filter(shouldMinify));
 			const keys = [];
-			for (const resource of allResources) {
+			for (const resource of resources) {
 				const resourcePath = resource.getPath();
 				const dbgPath = getDebugName(resourcePath);
 				if (dbgPath && paths.has(dbgPath)) {
 					// Neither member may be minified: their generated outputs would collide. Give the pair
 					// its own invocation so tags are replayed on a delta, and dropped when the pair disappears.
 					keys.push(JSON.stringify({resourcePath, dbgPath,
-						warn: matchedByPath.has(resourcePath) || matchedByPath.has(dbgPath)}));
-				} else if (!paths.has(getNonDebugName(resourcePath)) && matchedByPath.has(resourcePath)) {
-					keys.push(matchedByPath.get(resourcePath));
+						warn: minificationPaths.has(resourcePath) || minificationPaths.has(dbgPath)}));
+				} else if (!paths.has(getNonDebugName(resourcePath)) && minificationPaths.has(resourcePath)) {
+					keys.push(resource);
 				}
 			}
 			return keys;

@@ -66,10 +66,7 @@ test("Standard build", (t) => {
 		minify: {
 			options: {
 				pattern: "/**/*.js",
-				minificationPattern: [
-					"/**/*.js",
-					"!**/*.support.js",
-				]
+				excludes: []
 			},
 		},
 		enhanceManifest: {},
@@ -163,10 +160,7 @@ test("Custom bundles", async (t) => {
 		minify: {
 			options: {
 				pattern: "/**/*.js",
-				minificationPattern: [
-					"/**/*.js",
-					"!**/*.support.js",
-				]
+				excludes: []
 			},
 		},
 		enhanceManifest: {},
@@ -270,7 +264,7 @@ test("Custom bundles", async (t) => {
 
 test("Minification excludes", (t) => {
 	const {project, taskUtil, getTask} = t.context;
-	project.getMinificationExcludes = () => ["**.html"];
+	project.getMinificationExcludes = () => ["**.html", "!some/Rules.support.js"];
 
 	const tasks = component({
 		project, taskUtil, getTask
@@ -280,11 +274,7 @@ test("Minification excludes", (t) => {
 	t.deepEqual(taskDefinition, {
 		options: {
 			pattern: "/**/*.js",
-			minificationPattern: [
-				"/**/*.js",
-				"!**/*.support.js",
-				"!/resources/**.html",
-			]
+			excludes: ["**.html", "!some/Rules.support.js"]
 		},
 	}, "Correct minify task definition");
 });

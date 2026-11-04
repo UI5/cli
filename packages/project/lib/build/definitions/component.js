@@ -1,4 +1,3 @@
-import {enhancePatternWithExcludes} from "./_utils.js";
 import {enhanceBundlesWithDefaults} from "../../validation/validator.js";
 
 /**
@@ -33,17 +32,10 @@ export default function({project, taskUtil, getTask}) {
 		}
 	});
 
-	// Support rules should not be minified to have readable code in the Support Assistant
-	const minificationPattern = ["/**/*.js", "!**/*.support.js"];
-	const minificationExcludes = project.getMinificationExcludes();
-	if (minificationExcludes.length) {
-		enhancePatternWithExcludes(minificationPattern, minificationExcludes, "/resources/");
-	}
-
 	tasks.set("minify", {
 		options: {
 			pattern: "/**/*.js",
-			minificationPattern
+			excludes: project.getMinificationExcludes()
 		}
 	});
 

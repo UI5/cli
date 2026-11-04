@@ -27,11 +27,12 @@ async function createProject(t, {reuseBuilder, excludes, files}) {
 	await fs.writeFile(path.join(cwd, "webapp/manifest.json"), JSON.stringify({
 		"sap.app": {id: "minify.test", type: "application"},
 	}));
-	await fs.writeFile(path.join(cwd, "ui5.yaml"), dump({
+	const configure = (configuredExcludes) => fs.writeFile(path.join(cwd, "ui5.yaml"), dump({
 		specVersion: "5.0", type: "application", metadata: {name: "minify-test"},
-		builder: {minification: {excludes: excludes.map((p) => p.startsWith("!") ?
+		builder: {minification: {excludes: configuredExcludes.map((p) => p.startsWith("!") ?
 			`!minify/test/${p.slice(1)}` : `minify/test/${p}`)}},
 	}));
+	await configure(excludes);
 	for (const [name, content] of Object.entries(files)) {
 		await fs.writeFile(path.join(cwd, "webapp", name), content);
 	}
@@ -73,6 +74,7 @@ async function createProject(t, {reuseBuilder, excludes, files}) {
 	};
 	let graph;
 	return {
+		configure,
 		write: (name, content) => fs.writeFile(path.join(cwd, "webapp", name), content),
 		remove: (name) => fs.rm(path.join(cwd, "webapp", name)),
 		build: async (changed = []) => {
@@ -193,6 +195,37 @@ for (const reuseBuilder of [false, true]) {
 		t.is(pairedAgain.output.get("C-dbg.js").content, source + "// restored source pair\n");
 		t.false(pairedAgain.output.has("C.js.map"), "The removed minification key's source map is not resurrected");
 	});
+
+	test.serial(`minify: support rules remain readable and tagged (reuseBuilder=${reuseBuilder})`, async (t) => {
+		const project = await createProject(t, {
+			reuseBuilder, excludes: [],
+			files: {"Rules.support.js": source, "Rules-dbg.support.js": source, "Solo.support.js": source},
+		});
+		const cold = await project.build();
+		t.deepEqual(cold.activity, {enumerations: 1, minified: [], pairs: 1, warnings: []});
+		t.deepEqual(cold.output.get("Rules.support.js"), {content: source, tags: hasDebug});
+		t.deepEqual(cold.output.get("Rules-dbg.support.js"), {content: source, tags: isDebug});
+		t.deepEqual(cold.output.get("Solo.support.js"), {content: source, tags: null});
+		t.false(cold.output.has("Solo-dbg.support.js"));
+		t.false(cold.output.has("Solo.support.js.map"));
+		t.false(cold.output.has("Rules.support.js.map"));
+
+		const warm = await project.build();
+		t.deepEqual(warm.output, cold.output);
+		t.is(warm.activity.enumerations, 0);
+
+		await project.write("Solo.support.js", source + "// edited rule\n");
+		const edited = await project.build(["Solo.support.js"]);
+		t.deepEqual(edited.activity, {enumerations: 1, minified: [], pairs: 0, warnings: []});
+		t.deepEqual(edited.output.get("Rules.support.js"), cold.output.get("Rules.support.js"));
+		t.deepEqual(edited.output.get("Solo.support.js"), {content: source + "// edited rule\n", tags: null});
+
+		await project.remove("Rules-dbg.support.js");
+		const removed = await project.build(["Rules-dbg.support.js"]);
+		t.deepEqual(removed.activity, {enumerations: 1, minified: [], pairs: 0, warnings: []});
+		t.deepEqual(removed.output.get("Rules.support.js"), {content: source, tags: null});
+		t.false(removed.output.has("Rules-dbg.support.js"), "The removed debug rule is not regenerated");
+	});
 }
 
 test.serial("minify: configuration re-inclusions only affect minification, not pair discovery", async (t) => {
@@ -206,4 +239,35 @@ test.serial("minify: configuration re-inclusions only affect minification, not p
 	t.deepEqual(output.get("A-dbg.js"), {content: source, tags: isDebug});
 	t.deepEqual(output.get("excluded.js"), {content: source, tags: null});
 	t.not(output.get("plain.js").content, source);
+});
+
+test.serial("minify: changing configured support-rule exclusions invalidates cached output", async (t) => {
+	const project = await createProject(t, {
+		reuseBuilder: false, excludes: [],
+		files: {"Rules.support.js": source, "Rules-dbg.support.js": source, "Solo.support.js": source},
+	});
+	const cold = await project.build();
+	t.deepEqual(cold.activity, {enumerations: 1, minified: [], pairs: 1, warnings: []});
+
+	// No source changes: only the configured excludes change. They participate in the build signature.
+	await project.configure(["!Solo.support.js", "!Rules.support.js"]);
+	const included = await project.build();
+	t.deepEqual(included.activity.minified, ["Solo.support.js"]);
+	t.is(included.activity.pairs, 1);
+	t.is(included.activity.warnings.length, 1, "Partially re-including an existing pair restores its warning");
+	t.deepEqual(included.output.get("Rules.support.js"), cold.output.get("Rules.support.js"));
+	t.not(included.output.get("Solo.support.js").content, source, "An explicitly re-included rule is minified");
+	t.deepEqual(included.output.get("Solo.support.js").tags, hasDebug);
+	t.deepEqual(included.output.get("Solo-dbg.support.js"), {content: source, tags: isDebug});
+	t.true(included.output.has("Solo.support.js.map"));
+
+	const warm = await project.build();
+	t.deepEqual(warm.output, included.output);
+	t.is(warm.activity.enumerations, 0);
+
+	await project.configure(["!Solo.support.js", "Solo.support.js"]);
+	const excludedAgain = await project.build();
+	t.deepEqual(excludedAgain.activity, {enumerations: 1, minified: [], pairs: 1, warnings: []});
+	t.deepEqual(excludedAgain.output, cold.output,
+		"A later exclusion restores readable code and drops generated files");
 });

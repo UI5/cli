@@ -485,8 +485,8 @@ const existingPair = test.macro(async (t, excludes) => {
 		taskUtil,
 		options: {
 			pattern: "/resources/**/*.js",
-			minificationPattern: ["/resources/**/*.js", ...excludes.map((exclude) => exclude.startsWith("!") ?
-				`${base}/${exclude.slice(1)}` : `!${base}/${exclude}`)]
+			excludes: excludes.map((exclude) => exclude.startsWith("!") ?
+				`!my/namespace/${exclude.slice(1)}` : `my/namespace/${exclude}`)
 		}
 	});
 
@@ -544,7 +544,7 @@ test.serial("integration: pair discovery respects positive scope and UI5 module 
 	}
 	await runTask(minify, {workspace, taskUtil, options: {
 		pattern: "/resources/scope/**/*.js",
-		minificationPattern: ["/resources/scope/**/*.js", "!**/*.support.js", "!**/*.controller.js"],
+		excludes: ["**/*.controller.js"],
 	}});
 	const tags = new Map(setTag.getCalls().map(({args: [res, tag]}) => [res.getPath(), tag]));
 	for (const name of ["Rules.support", "Main.controller"]) {

@@ -77,7 +77,7 @@ test("minify: Default params", async (t) => {
 		}
 	});
 
-	t.true(workspace.byGlob.calledOnceWithExactly("**"), "Without exclusions the discovery query is reused");
+	t.true(workspace.byGlob.calledOnceWithExactly("**"), "Resources are discovered with one glob");
 	t.false(workspace.byPath.called, "Ordinary resources need no per-file sibling lookup");
 	t.is(minifierStub.callCount, 2, "minifier got called once per resource");
 	const minifierCallArgs = minifierStub.firstCall.firstArg;
@@ -301,15 +301,15 @@ for (const included of [[], ["A.js"], ["A-dbg.js"]]) {
 		const resource = {getPath: () => "/resources/A.js"};
 		const debug = {getPath: () => "/resources/A-dbg.js"};
 		const all = [debug, resource]; // Debug first: enumeration must not depend on glob order
-		const pattern = ["/resources/**/*.js", "!/resources/A*.js", ...included.map((name) => `/resources/${name}`)];
+		const excludes = ["A*.js", ...included.map((name) => `!${name}`)];
 		workspace.byGlob.resolves(all);
-		workspace.byGlob.withArgs(pattern).resolves(all.filter((res) => included.some(
-			(name) => res.getPath() === `/resources/${name}`)));
 		workspace.byPath.withArgs(resource.getPath()).resolves(resource);
 		workspace.byPath.withArgs(debug.getPath()).resolves(debug);
 
-		const [step] = minify({pattern: "/resources/**/*.js", minificationPattern: pattern}).steps;
+		const [step] = minify({pattern: "/resources/**/*.js", excludes}).steps;
 		const keys = await step.keys({workspace, taskUtil});
+		t.true(workspace.byGlob.calledOnceWithExactly("/resources/**/*.js"),
+			"Exclusions are evaluated in memory, not by a second glob");
 		t.is(keys.length, 1, "One key represents the pair");
 		t.is(typeof keys[0], "string", "A pair key does not require hashing either resource");
 		t.false(taskUtil.setTag.called, "Key enumeration has no tag side effects");
@@ -342,20 +342,53 @@ test("minify: Existing pair without taskUtil", async (t) => {
 
 test("minify: Does not tag or minify excluded standalone files", async (t) => {
 	const {minify, workspace, taskUtil, minifierStub, log} = t.context;
-	const pattern = ["/resources/**/*.js", "!/resources/**"];
 	workspace.byGlob.resolves([
 		{getPath: () => "/resources/A.js"},
 		{getPath: () => "/resources/B-dbg.js"},
 	]);
-	workspace.byGlob.withArgs(pattern).resolves([]);
 	await runTask(minify, {workspace, taskUtil, options: {
-		pattern: "/resources/**/*.js", minificationPattern: pattern,
+		pattern: "/resources/**/*.js", excludes: ["**"],
 	}});
 	t.false(taskUtil.setTag.called);
 	t.false(log.warn.called);
 	t.false(minifierStub.called);
 	t.false(workspace.write.called);
 });
+
+const exclusionMatching = test.macro(async (t, excludes, expectedPaths) => {
+	const {minify, workspace} = t.context;
+	const paths = [
+		"/resources/a.js", "/resources/b.js", "/resources/sub/a.js", "/resources/.hidden.js",
+		"/resources/Rules.support.js", "/resources/sub/Rules.support.js", "/test-resources/a.js",
+	];
+	workspace.byGlob.resolves(paths.map((resourcePath) => ({getPath: () => resourcePath})));
+	const originalExcludes = [...excludes];
+	const [step] = minify({pattern: "/**/*.js", excludes}).steps;
+	const keys = await step.keys({workspace});
+	t.deepEqual(keys.map((res) => res.getPath()), expectedPaths);
+	t.deepEqual(excludes, originalExcludes, "Compiling filters does not mutate the configured excludes");
+	t.true(workspace.byGlob.calledOnceWithExactly("/**/*.js"));
+});
+
+test("minify: Exclusions are relative to /resources/, not to each adapter", exclusionMatching, ["a.js"], [
+	"/resources/b.js", "/resources/sub/a.js", "/resources/.hidden.js", "/test-resources/a.js",
+]);
+test("minify: Exclusions match dotfiles and preserve test-resources", exclusionMatching, ["**/*.js"], [
+	"/test-resources/a.js",
+]);
+test("minify: Brace patterns and re-inclusions", exclusionMatching, ["{a,b}.js", "!a.js"], [
+	"/resources/a.js", "/resources/sub/a.js", "/resources/.hidden.js", "/test-resources/a.js",
+]);
+test("minify: Extglob exclusions", exclusionMatching, ["**/+(a|b).js"], [
+	"/resources/.hidden.js", "/test-resources/a.js",
+]);
+test("minify: Later exclusions override earlier re-inclusions", exclusionMatching, ["**/*.js", "!a.js", "a.js"], [
+	"/test-resources/a.js",
+]);
+test("minify: A re-inclusion overrides the default support exclusion", exclusionMatching, ["!Rules.support.js"], [
+	"/resources/a.js", "/resources/b.js", "/resources/sub/a.js", "/resources/.hidden.js",
+	"/resources/Rules.support.js", "/test-resources/a.js",
+]);
 
 test("minify: Processes a standalone -dbg.js without a .js sibling", async (t) => {
 	// This test covers a scenario where a -dbg.js file exists WITHOUT a corresponding normal .js sibling.
