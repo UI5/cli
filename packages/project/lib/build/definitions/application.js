@@ -1,3 +1,4 @@
+import {prefixGlobPattern} from "@ui5/fs/resourceFactory";
 import {enhanceBundlesWithDefaults} from "../../validation/validator.js";
 
 /**
@@ -32,10 +33,16 @@ export default function({project, taskUtil, getTask}) {
 		}
 	});
 
+	const minificationExcludes = project.getSpecVersion().gte("2.6") ? project.getMinificationExcludes() : [];
 	tasks.set("minify", {
 		options: {
 			pattern: "/**/*.js",
-			excludes: project.getSpecVersion().gte("2.6") ? project.getMinificationExcludes() : []
+			excludes: [
+				// Support rules must stay readable in the Support Assistant. Keep them in the discovery
+				// scope for pair tagging, and allow configured re-inclusions to override this default.
+				"**/*.support.js",
+				...minificationExcludes.flatMap((pattern) => prefixGlobPattern(pattern, "/resources/"))
+			]
 		}
 	});
 

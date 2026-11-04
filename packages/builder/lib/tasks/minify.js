@@ -26,9 +26,9 @@ const log = getLogger("builder:tasks:minify");
  *
  * @param {object} options Options
  * @param {string|string[]} options.pattern Patterns defining the resource scope, including existing debug pairs
- * @param {string[]} [options.excludes=[]] Minification exclusions relative to <code>/resources/</code>.
- *   A leading <code>!</code> re-includes matches; later entries take precedence. Support rules
- *   (<code>*.support.js</code>) are excluded by default, unless explicitly re-included.
+ * @param {string[]} [options.excludes=[]] Glob patterns matched against absolute virtual resource paths.
+ *   A leading <code>!</code> re-includes matches; later entries take precedence. Patterns are used as
+ *   supplied, without a path prefix or implicit exclusions.
  *   Exclusions do not affect discovery or tagging of existing debug pairs.
  * @param {boolean} [options.omitSourceMapResources=false] Whether source map resources shall
  * 		be tagged as "OmitFromBuildResult" and no sourceMappingURL shall be added to the minified resource
@@ -47,7 +47,7 @@ export default function defineTask({
 		const pattern = include ? exclude.slice(1) : exclude;
 		return {
 			include,
-			matches: micromatch.matcher(`/resources/${pattern}`, {dot: true}),
+			matches: micromatch.matcher(pattern, {dot: true}),
 		};
 	}).reverse();
 	const shouldMinify = (resourcePath) => {
@@ -56,9 +56,7 @@ export default function defineTask({
 				return include;
 			}
 		}
-		// Support rules should not be minified to have readable code in the Support Assistant.
-		// This is a minification default, not a discovery filter: existing support pairs still get tags.
-		return !resourcePath.endsWith(".support.js");
+		return true;
 	};
 	const minifierOptions = {
 		addSourceMappingUrl: !omitSourceMapResources,

@@ -486,7 +486,7 @@ const existingPair = test.macro(async (t, excludes) => {
 		options: {
 			pattern: "/resources/**/*.js",
 			excludes: excludes.map((exclude) => exclude.startsWith("!") ?
-				`!my/namespace/${exclude.slice(1)}` : `my/namespace/${exclude}`)
+				`!${base}/${exclude.slice(1)}` : `${base}/${exclude}`)
 		}
 	});
 
@@ -544,7 +544,7 @@ test.serial("integration: pair discovery respects positive scope and UI5 module 
 	}
 	await runTask(minify, {workspace, taskUtil, options: {
 		pattern: "/resources/scope/**/*.js",
-		excludes: ["**/*.controller.js"],
+		excludes: ["**/*.support.js", "**/*.controller.js"],
 	}});
 	const tags = new Map(setTag.getCalls().map(({args: [res, tag]}) => [res.getPath(), tag]));
 	for (const name of ["Rules.support", "Main.controller"]) {
@@ -554,6 +554,17 @@ test.serial("integration: pair discovery respects positive scope and UI5 module 
 	}
 	t.is(setTag.callCount, 4, "Neither the excluded standalone file nor the out-of-scope pair is tagged");
 	t.deepEqual(await writer.byGlob("/**/*"), [], "No resources are transformed or written");
+});
+
+test.serial("integration: standalone minify has no implicit support-file exclusion", async (t) => {
+	const {reader, writer, workspace} = createWorkspace();
+	const content = "function identity(value) { return value; }\n";
+	await reader.write(resourceFactory.createResource({path: "/custom/Rules.support.js", string: content}));
+	await runTask(minify, {workspace, options: {pattern: "/custom/**/*.js"}});
+	t.not(await (await writer.byPath("/custom/Rules.support.js")).getString(), content,
+		"A support file is minified unless the caller supplies an exclusion");
+	t.is(await (await writer.byPath("/custom/Rules-dbg.support.js")).getString(), content);
+	t.truthy(await writer.byPath("/custom/Rules.support.js.map"));
 });
 
 test.serial("integration: minify processes a standalone -dbg.js without a .js sibling", async (t) => {

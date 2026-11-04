@@ -67,7 +67,7 @@ test("Standard build", (t) => {
 		minify: {
 			options: {
 				pattern: "/**/*.js",
-				excludes: []
+				excludes: ["**/*.support.js"]
 			},
 		},
 		enhanceManifest: {},
@@ -136,7 +136,7 @@ test("Standard build with legacy spec version", (t) => {
 		minify: {
 			options: {
 				pattern: "/**/*.js",
-				excludes: []
+				excludes: ["**/*.support.js"]
 			},
 		},
 		enhanceManifest: {},
@@ -239,7 +239,7 @@ test("Custom bundles", async (t) => {
 		minify: {
 			options: {
 				pattern: "/**/*.js",
-				excludes: []
+				excludes: ["**/*.support.js"]
 			},
 		},
 		enhanceManifest: {},
@@ -352,7 +352,7 @@ test("Custom bundles", async (t) => {
 
 test("Minification excludes", (t) => {
 	const {project, taskUtil, getTask} = t.context;
-	project.getMinificationExcludes = () => ["**.html", "!some/Rules.support.js"];
+	project.getMinificationExcludes = () => Object.freeze(["**.html", "!some/{Rules,Other}.support.js"]);
 
 	const tasks = application({
 		project, taskUtil, getTask
@@ -362,7 +362,10 @@ test("Minification excludes", (t) => {
 	t.deepEqual(taskDefinition, {
 		options: {
 			pattern: "/**/*.js",
-			excludes: ["**.html", "!some/Rules.support.js"]
+			excludes: [
+				"**/*.support.js", "/resources/**.html",
+				"!/resources/some/Rules.support.js", "!/resources/some/Other.support.js"
+			]
 		},
 	}, "Correct minify task definition");
 });
@@ -385,7 +388,7 @@ test("Minification excludes not applied for legacy specVersion", (t) => {
 	t.deepEqual(taskDefinition, {
 		options: {
 			pattern: "/**/*.js",
-			excludes: []
+			excludes: ["**/*.support.js"]
 		},
 	}, "Correct minify task definition");
 });

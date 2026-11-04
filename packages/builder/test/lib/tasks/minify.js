@@ -301,7 +301,7 @@ for (const included of [[], ["A.js"], ["A-dbg.js"]]) {
 		const resource = {getPath: () => "/resources/A.js"};
 		const debug = {getPath: () => "/resources/A-dbg.js"};
 		const all = [debug, resource]; // Debug first: enumeration must not depend on glob order
-		const excludes = ["A*.js", ...included.map((name) => `!${name}`)];
+		const excludes = ["/resources/A*.js", ...included.map((name) => `!/resources/${name}`)];
 		workspace.byGlob.resolves(all);
 		workspace.byPath.withArgs(resource.getPath()).resolves(resource);
 		workspace.byPath.withArgs(debug.getPath()).resolves(debug);
@@ -370,25 +370,36 @@ const exclusionMatching = test.macro(async (t, excludes, expectedPaths) => {
 	t.true(workspace.byGlob.calledOnceWithExactly("/**/*.js"));
 });
 
-test("minify: Exclusions are relative to /resources/, not to each adapter", exclusionMatching, ["a.js"], [
-	"/resources/b.js", "/resources/sub/a.js", "/resources/.hidden.js", "/test-resources/a.js",
-]);
-test("minify: Exclusions match dotfiles and preserve test-resources", exclusionMatching, ["**/*.js"], [
-	"/test-resources/a.js",
-]);
-test("minify: Brace patterns and re-inclusions", exclusionMatching, ["{a,b}.js", "!a.js"], [
-	"/resources/a.js", "/resources/sub/a.js", "/resources/.hidden.js", "/test-resources/a.js",
-]);
-test("minify: Extglob exclusions", exclusionMatching, ["**/+(a|b).js"], [
-	"/resources/.hidden.js", "/test-resources/a.js",
-]);
-test("minify: Later exclusions override earlier re-inclusions", exclusionMatching, ["**/*.js", "!a.js", "a.js"], [
-	"/test-resources/a.js",
-]);
-test("minify: A re-inclusion overrides the default support exclusion", exclusionMatching, ["!Rules.support.js"], [
+test("minify: No implicit support-file exclusions", exclusionMatching, [], [
 	"/resources/a.js", "/resources/b.js", "/resources/sub/a.js", "/resources/.hidden.js",
-	"/resources/Rules.support.js", "/test-resources/a.js",
+	"/resources/Rules.support.js", "/resources/sub/Rules.support.js", "/test-resources/a.js",
 ]);
+test("minify: Exclusions match absolute virtual paths", exclusionMatching, ["/resources/a.js"], [
+	"/resources/b.js", "/resources/sub/a.js", "/resources/.hidden.js",
+	"/resources/Rules.support.js", "/resources/sub/Rules.support.js", "/test-resources/a.js",
+]);
+test("minify: Exclusions can target paths outside /resources/", exclusionMatching, ["/test-resources/**/*.js"], [
+	"/resources/a.js", "/resources/b.js", "/resources/sub/a.js", "/resources/.hidden.js",
+	"/resources/Rules.support.js", "/resources/sub/Rules.support.js",
+]);
+test("minify: Global exclusions have no implicit prefix", exclusionMatching, ["**/*.js"], []);
+test("minify: Exclusions match dotfiles and preserve test-resources", exclusionMatching, ["/resources/**/*.js"], [
+	"/test-resources/a.js",
+]);
+test("minify: Brace patterns and re-inclusions", exclusionMatching, ["/resources/{a,b}.js", "!/resources/a.js"], [
+	"/resources/a.js", "/resources/sub/a.js", "/resources/.hidden.js",
+	"/resources/Rules.support.js", "/resources/sub/Rules.support.js", "/test-resources/a.js",
+]);
+test("minify: Extglob exclusions", exclusionMatching, ["/resources/**/+(a|b).js"], [
+	"/resources/.hidden.js", "/resources/Rules.support.js", "/resources/sub/Rules.support.js", "/test-resources/a.js",
+]);
+test("minify: Later exclusions override earlier re-inclusions", exclusionMatching,
+	["/resources/**/*.js", "!/resources/a.js", "/resources/a.js"], ["/test-resources/a.js"]);
+test("minify: A re-inclusion overrides an explicit support exclusion", exclusionMatching,
+	["**/*.support.js", "!/resources/Rules.support.js"], [
+		"/resources/a.js", "/resources/b.js", "/resources/sub/a.js", "/resources/.hidden.js",
+		"/resources/Rules.support.js", "/test-resources/a.js",
+	]);
 
 test("minify: Processes a standalone -dbg.js without a .js sibling", async (t) => {
 	// This test covers a scenario where a -dbg.js file exists WITHOUT a corresponding normal .js sibling.

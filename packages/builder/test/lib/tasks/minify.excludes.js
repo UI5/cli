@@ -1,7 +1,7 @@
 import test from "ava";
 import fs from "node:fs/promises";
 import path from "node:path";
-import {createAdapter, createResource} from "@ui5/fs/resourceFactory";
+import {createAdapter, createResource, prefixGlobPattern} from "@ui5/fs/resourceFactory";
 import minify from "../../../lib/tasks/minify.js";
 
 // Compare the in-memory eligibility matcher with the old ordered glob query, including adapter
@@ -32,7 +32,9 @@ for (const fileSystem of [false, true]) {
 				const previousPattern = ["/**/*.js", "!**/*.support.js", ...excludes.map((exclude) =>
 					exclude.startsWith("!") ? `/resources/${exclude.slice(1)}` : `!/resources/${exclude}`)];
 				const expected = await workspace.byGlob(previousPattern);
-				const [step] = minify({pattern: "/**/*.js", excludes}).steps;
+				const [step] = minify({pattern: "/**/*.js", excludes: [
+					"**/*.support.js", ...excludes.flatMap((exclude) => prefixGlobPattern(exclude, "/resources/")),
+				]}).steps;
 				const keys = await step.keys({workspace});
 				t.deepEqual(keys.map((res) => res.getPath()).sort(), expected.map((res) => res.getPath()).sort(),
 					`Same eligibility for ${virBasePath} and ${JSON.stringify(excludes)}`);
