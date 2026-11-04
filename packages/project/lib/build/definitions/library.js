@@ -67,7 +67,8 @@ export default function({project, taskUtil, getTask}) {
 
 	tasks.set("minify", {
 		options: {
-			pattern: minificationPattern
+			pattern: "/resources/**/*.js",
+			minificationPattern
 		}
 	});
 

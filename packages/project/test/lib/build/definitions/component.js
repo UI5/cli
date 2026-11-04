@@ -65,7 +65,8 @@ test("Standard build", (t) => {
 		},
 		minify: {
 			options: {
-				pattern: [
+				pattern: "/**/*.js",
+				minificationPattern: [
 					"/**/*.js",
 					"!**/*.support.js",
 				]
@@ -161,7 +162,8 @@ test("Custom bundles", async (t) => {
 		},
 		minify: {
 			options: {
-				pattern: [
+				pattern: "/**/*.js",
+				minificationPattern: [
 					"/**/*.js",
 					"!**/*.support.js",
 				]
@@ -277,7 +279,8 @@ test("Minification excludes", (t) => {
 	const taskDefinition = tasks.get("minify");
 	t.deepEqual(taskDefinition, {
 		options: {
-			pattern: [
+			pattern: "/**/*.js",
+			minificationPattern: [
 				"/**/*.js",
 				"!**/*.support.js",
 				"!/resources/**.html",

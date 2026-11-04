@@ -16,13 +16,17 @@ const log = getLogger("builder:tasks:minify");
  * source map (the <code>//# sourceMappingURL=</code> target) is read through the step's workspace and
  * thus recorded as an input of that step, so changing only the <code>.js.map</code> re-runs its owning
  * <code>.js</code> and regenerates a correct <code>-dbg.js.map</code>.
+ * Existing debug/non-debug pairs are left unchanged and tagged, even when excluded from minification.
+ * Each pair has a separate tagging key, so its tags can be restored without re-running the callback.
  *
  * @public
  * @function default
  * @static
  *
  * @param {object} options Options
- * @param {string} options.pattern Pattern to locate the files to be processed
+ * @param {string|string[]} options.pattern Patterns defining the resource scope, including existing debug pairs
+ * @param {string|string[]} [options.minificationPattern=options.pattern] Patterns selecting resources to minify.
+ *   Existing pairs within <code>pattern</code> are tagged even when excluded by these patterns.
  * @param {boolean} [options.omitSourceMapResources=false] Whether source map resources shall
  * 		be tagged as "OmitFromBuildResult" and no sourceMappingURL shall be added to the minified resource
  * @param {boolean} [options.useInputSourceMaps=true] Whether to make use of any existing source
@@ -30,7 +34,9 @@ const log = getLogger("builder:tasks:minify");
  * 		source files, such as TypeScript files, in the generated source map.
  * @returns {module:@ui5/builder/tasks/runTask~TaskDescriptor} The task descriptor with its build steps
  */
-export default function defineTask({pattern, omitSourceMapResources = false, useInputSourceMaps = true}) {
+export default function defineTask({
+	pattern, minificationPattern = pattern, omitSourceMapResources = false, useInputSourceMaps = true,
+}) {
 	const minifierOptions = {
 		addSourceMappingUrl: !omitSourceMapResources,
 		readSourceMappingUrl: !!useInputSourceMaps,
@@ -68,23 +74,37 @@ export default function defineTask({pattern, omitSourceMapResources = false, use
 
 	return {steps: [{
 		name: "minify",
-		// One key per matched resource, so a delta build re-minifies only the resources whose inputs
-		// changed. The input source map is read through the step's workspace and thus tracked per step.
-		keys: async ({workspace, taskUtil}) => {
-			const resources = await workspace.byGlob(pattern);
-
-			// A -dbg.js next to its .js in the sources is unexpected: the minify task owns the -dbg.js
-			// path and generates it from the .js. Were both kept, the .js key and the -dbg.js key would
-			// write the same -dbg.js path, which the shared assertDistinctWrite guard rejects, crashing
-			// the build. So skip both members of such a pair: the .js is left as it is (the existing
-			// -dbg.js already serves as its debug variant) and the -dbg.js is passed through unchanged.
-			// A warning tells the user to exclude both from minification if the pairing is intentional.
-			const paths = new Set(resources.map((resource) => resource.getPath()));
-			return resources.filter((resource) => {
+		// Ordinary resource keys retain their content-based identity and source-map dependency tracking.
+		// Existing pairs use string keys and do not load/hash their content during key enumeration.
+		keys: async ({workspace}) => {
+			// Discover pairs independently of minification exclusions, using the reader's glob semantics
+			// for both queries (including re-inclusions). Reuse the query when the scopes are identical.
+			const discovered = workspace.byGlob(pattern);
+			const [allResources, resources] = await Promise.all([
+				discovered,
+				minificationPattern === pattern ? discovered : workspace.byGlob(minificationPattern),
+			]);
+			const paths = new Set(allResources.map((resource) => resource.getPath()));
+			const matchedByPath = new Map(resources.map((resource) => [resource.getPath(), resource]));
+			const keys = [];
+			for (const resource of allResources) {
 				const resourcePath = resource.getPath();
 				const dbgPath = getDebugName(resourcePath);
 				if (dbgPath && paths.has(dbgPath)) {
-					// A .js whose -dbg.js sibling already exists in the sources: skip it
+					// Neither member may be minified: their generated outputs would collide. Give the pair
+					// its own invocation so tags are replayed on a delta, and dropped when the pair disappears.
+					keys.push(JSON.stringify({resourcePath, dbgPath,
+						warn: matchedByPath.has(resourcePath) || matchedByPath.has(dbgPath)}));
+				} else if (!paths.has(getNonDebugName(resourcePath)) && matchedByPath.has(resourcePath)) {
+					keys.push(matchedByPath.get(resourcePath));
+				}
+			}
+			return keys;
+		},
+		each: async (inputResource, {workspace, taskUtil}) => {
+			if (typeof inputResource === "string") {
+				const {resourcePath, dbgPath, warn} = JSON.parse(inputResource);
+				if (warn) {
 					log.warn(
 						`Skipping minification of ${resourcePath}: a debug variant ${dbgPath} already ` +
 						`exists next to it. The minify task generates the debug variant itself, so sources ` +
@@ -92,23 +112,18 @@ export default function defineTask({pattern, omitSourceMapResources = false, use
 						`ECMAScript syntax the minify task does not support yet), list both ${resourcePath} ` +
 						`and ${dbgPath} in the 'builder.minification.excludes' configuration of the ` +
 						`project's ui5.yaml.`);
-					if (taskUtil) {
-						taskUtil.setTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
-					}
-					return false;
 				}
-				const nonDbgPath = getNonDebugName(resourcePath);
-				if (nonDbgPath && paths.has(nonDbgPath)) {
-					// Skip the -dbg.js itself when its non-debug .js sibling is also present
-					if (taskUtil) {
-						taskUtil.setTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
-					}
-					return false;
+				if (taskUtil) {
+					// Attribute these reads and tag operations to the pair, not the enumerator. Unrelated
+					// minification keys stay cached when a member changes; excluded pairs are never written.
+					const [resource, dbgResource] = await Promise.all([
+						workspace.byPath(resourcePath), workspace.byPath(dbgPath),
+					]);
+					taskUtil.setTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
+					taskUtil.setTag(dbgResource, taskUtil.STANDARD_TAGS.IsDebugVariant);
 				}
-				return true;
-			});
-		},
-		each: async (inputResource, {workspace, taskUtil}) => {
+				return;
+			}
 			// Load the minifier (and its worker-pool module graph) lazily, inside the step body, so plan-time
 			// step-name discovery can import this factory module without evaluating that graph. A build whose
 			// minify keys are all cache hits never reaches here.

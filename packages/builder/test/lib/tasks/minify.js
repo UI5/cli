@@ -11,6 +11,7 @@ test.beforeEach(async (t) => {
 	const inputB = t.context.inputB = {getPath: () => "/resources/b.js"};
 	t.context.workspace = {
 		byGlob: sinon.stub().resolves([inputA, inputB]),
+		byPath: sinon.stub().resolves(null),
 		write: sinon.stub().resolves()
 	};
 	t.context.taskUtil = {
@@ -76,6 +77,8 @@ test("minify: Default params", async (t) => {
 		}
 	});
 
+	t.true(workspace.byGlob.calledOnceWithExactly("**"), "Without exclusions the discovery query is reused");
+	t.false(workspace.byPath.called, "Ordinary resources need no per-file sibling lookup");
 	t.is(minifierStub.callCount, 2, "minifier got called once per resource");
 	const minifierCallArgs = minifierStub.firstCall.firstArg;
 	t.deepEqual(minifierCallArgs.resources, [inputA], "First step processes the first resource");
@@ -249,6 +252,8 @@ test("minify: Skips, tags and warns for an existing -dbg.js next to its .js", as
 	const withDbg = {getPath: () => "/resources/withDbg.js"};
 	const existingDbg = {getPath: () => "/resources/withDbg-dbg.js"};
 	workspace.byGlob.resolves([normal, withDbg, existingDbg]);
+	workspace.byPath.withArgs(withDbg.getPath()).resolves(withDbg);
+	workspace.byPath.withArgs(existingDbg.getPath()).resolves(existingDbg);
 
 	const processedByInput = new Map([
 		[normal, {
@@ -288,6 +293,68 @@ test("minify: Skips, tags and warns for an existing -dbg.js next to its .js", as
 	["resource normal", "dbgResource normal", "sourceMapResource normal"].forEach((resName, idx) => {
 		t.is(workspace.write.getCall(idx).firstArg, resName, "workspace#write got called for expected resource");
 	});
+});
+
+for (const included of [[], ["A.js"], ["A-dbg.js"]]) {
+	test(`minify: Tags excluded pairs (included: ${included.join(", ") || "none"})`, async (t) => {
+		const {minify, workspace, taskUtil, minifierStub, log} = t.context;
+		const resource = {getPath: () => "/resources/A.js"};
+		const debug = {getPath: () => "/resources/A-dbg.js"};
+		const all = [debug, resource]; // Debug first: enumeration must not depend on glob order
+		const pattern = ["/resources/**/*.js", "!/resources/A*.js", ...included.map((name) => `/resources/${name}`)];
+		workspace.byGlob.resolves(all);
+		workspace.byGlob.withArgs(pattern).resolves(all.filter((res) => included.some(
+			(name) => res.getPath() === `/resources/${name}`)));
+		workspace.byPath.withArgs(resource.getPath()).resolves(resource);
+		workspace.byPath.withArgs(debug.getPath()).resolves(debug);
+
+		const [step] = minify({pattern: "/resources/**/*.js", minificationPattern: pattern}).steps;
+		const keys = await step.keys({workspace, taskUtil});
+		t.is(keys.length, 1, "One key represents the pair");
+		t.is(typeof keys[0], "string", "A pair key does not require hashing either resource");
+		t.false(taskUtil.setTag.called, "Key enumeration has no tag side effects");
+		t.false(log.warn.called, "Warnings belong to the pair invocation too");
+		t.false(workspace.byPath.called, "No per-resource sibling lookups during enumeration");
+
+		await step.each(keys[0], {workspace, taskUtil});
+		t.true(taskUtil.setTag.calledWithExactly(resource, taskUtil.STANDARD_TAGS.HasDebugVariant));
+		t.true(taskUtil.setTag.calledWithExactly(debug, taskUtil.STANDARD_TAGS.IsDebugVariant));
+		t.is(taskUtil.setTag.callCount, 2);
+		t.is(log.warn.callCount, included.length ? 1 : 0,
+			"Warn unless both members are excluded");
+		t.false(minifierStub.called, "An existing pair is never minified");
+		t.false(workspace.write.called, "An existing pair is never written");
+	});
+}
+
+test("minify: Existing pair without taskUtil", async (t) => {
+	const {minify, workspace, minifierStub, log} = t.context;
+	workspace.byGlob.resolves([
+		{getPath: () => "/resources/A.js"},
+		{getPath: () => "/resources/A-dbg.js"},
+	]);
+	await runTask(minify, {workspace, options: {pattern: "/resources/**/*.js"}});
+	t.true(log.warn.calledOnce);
+	t.false(minifierStub.called);
+	t.false(workspace.write.called);
+	t.false(workspace.byPath.called, "Without taskUtil the pair needs no resource lookups");
+});
+
+test("minify: Does not tag or minify excluded standalone files", async (t) => {
+	const {minify, workspace, taskUtil, minifierStub, log} = t.context;
+	const pattern = ["/resources/**/*.js", "!/resources/**"];
+	workspace.byGlob.resolves([
+		{getPath: () => "/resources/A.js"},
+		{getPath: () => "/resources/B-dbg.js"},
+	]);
+	workspace.byGlob.withArgs(pattern).resolves([]);
+	await runTask(minify, {workspace, taskUtil, options: {
+		pattern: "/resources/**/*.js", minificationPattern: pattern,
+	}});
+	t.false(taskUtil.setTag.called);
+	t.false(log.warn.called);
+	t.false(minifierStub.called);
+	t.false(workspace.write.called);
 });
 
 test("minify: Processes a standalone -dbg.js without a .js sibling", async (t) => {
