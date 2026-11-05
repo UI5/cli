@@ -57,7 +57,6 @@ function getPool(taskUtil) {
 
 async function buildThemeInWorker(taskUtil, options, transferList) {
 	const toTransfer = transferList ? {transfer: transferList} : undefined;
-
 	return getPool(taskUtil).exec("execThemeBuild", [options], toTransfer);
 }
 
@@ -74,6 +73,12 @@ async function buildThemeInWorker(taskUtil, options, transferList) {
 async function buildThemeResources(themeResources, combo, compress, taskUtil) {
 	const useWorkers = !process.env.UI5_CLI_NO_WORKERS && !!taskUtil;
 	if (useWorkers) {
+		// less-openui5 runs only in the worker thread, a realm the main-thread tool-dependency recorder
+		// cannot observe. Resolve it here on the main thread, within the task's capture window, so the
+		// recorder records its entry (and folds in its package.json), moving the stage signature on a
+		// less-openui5 version bump. The resolve does not load less-openui5; the heavy work stays in the
+		// worker.
+		import.meta.resolve("less-openui5");
 		const threadMessageHandler = new FsMainThreadInterface(fsInterface(combo));
 		const processedResources = await Promise.all(themeResources.map(async (themeRes) => {
 			const {port1, port2} = new MessageChannel();
