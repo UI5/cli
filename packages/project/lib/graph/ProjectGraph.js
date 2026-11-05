@@ -34,6 +34,7 @@ class ProjectGraph {
 		this._sealed = false;
 		this._hasUnresolvedOptionalDependencies = false; // Performance optimization flag
 		this._taskRepository = null;
+		this._resolvedFrameworkVersion = null;
 	}
 
 	/**
@@ -673,6 +674,27 @@ class ProjectGraph {
 	// Only to be used by @ui5/builder tests to inject its version of the taskRepository
 	setTaskRepository(taskRepository) {
 		this._taskRepository = taskRepository;
+	}
+
+	/**
+	 * Set the framework version resolved for this graph during enrichment.
+	 *
+	 * @public
+	 * @param {string} version Effective framework version
+	 */
+	setResolvedFrameworkVersion(version) {
+		this._resolvedFrameworkVersion = version;
+	}
+
+	/**
+	 * Get the effective framework version for this graph. Returns the version resolved during
+	 * enrichment.
+	 *
+	 * @public
+	 * @returns {string|undefined} Effective framework version, e.g. "1.138.0"
+	 */
+	getResolvedFrameworkVersion() {
+		return this._resolvedFrameworkVersion ?? this.getRoot().getFrameworkVersion();
 	}
 
 	async _getTaskRepository() {

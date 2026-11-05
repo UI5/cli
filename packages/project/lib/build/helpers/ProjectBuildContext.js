@@ -207,6 +207,17 @@ class ProjectBuildContext {
 	}
 
 	/**
+	 * Returns the effective framework version resolved for this graph during enrichment
+	 * (reflects --framework-version, or a workspace link), or the root
+	 * project's configured version when no resolution occurred.
+	 *
+	 * @returns {string|undefined} Effective framework version, e.g. "1.138.0"
+	 */
+	getResolvedFrameworkVersion() {
+		return this._buildContext.getGraph().getResolvedFrameworkVersion();
+	}
+
+	/**
 	 * Retrieves a list of direct dependencies of a given project from the dependency graph
 	 *
 	 * @param {string} [projectName] Name of the project to retrieve.

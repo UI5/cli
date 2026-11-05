@@ -435,6 +435,23 @@ export default {
 		log.verbose("Joining framework graph into project graph...");
 		projectGraph.join(frameworkGraph);
 		await utils.declareFrameworkDependenciesInGraph(projectGraph);
+
+		// Without a workspace, `version` is the effective framework version resolved above (it already
+		// reflects --framework-version and the ui5.yaml config). With a workspace that config is
+		// ignored: OpenUI5 reports the linked sap.ui.core version, while SAPUI5 has no reliable
+		// distribution version and is left empty.
+		let resolvedFrameworkVersion;
+		if (workspace) {
+			if (frameworkName === "SAPUI5") {
+				resolvedFrameworkVersion = "";
+			} else {
+				resolvedFrameworkVersion = projectGraph.getProject("sap.ui.core")?.getVersion() ?? "";
+			}
+		} else {
+			resolvedFrameworkVersion = version;
+		}
+		projectGraph.setResolvedFrameworkVersion(resolvedFrameworkVersion);
+
 		return projectGraph;
 	},
 

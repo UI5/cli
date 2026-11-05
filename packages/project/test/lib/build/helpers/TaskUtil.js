@@ -295,6 +295,28 @@ test("getBuildTime returns the build run's raw timestamp", (t) => {
 	t.is(taskUtil.getBuildTime(), buildTime, "returns the build context's Date instance");
 });
 
+test("getResolvedFrameworkVersion delegates to projectBuildContext", (t) => {
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {
+			getResolvedFrameworkVersion: () => "1.138.0"
+		}
+	});
+
+	t.is(taskUtil.getResolvedFrameworkVersion(), "1.138.0",
+		"Returns the value from ProjectBuildContext.getResolvedFrameworkVersion()");
+});
+
+test("getResolvedFrameworkVersion returns undefined when unset (fallback passes through)", (t) => {
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {
+			getResolvedFrameworkVersion: () => undefined
+		}
+	});
+
+	t.is(taskUtil.getResolvedFrameworkVersion(), undefined,
+		"Undefined propagates so the processor uses its own fallback");
+});
+
 test("registerCleanupTask", (t) => {
 	const registerCleanupTaskStub = sinon.stub();
 	const taskUtil = new TaskUtil({

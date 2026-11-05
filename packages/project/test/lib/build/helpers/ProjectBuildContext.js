@@ -255,6 +255,19 @@ test("getProject: No name provided", (t) => {
 	t.is(getProjectStub.callCount, 0, "ProjectGraph#getProject has not been called");
 });
 
+test("getResolvedFrameworkVersion delegates to graph", (t) => {
+	const buildContext = createBuildContextStub({
+		getGraph: () => ({
+			getResolvedFrameworkVersion: () => "1.138.0"
+		})
+	});
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	t.is(projectBuildContext.getResolvedFrameworkVersion(), "1.138.0",
+		"Returns the graph's effective framework version");
+});
+
 test("getDependencies", (t) => {
 	const project = {
 		getName: () => "project",
