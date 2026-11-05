@@ -999,6 +999,10 @@ test.serial("enrichProjectGraph should throw error when projectGraph contains a 
 
 test.serial("enrichProjectGraph should use framework library metadata from workspace", async (t) => {
 	const {ui5Framework, utils, Sapui5ResolverStub, Sapui5ResolverInstallStub, sinon} = t.context;
+	const frameworkEvents = [];
+	const frameworkListener = (evt) => frameworkEvents.push(evt);
+	process.on("ui5.project-framework-resolved", frameworkListener);
+	t.teardown(() => process.off("ui5.project-framework-resolved", frameworkListener));
 	const dependencyTree = {
 		id: "@sapui5/project",
 		version: "1.2.3",
@@ -1059,14 +1063,18 @@ test.serial("enrichProjectGraph should use framework library metadata from works
 	// the effective framework version is empty.
 	t.is(projectGraph.getResolvedFrameworkVersion(), "",
 		"SAPUI5 with a workspace yields an empty framework version, ignoring the configured version");
+
+	// Even though the configured version is 1.111.1, the workspace-aware version is "" for SAPUI5.
+	t.deepEqual(frameworkEvents, [{
+		framework: {name: "SAPUI5", version: ""},
+	}], "Emits framework event with empty version for SAPUI5 workspace (configured version ignored)");
 });
 
 test.serial("enrichProjectGraph should allow omitting framework version in case " +
 	"all framework libraries come from the workspace", async (t) => {
 	const {ui5Framework, utils, Sapui5ResolverStub, Sapui5ResolverInstallStub, sinon} = t.context;
-	const frameworkListener = () => {
-		t.fail("Framework event must not be emitted when no direct version is known");
-	};
+	const frameworkEvents = [];
+	const frameworkListener = (evt) => frameworkEvents.push(evt);
 	process.on("ui5.project-framework-resolved", frameworkListener);
 	t.teardown(() => process.off("ui5.project-framework-resolved", frameworkListener));
 	const dependencyTree = {
@@ -1127,6 +1135,12 @@ test.serial("enrichProjectGraph should allow omitting framework version in case 
 	// SAPUI5 + workspace, no configured version: effective framework version is empty.
 	t.is(projectGraph.getResolvedFrameworkVersion(), "",
 		"SAPUI5 with a workspace and no configured version yields an empty framework version");
+
+	// With workspace active, the event is always emitted so the UI can show the framework name.
+	// SAPUI5 has no reliable distribution version in workspace mode: version is "".
+	t.deepEqual(frameworkEvents, [{
+		framework: {name: "SAPUI5", version: ""},
+	}], "Emits framework event with empty version for SAPUI5 workspace (no distribution version available)");
 });
 
 test.serial("enrichProjectGraph: OpenUI5 without workspace", async (t) => {
@@ -1176,6 +1190,10 @@ test.serial("enrichProjectGraph: OpenUI5 without workspace", async (t) => {
 
 test.serial("enrichProjectGraph: OpenUI5 with workspace — sap.ui.core version reported", async (t) => {
 	const {sinon, ui5Framework, utils, Openui5ResolverInstallStub} = t.context;
+	const frameworkEvents = [];
+	const frameworkListener = (evt) => frameworkEvents.push(evt);
+	process.on("ui5.project-framework-resolved", frameworkListener);
+	t.teardown(() => process.off("ui5.project-framework-resolved", frameworkListener));
 
 	const dependencyTree = {
 		id: "test1",
@@ -1227,10 +1245,19 @@ test.serial("enrichProjectGraph: OpenUI5 with workspace — sap.ui.core version 
 	// The configured version (1.111.1) and any --framework-version override are ignored.
 	t.is(projectGraph.getResolvedFrameworkVersion(), "1.111.0",
 		"OpenUI5 with workspace reports the linked sap.ui.core version, not the configured version");
+
+	// The event uses the workspace-resolved version, not the configured ui5.yaml version.
+	t.deepEqual(frameworkEvents, [{
+		framework: {name: "OpenUI5", version: "1.111.0"},
+	}], "Emits framework event with workspace sap.ui.core version, not configured version");
 });
 
 test.serial("enrichProjectGraph: OpenUI5 with workspace — sap.ui.core not in graph yields empty version", async (t) => {
 	const {sinon, ui5Framework, utils, Openui5ResolverInstallStub} = t.context;
+	const frameworkEvents = [];
+	const frameworkListener = (evt) => frameworkEvents.push(evt);
+	process.on("ui5.project-framework-resolved", frameworkListener);
+	t.teardown(() => process.off("ui5.project-framework-resolved", frameworkListener));
 
 	const dependencyTree = {
 		id: "test1",
@@ -1263,6 +1290,11 @@ test.serial("enrichProjectGraph: OpenUI5 with workspace — sap.ui.core not in g
 	// OpenUI5 + workspace but sap.ui.core not resolved into graph: falls back to empty.
 	t.is(projectGraph.getResolvedFrameworkVersion(), "",
 		"OpenUI5 with workspace but sap.ui.core absent from graph yields empty version");
+
+	// Event still emitted (workspace active, framework name known) but version is empty.
+	t.deepEqual(frameworkEvents, [{
+		framework: {name: "OpenUI5", version: ""},
+	}], "Emits framework event with empty version when sap.ui.core absent from workspace graph");
 });
 
 test.serial("enrichProjectGraph should use UI5 data dir from env var", async (t) => {
