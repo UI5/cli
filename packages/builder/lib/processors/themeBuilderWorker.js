@@ -14,7 +14,7 @@ import {Buffer} from "node:buffer";
  * @param {object[]} parameters.themeResources Input array of Uint8Array transferable objects
  * 	that are the less sources to build upon. By nature those are @ui5/fs/Resource.
  * @param {object} parameters.options Less compiler options
- * @returns {Promise<object[]>} Resulting array of Uint8Array transferable objects
+ * @returns {Promise<object[]>} Resolves with the resulting array of Uint8Array transferable objects
  */
 export default async function execThemeBuild({
 	fsInterfacePort,
@@ -274,7 +274,6 @@ export class FsWorkerThreadInterface {
 /* istanbul ignore else */
 if (!workerpool.isMainThread) {
 	// Script got loaded through workerpool
-	// => Create a worker and register public functions
 	workerpool.worker({
 		execThemeBuild
 	});

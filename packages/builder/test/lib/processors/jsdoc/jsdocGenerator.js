@@ -108,7 +108,6 @@ test.serial("buildJsdoc", async (t) => {
 		"/some/path"
 	], "Spawn got called with correct arguments");
 
-
 	// Re-execute with exit code 1
 	exitCode = 1;
 	await t.throwsAsync(jsdocGenerator._buildJsdoc({

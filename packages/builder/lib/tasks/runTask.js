@@ -51,6 +51,13 @@ function validateSteps(steps, {taskName} = {}) {
 		const hasKeys = typeof step.keys === "function";
 		const hasEach = typeof step.each === "function";
 		const isMap = hasKeys && hasEach;
+		if (isScalar && (hasKeys || hasEach)) {
+			// A scalar step with stray map fields would otherwise pass as scalar with its keys/each silently
+			// ignored (no fan-out), the mirror of the half-defined map step rejected below.
+			throw new Error(
+				`Step '${step.name}' is a scalar step ({name, run}) and must not also define ` +
+				`'keys' or 'each'`);
+		}
 		if (!isScalar && (hasKeys !== hasEach)) {
 			throw new Error(`Map step '${step.name}' must define both 'keys' and 'each' functions`);
 		}
