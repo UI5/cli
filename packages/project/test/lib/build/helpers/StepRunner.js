@@ -1,5 +1,6 @@
 import test from "ava";
 import StepRunner from "../../../../lib/build/helpers/StepRunner.js";
+import {shareToolFiles} from "../../../../lib/build/helpers/ToolDependencyRecorder.js";
 
 function createResource(resourcePath, content = resourcePath) {
 	return {
@@ -106,7 +107,7 @@ function createReturnValueStore() {
 function makeDriver({
 	steps, options, workspace = createWorkspace(), dependencies, taskUtil = {}, returnValueStore,
 	resolveInputValue, applyTagOperations, signal, cacheVerdicts = {}, previousData = new Map(),
-	notifyStepExecution, taskName = "test-task",
+	notifyStepExecution, taskName = "test-task", loadTimeToolFiles,
 }) {
 	const recorded = new Map();
 	const runner = new StepRunner({
@@ -118,6 +119,7 @@ function makeDriver({
 		applyTagOperations,
 		signal,
 		notifyStepExecution,
+		loadTimeToolFiles,
 		prepareStage: async (step) => (step in cacheVerdicts ? cacheVerdicts[step] : false),
 		getPreviousInvocationData: (step) => previousData.get(step),
 		// Mirrors the TaskRunner hook: reopens the stage with a live writer and demotes the full hit to a
@@ -175,6 +177,81 @@ test("runSteps runs a map step's each once per enumerated key", async (t) => {
 	t.deepEqual(ran.sort(), ["a", "b"], "each ran once per key");
 	t.is(invocationDataOf(recorded, "m").size, 2, "Map step recorded one invocation per key");
 	t.true(workspace.store.has("/out/a") && workspace.store.has("/out/b"), "Both keys' writes persisted");
+});
+
+test("loadTimeToolFiles fold into every step's stage signature", async (t) => {
+	// A standard/custom task that imports a tool at module top level: the files resolve before any step
+	// runs, so the TaskRunner passes them in as loadTimeToolFiles. Each step's stage must fold them, because
+	// a top-level import is visible to every step.
+	const loadTimeToolFiles = [
+		"/root/node_modules/tool/index.js",
+		"/root/node_modules/tool/package.json",
+	];
+	const {runner, recorded} = makeDriver({
+		// Unique task name: the cross-project share memo is process-global and keyed by taskName+step, so a
+		// shared default name would leak this set into other tests' stages.
+		taskName: "loadtime-fold-task",
+		loadTimeToolFiles,
+		steps: [
+			{name: "a", run: async () => {}},
+			{name: "b", keys: async () => ["k"], each: async () => {}},
+		],
+	});
+
+	await runner.runSteps();
+
+	for (const file of loadTimeToolFiles) {
+		t.true(recorded.get("a").toolFiles.includes(file),
+			`Scalar step's stage folds ${file}`);
+		t.true(recorded.get("b").toolFiles.includes(file),
+			`Map step's stage folds ${file}`);
+	}
+});
+
+test("A task with no load-time tool files records an empty tool set", async (t) => {
+	const {runner, recorded} = makeDriver({
+		taskName: "loadtime-empty-task",
+		steps: [{name: "a", run: async () => {}}],
+	});
+
+	await runner.runSteps();
+
+	t.deepEqual(recorded.get("a").toolFiles, [],
+		"Without load-time tools the stage records an empty tool set");
+});
+
+test("A later project's blind execution-window capture adopts a prior project's window set", async (t) => {
+	// Two projects of one `ui5 build --all` run, same logical stage. An in-process tool loaded in the step
+	// body loads once per process, so project 2's window capture is blind; it must adopt project 1's set via
+	// the process-global share memo keyed by stage id. The fake harness cannot resolve a real tool in the
+	// step, so project 1's window capture is simulated by seeding the memo directly.
+	const windowTool = ["/root/node_modules/U/index.js", "/root/node_modules/U/package.json"];
+	const taskName = "cross-project-window-task";
+	shareToolFiles(`${taskName}\0s`, windowTool); // project 1 captured U in its step window
+
+	const {runner, recorded} = makeDriver({taskName, steps: [{name: "s", run: async () => {}}]});
+	await runner.runSteps();
+
+	t.deepEqual(recorded.get("s").toolFiles, windowTool,
+		"project 2's blind window capture recalls project 1's window set via the stage-id memo");
+});
+
+test("A non-empty load-time set does not mask the cross-project recall of window tools (finding #1)", async (t) => {
+	// A step-based custom task shared across projects top-level-imports T (load-time, present on every
+	// project via the shared extension instance) and loads U inside a step body. On a later project U's
+	// window capture is blind. The load-time set must not be routed through the stage-id memo, or its
+	// non-empty value would mask the blind window and drop U.
+	const windowTool = ["/root/node_modules/U/index.js"];
+	const loadTime = ["/root/node_modules/T/index.js"];
+	const taskName = "finding1-task";
+	shareToolFiles(`${taskName}\0s`, windowTool); // project 1 captured U in its step window
+
+	const {runner, recorded} = makeDriver({taskName, loadTimeToolFiles: loadTime,
+		steps: [{name: "s", run: async () => {}}]});
+	await runner.runSteps();
+
+	t.deepEqual(recorded.get("s").toolFiles, [...new Set([...windowTool, ...loadTime])].sort(),
+		"recalls the blind window tool U and unions the still-present load-time tool T");
 });
 
 test("Concurrent map-step keys writing the same path throw the shared message", async (t) => {
@@ -250,7 +327,7 @@ test("A step must be either scalar or map", async (t) => {
 		steps: [{name: "bad", run: async () => {}, keys: async () => [], each: async () => {}}],
 	});
 	await t.throwsAsync(both.runSteps(),
-		{message: /Step 'bad' must be either a scalar step .* or a map step/});
+		{message: "Step 'bad' is a scalar step ({name, run}) and must not also define 'keys' or 'each'"});
 });
 
 test("A step's needs may only reference an earlier step", async (t) => {
@@ -298,6 +375,20 @@ test("A half-defined map step names the missing half", async (t) => {
 	const {runner: noKeys} = makeDriver({steps: [{name: "m", each: async () => {}}]});
 	await t.throwsAsync(noKeys.runSteps(),
 		{message: "Map step 'm' must define both 'keys' and 'each' functions"});
+});
+
+test("A scalar step that also declares map fields is rejected, not silently run without fan-out", async (t) => {
+	const {runner: withKeys} = makeDriver({
+		steps: [{name: "mix", run: async () => {}, keys: async () => []}],
+	});
+	await t.throwsAsync(withKeys.runSteps(),
+		{message: "Step 'mix' is a scalar step ({name, run}) and must not also define 'keys' or 'each'"});
+
+	const {runner: withEach} = makeDriver({
+		steps: [{name: "mix", run: async () => {}, each: async () => {}}],
+	});
+	await t.throwsAsync(withEach.runSteps(),
+		{message: "Step 'mix' is a scalar step ({name, run}) and must not also define 'keys' or 'each'"});
 });
 
 test("A step's needs declared as a string throws the array message, not a per-character error", async (t) => {

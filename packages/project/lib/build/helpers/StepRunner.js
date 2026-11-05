@@ -4,6 +4,7 @@ import AbstractReaderWriter from "@ui5/fs/AbstractReaderWriter";
 import {assertDistinctWrite, flushWriteBuffer, getInputName} from "@ui5/fs/internal/stepWriteBuffer";
 import {getLogger} from "@ui5/logger";
 import MonitoredTaskUtil from "./MonitoredTaskUtil.js";
+import * as toolDependencyRecorder from "./ToolDependencyRecorder.js";
 
 const log = getLogger("build:helpers:StepRunner");
 
@@ -84,6 +85,13 @@ export function validateSteps(steps, {taskName} = {}) {
 		const hasKeys = typeof step.keys === "function";
 		const hasEach = typeof step.each === "function";
 		const isMap = hasKeys && hasEach;
+		if (isScalar && (hasKeys || hasEach)) {
+			// A scalar step with stray map fields would otherwise pass as scalar with its keys/each silently
+			// ignored (no fan-out), the mirror of the half-defined map step rejected below.
+			throw new Error(
+				`Step '${step.name}' is a scalar step ({name, run}) and must not also define ` +
+				`'keys' or 'each'`);
+		}
 		if (!isScalar && (hasKeys !== hasEach)) {
 			// A half-defined map step is the common authoring typo; name the missing half rather than the
 			// generic scalar-or-map message.
@@ -363,6 +371,7 @@ export default class StepRunner {
 	#applyTagOperations;
 	#notifyStepExecution;
 	#signal;
+	#loadTimeToolFiles;
 
 	// Each step's return value and return signature, filled as steps run so a later step's needs can pull
 	// them. Only populated on the factory (runSteps) path.
@@ -424,10 +433,15 @@ export default class StepRunner {
 	 *   TaskRunner reports the task started from it, so <code>task-start</code> precedes the work it
 	 *   announces. Not called when every step is served from cache (the task is reported skipped instead).
 	 * @param {AbortSignal} [parameters.signal] Build abort signal, checked between invocations
+	 * @param {string[]} [parameters.loadTimeToolFiles] External tool files the task resolved at
+	 *   module-load time (its top-level imports), captured before any step runs. Folded into every step's
+	 *   stage signature, because a top-level import is visible to every step and the loader cannot say which
+	 *   step uses it. Empty for standalone use and for a task that imports no tool at its top level.
 	 */
 	constructor({
 		steps, taskName, options, prepareStage, recordStage, createStageContext, getPreviousInvocationData,
-		returnValueStore, resolveInputValue, applyTagOperations, notifyStepExecution, signal, reopenStage
+		returnValueStore, resolveInputValue, applyTagOperations, notifyStepExecution, signal, reopenStage,
+		loadTimeToolFiles = []
 	}) {
 		this.#steps = steps;
 		this.#taskName = taskName;
@@ -442,6 +456,7 @@ export default class StepRunner {
 		this.#applyTagOperations = applyTagOperations;
 		this.#notifyStepExecution = notifyStepExecution;
 		this.#signal = signal;
+		this.#loadTimeToolFiles = loadTimeToolFiles;
 	}
 
 	/**
@@ -486,7 +501,12 @@ export default class StepRunner {
 			markStageExecuting(cacheInfo);
 			const ctx = this.#createStageContext();
 			if (this.#recordStage) {
-				await this.#recordStage(undefined, {ctx, cacheInfo, invocationData: new Map(), staleOutputs: []});
+				// No step runs here, so there is no execution-window capture to share; the load-time set is
+				// shared at its own capture site (TaskDefinitions / Task).
+				await this.#recordStage(undefined, {
+					ctx, cacheInfo, invocationData: new Map(), staleOutputs: [],
+					toolFiles: [...this.#loadTimeToolFiles],
+				});
 			}
 			return {anyStepExecuted: true, writtenResourcePaths};
 		}
@@ -564,9 +584,31 @@ export default class StepRunner {
 				options = step.sequential ? {sequential: true} : undefined;
 			}
 
-			const {results, invocationData, freshInvocationData} = await this.#runGroup(
-				step.name, entries, options, callback,
-				{needs, needsSignatures, cacheInfo, previous, ctx, isScalar});
+			// Observe which external tool files the step's invocations load, so
+			// their content folds into the stage signature. Brackets the whole group: a step-based task's
+			// processor (terser for minify, less-openui5 for buildThemes) loads inside the invocation
+			// bodies. In-process tools (UI5_CLI_NO_WORKERS) are seen by the main-thread hook; worker-thread
+			// tools are observed inside the worker and drained from the builder-side store below.
+			const toolCapture = toolDependencyRecorder.startCapture();
+			let runGroupResult;
+			let toolFiles;
+			try {
+				runGroupResult = await this.#runGroup(
+					step.name, entries, options, callback,
+					{needs, needsSignatures, cacheInfo, previous, ctx, isScalar});
+			} finally {
+				// The execution-window capture (in-process tools loaded in a step body, and the worker tools
+				// resolved on the main thread) is blind on a later project of a `ui5 build --all` run once the
+				// module is cached, so share it across projects keyed by stage id. The load-time set is NOT put
+				// through this memo: a shared custom-task instance returns it non-empty on every project, which
+				// would mask a blind window capture and drop a step-loaded tool. It is shared at its own capture
+				// site (TaskDefinitions / Task) and unioned in here.
+				const windowTools = toolDependencyRecorder.shareToolFiles(
+					`${this.#taskName}\0${step.name}`,
+					toolDependencyRecorder.stopCapture(toolCapture));
+				toolFiles = [...new Set([...windowTools, ...this.#loadTimeToolFiles])].sort();
+			}
+			const {results, invocationData, freshInvocationData} = runGroupResult;
 
 			this.#returns.set(step.name, isScalar ? results[0] : results);
 			this.#returnSignatures.set(step.name,
@@ -581,6 +623,7 @@ export default class StepRunner {
 				const {reads, inputs} = this.#foldStageKeys(invocationData);
 				const stageWritten = await this.#recordStage(step.name, {
 					ctx, cacheInfo, invocationData, staleOutputs, foldedReads: reads, foldedInputs: inputs,
+					toolFiles,
 				});
 				if (stageWritten) {
 					writtenResourcePaths.push(...stageWritten);

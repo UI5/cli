@@ -643,3 +643,58 @@ test("getBuildSignatures: Empty project hashes the empty string", async (t) => {
 	const expectedHash = crypto.createHash("sha256").update("").digest("hex");
 	t.is(sig, expectedHash, "Returns sha256 hash of empty key string");
 });
+
+test("Standard descriptor resolution captures the task module's load-time tool dependencies", async (t) => {
+	const {TaskDefinitions, graph, taskUtil} = t.context;
+	const project = getMockProject("library");
+	// The real task repository, so getTask performs the actual dynamic import of the task module and the
+	// recorder observes its top-level imports (generateLibraryManifest -> manifestCreator -> xml2js/semver).
+	const taskRepository = await import("@ui5/builder/internal/taskRepository");
+	const taskDefinitions = new TaskDefinitions(graph, project, taskUtil, taskRepository);
+
+	const taskDef = {options: {}};
+	const descriptor = await taskDefinitions.getStandardDescriptor("generateLibraryManifest", taskDef);
+
+	t.truthy(descriptor, "A descriptor was resolved");
+	t.true(Array.isArray(taskDef.loadTimeToolFiles) && taskDef.loadTimeToolFiles.length > 0,
+		"The task's load-time tool files were captured");
+	t.true(taskDef.loadTimeToolFiles.some((file) => file.includes("/node_modules/xml2js/")),
+		"xml2js (a transitive tool of manifestCreator) is tracked");
+	t.true(taskDef.loadTimeToolFiles.some((file) => file.endsWith("/package.json")),
+		"A tracked package's package.json is included, so a version-only bump moves the hash");
+	t.true(taskDef.loadTimeToolFiles.every((file) => !file.includes("/node_modules/@ui5/")),
+		"@ui5/* packages are excluded from the tool set");
+});
+
+test("A skipped standard task captures no load-time tool files", async (t) => {
+	const {TaskDefinitions, graph, taskUtil} = t.context;
+	const project = getMockProject("library");
+	const taskRepository = await import("@ui5/builder/internal/taskRepository");
+	const taskDefinitions = new TaskDefinitions(graph, project, taskUtil, taskRepository);
+
+	const taskDef = {skip: true, options: {}};
+	const descriptor = await taskDefinitions.getStandardDescriptor("generateLibraryManifest", taskDef);
+
+	t.is(descriptor, undefined, "A skipped task has no descriptor");
+	t.is(taskDef.loadTimeToolFiles, undefined, "A skipped task resolves no module and captures nothing");
+});
+
+test("Standard descriptor resolution shares its load-time tools across projects", async (t) => {
+	const {TaskDefinitions, graph, taskUtil} = t.context;
+	const project = getMockProject("library");
+	const taskRepository = await import("@ui5/builder/internal/taskRepository");
+
+	// Two projects of one build run resolve the same standard task. Whichever resolves first captures the
+	// module's load-time tools; a later project resolves with the module already cached, so its own capture
+	// is blind and must recall the shared set keyed by task identity.
+	const taskDefA = {options: {}};
+	await new TaskDefinitions(graph, project, taskUtil, taskRepository)
+		.getStandardDescriptor("generateLibraryManifest", taskDefA);
+	const taskDefB = {options: {}};
+	await new TaskDefinitions(graph, project, taskUtil, taskRepository)
+		.getStandardDescriptor("generateLibraryManifest", taskDefB);
+
+	t.true(taskDefA.loadTimeToolFiles.length > 0, "the first project captured the load-time tools");
+	t.deepEqual(taskDefB.loadTimeToolFiles, taskDefA.loadTimeToolFiles,
+		"the second project recalls the same set even though its own capture was blind");
+});

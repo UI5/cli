@@ -1,6 +1,10 @@
 import test from "ava";
 import sinon from "sinon";
 import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import nodeFs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import BuildStageCache from "../../../../lib/build/cache/BuildStageCache.js";
 
 // Helper to create mock readers
@@ -455,14 +459,14 @@ test("getDependencyIndexDeltas: returns deltas when enabled", async (t) => {
 
 // ===== STAGE SIGNATURE TESTS =====
 
-test("getStageSignatures: composes the [project, dependency, input, root] tuple", async (t) => {
+test("getStageSignatures: composes the [project, dependency, input, root, toolContent] tuple", async (t) => {
 	const cache = new BuildStageCache("test.project", "testTask", false);
 	const projectResource = createMockResource("/test.js");
 	const depResource = createMockResource("/dep.js");
 	const projectReader = createMockReader([projectResource]);
 	const dependencyReader = createMockReader([depResource]);
 
-	const [projectSig, dependencySig, inputSig, rootSig] = await cache.recordRequests({
+	const [projectSig, dependencySig, inputSig, rootSig, toolSig] = await cache.recordRequests({
 		projectRequestRecording: {paths: new Set(["/test.js"]), patterns: new Set()},
 		dependencyRequestRecording: {paths: new Set(["/dep.js"]), patterns: new Set()},
 		projectReader,
@@ -471,15 +475,16 @@ test("getStageSignatures: composes the [project, dependency, input, root] tuple"
 
 	const stageSignatures = cache.getStageSignatures();
 
-	t.deepEqual(stageSignatures, [`${projectSig}-${dependencySig}-${inputSig}-${rootSig}`],
-		"The single exact-match signature is the four components joined in tuple order");
+	t.deepEqual(stageSignatures, [`${projectSig}-${dependencySig}-${inputSig}-${rootSig}-${toolSig}`],
+		"The single exact-match signature is the five components joined in tuple order");
 });
 
-test("getStageSignatures: empty-input and empty-root components are the stable empty-set digests",
+test("getStageSignatures: empty-input, empty-root and empty-tool components are the stable empty-set digests",
 	async (t) => {
-		// A stage that reads only resources, with no non-resource inputs and no root reads: the input and
-		// root slots must still carry the empty-set digests getInputSignature()/getRootSignature() return,
-		// so a later lookup recomposes the same signature.
+		// A stage that reads only resources, with no non-resource inputs, no root reads and no tool loads:
+		// the input, root and tool-content slots must still carry the empty-set digests
+		// getInputSignature()/getRootSignature()/getToolContentSignature() return, so a later lookup
+		// recomposes the same signature.
 		const cache = new BuildStageCache("test.project", "testTask", false);
 		const projectReader = createMockReader([createMockResource("/test.js")]);
 		const dependencyReader = createMockReader([createMockResource("/dep.js")]);
@@ -492,11 +497,182 @@ test("getStageSignatures: empty-input and empty-root components are the stable e
 		});
 
 		const [signature] = cache.getStageSignatures();
-		const [, , inputComponent, rootComponent] = signature.split("-");
+		const [, , inputComponent, rootComponent, toolComponent] = signature.split("-");
 
 		t.is(inputComponent, cache.getInputSignature(), "Input slot is the empty-input digest");
 		t.is(rootComponent, cache.getRootSignature(), "Root slot is the empty-root digest");
+		t.is(toolComponent, cache.getToolContentSignature(), "Tool-content slot is the empty-tool digest");
 	});
+
+test("recordToolFiles: an empty capture does not overwrite a known non-empty set (sticky)", async (t) => {
+	const cache = new BuildStageCache("test.project", "testTask", false);
+
+	await cache.recordToolFiles(["/node_modules/toolA/index.js", "/node_modules/toolA/package.json"]);
+	t.true(cache.hasToolContent(), "records the captured tool files");
+	const sig = cache.getToolContentSignature();
+
+	// An empty capture means the resolve hook was blind (a cached require does not re-fire it), not that
+	// the tool is gone. It must not shrink a known set, or the signature would flip across builds.
+	await cache.recordToolFiles([]);
+	t.true(cache.hasToolContent(), "an empty capture keeps the previously recorded set");
+	t.is(cache.getToolContentSignature(), sig, "tool-content signature is unchanged by an empty capture");
+
+	// A non-empty capture still replaces the set (e.g. dropping one tool while still loading another).
+	await cache.recordToolFiles(["/node_modules/toolB/index.js"]);
+	t.not(cache.getToolContentSignature(), sig, "a non-empty capture updates the set");
+});
+
+test("recordToolFiles: an empty capture on a fresh stage records nothing", async (t) => {
+	const cache = new BuildStageCache("test.project", "testTask", false);
+
+	await cache.recordToolFiles([]);
+	t.false(cache.hasToolContent(), "no tool files recorded for a stage that loaded none");
+});
+
+test("refreshToolContentSignature: picks up an in-session change to a tracked tool file's content",
+	async (t) => {
+		// The stage cache persists across builds in a long-running build server, so the digest a stage was
+		// recorded/restored with can go stale if a tracked tool's content changes in-session (a version bump,
+		// a patch, a relinked file:). getToolContentSignature() returns the cached digest; only
+		// refreshToolContentSignature() re-reads disk, so ProjectBuildCache.validateCache calls it per build.
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "ui5-toolcontent-"));
+		t.teardown(() => fs.rm(dir, {recursive: true, force: true}));
+		const toolFile = path.join(dir, "index.js");
+		await fs.writeFile(toolFile, "v1");
+
+		const cache = new BuildStageCache("test.project", "testTask", false);
+		await cache.recordToolFiles([toolFile]);
+		const originalSig = cache.getToolContentSignature();
+		t.true(cache.hasToolContent(), "records the tool file");
+
+		// The content changes on disk with no new recording (as an in-session tool upgrade would).
+		await fs.writeFile(toolFile, "v2-changed-content");
+		t.is(cache.getToolContentSignature(), originalSig,
+			"the cached digest is unchanged until an explicit refresh");
+
+		await cache.refreshToolContentSignature();
+		t.not(cache.getToolContentSignature(), originalSig,
+			"refreshToolContentSignature re-reads disk and moves the digest for the changed tool content");
+	});
+
+test("refreshToolContentSignature: a stage with no recorded tool files stays at the empty digest",
+	async (t) => {
+		const cache = new BuildStageCache("test.project", "testTask", false);
+		const before = cache.getToolContentSignature();
+		await cache.refreshToolContentSignature();
+		t.is(cache.getToolContentSignature(), before,
+			"refreshing a tool-free stage keeps the stable empty-tool digest");
+	});
+
+test.serial("refreshToolContentSignature: the stat tier skips re-reading files whose stat is unchanged",
+	async (t) => {
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "ui5-toolcontent-"));
+		t.teardown(() => fs.rm(dir, {recursive: true, force: true}));
+		const toolFile = path.join(dir, "index.js");
+		await fs.writeFile(toolFile, "v1");
+
+		const cache = new BuildStageCache("test.project", "testTask", false);
+		await cache.recordToolFiles([toolFile]);
+		const sig = cache.getToolContentSignature();
+
+		// Nothing on disk changes, so a fresh stat matches the recorded baseline: refresh must not read bytes.
+		const readSpy = sinon.spy(nodeFs.promises, "readFile");
+		t.teardown(() => readSpy.restore());
+		await cache.refreshToolContentSignature();
+
+		t.is(readSpy.callCount, 0, "an unchanged stat baseline skips the content read");
+		t.is(cache.getToolContentSignature(), sig, "the digest is kept");
+	});
+
+test.serial("refreshToolContentSignature: a moved mtime re-reads but keeps the digest when bytes are identical",
+	async (t) => {
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "ui5-toolcontent-"));
+		t.teardown(() => fs.rm(dir, {recursive: true, force: true}));
+		const toolFile = path.join(dir, "index.js");
+		await fs.writeFile(toolFile, "v1");
+
+		const cache = new BuildStageCache("test.project", "testTask", false);
+		await cache.recordToolFiles([toolFile]);
+		const sig = cache.getToolContentSignature();
+
+		// Touch the file: new mtime, identical bytes (as a same-version npm ci would). The stat tier sees the
+		// moved mtime and falls to the content tier, which re-confirms the same digest, so no false miss.
+		const future = new Date(Date.now() + 2000);
+		await fs.utimes(toolFile, future, future);
+
+		const readSpy = sinon.spy(nodeFs.promises, "readFile");
+		t.teardown(() => readSpy.restore());
+		await cache.refreshToolContentSignature();
+
+		t.true(readSpy.callCount >= 1, "a moved mtime falls through to the content tier");
+		t.is(cache.getToolContentSignature(), sig,
+			"identical bytes keep the digest, so an mtime-only change does not invalidate");
+	});
+
+test.serial("refreshToolContentSignature: a restored cache without a stat baseline re-reads once, then skips",
+	async (t) => {
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "ui5-toolcontent-"));
+		t.teardown(() => fs.rm(dir, {recursive: true, force: true}));
+		const toolFile = path.join(dir, "index.js");
+		await fs.writeFile(toolFile, "v1");
+
+		// Build a real stage cache, then simulate a pre-stat-tier cache by keeping only its tool paths (a
+		// cache written before this had paths but no signature/stats baseline).
+		const base = new BuildStageCache("test.project", "testTask", false);
+		await base.recordToolFiles([toolFile]);
+		const objs = base.toCacheObjects();
+		const legacy = BuildStageCache.fromCache({
+			projectName: "test.project", stageId: "testTask", stepBased: false,
+			projectRequests: objs[0], dependencyRequests: objs[1],
+			toolContentRequests: {paths: objs[5].paths},
+		});
+
+		const firstSpy = sinon.spy(nodeFs.promises, "readFile");
+		await legacy.refreshToolContentSignature();
+		t.true(firstSpy.callCount >= 1, "a missing baseline forces the content tier");
+		const sig = legacy.getToolContentSignature();
+		firstSpy.restore();
+
+		// Persisting now carries the baseline; a restore from it skips the read on the next build.
+		const restored = BuildStageCache.fromCache({
+			projectName: "test.project", stageId: "testTask", stepBased: false,
+			projectRequests: objs[0], dependencyRequests: objs[1],
+			toolContentRequests: legacy.toCacheObjects()[5],
+		});
+		const secondSpy = sinon.spy(nodeFs.promises, "readFile");
+		t.teardown(() => secondSpy.restore());
+		await restored.refreshToolContentSignature();
+
+		t.is(secondSpy.callCount, 0, "the persisted baseline lets the next build skip the read");
+		t.is(restored.getToolContentSignature(), sig, "the skipped refresh keeps the restored digest");
+	});
+
+test("toCacheObjects/fromCache: persists the digest and per-file stat baseline", async (t) => {
+	const dir = await fs.mkdtemp(path.join(os.tmpdir(), "ui5-toolcontent-"));
+	t.teardown(() => fs.rm(dir, {recursive: true, force: true}));
+	const toolFile = path.join(dir, "index.js");
+	await fs.writeFile(toolFile, "v1");
+
+	const cache1 = new BuildStageCache("test.project", "testTask", false);
+	await cache1.recordToolFiles([toolFile]);
+	const sig1 = cache1.getToolContentSignature();
+	const emptyDigest = crypto.createHash("sha256").update("").digest("hex");
+	t.not(sig1, emptyDigest, "a real tool file produces a non-empty digest");
+
+	const objs = cache1.toCacheObjects();
+	const row = objs[5];
+	t.is(row.signature, sig1, "the digest is persisted");
+	t.truthy(row.stats[toolFile], "a stat tuple is persisted for the file");
+	t.is(row.stats[toolFile].length, 3, "the persisted stat tuple is [mtimeMs, size, inode]");
+
+	const cache2 = BuildStageCache.fromCache({
+		projectName: "test.project", stageId: "testTask", stepBased: false,
+		projectRequests: objs[0], dependencyRequests: objs[1],
+		toolContentRequests: row,
+	});
+	t.is(cache2.getToolContentSignature(), sig1,
+		"the digest is restored from cache without recomputing");
+});
 
 test("getStageSignatures: one signature per project x dependency index-signature combination",
 	async (t) => {
@@ -576,6 +752,36 @@ test("toCacheObjects: can restore from serialized data", async (t) => {
 
 	t.truthy(cache2, "Cache restored");
 	t.is(cache2.getStageId(), "testTask", "Stage id preserved");
+});
+
+test("toCacheObjects/fromCache: round-trips recorded tool files", (t) => {
+	const cache1 = new BuildStageCache("test.project", "testTask", false);
+	cache1.recordToolFiles(["/node_modules/toolA/index.js", "/node_modules/toolA/package.json"]);
+	const sig1 = cache1.getToolContentSignature();
+
+	const cacheObjects = cache1.toCacheObjects();
+	const toolContentRequests = cacheObjects[5];
+	t.truthy(toolContentRequests, "a tool-content cache object is produced when tool files were recorded");
+
+	const cache2 = BuildStageCache.fromCache({
+		projectName: "test.project",
+		stageId: "testTask",
+		stepBased: false,
+		projectRequests: cacheObjects[0],
+		dependencyRequests: cacheObjects[1],
+		toolContentRequests,
+	});
+
+	t.true(cache2.hasToolContent(), "the restored stage has its tool files");
+	t.is(cache2.getToolContentSignature(), sig1,
+		"the tool-content signature survives the persist/restore round-trip");
+});
+
+test("toCacheObjects: omits the tool-content object when no tool files were recorded", (t) => {
+	const cache = new BuildStageCache("test.project", "testTask", false);
+
+	t.is(cache.toCacheObjects()[5], undefined, "no tool-content cache object without recorded tool files");
+	t.false(cache.hasToolContent(), "a tool-free stage reports no tool content");
 });
 
 // ===== EDGE CASES =====

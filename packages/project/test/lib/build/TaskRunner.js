@@ -141,6 +141,7 @@ test.beforeEach(async (t) => {
 		getDescriptor: sinon.stub().resolves({task: async () => {}}),
 		getRequiredDependenciesCallback: t.context.getRequiredDependenciesCallbackStub,
 		getStepBased: async () => false,
+		getLoadTimeToolDependencies: () => [],
 	};
 
 	t.context.graph = {
@@ -713,6 +714,7 @@ test("Custom task is called correctly", async (t) => {
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
 		getStepBased: async () => false,
+		getLoadTimeToolDependencies: () => [],
 	});
 	t.context.taskUtil.getInterface.returns({isTaskUtilInterface: true});
 	const project = getMockProject("module");
@@ -772,6 +774,7 @@ test("Custom task with legacy spec version", async (t) => {
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
 		getStepBased: async () => false,
+		getLoadTimeToolDependencies: () => [],
 	});
 	t.context.taskUtil.getInterface.returns(undefined); // simulating no taskUtil for old specVersion
 	const project = getMockProject("module");
@@ -832,6 +835,7 @@ test("Custom task with legacy spec version and requiredDependenciesCallback", as
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
 		getStepBased: async () => false,
+		getLoadTimeToolDependencies: () => [],
 	});
 	t.context.taskUtil.getInterface.returns(undefined); // simulating no taskUtil for old specVersion
 	const project = getMockProject("module");
@@ -907,6 +911,7 @@ test("Custom task with specVersion 3.0", async (t) => {
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: getRequiredDependenciesCallbackStub,
 		getStepBased: async () => false,
+		getLoadTimeToolDependencies: () => [],
 	});
 
 	const project = getMockProject("module");
@@ -972,6 +977,7 @@ test("Custom task with specVersion 3.0 and no requiredDependenciesCallback", asy
 		getSpecVersion: () => mockSpecVersion,
 		getRequiredDependenciesCallback: sinon.stub().resolves(undefined),
 		getStepBased: async () => false,
+		getLoadTimeToolDependencies: () => [],
 	});
 
 	const project = getMockProject("module");
@@ -1048,6 +1054,7 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 		getSpecVersion: () => mockSpecVersionA,
 		getRequiredDependenciesCallback: sinon.stub().resolves(undefined),
 		getStepBased: async () => false,
+		getLoadTimeToolDependencies: () => [],
 	});
 	graph.getExtension.onSecondCall().returns({
 		getName: () => "Task Name B",
@@ -1055,6 +1062,7 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 		getSpecVersion: () => mockSpecVersionB,
 		getRequiredDependenciesCallback: sinon.stub().resolves(undefined),
 		getStepBased: async () => false,
+		getLoadTimeToolDependencies: () => [],
 	});
 	graph.getExtension.onThirdCall().returns({
 		getName: () => "Task Name C",
@@ -1064,6 +1072,7 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 		getDescriptor: sinon.stub().resolves({task: taskStubC}),
 		getRequiredDependenciesCallback: sinon.stub().resolves(undefined),
 		getStepBased: async () => false,
+		getLoadTimeToolDependencies: () => [],
 	});
 	graph.getExtension.onCall(3).returns({
 		getName: () => "Task Name D",
@@ -1073,6 +1082,7 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 		getDescriptor: sinon.stub().resolves({task: taskStubD}),
 		getRequiredDependenciesCallback: sinon.stub().resolves(undefined),
 		getStepBased: async () => false,
+		getLoadTimeToolDependencies: () => [],
 	});
 	const project = getMockProject("module");
 	project.getCustomTasks = () => [
@@ -1222,6 +1232,7 @@ test("Custom task: requiredDependenciesCallback returns unknown dependency", asy
 		getDescriptor: getDescriptorStub,
 		getRequiredDependenciesCallback: sinon.stub().resolves(requiredDependenciesCallbackStub),
 		getStepBased: async () => false,
+		getLoadTimeToolDependencies: () => [],
 	});
 
 	const project = getMockProject("module");
@@ -1262,6 +1273,7 @@ test("Custom task: requiredDependenciesCallback returns Array instead of Set", a
 		getDescriptor: getDescriptorStub,
 		getRequiredDependenciesCallback: sinon.stub().resolves(requiredDependenciesCallbackStub),
 		getStepBased: async () => false,
+		getLoadTimeToolDependencies: () => [],
 	});
 
 	const project = getMockProject("module");
@@ -1762,6 +1774,7 @@ function createCustomTaskExtension(sinon, {taskFunction, gte, stepBased = false}
 			stepBased ? {steps: taskFunction()} : {task: taskFunction}
 		),
 		getStepBased: async () => stepBased,
+		getLoadTimeToolDependencies: () => [],
 	};
 }
 
