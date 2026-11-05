@@ -45,13 +45,14 @@ function createMiddleware({resources, middlewareUtil}) {
 				};
 			});
 			const rootProject = middlewareUtil.getProject();
+			const resolvedFrameworkVersion = middlewareUtil.getResolvedFrameworkVersion();
 			const libraryInfos = await Promise.all(libraryInfosPromises);
 			const [versionInfoResource] = await createVersionInfoProcessor({
 				options: {
 					rootProjectName: rootProject.getName(),
 					rootProjectVersion: rootProject.getVersion(),
 					frameworkName: rootProject.getFrameworkName?.(),
-					frameworkVersion: rootProject.getFrameworkVersion?.(),
+					frameworkVersion: resolvedFrameworkVersion,
 					libraryInfos
 				}
 			});
