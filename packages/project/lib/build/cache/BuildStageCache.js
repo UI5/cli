@@ -1,5 +1,6 @@
 import {getLogger} from "@ui5/logger";
 import crypto from "node:crypto";
+import fs from "node:fs";
 import ResourceRequestManager from "./ResourceRequestManager.js";
 import TaskInputSet from "./index/TaskInputSet.js";
 import {createStageSignature} from "./stageSignature.js";
@@ -9,6 +10,82 @@ const log = getLogger("build:cache:BuildStageCache");
 // list. Both root request sets are empty for every stage of a standard build (no shipped builder task
 // reads through getRootReader), so getRootSignature returns this constant instead of re-hashing.
 const EMPTY_ROOT_SIGNATURE = crypto.createHash("sha256").update("").digest("hex");
+
+// Tool-content signature of a stage that loaded no tracked external tool: the
+// sha256 digest of an empty input. Returned as a stable constant so every tool-free stage (the common
+// case) folds the same value and existing cache behavior is unperturbed.
+const EMPTY_TOOLCONTENT_SIGNATURE = crypto.createHash("sha256").update("").digest("hex");
+
+// Content-hashes a set of tool files into one digest and captures each file's [mtimeMs, size, inode] for
+// the warm-lookup stat tier. Full-refresh, like root: the whole set is hashed (no per-file delta), so any
+// change re-runs the stage. Reads asynchronously so a large tool set (a whole package tree, e.g. jsdoc's
+// hundreds of files) does not block the event loop; the reads are sequential rather than a Promise.all
+// fan-out, to stay well under the open-file-descriptor limit on a big tree. The hash update sequence
+// (path, NUL, content-or-marker, NUL) is byte-identical to the previous implementation, so the digest, and
+// existing cache entries keyed on it, are unchanged. A missing file folds a marker into the digest and a
+// null stat (which never equals a real tuple), so a deleted tool file still moves the digest and always
+// counts as changed in the stat tier.
+async function computeToolContent(paths) {
+	if (paths.length === 0) {
+		return {signature: EMPTY_TOOLCONTENT_SIGNATURE, stats: Object.create(null)};
+	}
+	const hash = crypto.createHash("sha256");
+	const stats = Object.create(null);
+	for (const filePath of [...paths].sort()) {
+		hash.update(filePath);
+		hash.update("\0");
+		try {
+			hash.update(await fs.promises.readFile(filePath));
+		} catch {
+			hash.update("<missing>");
+		}
+		hash.update("\0");
+		stats[filePath] = await statToolFile(filePath);
+	}
+	return {signature: hash.digest("hex"), stats};
+}
+
+// Stats one tool file for the warm-lookup tier, returning [mtimeMs, size, inode], or null if it cannot be
+// statted (e.g. a deleted tool file). A null never equals a real tuple, so a missing file always counts as
+// changed and falls to the content tier.
+async function statToolFile(filePath) {
+	try {
+		const {mtimeMs, size, ino} = await fs.promises.stat(filePath);
+		return [mtimeMs, size, ino];
+	} catch {
+		return null;
+	}
+}
+
+// Stats a set of tool files into a path -> [mtimeMs, size, inode] | null map, without reading their bytes.
+async function statToolFiles(paths) {
+	const stats = Object.create(null);
+	for (const filePath of [...paths].sort()) {
+		stats[filePath] = await statToolFile(filePath);
+	}
+	return stats;
+}
+
+// Whether a freshly-statted set matches the baseline the digest was last computed against: the same paths,
+// each with an identical [mtimeMs, size, inode] tuple and no null (missing) entry. Mirrors the root
+// HashTree's isResourceUnchanged signals, a size, inode, or mtime difference falls to the content tier. The
+// inode check is the soundness anchor: every realistic tool change (npm install/ci, patch-package, a
+// relinked file:) replaces the file and moves its inode, so it re-hashes; mtime catches an in-place edit.
+function toolStatsUnchanged(current, baseline) {
+	const currentPaths = Object.keys(current);
+	const baselinePaths = Object.keys(baseline);
+	if (currentPaths.length === 0 || currentPaths.length !== baselinePaths.length) {
+		return false;
+	}
+	for (const filePath of currentPaths) {
+		const now = current[filePath];
+		const was = baseline[filePath];
+		if (!now || !was || now[0] !== was[0] || now[1] !== was[1] || now[2] !== was[2]) {
+			return false;
+		}
+	}
+	return true;
+}
 
 // Serialized form of an empty, unmodified request manager. Restoring a root manager from this (rather
 // than constructing a fresh one) marks it clean, so a stage that recorded no root reads is not
@@ -67,6 +144,20 @@ export default class BuildStageCache {
 	// that toCacheObjects/hasNewOrModifiedCacheEntries know it must be persisted.
 	#inputSetModified = false;
 
+	// Absolute paths of the external tool files this stage loaded during its last execution. Only the
+	// path list is persisted; the content digest is recomputed from
+	// disk so a tool whose content changed (a version bump, a patch, a relinked file:) misses the cached
+	// stage. Mirrors the root model: a single full-refresh digest, no per-file delta.
+	#toolPaths;
+	#toolContentSignature;
+	// Per-file [mtimeMs, size, inode] (or null for a missing file) captured when the digest was last
+	// computed, keyed by path. The warm-lookup stat tier compares a fresh stat against this to decide
+	// whether the files can be skipped without re-reading their bytes.
+	#toolStats;
+	// Whether the recorded tool path list changed since it was restored/recorded, so toCacheObjects/
+	// hasNewOrModifiedCacheEntries know it must be persisted.
+	#toolSetModified = false;
+
 	/**
 	 * Creates a new BuildStageCache instance
 	 *
@@ -80,9 +171,13 @@ export default class BuildStageCache {
 	 * @param {TaskInputSet} [inputSet] Optional pre-existing task input set from cache
 	 * @param {{gitignore: ResourceRequestManager, noGitignore: ResourceRequestManager}} [rootRequestManagers]
 	 * 	Optional pre-existing root request managers from cache, keyed by useGitignore
+	 * @param {string[]} [toolPaths] Optional pre-existing tool file paths from cache
+	 * @param {object} [toolStats] Optional pre-existing per-file stat baseline from cache
+	 * 	(path -> [mtimeMs, size, inode] | null)
+	 * @param {string} [toolContentSignature] Optional pre-existing tool-content digest from cache
 	 */
 	constructor(projectName, stageId, stepBased, projectRequestManager, dependencyRequestManager,
-		inputSet, rootRequestManagers) {
+		inputSet, rootRequestManagers, toolPaths, toolStats, toolContentSignature) {
 		this.#projectName = projectName;
 		this.#stageId = stageId;
 		this.#stepBased = stepBased;
@@ -94,6 +189,13 @@ export default class BuildStageCache {
 		this.#dependencyRequestManager = dependencyRequestManager ??
 			new ResourceRequestManager(projectName, stageId, stepBased);
 		this.#inputSet = inputSet ?? new TaskInputSet();
+		// Tool paths, the stat baseline, and the digest are restored from cache (or empty/default for a fresh
+		// stage). refreshToolContentSignature re-validates the digest from disk per build (see there), using
+		// the restored stat baseline to skip re-reading unchanged files; it cannot run in this synchronous
+		// constructor because the stat/read is async.
+		this.#toolPaths = toolPaths ?? [];
+		this.#toolStats = toolStats ?? Object.create(null);
+		this.#toolContentSignature = toolContentSignature ?? EMPTY_TOOLCONTENT_SIGNATURE;
 		// Root requests use full-refresh signatures, not the differential deltas project and dependency
 		// requests use: a changed root file re-runs the whole stage rather than a differential update.
 		// This fits the current use case, tracking a few root config files such as tsconfig.json. A
@@ -123,11 +225,13 @@ export default class BuildStageCache {
 	 * @param {object} [options.inputSet] Cached stage input set data
 	 * @param {object} [options.rootRequests] Cached useGitignore:true root request manager data
 	 * @param {object} [options.rootNoGitignoreRequests] Cached useGitignore:false root request manager data
+	 * @param {object} [options.toolContentRequests] Cached tool-content data
+	 *   ({paths: string[], signature: string, stats: object})
 	 * @returns {BuildStageCache} Restored stage cache instance
 	 */
 	static fromCache({
 		projectName, stageId, stepBased, projectRequests, dependencyRequests,
-		inputSet, rootRequests, rootNoGitignoreRequests,
+		inputSet, rootRequests, rootNoGitignoreRequests, toolContentRequests,
 	}) {
 		const projectRequestManager = ResourceRequestManager.fromCache(projectName, stageId,
 			stepBased, projectRequests);
@@ -143,8 +247,16 @@ export default class BuildStageCache {
 				projectName, `${stageId}#root-no-gitignore`, false,
 				rootNoGitignoreRequests ?? emptyRequestManagerCache()),
 		};
+		// Tool-content metadata is optional: absent for stages that loaded no tracked tool, and absent in
+		// caches written before tool tracking existed. The stat baseline and digest are also absent in
+		// caches written before the stat tier; a missing baseline forces the first warm build through the
+		// content tier, which repopulates both.
+		const toolPaths = toolContentRequests?.paths;
+		const toolStats = toolContentRequests?.stats;
+		const toolContentSignature = toolContentRequests?.signature;
 		return new BuildStageCache(projectName, stageId, stepBased,
-			projectRequestManager, dependencyRequestManager, TaskInputSet.fromCache(inputSet), rootRequestManagers);
+			projectRequestManager, dependencyRequestManager, TaskInputSet.fromCache(inputSet),
+			rootRequestManagers, toolPaths, toolStats, toolContentSignature);
 	}
 
 	// ===== METADATA ACCESS =====
@@ -186,7 +298,8 @@ export default class BuildStageCache {
 			this.#dependencyRequestManager.hasNewOrModifiedCacheEntries() ||
 			this.#rootRequestManagers.gitignore.hasNewOrModifiedCacheEntries() ||
 			this.#rootRequestManagers.noGitignore.hasNewOrModifiedCacheEntries() ||
-			this.#inputSetModified;
+			this.#inputSetModified ||
+			this.#toolSetModified;
 	}
 
 	/**
@@ -259,6 +372,100 @@ export default class BuildStageCache {
 			return EMPTY_ROOT_SIGNATURE;
 		}
 		return crypto.createHash("sha256").update(signatures.sort().join("\0")).digest("hex");
+	}
+
+	/**
+	 * Records the external tool files this stage loaded during execution, and
+	 * recomputes the tool-content digest from their current on-disk content. Marks the stage for
+	 * persistence if the recorded path list changed (the path list, the digest, and the stat baseline are
+	 * what is persisted; the digest is re-validated on the next build via the stat tier).
+	 *
+	 * An **empty** capture is treated as "the resolve hook was blind", not "the tool is no longer used": a
+	 * cached CJS require (or an already-instantiated static import) does not re-fire the hook,
+	 * so a stage that re-runs after its in-process tool is already loaded would otherwise record an empty
+	 * set, flip its tool-content signature, and spuriously invalidate across builds. So an empty capture
+	 * never overwrites a known non-empty set. Trade-off: a task that genuinely stops using *all* its tools
+	 * keeps them tracked (safe over-capture, matching the D2 stance); dropping *some* tools while still
+	 * loading others still shrinks the set, because that capture is non-empty.
+	 *
+	 * @public
+	 * @param {string[]} [toolFiles] Absolute paths of the tool files observed during execution
+	 * @returns {Promise<void>}
+	 */
+	async recordToolFiles(toolFiles = []) {
+		const newPaths = [...new Set(toolFiles)].sort();
+		if (newPaths.length === 0 && this.#toolPaths.length > 0) {
+			return;
+		}
+		if (newPaths.join("\0") !== this.#toolPaths.join("\0")) {
+			this.#toolSetModified = true;
+		}
+		this.#toolPaths = newPaths;
+		// A fresh recording: content-hash the new set and capture the stat baseline in one pass. The warm
+		// stat tier (refreshToolContentSignature) is for later builds that did not re-record.
+		const {signature, stats} = await computeToolContent(this.#toolPaths);
+		this.#toolContentSignature = signature;
+		this.#toolStats = stats;
+	}
+
+	/**
+	 * Re-validates the tool-content digest against the current on-disk state of the recorded tool files,
+	 * leaving the recorded path list untouched. Mirrors {@link #refreshRootIndices}: ProjectBuildCache
+	 * calls it once per build (from validateCache) so the digest reflects an in-session tool change (a
+	 * version bump, a patch, a relinked file:) in a long-running build server, where this stage cache
+	 * persists across builds and would otherwise keep the digest it was restored with.
+	 *
+	 * Two tiers. The stat tier compares a fresh stat of every recorded file against the baseline the digest
+	 * was last computed against ([mtimeMs, size, inode]); if nothing moved, the content cannot have changed,
+	 * so the digest is kept and the files are not read. Otherwise the content tier re-reads the bytes and
+	 * refreshes both the digest and the baseline. Recomputing only the digest (not the path list) has no
+	 * persistence side effect, so a stage whose tool content is unchanged is not needlessly re-persisted.
+	 *
+	 * @public
+	 * @returns {Promise<void>}
+	 */
+	async refreshToolContentSignature() {
+		if (this.#toolPaths.length === 0) {
+			this.#toolContentSignature = EMPTY_TOOLCONTENT_SIGNATURE;
+			this.#toolStats = Object.create(null);
+			return;
+		}
+		// Stat tier: if every recorded file's mtime, size, and inode match the baseline, keep the digest and
+		// skip reading the files. Mirrors the mtime/size short-circuit the root HashTree uses
+		// (utils.isResourceUnchanged) before re-hashing a resource.
+		if (toolStatsUnchanged(await statToolFiles(this.#toolPaths), this.#toolStats)) {
+			return;
+		}
+		// Content tier: a stat moved (or the stored baseline is absent, e.g. a cache from before the stat
+		// tier), so re-read the bytes and refresh both the digest and the baseline.
+		const {signature, stats} = await computeToolContent(this.#toolPaths);
+		this.#toolContentSignature = signature;
+		this.#toolStats = stats;
+	}
+
+	/**
+	 * Whether this stage loaded any tracked external tool files.
+	 *
+	 * @public
+	 * @returns {boolean}
+	 */
+	hasToolContent() {
+		return this.#toolPaths.length > 0;
+	}
+
+	/**
+	 * Returns the content digest of the external tool files this stage loaded, folded into the stage
+	 * signature so a tool content change (version bump, patch, relinked file:) misses the cached stage.
+	 * A stage that loaded no tracked tool yields a stable empty digest that stays constant across builds.
+	 *
+	 * Unlike project and dependency components this is not delta-tracked: the digest is one value, so any
+	 * tool change re-runs the whole stage (the tool's content is a stage-level input).
+	 *
+	 * @public
+	 * @returns {string} Tool-content signature
+	 */
+	getToolContentSignature() {
+		return this.#toolContentSignature;
 	}
 
 	/**
@@ -397,11 +604,12 @@ export default class BuildStageCache {
 	getStageSignatures(resolveInputValue) {
 		const inputSignature = this.getInputSignature(resolveInputValue);
 		const rootSignature = this.getRootSignature();
+		const toolContentSignature = this.getToolContentSignature();
 		const signatures = [];
 		for (const projectSignature of this.getProjectIndexSignatures()) {
 			for (const dependencySignature of this.getDependencyIndexSignatures()) {
 				signatures.push(createStageSignature(
-					[projectSignature, dependencySignature, inputSignature, rootSignature]));
+					[projectSignature, dependencySignature, inputSignature, rootSignature, toolContentSignature]));
 			}
 		}
 		return signatures;
@@ -436,12 +644,15 @@ export default class BuildStageCache {
 	 *   Root resource requests, keyed by the useGitignore flag they were read with
 	 * @param {function(boolean): module:@ui5/fs.AbstractReader} [options.getRootReader]
 	 *   Factory returning a project root reader for the given useGitignore flag
+	 * @param {string[]} [options.toolFilesRecording]
+	 *   Absolute paths of external tool files the stage loaded during execution
 	 * @returns {Promise<string[]>}
-	 *   Array containing [projectSignature, dependencySignature, inputSignature, rootSignature]
+	 *   Array containing [projectSignature, dependencySignature, inputSignature, rootSignature,
+	 *   toolContentSignature]
 	 */
 	async recordRequests({
 		projectRequestRecording, dependencyRequestRecording, projectReader, dependencyReader,
-		inputRecording = [], rootRequestRecording, getRootReader,
+		inputRecording = [], rootRequestRecording, getRootReader, toolFilesRecording,
 	}) {
 		const {
 			setId: projectReqSetId, signature: projectReqSignature
@@ -489,7 +700,12 @@ export default class BuildStageCache {
 			]);
 		}
 
-		return [projectReqSignature, dependencyReqSignature, this.#inputSet.getSignature(), this.getRootSignature()];
+		// Record the external tool files this stage loaded and recompute the tool-content digest from
+		// their current content.
+		await this.recordToolFiles(toolFilesRecording);
+
+		return [projectReqSignature, dependencyReqSignature, this.#inputSet.getSignature(),
+			this.getRootSignature(), this.getToolContentSignature()];
 	}
 
 	/**
@@ -502,7 +718,7 @@ export default class BuildStageCache {
 	 * @public
 	 * @returns {Array<object|undefined>} Array containing
 	 *   [projectCacheObject, dependencyCacheObject, inputCacheObject,
-	 *    rootCacheObject, rootNoGitignoreCacheObject]
+	 *    rootCacheObject, rootNoGitignoreCacheObject, toolContentCacheObject]
 	 */
 	toCacheObjects() {
 		const {gitignore, noGitignore} = this.#rootRequestManagers;
@@ -515,6 +731,12 @@ export default class BuildStageCache {
 			// metadata, keeping a stage without root reads free of root rows.
 			gitignore.hasRequests() || gitignore.wasCleared() ? gitignore.toCacheObject() : undefined,
 			noGitignore.hasRequests() || noGitignore.wasCleared() ? noGitignore.toCacheObject() : undefined,
+			// Persist the tool path list, the digest, and the per-file stat baseline for a stage that loaded
+			// a tracked tool. The baseline lets the next build's stat tier skip re-reading unchanged files
+			// (see refreshToolContentSignature). A stage with no tool content writes no tool-content row.
+			this.#toolPaths.length ?
+				{paths: this.#toolPaths, signature: this.#toolContentSignature, stats: this.#toolStats} :
+				undefined,
 		];
 	}
 }

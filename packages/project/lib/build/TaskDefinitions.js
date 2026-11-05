@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import {getLogger} from "@ui5/logger";
 import {validateDescriptor} from "./helpers/StepRunner.js";
+import * as toolDependencyRecorder from "./helpers/ToolDependencyRecorder.js";
 
 export default class TaskDefinitions {
 	#graph;
@@ -99,8 +100,27 @@ export default class TaskDefinitions {
 		}
 		if (!taskDef.descriptorPromise) {
 			taskDef.descriptorPromise = (async () => {
-				const {task: factory} = await this.#taskRepository.getTask(taskName);
-				const descriptor = factory(taskDef.options);
+				// Bracket the task module's one-and-only load (memoized here) to capture the external tool
+				// files it resolves at module-load time, i.e. its top-level imports: generateLibraryManifest
+				// -> manifestCreator -> xml2js/semver, transformBootstrapHtml -> cheerio, and so on. These
+				// resolve before any per-stage execution window, so the step/task runner's window never sees
+				// them; the runner folds this set into the task's stage signature instead (via
+				// taskDef.loadTimeToolFiles). A build with no new @ui5/builder release that bumps such a tool
+				// then moves the signature rather than serving stale output.
+				const capture = toolDependencyRecorder.startCapture();
+				let factory;
+				try {
+					({task: factory} = await this.#taskRepository.getTask(taskName));
+				} finally {
+					// Share the captured set across projects: a later project of a `ui5 build --all` run resolves
+					// the same descriptor with the module already cached, so its own capture is blind. Keyed by
+					// task identity (distinct from the stage-id keys the step/task runner uses for the
+					// execution-window capture), so a non-empty set from one capture source never masks a blind
+					// one in the other.
+					taskDef.loadTimeToolFiles = toolDependencyRecorder.shareToolFiles(
+						`module-load:${taskName}`, toolDependencyRecorder.stopCapture(capture));
+				}
+				const descriptor = await factory(taskDef.options);
 				validateDescriptor(descriptor, {taskName});
 				return descriptor;
 			})();

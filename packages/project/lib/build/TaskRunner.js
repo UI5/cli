@@ -2,6 +2,7 @@ import {getLogger} from "@ui5/logger";
 import composeTaskList from "./helpers/composeTaskList.js";
 import MonitoredTaskUtil from "./helpers/MonitoredTaskUtil.js";
 import StepRunner, {validateSteps} from "./helpers/StepRunner.js";
+import * as toolDependencyRecorder from "./helpers/ToolDependencyRecorder.js";
 import {createReaderCollection, createMonitor} from "@ui5/fs/resourceFactory";
 
 const EMPTY_RESOURCE_REQUESTS = {paths: [], patterns: []};
@@ -358,6 +359,9 @@ class TaskRunner {
 							this._project.getProjectResources().replayTagOperations(tagOperations),
 						notifyStepExecution: taskReport.started,
 						signal: this._signal,
+						// Tools this standard task imported at module-load time (resolved before any step ran),
+						// captured by TaskDefinitions. Folded into every step's stage signature.
+						loadTimeToolFiles: taskDef.loadTimeToolFiles ?? [],
 					});
 					const {anyStepExecuted, writtenResourcePaths} = await stepDriver.runSteps();
 					if (this._log.isLevelEnabled("perf")) {
@@ -398,7 +402,20 @@ class TaskRunner {
 				}
 				this._log.startTask(taskName, !!cacheInfo);
 				this._taskStart = performance.now();
-				await taskBody(params);
+				// Observe which external tool files the task loads during execution, so their content can
+				// be folded into the stage signature.
+				const toolCapture = toolDependencyRecorder.startCapture();
+				let toolFiles;
+				try {
+					await taskBody(params);
+				} finally {
+					// Share the execution-window capture across projects (blind on a later
+					// project once the module is cached), keyed by stage id. The load-time set is shared at its
+					// own capture site (TaskDefinitions) and unioned in here, so it cannot mask a blind window.
+					const windowTools = toolDependencyRecorder.shareToolFiles(`${taskName}\0`,
+						toolDependencyRecorder.stopCapture(toolCapture));
+					toolFiles = [...new Set([...windowTools, ...(taskDef.loadTimeToolFiles ?? [])])].sort();
+				}
 				if (this._log.isLevelEnabled("perf")) {
 					this._log.perf(
 						`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
@@ -416,6 +433,7 @@ class TaskRunner {
 					dependencyResourceRequests: dependencyRequests,
 					inputRecording,
 					rootResourceRequests: taskUtilRequests.root,
+					toolFiles,
 				});
 				this._log.endTask(taskName, !!cacheInfo, writtenResourcePaths);
 			};
@@ -668,6 +686,9 @@ class TaskRunner {
 						this._project.getProjectResources().replayTagOperations(tagOperations),
 					notifyStepExecution: taskReport.started,
 					signal: this._signal,
+					// Tools the custom task imported at its extension module's top level (captured when the
+					// extension loaded, before any step ran). Folded into every step's stage signature.
+					loadTimeToolFiles: task.getLoadTimeToolDependencies(),
 				});
 				const {anyStepExecuted, writtenResourcePaths} = await stepDriver.runSteps();
 				// Report the task as skipped when every step was served from cache, else as finished. The
@@ -710,7 +731,22 @@ class TaskRunner {
 			}
 
 			this._log.startTask(taskName, !!cacheInfo);
-			await taskFunction(params);
+			// Observe which external tool files the custom task loads: at runtime (the execution window
+			// below), the tools its own worker reported (the store), and the ones it resolved at
+			// module-load time (its top-level imports, captured when the extension module was loaded).
+			const toolCapture = toolDependencyRecorder.startCapture();
+			let toolFiles;
+			try {
+				await taskFunction(params);
+			} finally {
+				// Share the execution-window capture across projects, keyed by stage id.
+				// The custom task's load-time set rides its shared extension instance (present on every
+				// project), so it is unioned in here rather than through the memo, where a non-empty value
+				// would otherwise mask a blind window capture and drop a step-loaded tool.
+				const windowTools = toolDependencyRecorder.shareToolFiles(`${taskName}\0`,
+					toolDependencyRecorder.stopCapture(toolCapture));
+				toolFiles = [...new Set([...windowTools, ...task.getLoadTimeToolDependencies()])].sort();
+			}
 
 			const taskUtilRequests = monitoredTaskUtil?.getResourceRequests();
 			const projectRequests = mergeResourceRequests(workspace.getResourceRequests(), taskUtilRequests?.project);
@@ -724,6 +760,7 @@ class TaskRunner {
 				dependencyResourceRequests: dependencyRequests,
 				inputRecording,
 				rootResourceRequests: taskUtilRequests?.root,
+				toolFiles,
 			});
 			this._log.endTask(taskName, !!cacheInfo, writtenResourcePaths);
 		};
@@ -816,7 +853,7 @@ class TaskRunner {
 				return {workspace, dependencies, taskUtil: monitoredTaskUtil, monitoredTaskUtil};
 			},
 			recordStage: async (stepName, outcome) => {
-				const {ctx, cacheInfo, invocationData, staleOutputs, foldedReads, foldedInputs} = outcome;
+				const {ctx, cacheInfo, invocationData, staleOutputs, foldedReads, foldedInputs, toolFiles} = outcome;
 				const {workspace, dependencies, monitoredTaskUtil} = ctx;
 				const taskUtilRequests = monitoredTaskUtil.getResourceRequests();
 				let projectRequests =
@@ -862,6 +899,7 @@ class TaskRunner {
 					stepBased: true,
 					stepName,
 					changedProjectResourcePaths,
+					toolFiles,
 				});
 			},
 		};

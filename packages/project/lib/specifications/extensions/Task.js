@@ -2,6 +2,7 @@ import path from "node:path";
 import Extension from "../Extension.js";
 import {pathToFileURL} from "node:url";
 import {validateDescriptor} from "../../build/helpers/StepRunner.js";
+import * as toolDependencyRecorder from "../../build/helpers/ToolDependencyRecorder.js";
 
 /**
  * Task
@@ -31,6 +32,19 @@ class Task extends Extension {
 	 */
 	async getTask() {
 		return (await this._getImplementation()).default;
+	}
+
+	/**
+	 * Absolute paths of the external tool files this task extension resolved when its module was loaded
+	 * (its top-level imports). Populated on the first {@link #_getImplementation} call; empty before then
+	 * or if the module loaded nothing trackable. A custom task's stage folds these into its tool-content
+	 * signature so a top-level-imported tool is tracked even though it loads before the task's execution.
+	 *
+	 * @public
+	 * @returns {string[]} Sorted absolute tool file paths, or an empty array
+	 */
+	getLoadTimeToolDependencies() {
+		return this._loadTimeToolFiles ?? [];
 	}
 
 	/**
@@ -147,7 +161,17 @@ class Task extends Extension {
 	async _getImplementation() {
 		if (!this._modulePromise) {
 			const taskPath = path.join(this.getRootPath(), this._config.task.path);
+			// Capture the tool files this extension resolves at module-load time (its top-level requires),
+			// so a custom task's dependencies are tracked even though they load before the per-stage
+			// execution window. This memoized import is the module's only load, so it is the one chance to
+			// observe it.
+			const capture = toolDependencyRecorder.startCapture();
 			this._modulePromise = import(pathToFileURL(taskPath).href);
+			try {
+				await this._modulePromise;
+			} finally {
+				this._loadTimeToolFiles = toolDependencyRecorder.stopCapture(capture);
+			}
 		}
 		return this._modulePromise;
 	}
