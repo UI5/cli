@@ -165,6 +165,8 @@ class ProjectBuildContext {
 				return undefined;
 			}
 			rawValue = quantizeTime(name, this.getBuildTime());
+		} else if (type === "resolvedFrameworkVersion") {
+			rawValue = this.getResolvedFrameworkVersion();
 		} else if (type.startsWith("project.")) {
 			const method = type.slice("project.".length);
 			const project = this.getProject(name);
