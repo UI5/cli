@@ -100,6 +100,10 @@ class Module {
 		return this._modulePath;
 	}
 
+	getConfigPath() {
+		return this._configPath;
+	}
+
 	/**
 	 * Specifications found in the module
 	 *
