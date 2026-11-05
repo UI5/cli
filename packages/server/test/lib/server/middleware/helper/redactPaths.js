@@ -29,6 +29,21 @@ test("Redacts foreign usernames that start with the current username", async (t)
 	t.is(redactPaths("/Users/some/a.js /Users/someone/b.js /Users/some"), "~/a.js ~/b.js ~");
 });
 
+test("Does not truncate a bare foreign username that shares the home prefix", async (t) => {
+	const redactPaths = await esmock("../../../../../lib/middleware/helper/redactPaths.js", {
+		"node:os": {homedir: () => "/Users/john"},
+		"node:path": {sep: "/"},
+	});
+
+	// Bare paths with no trailing separator: the current user's home still redacts to ~, but a longer
+	// username that merely shares the prefix must stay intact (it must not become "~ny"). Each path is on
+	// its own line so the greedy "/Users/<name>/" pass does not span them.
+	t.is(redactPaths("home /Users/john"), "home ~");
+	t.is(redactPaths("other /Users/johnny"), "other /Users/johnny");
+	t.is(redactPaths("/Users/john: failed"), "~: failed");
+	t.is(redactPaths("a /Users/john\nb /Users/johnny"), "a ~\nb /Users/johnny");
+});
+
 test("Handles an empty home directory without changing unrelated text", async (t) => {
 	const redactPaths = await esmock("../../../../../lib/middleware/helper/redactPaths.js", {
 		"node:os": {homedir: () => ""},
