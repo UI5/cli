@@ -370,6 +370,7 @@ A step may list earlier step names in `needs`; those steps' return values then a
 4. **Import heavy processors lazily**: UI5 CLI calls the factory on every build to discover the steps, even when every step is a cache hit. Import heavy modules inside the step callbacks (for example `const p = (await import("./processor.js")).default`), not at the top of the module, so a fully cached build does not load them.
 5. **Split work carefully**: Only use a map step if each key can be processed independently. Two keys that run concurrently must not write the same path.
 6. **Name steps stably**: Reuse the same step `name` across builds so the cached data is found.
+7. **Keep external tools on the main thread**: If a task transforms content with an external tool (a minifier, a linter, a CSS compiler), resolve that tool on the main thread, either as a top-level import of the task module or inside the step/task body (`const t = (await import("tool")).default`). The build cache then tracks the tool's installed files and re-runs the task when the tool changes, even with no new `@ui5/builder` release. A tool loaded only inside a worker thread the task spawns itself is not tracked, so such a change could be served from a stale cache. You may still offload the heavy work to a worker, but keep a main-thread reference to the tool so the cache can see it.
 :::
 
 ### Examples
