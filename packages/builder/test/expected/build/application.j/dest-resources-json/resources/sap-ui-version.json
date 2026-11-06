@@ -3,5 +3,9 @@
 	"version": "1.0.0",
 	"buildTimestamp": "202008120917",
 	"scmRevision": "",
+	"framework": {
+		"name": "",
+		"version": ""
+	},
 	"libraries": []
 }

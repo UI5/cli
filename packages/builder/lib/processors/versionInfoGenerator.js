@@ -350,11 +350,56 @@ const processLibraryInfo = async (libraryInfo) => {
  * @typedef {object} LibraryInfo
  * @property {string} name The library name, e.g. "lib.x"
  * @property {string} version The library version, e.g. "1.0.0"
+ * @property {string} [id] The npm package id of the library project, e.g. "@openui5/sap.ui.core".
+ *   Used by {@link resolveFramework} to detect the UI5 framework via npm-scope scanning.
  * @property {@ui5/fs/Resource} libraryManifest library manifest resource,
  *  e.g. resource with path "lib/x/manifest.json"
  * @property {@ui5/fs/Resource[]} embeddedManifests list of embedded manifest resources,
  *  e.g. resource with path "lib/x/sub/manifest.json"
  */
+
+/**
+ * Resolves the UI5 framework name and version from raw project inputs.
+ *
+ * Resolution order:
+ * 1. Explicit config: <code>frameworkName</code> is <code>"OpenUI5"</code> or <code>"SAPUI5"</code>
+ *    → returns it with <code>frameworkVersion</code> coalesced to <code>""</code>.
+ * 2. Dependency scan: examines <code>libraryInfos[].id</code> for <code>@sapui5/</code> or
+ *    <code>@openui5/</code> npm scopes; version comes from the <code>sap.ui.core</code> entry.
+ * 3. Fallback: <code>{name: "", version: ""}</code>.
+ *
+ * The returned object always has both <code>name</code> and <code>version</code> as strings.
+ *
+ * @public
+ * @param {string} [frameworkName] Framework name from the root project's ui5.yaml
+ * @param {string} [frameworkVersion] Framework version from the root project's ui5.yaml
+ * @param {module:@ui5/builder/processors/versionInfoGenerator~LibraryInfo[]} libraryInfos
+ *   Library infos; each entry's optional <code>id</code> field is used for the npm-scope scan
+ * @returns {{name: string, version: string}} Resolved framework object
+ */
+export function resolveFramework(frameworkName, frameworkVersion, libraryInfos) {
+	if (frameworkName === "OpenUI5" || frameworkName === "SAPUI5") {
+		return {name: frameworkName, version: frameworkVersion || ""};
+	}
+	let openui5Detected = false;
+	let openui5CoreVersion = "";
+	for (const libraryInfo of libraryInfos) {
+		const {id} = libraryInfo;
+		if (id?.startsWith("@sapui5/")) {
+			return {name: "SAPUI5", version: ""};
+		}
+		if (id?.startsWith("@openui5/")) {
+			openui5Detected = true;
+			if (libraryInfo.name === "sap.ui.core") {
+				openui5CoreVersion = libraryInfo.version;
+			}
+		}
+	}
+	if (openui5Detected) {
+		return {name: "OpenUI5", version: openui5CoreVersion};
+	}
+	return {name: "", version: ""};
+}
 
 /**
  * Creates sap-ui-version.json.
@@ -379,6 +424,11 @@ const processLibraryInfo = async (libraryInfo) => {
  *   }
  *   ```
  *
+ * @param {string} [parameters.options.frameworkName] Framework name from the root project's ui5.yaml,
+ *				e.g. <code>"OpenUI5"</code> or <code>"SAPUI5"</code>. Used for framework resolution.
+ * @param {string} [parameters.options.frameworkVersion] Framework version from the root project's ui5.yaml,
+ *				e.g. <code>"1.136.0"</code>. Used only when <code>frameworkName</code> is recognized;
+ *				defaults to <code>""</code> when omitted.
  * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with an array containing the versionInfo resource
  */
 
@@ -463,6 +513,7 @@ export default async function({options}) {
 		buildTimestamp: buildTimestamp,
 		scmRevision: "", // TODO: insert current application scm revision here
 		// gav: "", // TODO: insert current application id + version here
+		framework: resolveFramework(options.frameworkName, options.frameworkVersion, options.libraryInfos),
 		libraries,
 		components
 	};
