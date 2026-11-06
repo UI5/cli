@@ -42,7 +42,7 @@
 		"url": "git@github.com:UI5/cli.git"
 	},
 	"dependencies": {
-		"@ui5/builder": "^4.3.7",
+		"@ui5/builder": "^4.3.8",
 		"@ui5/cli": "^4.0.72",
 		"@ui5/fs": "^4.0.7",
 		"@ui5/logger": "^4.0.3",
