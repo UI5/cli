@@ -9,14 +9,39 @@
 	"additionalProperties": false,
 	"properties": {
 		"specVersion": {
-			"enum": ["workspace/1.0"],
-			"errorMessage": "Unsupported \"specVersion\"\nYour UI5 CLI installation might be outdated.\nSupported specification versions: \"workspace/1.0\"\nFor details, see: https://ui5.github.io/cli/stable/pages/Workspace/#workspace-specification-versions"
+			"enum": ["workspace/1.1", "workspace/1.0"],
+			"errorMessage": "Unsupported \"specVersion\"\nYour UI5 CLI installation might be outdated.\nSupported specification versions: \"workspace/1.0\", \"workspace/1.1\".\nFor details, see: https://ui5.github.io/cli/stable/pages/Workspace/#workspace-specification-versions"
 		},
 		"metadata": {
 			"$ref": "#/definitions/metadata"
 		},
 		"dependencyManagement": {
 			"$ref": "#/definitions/dependencyManagement"
+		}
+	},
+	"if": {
+		"properties": {"specVersion": {"const": "workspace/1.0"}}
+	},
+	"then": {
+		"properties": {
+			"dependencyManagement": {
+				"type": "object",
+				"properties": {
+					"resolutions": {
+						"type": "array",
+						"items": {
+							"if": {"type": "object"},
+							"then": {
+								"not": {
+									"type": "object",
+									"required": ["configPath"]
+								},
+								"errorMessage": "\"configPath\" is only supported for specVersion \"workspace/1.1\" and higher"
+							}
+						}
+					}
+				}
+			}
 		}
 	},
 	"definitions": {
@@ -42,12 +67,14 @@
 			"properties": {
 				"resolutions": {
 					"type": "array",
-
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
 						"properties": {
 							"path": {
+								"type": "string"
+							},
+							"configPath": {
 								"type": "string"
 							}
 						}

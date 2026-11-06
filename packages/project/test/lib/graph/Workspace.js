@@ -14,9 +14,9 @@ const collectionBLibraryA = path.join(__dirname, "..", "..", "fixtures", "collec
 const collectionBLibraryB = path.join(__dirname, "..", "..", "fixtures", "collection.b", "library.b");
 const collectionBLibraryC = path.join(__dirname, "..", "..", "fixtures", "collection.b", "library.c");
 
-function createWorkspaceConfig({dependencyManagement}) {
+function createWorkspaceConfig({dependencyManagement, specVersion = "workspace/1.0"}) {
 	return {
-		specVersion: "workspace/1.0",
+		specVersion,
 		metadata: {
 			name: "workspace-name"
 		},
@@ -473,3 +473,787 @@ test("Missing parameters", (t) => {
 		message: "Could not create Workspace: Missing or empty parameter 'configuration'"
 	}, "Threw with expected error message");
 });
+
+test("Absolute resolution path", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			dependencyManagement: {
+				resolutions: [{
+					path: path.resolve(__dirname, "../../fixtures/library.d")
+				}]
+			}
+		})
+	});
+
+	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+	t.true(err.message.startsWith(`Absolute paths are not allowed in workspace configurations of dependencies. `+
+		`Found '${path.resolve(__dirname, "../../fixtures/library.d")}' in workspace '${workspace.getName()}'`),
+	"Starts with expected error message");
+});
+
+test("[workspace/1.1] Basic validation with specified configPath for dependency", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/library.d",
+					configPath: "custom-config-path.yaml" // Custom configPath
+				}, {
+					path: "../../fixtures/library.e",
+					// no custom yaml -> resorts to default: ui5.yaml
+				}]
+			}
+		})
+	});
+
+	const {projectNameMap} = await workspace._getResolvedModules();
+	t.deepEqual(Array.from(projectNameMap.keys()).sort(), ["library.d", "library.e"], "Correct project name keys");
+	// Custom config:
+	t.is(projectNameMap.get("library.d")._configPath,
+		path.resolve(__dirname, "../../fixtures/library.d/custom-config-path.yaml"));
+	// Default config:
+	t.is(projectNameMap.get("library.e")._configPath, "ui5.yaml");
+});
+
+test("[workspace/1.1] Custom configPath for dependency but specVersion is workspace/1.0", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.0",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/library.d",
+					configPath: "custom-config-path.yaml" // Custom configPath
+				}, {
+					path: "../../fixtures/library.e",
+				}]
+			}
+		})
+	});
+
+	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+	t.true(err.message.includes("\"configPath\" is only supported for specVersion \"workspace/1.1\" and higher"),
+		"Starts with expected error message");
+});
+
+test("[workspace/1.1] Absolute custom configPath", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/library.d",
+					configPath: path.resolve(__dirname, "../../fixtures/library.d/ui5.yaml") // Absolute configPath
+				}]
+			}
+		})
+	});
+
+	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+	t.true(err.message.startsWith(`Absolute config paths ` +
+		`are not allowed in workspace configurations of dependencies. ` +
+		`Found '${path.resolve(__dirname, "../../fixtures/library.d/ui5.yaml")}' `+
+		`in workspace 'workspace-name'`),
+	"Starts with expected error message");
+});
+
+test("[workspace/1.1] Custom configPath for dependency does not exist", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/library.d",
+					configPath: "not-existing-config-path.yaml" // Custom not-existing configPath
+				}]
+			}
+		})
+	});
+
+	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+	t.true(err.message.startsWith(`Failed to read configuration for module library.d at `+
+			`'${path.resolve(__dirname, "../../fixtures/library.d/not-existing-config-path.yaml")}'. ` +
+			`Error: ENOENT: no such file or directory, `+
+			`open '${path.resolve(__dirname, "../../fixtures/library.d/not-existing-config-path.yaml")}'`),
+	"Starts with expected error message");
+});
+
+test("[workspace/1.1] Custom relative configPath which is outside of the module dir", async (t) => {
+	// This test covers a scenario where the custom relative configPath
+	// points to a location outside of the module directory.
+	// Config for library.d is located in library.e:
+
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/library.d",
+					configPath: "../library.e/ui5-library.d-config.yaml" // Out-of-root path (is valid)
+				}]
+			}
+		})
+	});
+
+	const {projectNameMap} = await workspace._getResolvedModules();
+	t.deepEqual(Array.from(projectNameMap.keys()).sort(), ["library.d"], "Correct project name key");
+	// Returns absolute path of other library config:
+	t.is(projectNameMap.get("library.d")._configPath,
+		path.resolve(__dirname, "../../fixtures/library.e/ui5-library.d-config.yaml"));
+});
+
+test("[workspace/1.1] No configPath", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c",
+				}]
+			}
+		})
+	});
+
+	const {projectNameMap} = await workspace._getResolvedModules();
+	t.is(projectNameMap.get("library.a")._configPath, "ui5.yaml");
+	t.is(projectNameMap.get("library.b")._configPath, "ui5.yaml");
+	t.is(projectNameMap.get("library.c")._configPath, "ui5.yaml");
+	t.is(projectNameMap.get("library.d")._configPath, "ui5.yaml");
+});
+
+test("[workspace/1.1] Custom configPath for all libs", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c",
+					configPath: "ui5-custom.yaml"
+				}]
+			}
+		})
+	});
+
+	const {projectNameMap} = await workspace._getResolvedModules();
+	t.is(projectNameMap.get("library.a.custom")._configPath,
+		path.resolve(__dirname, `../../fixtures/collection.c/library.a/ui5-custom.yaml`));
+	t.is(projectNameMap.get("library.b.custom")._configPath,
+		path.resolve(__dirname, `../../fixtures/collection.c/library.b/ui5-custom.yaml`));
+	t.is(projectNameMap.get("library.c.custom")._configPath,
+		path.resolve(__dirname, `../../fixtures/collection.c/collection.a/library.c/ui5-custom.yaml`));
+	t.is(projectNameMap.get("library.d.custom")._configPath,
+		path.resolve(__dirname, `../../fixtures/collection.c/collection.a/library.d/ui5-custom.yaml`));
+});
+
+test("[workspace/1.1] No configPath + Custom configPath for single lib", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c",
+				},
+				{
+					path: "../../fixtures/collection.c/library.a",
+					configPath: "ui5-custom.yaml"
+				}]
+			}
+		})
+	});
+
+	const {projectNameMap} = await workspace._getResolvedModules();
+	t.is(projectNameMap.get("library.a.custom")._configPath,
+		path.resolve(__dirname, `../../fixtures/collection.c/library.a/ui5-custom.yaml`));
+	t.is(projectNameMap.get("library.b")._configPath, "ui5.yaml");
+	t.is(projectNameMap.get("library.c")._configPath, "ui5.yaml");
+	t.is(projectNameMap.get("library.d")._configPath, "ui5.yaml");
+});
+
+test("[workspace/1.1] Custom configPath for single lib + No configPath for all libs", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c/library.a",
+					configPath: "ui5-custom.yaml"
+				},
+				{
+					path: "../../fixtures/collection.c",
+				}]
+			}
+		})
+	});
+
+	const {projectNameMap} = await workspace._getResolvedModules();
+	t.is(projectNameMap.get("library.a.custom")._configPath,
+		path.resolve(__dirname, "../../fixtures/collection.c/library.a/ui5-custom.yaml"));
+	t.is(projectNameMap.get("library.b")._configPath, "ui5.yaml");
+	t.is(projectNameMap.get("library.c")._configPath, "ui5.yaml");
+	t.is(projectNameMap.get("library.d")._configPath, "ui5.yaml");
+});
+
+test("[workspace/1.1] Custom configPath for all libs + No configPath for single lib", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c",
+					configPath: "ui5-custom.yaml"
+				},
+				{
+					path: "../../fixtures/collection.c/library.a",
+				}]
+			}
+		})
+	});
+
+	const collectionPath = path.resolve(__dirname, "../../fixtures/collection.c");
+
+	const {projectNameMap} = await workspace._getResolvedModules();
+	t.is(projectNameMap.get("library.a")._configPath, "ui5.yaml");
+	t.is(projectNameMap.get("library.b.custom")._configPath,
+		path.join(collectionPath, "library.b", "ui5-custom.yaml"));
+	t.is(projectNameMap.get("library.c.custom")._configPath,
+		path.join(collectionPath, "collection.a", "library.c", "ui5-custom.yaml"));
+	t.is(projectNameMap.get("library.d.custom")._configPath,
+		path.join(collectionPath, "collection.a", "library.d", "ui5-custom.yaml"));
+});
+
+test("[workspace/1.1] No configPath for single lib + Custom configPath for all libs", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c/library.a",
+				},
+				{
+					path: "../../fixtures/collection.c",
+					configPath: "ui5-custom.yaml"
+				}]
+			}
+		})
+	});
+
+	const collectionPath = path.resolve(__dirname, "../../fixtures/collection.c");
+
+	const {projectNameMap} = await workspace._getResolvedModules();
+	t.is(projectNameMap.get("library.a")._configPath, "ui5.yaml");
+	t.is(projectNameMap.get("library.b.custom")._configPath,
+		path.join(collectionPath, "library.b", "ui5-custom.yaml"));
+	t.is(projectNameMap.get("library.c.custom")._configPath,
+		path.join(collectionPath, "collection.a", "library.c", "ui5-custom.yaml"));
+	t.is(projectNameMap.get("library.d.custom")._configPath,
+		path.join(collectionPath, "collection.a", "library.d", "ui5-custom.yaml"));
+});
+
+test("No configPath for all libs + Custom configPaths for two libs", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c",
+				},
+				{
+					path: "../../fixtures/collection.c/library.a",
+					configPath: "ui5-custom.yaml"
+				},
+				{
+					path: "../../fixtures/collection.c/library.b",
+					configPath: "ui5-another-custom.yaml"
+				}]
+			}
+		})
+	});
+
+	const collectionPath = path.resolve(__dirname, "../../fixtures/collection.c");
+
+	const {projectNameMap} = await workspace._getResolvedModules();
+	t.is(projectNameMap.get("library.a.custom")._configPath,
+		path.join(collectionPath, "library.a", "ui5-custom.yaml"));
+	t.is(projectNameMap.get("library.b.another.custom")._configPath,
+		path.join(collectionPath, "library.b", "ui5-another-custom.yaml"));
+	t.is(projectNameMap.get("library.c")._configPath,
+		"ui5.yaml");
+	t.is(projectNameMap.get("library.d")._configPath,
+		"ui5.yaml");
+});
+
+test("[workspace/1.1] No configPath for all libs + Two custom configPaths for single lib", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c",
+				},
+				{
+					path: "../../fixtures/collection.c/library.a",
+					configPath: "ui5-custom.yaml"
+				},
+				{
+					path: "../../fixtures/collection.c/library.a", // duplicate resolution
+					configPath: "ui5-another-custom.yaml"
+				}]
+			}
+		})
+	});
+
+	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+	t.is(err.message,
+		`Multiple resolutions for the same library 'library.a' ` +
+		`(resolved to '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}') ` +
+		`in workspace '${workspace.getName()}' exist.`);
+});
+
+test("[workspace/1.1] Two custom configPaths for single lib + No configPath for all libs (interleaved)",
+	async (t) => {
+		const workspace = new t.context.Workspace({
+			cwd: __dirname,
+			configuration: createWorkspaceConfig({
+				specVersion: "workspace/1.1",
+				dependencyManagement: {
+					resolutions: [{
+						path: "../../fixtures/collection.c/library.a",
+						configPath: "ui5-custom.yaml"
+					},
+					{
+						path: "../../fixtures/collection.c",
+					},
+					{
+						path: "../../fixtures/collection.c/library.a", // duplicate resolution
+						configPath: "ui5-another-custom.yaml"
+					}]
+				}
+			})
+		});
+
+		const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+		t.is(err.message,
+			`Multiple resolutions for the same library 'library.a' ` +
+			`(resolved to '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}') ` +
+			`in workspace '${workspace.getName()}' exist.`);
+	}
+);
+
+test("[workspace/1.1] No configPath for all libs + Custom configPath for sub collection", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c",
+				},
+				{
+					path: "../../fixtures/collection.c/collection.a", // sub collection
+					configPath: "ui5-custom.yaml"
+				}]
+			}
+		})
+	});
+
+	const collectionPath = path.resolve(__dirname, "../../fixtures/collection.c");
+
+	const {projectNameMap} = await workspace._getResolvedModules();
+	t.is(projectNameMap.get("library.a")._configPath,
+		"ui5.yaml");
+	t.is(projectNameMap.get("library.b")._configPath,
+		"ui5.yaml");
+	t.is(projectNameMap.get("library.c.custom")._configPath,
+		path.resolve(collectionPath, "collection.a/library.c/ui5-custom.yaml"));
+	t.is(projectNameMap.get("library.d.custom")._configPath,
+		path.resolve(collectionPath, "collection.a/library.d/ui5-custom.yaml"));
+});
+
+test("[workspace/1.1] Custom configPath for sub collection + No configPath for all libs", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c/collection.a", // sub collection
+					configPath: "ui5-custom.yaml"
+				},
+				{
+					path: "../../fixtures/collection.c",
+				}]
+			}
+		})
+	});
+
+	const collectionPath = path.resolve(__dirname, "../../fixtures/collection.c");
+
+	const {projectNameMap} = await workspace._getResolvedModules();
+	t.is(projectNameMap.get("library.a")._configPath,
+		"ui5.yaml");
+	t.is(projectNameMap.get("library.b")._configPath,
+		"ui5.yaml");
+	t.is(projectNameMap.get("library.c.custom")._configPath,
+		path.resolve(collectionPath, "collection.a/library.c/ui5-custom.yaml"));
+	t.is(projectNameMap.get("library.d.custom")._configPath,
+		path.resolve(collectionPath, "collection.a/library.d/ui5-custom.yaml"));
+});
+
+test("[workspace/1.1] No configPath for all libs + Custom configPaths for sub collection & single lib", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c",
+				},
+				{
+					path: "../../fixtures/collection.c/collection.a", // sub collection
+					configPath: "ui5-custom.yaml"
+				},
+				{
+					path: "../../fixtures/collection.c/collection.a/library.c", // lib in sub collection
+					configPath: "ui5-another-custom.yaml"
+				}]
+			}
+		})
+	});
+
+	const collectionPath = path.resolve(__dirname, "../../fixtures/collection.c");
+
+	const {projectNameMap} = await workspace._getResolvedModules();
+	t.is(projectNameMap.get("library.a")._configPath,
+		"ui5.yaml");
+	t.is(projectNameMap.get("library.b")._configPath,
+		"ui5.yaml");
+	t.is(projectNameMap.get("library.c.another.custom")._configPath,
+		path.resolve(collectionPath, "collection.a/library.c/ui5-another-custom.yaml"));
+	t.is(projectNameMap.get("library.d.custom")._configPath,
+		path.resolve(collectionPath, "collection.a/library.d/ui5-custom.yaml"));
+});
+
+test("[workspace/1.1] Custom configPaths for sub collection & single lib + No configPath for all libs " +
+	"(interleaved)", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c/collection.a/library.c", // lib in sub collection
+					configPath: "ui5-another-custom.yaml"
+				},
+				{
+					path: "../../fixtures/collection.c",
+				},
+				{
+					path: "../../fixtures/collection.c/collection.a", // sub collection
+					configPath: "ui5-custom.yaml"
+				}]
+			}
+		})
+	});
+
+	const collectionPath = path.resolve(__dirname, "../../fixtures/collection.c");
+
+	const {projectNameMap} = await workspace._getResolvedModules();
+	t.is(projectNameMap.get("library.a")._configPath,
+		"ui5.yaml");
+	t.is(projectNameMap.get("library.b")._configPath,
+		"ui5.yaml");
+	t.is(projectNameMap.get("library.c.another.custom")._configPath,
+		path.resolve(collectionPath, "collection.a/library.c/ui5-another-custom.yaml"));
+	t.is(projectNameMap.get("library.d.custom")._configPath,
+		path.resolve(collectionPath, "collection.a/library.d/ui5-custom.yaml"));
+});
+
+test("[workspace/1.1] Two custom configPaths for the same single lib -> error on duplicate", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c/library.a",
+					configPath: "ui5-custom.yaml"
+				},
+				{
+					path: "../../fixtures/collection.c/library.a", // duplicate resolution
+					configPath: "ui5-another-custom.yaml"
+				}]
+			}
+		})
+	});
+
+	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+	t.is(err.message,
+		`Multiple resolutions for the same library 'library.a' ` +
+		`(resolved to '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}') ` +
+		`in workspace '${workspace.getName()}' exist.`);
+});
+
+test("[workspace/1.1] Duplicate library via different path strings (no configPath)", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c/library.a"
+				},
+				{
+					// Different path string, same resolved directory
+					path: "../../fixtures/collection.c/../collection.c/library.a"
+				}]
+			}
+		})
+	});
+
+	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+	t.is(err.message,
+		`Multiple resolutions for the same library 'library.a' ` +
+		`(resolved to '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}') ` +
+		`in workspace '${workspace.getName()}' exist.`);
+});
+
+test("[workspace/1.1] Duplicate library via different path strings (with configPath)", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c/library.a",
+					configPath: "ui5-custom.yaml"
+				},
+				{
+					// Different path string, same resolved directory
+					path: "../../fixtures/collection.c/../collection.c/library.a",
+					configPath: "ui5-another-custom.yaml"
+				}]
+			}
+		})
+	});
+
+	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+	t.is(err.message,
+		`Multiple resolutions for the same library 'library.a' ` +
+		`(resolved to '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}') ` +
+		`in workspace '${workspace.getName()}' exist.`);
+});
+
+test("[workspace/1.1] Duplicate library name via different directories", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c/library.a",
+					configPath: "ui5-custom.yaml"
+				},
+				{
+					// Different directory, but same library (directory) name 'library.a'
+					// --> is valid: should not conflict with the other library resolution
+					path: "../../fixtures/collection/library.a"
+				}]
+			}
+		})
+	});
+
+	const {projectNameMap} = await workspace._getResolvedModules();
+	t.is(projectNameMap.get("library.a.custom")._configPath,
+		path.resolve(__dirname, "../../fixtures/collection.c/library.a/ui5-custom.yaml"));
+	t.is(projectNameMap.get("library.a")._configPath, "ui5.yaml");
+});
+
+test("[workspace/1.1] Custom configPath for all libs -> File not existing for single lib", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c.noCustomConfigForLibA",
+					configPath: "ui5-custom.yaml" // not existing
+				}]
+			}
+		})
+	});
+
+	const collectionPath = path.resolve(__dirname, "../../fixtures/collection.c.noCustomConfigForLibA");
+	const configPath = path.join(collectionPath, "library.a", "ui5-custom.yaml");
+	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+	t.true(err.message.startsWith(`Failed to read configuration for module library.a at `+
+			`'${configPath}'. ` +
+			`Error: ENOENT: no such file or directory, `+
+			`open '${configPath}'`),
+	"Starts with expected error message");
+});
+
+test("[workspace/1.1] Custom configPath for single lib -> File not existing for single lib", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c.noCustomConfigForLibA",
+				},
+				{
+					path: "../../fixtures/collection.c.noCustomConfigForLibA/library.a",
+					configPath: "ui5-custom.yaml" // not existing
+				}
+				]
+			}
+		})
+	});
+
+	const collectionPath = path.resolve(__dirname, "../../fixtures/collection.c.noCustomConfigForLibA");
+	const configPath = path.join(collectionPath, "library.a", "ui5-custom.yaml");
+	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+	t.true(err.message.startsWith(`Failed to read configuration for module library.a at `+
+			`'${configPath}'. ` +
+			`Error: ENOENT: no such file or directory, `+
+			`open '${configPath}'`),
+	"Starts with expected error message");
+});
+
+test("[workspace/1.1] Not existing configPath for single lib overwritten by No configPath for all libs",
+	async (t) => {
+		const workspace = new t.context.Workspace({
+			cwd: __dirname,
+			configuration: createWorkspaceConfig({
+				specVersion: "workspace/1.1",
+				dependencyManagement: {
+					resolutions: [
+						{
+							path: "../../fixtures/collection.c.noCustomConfigForLibA/library.a",
+							configPath: "ui5-custom.yaml" // not existing
+						},
+						{
+							path: "../../fixtures/collection.c.noCustomConfigForLibA",
+						},
+					]
+				}
+			})
+		});
+
+		const collectionPath = path.resolve(__dirname, "../../fixtures/collection.c.noCustomConfigForLibA");
+		const configPath = path.join(collectionPath, "library.a", "ui5-custom.yaml");
+		const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+		t.true(err.message.startsWith(`Failed to read configuration for module library.a at `+
+				`'${configPath}'. ` +
+				`Error: ENOENT: no such file or directory, `+
+				`open '${configPath}'`),
+		"Starts with expected error message");
+	}
+);
+
+test("[workspace/1.1] Not existing configPath for single lib overwritten by No configPath for the same lib",
+	async (t) => {
+		const workspace = new t.context.Workspace({
+			cwd: __dirname,
+			configuration: createWorkspaceConfig({
+				specVersion: "workspace/1.1",
+				dependencyManagement: {
+					resolutions: [{
+						path: "../../fixtures/collection.c.noCustomConfigForLibA",
+						configPath: "ui5-custom.yaml" // not existing
+					},
+					{
+						path: "../../fixtures/collection.c.noCustomConfigForLibA/library.a",
+					}]
+				}
+			})
+		});
+
+		const collectionPath = path.resolve(__dirname, "../../fixtures/collection.c.noCustomConfigForLibA");
+
+		const {projectNameMap} = await workspace._getResolvedModules();
+		t.is(projectNameMap.get("library.a")._configPath, "ui5.yaml");
+		t.is(projectNameMap.get("library.b.custom")._configPath,
+			path.join(collectionPath, "library.b", "ui5-custom.yaml"));
+		t.is(projectNameMap.get("library.c.custom")._configPath,
+			path.join(collectionPath, "collection.a", "library.c", "ui5-custom.yaml"));
+		t.is(projectNameMap.get("library.d.custom")._configPath,
+			path.join(collectionPath, "collection.a", "library.d", "ui5-custom.yaml"));
+	}
+);
+
+test("[workspace/1.1] Duplicate resolutions for single lib (with missing config) -> error on duplicate",
+	async (t) => {
+		const workspace = new t.context.Workspace({
+			cwd: __dirname,
+			configuration: createWorkspaceConfig({
+				specVersion: "workspace/1.1",
+				dependencyManagement: {
+					resolutions: [{
+						path: "../../fixtures/collection.c.noCustomConfigForLibA",
+					},
+					{
+						path: "../../fixtures/collection.c.noCustomConfigForLibA/library.a",
+						configPath: "ui5-custom.yaml" // not existing
+					},
+					{
+						path: "../../fixtures/collection.c.noCustomConfigForLibA/library.a", // duplicate resolution
+						configPath: "ui5-another-custom.yaml"
+					}]
+				}
+			})
+		});
+
+		const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+		t.is(err.message,
+			`Multiple resolutions for the same library 'library.a' ` +
+			`(resolved to '${path.resolve(__dirname,
+				"../../fixtures/collection.c.noCustomConfigForLibA/library.a")}') ` +
+			`in workspace '${workspace.getName()}' exist.`);
+	}
+);
+
+test("[workspace/1.1] Duplicate resolutions for single lib (missing config last) -> error on duplicate",
+	async (t) => {
+		const workspace = new t.context.Workspace({
+			cwd: __dirname,
+			configuration: createWorkspaceConfig({
+				specVersion: "workspace/1.1",
+				dependencyManagement: {
+					resolutions: [{
+						path: "../../fixtures/collection.c.noCustomConfigForLibA",
+					},
+					{
+						path: "../../fixtures/collection.c.noCustomConfigForLibA/library.a",
+						configPath: "ui5-another-custom.yaml"
+					},
+					{
+						path: "../../fixtures/collection.c.noCustomConfigForLibA/library.a", // duplicate resolution
+						configPath: "ui5-custom.yaml" // not existing
+					}]
+				}
+			})
+		});
+
+		const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
+		t.is(err.message,
+			`Multiple resolutions for the same library 'library.a' ` +
+			`(resolved to '${path.resolve(__dirname,
+				"../../fixtures/collection.c.noCustomConfigForLibA/library.a")}') ` +
+			`in workspace '${workspace.getName()}' exist.`);
+	}
+);

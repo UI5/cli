@@ -139,13 +139,39 @@ class Workspace {
 			};
 		}
 
+		// Detect duplicate resolutions targeting the same library
+		// (same exact absolute paths should throw):
+		const seenAbsolutePaths = [];
+		for (const {path: resolutionPath} of resolutions) {
+			if (!resolutionPath) {
+				continue;
+			}
+			const absolutePath = path.resolve(this.#cwd, resolutionPath);
+			if (seenAbsolutePaths.includes(absolutePath)) {
+				throw new Error(
+					`Multiple resolutions for the same library '${path.basename(absolutePath)}' ` +
+					`(resolved to '${absolutePath}') in workspace '${this.getName()}' exist.`);
+			}
+			seenAbsolutePaths.push(absolutePath);
+		}
+
 		let resolvedModules = await Promise.all(resolutions.map(async (resolutionConfig) => {
 			if (!resolutionConfig.path) {
 				throw new Error(
 					`Missing property 'path' in dependency resolution configuration of workspace ${this.getName()}`);
 			}
+			if (path.isAbsolute(resolutionConfig.path)) {
+				throw new Error(
+					`Absolute paths are not allowed in workspace configurations of dependencies. ` +
+					`Found '${resolutionConfig.path}' in workspace '${this.getName()}'`);
+			}
+			if (resolutionConfig.configPath && path.isAbsolute(resolutionConfig.configPath)) {
+				throw new Error(
+					`Absolute config paths are not allowed in workspace configurations of dependencies. ` +
+					`Found '${resolutionConfig.configPath}' in workspace '${this.getName()}'`);
+			}
 			return await this._getModulesFromPath(
-				this.#cwd, resolutionConfig.path);
+				this.#cwd, resolutionConfig.path, resolutionConfig.configPath);
 		}));
 
 		// Flatten array since package-workspaces might have resolved to multiple modules for a single resolution
@@ -176,7 +202,7 @@ class Workspace {
 		};
 	}
 
-	async _getModulesFromPath(cwd, relPath, failOnMissingFiles = true) {
+	async _getModulesFromPath(cwd, relPath, configPath, failOnMissingFiles = true) {
 		const nodePath = path.join(cwd, relPath);
 		if (this.#visitedNodePaths.has(nodePath)) {
 			log.verbose(`Module located at ${nodePath} has already been visited`);
@@ -236,7 +262,8 @@ class Workspace {
 
 			const resolvedModules = new Map();
 			await Promise.all(searchPaths.map(async (pkgPath) => {
-				const modules = await this._getModulesFromPath(nodePath, pkgPath, staticPatterns.includes(pkgPath));
+				const modules =
+					await this._getModulesFromPath(nodePath, pkgPath, configPath, staticPatterns.includes(pkgPath));
 				modules.forEach((module) => {
 					const id = module.getId();
 					if (!resolvedModules.get(id)) {
@@ -249,7 +276,8 @@ class Workspace {
 			return [new Module({
 				id: pkg.name,
 				version: pkg.version,
-				modulePath: nodePath
+				modulePath: nodePath,
+				configPath: configPath ? path.resolve(nodePath, configPath) : undefined,
 			})];
 		}
 	}
