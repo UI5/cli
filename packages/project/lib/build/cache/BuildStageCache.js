@@ -389,22 +389,30 @@ export default class BuildStageCache {
 	 * {@link #getRootSignature} for how those two are re-evaluated against the current environment and
 	 * project root.
 	 *
+	 * Returns the composed exact-match signatures alongside the four components they were built from, so a
+	 * caller that also needs the components (the delta path pairs them with changed project/dependency
+	 * signatures) does not recompute them.
+	 *
 	 * @public
 	 * @param {function(string, string, (string|undefined)): (string|undefined)} [resolveInputValue]
 	 *   Resolver for the current value of a recorded non-resource input (see {@link #getInputSignature})
-	 * @returns {string[]} Exact-match stage signatures for the current index state
+	 * @returns {{stageSignatures: string[], inputSignature: string, rootSignature: string,
+	 *   projectSignatures: string[], dependencySignatures: string[]}}
+	 *   The exact-match stage signatures for the current index state and the components they compose
 	 */
 	getStageSignatures(resolveInputValue) {
 		const inputSignature = this.getInputSignature(resolveInputValue);
 		const rootSignature = this.getRootSignature();
-		const signatures = [];
-		for (const projectSignature of this.getProjectIndexSignatures()) {
-			for (const dependencySignature of this.getDependencyIndexSignatures()) {
-				signatures.push(createStageSignature(
+		const projectSignatures = this.getProjectIndexSignatures();
+		const dependencySignatures = this.getDependencyIndexSignatures();
+		const stageSignatures = [];
+		for (const projectSignature of projectSignatures) {
+			for (const dependencySignature of dependencySignatures) {
+				stageSignatures.push(createStageSignature(
 					[projectSignature, dependencySignature, inputSignature, rootSignature]));
 			}
 		}
-		return signatures;
+		return {stageSignatures, inputSignature, rootSignature, projectSignatures, dependencySignatures};
 	}
 
 	/**
