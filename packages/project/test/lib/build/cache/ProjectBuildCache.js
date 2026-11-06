@@ -708,6 +708,101 @@ test("recordStageResult with cacheInfo: merges tag operations with current delta
 			"Delta build tag for /c.js present");
 	});
 
+for (const keepTags of [true, false]) {
+	test(`recordStageResult: step-based delta does not resurrect old tags (keepTags=${keepTags})`, async (t) => {
+		const project = createMockProject();
+		const cacheManager = createMockCacheManager();
+		const cache = new ProjectBuildCache(project, "sig", cacheManager);
+		await cache.initSourceIndex();
+		cache.setTasks([{taskName: "myTask", stepNames: ["tag"]}]);
+		await cache.prepareStageExecutionAndValidateCache("myTask", "tag");
+
+		// StepRunner has already replayed surviving cached keys and recorded re-executed keys.
+		// A removed key (or a re-executed key that no longer tags anything) contributes no operations.
+		const projectTags = new Map(keepTags ? [
+			["/cached.js", new Map([["ui5:HasDebugVariant", true]])],
+			["/changed.js", new Map([["ui5:IsDebugVariant", false]])],
+		] : []);
+		const buildTags = new Map(keepTags ? [
+			["/cached.js", new Map([["ui5:OmitFromBuildResult", true]])],
+			["/changed.js", new Map([["ui5:OmitFromBuildResult", false]])],
+		] : []);
+		project.getProjectResources().getResourceTagOperations.returns({
+			projectTagOperations: projectTags,
+			buildTagOperations: buildTags,
+		});
+		project.getProjectResources().getStage.returns({
+			getId: () => "task/myTask::step/tag",
+			getWriter: () => ({byGlob: async () => []}),
+		});
+		await cache.recordStageResult({
+			taskName: "myTask",
+			stepName: "tag",
+			stepBased: true,
+			projectResourceRequests: {paths: [], patterns: []},
+			cacheInfo: {
+				previousStageCache: {
+					stage: {byGlob: async () => []},
+					projectTagOperations: new Map([
+						["/removed.js", new Map([["ui5:HasDebugVariant", true]])],
+						["/cached.js", new Map([["ui5:HasDebugVariant", true]])],
+						["/changed.js", new Map([["ui5:IsDebugVariant", true]])],
+					]),
+					buildTagOperations: new Map([
+						["/removed.js", new Map([["ui5:OmitFromBuildResult", true]])],
+						["/cached.js", new Map([["ui5:OmitFromBuildResult", true]])],
+						["/changed.js", new Map([["ui5:OmitFromBuildResult", true]])],
+					]),
+				},
+				changedProjectResourcePaths: ["/removed.js", "/changed.js"],
+			},
+		});
+
+		t.false(project.getProjectResources().importTagOperations.called,
+			"Step-based operations are already applied; previous operations must not be imported");
+		await cache.writeCache();
+		const stageCalls = cacheManager.writeStageCache.getCalls().filter(
+			(call) => call.args[2] === "task/myTask::step/tag");
+		t.is(stageCalls.length, 1);
+		const metadata = stageCalls[0].args[4];
+		const toObject = (tags) => Object.fromEntries([...tags].map(([p, values]) => [p, Object.fromEntries(values)]));
+		t.deepEqual({...metadata.projectTagOperations}, toObject(projectTags),
+			"Only current and replayed project tags are persisted, including when the set becomes empty");
+		t.deepEqual({...metadata.buildTagOperations}, toObject(buildTags),
+			"Only current and replayed build tags are persisted, including when the set becomes empty");
+	});
+}
+
+test("recordStageResult: step-based delta retains outputs still owned by cached invocations", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+	const cache = new ProjectBuildCache(project, "sig", cacheManager);
+	await cache.initSourceIndex();
+	cache.setTasks([{taskName: "myTask", stepNames: ["map"]}]);
+	await cache.prepareStageExecutionAndValidateCache("myTask", "map");
+	cache.setStepInvocationData("task/myTask::step/map", new Map([
+		["retained-key", {writes: ["/retained.js"]}],
+	]));
+	const write = sinon.stub().resolves();
+	project.getProjectResources().getStage.returns({
+		getId: () => "task/myTask::step/map",
+		getWriter: () => ({byGlob: async () => [], write}),
+	});
+	const retained = createMockResource("/retained.js");
+	const removed = createMockResource("/removed.js");
+	await cache.recordStageResult({
+		taskName: "myTask", stepName: "map", stepBased: true,
+		projectResourceRequests: {paths: [], patterns: []},
+		cacheInfo: {
+			previousStageCache: {stage: {byGlob: async () => [retained, removed]}},
+			// An in-memory delta can still include a path changed on an earlier build. StepRunner's
+			// invocation map, not this superset, determines which outputs are still produced.
+			changedProjectResourcePaths: ["/retained.js", "/removed.js"],
+		},
+	});
+	t.true(write.calledOnceWithExactly(retained), "Keep the surviving invocation's output, drop the removed key's");
+});
+
 test("recordStageResult with cacheInfo: uses cacheInfo.newSignature as stage signature",
 	async (t) => {
 		const project = createMockProject();
