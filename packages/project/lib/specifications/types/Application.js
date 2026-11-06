@@ -2,6 +2,7 @@ import fsPath from "node:path";
 import ComponentProject from "../ComponentProject.js";
 import {createReader} from "@ui5/fs/resourceFactory";
 import parseJSON from "../../utils/json.js";
+import {getManifestMaxBytes, readResourceString} from "../../utils/limits.js";
 
 /**
  * Application
@@ -245,14 +246,18 @@ class Application extends ComponentProject {
 					error.code = "ENOENT"; // "File or directory does not exist"
 					throw error;
 				}
-				return parseJSON(await resource.getString(), `${this._webappPath}${filePath}`);
+				const input = `${this._webappPath}${filePath}`;
+				const content = await readResourceString(resource, {input, limit: getManifestMaxBytes()});
+				return parseJSON(content, input);
 			}).catch((err) => {
 				if (err.code === "ENOENT") {
 					throw err;
 				}
-				throw new Error(
+				const error = new Error(
 					`Failed to read ${filePath} for project ` +
 					`${this.getName()}: ${err.message}`);
+				error.code = err.code;
+				throw error;
 			});
 	}
 }
