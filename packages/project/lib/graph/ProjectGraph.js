@@ -34,6 +34,7 @@ class ProjectGraph {
 		this._sealed = false;
 		this._hasUnresolvedOptionalDependencies = false; // Performance optimization flag
 		this._taskRepository = null;
+		this._resolvedFrameworkVersion = null;
 	}
 
 	/**
@@ -673,6 +674,32 @@ class ProjectGraph {
 	// Only to be used by @ui5/builder tests to inject its version of the taskRepository
 	setTaskRepository(taskRepository) {
 		this._taskRepository = taskRepository;
+	}
+
+	/**
+	 * Set the framework version resolved for this graph during enrichment.
+	 *
+	 * @public
+	 * @param {string} version Effective framework version
+	 */
+	setResolvedFrameworkVersion(version) {
+		this._resolvedFrameworkVersion = version;
+	}
+
+	/**
+	 * Get the effective framework version for this graph, as resolved during enrichment.
+	 *
+	 * Returns the value set by {@link #setResolvedFrameworkVersion}. When enrichment has not run
+	 * (e.g. the project has no framework configuration), the stored value is <code>null</code> and
+	 * this falls back to the root project's configured <code>framework.version</code>.
+	 *
+	 * @public
+	 * @returns {string|undefined} Effective framework version, e.g. "1.138.0", or <code>""</code>
+	 *   when the framework is active but has no resolvable distribution version (SAPUI5 + workspace),
+	 *   or the configured version as a fallback when enrichment did not run.
+	 */
+	getResolvedFrameworkVersion() {
+		return this._resolvedFrameworkVersion ?? this.getRoot().getFrameworkVersion();
 	}
 
 	async _getTaskRepository() {

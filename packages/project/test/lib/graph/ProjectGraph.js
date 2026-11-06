@@ -1934,3 +1934,37 @@ test("Seal/isSealed", async (t) => {
 	const extension = graph.getExtension("extension.b");
 	t.is(extension, undefined, "extension.b should not be added");
 });
+
+test("getResolvedFrameworkVersion: returns value set by setResolvedFrameworkVersion", async (t) => {
+	const {ProjectGraph} = t.context;
+	const rootProject = await createProject("root");
+	const graph = new ProjectGraph({rootProjectName: "root"});
+	await graph.addProject(rootProject);
+
+	graph.setResolvedFrameworkVersion("1.138.0");
+	t.is(graph.getResolvedFrameworkVersion(), "1.138.0");
+});
+
+test("getResolvedFrameworkVersion: falls back to root project getFrameworkVersion() when unset", async (t) => {
+	const {ProjectGraph} = t.context;
+	const rootProject = await createProject("root");
+	// Stub getFrameworkVersion on the project instance
+	rootProject.getFrameworkVersion = () => "1.136.0";
+	const graph = new ProjectGraph({rootProjectName: "root"});
+	await graph.addProject(rootProject);
+
+	t.is(graph.getResolvedFrameworkVersion(), "1.136.0",
+		"Should fall back to the root project's configured version");
+});
+
+test("getResolvedFrameworkVersion: setResolvedFrameworkVersion overrides configured root version", async (t) => {
+	const {ProjectGraph} = t.context;
+	const rootProject = await createProject("root");
+	rootProject.getFrameworkVersion = () => "1.136.0";
+	const graph = new ProjectGraph({rootProjectName: "root"});
+	await graph.addProject(rootProject);
+
+	graph.setResolvedFrameworkVersion("1.138.0");
+	t.is(graph.getResolvedFrameworkVersion(), "1.138.0",
+		"Set value must take precedence over configured root version");
+});

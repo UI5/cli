@@ -155,6 +155,24 @@ test("getDependencies: Default name", (t) => {
 	t.is(res, "Pony farm!", "Correct result");
 });
 
+test("getResolvedFrameworkVersion delegates to graph", (t) => {
+	const getResolvedFrameworkVersionStub = sinon.stub().returns("1.138.0");
+	const middlewareUtil = new MiddlewareUtil({
+		graph: {
+			getResolvedFrameworkVersion: getResolvedFrameworkVersionStub
+		},
+		project: {
+			getName: sinon.stub().returns("root project name")
+		}
+	});
+
+	const res = middlewareUtil.getResolvedFrameworkVersion();
+
+	t.is(getResolvedFrameworkVersionStub.callCount, 1,
+		"ProjectGraph#getResolvedFrameworkVersion got called once");
+	t.is(res, "1.138.0", "Returns the graph's effective framework version");
+});
+
 test.serial("resourceFactory", (t) => {
 	const {resourceFactory} = new MiddlewareUtil({graph: "graph", project: "project"});
 	t.is(typeof resourceFactory.createResource, "function",

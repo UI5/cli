@@ -255,6 +255,19 @@ test("getProject: No name provided", (t) => {
 	t.is(getProjectStub.callCount, 0, "ProjectGraph#getProject has not been called");
 });
 
+test("getResolvedFrameworkVersion delegates to graph", (t) => {
+	const buildContext = createBuildContextStub({
+		getGraph: () => ({
+			getResolvedFrameworkVersion: () => "1.138.0"
+		})
+	});
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	t.is(projectBuildContext.getResolvedFrameworkVersion(), "1.138.0",
+		"Returns the graph's effective framework version");
+});
+
 test("getDependencies", (t) => {
 	const project = {
 		getName: () => "project",
@@ -464,6 +477,28 @@ test("resolveInputValue: isRootProject normalizes the boolean", (t) => {
 	const projectBuildContext = new ProjectBuildContext(buildContext, rootProject);
 
 	t.is(projectBuildContext.resolveInputValue("isRootProject", ""), "true");
+});
+
+test("resolveInputValue: resolvedFrameworkVersion normalizes the version string", (t) => {
+	const buildContext = createBuildContextStub({
+		getGraph: () => ({getResolvedFrameworkVersion: () => "1.138.0"})
+	});
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	t.is(projectBuildContext.resolveInputValue("resolvedFrameworkVersion", ""), "1.138.0",
+		"Returns the resolved framework version as-is (string passthrough)");
+});
+
+test("resolveInputValue: resolvedFrameworkVersion normalizes empty string (SAPUI5 workspace)", (t) => {
+	const buildContext = createBuildContextStub({
+		getGraph: () => ({getResolvedFrameworkVersion: () => ""})
+	});
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	t.is(projectBuildContext.resolveInputValue("resolvedFrameworkVersion", ""), "",
+		"Returns empty string for SAPUI5 workspace (no distribution version)");
 });
 
 test("resolveInputValue: getDependencies normalizes the array via the graph", (t) => {

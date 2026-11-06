@@ -224,6 +224,17 @@ class TaskUtil {
 	}
 
 	/**
+	 * Returns the effective framework version resolved for the build's graph during enrichment
+	 * (reflects --framework-version, or a workspace link), or the root
+	 * project's configured version when no resolution occurred.
+	 *
+	 * @returns {string|undefined} Effective framework version, e.g. "1.138.0"
+	 */
+	getResolvedFrameworkVersion() {
+		return this._projectBuildContext.getResolvedFrameworkVersion();
+	}
+
+	/**
 	 * Check whether the project currently being built is the root project.
 	 *
 	 * </br></br>

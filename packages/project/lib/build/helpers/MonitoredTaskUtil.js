@@ -21,6 +21,7 @@ const TRACKED_TASK_UTIL_METHODS = {
 	getEnv: "env",
 	getTime: "time",
 	isRootProject: "isRootProject",
+	getResolvedFrameworkVersion: "resolvedFrameworkVersion",
 };
 
 // Tracked methods whose first argument is the input name (the environment variable name, the time

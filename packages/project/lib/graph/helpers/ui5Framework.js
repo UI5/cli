@@ -399,15 +399,6 @@ export default {
 
 		const {libraryMetadata} = await resolver.install(referencedLibraries);
 
-		if (version) {
-			process.emit("ui5.project-framework-resolved", {
-				framework: {
-					name: frameworkName,
-					version,
-				},
-			});
-		}
-
 		if (log.isLevelEnabled("verbose")) {
 			const timeDiff = process.hrtime(startTime);
 			const {default: prettyHrtime} = await import("pretty-hrtime");
@@ -435,6 +426,37 @@ export default {
 		log.verbose("Joining framework graph into project graph...");
 		projectGraph.join(frameworkGraph);
 		await utils.declareFrameworkDependenciesInGraph(projectGraph);
+
+		// Without a workspace, `version` is the effective framework version resolved above (it already
+		// reflects --framework-version and the ui5.yaml config). With a workspace that config is
+		// ignored: OpenUI5 reports the linked sap.ui.core version, while SAPUI5 has no reliable
+		// distribution version and is left empty.
+		let resolvedFrameworkVersion;
+		if (workspace) {
+			if (frameworkName === "SAPUI5") {
+				resolvedFrameworkVersion = "";
+			} else {
+				resolvedFrameworkVersion = projectGraph.getProject("sap.ui.core")?.getVersion() ?? "";
+			}
+		} else {
+			resolvedFrameworkVersion = version;
+		}
+		projectGraph.setResolvedFrameworkVersion(resolvedFrameworkVersion);
+
+		// Emit after workspace-aware resolution so the version reflects the actual resolved
+		// version (e.g. the linked sap.ui.core for OpenUI5 workspace) rather than the
+		// configured ui5.yaml version that may differ.
+		// Always emit when a workspace is active (framework name is known even if version is ""),
+		// and when no workspace but a concrete version was resolved.
+		if (workspace || resolvedFrameworkVersion) {
+			process.emit("ui5.project-framework-resolved", {
+				framework: {
+					name: frameworkName,
+					version: resolvedFrameworkVersion,
+				},
+			});
+		}
+
 		return projectGraph;
 	},
 
