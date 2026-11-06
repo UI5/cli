@@ -163,6 +163,7 @@ class BuildServer extends EventEmitter {
 			getReaderForProject: this.#getReaderForProject.bind(this),
 			getReaderForProjects: this.#getReaderForProjects.bind(this),
 			getCachedReadersForProjects: this.#getCachedReadersForProjects.bind(this),
+			getProjectState: this.#getProjectState.bind(this),
 		};
 
 		this.#allReader = new BuildReader(
@@ -620,6 +621,14 @@ class BuildServer extends EventEmitter {
 		});
 	}
 
+	// Current lifecycle state of a project (one of PROJECT_STATES), or null when the project is not
+	// in the graph. Side-effect-free: unlike #getReaderForProject it never enqueues a build. Exposed
+	// on the build-server interface so BuildReader can label inspect-mode request events; the
+	// consumer maps FRESH to "ready" and every other non-error state to "stale".
+	#getProjectState(projectName) {
+		return this.#projectBuildStatus.get(projectName)?.getState() ?? null;
+	}
+
 	/**
 	 * Several projects might be affected by the source file change.
 	 * However, at this time we can't tell for sure which ones:
@@ -800,14 +809,14 @@ class BuildServer extends EventEmitter {
 			}
 			const cycleStart = process.hrtime();
 			this.#setState(SERVER_STATES.BUILDING);
-			this.#processBuildRequests().then(() => {
+			this.#processBuildRequests().then((builtProjects) => {
 				const hrtime = process.hrtime(cycleStart);
 				// #processBuildRequests captures individual build failures on the
 				// server state and continues the queue, so it resolves normally
 				// even when the build errored. #reconcileServerState's first check
 				// bails on state === ERROR, so the post-build validation pass is
 				// skipped without needing a second guard in #scheduleBackgroundValidation.
-				this.#reconcileServerState({hrtime, mayValidate: true});
+				this.#reconcileServerState({hrtime, builtProjects, mayValidate: true});
 			}).catch((err) => {
 				// Reached only for unexpected failures outside the per-build catch inside
 				// #processBuildRequests (which handles task errors itself). Surface via
@@ -824,9 +833,11 @@ class BuildServer extends EventEmitter {
 	 * builds them in a single batch, resolves/rejects promises for built projects,
 	 * and handles errors with proper isolation.
 	 *
-	 * @returns {Promise<void>} Promise that resolves when queue processing is complete
+	 * @returns {Promise<string[]|undefined>} Names of projects built during a successful cycle, or
+	 *   undefined when the cycle moves to SETTLING
 	 */
 	async #processBuildRequests() {
+		const cycleBuiltProjects = new Set();
 		// Process queue while there are pending requests
 		while (this.#pendingBuildRequest.size > 0) {
 			// Each iteration is a fresh build attempt - ensure the state machine
@@ -942,6 +953,9 @@ class BuildServer extends EventEmitter {
 				// Continue processing any remaining pending requests for unaffected projects.
 				continue;
 			}
+			for (const projectName of builtProjects ?? []) {
+				cycleBuiltProjects.add(projectName);
+			}
 			this.emit("buildFinished", builtProjects);
 			if (signal.aborted || transientFailure) {
 				log.verbose(`Build ${signal.aborted ? "aborted" : "failed transiently"} ` +
@@ -970,6 +984,7 @@ class BuildServer extends EventEmitter {
 			// error indefinitely.
 			this.#clearErroredGatesAfterSuccessfulBuild(projectsToBuild);
 		}
+		return [...cycleBuiltProjects];
 	}
 
 	/**
@@ -1082,10 +1097,11 @@ class BuildServer extends EventEmitter {
 	 * @param {object} [opts]
 	 * @param {Array<number>} [opts.hrtime] Build duration to forward to
 	 *   {@link #setState}. Only the post-build path supplies this.
+	 * @param {string[]} [opts.builtProjects] Names of projects built during the cycle.
 	 * @param {boolean} [opts.mayValidate=false] Whether the reconciler is allowed to
 	 *   schedule a background validation pass. Post-build -> true, post-validation -> false.
 	 */
-	#reconcileServerState({hrtime, mayValidate = false} = {}) {
+	#reconcileServerState({hrtime, builtProjects, mayValidate = false} = {}) {
 		if (this.#destroyed || this.#serverState === SERVER_STATES.ERROR ||
 				this.#serverState === SERVER_STATES.SETTLING) {
 			return;
@@ -1100,13 +1116,14 @@ class BuildServer extends EventEmitter {
 		// Some projects may be merely INITIAL (cache validity unknown but possibly fresh). Validate
 		// them in the background first so cache-clean ones become FRESH before the count is reported;
 		// the transition to VALIDATING happens inside #scheduleBackgroundValidation.
-		if (staleProjects.length > 0 && mayValidate && this.#scheduleBackgroundValidation({hrtime})) {
+		if (staleProjects.length > 0 && mayValidate &&
+				this.#scheduleBackgroundValidation({hrtime, builtProjects})) {
 			return;
 		}
 		// The server is at rest. Activity -> IDLE ("ready"); the stale set (which projects remain
 		// stale) is reported separately and does not gate "ready". Pass the set computed above so
 		// #emitStale doesn't re-sweep #projectBuildStatus.
-		this.#setState(SERVER_STATES.IDLE, {hrtime});
+		this.#setState(SERVER_STATES.IDLE, {hrtime, builtProjects});
 		this.#emitStale(staleProjects);
 	}
 
@@ -1126,10 +1143,11 @@ class BuildServer extends EventEmitter {
 	 * @param {object} [opts]
 	 * @param {Array<number>} [opts.hrtime] Build hrtime to forward to the VALIDATING state
 	 *   transition. Only relevant when called from a post-build cycle-end hook.
+	 * @param {string[]} [opts.builtProjects] Names of projects built during the cycle.
 	 * @returns {boolean} True if a validation pass was actually scheduled, false otherwise.
 	 *   When false, the reconciler settles the server on IDLE and reports the stale set itself.
 	 */
-	#scheduleBackgroundValidation({hrtime} = {}) {
+	#scheduleBackgroundValidation({hrtime, builtProjects} = {}) {
 		if (this.#destroyed || this.#buildLoopSuspended ||
 				this.#activeValidation || this.#activeBuild || this.#recoveringWatcher) {
 			// While recovering the watcher, a validation pass would claim the builder's
@@ -1153,7 +1171,9 @@ class BuildServer extends EventEmitter {
 			return false;
 		}
 		log.verbose(`Scheduling background cache validation for projects: ${projectsToValidate.join(", ")}`);
-		this.#setState(SERVER_STATES.VALIDATING, {hrtime, validatingProjects: projectsToValidate});
+		this.#setState(SERVER_STATES.VALIDATING, {
+			hrtime, builtProjects, validatingProjects: projectsToValidate,
+		});
 		this.#validationAbort = new AbortController();
 		const signal = AbortSignal.any([this.#validationAbort.signal, ...projectAbortSignals]);
 		this.#activeValidation = this.#runBackgroundValidation(projectsToValidate, signal)
@@ -1266,13 +1286,14 @@ class BuildServer extends EventEmitter {
 	 * @param {Array<number>} [opts.hrtime] Build duration as a [seconds, nanoseconds]
 	 *     tuple produced by <code>process.hrtime(start)</code>; required when leaving
 	 *     BUILDING for IDLE/VALIDATING.
+	 * @param {string[]} [opts.builtProjects] Names of projects built during the cycle.
 	 * @param {string[]} [opts.pendingProjects] Names of projects awaiting the deferred rebuild;
 	 *     used when transitioning to SETTLING. Defaults to the stale project set.
 	 * @param {string[]} [opts.validatingProjects] Names of projects undergoing background cache
 	 *     validation; required when transitioning to VALIDATING.
 	 * @param {Error} [opts.error] Error instance; required when transitioning to ERROR.
 	 */
-	#setState(next, {hrtime, pendingProjects, validatingProjects, error} = {}) {
+	#setState(next, {hrtime, builtProjects, pendingProjects, validatingProjects, error} = {}) {
 		if (this.#serverState === next) {
 			return;
 		}
@@ -1285,7 +1306,7 @@ class BuildServer extends EventEmitter {
 
 		if (previous === SERVER_STATES.BUILDING &&
 				next !== SERVER_STATES.ERROR && next !== SERVER_STATES.SETTLING) {
-			this.#serveLogger.buildDone(hrtime ?? [0, 0]);
+			this.#serveLogger.buildDone(hrtime ?? [0, 0], builtProjects ?? []);
 		}
 
 		switch (next) {
@@ -1443,6 +1464,12 @@ class ProjectBuildStatus {
 
 	isFresh() {
 		return this.#state === PROJECT_STATES.FRESH;
+	}
+
+	// Current state, one of PROJECT_STATES. Read by BuildServer#getProjectState for inspect-mode
+	// request labelling; carries no side effect.
+	getState() {
+		return this.#state;
 	}
 
 	isInitial() {

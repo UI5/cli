@@ -119,12 +119,13 @@ test.serial("building emits serve-building", (t) => {
 
 test.serial("buildDone emits serve-build-done", (t) => {
 	const {serveLogger, statusHandler} = t.context;
-	serveLogger.buildDone([2, 345000000]);
+	serveLogger.buildDone([2, 345000000], ["sap.m"]);
 	t.is(statusHandler.callCount, 1, "One serve-status event emitted");
 	t.deepEqual(statusHandler.getCall(0).args[0], {
 		level: "info",
 		status: "serve-build-done",
 		hrtime: [2, 345000000],
+		builtProjects: ["sap.m"],
 	}, "Status event has expected payload");
 });
 
@@ -134,6 +135,15 @@ test.serial("buildDone: Missing parameter", (t) => {
 		serveLogger.buildDone();
 	}, {
 		message: "loggers/Serve#buildDone: Missing or incorrect hrtime parameter",
+	}, "Threw with expected error message");
+});
+
+test.serial("buildDone: Invalid builtProjects", (t) => {
+	const {serveLogger} = t.context;
+	t.throws(() => {
+		serveLogger.buildDone([0, 1], "sap.m");
+	}, {
+		message: "loggers/Serve#buildDone: Missing or incorrect builtProjects parameter",
 	}, "Threw with expected error message");
 });
 
@@ -227,7 +237,7 @@ test.serial("No event listener: building", (t) => {
 test.serial("No event listener: buildDone", (t) => {
 	const {serveLogger, statusHandler, logHandler, logStub} = t.context;
 	process.off(ServeLogger.SERVE_STATUS_EVENT_NAME, statusHandler);
-	serveLogger.buildDone([0, 123000000]);
+	serveLogger.buildDone([0, 123000000], ["sap.m"]);
 	t.is(logStub.callCount, 1, "_log got called once");
 	t.is(logStub.getCall(0).args[0], "info", "Logged with expected log-level");
 	t.is(logStub.getCall(0).args[1], "Build finished in 123 ms", "Logged expected message");
@@ -237,7 +247,7 @@ test.serial("No event listener: buildDone", (t) => {
 test.serial("No event listener: buildDone formats durations >= 1s in seconds", (t) => {
 	const {serveLogger, statusHandler, logHandler, logStub} = t.context;
 	process.off(ServeLogger.SERVE_STATUS_EVENT_NAME, statusHandler);
-	serveLogger.buildDone([2, 345000000]);
+	serveLogger.buildDone([2, 345000000], ["sap.m"]);
 	t.is(logStub.callCount, 1, "_log got called once");
 	t.is(logStub.getCall(0).args[0], "info", "Logged with expected log-level");
 	t.is(logStub.getCall(0).args[1], "Build finished in 2.34 s", "Logged expected message");

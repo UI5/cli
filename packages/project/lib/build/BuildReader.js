@@ -1,5 +1,9 @@
 import AbstractReader from "@ui5/fs/AbstractReader";
 
+// Monotonic id correlating a request's `start` and `end` inspect events. Module-level so ids stay
+// unique across the several BuildReader instances (all / root / dependencies) a BuildServer holds.
+let requestIdCounter = 0;
+
 /**
  * Reader for accessing build results of multiple projects
  *
@@ -17,6 +21,10 @@ class BuildReader extends AbstractReader {
 	#themeLibraryProjectNames = [];
 	#namespaces = new Map();
 	#buildServerInterface;
+	// Read once per reader (constructor runs once per serve session), so the per-request `byPath`
+	// hot path only checks a boolean. The `ui5.serve-request` events feed the interactive console's
+	// inspect mode; see the InteractiveConsole writer in @ui5/logger.
+	#inspectEnabled;
 
 	/**
 	 * Creates a new BuildReader instance
@@ -32,6 +40,7 @@ class BuildReader extends AbstractReader {
 		this.#projects = projects;
 		this.#projectNames = projects.map((p) => p.getName());
 		this.#buildServerInterface = buildServerInterface;
+		this.#inspectEnabled = !!process.env.UI5_CLI_INSPECT;
 
 		for (const project of projects) {
 			const ns = project.getNamespace();
@@ -87,17 +96,89 @@ class BuildReader extends AbstractReader {
 	 * @returns {Promise<@ui5/fs/Resource|null>} Promise resolving to resource or null if not found
 	 */
 	async byPath(virPath, ...args) {
-		for (const getReader of this._getReaderCandidates(virPath)) {
-			const reader = await getReader();
-			if (!reader) {
-				continue;
+		// Emit the request's `start` before the candidate loop so the inspect waterfall can show it
+		// while it is still parked on a build, and `end` once it resolves (or fails to). Gated on the
+		// cheap `#inspectEnabled` boolean so a normal serve pays nothing on this hot path.
+		const requestId = this.#inspectEnabled ? this.#emitRequestStart(virPath) : null;
+		let res = null;
+		let error = null;
+		try {
+			for (const getReader of this._getReaderCandidates(virPath)) {
+				const reader = await getReader();
+				if (!reader) {
+					continue;
+				}
+				res = await reader.byPath(virPath, ...args);
+				if (res) {
+					break;
+				}
 			}
-			const res = await reader.byPath(virPath, ...args);
-			if (res) {
-				return res;
+			return res;
+		} catch (err) {
+			error = err;
+			throw err;
+		} finally {
+			if (requestId !== null) {
+				this.#emitRequestEnd(requestId, virPath, res, error);
 			}
 		}
-		return null;
+	}
+
+	// Emits the `start` phase of a `ui5.serve-request` event and returns the correlation id. The
+	// resolved project candidates and their current build-server state are derived synchronously
+	// (no build triggered), so an in-flight request can be grouped and color-coded immediately.
+	#emitRequestStart(virPath) {
+		const id = ++requestIdCounter;
+		const projects = this._getInspectProjectNames(virPath).map((name) => ({
+			name,
+			state: this.#buildServerInterface.getProjectState(name),
+		}));
+		process.emit("ui5.serve-request", {
+			id,
+			phase: "start",
+			path: virPath,
+			projects,
+			hrtime: process.hrtime(),
+		});
+		return id;
+	}
+
+	// Emits the `end` phase, naming the project that served the resource or entered the errored state.
+	#emitRequestEnd(id, virPath, res, error) {
+		let erroredProject = null;
+		if (error) {
+			erroredProject = this._getInspectProjectNames(virPath).find(
+				(name) => this.#buildServerInterface.getProjectState(name) === "errored") ?? null;
+		}
+		process.emit("ui5.serve-request", {
+			id,
+			phase: "end",
+			hrtime: process.hrtime(),
+			resolvedProject: res?.getProject()?.getName() ?? null,
+			found: !!res,
+			error: !!error,
+			erroredProject,
+		});
+	}
+
+	// The project names a path could resolve to, mirroring the candidate strategies in
+	// {@link BuildReader#_getReaderCandidates} but without requesting (and so building) any reader.
+	// Used only to label inspect-mode request events.
+	_getInspectProjectNames(virPath) {
+		if (this.#projects.length === 1) {
+			return [this.#projectNames[0]];
+		}
+		const names = new Set(this._getProjectsForResourcePath(virPath));
+		if (this.#themeLibraryProjectNames.length && this._isThemeResourcePath(virPath)) {
+			for (const name of this.#themeLibraryProjectNames) {
+				names.add(name);
+			}
+		}
+		if (this.#applicationProjectName && !virPath.startsWith("/resources/") &&
+			!virPath.startsWith("/test-resources/")) {
+			names.add(this.#applicationProjectName);
+		}
+		return [...names];
 	}
 
 	/**

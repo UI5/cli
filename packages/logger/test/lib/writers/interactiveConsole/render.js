@@ -8,6 +8,7 @@ import {
 	renderProjectRegion,
 	renderServerRegion,
 	renderBuildRegion,
+	renderInspectRegion,
 } from "../../../../lib/writers/interactiveConsole/render.js";
 import {REMOTE_CONNECTIONS_WARNING_LINES} from
 	"../../../../lib/writers/interactiveConsole/remoteConnectionsWarning.js";
@@ -26,6 +27,12 @@ import {createProjectState, setProject, setFramework, enableProjectPlaceholders,
 	"../../../../lib/writers/interactiveConsole/state/project.js";
 import {createServerState, setListening, enableServerPlaceholders} from
 	"../../../../lib/writers/interactiveConsole/state/server.js";
+import {
+	createInspectState, setInspectNow, recordRequestStart, recordRequestEnd,
+	recordBuildStart, recordBuildProject, recordBuildDone,
+	WAVE_GAP_MS,
+} from "../../../../lib/writers/interactiveConsole/state/inspect.js";
+import {brand} from "../../../../lib/writers/interactiveConsole/format.js";
 
 // chalk auto-detects "no color" in non-TTY subprocesses (e.g. the AVA worker), which would strip
 // every color code from the status line and defeat the color-per-state assertions below. Force
@@ -459,3 +466,284 @@ for (const {state: s, wrap, word, name} of COLOR_BY_STATE) {
 			`looked for ${JSON.stringify(expected)} in ${JSON.stringify(line)}`);
 	});
 }
+
+// ---- renderInspectRegion ------------------------------------------------------
+
+// Builds an inspect state with a single resolved request for `project` in `state`, over a fixed
+// 10-second window, so the layout assertions below are deterministic. `found` controls whether the
+// request resolved the project (served) or missed (keeping the start state).
+function inspectStateWith(project, projectState, {startMs = 0, endMs = 2000, buildHr, found = true} = {}) {
+	const toHr = (value) => [Math.floor(value / 1000), (value % 1000) * 1e6];
+	const state = createInspectState();
+	setInspectNow(state, toHr(10000));
+	recordRequestStart(state, {
+		id: 1, path: `/resources/${project}/x.js`,
+		projects: [{name: project, state: projectState}], hrtime: toHr(startMs),
+	});
+	if (buildHr) {
+		recordBuildStart(state, toHr(startMs));
+		recordBuildProject(state, project);
+		recordBuildDone(state, toHr(endMs), buildHr);
+	}
+	recordRequestEnd(state, {
+		id: 1, hrtime: toHr(endMs), resolvedProject: found ? project : null, found,
+	});
+	return state;
+}
+
+// An in-flight request (no end) for `project` in `projectState`, so the row is classified by the
+// state seen at request start.
+function inFlightStateWith(project, projectState) {
+	const toHr = (value) => [Math.floor(value / 1000), (value % 1000) * 1e6];
+	const state = createInspectState();
+	setInspectNow(state, toHr(10000));
+	recordRequestStart(state, {
+		id: 1, path: `/resources/${project}/x.js`,
+		projects: [{name: project, state: projectState}], hrtime: toHr(0),
+	});
+	return state;
+}
+
+test("renderInspectRegion: empty when there are no requests", (t) => {
+	t.deepEqual(renderInspectRegion(createInspectState(), 80), []);
+});
+
+test("renderInspectRegion: renders a header and one line per project reader", (t) => {
+	const state = inFlightStateWith("sap.m", "building");
+	const plain = renderInspectRegion(state, 80).map(stripAnsi);
+	t.is(plain[0], "", "leads with the region separator blank line");
+	t.regex(plain[1], /Inspect\s+requests and dependency builds/);
+	t.regex(plain[2], /sap\.m\s+\(stale\)/);
+	t.regex(plain[2], /1 req\b/);
+});
+
+test("renderInspectRegion: marks a wave ready after the quiet gap", (t) => {
+	const toHr = (value) => [Math.floor(value / 1000), (value % 1000) * 1e6];
+	const state = inspectStateWith("sap.m", "fresh", {endMs: 500});
+	setInspectNow(state, toHr(500 + WAVE_GAP_MS - 1));
+	t.notRegex(stripAnsi(renderInspectRegion(state, 80)[1]), /new wave ready/);
+
+	setInspectNow(state, toHr(500 + WAVE_GAP_MS));
+	const header = renderInspectRegion(state, 80)[1];
+	t.regex(stripAnsi(header), /new wave ready/);
+	t.true(header.includes(chalk.green(`${figures.tick} new wave ready`)));
+});
+
+test("renderInspectRegion: a built reader shows an explicit built label and its build time", (t) => {
+	const state = inspectStateWith("sap.m", "building", {buildHr: [0, 800e6]});
+	const plain = renderInspectRegion(state, 80).map(stripAnsi).join("\n");
+	t.regex(plain, /sap\.m\s+\(built 800 ms\)/,
+		"the label distinguishes a build from other request activity");
+});
+
+test("renderInspectRegion: shows a dependency built for another reader", (t) => {
+	const toHr = (value) => [Math.floor(value / 1000), (value % 1000) * 1e6];
+	const state = createInspectState();
+	setInspectNow(state, toHr(1000));
+	recordRequestStart(state, {
+		id: 1, path: "/resources/sap/ui/documentation/sdk/index.html",
+		projects: [{name: "sap.ui.documentation", state: "building"}], hrtime: toHr(0),
+	});
+	recordBuildStart(state, toHr(100));
+	recordBuildProject(state, "sap.m");
+	recordBuildDone(state, toHr(900), [0, 800e6]);
+	recordRequestEnd(state, {
+		id: 1, hrtime: toHr(1000), resolvedProject: "sap.ui.documentation", found: true,
+	});
+
+	const plain = renderInspectRegion(state, 120).map(stripAnsi).join("\n");
+	t.regex(plain, /sap\.ui\.documentation\s+\(cached\)\s+1 req/);
+	t.regex(plain, /sap\.m\s+\(dependency built 800 ms\)/);
+	t.notRegex(plain, /sap\.m.*0 req/, "a dependency build is not presented as a resource request");
+});
+
+test("renderInspectRegion: labels dependency builds without a duration", (t) => {
+	const toHr = (value) => [Math.floor(value / 1000), (value % 1000) * 1e6];
+	const state = createInspectState();
+	setInspectNow(state, toHr(1000));
+	recordRequestStart(state, {
+		id: 1, path: "/resources/docs/x.html",
+		projects: [{name: "docs", state: "building"}], hrtime: toHr(0),
+	});
+	recordBuildStart(state, toHr(100));
+	recordBuildProject(state, "sap.m");
+
+	let plain = renderInspectRegion(state, 100).map(stripAnsi).join("\n");
+	t.regex(plain, /sap\.m\s+\(dependency building\)/);
+	recordBuildDone(state, toHr(900));
+	plain = renderInspectRegion(state, 100).map(stripAnsi).join("\n");
+	t.regex(plain, /sap\.m\s+\(dependency built\)/);
+});
+
+test("renderInspectRegion: a reader served without a build reads as cached", (t) => {
+	const state = inspectStateWith("my.app", "fresh");
+	const plain = renderInspectRegion(state, 80).map(stripAnsi).join("\n");
+	t.regex(plain, /my\.app\s+\(cached\)/, "a warm-cache hit (no build) reads as cached");
+});
+
+test("renderInspectRegion: a completed miss reads as not found", (t) => {
+	const state = inspectStateWith("openui5-testsuite", "initial", {found: false});
+	const lines = renderInspectRegion(state, 80);
+	const plain = lines.map(stripAnsi).join("\n");
+	t.regex(plain, /openui5-testsuite\s+\(not found\)/);
+	t.notRegex(plain, /openui5-testsuite\s+\(stale\)/);
+	t.true(lines[2].includes(chalk.yellow("openui5-testsuite")),
+		`expected the not-found reader name in yellow in ${JSON.stringify(lines[2])}`);
+});
+
+test("renderInspectRegion: a miss that rebuilt surfaces the build time in the label", (t) => {
+	// A request that resolved no project still reports its expensive rebuild time in the label, in
+	// the same place a served reader shows it.
+	const state = inspectStateWith("sap.m", "building", {buildHr: [0, 800e6], found: false});
+	const plain = renderInspectRegion(state, 80).map(stripAnsi).join("\n");
+	t.regex(plain, /sap\.m\s+\(built 800 ms\)/, "the build time is in the label");
+	t.notRegex(plain, /\(stale\)/, "the build time replaces the state word in the label");
+});
+
+test("renderInspectRegion: a reader built twice renders both durations in red", (t) => {
+	const toHr = (value) => [Math.floor(value / 1000), (value % 1000) * 1e6];
+	const state = createInspectState();
+	setInspectNow(state, toHr(10000));
+	recordRequestStart(state, {id: 1, path: "/a", projects: [{name: "sap.m", state: "building"}], hrtime: toHr(0)});
+	recordBuildStart(state, toHr(0));
+	recordBuildProject(state, "sap.m");
+	recordBuildDone(state, toHr(300), [0, 300e6]);
+	recordRequestEnd(state, {id: 1, hrtime: toHr(400), resolvedProject: "sap.m"});
+	recordRequestStart(state, {id: 2, path: "/b", projects: [{name: "sap.m", state: "building"}], hrtime: toHr(4000)});
+	recordBuildStart(state, toHr(4000));
+	recordBuildProject(state, "sap.m");
+	recordBuildDone(state, toHr(4500), [0, 500e6]);
+	recordRequestEnd(state, {id: 2, hrtime: toHr(4600), resolvedProject: "sap.m"});
+	const line = renderInspectRegion(state, 80)[2];
+	t.regex(stripAnsi(line), /\(built 300 ms, 500 ms\)/, "both wave builds are listed in the label");
+	t.true(line.includes(chalk.red("(built 300 ms, 500 ms)")),
+		`expected the repeated-build durations in red in ${JSON.stringify(line)}`);
+});
+
+test("renderInspectRegion: the request count is rendered in front of the bar", (t) => {
+	const plain = stripAnsi(renderInspectRegion(inspectStateWith("sap.m", "fresh"), 80)[2]);
+	t.regex(plain, /1 req\b/);
+	t.true(plain.indexOf("req") < plain.indexOf("█"), "the count precedes the bar");
+});
+
+test("renderInspectRegion: separated bursts render as several bar segments", (t) => {
+	const toHr = (value) => [Math.floor(value / 1000), (value % 1000) * 1e6];
+	const state = createInspectState();
+	setInspectNow(state, toHr(10000));
+	for (const [id, at] of [[1, 0], [2, 4000], [3, 8000]]) {
+		recordRequestStart(state, {
+			id, path: "/a", projects: [{name: "sap.ui.core", state: "fresh"}], hrtime: toHr(at),
+		});
+		recordRequestEnd(state, {id, hrtime: toHr(at + 200), resolvedProject: "sap.ui.core"});
+	}
+	const bar = stripAnsi(renderInspectRegion(state, 160)[2]);
+	t.regex(bar, /█+░+█/, "a gap between bursts shows as dim cells between active blocks");
+});
+
+test("renderInspectRegion: a stale reader is rendered in the brand (orange) color", (t) => {
+	const state = inFlightStateWith("sap.m", "building");
+	const line = renderInspectRegion(state, 80)[2];
+	// The brand helper wraps the reader name; assert the colored span is present.
+	t.true(line.includes(brand("sap.m")),
+		`expected the stale reader name wrapped in the brand color in ${JSON.stringify(line)}`);
+});
+
+test("renderInspectRegion: a cached reader is rendered in dimmed grey", (t) => {
+	const state = inspectStateWith("my.app", "fresh");
+	const line = renderInspectRegion(state, 80)[2];
+	t.true(line.includes(chalk.dim("my.app")),
+		`expected the cached reader name dimmed in ${JSON.stringify(line)}`);
+});
+
+test("renderInspectRegion: bars scale to the terminal width", (t) => {
+	const narrow = renderInspectRegion(inFlightStateWith("sap.m", "building"), 60)[2];
+	const wide = renderInspectRegion(inFlightStateWith("sap.m", "building"), 160)[2];
+	const activeChars = (line) => (stripAnsi(line).match(/█/g) || []).length;
+	t.true(activeChars(wide) > activeChars(narrow),
+		"a wider terminal produces a longer active bar for the same request span");
+});
+
+test("renderInspectRegion: an errored reader is rendered in red", (t) => {
+	// A failed build leaves the request unresolved, so the reader keeps its errored start state.
+	const state = inspectStateWith("broken.lib", "errored", {found: false});
+	const line = renderInspectRegion(state, 80)[2];
+	t.true(line.includes(chalk.red("broken.lib")),
+		`expected the errored reader name in red in ${JSON.stringify(line)}`);
+	t.regex(stripAnsi(line), /broken\.lib\s+\(error\)/);
+});
+
+test("renderInspectRegion: a long reader name is truncated to the name column", (t) => {
+	const longName = "a.very.long.project.name.exceeding.the.cap";
+	const plain = stripAnsi(renderInspectRegion(inspectStateWith(longName, "fresh"), 80)[2]);
+	t.false(plain.includes(longName), "the full name does not fit");
+	t.true(plain.includes(longName.slice(0, 24)), "the name is truncated to the cap");
+});
+
+test("renderInspectRegion: pluralizes the request count", (t) => {
+	const toHr = (value) => [Math.floor(value / 1000), (value % 1000) * 1e6];
+	const state = createInspectState();
+	setInspectNow(state, toHr(10000));
+	for (const id of [1, 2, 3]) {
+		recordRequestStart(state, {
+			id, path: "/x", projects: [{name: "sap.m", state: "fresh"}], hrtime: toHr(0),
+		});
+		recordRequestEnd(state, {id, hrtime: toHr(100), resolvedProject: "sap.m"});
+	}
+	const plain = stripAnsi(renderInspectRegion(state, 80)[2]);
+	t.regex(plain, /3 reqs/);
+});
+
+test("renderInspectRegion: falls back to a default width on a non-TTY (undefined columns)", (t) => {
+	const plain = stripAnsi(renderInspectRegion(inFlightStateWith("sap.m", "building"), undefined)[2]);
+	t.regex(plain, /█/, "still produces an active bar at the default width");
+});
+
+test("renderInspectRegion: collapses rows beyond maxRows into a '+N more readers' line", (t) => {
+	const toHr = (value) => [Math.floor(value / 1000), (value % 1000) * 1e6];
+	const state = createInspectState();
+	setInspectNow(state, toHr(10000));
+	for (const name of ["lib.a", "lib.b", "lib.c", "lib.d", "lib.e"]) {
+		recordRequestStart(state, {
+			id: name, path: `/resources/${name}/x.js`,
+			projects: [{name, state: "fresh"}], hrtime: toHr(0),
+		});
+		recordRequestEnd(state, {id: name, hrtime: toHr(10), resolvedProject: name});
+	}
+	// maxRows = 3: two reader rows plus a summary for the remaining three.
+	const plain = renderInspectRegion(state, 80, 3).map(stripAnsi);
+	const dataLines = plain.slice(2); // drop the blank + header
+	t.is(dataLines.length, 3, "two reader rows and one summary line");
+	t.regex(dataLines[2], /\+3 more readers/);
+});
+
+test("renderInspectRegion: uses the only available row for the overflow summary", (t) => {
+	const state = createInspectState();
+	setInspectNow(state, [10, 0]);
+	for (const name of ["lib.a", "lib.b"]) {
+		recordRequestStart(state, {
+			id: name, path: `/resources/${name}/x.js`,
+			projects: [{name, state: "fresh"}], hrtime: [0, 0],
+		});
+		recordRequestEnd(state, {id: name, hrtime: [0, 10e6], resolvedProject: name});
+	}
+
+	const dataLines = renderInspectRegion(state, 80, 1).map(stripAnsi).slice(2);
+	t.deepEqual(dataLines, [" +2 more readers"]);
+	t.deepEqual(renderInspectRegion(state, 80, 0), [], "the region stays hidden without row capacity");
+});
+
+test("renderInspectRegion: the overflow summary consumes one row from the budget", (t) => {
+	const toHr = (value) => [Math.floor(value / 1000), (value % 1000) * 1e6];
+	const state = createInspectState();
+	setInspectNow(state, toHr(10000));
+	for (const name of ["lib.a", "lib.b", "lib.c"]) {
+		recordRequestStart(state, {
+			id: name, path: `/resources/${name}/x.js`,
+			projects: [{name, state: "fresh"}], hrtime: toHr(0),
+		});
+		recordRequestEnd(state, {id: name, hrtime: toHr(10), resolvedProject: name});
+	}
+	// A two-line budget shows one reader and summarizes the other two.
+	const plain = renderInspectRegion(state, 80, 2).map(stripAnsi);
+	t.regex(plain[plain.length - 1], /\+2 more readers\b/);
+});

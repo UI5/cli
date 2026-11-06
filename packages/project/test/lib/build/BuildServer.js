@@ -275,6 +275,8 @@ test.serial("serve-status: initial build cycle emits building → buildDone → 
 	const idxReady = seq.indexOf("serve-ready");
 	t.true(idxBuilding >= 0 && idxBuildDone > idxBuilding && idxReady > idxBuildDone,
 		`Expected building → buildDone → ready, got: ${seq.join(", ")}`);
+	t.deepEqual(statusEvents[idxBuildDone].builtProjects, ["root.project"],
+		"buildDone identifies the project built during the cycle");
 });
 
 test.serial(
@@ -842,6 +844,8 @@ test.serial(
 		const validatingEvt = statusEvents[idxValidating];
 		t.deepEqual(validatingEvt.validatingProjects, ["library.x"],
 			"validating event carries the project being validated");
+		t.deepEqual(statusEvents[idxBuildDone].builtProjects, ["root.project"],
+			"buildDone retains its projects across the transition to cache validation");
 	});
 
 // When background validation finds a stale cache (usesCache=false), the project stays
@@ -2226,4 +2230,11 @@ test.serial("suspendBuilds: is a no-op after destroy()", async (t) => {
 	await buildServer.destroy();
 	t.notThrows(() => buildServer.suspendBuilds("definition changing"));
 	t.is(projectBuilder.build.callCount, 0);
+});
+
+test.serial("getProjectState: exposes the per-project lifecycle state for inspect labelling", (t) => {
+	const [iface] = t.context.capturedInterfaces;
+	// A freshly created server with no initial build leaves the root project in its INITIAL state.
+	t.is(iface.getProjectState("root.project"), "initial");
+	t.is(iface.getProjectState("does.not.exist"), null, "unknown projects resolve to null");
 });

@@ -2,6 +2,7 @@ import chalk from "chalk";
 import figures from "figures";
 import prettyHrtime from "pretty-hrtime";
 import {STATES} from "./state/build.js";
+import {buildInspectRows, isNewWaveReady} from "./state/inspect.js";
 import {brand, accent, accentBold, arrow, placeholder} from "./format.js";
 import {REMOTE_CONNECTIONS_WARNING_LINES} from "./remoteConnectionsWarning.js";
 
@@ -215,4 +216,143 @@ function renderStatusLine(state) {
 	default:
 		return label;
 	}
+}
+
+// Cap the project-name column so one long name can't crowd out the bar.
+const INSPECT_NAME_CAP = 24;
+// Floor on the bar width so a narrow terminal still shows a bar rather than nothing.
+const INSPECT_MIN_BAR = 8;
+// Default width when stderr is not a TTY (`columns` is undefined), so the selector still produces
+// readable bars in captured output.
+const INSPECT_DEFAULT_COLUMNS = 80;
+const INSPECT_BAR_OFFSET = "░";
+const INSPECT_BAR_ACTIVE = "█";
+
+// Renders the inspect waterfall: one header line plus one line per project reader or indirectly built
+// dependency for the current wave, in the stable first-seen order the selector produces. Each row is
+// color-coded by state (orange while stale/building, dimmed grey once ready, red on error). The
+// bracket after the name holds the build duration(s). Returns [] when there is nothing to show, so
+// the region collapses like the others. `columns` scales the bars to the terminal width. `maxRows`
+// caps the number of data lines to what fits below the banner. The overflow collapses into a trailing
+// "+N more readers" line so the banner is never clipped. Pass Infinity (or omit) for no cap.
+export function renderInspectRegion(inspectState, columns, maxRows = Infinity) {
+	const allRows = buildInspectRows(inspectState);
+	if (allRows.length === 0 || maxRows < 1) {
+		return [];
+	}
+	// Keep as many rows as fit; when some don't, give up one row slot to the "+N more" summary.
+	let rows = allRows;
+	let overflow = 0;
+	if (allRows.length > maxRows) {
+		const shown = Math.max(0, maxRows - 1);
+		rows = allRows.slice(0, shown);
+		overflow = allRows.length - shown;
+	}
+	const nameWidth = Math.min(
+		INSPECT_NAME_CAP, rows.reduce((max, row) => Math.max(max, row.name.length), 0));
+	// The label widens to fit a built reader's time(s) (e.g. "(built 1.2 s)" or
+	// "(built 30 ms, 45 ms)"), so size it to the content.
+	const labelWidth = rows.reduce((max, row) => Math.max(max, inspectLabel(row).length), 0);
+	// The request count sits in front of the bar; size its column to the widest count so the bars line
+	// up in one column regardless of how many digits each count needs.
+	const countWidth = rows.reduce((max, row) => Math.max(max, inspectCount(row).length), 0);
+	const totalWidth = columns || INSPECT_DEFAULT_COLUMNS;
+	const prefixWidth = 1 + nameWidth + 1 + labelWidth + 2 + countWidth + 2;
+	const barWidth = Math.max(INSPECT_MIN_BAR, totalWidth - prefixWidth);
+	const ready = isNewWaveReady(inspectState) ?
+		`${chalk.dim("|")} ${chalk.yellow(`${figures.info} new wave on next request`)}` : "";
+	const lines = ["", `${chalk.dim("Inspect")} ${ready}`];
+	for (const row of rows) {
+		lines.push(renderInspectRow(row, nameWidth, labelWidth, countWidth, barWidth));
+	}
+	if (overflow > 0) {
+		lines.push(` ${chalk.dim(`+${overflow} more readers`)}`);
+	}
+	return lines;
+}
+
+// The color applied to a reader's name and bar: dim grey for a ready reader, yellow for a completed
+// miss, red for an errored one, and the brand color for anything still stale or building.
+function inspectColor(row) {
+	if (row.notFound) {
+		return chalk.yellow;
+	}
+	const {klass} = row;
+	if (klass === "ready") {
+		return chalk.dim;
+	}
+	if (klass === "error") {
+		return chalk.red;
+	}
+	return brand;
+}
+
+// The label shown between the name and the request count. When the reader's requests triggered a
+// build, it holds the build duration(s) so the timing always reads in one place; otherwise it names
+// the request outcome or reader state. A reader served straight from a warm cache (no build) reads
+// as "(cached)".
+function inspectLabel(row) {
+	if (row.dependency) {
+		if (row.buildHrs.length > 0) {
+			return `(dependency built ${row.buildHrs.map((hr) => prettyHrtime(hr)).join(", ")})`;
+		}
+		return row.building ? "(dependency building)" : "(dependency built)";
+	}
+	if (row.buildHrs.length > 0) {
+		return `(built ${row.buildHrs.map((hr) => prettyHrtime(hr)).join(", ")})`;
+	}
+	if (row.notFound) {
+		return "(not found)";
+	}
+	if (row.klass === "ready") {
+		return "(cached)";
+	}
+	return `(${row.klass})`;
+}
+
+// The build duration(s) turn red once a reader was built more than once in a wave: a repeated build
+// of the same project within one request wave is the expensive pattern this view exists to surface.
+// A single build, or a plain state label, keeps the row's own color.
+function inspectLabelColor(row, color) {
+	return row.buildHrs.length >= 2 ? chalk.red : color;
+}
+
+function inspectCount(row) {
+	if (row.dependency) {
+		return "";
+	}
+	return `${row.reqCount} req${row.reqCount === 1 ? "" : "s"}`;
+}
+
+// Paints a reader's bar: one block of █ per request segment, dim ░ for the lead-in and for the gaps
+// between segments. Several bursts to the same reader within a wave therefore show as several blocks.
+// A reader row always carries at least one request, so `segments` is never empty.
+function inspectBar(segments, barWidth, color) {
+	const active = new Array(barWidth).fill(false);
+	let lastCell = 0;
+	for (const segment of segments) {
+		const start = Math.min(barWidth, Math.max(0, Math.round(segment.startFrac * barWidth)));
+		let end = Math.min(barWidth, Math.round(segment.endFrac * barWidth));
+		if (end <= start) {
+			end = Math.min(barWidth, start + 1);
+		}
+		for (let i = start; i < end; i++) {
+			active[i] = true;
+		}
+		lastCell = Math.max(lastCell, end);
+	}
+	let bar = "";
+	for (let i = 0; i < lastCell; i++) {
+		bar += active[i] ? color(INSPECT_BAR_ACTIVE) : chalk.dim(INSPECT_BAR_OFFSET);
+	}
+	return bar;
+}
+
+function renderInspectRow(row, nameWidth, labelWidth, countWidth, barWidth) {
+	const color = inspectColor(row);
+	const name = row.name.length > nameWidth ? row.name.slice(0, nameWidth) : row.name.padEnd(nameWidth);
+	const label = inspectLabel(row).padEnd(labelWidth);
+	const count = inspectCount(row).padStart(countWidth);
+	const bar = inspectBar(row.segments, barWidth, color);
+	return ` ${color(name)} ${inspectLabelColor(row, color)(label)}  ${chalk.dim(count)}  ${bar}`;
 }
