@@ -168,6 +168,14 @@ export function validateDescriptor(descriptor, {taskName} = {}) {
 			`Task descriptor${where} 'specVersion' must be a string, ` +
 			`got ${describeValue(descriptor.specVersion)}`);
 	}
+	// A task may opt out of the build cache by setting 'cache' to false. Omitted means cacheable.
+	// Only a literal false disables caching; any other value is a declaration error rather than a
+	// silent "truthy means cacheable".
+	if (descriptor.cache !== undefined && typeof descriptor.cache !== "boolean") {
+		throw new Error(
+			`Task descriptor${where} 'cache' must be a boolean, ` +
+			`got ${describeValue(descriptor.cache)}`);
+	}
 }
 
 /**
