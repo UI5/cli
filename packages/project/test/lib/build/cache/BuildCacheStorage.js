@@ -449,6 +449,61 @@ test("hasRecords: Returns true when result metadata table has records", (t) => {
 	t.true(t.context.storage.hasRecords());
 });
 
+// ===== hasProjectRecords / dropProjectRecords =====
+
+function seedProjectRecords(storage, projectId) {
+	storage.writeIndexCache(projectId, "build-sig", "source", {v: 1});
+	storage.writeStageCache(projectId, "build-sig", "task/minify", "stage-sig", {v: 2});
+	storage.writeTaskMetadata(projectId, "build-sig", "minify", "project", {v: 3});
+	storage.writeResultMetadata(projectId, "build-sig", "result-sig", {v: 4});
+}
+
+test("hasProjectRecords: Returns false for a project without records", (t) => {
+	t.context.storage.writeIndexCache("project-a", "build-sig", "source", {v: 1});
+	t.false(t.context.storage.hasProjectRecords("project-b"));
+});
+
+test("hasProjectRecords: Returns true when any project-keyed table has a row", (t) => {
+	t.context.storage.writeResultMetadata("project-a", "build-sig", "sig-a", {v: 1});
+	t.true(t.context.storage.hasProjectRecords("project-a"));
+});
+
+test("hasProjectRecords: Ignores content table (not project-keyed)", (t) => {
+	t.context.storage.putContent("sha256-content", Buffer.from("data"));
+	t.false(t.context.storage.hasProjectRecords("project-a"),
+		"Shared content does not count as project records");
+});
+
+test("dropProjectRecords: Removes all project-keyed rows and returns the count", (t) => {
+	seedProjectRecords(t.context.storage, "project-a");
+
+	const deleted = t.context.storage.dropProjectRecords("project-a");
+
+	t.is(deleted, 4, "Reports one deleted row per project-keyed table");
+	t.false(t.context.storage.hasProjectRecords("project-a"), "Project has no records left");
+});
+
+test("dropProjectRecords: Leaves other projects and shared content intact", (t) => {
+	seedProjectRecords(t.context.storage, "project-a");
+	seedProjectRecords(t.context.storage, "project-b");
+	t.context.storage.putContent("sha256-shared", Buffer.from("data"));
+
+	t.context.storage.dropProjectRecords("project-a");
+
+	t.false(t.context.storage.hasProjectRecords("project-a"), "Target project cleared");
+	t.true(t.context.storage.hasProjectRecords("project-b"), "Other project untouched");
+	t.true(t.context.storage.hasContent("sha256-shared"), "Shared content untouched");
+});
+
+test("dropProjectRecords: No-op returns 0 for an unknown project", (t) => {
+	seedProjectRecords(t.context.storage, "project-a");
+
+	const deleted = t.context.storage.dropProjectRecords("project-unknown");
+
+	t.is(deleted, 0, "Nothing deleted for an unknown project");
+	t.true(t.context.storage.hasProjectRecords("project-a"), "Existing project untouched");
+});
+
 test("getDatabaseSize: Returns positive database size", (t) => {
 	const size = t.context.storage.getDatabaseSize();
 	t.true(Number.isInteger(size));

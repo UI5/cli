@@ -415,6 +415,48 @@ export default class CacheManager {
 	}
 
 	/**
+	 * Get build cache info for a single project in the current cache version.
+	 *
+	 * @public
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @param {string} projectId Project identifier (root package name)
+	 * @returns {Promise<{path: string, projectId: string}|null>} Build cache info or null
+	 */
+	static getProjectCacheInfo(ui5DataDir, projectId) {
+		return CacheManager.#withStorage(ui5DataDir, null, (storage) => {
+			if (!storage.hasProjectRecords(projectId)) {
+				return null;
+			}
+			return {path: `buildCache/${CACHE_VERSION}`, projectId};
+		});
+	}
+
+	/**
+	 * Deletes all build cache entries for a single project across the project-keyed
+	 * tables. The shared content-addressed store is left untouched; run
+	 * {@link cleanCache} to reclaim orphaned content.
+	 *
+	 * @public
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @param {string} projectId Project identifier (root package name)
+	 * @returns {Promise<{path: string, projectId: string, deletedEntries: number}|null>} Removal result or null
+	 */
+	static cleanProject(ui5DataDir, projectId) {
+		return CacheManager.#withStorage(ui5DataDir, null, (storage) => {
+			if (!storage.hasProjectRecords(projectId)) {
+				return null;
+			}
+			return {
+				path: `buildCache/${CACHE_VERSION}`,
+				projectId,
+				deletedEntries: storage.dropProjectRecords(projectId),
+			};
+		});
+	}
+
+	/**
 	 * Runs VACUUM to reclaim disk space from a previous {@link cleanCache} call.
 	 * Only runs if the database has freelist pages (i.e. cleanup was deferred).
 	 *
