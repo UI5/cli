@@ -105,7 +105,7 @@
 	"devDependencies": {
 		"@istanbuljs/esm-loader-hook": "^0.3.0",
 		"@ui5/project": "^5.0.0-alpha.15",
-		"ava": "^8.3.0",
+		"ava": "^8.4.0",
 		"connect": "^3.7.0",
 		"cross-env": "^10.1.0",
 		"eslint": "^10.14.0",
@@ -113,6 +113,6 @@
 		"nyc": "^18.0.0",
 		"rimraf": "^6.1.4",
 		"sinon": "^22.1.0",
-		"supertest": "^7.3.1"
+		"supertest": "^7.3.2"
 	}
 }

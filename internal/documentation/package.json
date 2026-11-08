@@ -37,8 +37,8 @@
 		"download-packages": "./scripts/downloadPackages.sh"
 	},
 	"devDependencies": {
-		"@apidevtools/json-schema-ref-parser": "^16.0.5",
-		"@tailwindcss/vite": "^4.3.4",
+		"@apidevtools/json-schema-ref-parser": "^16.0.6",
+		"@tailwindcss/vite": "^4.3.5",
 		"@types/node": "^26.6.6",
 		"autoprefixer": "^10.6.2",
 		"cssnano": "^9.9.0",
