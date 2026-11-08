@@ -43,7 +43,7 @@
 	},
 	"dependencies": {
 		"@ui5/builder": "^4.3.8",
-		"@ui5/cli": "^4.0.72",
+		"@ui5/cli": "^4.0.73",
 		"@ui5/fs": "^4.0.7",
 		"@ui5/logger": "^4.0.3",
 		"@ui5/project": "^4.0.19",
