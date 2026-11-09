@@ -10,9 +10,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/SAP/ui5-logger/badge.svg)](https://coveralls.io/github/SAP/ui5-logger)
 
 ## Documentation
-General UI5 CLI documentation can be found here: [ui5.github.io/cli](https://ui5.github.io/cli/)
+General UI5 CLI documentation can be found here: [ui5.github.io/cli](https://ui5.github.io/cli/v5/)
 
-The UI5 Logger API Reference can be found here: [`@ui5/logger`](https://ui5.github.io/cli/stable/api/module-@ui5_logger.html)
+The UI5 Logger API Reference can be found here: [`@ui5/logger`](https://ui5.github.io/cli/v5/api/module-@ui5_logger.html)
 
 ## Contributing
 Please check our [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING.md).
