@@ -42,6 +42,7 @@ const log = getLogger("graph:Workspace");
  */
 class Workspace {
 	#visitedNodePaths = new Set();
+	#resolutionRootPaths = new Set();
 	#configValidated = false;
 	#configuration;
 	#cwd;
@@ -155,6 +156,12 @@ class Workspace {
 			seenAbsolutePaths.push(absolutePath);
 		}
 
+		// Record all resolution root paths so that recursion into a workspace member can be
+		// pruned when that member is itself a dedicated resolution target. This keeps "most
+		// specific configPath wins" independent of the order in which the asynchronous
+		// traversals happen to complete.
+		this.#resolutionRootPaths = new Set(seenAbsolutePaths);
+
 		let resolvedModules = await Promise.all(resolutions.map(async (resolutionConfig) => {
 			if (!resolutionConfig.path) {
 				throw new Error(
@@ -262,6 +269,16 @@ class Workspace {
 
 			const resolvedModules = new Map();
 			await Promise.all(searchPaths.map(async (pkgPath) => {
+				const childPath = path.join(nodePath, pkgPath);
+				if (this.#resolutionRootPaths.has(childPath)) {
+					// A dedicated resolution targets this path directly. Skip it here so that
+					// resolution's configPath is applied instead of the one inherited from this
+					// broader resolution. The dedicated resolution is always processed on its own,
+					// so the module is not lost.
+					log.verbose(
+						`Skipping workspace member ${childPath}: covered by a dedicated resolution`);
+					return;
+				}
 				const modules =
 					await this._getModulesFromPath(nodePath, pkgPath, configPath, staticPatterns.includes(pkgPath));
 				modules.forEach((module) => {
