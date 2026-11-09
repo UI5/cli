@@ -1326,46 +1326,150 @@ test("[workspace/1.1] Duplicate resolutions for single lib (missing config last)
 	}
 );
 
-// test("[workspace/1.1] TBD", async (t) => {
-// 	const workspace = new t.context.Workspace({
-// 		cwd: __dirname,
-// 		configuration: createWorkspaceConfig({
-// 			dependencyManagement: {
-// 				resolutions: [{
-// 					path: "../../fixtures/collection.c",
-// 					configPath: "ui5-custom.yaml"
-// 				},
-// 				{
-// 					path: "../../fixtures/collection.c/library.a",
-// 					configPath: "ui5-another-custom.yaml"
-// 				}]
-// 			}
-// 		})
-// 	});
+// TODO: RENAME!!
+test("[workspace/1.1] TBD", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c",
+					configPath: "ui5-custom.yaml"
+				},
+				{
+					path: "../../fixtures/collection.c/collection.a",
+					configPath: "ui5-another-custom.yaml"
+				}]
+			}
+		})
+	});
 
-// 	const basePath = path.join(__dirname, "../../fixtures/library.xyz");
-// 	const workspaceAPath = path.join(basePath, "workspace-a");
+	const collectionCPath = path.join(__dirname, "../../fixtures/collection.c");
+	const collectionAPath = path.join(collectionCPath, "collection.a");
 
-// 	const readPackageJsonStub = t.context.sinon.stub(workspace, "_readPackageJson");
-// 	readPackageJsonStub.withArgs(basePath).resolves({
-// 		name: "Base Package",
-// 		version: "1.0.0",
-// 		workspaces: [
-// 			"workspace-a"
-// 		]
-// 	});
-// 	readPackageJsonStub.withArgs(workspaceAPath).resolves({
-// 		name: "Workspace A Package",
-// 		version: "1.0.0",
-// 		workspaces: [
-// 			".."
-// 		]
-// 	});
+	const readPackageJsonStub = t.context.sinon.stub(workspace, "_readPackageJson");
+	readPackageJsonStub.withArgs(path.join(collectionCPath, "library.a")).resolves({
+		name: "library.a",
+		version: "1.0.0",
+	});
+	readPackageJsonStub.withArgs(path.join(collectionCPath, "library.b")).resolves({
+		name: "library.b",
+		version: "1.0.0",
+	});
+	readPackageJsonStub.withArgs(path.join(collectionAPath, "library.c")).resolves({
+		name: "library.c",
+		version: "1.0.0",
+	});
+	readPackageJsonStub.withArgs(path.join(collectionAPath, "library.d")).resolves({
+		name: "library.d",
+		version: "1.0.0",
+	});
 
-// 	const {projectNameMap, moduleIdMap} = await workspace._getResolvedModules();
-// 	// All workspaces. Should not resolve to any module
-// 	// Recursive workspace definition should not lead to another readPackageJson call
-// 	t.is(readPackageJsonStub.callCount, 2, "readPackageJson got called two times");
-// 	t.is(projectNameMap.size, 0, "Project name to module map is empty");
-// 	t.is(moduleIdMap.size, 0, "Module ID to module map is empty");
-// });
+	// Standard package.json workspace configs:
+	readPackageJsonStub.withArgs(collectionCPath).resolves({
+		name: "collection c",
+		version: "1.0.0",
+		workspaces: [
+			"library.a",
+			"library.b",
+			"collection.a"
+		]
+	});
+	readPackageJsonStub.withArgs(collectionAPath).resolves({
+		name: "collection a",
+		version: "1.0.0",
+		workspaces: [
+			"library.c",
+			"library.d"
+		]
+	});
+
+	const {projectNameMap, moduleIdMap} = await workspace._getResolvedModules();
+	t.is(projectNameMap.size, 4, "Project name to module map is empty");
+	t.is(moduleIdMap.size, 4, "Module ID to module map is empty");
+
+	t.is(projectNameMap.get("library.a.custom")._configPath,
+		path.join(collectionCPath, "library.a", "ui5-custom.yaml"));
+	t.is(projectNameMap.get("library.b.custom")._configPath,
+		path.join(collectionCPath, "library.b", "ui5-custom.yaml"));
+	t.is(projectNameMap.get("library.c.another.custom")._configPath,
+		path.join(collectionAPath, "library.c", "ui5-another-custom.yaml"));
+	t.is(projectNameMap.get("library.d.another.custom")._configPath,
+		path.join(collectionAPath, "library.d", "ui5-another-custom.yaml"));
+});
+
+// TODO: RENAME:
+// DEBUG: One open question:
+test("[workspace/1.1] TBD 2", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c",
+					configPath: "ui5-custom.yaml"
+				},
+				{
+					path: "../../fixtures/collection.c/collection.a",
+					configPath: "ui5-another-custom.yaml"
+				}]
+			}
+		})
+	});
+
+	const collectionCPath = path.join(__dirname, "../../fixtures/collection.c");
+	const collectionAPath = path.join(collectionCPath, "collection.a");
+
+	const readPackageJsonStub = t.context.sinon.stub(workspace, "_readPackageJson");
+	readPackageJsonStub.withArgs(path.join(collectionCPath, "library.a")).resolves({
+		name: "library.a",
+		version: "1.0.0",
+	});
+	readPackageJsonStub.withArgs(path.join(collectionCPath, "library.b")).resolves({
+		name: "library.b",
+		version: "1.0.0",
+	});
+	readPackageJsonStub.withArgs(path.join(collectionAPath, "library.c")).resolves({
+		name: "library.c",
+		version: "1.0.0",
+	});
+	readPackageJsonStub.withArgs(path.join(collectionAPath, "library.d")).resolves({
+		name: "library.d",
+		version: "1.0.0",
+	});
+
+	readPackageJsonStub.withArgs(collectionCPath).resolves({
+		name: "collection c",
+		version: "1.0.0",
+		workspaces: [
+			"library.a",
+			"library.b",
+			"collection.a/library.c" // Skips nested workspace
+		]
+	});
+	// Needed for workspace resolution (but will be ignored):
+	readPackageJsonStub.withArgs(collectionAPath).resolves({
+		name: "collection a",
+		version: "1.0.0",
+		workspaces: [
+			"library.c",
+			"library.d"
+		]
+	});
+
+	const {projectNameMap, moduleIdMap} = await workspace._getResolvedModules();
+	t.is(projectNameMap.size, 4, "Project name to module map is empty");
+	t.is(moduleIdMap.size, 4, "Module ID to module map is empty");
+
+	t.is(projectNameMap.get("library.a.custom")._configPath,
+		path.join(collectionCPath, "library.a", "ui5-custom.yaml"));
+	t.is(projectNameMap.get("library.b.custom")._configPath,
+		path.join(collectionCPath, "library.b", "ui5-custom.yaml"));
+	t.is(projectNameMap.get("library.c.another.custom")._configPath,
+		path.join(collectionAPath, "library.c", "ui5-another-custom.yaml"));
+	// DEBUG: Should library.d even get built into a module here? (it is not included in the package.json workspaces)
+	t.is(projectNameMap.get("library.d.another.custom")._configPath,
+		path.join(collectionAPath, "library.d", "ui5-another-custom.yaml"));
+});

@@ -139,7 +139,7 @@ class Workspace {
 			};
 		}
 
-		// Detect duplicate resolutions targeting the same library
+		// Detect duplicate resolutions targeting the same path
 		// (same exact absolute paths should throw):
 		const seenAbsolutePaths = [];
 		for (const {path: resolutionPath} of resolutions) {
@@ -149,7 +149,7 @@ class Workspace {
 			const absolutePath = path.resolve(this.#cwd, resolutionPath);
 			if (seenAbsolutePaths.includes(absolutePath)) {
 				throw new Error(
-					`Multiple resolutions for the same library '${path.basename(absolutePath)}' ` +
+					`Multiple resolutions for the same dependency '${path.basename(absolutePath)}' ` +
 					`(resolved to '${absolutePath}') in workspace '${this.getName()}' exist.`);
 			}
 			seenAbsolutePaths.push(absolutePath);
