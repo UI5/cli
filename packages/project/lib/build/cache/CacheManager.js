@@ -1,7 +1,9 @@
 import path from "node:path";
 import os from "node:os";
 import Configuration from "../../config/Configuration.js";
-import {access} from "node:fs/promises";
+import {access, readdir, stat} from "node:fs/promises";
+import {parseCacheVersion, compareCacheVersion} from "./cacheVersions.js";
+import {markForRemoval, removePendingDir, scanPendingRemovals} from "../../utils/interruptibleRemoval.js";
 import {getLogger} from "@ui5/logger";
 import BuildCacheStorage from "./BuildCacheStorage.js";
 
@@ -12,6 +14,10 @@ const cacheManagerInstances = new Map();
 
 // Cache version for compatibility management
 export const CACHE_VERSION = "v0_10";
+
+// Prefix for temporary rename-then-delete dirs created during cleanOlderVersions.
+// Rooted at buildCache/ so it never collides with the framework cache prefix.
+const BUILD_PENDING_PREFIX = "_buildcache_to_delete_";
 
 /**
  * Manages persistence for the build cache using a unified SQLite-backed storage
@@ -448,5 +454,102 @@ export default class CacheManager {
 			}
 			return [{path: `buildCache/${CACHE_VERSION}`, size: storage.getDatabaseSize()}];
 		});
+	}
+
+	/**
+	 * Enumerates sibling build-cache version directories and partitions them into
+	 * directories that are safe to remove (version &lt; current) and directories that
+	 * belong to a newer CLI (version &gt; current, never touched — only warned about).
+	 *
+	 * Older directories are treated as opaque filesystem entries; they are never opened
+	 * via BuildCacheStorage (incompatible schema). Size is an O(1) inode stat on
+	 * <code>cache.db</code> — no file contents are read.
+	 *
+	 * @public
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<{removable: Array<{name: string, path: string, size: number}>, 
+	 * 		newer: Array<{path: string, version: string}>}>}
+	 *   Both arrays are unordered (order depends on stat resolution timing).
+	 */
+	static async getOlderVersionsInfo(ui5DataDir) {
+		const buildCacheDir = path.join(ui5DataDir, "buildCache");
+		let entries;
+		try {
+			entries = await readdir(buildCacheDir, {withFileTypes: true});
+		} catch {
+			return {removable: [], newer: []};
+		}
+
+		const removable = [];
+		const newer = [];
+
+		await Promise.all(entries.map(async (entry) => {
+			if (!entry.isDirectory() || !parseCacheVersion(entry.name)) {
+				return;
+			}
+			const cmp = compareCacheVersion(entry.name, CACHE_VERSION);
+			if (cmp === 0) {
+				return; // current version — handled separately by cleanCache/getAdditionalCacheInfo
+			}
+			if (cmp < 0) {
+				let size = 0;
+				try {
+					size = (await stat(path.join(buildCacheDir, entry.name, "cache.db"))).size;
+				} catch {/* no cache.db — size stays 0 */}
+				removable.push({name: entry.name, path: `buildCache/${entry.name}`, size});
+			} else {
+				newer.push({path: `buildCache/${entry.name}`, version: entry.name});
+			}
+		}));
+
+		return {removable, newer};
+	}
+
+	/**
+	 * Removes all older build-cache version directories (&lt; current {@link CACHE_VERSION}).
+	 *
+	 * Uses the rename-then-delete pattern from {@link markForRemoval} so that each
+	 * directory disappears atomically from the namespace before its contents are deleted.
+	 * This protects a concurrently-running older CLI whose open file descriptors remain
+	 * valid after the directory is renamed (POSIX unlink semantics).
+	 *
+	 * Also resumes any leftover <code>_buildcache_to_delete_*</code> directories from a
+	 * previously interrupted run. Errors for individual directories are swallowed — one
+	 * stuck directory does not prevent the others from being removed.
+	 *
+	 * @public
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<Array<{path: string, size: number}>>} Entries actually removed
+	 */
+	static async cleanOlderVersions(ui5DataDir) {
+		const buildCacheDir = path.join(ui5DataDir, "buildCache");
+		const removed = [];
+
+		// Resume any interrupted runs from a previous cleanOlderVersions call (silently — the
+		// original version name is not recoverable from the renamed pending directory).
+		const pendingDirs = await scanPendingRemovals(buildCacheDir, BUILD_PENDING_PREFIX);
+		for (const pendingDir of pendingDirs) {
+			try {
+				await removePendingDir(pendingDir);
+			} catch {/* swallow per-dir errors */}
+		}
+
+		// Remove current older-version dirs
+		const {removable} = await CacheManager.getOlderVersionsInfo(ui5DataDir);
+		for (const entry of removable) {
+			const dirPath = path.join(buildCacheDir, entry.name);
+			try {
+				const removalDir = markForRemoval(dirPath, BUILD_PENDING_PREFIX);
+				if (!removalDir) {
+					continue; // directory was concurrently removed
+				}
+				await removePendingDir(removalDir);
+				removed.push(entry);
+			} catch {/* swallow per-dir errors */}
+		}
+
+		return removed;
 	}
 }
