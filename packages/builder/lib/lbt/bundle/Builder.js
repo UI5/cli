@@ -555,7 +555,7 @@ class BundleBuilder {
 			"Module " + moduleName + " requires top level scope and can only be embedded as a string " +
 			"(requires 'eval'), which is not supported with specVersion 4.0 and higher. " +
 			"For more information, see the UI5 CLI documentation " +
-			"https://ui5.github.io/cli/stable/pages/Builder/#javascript-files-requiring-top-level-scope");
+			"https://ui5.github.io/cli/v5/pages/Builder#javascript-files-requiring-top-level-scope");
 	}
 
 	async checkForStringBundling(moduleName) {
