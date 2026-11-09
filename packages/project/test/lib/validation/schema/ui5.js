@@ -106,7 +106,7 @@ test("Invalid specVersion", async (t) => {
 "Your UI5 CLI installation might be outdated.\n" +
 "Supported specification versions: \"5.0\", \"4.0\", \"3.2\", \"3.1\", \"3.0\", \"2.6\", " +
 "\"2.5\", \"2.4\", \"2.3\", \"2.2\", \"2.1\", \"2.0\", \"1.1\", \"1.0\", \"0.1\"\n" +
-"For details, see: https://ui5.github.io/cli/pages/Configuration/#specification-versions",
+"For details, see: https://ui5.github.io/cli/v5/pages/Configuration#specification-versions",
 			params: {
 				errors: [
 					{

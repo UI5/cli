@@ -130,7 +130,7 @@ class Project extends Specification {
 
 	/**
 	 * Framework dependency entry of the project configuration.
-	 * Also see [Framework Configuration: Dependencies]{@link https://ui5.github.io/cli/stable/pages/Configuration/#dependencies}
+	 * Also see [Framework Configuration: Dependencies]{@link https://ui5.github.io/cli/v5/pages/Configuration#dependencies}
 	 *
 	 * @public
 	 * @typedef {object} @ui5/project/specifications/Project~FrameworkDependency

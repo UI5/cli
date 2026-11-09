@@ -285,7 +285,7 @@ class SpecificationVersion {
 
 function getUnsupportedSpecVersionMessage(specVersion) {
 	return `Unsupported Specification Version ${specVersion} defined. Your UI5 CLI installation might be outdated. ` +
-		`For details, see https://ui5.github.io/cli/pages/Configuration/#specification-versions`;
+		`For details, see https://ui5.github.io/cli/v5/pages/Configuration#specification-versions`;
 }
 
 function getSemverCompatibleVersion(specVersion) {

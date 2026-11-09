@@ -3,14 +3,14 @@
 	"$id": "ui5-workspace.json",
 	"title": "ui5-workspace.yaml",
 	"description": "Schema for UI5 CLI Workspace Configuration File (ui5-workspace.yaml)",
-	"$comment": "See https://ui5.github.io/cli/",
+	"$comment": "See https://ui5.github.io/cli/v5/",
 	"type": "object",
 	"required": ["specVersion", "metadata", "dependencyManagement"],
 	"additionalProperties": false,
 	"properties": {
 		"specVersion": {
 			"enum": ["workspace/1.0"],
-			"errorMessage": "Unsupported \"specVersion\"\nYour UI5 CLI installation might be outdated.\nSupported specification versions: \"workspace/1.0\"\nFor details, see: https://ui5.github.io/cli/stable/pages/Workspace/#workspace-specification-versions"
+			"errorMessage": "Unsupported \"specVersion\"\nYour UI5 CLI installation might be outdated.\nSupported specification versions: \"workspace/1.0\"\nFor details, see: https://ui5.github.io/cli/v5/pages/Workspace#workspace-specification-versions"
 		},
 		"metadata": {
 			"$ref": "#/definitions/metadata"
@@ -32,7 +32,7 @@
 					"pattern": "^(?:@[0-9a-z-_.]+\\/)?[a-z][0-9a-z-_.]*$",
 					"title": "Workspace Name",
 					"description": "Identifier for the workspace configuration. Workspaces named 'default' will be used automatically by UI5 CLI",
-					"errorMessage": "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/stable/pages/Workspace/#name"
+					"errorMessage": "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/v5/pages/Workspace#name"
 				}
 			}
 		},

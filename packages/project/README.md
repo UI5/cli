@@ -9,9 +9,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/SAP/ui5-project/badge.svg)](https://coveralls.io/github/SAP/ui5-project)
 
 ## Documentation
-UI5 Project documentation can be found here: [ui5.github.io/cli](https://ui5.github.io/cli/stable/pages/Project/)
+UI5 Project documentation can be found here: [ui5.github.io/cli](https://ui5.github.io/cli/v5/pages/Project)
 
-The UI5 Project API Reference can be found here: [`@ui5/project`](https://ui5.github.io/cli/stable/api/)
+The UI5 Project API Reference can be found here: [`@ui5/project`](https://ui5.github.io/cli/v5/api/module-@ui5_project_graph.html)
 
 ## Contributing
 Please check our [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING.md).
