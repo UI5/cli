@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import {getRandomValues} from "node:crypto";
+import {markForRemoval, removePendingDir, scanPendingRemovals} from "../utils/interruptibleRemoval.js";
 
 
 const FRAMEWORK_DIR_NAME = "framework";
@@ -53,29 +53,19 @@ export default class FrameworkCache {
 	 * @returns {Promise<Array<{path: string, libraryCount: number, versionCount: number}>>}
 	 */
 	static async getAdditionalCacheInfo(ui5DataDir) {
-		let entries;
-		try {
-			entries = await fs.readdir(ui5DataDir, {withFileTypes: true});
-		} catch {
+		const staleDirPaths = await scanPendingRemovals(ui5DataDir, PENDING_REMOVAL_DIR_PREFIX);
+
+		if (staleDirPaths.length === 0) {
 			return [];
 		}
 
-		const staleDirs = entries.filter(
-			(e) => e.isDirectory() && e.name.startsWith(PENDING_REMOVAL_DIR_PREFIX)
-		);
-
-		if (staleDirs.length === 0) {
-			return [];
-		}
-
-		const results = await Promise.all(staleDirs.map(async (staleDir) => {
-			const staleDirPath = path.join(ui5DataDir, staleDir.name);
+		const results = await Promise.all(staleDirPaths.map(async (staleDirPath) => {
 			const stats = await getPackageStats(staleDirPath);
 			if (!stats) {
 				return null;
 			}
 			return {
-				path: staleDir.name,
+				path: path.basename(staleDirPath),
 				libraryCount: stats.libraries,
 				versionCount: stats.versions,
 			};
@@ -107,7 +97,7 @@ export default class FrameworkCache {
 		for (const staleDir of staleDirs) {
 			const staleDirPath = path.join(ui5DataDir, staleDir.path);
 			try {
-				await fs.rm(staleDirPath, {recursive: true, force: true});
+				await removePendingDir(staleDirPath);
 				removedStaleDirs.push(staleDir);
 			} catch {
 				// Ignore deletion errors
@@ -155,23 +145,14 @@ export default class FrameworkCache {
 		}
 
 		// Atomically rename framework/ to a temporary removal directory.
-		// fs.rename is a single syscall and completes in microseconds.
-		// After this line the original path no longer exists.
-		const removalDir = path.join(
-			ui5DataDir,
-			`${PENDING_REMOVAL_DIR_PREFIX}${Buffer.from(getRandomValues(new Uint8Array(2))).toString("hex")}`
-		);
-		try {
-			await fs.rename(frameworkDir, removalDir);
-		} catch (err) {
-			if (/** @type {NodeJS.ErrnoException} */ (err).code === "ENOENT") {
-				// Directory was removed by another process after our check — already clean.
-				return null;
-			}
-			throw err;
+		// After this point the original path no longer exists.
+		const removalDir = markForRemoval(frameworkDir, PENDING_REMOVAL_DIR_PREFIX);
+		if (!removalDir) {
+			// Directory was removed by another process after our check — already clean.
+			return null;
 		}
 
-		await fs.rm(removalDir, {recursive: true, force: true});
+		await removePendingDir(removalDir);
 
 		return {
 			path: FRAMEWORK_DIR_NAME,
