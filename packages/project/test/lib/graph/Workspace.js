@@ -761,7 +761,7 @@ test("[workspace/1.1] No configPath for single lib + Custom configPath for all l
 		path.join(collectionPath, "collection.a", "library.d", "ui5-custom.yaml"));
 });
 
-test("No configPath for all libs + Custom configPaths for two libs", async (t) => {
+test("[workspace/1.1] No configPath for all libs + Custom configPaths for two libs", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
 		configuration: createWorkspaceConfig({
@@ -1325,3 +1325,47 @@ test("[workspace/1.1] Duplicate resolutions for single lib (missing config last)
 			`in workspace '${workspace.getName()}' exist.`);
 	}
 );
+
+// test("[workspace/1.1] TBD", async (t) => {
+// 	const workspace = new t.context.Workspace({
+// 		cwd: __dirname,
+// 		configuration: createWorkspaceConfig({
+// 			dependencyManagement: {
+// 				resolutions: [{
+// 					path: "../../fixtures/collection.c",
+// 					configPath: "ui5-custom.yaml"
+// 				},
+// 				{
+// 					path: "../../fixtures/collection.c/library.a",
+// 					configPath: "ui5-another-custom.yaml"
+// 				}]
+// 			}
+// 		})
+// 	});
+
+// 	const basePath = path.join(__dirname, "../../fixtures/library.xyz");
+// 	const workspaceAPath = path.join(basePath, "workspace-a");
+
+// 	const readPackageJsonStub = t.context.sinon.stub(workspace, "_readPackageJson");
+// 	readPackageJsonStub.withArgs(basePath).resolves({
+// 		name: "Base Package",
+// 		version: "1.0.0",
+// 		workspaces: [
+// 			"workspace-a"
+// 		]
+// 	});
+// 	readPackageJsonStub.withArgs(workspaceAPath).resolves({
+// 		name: "Workspace A Package",
+// 		version: "1.0.0",
+// 		workspaces: [
+// 			".."
+// 		]
+// 	});
+
+// 	const {projectNameMap, moduleIdMap} = await workspace._getResolvedModules();
+// 	// All workspaces. Should not resolve to any module
+// 	// Recursive workspace definition should not lead to another readPackageJson call
+// 	t.is(readPackageJsonStub.callCount, 2, "readPackageJson got called two times");
+// 	t.is(projectNameMap.size, 0, "Project name to module map is empty");
+// 	t.is(moduleIdMap.size, 0, "Module ID to module map is empty");
+// });

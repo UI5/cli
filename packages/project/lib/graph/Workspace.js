@@ -41,8 +41,7 @@ const log = getLogger("graph:Workspace");
  * @alias @ui5/project/graph/Workspace
  */
 class Workspace {
-	#visitedNodePaths = new Set();
-	#resolutionRootPaths = new Set();
+	#visitedNodePaths = new Map();
 	#configValidated = false;
 	#configuration;
 	#cwd;
@@ -156,13 +155,7 @@ class Workspace {
 			seenAbsolutePaths.push(absolutePath);
 		}
 
-		// Record all resolution root paths so that recursion into a workspace member can be
-		// pruned when that member is itself a dedicated resolution target. This keeps "most
-		// specific configPath wins" independent of the order in which the asynchronous
-		// traversals happen to complete.
-		this.#resolutionRootPaths = new Set(seenAbsolutePaths);
-
-		let resolvedModules = await Promise.all(resolutions.map(async (resolutionConfig) => {
+		await Promise.all(resolutions.map(async (resolutionConfig) => {
 			if (!resolutionConfig.path) {
 				throw new Error(
 					`Missing property 'path' in dependency resolution configuration of workspace ${this.getName()}`);
@@ -177,16 +170,22 @@ class Workspace {
 					`Absolute config paths are not allowed in workspace configurations of dependencies. ` +
 					`Found '${resolutionConfig.configPath}' in workspace '${this.getName()}'`);
 			}
-			return await this._getModulesFromPath(
-				this.#cwd, resolutionConfig.path, resolutionConfig.configPath);
+
+			const absolutePath = path.resolve(this.#cwd, resolutionConfig.path);
+			const segments = absolutePath.split(path.sep);
+			const specificity = segments.length;
+
+			await this._getModulesFromPath(
+				this.#cwd, resolutionConfig.path, resolutionConfig.configPath, specificity);
 		}));
 
-		// Flatten array since package-workspaces might have resolved to multiple modules for a single resolution
-		resolvedModules = Array.prototype.concat.apply([], resolvedModules);
-
+		const resolvedModules = Array.from(this.#visitedNodePaths.values()).filter((node) => node.modulePath);
 		const projectNameMap = new Map();
 		const moduleIdMap = new Map();
-		await Promise.all(resolvedModules.map(async (module) => {
+
+		await Promise.all(resolvedModules.map(async ({id, version, modulePath, configPath}) => {
+			const module = new Module({id, version, modulePath, configPath});
+
 			const {project, extensions} = await module.getSpecifications();
 			if (project || extensions.length) {
 				moduleIdMap.set(module.getId(), module);
@@ -209,13 +208,15 @@ class Workspace {
 		};
 	}
 
-	async _getModulesFromPath(cwd, relPath, configPath, failOnMissingFiles = true) {
+	async _getModulesFromPath(cwd, relPath, configPath, specificity, failOnMissingFiles = true) {
 		const nodePath = path.join(cwd, relPath);
-		if (this.#visitedNodePaths.has(nodePath)) {
+
+		if (this.#visitedNodePaths.has(nodePath) &&
+			this.#visitedNodePaths.get(nodePath).specificity >= specificity) {
 			log.verbose(`Module located at ${nodePath} has already been visited`);
 			return [];
 		}
-		this.#visitedNodePaths.add(nodePath);
+		this.#visitedNodePaths.set(nodePath, {specificity});
 		let pkg;
 		try {
 			pkg = await this._readPackageJson(nodePath);
@@ -267,35 +268,18 @@ class Workspace {
 			}
 			searchPaths.push(...staticPatterns);
 
-			const resolvedModules = new Map();
 			await Promise.all(searchPaths.map(async (pkgPath) => {
-				const childPath = path.join(nodePath, pkgPath);
-				if (this.#resolutionRootPaths.has(childPath)) {
-					// A dedicated resolution targets this path directly. Skip it here so that
-					// resolution's configPath is applied instead of the one inherited from this
-					// broader resolution. The dedicated resolution is always processed on its own,
-					// so the module is not lost.
-					log.verbose(
-						`Skipping workspace member ${childPath}: covered by a dedicated resolution`);
-					return;
-				}
-				const modules =
-					await this._getModulesFromPath(nodePath, pkgPath, configPath, staticPatterns.includes(pkgPath));
-				modules.forEach((module) => {
-					const id = module.getId();
-					if (!resolvedModules.get(id)) {
-						resolvedModules.set(id, module);
-					}
-				});
+				await this._getModulesFromPath(nodePath, pkgPath, configPath, specificity,
+					staticPatterns.includes(pkgPath));
 			}));
-			return Array.from(resolvedModules.values());
 		} else {
-			return [new Module({
+			this.#visitedNodePaths.set(nodePath, {
 				id: pkg.name,
 				version: pkg.version,
 				modulePath: nodePath,
 				configPath: configPath ? path.resolve(nodePath, configPath) : undefined,
-			})];
+				specificity
+			});
 		}
 	}
 
