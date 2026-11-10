@@ -198,7 +198,7 @@ class BufferedWriter extends AbstractReaderWriter {
 
 /**
  * The descriptor a task factory returns from its default export, from
- * [Specification Version](https://ui5.github.io/cli/stable/pages/Configuration/#specification-versions) 5.0.
+ * [Specification Version](https://ui5.github.io/cli/v5/pages/Configuration#specification-versions) 5.0.
  * It carries the whole task in one object: the task body, its optional callbacks, and an optional declared
  * Specification Version.
  *

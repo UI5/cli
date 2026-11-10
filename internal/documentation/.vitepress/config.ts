@@ -68,7 +68,7 @@ export default defineConfig({
         &copy; Copyright ${new Date().getFullYear()}, SAP SE and UI5 CLI Contributors <br/>
           <a style="margin:25px"href="https://www.sap.com/corporate/en/legal/impressum.html">Legal Disclosure</a>
           <a  style="margin:25px" href="https://www.sap.com/corporate/en/legal/terms-of-use.html">Terms of Use</a>
-          <a  style="margin:25px" href="https://ui5.github.io/cli/v5/pages/Privacy/">Privacy</a>
+          <a  style="margin:25px" href="https://ui5.github.io/cli/v5/pages/Privacy">Privacy</a>
           <a  style="margin:25px" href="https://www.sap.com/corporate/en/legal/trademark.html">Trademarks</a>
     `,
 

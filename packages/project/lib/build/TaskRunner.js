@@ -567,7 +567,7 @@ class TaskRunner {
 						`Standard task ${refTaskName}, referenced by custom task ${taskName} ` +
 						`in project ${project.getName()}, ` +
 						`has been removed in this version of UI5 CLI and can't be referenced anymore. ` +
-						`Please see the migration guide at https://ui5.github.io/cli/updates/migrate-v3/`);
+						`Please see the migration guide at https://ui5.github.io/cli/v5/updates/migrate-v3`);
 				}
 				throw new Error(`Could not find task ${refTaskName}, referenced by custom task ${taskName}, ` +
 					`to be scheduled for project ${project.getName()}`);

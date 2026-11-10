@@ -86,7 +86,7 @@ export async function graphFromPackageDependencies({
  * [@ui5/project/graph/providers/DependencyTree~TreeNode]{@link @ui5/project/graph/providers/DependencyTree~TreeNode}.
  *
  * Documentation:
- * [Static Dependency Definition]{@link https://ui5.github.io/cli/stable/pages/Overview/#static-dependency-definition}
+ * [Static Dependency Definition]{@link https://ui5.github.io/cli/v5/pages/Overview#static-dependency-definition}
  *
  * @public
  * @static

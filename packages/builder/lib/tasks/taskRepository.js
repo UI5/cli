@@ -64,7 +64,7 @@ export async function getTask(taskName) {
 		if (getRemovedTaskNames().includes(taskName)) {
 			throw new Error(
 				`Standard task ${taskName} has been removed in UI5 CLI 3.0. ` +
-				`Please see the migration guide at https://ui5.github.io/cli/updates/migrate-v3/`);
+				`Please see the migration guide at https://ui5.github.io/cli/v5/updates/migrate-v3`);
 		}
 		throw new Error(`taskRepository: Unknown Task ${taskName}`);
 	}

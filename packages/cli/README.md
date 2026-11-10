@@ -9,7 +9,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/SAP/ui5-cli/badge.svg)](https://coveralls.io/github/SAP/ui5-cli)
 
 ## Documentation
-UI5 CLI documentation can be found here: [ui5.github.io/cli](https://ui5.github.io/cli/pages/CLI/)
+UI5 CLI documentation can be found here: [ui5.github.io/cli](https://ui5.github.io/cli/v5/pages/CLI)
 
 ## Contributing
 

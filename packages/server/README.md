@@ -9,9 +9,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/SAP/ui5-server/badge.svg)](https://coveralls.io/github/SAP/ui5-server)
 
 ## Documentation
-UI5 Server documentation can be found here: [ui5.github.io/cli](https://ui5.github.io/cli/stable/pages/Server/)
+UI5 Server documentation can be found here: [ui5.github.io/cli](https://ui5.github.io/cli/v5/pages/Server)
 
-The UI5 Server API Reference can be found here: [`@ui5/server`](https://ui5.github.io/cli/stable/api/module-@ui5_server.html)
+The UI5 Server API Reference can be found here: [`@ui5/server`](https://ui5.github.io/cli/v5/api/module-@ui5_server.html)
 
 ## Contributing
 Please check our [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING.md).

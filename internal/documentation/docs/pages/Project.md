@@ -83,7 +83,7 @@ In the table below you can find the available combinations of project type & out
 | **theme-library** | `Default` | Root project is written in the style of the sources (multiple namespaces).¹ |
 | | `Flat` | **Unsupported** ² |
 | | `Namespace` | **Unsupported** ² |
-| **module** | `Default` | Root project is written with the [configured paths](https://ui5.github.io/cli/v5/pages/Configuration/#available-path-mappings).¹ |
+| **module** | `Default` | Root project is written with the [configured paths](https://ui5.github.io/cli/v5/pages/Configuration#available-path-mappings).¹ |
 | | `Flat` | **Unsupported** ³ |
 | | `Namespace` | **Unsupported** ³ |
 

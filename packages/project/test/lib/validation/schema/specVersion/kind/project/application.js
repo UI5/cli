@@ -1063,7 +1063,7 @@ SpecificationVersion.getVersionsForRange(">=3.0").forEach(function(specVersion) 
 		}, [{
 			instancePath: "/metadata/name",
 			keyword: "errorMessage",
-			message: `Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/stable/pages/Configuration/#name`,
+			message: `Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/v5/pages/Configuration#name`,
 			params: {
 				errors: [{
 					instancePath: "/metadata/name",
@@ -1084,7 +1084,7 @@ SpecificationVersion.getVersionsForRange(">=3.0").forEach(function(specVersion) 
 		}, [{
 			instancePath: "/metadata/name",
 			keyword: "errorMessage",
-			message: `Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/stable/pages/Configuration/#name`,
+			message: `Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/v5/pages/Configuration#name`,
 			params: {
 				errors: [{
 					instancePath: "/metadata/name",
@@ -1105,7 +1105,7 @@ SpecificationVersion.getVersionsForRange(">=3.0").forEach(function(specVersion) 
 		}, [{
 			instancePath: "/metadata/name",
 			keyword: "errorMessage",
-			message: `Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/stable/pages/Configuration/#name`,
+			message: `Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/v5/pages/Configuration#name`,
 			params: {
 				errors: [{
 					instancePath: "/metadata/name",
