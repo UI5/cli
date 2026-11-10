@@ -1468,3 +1468,95 @@ test("[workspace/1.1] Overlapping resolutions with package.json scenarios (skipp
 	t.is(projectNameMap.get("library.d.another.custom")._configPath,
 		path.join(collectionAPath, "library.d", "ui5-another-custom.yaml"));
 });
+
+test("[workspace/1.1] Overlapping resolutions with trailing slashes in workspace paths", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c",
+					configPath: "ui5-custom.yaml"
+				}, {
+					path: "../../fixtures/collection.c/library.a/" // trailing slash
+				}, {
+					path: "../../fixtures/collection.c/collection.a/library.c/", // trailing slash
+					configPath: "ui5-another-custom.yaml"
+				}]
+			}
+		})
+	});
+
+	const collectionCPath = path.join(__dirname, "../../fixtures/collection.c");
+	const collectionAPath = path.join(collectionCPath, "collection.a");
+	const readPackageJson = workspace._readPackageJson.bind(workspace);
+	const readPackageJsonStub = t.context.sinon.stub(workspace, "_readPackageJson").callsFake(readPackageJson);
+	readPackageJsonStub.withArgs(collectionCPath).resolves({
+		name: "collection c",
+		version: "1.0.0",
+		workspaces: [
+			"library.a",
+			"library.b",
+			"collection.a/library.c",
+			"collection.a/library.d"
+		]
+	});
+
+	const {projectNameMap, moduleIdMap} = await workspace._getResolvedModules();
+	t.is(moduleIdMap.size, 4);
+	t.is(projectNameMap.size, 4); // No duplicate modules due to trailing slashes
+	t.is(projectNameMap.get("library.a")._configPath, "ui5.yaml");
+	t.is(projectNameMap.get("library.b.custom")._configPath,
+		path.join(collectionCPath, "library.b", "ui5-custom.yaml"));
+	t.is(projectNameMap.get("library.c.another.custom")._configPath,
+		path.join(collectionAPath, "library.c", "ui5-another-custom.yaml"));
+	t.is(projectNameMap.get("library.d.custom")._configPath,
+		path.join(collectionAPath, "library.d", "ui5-custom.yaml"));
+});
+
+test("[workspace/1.1] Overlapping resolutions with trailing slashes in package.json workspaces", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c",
+					configPath: "ui5-custom.yaml"
+				}, {
+					path: "../../fixtures/collection.c/library.a"
+				}, {
+					path: "../../fixtures/collection.c/collection.a/library.c",
+					configPath: "ui5-another-custom.yaml"
+				}]
+			}
+		})
+	});
+
+	const collectionCPath = path.join(__dirname, "../../fixtures/collection.c");
+	const collectionAPath = path.join(collectionCPath, "collection.a");
+	const readPackageJson = workspace._readPackageJson.bind(workspace);
+	const readPackageJsonStub = t.context.sinon.stub(workspace, "_readPackageJson").callsFake(readPackageJson);
+	readPackageJsonStub.withArgs(collectionCPath).resolves({
+		name: "collection c",
+		version: "1.0.0",
+		workspaces: [
+			"library.a/",	// trailing slash
+			"library.b/",	// trailing slash
+			"collection.a/library.c/",	// trailing slash
+			"collection.a/library.d/"	// trailing slash
+		]
+	});
+
+	const {projectNameMap, moduleIdMap} = await workspace._getResolvedModules();
+	t.is(moduleIdMap.size, 4);
+	t.is(projectNameMap.size, 4); // No duplicate modules due to trailing slashes
+	t.is(projectNameMap.get("library.a")._configPath, "ui5.yaml");
+	t.is(projectNameMap.get("library.b.custom")._configPath,
+		path.join(collectionCPath, "library.b", "ui5-custom.yaml"));
+	t.is(projectNameMap.get("library.c.another.custom")._configPath,
+		path.join(collectionAPath, "library.c", "ui5-another-custom.yaml"));
+	t.is(projectNameMap.get("library.d.custom")._configPath,
+		path.join(collectionAPath, "library.d", "ui5-custom.yaml"));
+});

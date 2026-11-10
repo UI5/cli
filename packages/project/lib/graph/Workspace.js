@@ -220,7 +220,7 @@ class Workspace {
 		configPath,
 		specificity,
 		failOnMissingFiles = true) {
-		const nodePath = path.join(cwd, relPath);
+		const nodePath = path.resolve(cwd, relPath);
 		// Skip this node when already visited in the current resolution context
 		// (e.g. in recursive workspace scenarios)
 		if (visitedNodesPerResolution.has(nodePath)) {
