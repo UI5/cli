@@ -37,20 +37,43 @@
 				var versionPath = path.slice(0, versionIndex + 1).join("/") + "/";
 				var testUrl = url.origin + versionPath;
 
+				// Redirect to the version's own 404 page.
+				var showVersion404 = function () {
+					var newPath = path.slice(0, versionIndex + 1).concat(["404.html"]);
+					url.pathname = newPath.join("/");
+					window.location = url.toString();
+				};
+
 				// Create a test request to see if version exists
 				fetch(testUrl, { method: 'HEAD' })
 					.then(function (response) {
-						if (response.ok) {
-							// Version exists, but current page doesn't - show 404 within that version
-							// Don't redirect if already on 404 to prevent loops
-							if (!url.pathname.endsWith("/404.html") && !url.pathname.endsWith("/404/")) {
-								var newPath = path.slice(0, versionIndex + 1).concat(["404.html"]);
-								url.pathname = newPath.join("/");
-								window.location = url.toString();
-							}
-						} else {
+						if (!response.ok) {
 							// Version doesn't exist - redirect to stable
 							redirectToStable();
+							return;
+						}
+						// Version exists, but the requested page doesn't.
+						// Don't act if already on a 404 page, to prevent loops.
+						if (url.pathname.endsWith("/404.html") || url.pathname.endsWith("/404/")) {
+							return;
+						}
+						// v4 documentation URLs use a trailing slash; v5 serves clean URLs
+						// without one. If the path has a trailing slash, try the canonical
+						// (slash-stripped) URL before falling back to the version 404 page.
+						var canonical = url.pathname.replace(/\/+$/, "");
+						if (url.pathname.endsWith("/") && canonical && (canonical + "/") !== versionPath) {
+							fetch(url.origin + canonical, { method: 'HEAD' })
+								.then(function (canonicalResponse) {
+									if (canonicalResponse.ok) {
+										url.pathname = canonical;
+										window.location = url.toString();
+									} else {
+										showVersion404();
+									}
+								})
+								.catch(showVersion404);
+						} else {
+							showVersion404();
 						}
 					})
 					.catch(function () {
