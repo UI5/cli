@@ -41,7 +41,7 @@ const log = getLogger("graph:Workspace");
  * @alias @ui5/project/graph/Workspace
  */
 class Workspace {
-	#visitedNodePaths = new Map();
+	#resolvedModules = new Map();
 	#configValidated = false;
 	#configuration;
 	#cwd;
@@ -155,7 +155,7 @@ class Workspace {
 			seenAbsolutePaths.push(absolutePath);
 		}
 
-		await Promise.all(resolutions.map(async (resolutionConfig) => {
+		for (const resolutionConfig of resolutions) {
 			if (!resolutionConfig.path) {
 				throw new Error(
 					`Missing property 'path' in dependency resolution configuration of workspace ${this.getName()}`);
@@ -171,27 +171,32 @@ class Workspace {
 					`Found '${resolutionConfig.configPath}' in workspace '${this.getName()}'`);
 			}
 
+			// Specificity = number of path segments in the absolute path:
 			const absolutePath = path.resolve(this.#cwd, resolutionConfig.path);
 			const segments = absolutePath.split(path.sep);
 			const specificity = segments.length;
+			const visitedNodesPerResolution = new Set(); // will be used to prevent cyclic traversals
 
 			await this._getModulesFromPath(
-				this.#cwd, resolutionConfig.path, resolutionConfig.configPath, specificity);
-		}));
+				visitedNodesPerResolution,
+				this.#cwd,
+				resolutionConfig.path,
+				resolutionConfig.configPath,
+				specificity);
+		}
 
-		const resolvedModules = Array.from(this.#visitedNodePaths.values()).filter((node) => node.modulePath);
 		const projectNameMap = new Map();
 		const moduleIdMap = new Map();
 
-		await Promise.all(resolvedModules.map(async ({id, version, modulePath, configPath}) => {
+		await Promise.all(Array.from(this.#resolvedModules.values(), async ({id, version, modulePath, configPath}) => {
 			const module = new Module({id, version, modulePath, configPath});
 
 			const {project, extensions} = await module.getSpecifications();
 			if (project || extensions.length) {
 				moduleIdMap.set(module.getId(), module);
 			} else {
-				log.warn(
-					`Failed to create a project or extensions from module ${module.getId()} at ${module.getPath()}`);
+				log.warn(`Failed to create a project or extensions from module ${module.getId()} `+
+				`at ${module.getPath()}`);
 			}
 			if (project) {
 				projectNameMap.set(project.getName(), module);
@@ -208,15 +213,20 @@ class Workspace {
 		};
 	}
 
-	async _getModulesFromPath(cwd, relPath, configPath, specificity, failOnMissingFiles = true) {
+	async _getModulesFromPath(
+		visitedNodesPerResolution,
+		cwd,
+		relPath,
+		configPath,
+		specificity,
+		failOnMissingFiles = true) {
 		const nodePath = path.join(cwd, relPath);
-
-		if (this.#visitedNodePaths.has(nodePath) &&
-			this.#visitedNodePaths.get(nodePath).specificity >= specificity) {
-			log.verbose(`Module located at ${nodePath} has already been visited`);
-			return [];
+		// Skip this node when already visited in the current resolution context
+		// (e.g. in recursive workspace scenarios)
+		if (visitedNodesPerResolution.has(nodePath)) {
+			return;
 		}
-		this.#visitedNodePaths.set(nodePath, {specificity});
+		visitedNodesPerResolution.add(nodePath);
 		let pkg;
 		try {
 			pkg = await this._readPackageJson(nodePath);
@@ -229,7 +239,7 @@ class Workspace {
 				// When resolving a dynamic workspace pattern (not a static path), ignore modules that
 				// are missing a package.json (this might simply indicate an empty directory)
 				log.verbose(`Ignoring module at path ${nodePath}: Directory does not contain a package.json`);
-				return [];
+				return;
 			}
 			throw new Error(
 				`Failed to resolve workspace dependency resolution path ${relPath} to ${nodePath}: ${err.message}`);
@@ -269,11 +279,16 @@ class Workspace {
 			searchPaths.push(...staticPatterns);
 
 			await Promise.all(searchPaths.map(async (pkgPath) => {
-				await this._getModulesFromPath(nodePath, pkgPath, configPath, specificity,
+				await this._getModulesFromPath(visitedNodesPerResolution, nodePath, pkgPath, configPath, specificity,
 					staticPatterns.includes(pkgPath));
 			}));
 		} else {
-			this.#visitedNodePaths.set(nodePath, {
+			if (this.#resolvedModules.get(nodePath) &&
+				this.#resolvedModules.get(nodePath).specificity >= specificity) {
+				log.verbose(`Skipping module ${pkg.name} at ${nodePath} due to lower specificity`);
+				return;
+			}
+			this.#resolvedModules.set(nodePath, {
 				id: pkg.name,
 				version: pkg.version,
 				modulePath: nodePath,

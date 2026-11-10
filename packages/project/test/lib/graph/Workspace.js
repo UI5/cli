@@ -818,7 +818,7 @@ test("[workspace/1.1] No configPath for all libs + Two custom configPaths for si
 
 	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 	t.is(err.message,
-		`Multiple resolutions for the same library 'library.a' ` +
+		`Multiple resolutions for the same dependency 'library.a' ` +
 		`(resolved to '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}') ` +
 		`in workspace '${workspace.getName()}' exist.`);
 });
@@ -847,7 +847,7 @@ test("[workspace/1.1] Two custom configPaths for single lib + No configPath for 
 
 		const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 		t.is(err.message,
-			`Multiple resolutions for the same library 'library.a' ` +
+			`Multiple resolutions for the same dependency 'library.a' ` +
 			`(resolved to '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}') ` +
 			`in workspace '${workspace.getName()}' exist.`);
 	}
@@ -1070,7 +1070,7 @@ test("[workspace/1.1] Two custom configPaths for the same single lib -> error on
 
 	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 	t.is(err.message,
-		`Multiple resolutions for the same library 'library.a' ` +
+		`Multiple resolutions for the same dependency 'library.a' ` +
 		`(resolved to '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}') ` +
 		`in workspace '${workspace.getName()}' exist.`);
 });
@@ -1094,7 +1094,7 @@ test("[workspace/1.1] Duplicate library via different path strings (no configPat
 
 	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 	t.is(err.message,
-		`Multiple resolutions for the same library 'library.a' ` +
+		`Multiple resolutions for the same dependency 'library.a' ` +
 		`(resolved to '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}') ` +
 		`in workspace '${workspace.getName()}' exist.`);
 });
@@ -1120,7 +1120,7 @@ test("[workspace/1.1] Duplicate library via different path strings (with configP
 
 	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 	t.is(err.message,
-		`Multiple resolutions for the same library 'library.a' ` +
+		`Multiple resolutions for the same dependency 'library.a' ` +
 		`(resolved to '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}') ` +
 		`in workspace '${workspace.getName()}' exist.`);
 });
@@ -1288,7 +1288,7 @@ test("[workspace/1.1] Duplicate resolutions for single lib (with missing config)
 
 		const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 		t.is(err.message,
-			`Multiple resolutions for the same library 'library.a' ` +
+			`Multiple resolutions for the same dependency 'library.a' ` +
 			`(resolved to '${path.resolve(__dirname,
 				"../../fixtures/collection.c.noCustomConfigForLibA/library.a")}') ` +
 			`in workspace '${workspace.getName()}' exist.`);
@@ -1319,15 +1319,14 @@ test("[workspace/1.1] Duplicate resolutions for single lib (missing config last)
 
 		const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 		t.is(err.message,
-			`Multiple resolutions for the same library 'library.a' ` +
+			`Multiple resolutions for the same dependency 'library.a' ` +
 			`(resolved to '${path.resolve(__dirname,
 				"../../fixtures/collection.c.noCustomConfigForLibA/library.a")}') ` +
 			`in workspace '${workspace.getName()}' exist.`);
 	}
 );
 
-// TODO: RENAME!!
-test("[workspace/1.1] TBD", async (t) => {
+test("[workspace/1.1] Overlapping resolutions with package.json scenarios", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
 		configuration: createWorkspaceConfig({
@@ -1399,9 +1398,7 @@ test("[workspace/1.1] TBD", async (t) => {
 		path.join(collectionAPath, "library.d", "ui5-another-custom.yaml"));
 });
 
-// TODO: RENAME:
-// DEBUG: One open question:
-test("[workspace/1.1] TBD 2", async (t) => {
+test("[workspace/1.1] Overlapping resolutions with package.json scenarios (skipped nested workspace)", async (t) => {
 	const workspace = new t.context.Workspace({
 		cwd: __dirname,
 		configuration: createWorkspaceConfig({
@@ -1449,7 +1446,6 @@ test("[workspace/1.1] TBD 2", async (t) => {
 			"collection.a/library.c" // Skips nested workspace
 		]
 	});
-	// Needed for workspace resolution (but will be ignored):
 	readPackageJsonStub.withArgs(collectionAPath).resolves({
 		name: "collection a",
 		version: "1.0.0",
@@ -1469,7 +1465,6 @@ test("[workspace/1.1] TBD 2", async (t) => {
 		path.join(collectionCPath, "library.b", "ui5-custom.yaml"));
 	t.is(projectNameMap.get("library.c.another.custom")._configPath,
 		path.join(collectionAPath, "library.c", "ui5-another-custom.yaml"));
-	// DEBUG: Should library.d even get built into a module here? (it is not included in the package.json workspaces)
 	t.is(projectNameMap.get("library.d.another.custom")._configPath,
 		path.join(collectionAPath, "library.d", "ui5-another-custom.yaml"));
 });
