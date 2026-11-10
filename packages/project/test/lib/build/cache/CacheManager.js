@@ -1,5 +1,6 @@
 import test from "ava";
 import path from "node:path";
+import fs from "node:fs/promises";
 import sinon from "sinon";
 import esmock from "esmock";
 import {rimraf} from "rimraf";
@@ -347,3 +348,199 @@ test.serial("cleanAdditional: drops stale tables, returns freed size, leaves not
 	const remainingAdditional = await CacheManager.getAdditionalCacheInfo(testDir);
 	t.deepEqual(remainingAdditional, [], "no stale tables remain after cleanAdditional");
 });
+
+// ─── getOlderVersionsInfo / markOlderVersionsForRemoval / removePendingVersions ──
+
+test.serial("getOlderVersionsInfo: returns empty when buildCache dir does not exist", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager} = await import("../../../../lib/build/cache/CacheManager.js");
+
+	const result = await CacheManager.getOlderVersionsInfo(testDir);
+	t.deepEqual(result, {removable: [], newer: []});
+});
+
+test.serial("getOlderVersionsInfo: returns empty when buildCache has no versioned dirs", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager} = await import("../../../../lib/build/cache/CacheManager.js");
+
+	// Only malformed names and non-dirs — nothing matches ^v(\d+)_(\d+)$
+	const buildCacheDir = path.join(testDir, "buildCache");
+	await fs.mkdir(path.join(buildCacheDir, "not-a-version"), {recursive: true});
+	await fs.writeFile(path.join(buildCacheDir, "file.txt"), "data");
+
+	const result = await CacheManager.getOlderVersionsInfo(testDir);
+	t.deepEqual(result, {removable: [], newer: []});
+});
+
+test.serial("getOlderVersionsInfo: partitions older, current, and newer versions correctly", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager, CACHE_VERSION} = await import("../../../../lib/build/cache/CacheManager.js");
+
+	const buildCacheDir = path.join(testDir, "buildCache");
+	// Older: v0_8, v0_9
+	await fs.mkdir(path.join(buildCacheDir, "v0_8"), {recursive: true});
+	await fs.writeFile(path.join(buildCacheDir, "v0_8", "cache.db"), Buffer.alloc(1024));
+	await fs.mkdir(path.join(buildCacheDir, "v0_9"), {recursive: true});
+	await fs.writeFile(path.join(buildCacheDir, "v0_9", "cache.db"), Buffer.alloc(2048));
+	// Current: should be ignored
+	await fs.mkdir(path.join(buildCacheDir, CACHE_VERSION), {recursive: true});
+	// Newer: v0_11
+	await fs.mkdir(path.join(buildCacheDir, "v0_11"), {recursive: true});
+	// Malformed and file: should be ignored
+	await fs.mkdir(path.join(buildCacheDir, "not-a-version"), {recursive: true});
+	await fs.writeFile(path.join(buildCacheDir, "file.txt"), "data");
+
+	const result = await CacheManager.getOlderVersionsInfo(testDir);
+
+	const sortedRemovable = [...result.removable].sort((a, b) => a.path.localeCompare(b.path));
+	t.is(sortedRemovable.length, 2, "v0_8 and v0_9 are removable");
+	t.is(sortedRemovable[0].name, "v0_8");
+	t.is(sortedRemovable[0].path, "buildCache/v0_8");
+	t.is(sortedRemovable[0].size, 1024);
+	t.is(sortedRemovable[1].name, "v0_9");
+	t.is(sortedRemovable[1].path, "buildCache/v0_9");
+	t.is(sortedRemovable[1].size, 2048);
+
+	t.is(result.newer.length, 1, "v0_11 is newer");
+	t.is(result.newer[0].path, "buildCache/v0_11");
+	t.is(result.newer[0].version, "v0_11");
+});
+
+test.serial("getOlderVersionsInfo: size falls back to 0 when cache.db is missing", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager} = await import("../../../../lib/build/cache/CacheManager.js");
+
+	const buildCacheDir = path.join(testDir, "buildCache");
+	await fs.mkdir(path.join(buildCacheDir, "v0_8"), {recursive: true}); // no cache.db
+
+	const result = await CacheManager.getOlderVersionsInfo(testDir);
+	t.is(result.removable.length, 1);
+	t.is(result.removable[0].size, 0, "size is 0 when cache.db is absent");
+});
+
+test.serial("markOlderVersionsForRemoval: marks nothing when no older dirs exist", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager, CACHE_VERSION} = await import("../../../../lib/build/cache/CacheManager.js");
+
+	// Only current and newer — nothing to mark
+	const buildCacheDir = path.join(testDir, "buildCache");
+	await fs.mkdir(path.join(buildCacheDir, CACHE_VERSION), {recursive: true});
+	await fs.mkdir(path.join(buildCacheDir, "v0_11"), {recursive: true});
+
+	const marked = await CacheManager.markOlderVersionsForRemoval(testDir);
+	t.deepEqual(marked, []);
+
+	// Dirs are untouched
+	await t.notThrowsAsync(fs.access(path.join(buildCacheDir, CACHE_VERSION)));
+	await t.notThrowsAsync(fs.access(path.join(buildCacheDir, "v0_11")));
+});
+
+test.serial("markOlderVersionsForRemoval: renames older dirs to pending, leaves current and newer", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager, CACHE_VERSION} = await import("../../../../lib/build/cache/CacheManager.js");
+
+	const buildCacheDir = path.join(testDir, "buildCache");
+	await fs.mkdir(path.join(buildCacheDir, "v0_8"), {recursive: true});
+	await fs.writeFile(path.join(buildCacheDir, "v0_8", "cache.db"), Buffer.alloc(1024));
+	await fs.mkdir(path.join(buildCacheDir, "v0_9"), {recursive: true});
+	await fs.mkdir(path.join(buildCacheDir, CACHE_VERSION), {recursive: true});
+	await fs.mkdir(path.join(buildCacheDir, "v0_11"), {recursive: true});
+
+	const marked = await CacheManager.markOlderVersionsForRemoval(testDir);
+
+	// Both older dirs marked and reported with their pre-rename identity
+	const sortedMarked = [...marked].sort((a, b) => a.path.localeCompare(b.path));
+	t.is(sortedMarked.length, 2);
+	t.is(sortedMarked[0].path, "buildCache/v0_8");
+	t.is(sortedMarked[0].size, 1024);
+	t.is(sortedMarked[1].path, "buildCache/v0_9");
+
+	// Older dirs no longer exist under their version name
+	await t.throwsAsync(fs.access(path.join(buildCacheDir, "v0_8")), {code: "ENOENT"});
+	await t.throwsAsync(fs.access(path.join(buildCacheDir, "v0_9")), {code: "ENOENT"});
+
+	// They were renamed, not deleted — two pending removal dirs exist
+	const entries = await fs.readdir(buildCacheDir);
+	const pending = entries.filter((name) => name.startsWith("_buildcache_to_delete_"));
+	t.is(pending.length, 2, "both older dirs renamed to pending removal dirs");
+
+	// Current and newer are untouched
+	await t.notThrowsAsync(fs.access(path.join(buildCacheDir, CACHE_VERSION)));
+	await t.notThrowsAsync(fs.access(path.join(buildCacheDir, "v0_11")));
+});
+
+test.serial("getPendingRemovalsInfo: returns empty when no remnants exist", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager, CACHE_VERSION} = await import("../../../../lib/build/cache/CacheManager.js");
+
+	const buildCacheDir = path.join(testDir, "buildCache");
+	await fs.mkdir(path.join(buildCacheDir, CACHE_VERSION), {recursive: true});
+
+	const result = await CacheManager.getPendingRemovalsInfo(testDir);
+	t.deepEqual(result, []);
+});
+
+test.serial("getPendingRemovalsInfo: reports each remnant with cache.db size", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager} = await import("../../../../lib/build/cache/CacheManager.js");
+
+	const buildCacheDir = path.join(testDir, "buildCache");
+	const remnantA = path.join(buildCacheDir, "_buildcache_to_delete_3819");
+	await fs.mkdir(remnantA, {recursive: true});
+	await fs.writeFile(path.join(remnantA, "cache.db"), Buffer.alloc(2048));
+	// A remnant with no cache.db → size 0
+	await fs.mkdir(path.join(buildCacheDir, "_buildcache_to_delete_aa0c"), {recursive: true});
+
+	const result = await CacheManager.getPendingRemovalsInfo(testDir);
+	const sorted = [...result].sort((a, b) => a.path.localeCompare(b.path));
+	t.is(sorted.length, 2);
+	t.is(sorted[0].path, "buildCache/_buildcache_to_delete_3819");
+	t.is(sorted[0].size, 2048);
+	t.is(sorted[1].path, "buildCache/_buildcache_to_delete_aa0c");
+	t.is(sorted[1].size, 0, "size falls back to 0 when cache.db is absent");
+});
+
+test.serial("removePendingVersions: deletes all remnants, returns only non-excluded ones", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager, CACHE_VERSION} = await import("../../../../lib/build/cache/CacheManager.js");
+
+	const buildCacheDir = path.join(testDir, "buildCache");
+	// A remnant left behind by a prior interrupted run (not excluded)
+	const leftoverPending = path.join(buildCacheDir, "_buildcache_to_delete_abcd");
+	await fs.mkdir(leftoverPending, {recursive: true});
+	await fs.writeFile(path.join(leftoverPending, "cache.db"), Buffer.alloc(512));
+	// An older dir marked in this run (its pending path is excluded from the report)
+	await fs.mkdir(path.join(buildCacheDir, "v0_8"), {recursive: true});
+	await fs.mkdir(path.join(buildCacheDir, CACHE_VERSION), {recursive: true});
+
+	const marked = await CacheManager.markOlderVersionsForRemoval(testDir);
+	const markedPendingPaths = marked.map((entry) => entry.pendingPath);
+	t.is(markedPendingPaths.length, 1, "v0_8 was marked with a pending path");
+
+	const removed = await CacheManager.removePendingVersions(testDir, markedPendingPaths);
+
+	// Only the pre-existing (non-excluded) remnant is reported
+	t.is(removed.length, 1, "only the pre-existing remnant is reported");
+	t.is(removed[0].path, "buildCache/_buildcache_to_delete_abcd");
+	t.is(removed[0].size, 512);
+
+	// But ALL pending removal dirs are physically gone (including the excluded, just-marked one)
+	const entries = await fs.readdir(buildCacheDir);
+	const pending = entries.filter((name) => name.startsWith("_buildcache_to_delete_"));
+	t.is(pending.length, 0, "no pending removal dirs remain on disk");
+	await t.throwsAsync(fs.access(leftoverPending), {code: "ENOENT"});
+
+	// Current version is untouched
+	await t.notThrowsAsync(fs.access(path.join(buildCacheDir, CACHE_VERSION)));
+});
+
+test.serial("mark/removePendingVersions: no-op when buildCache dir does not exist", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager} = await import("../../../../lib/build/cache/CacheManager.js");
+
+	// buildCache dir is never created
+	const marked = await CacheManager.markOlderVersionsForRemoval(testDir);
+	t.deepEqual(marked, []);
+	await t.notThrowsAsync(CacheManager.removePendingVersions(testDir));
+});
+
