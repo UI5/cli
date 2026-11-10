@@ -54,7 +54,8 @@ async function task({workspace, dependencies, options: {rootProject, pattern}}) 
 				libraryManifest,
 				embeddedManifests,
 				name: dotLibResource.getProject().getName(),
-				version: dotLibResource.getProject().getVersion()
+				version: dotLibResource.getProject().getVersion(),
+				id: dotLibResource.getProject().getId?.()
 			};
 		});
 	});
@@ -64,6 +65,8 @@ async function task({workspace, dependencies, options: {rootProject, pattern}}) 
 		options: {
 			rootProjectName: rootProject.getName(),
 			rootProjectVersion: rootProject.getVersion(),
+			frameworkName: rootProject.getFrameworkName?.(),
+			frameworkVersion: rootProject.getFrameworkVersion?.(),
 			libraryInfos
 		}
 	});

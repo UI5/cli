@@ -208,6 +208,7 @@ test("Get sap-ui-version.json from versionInfo middleware (/resources/sap-ui-ver
 		"version": "1.0.0",
 		"buildTimestamp": buildTimestamp,
 		"scmRevision": "",
+		"framework": {"name": "", "version": ""},
 		"libraries": [
 			{
 				name: "library.a",
