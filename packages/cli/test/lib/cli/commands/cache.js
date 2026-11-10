@@ -57,6 +57,10 @@ test.beforeEach(async (t) => {
 	t.context.buildCacheCleanCache = sinon.stub();
 	t.context.buildCacheCleanAdditional = sinon.stub().resolves([]);
 	t.context.buildCacheGetAdditionalCacheInfo = sinon.stub().resolves([]);
+	t.context.buildCacheGetOlderVersionsInfo = sinon.stub().resolves({removable: [], newer: []});
+	t.context.buildCacheGetPendingRemovalsInfo = sinon.stub().resolves([]);
+	t.context.buildCacheMarkOlderVersionsForRemoval = sinon.stub().resolves([]);
+	t.context.buildCacheRemovePendingVersions = sinon.stub().resolves([]);
 
 	t.context.yesnoStub = sinon.stub();
 
@@ -75,6 +79,10 @@ test.beforeEach(async (t) => {
 				static cleanCache = t.context.buildCacheCleanCache;
 				static cleanAdditional = t.context.buildCacheCleanAdditional;
 				static getAdditionalCacheInfo = t.context.buildCacheGetAdditionalCacheInfo;
+				static getOlderVersionsInfo = t.context.buildCacheGetOlderVersionsInfo;
+				static getPendingRemovalsInfo = t.context.buildCacheGetPendingRemovalsInfo;
+				static markOlderVersionsForRemoval = t.context.buildCacheMarkOlderVersionsForRemoval;
+				static removePendingVersions = t.context.buildCacheRemovePendingVersions;
 			}
 		},
 		"yesno": {
@@ -868,4 +876,187 @@ test.serial("ui5 cache clean: pre-clean summary shows both groups when active an
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
 	t.true(allOutput.includes(ACTIVE_CACHE_HEADER), "Shows Active Cache group header");
 	t.true(allOutput.includes(STALE_CACHE_HEADER), "Shows Stale Cache group header");
+});
+
+// ─── Older build-cache versions ─────────────────────────────────────────────
+
+test.serial("ui5 cache clean: newer-version warning prints unconditionally in non-verbose mode", async (t) => {
+	const {cache, argv, stderrWriteStub, frameworkCacheGetCacheInfo, buildCacheGetCacheInfo,
+		buildCacheGetOlderVersionsInfo, buildCacheMarkOlderVersionsForRemoval, yesnoStub} = t.context;
+
+	frameworkCacheGetCacheInfo.resolves(null);
+	buildCacheGetCacheInfo.resolves(null);
+	buildCacheGetOlderVersionsInfo.resolves({
+		removable: [],
+		newer: [{path: "buildCache/v0_11", version: "v0_11"}],
+	});
+
+	argv["_"] = ["cache", "clean"];
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("Found newer build cache version(s)"),
+		"Newer-version warning written to stderr without --verbose");
+	t.true(allOutput.includes("v0_11"), "Warning names the newer version");
+	t.true(allOutput.includes("skipping"), "Warning indicates the newer version is skipped");
+	t.is(yesnoStub.callCount, 0, "Does not prompt when nothing removable");
+	t.is(buildCacheMarkOlderVersionsForRemoval.callCount, 0, "Does not mark anything when nothing removable");
+});
+
+test.serial("ui5 cache clean: pending-removal remnants are detected as stale and cleaned", async (t) => {
+	const {cache, argv, stderrWriteStub, frameworkCacheGetCacheInfo, buildCacheGetCacheInfo,
+		buildCacheGetPendingRemovalsInfo, buildCacheRemovePendingVersions, yesnoStub} = t.context;
+
+	// Only leftover _buildcache_to_delete_* remnants — no active, no older, no newer
+	frameworkCacheGetCacheInfo.resolves(null);
+	buildCacheGetCacheInfo.resolves(null);
+	buildCacheGetPendingRemovalsInfo.resolves([
+		{path: "buildCache/_buildcache_to_delete_3819", size: 2 * 1024 * 1024},
+		{path: "buildCache/_buildcache_to_delete_aa0c", size: 3 * 1024 * 1024},
+	]);
+	buildCacheRemovePendingVersions.resolves([
+		{path: "buildCache/_buildcache_to_delete_3819", size: 2 * 1024 * 1024},
+		{path: "buildCache/_buildcache_to_delete_aa0c", size: 3 * 1024 * 1024},
+	]);
+	yesnoStub.resolves(true);
+
+	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.false(allOutput.includes("Nothing to clean"), "Remnants are detected — not reported as nothing to clean");
+	t.is(yesnoStub.callCount, 1, "Prompts for confirmation when only remnants exist");
+	t.is(buildCacheRemovePendingVersions.callCount, 1, "removePendingVersions runs to delete the remnants");
+	t.true(allOutput.includes(STALE_CACHE_HEADER), "Remnants are listed under the Stale Cache group");
+	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "buildCache/_buildcache_to_delete_3819")),
+		"Shows first remnant path");
+	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "buildCache/_buildcache_to_delete_aa0c")),
+		"Shows second remnant path");
+	t.true(allOutput.includes("Cleaned Stale Cache (Build)"), "Success summary reports stale build cleanup");
+});
+
+test.serial("ui5 cache clean: older version dirs appear under Active Cache with (outdated) qualifier", async (t) => {
+	const {cache, argv, stderrWriteStub, frameworkCacheGetCacheInfo, buildCacheGetCacheInfo,
+		buildCacheGetOlderVersionsInfo, yesnoStub} = t.context;
+
+	frameworkCacheGetCacheInfo.resolves(null);
+	buildCacheGetCacheInfo.resolves(null);
+	buildCacheGetOlderVersionsInfo.resolves({
+		removable: [{name: "v0_8", path: "buildCache/v0_8", size: 15 * 1024 * 1024}],
+		newer: [],
+	});
+	yesnoStub.resolves(false);
+
+	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes(ACTIVE_CACHE_HEADER), "Lists older version dir under Active Cache group");
+	t.false(allOutput.includes(STALE_CACHE_HEADER),
+		"Does not list older version dir under Stale Cache group");
+	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "buildCache/v0_8")),
+		"Shows absolute path of older version dir");
+	t.true(allOutput.includes("15.0 MB"), "Shows size of older version dir");
+	t.true(allOutput.includes("(outdated)"), "Older version dir is qualified as outdated");
+	t.is(yesnoStub.callCount, 1, "Prompts for confirmation when older versions are removable");
+});
+
+test.serial("ui5 cache clean: older version dirs cleaned and shown in post-clean summary", async (t) => {
+	const {cache, argv, stderrWriteStub, frameworkCacheGetCacheInfo, buildCacheGetCacheInfo,
+		frameworkCacheCleanCache, buildCacheCleanCache,
+		buildCacheGetOlderVersionsInfo, buildCacheMarkOlderVersionsForRemoval,
+		buildCacheRemovePendingVersions} = t.context;
+
+	frameworkCacheGetCacheInfo.resolves(null);
+	buildCacheGetCacheInfo.resolves(null);
+	buildCacheGetOlderVersionsInfo.resolves({
+		removable: [{name: "v0_8", path: "buildCache/v0_8", size: 20 * 1024 * 1024}],
+		newer: [],
+	});
+	frameworkCacheCleanCache.resolves(null);
+	buildCacheCleanCache.resolves(null);
+	buildCacheMarkOlderVersionsForRemoval.resolves([
+		{name: "v0_8", path: "buildCache/v0_8", size: 20 * 1024 * 1024},
+	]);
+
+	argv["_"] = ["cache", "clean"];
+	argv["force"] = true;
+	setLogLevel("verbose");
+	await cache.handler(argv);
+
+	t.is(buildCacheMarkOlderVersionsForRemoval.callCount, 1, "markOlderVersionsForRemoval called exactly once");
+	t.is(buildCacheMarkOlderVersionsForRemoval.firstCall.args[0], TEST_UI5_DATA_DIR,
+		"markOlderVersionsForRemoval receives the resolved ui5DataDir");
+	t.is(buildCacheRemovePendingVersions.callCount, 1, "removePendingVersions called to finish the deletion");
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "buildCache/v0_8")),
+		"Shows absolute path of cleaned older version in result");
+	t.true(allOutput.includes("20.0 MB"), "Shows size of cleaned older version");
+	t.true(allOutput.includes("(outdated)"), "Cleaned older version is qualified as outdated");
+	t.true(allOutput.includes("Cleaned Active Cache (Build)"),
+		"Success summary lists cleaned older version under the active build group");
+});
+
+test.serial("ui5 cache clean: current and older build versions coexist under Active Cache", async (t) => {
+	const {cache, argv, stderrWriteStub, frameworkCacheGetCacheInfo, buildCacheGetCacheInfo,
+		buildCacheGetOlderVersionsInfo, yesnoStub} = t.context;
+
+	frameworkCacheGetCacheInfo.resolves(null);
+	buildCacheGetCacheInfo.resolves({path: BUILD_CACHE_PATH, size: 263 * 1024 * 1024});
+	buildCacheGetOlderVersionsInfo.resolves({
+		removable: [
+			{name: "v0_7", path: "buildCache/v0_7", size: 387 * 1024 * 1024},
+			{name: "v0_9", path: "buildCache/v0_9", size: 404 * 1024 * 1024},
+		],
+		newer: [],
+	});
+	yesnoStub.resolves(false);
+
+	argv["_"] = ["cache", "clean"];
+	setLogLevel("verbose");
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes(ACTIVE_CACHE_HEADER), "Shows Active Cache group");
+	t.false(allOutput.includes(STALE_CACHE_HEADER), "No stale remnants, so no Stale Cache group");
+	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, BUILD_CACHE_PATH)),
+		"Shows current version dir path");
+	t.true(allOutput.includes("(current version)"), "Current version is qualified");
+	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "buildCache/v0_7")), "Shows v0_7 path");
+	t.true(allOutput.includes(path.join(TEST_UI5_DATA_DIR, "buildCache/v0_9")), "Shows v0_9 path");
+	t.true(allOutput.includes("(outdated)"), "Older versions are qualified as outdated");
+});
+
+test.serial("ui5 cache clean: older-version mark and remove run alongside regular cleanup", async (t) => {
+	const {cache, argv, frameworkCacheGetCacheInfo, frameworkCacheCleanCache,
+		buildCacheGetCacheInfo, buildCacheCleanCache, buildCacheGetOlderVersionsInfo,
+		buildCacheMarkOlderVersionsForRemoval, buildCacheRemovePendingVersions, yesnoStub} = t.context;
+
+	frameworkCacheGetCacheInfo.resolves(FRAMEWORK_STUB);
+	buildCacheGetCacheInfo.resolves({path: BUILD_CACHE_PATH, size: 5 * 1024 * 1024});
+	buildCacheGetOlderVersionsInfo.resolves({
+		removable: [{name: "v0_9", path: "buildCache/v0_9", size: 3 * 1024 * 1024}],
+		newer: [],
+	});
+	frameworkCacheCleanCache.resolves(FRAMEWORK_STUB);
+	buildCacheCleanCache.resolves({path: BUILD_CACHE_PATH, size: 5 * 1024 * 1024});
+	buildCacheMarkOlderVersionsForRemoval.resolves([
+		{name: "v0_9", path: "buildCache/v0_9", size: 3 * 1024 * 1024},
+	]);
+	yesnoStub.resolves(true);
+
+	argv["_"] = ["cache", "clean"];
+	await cache.handler(argv);
+
+	t.is(buildCacheMarkOlderVersionsForRemoval.callCount, 1, "Marks older versions even when active cache also exists");
+	t.is(buildCacheRemovePendingVersions.callCount, 1, "Removes pending versions even when active cache also exists");
+	t.true(buildCacheMarkOlderVersionsForRemoval.calledBefore(buildCacheCleanCache),
+		"Marks older versions before the current-version db is dropped");
+	t.true(buildCacheMarkOlderVersionsForRemoval.calledBefore(buildCacheRemovePendingVersions),
+		"Marks before the slow recursive delete runs");
+	t.is(frameworkCacheCleanCache.callCount, 1, "Framework cleanup still runs");
+	t.is(buildCacheCleanCache.callCount, 1, "Build cache cleanup still runs");
 });

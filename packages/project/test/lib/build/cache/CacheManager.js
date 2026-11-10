@@ -349,7 +349,7 @@ test.serial("cleanAdditional: drops stale tables, returns freed size, leaves not
 	t.deepEqual(remainingAdditional, [], "no stale tables remain after cleanAdditional");
 });
 
-// ─── getOlderVersionsInfo / cleanOlderVersions ────────────────────────────────
+// ─── getOlderVersionsInfo / markOlderVersionsForRemoval / removePendingVersions ──
 
 test.serial("getOlderVersionsInfo: returns empty when buildCache dir does not exist", async (t) => {
 	const testDir = getUniqueTestDir();
@@ -418,24 +418,24 @@ test.serial("getOlderVersionsInfo: size falls back to 0 when cache.db is missing
 	t.is(result.removable[0].size, 0, "size is 0 when cache.db is absent");
 });
 
-test.serial("cleanOlderVersions: returns empty array when no older dirs exist", async (t) => {
+test.serial("markOlderVersionsForRemoval: marks nothing when no older dirs exist", async (t) => {
 	const testDir = getUniqueTestDir();
 	const {default: CacheManager, CACHE_VERSION} = await import("../../../../lib/build/cache/CacheManager.js");
 
-	// Only current and newer — nothing to clean
+	// Only current and newer — nothing to mark
 	const buildCacheDir = path.join(testDir, "buildCache");
 	await fs.mkdir(path.join(buildCacheDir, CACHE_VERSION), {recursive: true});
 	await fs.mkdir(path.join(buildCacheDir, "v0_11"), {recursive: true});
 
-	const result = await CacheManager.cleanOlderVersions(testDir);
-	t.deepEqual(result, []);
+	const marked = await CacheManager.markOlderVersionsForRemoval(testDir);
+	t.deepEqual(marked, []);
 
 	// Dirs are untouched
 	await t.notThrowsAsync(fs.access(path.join(buildCacheDir, CACHE_VERSION)));
 	await t.notThrowsAsync(fs.access(path.join(buildCacheDir, "v0_11")));
 });
 
-test.serial("cleanOlderVersions: removes older dirs, leaves current and newer", async (t) => {
+test.serial("markOlderVersionsForRemoval: renames older dirs to pending, leaves current and newer", async (t) => {
 	const testDir = getUniqueTestDir();
 	const {default: CacheManager, CACHE_VERSION} = await import("../../../../lib/build/cache/CacheManager.js");
 
@@ -446,49 +446,101 @@ test.serial("cleanOlderVersions: removes older dirs, leaves current and newer", 
 	await fs.mkdir(path.join(buildCacheDir, CACHE_VERSION), {recursive: true});
 	await fs.mkdir(path.join(buildCacheDir, "v0_11"), {recursive: true});
 
-	const result = await CacheManager.cleanOlderVersions(testDir);
+	const marked = await CacheManager.markOlderVersionsForRemoval(testDir);
 
-	// Both older dirs removed and reported
-	const sortedResult = [...result].sort((a, b) => a.path.localeCompare(b.path));
-	t.is(sortedResult.length, 2);
-	t.is(sortedResult[0].path, "buildCache/v0_8");
-	t.is(sortedResult[0].size, 1024);
-	t.is(sortedResult[1].path, "buildCache/v0_9");
+	// Both older dirs marked and reported with their pre-rename identity
+	const sortedMarked = [...marked].sort((a, b) => a.path.localeCompare(b.path));
+	t.is(sortedMarked.length, 2);
+	t.is(sortedMarked[0].path, "buildCache/v0_8");
+	t.is(sortedMarked[0].size, 1024);
+	t.is(sortedMarked[1].path, "buildCache/v0_9");
 
-	// Older dirs are gone
+	// Older dirs no longer exist under their version name
 	await t.throwsAsync(fs.access(path.join(buildCacheDir, "v0_8")), {code: "ENOENT"});
 	await t.throwsAsync(fs.access(path.join(buildCacheDir, "v0_9")), {code: "ENOENT"});
+
+	// They were renamed, not deleted — two pending removal dirs exist
+	const entries = await fs.readdir(buildCacheDir);
+	const pending = entries.filter((name) => name.startsWith("_buildcache_to_delete_"));
+	t.is(pending.length, 2, "both older dirs renamed to pending removal dirs");
 
 	// Current and newer are untouched
 	await t.notThrowsAsync(fs.access(path.join(buildCacheDir, CACHE_VERSION)));
 	await t.notThrowsAsync(fs.access(path.join(buildCacheDir, "v0_11")));
 });
 
-test.serial("cleanOlderVersions: resumes leftover pending dirs from interrupted prior run", async (t) => {
+test.serial("getPendingRemovalsInfo: returns empty when no remnants exist", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager, CACHE_VERSION} = await import("../../../../lib/build/cache/CacheManager.js");
+
+	const buildCacheDir = path.join(testDir, "buildCache");
+	await fs.mkdir(path.join(buildCacheDir, CACHE_VERSION), {recursive: true});
+
+	const result = await CacheManager.getPendingRemovalsInfo(testDir);
+	t.deepEqual(result, []);
+});
+
+test.serial("getPendingRemovalsInfo: reports each remnant with cache.db size", async (t) => {
 	const testDir = getUniqueTestDir();
 	const {default: CacheManager} = await import("../../../../lib/build/cache/CacheManager.js");
 
 	const buildCacheDir = path.join(testDir, "buildCache");
-	// Pre-seed a pending removal dir as if a prior run was interrupted
-	const pendingDir = path.join(buildCacheDir, "_buildcache_to_delete_abcd");
-	await fs.mkdir(pendingDir, {recursive: true});
-	await fs.writeFile(path.join(pendingDir, "cache.db"), Buffer.alloc(512));
+	const remnantA = path.join(buildCacheDir, "_buildcache_to_delete_3819");
+	await fs.mkdir(remnantA, {recursive: true});
+	await fs.writeFile(path.join(remnantA, "cache.db"), Buffer.alloc(2048));
+	// A remnant with no cache.db → size 0
+	await fs.mkdir(path.join(buildCacheDir, "_buildcache_to_delete_aa0c"), {recursive: true});
 
-	const result = await CacheManager.cleanOlderVersions(testDir);
-
-	// Resumed dirs are cleaned silently — not included in the returned list
-	t.deepEqual(result, [], "resumed pending dirs are not reported in the result");
-
-	// Pending dir is gone
-	await t.throwsAsync(fs.access(pendingDir), {code: "ENOENT"});
+	const result = await CacheManager.getPendingRemovalsInfo(testDir);
+	const sorted = [...result].sort((a, b) => a.path.localeCompare(b.path));
+	t.is(sorted.length, 2);
+	t.is(sorted[0].path, "buildCache/_buildcache_to_delete_3819");
+	t.is(sorted[0].size, 2048);
+	t.is(sorted[1].path, "buildCache/_buildcache_to_delete_aa0c");
+	t.is(sorted[1].size, 0, "size falls back to 0 when cache.db is absent");
 });
 
-test.serial("cleanOlderVersions: returns empty array when buildCache dir does not exist", async (t) => {
+test.serial("removePendingVersions: deletes all remnants, returns only non-excluded ones", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager, CACHE_VERSION} = await import("../../../../lib/build/cache/CacheManager.js");
+
+	const buildCacheDir = path.join(testDir, "buildCache");
+	// A remnant left behind by a prior interrupted run (not excluded)
+	const leftoverPending = path.join(buildCacheDir, "_buildcache_to_delete_abcd");
+	await fs.mkdir(leftoverPending, {recursive: true});
+	await fs.writeFile(path.join(leftoverPending, "cache.db"), Buffer.alloc(512));
+	// An older dir marked in this run (its pending path is excluded from the report)
+	await fs.mkdir(path.join(buildCacheDir, "v0_8"), {recursive: true});
+	await fs.mkdir(path.join(buildCacheDir, CACHE_VERSION), {recursive: true});
+
+	const marked = await CacheManager.markOlderVersionsForRemoval(testDir);
+	const markedPendingPaths = marked.map((entry) => entry.pendingPath);
+	t.is(markedPendingPaths.length, 1, "v0_8 was marked with a pending path");
+
+	const removed = await CacheManager.removePendingVersions(testDir, markedPendingPaths);
+
+	// Only the pre-existing (non-excluded) remnant is reported
+	t.is(removed.length, 1, "only the pre-existing remnant is reported");
+	t.is(removed[0].path, "buildCache/_buildcache_to_delete_abcd");
+	t.is(removed[0].size, 512);
+
+	// But ALL pending removal dirs are physically gone (including the excluded, just-marked one)
+	const entries = await fs.readdir(buildCacheDir);
+	const pending = entries.filter((name) => name.startsWith("_buildcache_to_delete_"));
+	t.is(pending.length, 0, "no pending removal dirs remain on disk");
+	await t.throwsAsync(fs.access(leftoverPending), {code: "ENOENT"});
+
+	// Current version is untouched
+	await t.notThrowsAsync(fs.access(path.join(buildCacheDir, CACHE_VERSION)));
+});
+
+test.serial("mark/removePendingVersions: no-op when buildCache dir does not exist", async (t) => {
 	const testDir = getUniqueTestDir();
 	const {default: CacheManager} = await import("../../../../lib/build/cache/CacheManager.js");
 
 	// buildCache dir is never created
-	const result = await CacheManager.cleanOlderVersions(testDir);
-	t.deepEqual(result, []);
+	const marked = await CacheManager.markOlderVersionsForRemoval(testDir);
+	t.deepEqual(marked, []);
+	await t.notThrowsAsync(CacheManager.removePendingVersions(testDir));
 });
 

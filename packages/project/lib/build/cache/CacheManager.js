@@ -457,6 +457,36 @@ export default class CacheManager {
 	}
 
 	/**
+	 * Scans the build-cache directory for pending-removal remnants
+	 * (<code>_buildcache_to_delete_*</code>) left behind by a previously interrupted clean —
+	 * i.e. a directory that was renamed by {@link markOlderVersionsForRemoval} but whose
+	 * recursive delete never completed.
+	 *
+	 * These remnants have no recoverable version identity (only a hex suffix). They are reported
+	 * so the CLI can surface them (under its "Stale Cache" group) and so they count towards the
+	 * "is there anything to clean?" decision — without this, a data dir containing only remnants
+	 * would be reported as "Nothing to clean" and the remnants would never be removed.
+	 *
+	 * Size is an O(1) inode stat on <code>cache.db</code>; no file contents are read.
+	 *
+	 * @public
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @returns {Promise<Array<{path: string, size: number}>>} One entry per remnant directory
+	 */
+	static async getPendingRemovalsInfo(ui5DataDir) {
+		const buildCacheDir = path.join(ui5DataDir, "buildCache");
+		const pendingDirs = await scanPendingRemovals(buildCacheDir, BUILD_PENDING_PREFIX);
+		return Promise.all(pendingDirs.map(async (pendingDir) => {
+			let size = 0;
+			try {
+				size = (await stat(path.join(pendingDir, "cache.db"))).size;
+			} catch {/* no cache.db — size stays 0 */}
+			return {path: `buildCache/${path.basename(pendingDir)}`, size};
+		}));
+	}
+
+	/**
 	 * Enumerates sibling build-cache version directories and partitions them into
 	 * directories that are safe to remove (version &lt; current) and directories that
 	 * belong to a newer CLI (version &gt; current, never touched — only warned about).
@@ -468,7 +498,7 @@ export default class CacheManager {
 	 * @public
 	 * @static
 	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
-	 * @returns {Promise<{removable: Array<{name: string, path: string, size: number}>, 
+	 * @returns {Promise<{removable: Array<{name: string, path: string, size: number}>,
 	 * 		newer: Array<{path: string, version: string}>}>}
 	 *   Both arrays are unordered (order depends on stat resolution timing).
 	 */
@@ -507,49 +537,84 @@ export default class CacheManager {
 	}
 
 	/**
-	 * Removes all older build-cache version directories (&lt; current {@link CACHE_VERSION}).
+	 * Marks all older build-cache version directories (&lt; current {@link CACHE_VERSION}) for
+	 * removal by renaming each to <code>_buildcache_to_delete_&lt;hex&gt;</code> in a single
+	 * synchronous burst.
 	 *
-	 * Uses the rename-then-delete pattern from {@link markForRemoval} so that each
-	 * directory disappears atomically from the namespace before its contents are deleted.
-	 * This protects a concurrently-running older CLI whose open file descriptors remain
-	 * valid after the directory is renamed (POSIX unlink semantics).
+	 * Renaming is the fast, atomic half of the interruptible-removal contract: via
+	 * {@link markForRemoval} each directory vanishes from the namespace in one syscall with no
+	 * event-loop yield in between. An interrupt after this call therefore leaves every directory
+	 * resumable by {@link removePendingVersions} rather than stranded under its live version name,
+	 * and shrinks the window in which a concurrently-running older CLI could still write into it
+	 * (its open file descriptors stay valid under POSIX unlink semantics).
 	 *
-	 * Also resumes any leftover <code>_buildcache_to_delete_*</code> directories from a
-	 * previously interrupted run. Errors for individual directories are swallowed — one
-	 * stuck directory does not prevent the others from being removed.
+	 * Call this BEFORE {@link cleanCache} opens and drops the current-version database, so the
+	 * marking is not delayed behind that synchronous work. The slow recursive delete is deferred
+	 * to {@link removePendingVersions}.
 	 *
 	 * @public
 	 * @static
 	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
-	 * @returns {Promise<Array<{path: string, size: number}>>} Entries actually removed
+	 * @returns {Promise<Array<{name: string, path: string, size: number, pendingPath: string}>>} Entries
+	 *   marked for removal, captured before renaming (the version name is unrecoverable afterwards).
+	 *   <code>pendingPath</code> is the absolute path the directory was renamed to, so the caller can
+	 *   distinguish this run's marks from pre-existing remnants when reporting removals.
 	 */
-	static async cleanOlderVersions(ui5DataDir) {
+	static async markOlderVersionsForRemoval(ui5DataDir) {
 		const buildCacheDir = path.join(ui5DataDir, "buildCache");
-		const removed = [];
-
-		// Resume any interrupted runs from a previous cleanOlderVersions call (silently — the
-		// original version name is not recoverable from the renamed pending directory).
-		const pendingDirs = await scanPendingRemovals(buildCacheDir, BUILD_PENDING_PREFIX);
-		for (const pendingDir of pendingDirs) {
-			try {
-				await removePendingDir(pendingDir);
-			} catch {/* swallow per-dir errors */}
-		}
-
-		// Remove current older-version dirs
 		const {removable} = await CacheManager.getOlderVersionsInfo(ui5DataDir);
+		const marked = [];
 		for (const entry of removable) {
 			const dirPath = path.join(buildCacheDir, entry.name);
 			try {
-				const removalDir = markForRemoval(dirPath, BUILD_PENDING_PREFIX);
-				if (!removalDir) {
-					continue; // directory was concurrently removed
+				const pendingPath = markForRemoval(dirPath, BUILD_PENDING_PREFIX);
+				if (pendingPath) {
+					marked.push({...entry, pendingPath});
 				}
-				await removePendingDir(removalDir);
-				removed.push(entry);
 			} catch {/* swallow per-dir errors */}
 		}
+		return marked;
+	}
 
+	/**
+	 * Deletes every pending build-cache removal directory (<code>_buildcache_to_delete_*</code>),
+	 * finishing the removal started by {@link markOlderVersionsForRemoval} and resuming any
+	 * remnants left behind by a previously interrupted run. This is the slow, deferred half of
+	 * the interruptible-removal contract.
+	 *
+	 * Errors for individual directories are swallowed — one stuck directory does not prevent the
+	 * others from being removed.
+	 *
+	 * @public
+	 * @static
+	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
+	 * @param {string[]} [excludePaths] Absolute pending paths to omit from the returned list (the
+	 *   directories are still deleted). Used to keep this run's just-marked older versions — already
+	 *   reported as active "outdated" caches — out of the "stale remnant" removal report.
+	 * @returns {Promise<Array<{path: string, size: number}>>} Removed remnants not in
+	 *   <code>excludePaths</code> (i.e. the pre-existing interrupted-run remnants).
+	 */
+	static async removePendingVersions(ui5DataDir, excludePaths = []) {
+		const buildCacheDir = path.join(ui5DataDir, "buildCache");
+		const exclude = new Set(excludePaths);
+		const pendingDirs = await scanPendingRemovals(buildCacheDir, BUILD_PENDING_PREFIX);
+		const removed = [];
+		for (const pendingDir of pendingDirs) {
+			const reported = !exclude.has(pendingDir);
+			// Only measure size for dirs we will report — and before deleting them.
+			let size = 0;
+			if (reported) {
+				try {
+					size = (await stat(path.join(pendingDir, "cache.db"))).size;
+				} catch {/* no cache.db — size stays 0 */}
+			}
+			try {
+				await removePendingDir(pendingDir);
+				if (reported) {
+					removed.push({path: `buildCache/${path.basename(pendingDir)}`, size});
+				}
+			} catch {/* swallow per-dir errors */}
+		}
 		return removed;
 	}
 }

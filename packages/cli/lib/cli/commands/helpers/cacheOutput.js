@@ -7,6 +7,12 @@ const GROUP_BUILD = "Build";
 const SECTION_ACTIVE_CACHE = "Active Cache";
 const SECTION_STALE_CACHE = "Stale Cache";
 
+// Version qualifiers describe a build-cache dir's relationship to the current CACHE_VERSION.
+// They only appear on live, named version dirs under Active Cache → Build. Stale entries are
+// identity-less rename remnants and never carry a qualifier.
+const QUALIFIER_CURRENT = "current version";
+const QUALIFIER_OUTDATED = "outdated";
+
 const CACHE_CLEAN_WARNING =
 	"Only run ui5 cache clean when no UI5 CLI process and no @ui5/* API consumer is actively running.";
 const CACHE_CLEAN_WARNING_IMPACT =
@@ -46,17 +52,19 @@ function writeCategoryHeader(title) {
 	process.stderr.write(`    ${chalk.bold(title)}\n`);
 }
 
-function writePreviewItem(absPath, detail) {
+function writePreviewItem({absPath, detail, qualifier}) {
 	process.stderr.write(
 		`      ${PREVIEW_MARKER} ${chalk.dim(formatPath(absPath))}` +
-		`${detail ? ` ${ITEM_DIVIDER} ${detail}` : ""}\n`
+		`${detail ? ` ${ITEM_DIVIDER} ${detail}` : ""}` +
+		`${qualifier ? ` ${chalk.dim(`(${qualifier})`)}` : ""}\n`
 	);
 }
 
-function writeCleanupItem(absPath, detail) {
+function writeCleanupItem({absPath, detail, qualifier}) {
 	process.stderr.write(
 		`      ${SUCCESS_MARKER} Removed ${chalk.dim(formatPath(absPath))}` +
-		`${detail ? ` ${ITEM_DIVIDER} ${detail}` : ""}\n`
+		`${detail ? ` ${ITEM_DIVIDER} ${detail}` : ""}` +
+		`${qualifier ? ` ${chalk.dim(`(${qualifier})`)}` : ""}\n`
 	);
 }
 
@@ -102,7 +110,7 @@ function createBuildItems(entries, detailFormatter) {
 
 function createSections({
 	activeFramework,
-	activeBuild,
+	activeBuildEntries = [],
 	staleFrameworkEntries,
 	staleBuildEntries,
 	staleBuildDetailFormatter,
@@ -117,12 +125,13 @@ function createSections({
 			items: [{absPath: activeFramework.absPath, detail}],
 		});
 	}
-	if (activeBuild) {
-		const detail = activeBuild.size > 0 ? formatSize(activeBuild.size) : "";
-		activeCategories.push({
-			title: GROUP_BUILD,
-			items: [{absPath: activeBuild.absPath, detail}],
-		});
+	const activeBuildItems = activeBuildEntries.map((entry) => ({
+		absPath: entry.absPath,
+		detail: entry.size > 0 ? formatSize(entry.size) : "",
+		qualifier: entry.qualifier,
+	}));
+	if (activeBuildItems.length > 0) {
+		activeCategories.push({title: GROUP_BUILD, items: activeBuildItems});
 	}
 	if (activeCategories.length > 0) {
 		sections.push({title: SECTION_ACTIVE_CACHE, categories: activeCategories});
@@ -148,6 +157,10 @@ function createSections({
  * Display information about the cached data that will be removed.
  * Entries are grouped by active and stale cache data.
  *
+ * Older build-cache version dirs (and the current version) are listed under
+ * Active Cache → Build with a version qualifier. Stale entries are rename remnants
+ * and carry no qualifier.
+ *
  * @param {object} data
  * @param {object|null} data.frameworkInfo
  * @param {object|null} data.buildInfo
@@ -156,6 +169,8 @@ function createSections({
  * @param {number} data.buildPreSize
  * @param {Array<{absPath: string, libraryCount: number, versionCount: number}>} data.staleInfo
  * @param {Array<{absPath: string, size: number}>} data.buildAdditionalInfo
+ * @param {Array<{absPath: string, size: number}>} [data.olderVersions] Older build-cache version dirs
+ *   that will be removed this run — shown under Active Cache → Build as "outdated".
  */
 export function displayCacheInfo({
 	frameworkInfo,
@@ -165,17 +180,23 @@ export function displayCacheInfo({
 	buildPreSize,
 	staleInfo,
 	buildAdditionalInfo,
+	olderVersions = [],
 }) {
+	const activeBuildEntries = [];
+	if (buildInfo) {
+		activeBuildEntries.push({absPath: buildAbsPath, size: buildPreSize, qualifier: QUALIFIER_CURRENT});
+	}
+	for (const entry of olderVersions) {
+		activeBuildEntries.push({absPath: entry.absPath, size: entry.size, qualifier: QUALIFIER_OUTDATED});
+	}
+
 	const sections = createSections({
 		activeFramework: frameworkInfo ? {
 			absPath: frameworkAbsPath,
 			libraryCount: frameworkInfo.libraryCount,
 			versionCount: frameworkInfo.versionCount,
 		} : null,
-		activeBuild: buildInfo ? {
-			absPath: buildAbsPath,
-			size: buildPreSize,
-		} : null,
+		activeBuildEntries,
 		staleFrameworkEntries: staleInfo,
 		staleBuildEntries: buildAdditionalInfo,
 		staleBuildDetailFormatter: (size) => size > 0 ? formatSize(size) : "",
@@ -183,9 +204,7 @@ export function displayCacheInfo({
 
 	process.stderr.write(`\n${chalk.bold("The following cached data will be removed:")}\n`);
 	process.stderr.write("\n");
-	writeGroupedSections(sections, ({absPath, detail}) => {
-		writePreviewItem(absPath, detail);
-	});
+	writeGroupedSections(sections, writePreviewItem);
 	process.stderr.write("\n");
 }
 
@@ -200,6 +219,8 @@ export function displayCacheInfo({
  * @param {number} data.buildSize
  * @param {Array<{absPath: string, libraryCount: number, versionCount: number}>} data.staleInfoWithAbsPaths
  * @param {Array<{absPath: string, size: number}>} data.buildAdditionalResult
+ * @param {Array<{absPath: string, size: number}>} [data.olderVersions] Older build-cache version dirs
+ *   removed this run — shown under Active Cache → Build as "outdated".
  */
 export function displayCleanupResult({
 	frameworkResult,
@@ -209,17 +230,23 @@ export function displayCleanupResult({
 	buildSize,
 	staleInfoWithAbsPaths,
 	buildAdditionalResult,
+	olderVersions = [],
 }) {
+	const activeBuildEntries = [];
+	if (buildResult && buildAbsPath) {
+		activeBuildEntries.push({absPath: buildAbsPath, size: buildSize, qualifier: QUALIFIER_CURRENT});
+	}
+	for (const entry of olderVersions) {
+		activeBuildEntries.push({absPath: entry.absPath, size: entry.size, qualifier: QUALIFIER_OUTDATED});
+	}
+
 	const sections = createSections({
 		activeFramework: frameworkResult && frameworkAbsPath ? {
 			absPath: frameworkAbsPath,
 			libraryCount: frameworkResult.libraryCount,
 			versionCount: frameworkResult.versionCount,
 		} : null,
-		activeBuild: buildResult && buildAbsPath ? {
-			absPath: buildAbsPath,
-			size: buildSize,
-		} : null,
+		activeBuildEntries,
 		staleFrameworkEntries: staleInfoWithAbsPaths,
 		staleBuildEntries: buildAdditionalResult,
 		staleBuildDetailFormatter: (size) => size > 0 ? `freed ${formatSize(size)}` : "",
@@ -233,9 +260,7 @@ export function displayCleanupResult({
 	process.stderr.write(`\n${chalk.bold("Cleanup result:")}\n`);
 
 	process.stderr.write("\n");
-	writeGroupedSections(sections, ({absPath, detail}) => {
-		writeCleanupItem(absPath, detail);
-	});
+	writeGroupedSections(sections, writeCleanupItem);
 
 	const cleanedSections = sections.map((section) => {
 		const categories = section.categories.map((category) => category.title).join(" and ");

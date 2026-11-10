@@ -25,7 +25,7 @@ export function parseCacheVersion(name) {
  *
  * @param {string} a First version string (e.g. "v0_9")
  * @param {string} b Second version string (e.g. "v0_10")
- * @returns {-1|0|1} -1 if a < b, 0 if equal, 1 if a > b
+ * @returns {number} -1 if a < b, 0 if equal, 1 if a > b
  * @throws {Error} If either argument does not match the version pattern
  */
 export function compareCacheVersion(a, b) {

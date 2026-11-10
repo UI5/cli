@@ -88,11 +88,24 @@ async function handleCache(argv) {
 		process.stderr.write(`Checking cache at ${chalk.bold(formatPath(ui5DataDir))} …\n`);
 	}
 
-	const [frameworkInfo, buildInfo] = await Promise.all([
+	const [frameworkInfo, buildInfo, olderVersionsInfo, pendingRemovalsInfo] = await Promise.all([
 		FrameworkCache.getCacheInfo(ui5DataDir),
 		CacheManager.getCacheInfo(ui5DataDir),
+		CacheManager.getOlderVersionsInfo(ui5DataDir),
+		CacheManager.getPendingRemovalsInfo(ui5DataDir),
 	]);
 
+	// Warn unconditionally about newer-version dirs — always a safety signal, never gated by verbose.
+	if (olderVersionsInfo.newer.length > 0) {
+		const newerVersions = olderVersionsInfo.newer.map((e) => e.version).join(", ");
+		process.stderr.write(
+			`${chalk.bold.yellow("Warning:")} Found newer build cache version(s): ` +
+			`${chalk.bold(newerVersions)} — skipping (created by a newer UI5 CLI).\n`
+		);
+	}
+
+	const hasOlderVersions = olderVersionsInfo.removable.length > 0;
+	const hasPendingRemovals = pendingRemovalsInfo.length > 0;
 	const hasActiveCache = Boolean(frameworkInfo || buildInfo);
 	let staleInfo = [];
 	let buildStaleInfo = [];
@@ -104,9 +117,9 @@ async function handleCache(argv) {
 		]);
 	}
 
-	const hasStaleCache = staleInfo.length > 0 || buildStaleInfo.length > 0;
+	const hasStaleCache = staleInfo.length > 0 || buildStaleInfo.length > 0 || hasPendingRemovals;
 
-	if (!hasActiveCache && !hasStaleCache) {
+	if (!hasActiveCache && !hasStaleCache && !hasOlderVersions) {
 		if (isVerbose) {
 			process.stderr.write(`${chalk.italic("Nothing to clean")}\n`);
 		}
@@ -121,7 +134,8 @@ async function handleCache(argv) {
 			buildAbsPath: getAbsPath(ui5DataDir, buildInfo),
 			buildPreSize: buildInfo?.size ?? 0,
 			staleInfo: withAbsPath(staleInfo, ui5DataDir),
-			buildAdditionalInfo: withAbsPath(buildStaleInfo, ui5DataDir),
+			buildAdditionalInfo: withAbsPath([...buildStaleInfo, ...pendingRemovalsInfo], ui5DataDir),
+			olderVersions: withAbsPath(olderVersionsInfo.removable, ui5DataDir),
 		});
 	}
 
@@ -139,21 +153,33 @@ async function handleCache(argv) {
 		buildStaleInfo = await CacheManager.getAdditionalCacheInfo(ui5DataDir);
 	}
 
+	// Mark all older build-cache version dirs for removal FIRST — a fast, atomic burst of
+	// renames before the current-version db is opened/dropped or any slow recursive delete
+	// runs. This guarantees that an interrupt mid-cleanup leaves every older dir resumable
+	// rather than stranded under its live version name.
+	const markedOlderVersions = await CacheManager.markOlderVersionsForRemoval(ui5DataDir);
+	// Keep this run's just-marked dirs out of the "stale remnant" removal report — they are
+	// already reported as active "outdated" caches below.
+	const markedPendingPaths = markedOlderVersions.map((entry) => entry.pendingPath);
+
 	const [frameworkCleanupResult, buildCleanupResult] = await Promise.all([
 		FrameworkCache.cleanCache(ui5DataDir),
 		CacheManager.cleanCache(ui5DataDir),
 	]);
 
-	const [additionalFrameworkCleanupResult, buildStaleCleanupResult] = await Promise.all([
-		FrameworkCache.cleanAdditional(ui5DataDir),
-		CacheManager.cleanAdditional(ui5DataDir),
-	]);
+	const [additionalFrameworkCleanupResult, buildStaleCleanupResult, removedPendingVersions] =
+		await Promise.all([
+			FrameworkCache.cleanAdditional(ui5DataDir),
+			CacheManager.cleanAdditional(ui5DataDir),
+			CacheManager.removePendingVersions(ui5DataDir, markedPendingPaths),
+		]);
 
 	if (isVerbose) {
 		const staleBuildCleanupResult = buildStaleInfo?.length > 0 ?
 			buildStaleCleanupResult : [];
 		const cleanedStaleFramework = withAbsPath(additionalFrameworkCleanupResult, ui5DataDir);
-		const cleanedStaleBuild = withAbsPath(staleBuildCleanupResult, ui5DataDir);
+		const cleanedStaleBuild = withAbsPath(
+			[...staleBuildCleanupResult, ...removedPendingVersions], ui5DataDir);
 		const frameworkResultAbsPath = getAbsPath(ui5DataDir, frameworkCleanupResult);
 		const buildResultAbsPath = getAbsPath(ui5DataDir, buildCleanupResult);
 		await displayCleanupResult({
@@ -164,6 +190,7 @@ async function handleCache(argv) {
 			buildSize: buildCleanupResult?.size ?? 0,
 			staleInfoWithAbsPaths: cleanedStaleFramework,
 			buildAdditionalResult: cleanedStaleBuild,
+			olderVersions: withAbsPath(markedOlderVersions, ui5DataDir),
 		});
 	}
 }
