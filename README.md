@@ -12,18 +12,17 @@
 This repository contains the current **development state** of the upcoming UI5 CLI v5 release.  
 Note that previous versions (up to v4) are maintained in [dedicated repositories](https://github.com/UI5/cli/tree/v4?tab=readme-ov-file#modules).
 
-> [UI5 CLI v4](https://ui5.github.io/cli/v4) is the latest and stable version 🎉
+> [UI5 CLI v5](https://ui5.github.io/cli/v5/) is currently in **alpha** and under active development in this repository. 🚧
+>
+> [UI5 CLI v4](https://ui5.github.io/cli/v4) is the latest stable version.
 >
 > [UI5 CLI v3](https://ui5.github.io/cli/v3) and [UI5 CLI v2](https://ui5.github.io/cli/v2) have been deprecated 🚫
->
-> We highly recommend migrating to [**the latest version**](https://ui5.github.io/cli/stable/).
 
 ## Resources
 
-- [Documentation](https://ui5.github.io/cli/stable/)
-- [API Reference](https://ui5.github.io/cli/stable/api/)
-- [CLI Documentation](https://ui5.github.io/cli/stable/pages/CLI/)
-- [Project Configuration](https://ui5.github.io/cli/stable/pages/Configuration/)
+- [Documentation](https://ui5.github.io/cli/v5/)
+- [CLI Documentation](https://ui5.github.io/cli/v5/pages/CLI)
+- [Project Configuration](https://ui5.github.io/cli/v5/pages/Configuration)
 - 🎬 [UI5con@SAP 2025 Talk](https://www.youtube.com/live/0D0_M4RDiZY?si=tuOjd8s6S_FUvAaF&t=4948)
 - 🎬 [UI5con@SAP 2020 Talk](https://www.youtube.com/watch?v=8IHoVJLKN34)
 - 🎬 [UI5con@SAP 2018 Talk](https://www.youtube.com/watch?v=iQ07oe26y_k)

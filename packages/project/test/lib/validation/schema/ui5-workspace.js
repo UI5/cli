@@ -80,7 +80,7 @@ test("Empty config", async (t) => {
 				message: `Unsupported "specVersion"
 Your UI5 CLI installation might be outdated.
 Supported specification versions: "workspace/1.0"
-For details, see: https://ui5.github.io/cli/stable/pages/Workspace/#workspace-specification-versions`,
+For details, see: https://ui5.github.io/cli/v5/pages/Workspace#workspace-specification-versions`,
 				params: {
 					errors: [
 						{
@@ -165,7 +165,7 @@ test("Invalid metadata.name: Illegal characters", async (t) => {
 			{
 				instancePath: "/metadata/name",
 				keyword: "errorMessage",
-				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/stable/pages/Workspace/#name",
+				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/v5/pages/Workspace#name",
 				params: {
 					errors: [
 						{
@@ -203,7 +203,7 @@ test("Invalid metadata.name: Too short", async (t) => {
 			{
 				instancePath: "/metadata/name",
 				keyword: "errorMessage",
-				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/stable/pages/Workspace/#name",
+				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/v5/pages/Workspace#name",
 				params: {
 					errors: [
 						{
@@ -242,7 +242,7 @@ test("Invalid metadata.name: Too long", async (t) => {
 			{
 				instancePath: "/metadata/name",
 				keyword: "errorMessage",
-				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/stable/pages/Workspace/#name",
+				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/v5/pages/Workspace#name",
 				params: {
 					errors: [
 						{
@@ -281,7 +281,7 @@ test("Invalid fields", async (t) => {
 				message: `Unsupported "specVersion"
 Your UI5 CLI installation might be outdated.
 Supported specification versions: "workspace/1.0"
-For details, see: https://ui5.github.io/cli/stable/pages/Workspace/#workspace-specification-versions`,
+For details, see: https://ui5.github.io/cli/v5/pages/Workspace#workspace-specification-versions`,
 				params: {
 					errors: [
 						{
@@ -299,7 +299,7 @@ For details, see: https://ui5.github.io/cli/stable/pages/Workspace/#workspace-sp
 			{
 				instancePath: "/metadata/name",
 				keyword: "errorMessage",
-				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/stable/pages/Workspace/#name",
+				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/v5/pages/Workspace#name",
 				params: {
 					errors: [
 						{
@@ -342,7 +342,7 @@ test("Invalid types", async (t) => {
 				message: `Unsupported "specVersion"
 Your UI5 CLI installation might be outdated.
 Supported specification versions: "workspace/1.0"
-For details, see: https://ui5.github.io/cli/stable/pages/Workspace/#workspace-specification-versions`,
+For details, see: https://ui5.github.io/cli/v5/pages/Workspace#workspace-specification-versions`,
 				params: {
 					errors: [
 						{
@@ -360,7 +360,7 @@ For details, see: https://ui5.github.io/cli/stable/pages/Workspace/#workspace-sp
 			{
 				instancePath: "/metadata/name",
 				keyword: "errorMessage",
-				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/stable/pages/Workspace/#name",
+				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/v5/pages/Workspace#name",
 				params: {
 					errors: [
 						{

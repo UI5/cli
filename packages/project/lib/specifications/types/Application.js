@@ -163,7 +163,7 @@ class Application extends ComponentProject {
 						`Could not find required manifest.json for project ` +
 						`${this.getName()}: ${manifestJsonError.message}\n\n` +
 						`If you are about to start a new project, please refer to:\n` +
-						`https://ui5.github.io/cli/v4/pages/GettingStarted/#starting-a-new-project`, {
+						`https://ui5.github.io/cli/v5/pages/GettingStarted#starting-a-new-project`, {
 							cause: manifestJsonError
 						});
 				}
