@@ -1560,3 +1560,105 @@ test("[workspace/1.1] Overlapping resolutions with trailing slashes in package.j
 	t.is(projectNameMap.get("library.d.custom")._configPath,
 		path.join(collectionAPath, "library.d", "ui5-custom.yaml"));
 });
+
+test("[workspace/1.1] Overlapping resolutions with dynamic package.json workspaces", async (t) => {
+	const workspace = new t.context.Workspace({
+		cwd: __dirname,
+		configuration: createWorkspaceConfig({
+			specVersion: "workspace/1.1",
+			dependencyManagement: {
+				resolutions: [{
+					path: "../../fixtures/collection.c",
+					configPath: "ui5-custom.yaml"
+				}, {
+					path: "../../fixtures/collection.c/collection.a",
+					configPath: "ui5-another-custom.yaml"
+				}]
+			}
+		})
+	});
+
+	const collectionCPath = path.join(__dirname, "../../fixtures/collection.c");
+	const collectionAPath = path.join(collectionCPath, "collection.a");
+	const readPackageJson = workspace._readPackageJson.bind(workspace);
+	const readPackageJsonStub = t.context.sinon.stub(workspace, "_readPackageJson").callsFake(readPackageJson);
+	readPackageJsonStub.withArgs(collectionCPath).resolves({
+		name: "collection c",
+		version: "1.0.0",
+		workspaces: [
+			"library.*",		// dynamic pattern
+			"collection.a/*"	// dynamic pattern
+		]
+	});
+	readPackageJsonStub.withArgs(collectionAPath).resolves({
+		name: "collection a",
+		version: "1.0.0",
+		workspaces: [
+			"library.*"			// dynamic pattern
+		]
+	});
+
+	const {projectNameMap, moduleIdMap} = await workspace._getResolvedModules();
+	t.is(moduleIdMap.size, 4);
+	t.is(projectNameMap.size, 4);
+	t.is(projectNameMap.get("library.a.custom")._configPath,
+		path.join(collectionCPath, "library.a", "ui5-custom.yaml"));
+	t.is(projectNameMap.get("library.b.custom")._configPath,
+		path.join(collectionCPath, "library.b", "ui5-custom.yaml"));
+	t.is(projectNameMap.get("library.c.another.custom")._configPath,
+		path.join(collectionAPath, "library.c", "ui5-another-custom.yaml"));
+	t.is(projectNameMap.get("library.d.another.custom")._configPath,
+		path.join(collectionAPath, "library.d", "ui5-another-custom.yaml"));
+});
+
+test("[workspace/1.1] Overlapping resolutions with dynamic package.json workspaces (specific resolution first)",
+	async (t) => {
+		const workspace = new t.context.Workspace({
+			cwd: __dirname,
+			configuration: createWorkspaceConfig({
+				specVersion: "workspace/1.1",
+				dependencyManagement: {
+					resolutions: [{
+						path: "../../fixtures/collection.c/collection.a",
+						configPath: "ui5-another-custom.yaml"
+					}, {
+						path: "../../fixtures/collection.c",
+						configPath: "ui5-custom.yaml"
+					}]
+				}
+			})
+		});
+
+		const collectionCPath = path.join(__dirname, "../../fixtures/collection.c");
+		const collectionAPath = path.join(collectionCPath, "collection.a");
+		const readPackageJson = workspace._readPackageJson.bind(workspace);
+		const readPackageJsonStub = t.context.sinon.stub(workspace, "_readPackageJson").callsFake(readPackageJson);
+		readPackageJsonStub.withArgs(collectionCPath).resolves({
+			name: "collection c",
+			version: "1.0.0",
+			workspaces: [
+				"library.*",		// dynamic pattern
+				"collection.a/*"	// dynamic pattern
+			]
+		});
+		readPackageJsonStub.withArgs(collectionAPath).resolves({
+			name: "collection a",
+			version: "1.0.0",
+			workspaces: [
+				"library.*"			// dynamic pattern
+			]
+		});
+
+		const {projectNameMap, moduleIdMap} = await workspace._getResolvedModules();
+		t.is(moduleIdMap.size, 4);
+		t.is(projectNameMap.size, 4);
+		t.is(projectNameMap.get("library.a.custom")._configPath,
+			path.join(collectionCPath, "library.a", "ui5-custom.yaml"));
+		t.is(projectNameMap.get("library.b.custom")._configPath,
+			path.join(collectionCPath, "library.b", "ui5-custom.yaml"));
+		t.is(projectNameMap.get("library.c.another.custom")._configPath,
+			path.join(collectionAPath, "library.c", "ui5-another-custom.yaml"));
+		t.is(projectNameMap.get("library.d.another.custom")._configPath,
+			path.join(collectionAPath, "library.d", "ui5-another-custom.yaml"));
+	}
+);
