@@ -119,6 +119,10 @@ Paths must be written in POSIX (i.e. using only forward slashes `/` as path segm
 
 Note that this configuration only affects the resolution of dependencies which have already been found during the regular dependency resolution process of a project. For example, if a workspace resolution path resolves to a project that would otherwise not be part of the dependency tree of the current root project, it will not be added to the dependency tree. Also, transitive dependencies of resolved projects are not being followed.
 
+::: tip Overlapping resolutions
+If multiple resolutions find the same module, the entry pointing to the deepest directory wins, regardless of entry order. For example, `../libraries/my.lib` takes precedence over `../libraries`.
+:::
+
 #### configPath
 
 *Available since `workspace/1.1`*
@@ -131,10 +135,6 @@ dependencyManagement:
 ```
 
 By default, UI5 CLI looks for a `ui5.yaml` at the root of the resolved module. The optional `configPath` property allows pointing to a different configuration file within the module directory. The path must be written in POSIX notation and must be **relative to the root of the resolved module**.
-
-#### Overlapping resolutions
-
-If multiple resolutions find the same module, the entry pointing to the deepest directory wins, regardless of entry order. For example, `../libraries/my.lib` takes precedence over `../libraries`.
 
 ## Workspace Specification Versions
 A workspace configuration must define a Specification Version by setting the `specVersion` property. UI5 CLI uses this information to detect whether the currently installed version is compatible with a workspace's configuration.
