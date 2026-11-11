@@ -228,7 +228,12 @@ class TaskUtil {
 	 * (reflects --framework-version, or a workspace link), or the root
 	 * project's configured version when no resolution occurred.
 	 *
+	 * </br></br>
+	 * This method is only available to custom task extensions defining
+	 * <b>Specification Version 5.0 and above</b>.
+	 *
 	 * @returns {string|undefined} Effective framework version, e.g. "1.138.0"
+	 * @public
 	 */
 	getResolvedFrameworkVersion() {
 		return this._projectBuildContext.getResolvedFrameworkVersion();
@@ -445,7 +450,7 @@ class TaskUtil {
 		}
 
 		if (specVersion.gte("5.0")) {
-			bindFunctions(this, baseInterface, ["getEnv", "getTime", "getBuildTime"]);
+			bindFunctions(this, baseInterface, ["getEnv", "getTime", "getBuildTime", "getResolvedFrameworkVersion"]);
 		}
 		return baseInterface;
 	}
@@ -493,7 +498,7 @@ class TaskUtil {
 		}
 
 		if (specVersion.gte("5.0")) {
-			bindFunctions(this, baseInterface, ["getEnv", "getTime", "getBuildTime"]);
+			bindFunctions(this, baseInterface, ["getEnv", "getTime", "getBuildTime", "getResolvedFrameworkVersion"]);
 		}
 		return baseInterface;
 	}

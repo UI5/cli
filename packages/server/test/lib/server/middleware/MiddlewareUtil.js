@@ -398,6 +398,38 @@ test("getInterface: specVersion 3.0", (t) => {
 		"resourceFactory function createFlatReader is available");
 });
 
+test("getInterface: specVersion 5.0", (t) => {
+	const getResolvedFrameworkVersionStub = sinon.stub().returns("1.138.0");
+	const mockGraph = {
+		getProject: sinon.stub().returns({getName: () => "name"}),
+		getDependencies: sinon.stub().returns([]),
+		getResolvedFrameworkVersion: getResolvedFrameworkVersionStub
+	};
+
+	const middlewareUtil = new MiddlewareUtil({graph: mockGraph, project: "project"});
+
+	const interfacedMiddlewareUtil = middlewareUtil.getInterface(getSpecificationVersion("5.0"));
+
+	t.deepEqual(Object.keys(interfacedMiddlewareUtil), [
+		"getPathname",
+		"getMimeInfo",
+		"getProject",
+		"getDependencies",
+		"resourceFactory",
+		"getResolvedFrameworkVersion",
+	], "getResolvedFrameworkVersion is added at specVersion 5.0");
+
+	t.is(typeof interfacedMiddlewareUtil.getResolvedFrameworkVersion, "function",
+		"function getResolvedFrameworkVersion is provided");
+	t.is(interfacedMiddlewareUtil.getResolvedFrameworkVersion(), "1.138.0",
+		"getResolvedFrameworkVersion returns the resolved framework version");
+
+	// Not provided below specVersion 5.0
+	const interfacedBelow5 = middlewareUtil.getInterface(getSpecificationVersion("3.0"));
+	t.is(interfacedBelow5.getResolvedFrameworkVersion, undefined,
+		"getResolvedFrameworkVersion is not provided below specVersion 5.0");
+});
+
 test("getInterface: specVersion unknown", (t) => {
 	const middlewareUtil = new MiddlewareUtil({graph: "graph", project: "project"});
 	const err = t.throws(() => {

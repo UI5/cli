@@ -170,6 +170,10 @@ class MiddlewareUtil {
 	 * value from ui5.yaml, this reflects the version actually resolved during graph enrichment —
 	 * including --framework-version overrides and workspace-linked sap.ui.core.
 	 *
+	 * </br></br>
+	 * This method is only available to custom middleware extensions defining
+	 * <b>Specification Version 5.0 and above</b>.
+	 *
 	 * @public
 	 * @returns {string|undefined} Effective framework version, e.g. "1.138.0"
 	 */
@@ -272,6 +276,10 @@ class MiddlewareUtil {
 			].forEach((factoryFunction) => {
 				baseInterface.resourceFactory[factoryFunction] = this.resourceFactory[factoryFunction];
 			});
+		}
+
+		if (specVersion.gte("5.0")) {
+			bindFunctions(this, baseInterface, ["getResolvedFrameworkVersion"]);
 		}
 		return baseInterface;
 	}
