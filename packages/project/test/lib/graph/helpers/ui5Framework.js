@@ -1028,7 +1028,22 @@ test.serial("enrichProjectGraph should use framework library metadata from works
 		getName: sinon.stub().resolves("default")
 	};
 
-	const workspaceFrameworkLibraryMetadata = {};
+	const workspaceFrameworkLibraryMetadata = {
+		lib1: {
+			id: "@sapui5/lib1",
+			path: applicationAPath,
+			version: "1.111.1",
+			dependencies: [],
+			optionalDependencies: [],
+		},
+		lib2: {
+			id: "@sapui5/lib2",
+			path: applicationAPath,
+			version: "1.111.1",
+			dependencies: [],
+			optionalDependencies: [],
+		},
+	};
 	const libraryMetadata = {};
 
 	sinon.stub(utils, "getWorkspaceFrameworkLibraryMetadata").resolves(workspaceFrameworkLibraryMetadata);
@@ -1101,7 +1116,22 @@ test.serial("enrichProjectGraph should allow omitting framework version in case 
 		getName: sinon.stub().resolves("default")
 	};
 
-	const workspaceFrameworkLibraryMetadata = {};
+	const workspaceFrameworkLibraryMetadata = {
+		lib1: {
+			id: "@sapui5/lib1",
+			path: applicationAPath,
+			version: "0.0.1",
+			dependencies: [],
+			optionalDependencies: [],
+		},
+		lib2: {
+			id: "@sapui5/lib2",
+			path: applicationAPath,
+			version: "0.0.1",
+			dependencies: [],
+			optionalDependencies: [],
+		},
+	};
 	const libraryMetadata = {};
 
 	sinon.stub(utils, "getWorkspaceFrameworkLibraryMetadata").resolves(workspaceFrameworkLibraryMetadata);
@@ -1213,7 +1243,10 @@ test.serial("enrichProjectGraph: OpenUI5 with workspace — sap.ui.core version 
 
 	const workspace = {getName: sinon.stub().resolves("default")};
 
-	sinon.stub(utils, "getWorkspaceFrameworkLibraryMetadata").resolves({});
+	sinon.stub(utils, "getWorkspaceFrameworkLibraryMetadata").resolves({
+		"sap.ui.core": {id: "@openui5/sap.ui.core", path: libraryEPath, version: "1.111.0",
+			dependencies: [], optionalDependencies: []}
+	});
 	Openui5ResolverInstallStub.resolves({libraryMetadata: {}});
 	sinon.stub(utils, "declareFrameworkDependenciesInGraph").resolves();
 
@@ -1276,7 +1309,10 @@ test.serial("enrichProjectGraph: OpenUI5 with workspace — sap.ui.core not in g
 
 	const workspace = {getName: sinon.stub().resolves("default")};
 
-	sinon.stub(utils, "getWorkspaceFrameworkLibraryMetadata").resolves({});
+	sinon.stub(utils, "getWorkspaceFrameworkLibraryMetadata").resolves({
+		"sap.ui.lib1": {id: "@openui5/sap.ui.lib1", path: applicationAPath, version: "1.99.0",
+			dependencies: [], optionalDependencies: []}
+	});
 	Openui5ResolverInstallStub.resolves({libraryMetadata: {}});
 	sinon.stub(utils, "declareFrameworkDependenciesInGraph").resolves();
 	// sap.ui.core never added to the graph (e.g. all libs come from workspace but not sap.ui.core itself)
@@ -1291,10 +1327,59 @@ test.serial("enrichProjectGraph: OpenUI5 with workspace — sap.ui.core not in g
 	t.is(projectGraph.getResolvedFrameworkVersion(), "",
 		"OpenUI5 with workspace but sap.ui.core absent from graph yields empty version");
 
-	// Event still emitted (workspace active, framework name known) but version is empty.
+	// Event still emitted (workspace contributed framework libs, framework name known) but version is empty.
 	t.deepEqual(frameworkEvents, [{
 		framework: {name: "OpenUI5", version: ""},
 	}], "Emits framework event with empty version when sap.ui.core absent from workspace graph");
+});
+
+test.serial("enrichProjectGraph: workspace with no framework libraries uses configured dist version", async (t) => {
+	// Regression: when ui5-workspace.yaml contains only non-framework projects (providedLibraryMetadata
+	// is empty), the resolved framework version must be the configured/overridden dist version,
+	// not the empty string that the workspace-contributed branch would produce.
+	const {sinon, ui5Framework, utils, Sapui5ResolverInstallStub} = t.context;
+	const frameworkEvents = [];
+	const frameworkListener = (evt) => frameworkEvents.push(evt);
+	process.on("ui5.project-framework-resolved", frameworkListener);
+	t.teardown(() => process.off("ui5.project-framework-resolved", frameworkListener));
+
+	const dependencyTree = {
+		id: "test1",
+		version: "1.0.0",
+		path: applicationAPath,
+		configuration: {
+			specVersion: "2.0",
+			type: "application",
+			metadata: {name: "application.a"},
+			framework: {
+				name: "SAPUI5",
+				version: "1.130.0",
+				libraries: [{name: "lib1"}]
+			}
+		}
+	};
+
+	const workspace = {getName: sinon.stub().resolves("default")};
+
+	// Workspace contains no framework libraries — only application-level projects.
+	sinon.stub(utils, "getWorkspaceFrameworkLibraryMetadata").resolves({});
+	Sapui5ResolverInstallStub.resolves({libraryMetadata: {}});
+	sinon.stub(utils, "ProjectProcessor").callsFake(() => ({addProjectToGraph: sinon.stub()}));
+	sinon.stub(utils, "declareFrameworkDependenciesInGraph").resolves();
+
+	const provider = new DependencyTreeProvider({dependencyTree});
+	const projectGraph = await projectGraphBuilder(provider, {workspace});
+
+	await ui5Framework.enrichProjectGraph(projectGraph, {workspace});
+
+	// Empty providedLibraryMetadata → workspaceContributedFramework = false → falls through to
+	// `version` (the configured dist version), not the "" that SAPUI5 workspace-contributed yields.
+	t.is(projectGraph.getResolvedFrameworkVersion(), "1.130.0",
+		"workspace with no framework libraries must not override the configured dist version with ''");
+
+	t.deepEqual(frameworkEvents, [{
+		framework: {name: "SAPUI5", version: "1.130.0"},
+	}], "Emits framework event with the configured dist version when workspace has no framework libs");
 });
 
 test.serial("enrichProjectGraph should use UI5 data dir from env var", async (t) => {
