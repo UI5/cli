@@ -175,10 +175,8 @@ class Workspace {
 			const absolutePath = path.resolve(this.#cwd, resolutionConfig.path);
 			const segments = absolutePath.split(path.sep);
 			const specificity = segments.length;
-			const visitedNodesPerResolution = new Set(); // will be used to prevent cyclic traversals
 
 			await this._getModulesFromPath(
-				visitedNodesPerResolution,
 				this.#cwd,
 				resolutionConfig.path,
 				resolutionConfig.configPath,
@@ -214,12 +212,12 @@ class Workspace {
 	}
 
 	async _getModulesFromPath(
-		visitedNodesPerResolution,
 		cwd,
 		relPath,
 		configPath,
 		specificity,
-		failOnMissingFiles = true) {
+		failOnMissingFiles = true,
+		visitedNodesPerResolution = new Set()) {
 		const nodePath = path.resolve(cwd, relPath);
 		// Skip this node when already visited in the current resolution context
 		// (e.g. in recursive workspace scenarios)
@@ -279,8 +277,8 @@ class Workspace {
 			searchPaths.push(...staticPatterns);
 
 			await Promise.all(searchPaths.map(async (pkgPath) => {
-				await this._getModulesFromPath(visitedNodesPerResolution, nodePath, pkgPath, configPath, specificity,
-					staticPatterns.includes(pkgPath));
+				await this._getModulesFromPath(nodePath, pkgPath, configPath, specificity,
+					staticPatterns.includes(pkgPath), visitedNodesPerResolution);
 			}));
 		} else {
 			if (this.#resolvedModules.get(nodePath) &&
