@@ -1,20 +1,4 @@
 # UI5 Workspaces
-
-::: info
-**UI5 Workspaces is a new feature available since UI5 CLI [`v3.0.0`](https://github.com/SAP/ui5-cli/releases/tag/v3.0.0)** 
-
-::: details
-```yaml title="ui5-workspace.yaml"
-specVersion: workspace/1.1
-metadata:
-    name: default
-dependencyManagement:
-   	    resolutions:
-   	    - path: ../heavy.library
-```
-
-:::
-
 ## General Concept
 
 UI5 Workspaces can be used to create a personalized local development environment for a UI5 project. They allow to use UI5 dependencies from local directories without the need to use the link features of package managers like npm. "UI5 dependencies" generally refers to projects that have a `ui5.yaml`.
