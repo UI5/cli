@@ -18,7 +18,7 @@ const log = getLogger("build:helpers:ToolDependencyRecorder");
  * for already-cached modules), so the observation does not depend on module-cache state.
  *
  * POC scope: single active capture (no concurrent-task attribution) and a package-name filter that
- * excludes the UI5 tooling packages and build plumbing ({@link isToolFile}).
+ * excludes the UI5 tooling packages ({@link isToolFile}).
  * The hook is per-realm, so a tool loaded in a worker thread is not observed here; the worker dispatch
  * resolves such a tool's entry on the main thread, within the capture window, so it is recorded at version
  * level (entry + `package.json`).
@@ -36,11 +36,6 @@ let activeCapture = null;
 // Matched against the file's OWNING package name, so an @ui5-scoped application dependency a task bundles
 // (e.g. @ui5/webcomponents via ui5-tooling-modules) is NOT excluded and is tracked like any other package.
 const UI5_TOOLING_BARRIER = new Set(["@ui5/builder", "@ui5/fs", "@ui5/project", "@ui5/logger"]);
-
-// Build plumbing the loader resolves alongside a tool but which is not a content-transform tool:
-// workerpool is the worker-pool runtime. A change to it cannot alter a task's output, so tracking it would
-// only cause spurious stage re-runs.
-const PLUMBING_DENYLIST = new Set(["workerpool"]);
 
 /**
  * Installs the resolve hook once per thread. Idempotent.
@@ -91,11 +86,11 @@ function packageNameOf(fileUrl) {
 /**
  * Whether a resolved file URL counts as a tracked tool file.
  *
- * The file must live under a node_modules (an installed package); its owning package must not be a UI5
- * tooling package already covered by the build signature ({@link UI5_TOOLING_BARRIER}); and must not be
- * known build plumbing ({@link PLUMBING_DENYLIST}). Only the UI5 *tooling* packages are barriers: a
- * dependency in the `@ui5` scope that a task bundles (e.g. `@ui5/webcomponents`) is tracked like any other
- * package, so a version or entry change to it still moves the stage's tool-content digest.
+ * The file must live under a node_modules (an installed package), and its owning package must not be a UI5
+ * tooling package already covered by the build signature ({@link UI5_TOOLING_BARRIER}). Only the UI5
+ * *tooling* packages are barriers: a dependency in the `@ui5` scope that a task bundles (e.g.
+ * `@ui5/webcomponents`) is tracked like any other package, so a version or entry change to it still moves
+ * the stage's tool-content digest.
  *
  * @param {string} fileUrl A file: URL
  * @returns {boolean}
@@ -105,7 +100,7 @@ export function isToolFile(fileUrl) {
 	if (!packageName) {
 		return false;
 	}
-	return !UI5_TOOLING_BARRIER.has(packageName) && !PLUMBING_DENYLIST.has(packageName);
+	return !UI5_TOOLING_BARRIER.has(packageName);
 }
 
 /**

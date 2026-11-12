@@ -30,17 +30,6 @@ test.serial("stopCapture folds each tracked package's package.json into the set"
 		"folds the tool package's package.json into the set even though it is not imported");
 });
 
-test.serial("stopCapture denylists build plumbing (workerpool)", (t) => {
-	const handle = startCapture();
-	// workerpool is a non-@ui5 node_modules package, but it is build plumbing, not a content-transform
-	// tool, so it must be excluded via the denylist.
-	requireFromStubTool("workerpool");
-	const files = stopCapture(handle);
-
-	t.false(files.some((file) => file.includes(`${path.sep}workerpool${path.sep}`)),
-		"excludes workerpool (build plumbing)");
-});
-
 test.serial("stopCapture records a resolve-only lookup and folds the package.json (the jsdoc path)", (t) => {
 	// jsdoc has no dedicated tracking: generateJsdoc resolves jsdoc's entry on the main thread with
 	// import.meta.resolve, which resolves without loading the module. That resolve must still fire the hook
@@ -96,9 +85,9 @@ test("isToolFile excludes the UI5 tooling packages but tracks @ui5-scoped applic
 	t.true(isToolFile(`${nm}@ui5/webcomponents-base/dist/Device.js`),
 		"@ui5/webcomponents-base is tracked");
 
-	// Non-@ui5 packages are tracked; build plumbing is denylisted.
+	// Non-@ui5 packages are tracked, including build plumbing (no special-casing): tracking is fail-safe.
 	t.true(isToolFile(`${nm}chart.js/dist/chart.cjs`), "a plain npm package is tracked");
-	t.false(isToolFile(`${nm}workerpool/src/index.js`), "workerpool (build plumbing) is excluded");
+	t.true(isToolFile(`${nm}workerpool/src/index.js`), "workerpool is tracked like any other package");
 
 	// Not under node_modules (e.g. a workspace package resolved to its realpath) is not a tool file.
 	t.false(isToolFile("file:///repo/packages/logger/lib/index.js"), "a non-node_modules path is not a tool");
