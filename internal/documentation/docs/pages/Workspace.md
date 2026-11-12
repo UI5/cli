@@ -5,7 +5,7 @@ UI5 Workspaces can be used to create a personalized local development environmen
 
 Workspaces are typically configured in a `ui5-workspace.yaml` file, located next to the project's `ui5.yaml`. The file can contain one or many workspace configurations, each separated by [three dashes](https://yaml.org/spec/1.2.2/#22-structures). For example:
 
-::: details Example
+::: info Example
 ```yaml title="ui5-workspace.yaml"
 specVersion: workspace/1.1
 metadata:
@@ -73,7 +73,7 @@ The `name` property must satisfy the following conditions. They are identical to
 
 UI5 Workspace configurations allow to influence the dependency resolution when working with a UI5 project.
 
-::: details
+::: info Example
 ```yaml
 specVersion: workspace/1.1
 metadata:
@@ -90,6 +90,7 @@ dependencyManagement:
 ### Resolutions
 
 ```yaml
+[...]
 dependencyManagement:
    	resolutions:
        	- path: ../test.library
@@ -103,7 +104,7 @@ Paths must be written in POSIX (i.e. using only forward slashes `/` as path segm
 
 Note that this configuration only affects the resolution of dependencies which have already been found during the regular dependency resolution process of a project. For example, if a workspace resolution path resolves to a project that would otherwise not be part of the dependency tree of the current root project, it will not be added to the dependency tree. Also, transitive dependencies of resolved projects are not being followed.
 
-::: tip Overlapping resolutions
+::: info Overlapping resolutions
 If multiple resolutions find the same module, the entry pointing to the deepest directory wins, regardless of entry order. For example, `../libraries/my.lib` takes precedence over `../libraries`.
 :::
 
@@ -112,6 +113,7 @@ If multiple resolutions find the same module, the entry pointing to the deepest 
 *Available since `workspace/1.1`*
 
 ```yaml
+[...]
 dependencyManagement:
     resolutions:
         - path: ../test.library
