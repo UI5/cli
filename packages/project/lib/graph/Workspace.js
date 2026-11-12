@@ -149,8 +149,8 @@ class Workspace {
 			const absolutePath = path.resolve(this.#cwd, resolutionPath);
 			if (seenAbsolutePaths.includes(absolutePath)) {
 				throw new Error(
-					`Multiple resolutions for the same dependency '${path.basename(absolutePath)}' ` +
-					`(resolved to '${absolutePath}') in workspace '${this.getName()}' exist.`);
+					`Two or more resolutions for '${path.basename(absolutePath)}' ` +
+					`point to the same folder '${absolutePath}' in workspace '${this.getName()}'.`);
 			}
 			seenAbsolutePaths.push(absolutePath);
 		}

@@ -818,9 +818,9 @@ test("[workspace/1.1] No configPath for all libs + Two custom configPaths for si
 
 	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 	t.is(err.message,
-		`Multiple resolutions for the same dependency 'library.a' ` +
-		`(resolved to '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}') ` +
-		`in workspace '${workspace.getName()}' exist.`);
+		`Two or more resolutions for 'library.a' ` +
+		`point to the same folder '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}' ` +
+		`in workspace '${workspace.getName()}'.`);
 });
 
 test("[workspace/1.1] Two custom configPaths for single lib + No configPath for all libs (interleaved)",
@@ -847,9 +847,9 @@ test("[workspace/1.1] Two custom configPaths for single lib + No configPath for 
 
 		const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 		t.is(err.message,
-			`Multiple resolutions for the same dependency 'library.a' ` +
-			`(resolved to '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}') ` +
-			`in workspace '${workspace.getName()}' exist.`);
+			`Two or more resolutions for 'library.a' ` +
+			`point to the same folder '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}' ` +
+			`in workspace '${workspace.getName()}'.`);
 	}
 );
 
@@ -1070,9 +1070,9 @@ test("[workspace/1.1] Two custom configPaths for the same single lib -> error on
 
 	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 	t.is(err.message,
-		`Multiple resolutions for the same dependency 'library.a' ` +
-		`(resolved to '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}') ` +
-		`in workspace '${workspace.getName()}' exist.`);
+		`Two or more resolutions for 'library.a' ` +
+		`point to the same folder '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}' ` +
+		`in workspace '${workspace.getName()}'.`);
 });
 
 test("[workspace/1.1] Duplicate library via different path strings (no configPath)", async (t) => {
@@ -1094,9 +1094,9 @@ test("[workspace/1.1] Duplicate library via different path strings (no configPat
 
 	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 	t.is(err.message,
-		`Multiple resolutions for the same dependency 'library.a' ` +
-		`(resolved to '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}') ` +
-		`in workspace '${workspace.getName()}' exist.`);
+		`Two or more resolutions for 'library.a' ` +
+		`point to the same folder '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}' ` +
+		`in workspace '${workspace.getName()}'.`);
 });
 
 test("[workspace/1.1] Duplicate library via different path strings (with configPath)", async (t) => {
@@ -1120,9 +1120,9 @@ test("[workspace/1.1] Duplicate library via different path strings (with configP
 
 	const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 	t.is(err.message,
-		`Multiple resolutions for the same dependency 'library.a' ` +
-		`(resolved to '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}') ` +
-		`in workspace '${workspace.getName()}' exist.`);
+		`Two or more resolutions for 'library.a' ` +
+		`point to the same folder '${path.resolve(__dirname, "../../fixtures/collection.c/library.a")}' ` +
+		`in workspace '${workspace.getName()}'.`);
 });
 
 test("[workspace/1.1] Duplicate library name via different directories", async (t) => {
@@ -1288,10 +1288,10 @@ test("[workspace/1.1] Duplicate resolutions for single lib (with missing config)
 
 		const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 		t.is(err.message,
-			`Multiple resolutions for the same dependency 'library.a' ` +
-			`(resolved to '${path.resolve(__dirname,
-				"../../fixtures/collection.c.noCustomConfigForLibA/library.a")}') ` +
-			`in workspace '${workspace.getName()}' exist.`);
+			`Two or more resolutions for 'library.a' ` +
+			`point to the same folder '${path.resolve(__dirname,
+				"../../fixtures/collection.c.noCustomConfigForLibA/library.a")}' ` +
+			`in workspace '${workspace.getName()}'.`);
 	}
 );
 
@@ -1319,10 +1319,10 @@ test("[workspace/1.1] Duplicate resolutions for single lib (missing config last)
 
 		const err = await t.throwsAsync(async () => await workspace._getResolvedModules());
 		t.is(err.message,
-			`Multiple resolutions for the same dependency 'library.a' ` +
-			`(resolved to '${path.resolve(__dirname,
-				"../../fixtures/collection.c.noCustomConfigForLibA/library.a")}') ` +
-			`in workspace '${workspace.getName()}' exist.`);
+			`Two or more resolutions for 'library.a' ` +
+			`point to the same folder '${path.resolve(__dirname,
+				"../../fixtures/collection.c.noCustomConfigForLibA/library.a")}' ` +
+			`in workspace '${workspace.getName()}'.`);
 	}
 );
 
