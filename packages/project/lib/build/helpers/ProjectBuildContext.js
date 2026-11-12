@@ -165,8 +165,8 @@ class ProjectBuildContext {
 				return undefined;
 			}
 			rawValue = quantizeTime(name, this.getBuildTime());
-		} else if (type === "resolvedFrameworkVersion") {
-			rawValue = this.getResolvedFrameworkVersion();
+		} else if (type === "resolvedFrameworkInfo") {
+			rawValue = this.getResolvedFrameworkInfo();
 		} else if (type.startsWith("project.")) {
 			const method = type.slice("project.".length);
 			const project = this.getProject(name);
@@ -209,14 +209,12 @@ class ProjectBuildContext {
 	}
 
 	/**
-	 * Returns the effective framework version resolved for this graph during enrichment
-	 * (reflects --framework-version, or a workspace link), or the root
-	 * project's configured version when no resolution occurred.
+	 * Returns the effective framework identity and version from the graph.
 	 *
-	 * @returns {string|undefined} Effective framework version, e.g. "1.138.0"
+	 * @returns {{name: string, version: string}} Effective metadata with unknown fields normalized to empty strings
 	 */
-	getResolvedFrameworkVersion() {
-		return this._buildContext.getGraph().getResolvedFrameworkVersion();
+	getResolvedFrameworkInfo() {
+		return this._buildContext.getGraph().getResolvedFrameworkInfo();
 	}
 
 	/**

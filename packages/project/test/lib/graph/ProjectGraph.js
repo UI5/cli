@@ -1935,36 +1935,37 @@ test("Seal/isSealed", async (t) => {
 	t.is(extension, undefined, "extension.b should not be added");
 });
 
-test("getResolvedFrameworkVersion: returns value set by setResolvedFrameworkVersion", async (t) => {
+test("getResolvedFrameworkInfo: returns the distribution resolution", async (t) => {
 	const {ProjectGraph} = t.context;
 	const rootProject = await createProject("root");
 	const graph = new ProjectGraph({rootProjectName: "root"});
 	await graph.addProject(rootProject);
 
-	graph.setResolvedFrameworkVersion("1.138.0");
-	t.is(graph.getResolvedFrameworkVersion(), "1.138.0");
+	graph.setFrameworkResolution({name: "SAPUI5", version: "1.138.0"});
+	t.deepEqual(graph.getResolvedFrameworkInfo(), {name: "SAPUI5", version: "1.138.0"});
 });
 
-test("getResolvedFrameworkVersion: falls back to root project getFrameworkVersion() when unset", async (t) => {
+test("getResolvedFrameworkInfo: falls back to root framework configuration when unset", async (t) => {
 	const {ProjectGraph} = t.context;
 	const rootProject = await createProject("root");
-	// Stub getFrameworkVersion on the project instance
+	// Supply a complete, recognized framework configuration on the project instance.
+	rootProject.getFrameworkName = () => "SAPUI5";
 	rootProject.getFrameworkVersion = () => "1.136.0";
 	const graph = new ProjectGraph({rootProjectName: "root"});
 	await graph.addProject(rootProject);
 
-	t.is(graph.getResolvedFrameworkVersion(), "1.136.0",
-		"Should fall back to the root project's configured version");
+	t.deepEqual(graph.getResolvedFrameworkInfo(), {name: "SAPUI5", version: "1.136.0"},
+		"Should fall back to the root project's configured framework metadata");
 });
 
-test("getResolvedFrameworkVersion: setResolvedFrameworkVersion overrides configured root version", async (t) => {
+test("getResolvedFrameworkInfo: distribution resolution overrides configured root version", async (t) => {
 	const {ProjectGraph} = t.context;
 	const rootProject = await createProject("root");
 	rootProject.getFrameworkVersion = () => "1.136.0";
 	const graph = new ProjectGraph({rootProjectName: "root"});
 	await graph.addProject(rootProject);
 
-	graph.setResolvedFrameworkVersion("1.138.0");
-	t.is(graph.getResolvedFrameworkVersion(), "1.138.0",
-		"Set value must take precedence over configured root version");
+	graph.setFrameworkResolution({name: "SAPUI5", version: "1.138.0"});
+	t.deepEqual(graph.getResolvedFrameworkInfo(), {name: "SAPUI5", version: "1.138.0"},
+		"Resolved metadata must take precedence over configured root version");
 });

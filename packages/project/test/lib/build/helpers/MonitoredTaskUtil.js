@@ -19,7 +19,7 @@ test.beforeEach((t) => {
 		getEnv: sinon.stub().callsFake((name) => (name === "SET" ? "on" : undefined)),
 		getTime: sinon.stub().callsFake((granularity) => (granularity === "year" ? "2026" : "2026-09-25")),
 		isRootProject: sinon.stub().returns(true),
-		getResolvedFrameworkVersion: sinon.stub().returns("1.138.0"),
+		getResolvedFrameworkInfo: sinon.stub().returns({name: "OpenUI5", version: "1.138.0"}),
 		getDependencies: sinon.stub().returns(["dep.a", "dep.b"]),
 		getProject: sinon.stub().callsFake((name) => {
 			if (name === undefined || name === "sap.ui.core") {
@@ -96,11 +96,11 @@ test("records isRootProject reads", (t) => {
 	]);
 });
 
-test("records getResolvedFrameworkVersion reads", (t) => {
+test("records getResolvedFrameworkInfo reads", (t) => {
 	const monitored = new MonitoredTaskUtil(t.context.taskUtil);
-	t.is(monitored.getResolvedFrameworkVersion(), "1.138.0");
+	t.deepEqual(monitored.getResolvedFrameworkInfo(), {name: "OpenUI5", version: "1.138.0"});
 	t.deepEqual(monitored.getInputRecording(), [
-		{type: "resolvedFrameworkVersion", name: "", value: "1.138.0"},
+		{type: "resolvedFrameworkInfo", name: "", value: JSON.stringify({name: "OpenUI5", version: "1.138.0"})},
 	]);
 });
 

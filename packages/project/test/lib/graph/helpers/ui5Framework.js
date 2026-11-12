@@ -6,6 +6,7 @@ import DependencyTreeProvider from "../../../../lib/graph/providers/DependencyTr
 import projectGraphBuilder from "../../../../lib/graph/projectGraphBuilder.js";
 import Specification from "../../../../lib/specifications/Specification.js";
 import SnapshotCache from "../../../../lib/ui5Framework/maven/SnapshotCache.js";
+import {createFrameworkProject} from "./__helper__/frameworkProject.js";
 
 const __dirname = import.meta.dirname;
 
@@ -189,7 +190,7 @@ test.serial("enrichProjectGraph", async (t) => {
 		},
 	}], "Emits the effective framework metadata for the current run");
 
-	t.is(projectGraph.getResolvedFrameworkVersion(), "1.75.0",
+	t.is(projectGraph.getResolvedFrameworkInfo().version, "1.75.0",
 		"SAPUI5 effective version is the resolved distribution version, not sap.ui.core's");
 });
 
@@ -310,7 +311,7 @@ test.serial("enrichProjectGraph SNAPSHOT", async (t) => {
 		"application.a"
 	], "Traversed graph in correct order");
 
-	t.is(projectGraph.getResolvedFrameworkVersion(), "1.75.0-SNAPSHOT",
+	t.is(projectGraph.getResolvedFrameworkInfo().version, "1.75.0-SNAPSHOT",
 		"SAPUI5 SNAPSHOT effective version is the resolved distribution version");
 });
 
@@ -384,7 +385,7 @@ test.serial("enrichProjectGraph: With versionOverride", async (t) => {
 		},
 	}], "Emits the overridden effective framework metadata for the current run");
 
-	t.is(projectGraph.getResolvedFrameworkVersion(), "1.99.9",
+	t.is(projectGraph.getResolvedFrameworkInfo().version, "1.99.9",
 		"SAPUI5 effective version reflects the resolved --framework-version override");
 });
 
@@ -450,7 +451,7 @@ test.serial("enrichProjectGraph: With versionOverride containing snapshot versio
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 
-	t.is(projectGraph.getResolvedFrameworkVersion(), "1.99.9-SNAPSHOT",
+	t.is(projectGraph.getResolvedFrameworkInfo().version, "1.99.9-SNAPSHOT",
 		"SAPUI5 SNAPSHOT override effective version is the resolved override version");
 });
 
@@ -516,7 +517,7 @@ test.serial("enrichProjectGraph: With versionOverride containing latest-snapshot
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 
-	t.is(projectGraph.getResolvedFrameworkVersion(), "1.99.9-SNAPSHOT",
+	t.is(projectGraph.getResolvedFrameworkInfo().version, "1.99.9-SNAPSHOT",
 		"SAPUI5 latest-snapshot override effective version is the resolved override version");
 });
 
@@ -1044,20 +1045,16 @@ test.serial("enrichProjectGraph should use framework library metadata from works
 			optionalDependencies: [],
 		},
 	};
-	const libraryMetadata = {};
+	const libraryMetadata = workspaceFrameworkLibraryMetadata;
 
 	sinon.stub(utils, "getWorkspaceFrameworkLibraryMetadata").resolves(workspaceFrameworkLibraryMetadata);
 	Sapui5ResolverInstallStub.resolves({libraryMetadata});
 
-	const addProjectToGraphStub = sinon.stub();
-	sinon.stub(utils, "ProjectProcessor")
-		.callsFake(() => {
-			return {
-				addProjectToGraph: addProjectToGraphStub
-			};
-		});
-
-	sinon.stub(utils, "declareFrameworkDependenciesInGraph").resolves();
+	sinon.stub(utils, "ProjectProcessor").callsFake(({graph}) => ({
+		async addProjectToGraph(name) {
+			graph.addProject(await createFrameworkProject(name, libraryMetadata[name]));
+		}
+	}));
 
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider, {workspace});
@@ -1076,7 +1073,7 @@ test.serial("enrichProjectGraph should use framework library metadata from works
 
 	// SAPUI5 + workspace: neither the configured version (1.111.1) nor any override is considered —
 	// the effective framework version is empty.
-	t.is(projectGraph.getResolvedFrameworkVersion(), "",
+	t.is(projectGraph.getResolvedFrameworkInfo().version, "",
 		"SAPUI5 with a workspace yields an empty framework version, ignoring the configured version");
 
 	// Even though the configured version is 1.111.1, the workspace-aware version is "" for SAPUI5.
@@ -1132,20 +1129,16 @@ test.serial("enrichProjectGraph should allow omitting framework version in case 
 			optionalDependencies: [],
 		},
 	};
-	const libraryMetadata = {};
+	const libraryMetadata = workspaceFrameworkLibraryMetadata;
 
 	sinon.stub(utils, "getWorkspaceFrameworkLibraryMetadata").resolves(workspaceFrameworkLibraryMetadata);
 	Sapui5ResolverInstallStub.resolves({libraryMetadata});
 
-	const addProjectToGraphStub = sinon.stub();
-	sinon.stub(utils, "ProjectProcessor")
-		.callsFake(() => {
-			return {
-				addProjectToGraph: addProjectToGraphStub
-			};
-		});
-
-	sinon.stub(utils, "declareFrameworkDependenciesInGraph").resolves();
+	sinon.stub(utils, "ProjectProcessor").callsFake(({graph}) => ({
+		async addProjectToGraph(name) {
+			graph.addProject(await createFrameworkProject(name, libraryMetadata[name]));
+		}
+	}));
 
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider, {workspace});
@@ -1163,7 +1156,7 @@ test.serial("enrichProjectGraph should allow omitting framework version in case 
 	t.is(Sapui5ResolverStub.getCall(0).args[0].providedLibraryMetadata, workspaceFrameworkLibraryMetadata);
 
 	// SAPUI5 + workspace, no configured version: effective framework version is empty.
-	t.is(projectGraph.getResolvedFrameworkVersion(), "",
+	t.is(projectGraph.getResolvedFrameworkInfo().version, "",
 		"SAPUI5 with a workspace and no configured version yields an empty framework version");
 
 	// With workspace active, the event is always emitted so the UI can show the framework name.
@@ -1214,7 +1207,7 @@ test.serial("enrichProjectGraph: OpenUI5 without workspace", async (t) => {
 	}], "Emits the effective framework metadata for the current run");
 
 	// OpenUI5 without workspace: the resolved distribution version is stored directly.
-	t.is(projectGraph.getResolvedFrameworkVersion(), "1.75.0",
+	t.is(projectGraph.getResolvedFrameworkInfo().version, "1.75.0",
 		"OpenUI5 effective version is the resolved distribution version");
 });
 
@@ -1248,7 +1241,6 @@ test.serial("enrichProjectGraph: OpenUI5 with workspace — sap.ui.core version 
 			dependencies: [], optionalDependencies: []}
 	});
 	Openui5ResolverInstallStub.resolves({libraryMetadata: {}});
-	sinon.stub(utils, "declareFrameworkDependenciesInGraph").resolves();
 
 	// ProjectProcessor adds a workspace-linked sap.ui.core at version 1.111.0 (differs from
 	// the configured 1.111.1 to prove it's the linked version that wins).
@@ -1276,7 +1268,7 @@ test.serial("enrichProjectGraph: OpenUI5 with workspace — sap.ui.core version 
 
 	// OpenUI5 + workspace: the workspace-linked sap.ui.core version is reported.
 	// The configured version (1.111.1) and any --framework-version override are ignored.
-	t.is(projectGraph.getResolvedFrameworkVersion(), "1.111.0",
+	t.is(projectGraph.getResolvedFrameworkInfo().version, "1.111.0",
 		"OpenUI5 with workspace reports the linked sap.ui.core version, not the configured version");
 
 	// The event uses the workspace-resolved version, not the configured ui5.yaml version.
@@ -1314,9 +1306,14 @@ test.serial("enrichProjectGraph: OpenUI5 with workspace — sap.ui.core not in g
 			dependencies: [], optionalDependencies: []}
 	});
 	Openui5ResolverInstallStub.resolves({libraryMetadata: {}});
-	sinon.stub(utils, "declareFrameworkDependenciesInGraph").resolves();
-	// sap.ui.core never added to the graph (e.g. all libs come from workspace but not sap.ui.core itself)
-	sinon.stub(utils, "ProjectProcessor").callsFake(() => ({addProjectToGraph: sinon.stub()}));
+	// Only the requested workspace library is added; sap.ui.core remains absent.
+	sinon.stub(utils, "ProjectProcessor").callsFake(({graph}) => ({
+		async addProjectToGraph(name) {
+			graph.addProject(await createFrameworkProject(name, {
+				id: `@openui5/${name}`, version: "1.99.0"
+			}));
+		}
+	}));
 
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider, {workspace});
@@ -1324,7 +1321,7 @@ test.serial("enrichProjectGraph: OpenUI5 with workspace — sap.ui.core not in g
 	await ui5Framework.enrichProjectGraph(projectGraph, {workspace});
 
 	// OpenUI5 + workspace but sap.ui.core not resolved into graph: falls back to empty.
-	t.is(projectGraph.getResolvedFrameworkVersion(), "",
+	t.is(projectGraph.getResolvedFrameworkInfo().version, "",
 		"OpenUI5 with workspace but sap.ui.core absent from graph yields empty version");
 
 	// Event still emitted (workspace contributed framework libs, framework name known) but version is empty.
@@ -1374,7 +1371,7 @@ test.serial("enrichProjectGraph: workspace with no framework libraries uses conf
 
 	// Empty providedLibraryMetadata → workspaceContributedFramework = false → falls through to
 	// `version` (the configured dist version), not the "" that SAPUI5 workspace-contributed yields.
-	t.is(projectGraph.getResolvedFrameworkVersion(), "1.130.0",
+	t.is(projectGraph.getResolvedFrameworkInfo().version, "1.130.0",
 		"workspace with no framework libraries must not override the configured dist version with ''");
 
 	t.deepEqual(frameworkEvents, [{

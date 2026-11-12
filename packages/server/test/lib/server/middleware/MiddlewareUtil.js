@@ -155,24 +155,6 @@ test("getDependencies: Default name", (t) => {
 	t.is(res, "Pony farm!", "Correct result");
 });
 
-test("getResolvedFrameworkVersion delegates to graph", (t) => {
-	const getResolvedFrameworkVersionStub = sinon.stub().returns("1.138.0");
-	const middlewareUtil = new MiddlewareUtil({
-		graph: {
-			getResolvedFrameworkVersion: getResolvedFrameworkVersionStub
-		},
-		project: {
-			getName: sinon.stub().returns("root project name")
-		}
-	});
-
-	const res = middlewareUtil.getResolvedFrameworkVersion();
-
-	t.is(getResolvedFrameworkVersionStub.callCount, 1,
-		"ProjectGraph#getResolvedFrameworkVersion got called once");
-	t.is(res, "1.138.0", "Returns the graph's effective framework version");
-});
-
 test.serial("resourceFactory", (t) => {
 	const {resourceFactory} = new MiddlewareUtil({graph: "graph", project: "project"});
 	t.is(typeof resourceFactory.createResource, "function",
@@ -399,11 +381,11 @@ test("getInterface: specVersion 3.0", (t) => {
 });
 
 test("getInterface: specVersion 5.0", (t) => {
-	const getResolvedFrameworkVersionStub = sinon.stub().returns("1.138.0");
+	const expected = {name: "OpenUI5", version: "1.138.0"};
 	const mockGraph = {
 		getProject: sinon.stub().returns({getName: () => "name"}),
 		getDependencies: sinon.stub().returns([]),
-		getResolvedFrameworkVersion: getResolvedFrameworkVersionStub
+		getResolvedFrameworkInfo: sinon.stub().returns(expected)
 	};
 
 	const middlewareUtil = new MiddlewareUtil({graph: mockGraph, project: "project"});
@@ -416,18 +398,30 @@ test("getInterface: specVersion 5.0", (t) => {
 		"getProject",
 		"getDependencies",
 		"resourceFactory",
-		"getResolvedFrameworkVersion",
-	], "getResolvedFrameworkVersion is added at specVersion 5.0");
+		"getResolvedFrameworkInfo",
+	], "framework accessors are added at specVersion 5.0");
 
-	t.is(typeof interfacedMiddlewareUtil.getResolvedFrameworkVersion, "function",
-		"function getResolvedFrameworkVersion is provided");
-	t.is(interfacedMiddlewareUtil.getResolvedFrameworkVersion(), "1.138.0",
-		"getResolvedFrameworkVersion returns the resolved framework version");
+	t.is(typeof interfacedMiddlewareUtil.getResolvedFrameworkInfo, "function");
+	t.deepEqual(interfacedMiddlewareUtil.getResolvedFrameworkInfo(), expected);
 
 	// Not provided below specVersion 5.0
 	const interfacedBelow5 = middlewareUtil.getInterface(getSpecificationVersion("3.0"));
-	t.is(interfacedBelow5.getResolvedFrameworkVersion, undefined,
-		"getResolvedFrameworkVersion is not provided below specVersion 5.0");
+	t.is(interfacedBelow5.getResolvedFrameworkInfo, undefined,
+		"getResolvedFrameworkInfo is not provided below specVersion 5.0");
+});
+
+test("getResolvedFrameworkInfo delegates to the graph and is gated at specVersion 5.0", (t) => {
+	const expected = {name: "SAPUI5", version: ""};
+	const graph = {getResolvedFrameworkInfo: sinon.stub().returns(expected)};
+	const middlewareUtil = new MiddlewareUtil({graph, project: {getName: () => "root"}});
+	t.deepEqual(middlewareUtil.getResolvedFrameworkInfo(), expected);
+	const current = middlewareUtil.getInterface(getSpecificationVersion("5.0"));
+	t.deepEqual(current.getResolvedFrameworkInfo(), expected);
+	t.deepEqual(Object.keys(current).filter((name) => name.startsWith("getResolvedFramework")),
+		["getResolvedFrameworkInfo"]);
+	t.is(graph.getResolvedFrameworkInfo.callCount, 2);
+	const previous = middlewareUtil.getInterface(getSpecificationVersion("3.0"));
+	t.is(previous.getResolvedFrameworkInfo, undefined);
 });
 
 test("getInterface: specVersion unknown", (t) => {

@@ -255,17 +255,15 @@ test("getProject: No name provided", (t) => {
 	t.is(getProjectStub.callCount, 0, "ProjectGraph#getProject has not been called");
 });
 
-test("getResolvedFrameworkVersion delegates to graph", (t) => {
+test("getResolvedFrameworkInfo delegates to graph", (t) => {
+	const expected = {name: "OpenUI5", version: "1.138.0"};
 	const buildContext = createBuildContextStub({
-		getGraph: () => ({
-			getResolvedFrameworkVersion: () => "1.138.0"
-		})
+		getGraph: () => ({getResolvedFrameworkInfo: () => expected})
 	});
 	const project = {getName: () => "project", getType: () => "type"};
 	const projectBuildContext = new ProjectBuildContext(buildContext, project);
 
-	t.is(projectBuildContext.getResolvedFrameworkVersion(), "1.138.0",
-		"Returns the graph's effective framework version");
+	t.deepEqual(projectBuildContext.getResolvedFrameworkInfo(), expected);
 });
 
 test("getDependencies", (t) => {
@@ -479,26 +477,26 @@ test("resolveInputValue: isRootProject normalizes the boolean", (t) => {
 	t.is(projectBuildContext.resolveInputValue("isRootProject", ""), "true");
 });
 
-test("resolveInputValue: resolvedFrameworkVersion normalizes the version string", (t) => {
+test("resolveInputValue: resolvedFrameworkInfo normalizes the full pair", (t) => {
 	const buildContext = createBuildContextStub({
-		getGraph: () => ({getResolvedFrameworkVersion: () => "1.138.0"})
+		getGraph: () => ({getResolvedFrameworkInfo: () => ({name: "OpenUI5", version: "1.138.0"})})
 	});
 	const project = {getName: () => "project", getType: () => "type"};
 	const projectBuildContext = new ProjectBuildContext(buildContext, project);
 
-	t.is(projectBuildContext.resolveInputValue("resolvedFrameworkVersion", ""), "1.138.0",
-		"Returns the resolved framework version as-is (string passthrough)");
+	t.is(projectBuildContext.resolveInputValue("resolvedFrameworkInfo", ""),
+		JSON.stringify({name: "OpenUI5", version: "1.138.0"}));
 });
 
-test("resolveInputValue: resolvedFrameworkVersion normalizes empty string (SAPUI5 workspace)", (t) => {
+test("resolveInputValue: resolvedFrameworkInfo preserves unknown SAPUI5 distribution version", (t) => {
 	const buildContext = createBuildContextStub({
-		getGraph: () => ({getResolvedFrameworkVersion: () => ""})
+		getGraph: () => ({getResolvedFrameworkInfo: () => ({name: "SAPUI5", version: ""})})
 	});
 	const project = {getName: () => "project", getType: () => "type"};
 	const projectBuildContext = new ProjectBuildContext(buildContext, project);
 
-	t.is(projectBuildContext.resolveInputValue("resolvedFrameworkVersion", ""), "",
-		"Returns empty string for SAPUI5 workspace (no distribution version)");
+	t.is(projectBuildContext.resolveInputValue("resolvedFrameworkInfo", ""),
+		JSON.stringify({name: "SAPUI5", version: ""}));
 });
 
 test("resolveInputValue: getDependencies normalizes the array via the graph", (t) => {

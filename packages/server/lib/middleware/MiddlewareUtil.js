@@ -164,21 +164,19 @@ class MiddlewareUtil {
 	}
 
 	/**
-	 * Returns the effective framework version resolved for the current serve graph.
-	 *
-	 * Unlike {@link @ui5/project/specifications/Project#getFrameworkVersion}, which returns the
-	 * value from ui5.yaml, this reflects the version actually resolved during graph enrichment —
-	 * including --framework-version overrides and workspace-linked sap.ui.core.
+	 * Returns the effective framework identity and version for the serve graph, including workspace
+	 * resolution and detection from the full reachable framework graph. Unknown fields are empty strings.
+	 * The returned object is detached from the graph's state.
 	 *
 	 * </br></br>
 	 * This method is only available to custom middleware extensions defining
 	 * <b>Specification Version 5.0 and above</b>.
 	 *
 	 * @public
-	 * @returns {string|undefined} Effective framework version, e.g. "1.138.0"
+	 * @returns {{name: string, version: string}} Effective framework metadata
 	 */
-	getResolvedFrameworkVersion() {
-		return this._graph.getResolvedFrameworkVersion();
+	getResolvedFrameworkInfo() {
+		return this._graph.getResolvedFrameworkInfo();
 	}
 
 	/**
@@ -279,7 +277,7 @@ class MiddlewareUtil {
 		}
 
 		if (specVersion.gte("5.0")) {
-			bindFunctions(this, baseInterface, ["getResolvedFrameworkVersion"]);
+			bindFunctions(this, baseInterface, ["getResolvedFrameworkInfo"]);
 		}
 		return baseInterface;
 	}

@@ -224,19 +224,19 @@ class TaskUtil {
 	}
 
 	/**
-	 * Returns the effective framework version resolved for the build's graph during enrichment
-	 * (reflects --framework-version, or a workspace link), or the root
-	 * project's configured version when no resolution occurred.
+	 * Returns the effective framework identity and version for the build graph, including workspace
+	 * resolution and full-graph fallback detection. Reads are tracked together as a build-cache input.
+	 * Unknown fields are empty strings. The returned object is detached from the graph's state.
 	 *
 	 * </br></br>
 	 * This method is only available to custom task extensions defining
 	 * <b>Specification Version 5.0 and above</b>.
 	 *
-	 * @returns {string|undefined} Effective framework version, e.g. "1.138.0"
 	 * @public
+	 * @returns {{name: string, version: string}} Effective framework metadata
 	 */
-	getResolvedFrameworkVersion() {
-		return this._projectBuildContext.getResolvedFrameworkVersion();
+	getResolvedFrameworkInfo() {
+		return this._projectBuildContext.getResolvedFrameworkInfo();
 	}
 
 	/**
@@ -450,7 +450,9 @@ class TaskUtil {
 		}
 
 		if (specVersion.gte("5.0")) {
-			bindFunctions(this, baseInterface, ["getEnv", "getTime", "getBuildTime", "getResolvedFrameworkVersion"]);
+			bindFunctions(this, baseInterface, [
+				"getEnv", "getTime", "getBuildTime", "getResolvedFrameworkInfo"
+			]);
 		}
 		return baseInterface;
 	}
@@ -498,7 +500,9 @@ class TaskUtil {
 		}
 
 		if (specVersion.gte("5.0")) {
-			bindFunctions(this, baseInterface, ["getEnv", "getTime", "getBuildTime", "getResolvedFrameworkVersion"]);
+			bindFunctions(this, baseInterface, [
+				"getEnv", "getTime", "getBuildTime", "getResolvedFrameworkInfo"
+			]);
 		}
 		return baseInterface;
 	}

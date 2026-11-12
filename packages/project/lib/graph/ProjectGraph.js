@@ -2,6 +2,7 @@ import OutputStyleEnum from "../build/helpers/ProjectBuilderOutputStyle.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:ProjectGraph");
 import Cache from "../../../project/lib/build/cache/Cache.js";
+import resolveFrameworkInfo from "./helpers/resolveFrameworkInfo.js";
 
 
 /**
@@ -34,7 +35,7 @@ class ProjectGraph {
 		this._sealed = false;
 		this._hasUnresolvedOptionalDependencies = false; // Performance optimization flag
 		this._taskRepository = null;
-		this._resolvedFrameworkVersion = null;
+		this._frameworkResolution = null;
 	}
 
 	/**
@@ -677,29 +678,40 @@ class ProjectGraph {
 	}
 
 	/**
-	 * Set the framework version resolved for this graph during enrichment.
+	 * Capture the distribution and offered workspace projects after successful enrichment.
+	 * Consumption is derived from the live reachable graph, not from availability alone.
 	 *
-	 * @public
-	 * @param {string} version Effective framework version
+	 * @private
+	 * @param {object} resolution Resolution context
+	 * @param {string} resolution.name Selected distribution name, "OpenUI5" or "SAPUI5"
+	 * @param {string} [resolution.version] Resolved distribution version
+	 * @param {string[]} [resolution.workspaceProjectNames=[]] Offered workspace framework project names
 	 */
-	setResolvedFrameworkVersion(version) {
-		this._resolvedFrameworkVersion = version;
+	setFrameworkResolution({name, version, workspaceProjectNames = []}) {
+		this._checkSealed();
+		if (name !== "OpenUI5" && name !== "SAPUI5") {
+			throw new TypeError(`Unknown framework name "${name}"`);
+		}
+		if (version !== undefined && typeof version !== "string") {
+			throw new TypeError("Framework version must be a string or undefined");
+		}
+		this._frameworkResolution = {name, version, workspaceProjectNames: new Set(workspaceProjectNames)};
 	}
 
 	/**
-	 * Get the effective framework version for this graph, as resolved during enrichment.
+	 * Get the effective framework identity and version for this graph.
 	 *
-	 * Returns the value set by {@link #setResolvedFrameworkVersion}. When enrichment has not run
-	 * (e.g. the project has no framework configuration), the stored value is <code>null</code> and
-	 * this falls back to the root project's configured <code>framework.version</code>.
+	 * A governing distribution takes precedence. When workspace libraries are consumed, SAPUI5
+	 * has no reliable distribution version; OpenUI5 uses the reachable sap.ui.core version.
+	 * Without enrichment, configuration and the full reachable framework graph provide the fallback,
+	 * including theme libraries and framework projects built as the root. Unknown fields are empty
+	 * strings. The returned object is detached and reads are not memoized before graph construction finishes.
 	 *
 	 * @public
-	 * @returns {string|undefined} Effective framework version, e.g. "1.138.0", or <code>""</code>
-	 *   when the framework is active but has no resolvable distribution version (SAPUI5 + workspace),
-	 *   or the configured version as a fallback when enrichment did not run.
+	 * @returns {{name: string, version: string}} Effective framework metadata
 	 */
-	getResolvedFrameworkVersion() {
-		return this._resolvedFrameworkVersion ?? this.getRoot().getFrameworkVersion();
+	getResolvedFrameworkInfo() {
+		return resolveFrameworkInfo(this, this._frameworkResolution);
 	}
 
 	async _getTaskRepository() {
