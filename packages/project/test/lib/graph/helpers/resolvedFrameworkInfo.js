@@ -126,6 +126,17 @@ test("resolution inputs and returned metadata cannot be mutated by callers", asy
 	t.deepEqual(graph.getResolvedFrameworkInfo(), {name: "OpenUI5", version: core.version});
 });
 
+test("sealed graph returns detached metadata: caller mutation cannot corrupt the memo", async (t) => {
+	const graph = await createGraph({libraries: {"sap.ui.core": core}});
+	graph.setFrameworkResolution({name: "OpenUI5", version: "1.130.0", workspaceProjectNames: ["sap.ui.core"]});
+	graph.seal();
+	const first = graph.getResolvedFrameworkInfo();
+	first.name = "SAPUI5";
+	first.version = "broken";
+	t.deepEqual(graph.getResolvedFrameworkInfo(), {name: "OpenUI5", version: core.version},
+		"memoized result stays intact after a caller mutates an earlier returned copy");
+});
+
 test("framework resolution rejects invalid identity/version and cannot change a sealed graph", async (t) => {
 	const graph = await createGraph();
 	t.throws(() => graph.setFrameworkResolution({name: "Other", version: "1.0.0"}), {instanceOf: TypeError});

@@ -566,7 +566,7 @@ test("getInterface: specVersion 3.0", (t) => {
 		"resourceFactory function createFlatReader is available");
 });
 
-test("getInterface: specVersion 5.0 exposes getBuildTime", (t) => {
+test("getInterface: specVersion 5.0 exposes getBuildTime and getResolvedFrameworkInfo", (t) => {
 	const buildTime = new Date(2026, 8, 25, 14, 7, 3);
 	const taskUtil = new TaskUtil({
 		projectBuildContext: {
@@ -605,7 +605,7 @@ test("getInterface: specVersion 5.0 exposes getBuildTime", (t) => {
 	t.deepEqual(interfacedTaskUtil.getResolvedFrameworkInfo(), {name: "OpenUI5", version: "1.138.0"});
 });
 
-test("getReadOnlyInterface: specVersion 5.0 exposes getBuildTime", (t) => {
+test("getReadOnlyInterface: specVersion 5.0 exposes getBuildTime and getResolvedFrameworkInfo", (t) => {
 	const buildTime = new Date(2026, 8, 25, 14, 7, 3);
 	const taskUtil = new TaskUtil({
 		projectBuildContext: {
