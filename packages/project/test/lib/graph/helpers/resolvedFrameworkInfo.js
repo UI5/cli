@@ -39,9 +39,9 @@ for (const [title, configuration, expected] of [
 		{name: "SAPUI5", version: ""}],
 	["SAPUI5 theme evidence needs no .library resource",
 		{libraries: {"sap.ui.core": core, "themelib_sap_horizon": theme}}, {name: "SAPUI5", version: ""}],
-	["mixed fallback evidence overrides an unenriched OpenUI5 configuration",
+	["a configured OpenUI5 name is kept even when SAPUI5 evidence is present (name is authoritative)",
 		{frameworkName: "OpenUI5", version: "1.130.0", libraries: {"sap.ui.core": core, "sap.ui.comp": sapui5}},
-		{name: "SAPUI5", version: ""}],
+		{name: "OpenUI5", version: core.version}],
 	["configured distribution fallback keeps its version",
 		{frameworkName: "SAPUI5", version: "1.130.0-SNAPSHOT", libraries: {"sap.ui.core": core}},
 		{name: "SAPUI5", version: "1.130.0-SNAPSHOT"}],
@@ -87,19 +87,23 @@ test("an early read is not memoized before graph construction finishes", async (
 
 for (const name of ["OpenUI5", "SAPUI5"]) {
 	test(`${name}: distribution context ignores unused workspace offerings`, async (t) => {
-		const graph = await createGraph({libraries: {"sap.ui.core": core}});
+		// The reachable core matches the resolved distribution version, as it would after enrichment.
+		const graph = await createGraph({
+			libraries: {"sap.ui.core": {id: "@openui5/sap.ui.core", version: "1.131.0-SNAPSHOT"}},
+		});
 		graph.addProject(await createFrameworkProject("sap.ui.comp", sapui5));
 		graph.setFrameworkResolution({name, version: "1.131.0-SNAPSHOT", workspaceProjectNames: ["sap.ui.comp"]});
 		t.deepEqual(graph.getResolvedFrameworkInfo(), {name, version: "1.131.0-SNAPSHOT"});
 	});
 }
 
-test("workspace context overrides even full OpenUI5 config when SAPUI5 evidence is consumed", async (t) => {
+test("workspace OpenUI5 config keeps OpenUI5 even when SAPUI5 evidence is consumed", async (t) => {
 	const graph = await createGraph({
 		frameworkName: "OpenUI5", version: "1.130.0", libraries: {"sap.ui.core": core, "themelib_sap_horizon": theme},
 	});
 	graph.setFrameworkResolution({name: "OpenUI5", version: "1.130.0", workspaceProjectNames: ["sap.ui.core"]});
-	t.deepEqual(graph.getResolvedFrameworkInfo(), {name: "SAPUI5", version: ""});
+	// Configured name is authoritative; version comes from the reachable sap.ui.core.
+	t.deepEqual(graph.getResolvedFrameworkInfo(), {name: "OpenUI5", version: core.version});
 });
 
 test("SAPUI5 context with only OpenUI5 workspace projects retains SAPUI5 and an empty version", async (t) => {
@@ -112,6 +116,14 @@ test("OpenUI5 workspace without core retains the established version fallback", 
 	const graph = await createGraph({libraries: {"sap.m": {id: "@openui5/sap.m", version: "1.129.1"}}});
 	graph.setFrameworkResolution({name: "OpenUI5", version: "1.130.0", workspaceProjectNames: ["sap.m"]});
 	t.deepEqual(graph.getResolvedFrameworkInfo(), {name: "OpenUI5", version: "1.130.0"});
+});
+
+test("enriched OpenUI5 without a resolved version recovers it from the reachable core", async (t) => {
+	const graph = await createGraph({libraries: {"sap.ui.core": core}});
+	// Enrichment ran but produced no distribution version (e.g. version omitted, no override) and no
+	// workspace contribution. The version must come from the reachable sap.ui.core, not be dropped.
+	graph.setFrameworkResolution({name: "OpenUI5"});
+	t.deepEqual(graph.getResolvedFrameworkInfo(), {name: "OpenUI5", version: core.version});
 });
 
 test("resolution inputs and returned metadata cannot be mutated by callers", async (t) => {

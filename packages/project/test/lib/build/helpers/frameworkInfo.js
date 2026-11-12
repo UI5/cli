@@ -77,7 +77,9 @@ test("unused workspace projects preserve the pair input signature; consumed proj
 	const graph = await createGraph();
 	graph.addProject(await createFrameworkProject("sap.ui.core", {id: "@openui5/sap.ui.core", version: "1.129.1"}));
 	graph.declareDependency("root", "sap.ui.core");
-	graph.setFrameworkResolution({name: "OpenUI5", version: "1.130.0", workspaceProjectNames: ["sap.ui.comp"]});
+	// SAPUI5 with a workspace-offered framework library: consuming it collapses the (configured)
+	// distribution version to "" (no reliable SAPUI5 version under a workspace contribution).
+	graph.setFrameworkResolution({name: "SAPUI5", version: "1.130.0", workspaceProjectNames: ["sap.ui.comp"]});
 	const context = createContext(graph);
 	const monitored = new MonitoredTaskUtil(new TaskUtil({projectBuildContext: context}));
 	monitored.getResolvedFrameworkInfo();

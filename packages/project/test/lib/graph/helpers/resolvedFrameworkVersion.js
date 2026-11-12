@@ -114,7 +114,7 @@ for (const versionOverride of ["1.131.0", "1.131.0-SNAPSHOT"]) {
 }
 
 for (const frameworkName of ["SAPUI5", "OpenUI5"]) {
-	test.serial(`${frameworkName}: mixed SAPUI5 graphs have no reliable distribution version`, async (t) => {
+	test.serial(`${frameworkName}: a configured name is kept in a mixed graph`, async (t) => {
 		const sapui5Library = {id: "@sapui5/sap.ui.comp", version: "1.130.0"};
 		const {graph, events} = await enrichGraph(t, {
 			frameworkName, referencedLibraries: ["sap.ui.core", "sap.ui.comp"],
@@ -126,8 +126,13 @@ for (const frameworkName of ["SAPUI5", "OpenUI5"]) {
 		});
 		t.is(graph.getProject("sap.ui.core").getVersion(), "1.129.1");
 		t.is(graph.getProject("sap.ui.comp").getId(), "@sapui5/sap.ui.comp");
-		t.deepEqual(graph.getResolvedFrameworkInfo(), {name: "SAPUI5", version: ""});
-		t.deepEqual(events, [{framework: {name: "SAPUI5", version: ""}}]);
+		// Configured name is authoritative: SAPUI5 has no reliable distribution version under a
+		// workspace contribution; OpenUI5 keeps its name and reports the linked sap.ui.core version.
+		const expected = frameworkName === "SAPUI5" ?
+			{name: "SAPUI5", version: ""} :
+			{name: "OpenUI5", version: "1.129.1"};
+		t.deepEqual(graph.getResolvedFrameworkInfo(), expected);
+		t.deepEqual(events, [{framework: expected}]);
 	});
 }
 
@@ -140,7 +145,7 @@ test.serial("SAPUI5: a workspace containing only OpenUI5 packages has no reliabl
 	t.deepEqual(events, [{framework: {name: "SAPUI5", version: ""}}]);
 });
 
-test.serial("OpenUI5 configuration with a consumed SAPUI5 theme resolves and emits SAPUI5", async (t) => {
+test.serial("OpenUI5 configuration keeps OpenUI5 even with a consumed SAPUI5 theme", async (t) => {
 	const {graph, events} = await enrichGraph(t, {
 		referencedLibraries: ["sap.ui.core", "themelib_sap_horizon"],
 		workspaceLibraries: {
@@ -148,8 +153,9 @@ test.serial("OpenUI5 configuration with a consumed SAPUI5 theme resolves and emi
 		},
 	});
 	t.is(graph.getProject("themelib_sap_horizon").getType(), "theme-library");
-	t.deepEqual(graph.getResolvedFrameworkInfo(), {name: "SAPUI5", version: ""});
-	t.deepEqual(events, [{framework: {name: "SAPUI5", version: ""}}]);
+	// Configured OpenUI5 name is authoritative; version comes from the reachable sap.ui.core.
+	t.deepEqual(graph.getResolvedFrameworkInfo(), {name: "OpenUI5", version: "1.130.0"});
+	t.deepEqual(events, [{framework: {name: "OpenUI5", version: "1.130.0"}}]);
 });
 
 test.serial("OpenUI5: unused SAPUI5 libraries do not override the linked core version", async (t) => {
