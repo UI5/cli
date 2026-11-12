@@ -2,7 +2,9 @@ import test from "ava";
 import {createRequire} from "node:module";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
-import {startCapture, stopCapture, shareToolFiles} from "../../../../lib/build/helpers/ToolDependencyRecorder.js";
+import {
+	startCapture, stopCapture, shareToolFiles, isToolFile,
+} from "../../../../lib/build/helpers/ToolDependencyRecorder.js";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -77,4 +79,37 @@ test("shareToolFiles does not let a blind capture overwrite a stored set", (t) =
 
 	t.deepEqual(shareToolFiles("taskD\0stepX", []), files,
 		"the stored set survives an intervening empty capture");
+});
+
+test("isToolFile excludes the UI5 tooling packages but tracks @ui5-scoped application packages", (t) => {
+	const nm = "file:///app/node_modules/";
+
+	// UI5 tooling packages: their versions are already folded into the build signature, so excluded.
+	for (const tooling of ["@ui5/builder", "@ui5/fs", "@ui5/project", "@ui5/logger"]) {
+		t.false(isToolFile(`${nm}${tooling}/lib/index.js`), `${tooling} is a barrier (excluded)`);
+	}
+
+	// @ui5-scoped application dependencies a task bundles are NOT tooling, so they are tracked. This is
+	// the @ui5/webcomponents case: the old flat `@ui5/*` filter dropped them and missed version/entry bumps.
+	t.true(isToolFile(`${nm}@ui5/webcomponents/dist/Button.js`),
+		"@ui5/webcomponents (an application dependency) is tracked");
+	t.true(isToolFile(`${nm}@ui5/webcomponents-base/dist/Device.js`),
+		"@ui5/webcomponents-base is tracked");
+
+	// Non-@ui5 packages are tracked; build plumbing is denylisted.
+	t.true(isToolFile(`${nm}chart.js/dist/chart.cjs`), "a plain npm package is tracked");
+	t.false(isToolFile(`${nm}workerpool/src/index.js`), "workerpool (build plumbing) is excluded");
+
+	// Not under node_modules (e.g. a workspace package resolved to its realpath) is not a tool file.
+	t.false(isToolFile("file:///repo/packages/logger/lib/index.js"), "a non-node_modules path is not a tool");
+});
+
+test("isToolFile keys the barrier on the owning package, so a tool nested under tooling is tracked", (t) => {
+	// The owning package is the LAST /node_modules/ segment. A tool hoisted under a tooling package is
+	// attributed to the tool, not the tooling package, so it stays tracked.
+	t.true(isToolFile("file:///app/node_modules/@ui5/builder/node_modules/terser/dist/bundle.min.js"),
+		"terser nested under @ui5/builder is attributed to terser and tracked");
+	// A non-tooling @ui5 package nested under a tooling package is likewise tracked by its own name.
+	t.true(isToolFile("file:///app/node_modules/@ui5/project/node_modules/@ui5/webcomponents/dist/a.js"),
+		"@ui5/webcomponents nested under @ui5/project is attributed to @ui5/webcomponents and tracked");
 });

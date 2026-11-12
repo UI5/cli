@@ -17,7 +17,8 @@ const log = getLogger("build:helpers:ToolDependencyRecorder");
  * in that window. `resolve` fires on every resolution (ESM import and CommonJS require alike, and even
  * for already-cached modules), so the observation does not depend on module-cache state.
  *
- * POC scope: single active capture (no concurrent-task attribution) and a flat `@ui5/*` package filter.
+ * POC scope: single active capture (no concurrent-task attribution) and a package-name filter that
+ * excludes the UI5 tooling packages and build plumbing ({@link isToolFile}).
  * The hook is per-realm, so a tool loaded in a worker thread is not observed here; the worker dispatch
  * resolves such a tool's entry on the main thread, within the capture window, so it is recorded at version
  * level (entry + `package.json`).
@@ -29,10 +30,17 @@ let hookInstalled = false;
 // The Set collecting resolved file: URLs while a capture is active, or null when not capturing.
 let activeCapture = null;
 
+// UI5 tooling packages whose versions are already folded into the build signature (a change inside one
+// ships as a release that bumps its version and invalidates the cache), or that cannot affect build output
+// at all (logger). Re-tracking their files as tool content would be redundant, so they are excluded.
+// Matched against the file's OWNING package name, so an @ui5-scoped application dependency a task bundles
+// (e.g. @ui5/webcomponents via ui5-tooling-modules) is NOT excluded and is tracked like any other package.
+const UI5_TOOLING_BARRIER = new Set(["@ui5/builder", "@ui5/fs", "@ui5/project", "@ui5/logger"]);
+
 // Build plumbing the loader resolves alongside a tool but which is not a content-transform tool:
 // workerpool is the worker-pool runtime. A change to it cannot alter a task's output, so tracking it would
 // only cause spurious stage re-runs.
-const PLUMBING_DENYLIST = ["workerpool"];
+const PLUMBING_DENYLIST = new Set(["workerpool"]);
 
 /**
  * Installs the resolve hook once per thread. Idempotent.
@@ -56,28 +64,48 @@ function ensureHookInstalled() {
 }
 
 /**
+ * The owning package name of a file: URL under a node_modules: the segment after the LAST `/node_modules/`
+ * (two segments for an `@scope/name` package), or null when the URL is not under a node_modules.
+ *
+ * Using the LAST `/node_modules/` means the name is the package that actually ships the file, so a tool
+ * nested under a tooling package (e.g. `.../@ui5/builder/node_modules/terser/...`) is attributed to
+ * `terser`, not `@ui5/builder`, and stays tracked.
+ *
+ * @param {string} fileUrl A file: URL
+ * @returns {string|null} The owning package name, or null
+ */
+function packageNameOf(fileUrl) {
+	const marker = "/node_modules/";
+	const markerStart = fileUrl.lastIndexOf(marker);
+	if (markerStart === -1) {
+		return null;
+	}
+	const segments = fileUrl.slice(markerStart + marker.length).split("/");
+	const packageSegmentCount = segments[0].startsWith("@") ? 2 : 1;
+	if (segments.length < packageSegmentCount) {
+		return null;
+	}
+	return segments.slice(0, packageSegmentCount).join("/");
+}
+
+/**
  * Whether a resolved file URL counts as a tracked tool file.
  *
- * POC filter (stand-in for the import-graph barrier prune): the file must live under a node_modules (an
- * installed package), must not belong to an @ui5/* package, and must not be known build plumbing
- * ({@link PLUMBING_DENYLIST}). The @ui5/* subtrees are barriers: their effect on the build is already
- * covered by the @ui5/{builder,fs,project} version fold and the resource indices, so tracking them would
- * be redundant over-capture.
+ * The file must live under a node_modules (an installed package); its owning package must not be a UI5
+ * tooling package already covered by the build signature ({@link UI5_TOOLING_BARRIER}); and must not be
+ * known build plumbing ({@link PLUMBING_DENYLIST}). Only the UI5 *tooling* packages are barriers: a
+ * dependency in the `@ui5` scope that a task bundles (e.g. `@ui5/webcomponents`) is tracked like any other
+ * package, so a version or entry change to it still moves the stage's tool-content digest.
  *
  * @param {string} fileUrl A file: URL
  * @returns {boolean}
  */
-function isToolFile(fileUrl) {
-	if (!fileUrl.includes("/node_modules/")) {
+export function isToolFile(fileUrl) {
+	const packageName = packageNameOf(fileUrl);
+	if (!packageName) {
 		return false;
 	}
-	if (fileUrl.includes("/node_modules/@ui5/")) {
-		return false;
-	}
-	if (PLUMBING_DENYLIST.some((name) => fileUrl.includes(`/node_modules/${name}/`))) {
-		return false;
-	}
-	return true;
+	return !UI5_TOOLING_BARRIER.has(packageName) && !PLUMBING_DENYLIST.has(packageName);
 }
 
 /**
@@ -103,8 +131,8 @@ export function startCapture() {
  * digest) and captures declared-surface changes — `dependencies` ranges, `exports`/`main` — that alter
  * resolution without changing a currently-loaded file.
  *
- * The package root is the segment after the LAST `/node_modules/` (two segments for an `@scope/name`
- * package), so a nested dependency resolves to its own `package.json`, not a hoisted copy.
+ * Keyed on the owning package (the LAST `/node_modules/` segment, via {@link packageNameOf}), so a nested
+ * dependency resolves to its own `package.json`, not a hoisted copy.
  *
  * @param {string} fileUrl A file: URL under a node_modules
  * @returns {string|null} The package's `package.json` file: URL, or null if none can be derived
@@ -112,17 +140,12 @@ export function startCapture() {
 function packageJsonUrlOf(fileUrl) {
 	const marker = "/node_modules/";
 	const markerStart = fileUrl.lastIndexOf(marker);
-	if (markerStart === -1) {
+	const packageName = packageNameOf(fileUrl);
+	if (markerStart === -1 || !packageName) {
 		return null;
 	}
 	const afterMarker = markerStart + marker.length;
-	const segments = fileUrl.slice(afterMarker).split("/");
-	const packageSegmentCount = segments[0].startsWith("@") ? 2 : 1;
-	if (segments.length < packageSegmentCount) {
-		return null;
-	}
-	const packagePath = segments.slice(0, packageSegmentCount).join("/");
-	return `${fileUrl.slice(0, afterMarker)}${packagePath}/package.json`;
+	return `${fileUrl.slice(0, afterMarker)}${packageName}/package.json`;
 }
 
 /**

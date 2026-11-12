@@ -644,7 +644,7 @@ test("getBuildSignatures: Empty project hashes the empty string", async (t) => {
 	t.is(sig, expectedHash, "Returns sha256 hash of empty key string");
 });
 
-test("Standard descriptor resolution captures the task module's load-time tool dependencies", async (t) => {
+test.serial("Standard descriptor resolution captures the task module's load-time tool dependencies", async (t) => {
 	const {TaskDefinitions, graph, taskUtil} = t.context;
 	const project = getMockProject("library");
 	// The real task repository, so getTask performs the actual dynamic import of the task module and the
@@ -666,7 +666,7 @@ test("Standard descriptor resolution captures the task module's load-time tool d
 		"@ui5/* packages are excluded from the tool set");
 });
 
-test("A skipped standard task captures no load-time tool files", async (t) => {
+test.serial("A skipped standard task captures no load-time tool files", async (t) => {
 	const {TaskDefinitions, graph, taskUtil} = t.context;
 	const project = getMockProject("library");
 	const taskRepository = await import("@ui5/builder/internal/taskRepository");
@@ -679,7 +679,7 @@ test("A skipped standard task captures no load-time tool files", async (t) => {
 	t.is(taskDef.loadTimeToolFiles, undefined, "A skipped task resolves no module and captures nothing");
 });
 
-test("Standard descriptor resolution shares its load-time tools across projects", async (t) => {
+test.serial("Standard descriptor resolution shares its load-time tools across projects", async (t) => {
 	const {TaskDefinitions, graph, taskUtil} = t.context;
 	const project = getMockProject("library");
 	const taskRepository = await import("@ui5/builder/internal/taskRepository");
