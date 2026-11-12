@@ -1,5 +1,8 @@
 import test from "ava";
 import sinon from "sinon";
+import esmock from "esmock";
+import {createResource} from "@ui5/fs/resourceFactory";
+import {setLimit} from "../utils/__helper__/limits.js";
 import path from "node:path";
 import Module from "../../../lib/graph/Module.js";
 
@@ -540,4 +543,97 @@ test("Module without ui5.yaml is ignored", async (t) => {
 	const {project, extensions} = await ui5Module.getSpecifications();
 	t.falsy(project, "Should return no project");
 	t.is(extensions.length, 0, "Should return no extensions");
+});
+
+for (const absolute of [false, true]) {
+	test.serial(`Configuration bytes: reject before read and validation (absolute: ${absolute})`, async (t) => {
+		setLimit(t, "UI5_CONFIG_MAX_BYTES", 10);
+		const readFile = sinon.stub().callsArgWith(2, null, "");
+		const validate = sinon.stub().resolves();
+		const create = sinon.stub();
+		const MockModule = await esmock("../../../lib/graph/Module.js", {
+			"graceful-fs": {stat: sinon.stub().callsArgWith(1, null, {size: 11}), readFile},
+			"../../../lib/validation/validator.js": {validate},
+			"../../../lib/specifications/Specification.js": {default: {create}}
+		});
+		const configPath = absolute ? path.join(applicationAPath, "ui5.yaml") : "ui5.yaml";
+		const mod = new MockModule({...basicModuleInput, configPath});
+		const getString = sinon.stub();
+		mod.getReader = () => ({byPath: async (input) => input === "/ui5.yaml" ? {
+			getSize: async () => 11, getString
+		} : null});
+		const error = await t.throwsAsync(mod.getSpecifications(), {code: "ERR_CONFIG_TOO_LARGE"});
+		t.true(error.message.includes(configPath));
+		t.true(error.message.includes("maximum size of 10 bytes (11 bytes)"));
+		t.false(readFile.called);
+		t.false(getString.called);
+		t.false(validate.called);
+		t.false(create.called, "Specification validation and defaults cannot run");
+	});
+}
+
+for (const [name, yaml, variable, limit, code] of [
+	["array", "customConfiguration: [1, 2, 3, 4]", "UI5_CONFIG_MAX_COLLECTION", 3,
+		"ERR_CONFIG_COLLECTION_TOO_LARGE"],
+	["object", "customConfiguration: {a: 1, b: 2, c: 3, d: 4}", "UI5_CONFIG_MAX_COLLECTION", 3,
+		"ERR_CONFIG_COLLECTION_TOO_LARGE"],
+	["YAML depth", "customConfiguration: [[[[0]]]]", "UI5_CONFIG_MAX_DEPTH", 5, "ERR_CONFIG_TOO_DEEP"]
+]) {
+	test.serial(`Configuration ${name}: reject before validating any document`, async (t) => {
+		setLimit(t, variable, limit);
+		const validate = sinon.stub().resolves();
+		const create = sinon.stub();
+		const MockModule = await esmock("../../../lib/graph/Module.js", {
+			"../../../lib/validation/validator.js": {validate},
+			"../../../lib/specifications/Specification.js": {default: {create}}
+		});
+		const mod = new MockModule(basicModuleInput);
+		const resource = createResource({path: "/ui5.yaml", string: `type: application\n---\n${yaml}`});
+		mod.getReader = () => ({byPath: async (input) => input === "/ui5.yaml" ? resource : null});
+		const error = await t.throwsAsync(mod.getSpecifications(), {code});
+		t.true(error.message.includes("ui5.yaml"));
+		t.true(error.message.includes(String(limit)));
+		if (name === "YAML depth") {
+			t.regex(error.message, /nesting exceeded maxDepth \(5\)/);
+		}
+		t.false(validate.called);
+		t.false(create.called);
+	});
+}
+
+for (const [name, content, variable, limit, code] of [
+	["bytes", "{ }", "UI5_MANIFEST_MAX_BYTES", 2, "ERR_CONFIG_TOO_LARGE"],
+	["depth", "{\"project\":{\"deep\":[[]]}}", "UI5_JSON_MAX_DEPTH", 3, "ERR_CONFIG_TOO_DEEP"],
+	["collection", "{\"project\":{\"customConfiguration\":[1,2,3]}}", "UI5_CONFIG_MAX_COLLECTION", 2,
+		"ERR_CONFIG_COLLECTION_TOO_LARGE"]
+]) {
+	test.serial(`Build manifest ${name}: reject before specification creation`, async (t) => {
+		setLimit(t, variable, limit);
+		const create = sinon.stub();
+		const MockModule = await esmock("../../../lib/graph/Module.js", {
+			"../../../lib/specifications/Specification.js": {default: {create}}
+		});
+		const mod = new MockModule(basicModuleInput);
+		const resource = createResource({path: "/.ui5/build-manifest.json", string: content});
+		const getString = sinon.spy(resource, "getString");
+		mod.getReader = () => ({byPath: async () => resource});
+		const error = await t.throwsAsync(mod.getSpecifications(), {code});
+		t.true(error.message.includes("/.ui5/build-manifest.json"));
+		t.true(error.message.includes(String(limit)));
+		t.false(create.called);
+		if (name === "bytes") {
+			t.false(getString.called);
+		}
+	});
+}
+
+test.serial("Build manifest: accepts byte, depth and collection boundaries", async (t) => {
+	const string = "{\"project\":{\"a\":[1,2]}}";
+	setLimit(t, "UI5_MANIFEST_MAX_BYTES", Buffer.byteLength(string));
+	setLimit(t, "UI5_JSON_MAX_DEPTH", 3);
+	setLimit(t, "UI5_CONFIG_MAX_COLLECTION", 2);
+	const mod = new Module(basicModuleInput);
+	const resource = createResource({path: "/.ui5/build-manifest.json", string});
+	mod.getReader = () => ({byPath: async () => resource});
+	t.deepEqual(await mod._readBuildManifest(), {project: {a: [1, 2]}});
 });

@@ -2,12 +2,16 @@ import fs from "graceful-fs";
 import path from "node:path";
 import {promisify} from "node:util";
 const readFile = promisify(fs.readFile);
+const stat = promisify(fs.stat);
 import {loadAll as jsyamlLoadAll} from "js-yaml";
 import ui5YamlSchema from "./helpers/ui5YamlSchema.js";
 import {createReader} from "@ui5/fs/resourceFactory";
 import Specification from "../specifications/Specification.js";
 import {validate} from "../validation/validator.js";
 import parseJSON from "../utils/json.js";
+import {
+	assertMaxBytes, assertCollectionSize, getConfigLimits, getManifestMaxBytes, readResourceString
+} from "../utils/limits.js";
 
 import {getLogger} from "@ui5/logger";
 
@@ -286,16 +290,20 @@ class Module {
 
 	async _readConfigFile() {
 		const configPath = this._configPath;
+		const limits = getConfigLimits();
 		let configFile;
 		if (path.isAbsolute(configPath)) {
 			// Handle absolute file paths with the native FS module
 			try {
+				assertMaxBytes((await stat(configPath)).size, {input: configPath, limit: limits.bytes});
 				configFile = await readFile(configPath, {encoding: "utf8"});
 			} catch (err) {
 				// TODO: Caller might wants to ignore exceptions for ENOENT errors for non-root projects
 				// However, this decision should not be made here
-				throw new Error("Failed to read configuration for module " +
+				const error = new Error("Failed to read configuration for module " +
 						`${this.getId()} at '${configPath}'. Error: ${err.message}`);
+				error.code = err.code;
+				throw error;
 			}
 		} else {
 			// Handle relative file paths with the @ui5/fs (virtual) file system
@@ -314,7 +322,7 @@ class Module {
 				}
 				return null;
 			}
-			configFile = await configResource.getString();
+			configFile = await readResourceString(configResource, {input: configPath, limit: limits.bytes});
 		}
 
 		let configs;
@@ -324,12 +332,18 @@ class Module {
 			// behaviour.
 			configs = jsyamlLoadAll(configFile, undefined, {
 				filename: configPath,
-				schema: ui5YamlSchema
+				schema: ui5YamlSchema,
+				maxDepth: limits.depth
 			});
 		} catch (err) {
 			if (err.name === "YAMLException") {
-				throw new Error("Failed to parse configuration for project " +
+				const error = new Error("Failed to parse configuration for project " +
 				`${this.getId()} at '${configPath}'\nError: ${err.message}`);
+				// js-yaml reports the configured maxDepth breach as "nesting exceeded maxDepth (<N>)".
+				if (err.reason?.startsWith("nesting exceeded maxDepth")) {
+					error.code = "ERR_CONFIG_TOO_DEEP";
+				}
+				throw error;
 			} else {
 				throw err;
 			}
@@ -338,6 +352,10 @@ class Module {
 		if (!configs || !configs.length) {
 			// No configs found => exit here
 			return configs;
+		}
+
+		for (const config of configs) {
+			assertCollectionSize(config, {input: configPath, limit: limits.collection});
 		}
 
 		// Validate found configurations with schema
@@ -396,7 +414,11 @@ class Module {
 		const reader = this.getReader();
 		const buildManifestResource = await reader.byPath("/.ui5/build-manifest.json");
 		if (buildManifestResource) {
-			return parseJSON(await buildManifestResource.getString(), buildManifestResource.getPath());
+			const input = buildManifestResource.getPath();
+			const content = await readResourceString(buildManifestResource, {input, limit: getManifestMaxBytes()});
+			const manifest = parseJSON(content, input);
+			assertCollectionSize(manifest?.project, {input, limit: getConfigLimits().collection});
+			return manifest;
 		}
 	}
 

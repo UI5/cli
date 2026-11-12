@@ -1,4 +1,6 @@
 import test from "ava";
+import sinon from "sinon";
+import {setLimit} from "./__helper__/limits.js";
 import parseJSON from "../../../lib/utils/json.js";
 
 test("parseJSON: Parses valid JSON content", (t) => {
@@ -46,3 +48,16 @@ test("parseJSON: Throws ERR_INVALID_JSON for undefined content", (t) => {
 	t.is(error.code, "ERR_INVALID_JSON", "Threw with the expected error code");
 });
 
+
+test.serial("parseJSON: checks depth before JSON.parse and preserves the limit code", (t) => {
+	setLimit(t, "UI5_JSON_MAX_DEPTH", 2);
+	const parse = sinon.spy(JSON, "parse");
+	t.teardown(() => parse.restore());
+	t.throws(() => parseJSON("{\"a\":[[]]}", "manifest.json"), {
+		code: "ERR_CONFIG_TOO_DEEP",
+		message: "Configuration file 'manifest.json' exceeds the maximum JSON nesting depth of 2"
+	});
+	t.false(parse.called);
+	t.deepEqual(parseJSON("{\"a\":[]}", "manifest.json"), {a: []});
+	t.is(parse.callCount, 1);
+});
