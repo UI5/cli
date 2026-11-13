@@ -442,48 +442,186 @@ test.serial("integration: minify with taskUtil and resources tagged with OmitFro
 // the -dbg.js, so a pre-existing one must not be there. The glob then matches both the .js and the -dbg.js
 // as separate map-step keys, and the .js key would write its generated debug variant to the -dbg.js path
 // that the -dbg.js key also writes - two concurrent keys writing one path, which crashes the build. To
-// stay robust, the .js and that -dbg.js are both skipped. Other .js files are minified as usual.
-test.serial("integration: minify skips a .js with an existing -dbg.js sibling and that -dbg.js",
-	async (t) => {
-		const {reader, writer, workspace} = createWorkspace();
-		const base = "/resources/my/namespace";
-		const content = `function a(x){return x;}\n`;
-
-		// A .js with an existing -dbg.js sibling - both must be skipped
-		await reader.write(resourceFactory.createResource({
-			path: `${base}/withDbg.js`,
-			string: content
-		}));
-		await reader.write(resourceFactory.createResource({
-			path: `${base}/withDbg-dbg.js`,
-			string: content
-		}));
-		// A plain .js without a sibling - must be minified as usual
-		await reader.write(resourceFactory.createResource({
-			path: `${base}/plain.js`,
-			string: content
-		}));
-
-		await runTask(minify, {
-			workspace,
-			options: {
-				pattern: "/resources/**/*.js"
-			}
-		});
-
-		// The skipped .js and its -dbg.js are left untouched - the task writes neither them nor any derived
-		// resource (no source map, no overwrite of the existing -dbg.js).
-		t.is(await writer.byPath(`${base}/withDbg.js`), null, "Skipped .js is not written");
-		t.is(await writer.byPath(`${base}/withDbg-dbg.js`), null, "Existing -dbg.js is not written");
-		t.is(await writer.byPath(`${base}/withDbg.js.map`), null, "No source map for the skipped .js");
-
-		// The plain .js is minified as usual, producing a minified result, a debug variant and a source map.
-		const minified = await writer.byPath(`${base}/plain.js`);
-		t.truthy(minified, "Plain .js is written");
-		t.is(await minified.getString(), `function a(n){return n}\n${SOURCE_MAPPING_URL}=plain.js.map`,
-			"Plain .js is minified");
-		const dbg = await writer.byPath(`${base}/plain-dbg.js`);
-		t.truthy(dbg, "Debug variant for the plain .js is written");
-		t.is(await dbg.getString(), content, "Debug variant keeps the original content");
-		t.truthy(await writer.byPath(`${base}/plain.js.map`), "Source map for the plain .js is written");
+// stay robust, the .js and that -dbg.js are both skipped, but must still receive their debug tags.
+// Other .js files are minified as usual.
+const existingPair = test.macro(async (t, excludes) => {
+	const {reader, writer, workspace} = createWorkspace();
+	const taskUtil = {
+		getEnv: (name) => process.env[name],
+		setTag: t.context.sinon.stub(),
+		getTag: t.context.sinon.stub().returns(false),
+		STANDARD_TAGS: {
+			HasDebugVariant: "has debug variant",
+			IsDebugVariant: "is debug variant",
+			OmitFromBuildResult: "omit from build result"
+		},
+		registerCleanupTask: t.context.sinon.stub()
+	};
+	t.teardown(async () => {
+		for (const call of taskUtil.registerCleanupTask.getCalls()) {
+			await call.firstArg();
+		}
 	});
+	const base = "/resources/my/namespace";
+	const content = `function a(x){return x;}\n`;
+
+	// A .js with an existing -dbg.js sibling - both must be skipped
+	await reader.write(resourceFactory.createResource({
+		path: `${base}/withDbg.js`,
+		string: content
+	}));
+	await reader.write(resourceFactory.createResource({
+		path: `${base}/withDbg-dbg.js`,
+		string: content
+	}));
+	// A plain .js without a sibling - must be minified as usual
+	await reader.write(resourceFactory.createResource({
+		path: `${base}/plain.js`,
+		string: content
+	}));
+
+	await runTask(minify, {
+		workspace,
+		taskUtil,
+		options: {
+			pattern: "/resources/**/*.js",
+			excludes: excludes.map((exclude) => exclude.startsWith("!") ?
+				`!${base}/${exclude.slice(1)}` : `${base}/${exclude}`)
+		}
+	});
+
+	const tagsByPath = new Map(taskUtil.setTag.getCalls().map(({args: [resource, tag]}) => [
+		resource.getPath(), tag
+	]));
+	t.is(tagsByPath.get(base + "/withDbg.js"), taskUtil.STANDARD_TAGS.HasDebugVariant,
+		"Skipped .js is tagged as having a debug variant");
+	t.is(tagsByPath.get(base + "/withDbg-dbg.js"), taskUtil.STANDARD_TAGS.IsDebugVariant,
+		"Existing -dbg.js is tagged as a debug variant");
+
+	// The skipped .js and its -dbg.js are left untouched - the task writes neither them nor any derived
+	// resource (no source map, no overwrite of the existing -dbg.js).
+	t.is(await writer.byPath(`${base}/withDbg.js`), null, "Skipped .js is not written");
+	t.is(await writer.byPath(`${base}/withDbg-dbg.js`), null, "Existing -dbg.js is not written");
+	t.is(await writer.byPath(`${base}/withDbg.js.map`), null, "No source map for the skipped .js");
+	t.is(await (await workspace.byPath(`${base}/withDbg.js`)).getString(), content,
+		"The existing non-debug resource is unchanged");
+	t.is(await (await workspace.byPath(`${base}/withDbg-dbg.js`)).getString(), content,
+		"The existing debug resource is unchanged");
+
+	// The plain .js is minified as usual, producing a minified result, a debug variant and a source map.
+	const minified = await writer.byPath(`${base}/plain.js`);
+	t.truthy(minified, "Plain .js is written");
+	t.is(await minified.getString(), `function a(n){return n}\n${SOURCE_MAPPING_URL}=plain.js.map`,
+		"Plain .js is minified");
+	const dbg = await writer.byPath(`${base}/plain-dbg.js`);
+	t.truthy(dbg, "Debug variant for the plain .js is written");
+	t.is(await dbg.getString(), content, "Debug variant keeps the original content");
+	t.truthy(await writer.byPath(`${base}/plain.js.map`), "Source map for the plain .js is written");
+});
+
+test.serial("integration: minify skips and tags an existing pair", existingPair, []);
+test.serial("integration: minify tags an excluded pair", existingPair, ["withDbg.js", "withDbg-dbg.js"]);
+test.serial("integration: minify tags a glob-excluded pair", existingPair, ["withDbg*.js"]);
+test.serial("integration: minify preserves re-inclusions", existingPair, ["*.js", "!plain.js"]);
+test.serial("integration: minify tags a pair with only the non-debug member excluded", existingPair, ["withDbg.js"]);
+test.serial("integration: minify tags a pair with only the debug member excluded", existingPair, ["withDbg-dbg.js"]);
+
+test.serial("integration: pair discovery respects positive scope and UI5 module suffixes", async (t) => {
+	const {reader, writer, workspace} = createWorkspace();
+	const setTag = t.context.sinon.stub();
+	const taskUtil = {
+		setTag,
+		STANDARD_TAGS: {HasDebugVariant: "has debug variant", IsDebugVariant: "is debug variant"},
+	};
+	const paths = [
+		"/resources/scope/Rules.support.js", "/resources/scope/Rules-dbg.support.js",
+		"/resources/scope/Main.controller.js", "/resources/scope/Main-dbg.controller.js",
+		"/resources/scope/Solo.support.js",
+		"/test-resources/scope/A.js", "/test-resources/scope/A-dbg.js",
+	];
+	for (const resourcePath of paths) {
+		await reader.write(resourceFactory.createResource({path: resourcePath, string: "not valid JavaScript"}));
+	}
+	await runTask(minify, {workspace, taskUtil, options: {
+		pattern: "/resources/scope/**/*.js",
+		excludes: ["**/*.support.js", "**/*.controller.js"],
+	}});
+	const tags = new Map(setTag.getCalls().map(({args: [res, tag]}) => [res.getPath(), tag]));
+	for (const name of ["Rules.support", "Main.controller"]) {
+		const [module, suffix] = name.split(".");
+		t.is(tags.get(`/resources/scope/${module}.${suffix}.js`), taskUtil.STANDARD_TAGS.HasDebugVariant);
+		t.is(tags.get(`/resources/scope/${module}-dbg.${suffix}.js`), taskUtil.STANDARD_TAGS.IsDebugVariant);
+	}
+	t.is(setTag.callCount, 4, "Neither the excluded standalone file nor the out-of-scope pair is tagged");
+	t.deepEqual(await writer.byGlob("/**/*"), [], "No resources are transformed or written");
+});
+
+test.serial("integration: standalone minify has no implicit support-file exclusion", async (t) => {
+	const {reader, writer, workspace} = createWorkspace();
+	const content = "function identity(value) { return value; }\n";
+	await reader.write(resourceFactory.createResource({path: "/custom/Rules.support.js", string: content}));
+	await runTask(minify, {workspace, options: {pattern: "/custom/**/*.js"}});
+	t.not(await (await writer.byPath("/custom/Rules.support.js")).getString(), content,
+		"A support file is minified unless the caller supplies an exclusion");
+	t.is(await (await writer.byPath("/custom/Rules-dbg.support.js")).getString(), content);
+	t.truthy(await writer.byPath("/custom/Rules.support.js.map"));
+});
+
+test.serial("integration: minify processes a standalone -dbg.js without a .js sibling", async (t) => {
+	// This test covers a scenario where a -dbg.js file exists WITHOUT a corresponding normal .js sibling.
+	// This could happen e.g. if (for whatever reason) the resource was simply named "..-dbg.js"
+	// (-> valid case)
+	const {reader, writer, workspace} = createWorkspace();
+	const taskUtil = {
+		getEnv: (name) => process.env[name],
+		setTag: t.context.sinon.stub(),
+		getTag: t.context.sinon.stub().returns(false),
+		STANDARD_TAGS: {
+			HasDebugVariant: "has debug variant",
+			IsDebugVariant: "is debug variant",
+			OmitFromBuildResult: "omit from build result"
+		},
+		registerCleanupTask: t.context.sinon.stub()
+	};
+	t.teardown(async () => {
+		for (const call of taskUtil.registerCleanupTask.getCalls()) {
+			await call.firstArg();
+		}
+	});
+	const base = "/resources/my/namespace";
+	const content = `function a(x){return x;}\n`;
+
+	// A standalone -dbg.js without a normal .js sibling must be minified as usual.
+	await reader.write(resourceFactory.createResource({
+		path: `${base}/standalone-dbg.js`,
+		string: content
+	}));
+
+	await runTask(minify, {
+		workspace,
+		taskUtil,
+		options: {
+			pattern: "/resources/**/*.js"
+		}
+	});
+
+	const tagsByPath = new Map(taskUtil.setTag.getCalls().map(({args: [resource, tag]}) => [
+		resource.getPath(), tag
+	]));
+	t.is(tagsByPath.get(base + "/standalone-dbg.js"), taskUtil.STANDARD_TAGS.HasDebugVariant,
+		"The standalone file is tagged as having a generated debug variant");
+	t.is(tagsByPath.get(base + "/standalone-dbg-dbg.js"), taskUtil.STANDARD_TAGS.IsDebugVariant,
+		"The generated debug variant receives its debug tag");
+
+	t.is(await workspace.byPath(`${base}/standalone.js`), null, "No normal .js sibling exists");
+
+	// The standalone file produces a minified result, a debug variant and a source map.
+	const minified = await writer.byPath(`${base}/standalone-dbg.js`);
+	t.truthy(minified, "Standalone -dbg.js is written");
+	t.is(await minified.getString(), `function a(n){return n}\n${SOURCE_MAPPING_URL}=standalone-dbg.js.map`,
+		"Standalone -dbg.js is minified");
+	const dbg = await writer.byPath(`${base}/standalone-dbg-dbg.js`);
+	t.truthy(dbg, "Debug variant for the standalone file is written");
+	t.is(await dbg.getString(), content, "Debug variant keeps the original content");
+	t.truthy(await writer.byPath(`${base}/standalone-dbg.js.map`), "Source map for the standalone file is written");
+});
