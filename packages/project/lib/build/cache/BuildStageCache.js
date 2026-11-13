@@ -375,34 +375,44 @@ export default class BuildStageCache {
 	}
 
 	/**
-	 * Records the external tool files this stage loaded during execution, and
-	 * recomputes the tool-content digest from their current on-disk content. Marks the stage for
-	 * persistence if the recorded path list changed (the path list, the digest, and the stat baseline are
-	 * what is persisted; the digest is re-validated on the next build via the stat tier).
+	 * Records the external tool files this stage loaded during execution by **unioning** them into the
+	 * recorded set, then recomputes the tool-content digest from the set's current on-disk content. Marks
+	 * the stage for persistence if the recorded path list grew (the path list, the digest, and the stat
+	 * baseline are what is persisted; the digest is re-validated on the next build via the stat tier).
 	 *
-	 * An **empty** capture is treated as "the resolve hook was blind", not "the tool is no longer used": a
-	 * cached CJS require (or an already-instantiated static import) does not re-fire the hook,
-	 * so a stage that re-runs after its in-process tool is already loaded would otherwise record an empty
-	 * set, flip its tool-content signature, and spuriously invalidate across builds. So an empty capture
-	 * never overwrites a known non-empty set. Trade-off: a task that genuinely stops using *all* its tools
-	 * keeps them tracked (safe over-capture, matching the D2 stance); dropping *some* tools while still
-	 * loading others still shrinks the set, because that capture is non-empty.
+	 * The set only grows, never shrinks. Two shapes of capture undercount the real tool set, and neither is
+	 * evidence a tool was dropped:
+	 *
+	 * - An **empty** capture means the resolve hook was blind: a cached CJS require (or an already-
+	 *   instantiated static import) does not re-fire the hook, so a stage that re-runs after its in-process
+	 *   tool is already loaded observes nothing.
+	 * - A **strict-subset** capture means the hook was partially blind: a second `import()`/`require` of an
+	 *   already-loaded module re-fires only for the module's entry, not for the subtree the first load
+	 *   resolved. So a subtree-tracked tool (e.g. `enhanceManifest` -> `semver`, ~47 files on the cold load)
+	 *   re-captures as just its entry on a mid-session re-run.
+	 *
+	 * Replacing the set on either would degrade a subtree-tracked tool to entry level and flip the signature
+	 * across builds. Growing-only is fail-safe: at worst a tool a task genuinely stopped using stays tracked
+	 * and triggers a spurious stage re-run. A genuinely changed tool set is re-established from an empty
+	 * baseline on a fresh process (restored paths are keyed by the build signature; a new @ui5/builder
+	 * release rekeys them, and a custom task's own code is outside this tracking either way).
 	 *
 	 * @public
 	 * @param {string[]} [toolFiles] Absolute paths of the tool files observed during execution
 	 * @returns {Promise<void>}
 	 */
 	async recordToolFiles(toolFiles = []) {
-		const newPaths = [...new Set(toolFiles)].sort();
-		if (newPaths.length === 0 && this.#toolPaths.length > 0) {
+		const captured = [...new Set(toolFiles)].sort();
+		if (captured.length === 0) {
 			return;
 		}
-		if (newPaths.join("\0") !== this.#toolPaths.join("\0")) {
+		const merged = [...new Set([...this.#toolPaths, ...captured])].sort();
+		if (merged.join("\0") !== this.#toolPaths.join("\0")) {
 			this.#toolSetModified = true;
 		}
-		this.#toolPaths = newPaths;
-		// A fresh recording: content-hash the new set and capture the stat baseline in one pass. The warm
-		// stat tier (refreshToolContentSignature) is for later builds that did not re-record.
+		this.#toolPaths = merged;
+		// Content-hash the set and capture the stat baseline in one pass. The warm stat tier
+		// (refreshToolContentSignature) is for later builds that did not re-record.
 		const {signature, stats} = await computeToolContent(this.#toolPaths);
 		this.#toolContentSignature = signature;
 		this.#toolStats = stats;
@@ -417,9 +427,13 @@ export default class BuildStageCache {
 	 *
 	 * Two tiers. The stat tier compares a fresh stat of every recorded file against the baseline the digest
 	 * was last computed against ([mtimeMs, size, inode]); if nothing moved, the content cannot have changed,
-	 * so the digest is kept and the files are not read. Otherwise the content tier re-reads the bytes and
-	 * refreshes both the digest and the baseline. Recomputing only the digest (not the path list) has no
-	 * persistence side effect, so a stage whose tool content is unchanged is not needlessly re-persisted.
+	 * so the digest is kept and the files are not read. Otherwise the content tier re-reads the bytes,
+	 * refreshes both the digest and the baseline, and marks the stage for persistence so the refreshed
+	 * baseline reaches disk on the next cache write. Without that mark, a same-version reinstall (inode and
+	 * mtime move, bytes identical) would re-run the content tier on every fresh process, never
+	 * re-establishing the durable stat-tier skip. The mark is sticky until a write happens; a full
+	 * result-cache hit writes nothing, so that case still re-reads once per process, bounded by the
+	 * recorded file set.
 	 *
 	 * @public
 	 * @returns {Promise<void>}
@@ -437,10 +451,13 @@ export default class BuildStageCache {
 			return;
 		}
 		// Content tier: a stat moved (or the stored baseline is absent, e.g. a cache from before the stat
-		// tier), so re-read the bytes and refresh both the digest and the baseline.
+		// tier), so re-read the bytes and refresh both the digest and the baseline. Mark the stage for
+		// persistence so the refreshed baseline is written on the next cache write (persisted whenever any
+		// stage in the project misses), re-establishing the stat-tier skip after a same-version reinstall.
 		const {signature, stats} = await computeToolContent(this.#toolPaths);
 		this.#toolContentSignature = signature;
 		this.#toolStats = stats;
+		this.#toolSetModified = true;
 	}
 
 	/**

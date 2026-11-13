@@ -70,6 +70,22 @@ test("shareToolFiles does not let a blind capture overwrite a stored set", (t) =
 		"the stored set survives an intervening empty capture");
 });
 
+test("shareToolFiles unions a later subset into the stored set rather than replacing it", (t) => {
+	// Cold capture of a tool's whole subtree.
+	const subtree = ["/nm/tool/entry.js", "/nm/tool/lib/a.js", "/nm/tool/package.json"];
+	t.deepEqual(shareToolFiles("taskE\0stepX", subtree), subtree, "first capture is stored and returned");
+
+	// A later project re-captures only the entry (the cached module re-fires the hook for its entry alone).
+	// The memo must grow to the union, never shrink to the subset, so the subtree is not lost.
+	const unioned = shareToolFiles("taskE\0stepX", ["/nm/tool/entry.js"]);
+	t.deepEqual(unioned, subtree, "an entry-only re-capture returns the retained subtree, not the subset");
+
+	// A capture carrying a genuinely new path adds it to the union.
+	t.deepEqual(shareToolFiles("taskE\0stepX", ["/nm/tool/lib/b.js"]),
+		["/nm/tool/entry.js", "/nm/tool/lib/a.js", "/nm/tool/lib/b.js", "/nm/tool/package.json"],
+		"a new path is unioned into the stored set");
+});
+
 test("isToolFile excludes the UI5 tooling packages but tracks @ui5-scoped application packages", (t) => {
 	const nm = "file:///app/node_modules/";
 

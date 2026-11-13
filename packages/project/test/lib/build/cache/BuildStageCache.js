@@ -517,9 +517,33 @@ test("recordToolFiles: an empty capture does not overwrite a known non-empty set
 	t.true(cache.hasToolContent(), "an empty capture keeps the previously recorded set");
 	t.is(cache.getToolContentSignature(), sig, "tool-content signature is unchanged by an empty capture");
 
-	// A non-empty capture still replaces the set (e.g. dropping one tool while still loading another).
+	// A capture carrying a genuinely new path unions it into the set (and moves the signature).
 	await cache.recordToolFiles(["/node_modules/toolB/index.js"]);
-	t.not(cache.getToolContentSignature(), sig, "a non-empty capture updates the set");
+	t.not(cache.getToolContentSignature(), sig, "a capture with a new path updates the set");
+	t.deepEqual(cache.toCacheObjects()[5].paths,
+		["/node_modules/toolA/index.js", "/node_modules/toolA/package.json", "/node_modules/toolB/index.js"],
+		"the new path is unioned in; the earlier tool is retained, not replaced");
+});
+
+test("recordToolFiles: a strict-subset capture never shrinks the recorded set", async (t) => {
+	const cache = new BuildStageCache("test.project", "testTask", false);
+
+	// Cold load observes the whole subtree a tool resolves.
+	const subtree = [
+		"/node_modules/semver/index.js",
+		"/node_modules/semver/internal/a.js",
+		"/node_modules/semver/internal/b.js",
+		"/node_modules/semver/package.json",
+	];
+	await cache.recordToolFiles(subtree);
+	const sig = cache.getToolContentSignature();
+
+	// A mid-session re-run re-captures only the entry, because a second import() of the cached module
+	// re-fires the resolve hook for the entry alone, not the subtree. This must not degrade the set.
+	await cache.recordToolFiles(["/node_modules/semver/index.js"]);
+	t.deepEqual(cache.toCacheObjects()[5].paths, subtree,
+		"the subtree is retained; the entry-only re-capture does not shrink it");
+	t.is(cache.getToolContentSignature(), sig, "the digest is unchanged, so the stage is not re-invalidated");
 });
 
 test("recordToolFiles: an empty capture on a fresh stage records nothing", async (t) => {
@@ -607,6 +631,36 @@ test.serial("refreshToolContentSignature: a moved mtime re-reads but keeps the d
 		t.true(readSpy.callCount >= 1, "a moved mtime falls through to the content tier");
 		t.is(cache.getToolContentSignature(), sig,
 			"identical bytes keep the digest, so an mtime-only change does not invalidate");
+	});
+
+test.serial("refreshToolContentSignature: the content tier marks the stage for persistence (durable baseline)",
+	async (t) => {
+		// A same-version reinstall moves inode/mtime but not bytes. The content tier re-confirms the digest
+		// and refreshes the baseline in memory; it must also flag the stage so the refreshed baseline reaches
+		// disk on the next write, or every fresh process would re-read the content tier forever.
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "ui5-toolcontent-"));
+		t.teardown(() => fs.rm(dir, {recursive: true, force: true}));
+		const toolFile = path.join(dir, "index.js");
+		await fs.writeFile(toolFile, "v1");
+
+		const base = new BuildStageCache("test.project", "testTask", false);
+		await base.recordToolFiles([toolFile]);
+		// Round-trip through the cache so the restored instance starts clean (modified=false).
+		const restored = BuildStageCache.fromCache({
+			projectName: "test.project", stageId: "testTask", stepBased: false,
+			projectRequests: base.toCacheObjects()[0], dependencyRequests: base.toCacheObjects()[1],
+			toolContentRequests: base.toCacheObjects()[5],
+		});
+		t.false(restored.hasNewOrModifiedCacheEntries(), "a freshly restored stage is clean");
+
+		// Touch the file: moved mtime, identical bytes (a same-version reinstall). Stat tier misses, content
+		// tier re-confirms the digest but must mark the stage so the new baseline persists.
+		const future = new Date(Date.now() + 2000);
+		await fs.utimes(toolFile, future, future);
+		await restored.refreshToolContentSignature();
+
+		t.true(restored.hasNewOrModifiedCacheEntries(),
+			"the content tier flags the stage so the refreshed stat baseline is persisted on the next write");
 	});
 
 test.serial("refreshToolContentSignature: a restored cache without a stat baseline re-reads once, then skips",

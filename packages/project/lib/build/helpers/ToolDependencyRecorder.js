@@ -178,21 +178,33 @@ const sharedToolFiles = new Map();
 /**
  * Shares a stage's captured tool files across the projects of one process.
  *
- * Call it with the full tool set a stage captured this build, keyed by the stage's logical id. A non-empty
- * set is memoized under the key and returned unchanged; an empty set is treated as "the capture was blind
- * this project" and replaced by the set a prior project recorded for the same key (or stays empty if none).
- * The key is the same across projects for a standard task, so the recalled set belongs to the same module
- * and the same tools. It can only add a set, never shrink one, so the worst case is a spurious stage re-run.
+ * Call it with the tool set a stage captured this build, keyed by the stage's logical id. A non-empty set
+ * is **unioned** into the set memoized under the key and the union is returned; an empty set is treated as
+ * "the capture was blind this project" and the memoized set (or empty) is returned unchanged. The key is
+ * the same across projects for a standard task, so the recalled set belongs to the same module and the
+ * same tools.
+ *
+ * Unioning rather than replacing matters because a re-captured set can be a strict subset of a prior
+ * capture: a second `import()`/`require` of an already-loaded module re-fires the resolve hook only for the
+ * module's entry, not for the subtree the first load resolved. Replacing on a non-empty capture would then
+ * let a later project's entry-only re-capture overwrite an earlier project's full subtree. The memo only
+ * grows (never shrinks), so the worst case is a spurious stage re-run, never a dropped tool.
  *
  * @public
  * @param {string} key The stage's logical id (e.g. `${taskName}\0${stepName}`)
  * @param {string[]} files The tool files the stage captured this build
- * @returns {string[]} The files to record: the captured set if non-empty, else a prior project's set
+ * @returns {string[]} The files to record: the captured set unioned with any prior project's set
  */
 export function shareToolFiles(key, files) {
-	if (files.length > 0) {
+	const existing = sharedToolFiles.get(key);
+	if (files.length === 0) {
+		return existing ?? [];
+	}
+	if (!existing) {
 		sharedToolFiles.set(key, files);
 		return files;
 	}
-	return sharedToolFiles.get(key) ?? [];
+	const merged = [...new Set([...existing, ...files])].sort();
+	sharedToolFiles.set(key, merged);
+	return merged;
 }
