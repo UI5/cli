@@ -4,6 +4,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logger/compare/v4.0.2...HEAD).
 
+## [5.0.0-alpha.16](https://github.com/UI5/cli/compare/logger-v5.0.0-alpha.15...logger-v5.0.0-alpha.16) (2026-11-13)
+
+
+### Dependencies
+
+* Bump slice-ansi from 9.0.1 to 10.0.0 ([#1698](https://github.com/UI5/cli/issues/1698)) ([8e87959](https://github.com/UI5/cli/commit/8e87959301377f099c87a46d35f46627d3f20985))
+
 ## [5.0.0-alpha.15](https://github.com/UI5/cli/compare/logger-v5.0.0-alpha.14...logger-v5.0.0-alpha.15) (2026-11-02)
 
 
