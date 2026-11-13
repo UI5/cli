@@ -1,0 +1,11 @@
+---
+specVersion: "2.3"
+type: library
+metadata:
+  name: library.d
+  copyright: This is a config for another library (outside of this dir)
+resources:
+  configuration:
+    paths:
+      src: main/src
+      test: main/test

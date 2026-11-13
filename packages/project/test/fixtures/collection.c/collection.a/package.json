@@ -1,0 +1,9 @@
+{
+  "name": "collection",
+  "version": "1.0.0",
+  "description": "Simple Collection",
+  "workspaces": [
+    "library.c",
+    "library.d"
+  ]
+}

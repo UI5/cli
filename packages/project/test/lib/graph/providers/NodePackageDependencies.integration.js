@@ -14,6 +14,7 @@ const applicationFPath = path.join(__dirname, "..", "..", "..", "fixtures", "app
 const applicationGPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.g");
 const errApplicationAPath = path.join(__dirname, "..", "..", "..", "fixtures", "err.application.a");
 const cycleDepsBasePath = path.join(__dirname, "..", "..", "..", "fixtures", "cyclic-deps", "node_modules");
+const libraryDPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d");
 const libraryDOverridePath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d-adtl-deps");
 
 import projectGraphBuilder from "../../../../lib/graph/projectGraphBuilder.js";
@@ -73,6 +74,7 @@ test("AppA: project with an alias dependency", async (t) => {
 		getName: () => "workspace name",
 		getModuleByNodeId: t.context.sinon.stub().resolves(undefined).onFirstCall().resolves({
 			getPath: () => path.join(applicationAAliasesPath, "node_modules", "extension.a.esm.alias"),
+			getConfigPath: () => undefined,
 			getVersion: () => "1.0.0",
 		})
 	};
@@ -92,6 +94,7 @@ test("AppA: project with workspace overrides", async (t) => {
 			// This version of library.d has an additional dependency to library.f,
 			// which in turn has a dependency to library.g
 			getPath: () => libraryDOverridePath,
+			getConfigPath: () => undefined,
 			getVersion: () => "1.0.0",
 		})
 	};
@@ -114,6 +117,33 @@ test("AppA: project with workspace overrides", async (t) => {
 	t.is(workspace.getModuleByNodeId.getCall(1).args[0], "collection",
 		"Workspace#getModuleByNodeId got called with correct argument on second call");
 	t.is(graph.getProject("library.d").getVersion(), "2.0.0", "Version from override is used");
+	t.is(graph.getProject("library.d").getCopyright(),
+		"FANCY COPYRIGHT (used for workspace overwrite tests)",
+		"Correct copyright (library was overwritten by workspace)");
+});
+
+test("AppA: project with workspace overrides (+ custom configPath)", async (t) => {
+	// This test covers a scenario where a workspace config overwrites a module with a custom path.
+	// This config also specifies a custom configPath for the module.
+
+	// The test then verifies that the library was successfully overwritten and
+	// the custom config is successfully loaded (the copyright is checked).
+
+	const workspace = {
+		getName: () => "workspace name",
+		getModuleByNodeId: t.context.sinon.stub().resolves(undefined).onFirstCall().resolves({
+			getPath: () => libraryDPath,
+			getVersion: () => "1.0.0",
+			getConfigPath: () => "custom-config-path.yaml",
+		})
+	};
+	const npmProvider = new NodePackageDependenciesProvider({
+		cwd: applicationAPath
+	});
+	const graph = await projectGraphBuilder(npmProvider, workspace);
+
+	t.is(graph.getProject("library.d").getCopyright(),
+		"A custom config (called by configPath paramater)", "Correct copyright is used (custom config loaded)");
 });
 
 test("AppC: project with dependency with optional dependency resolved through root project", async (t) => {
