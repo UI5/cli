@@ -201,6 +201,18 @@ Two further hazards are latent: no shipped task reaches them, and an invariant o
 - **Serial execution.** The single active capture window assumes no two windows overlap. `TaskRunner.runTasks` awaits each task in order and `ProjectBuilder` awaits each project, so this holds for the shipped executor (a processor's internal `Promise.all` fan-out stays inside one window, so its resolutions belong to that one task). Parallelizing task or project execution would misattribute resolutions to the wrong stage; it would need per-task capture context, keyed by `AsyncLocalStorage`, in place of the module-level `activeCapture`.
 - **Direct in-process tool loads.** On a cold build, two stages reaching one tool through a single evaluated-once module would leave the second stage's window with nothing to observe: the shared module resolves the tool once (captured by the first stage), and its cached re-use fires no hook for the second. No shipped task hits this (the only lazy in-body load is `enhanceManifest` -> `semver`, a single stage). The convention keeps it out of reach: load an in-process tool with `await import("tool")` in the step body, never a shared module-level `require`, because a dynamic `import()` re-fires the resolve hook on every call.
 
+### 2.9 Worked example: ui5-tooling-modules
+
+This section is an illustration; it restates the boundaries above against one real custom task and introduces nothing the earlier sections depend on.
+
+`ui5-tooling-modules` is a custom task (and middleware) that bundles npm packages with rollup so a UI5 app can load them via `sap.ui.require`. It runs in-process on the main thread, with no `worker_threads` or `workerpool`: it imports `rollup` and the `@rollup/plugin-*` stack (plus `prettier`, `oxc-parser`) at the top of a module it requires in the task body, locates the packages it bundles with `require.resolve`, and lets rollup read their source via `fs`. Mapping that onto the model:
+
+- **Tools: tracked at subtree level.** rollup and its plugins are `require`d in-process during the task body, so the execution-window capture (§2.3) records the whole subtree. A bump of rollup, a plugin, or prettier re-runs the task. This is the supported case (§2.7) and confirms the §2.6 convention on a real task.
+- **Bundled packages: tracked at version level, incidentally.** `require.resolve` fires the hook (resolve-only), so each bundled package's resolved entry is recorded and its `package.json` folded in. A version bump, or an edit to a resolved entry file, re-runs the task. `@ui5/webcomponents` is covered only because the barrier is scoped to the tooling packages (§2.1); the earlier flat `@ui5/*` filter excluded it entirely.
+- **Deep files: not tracked.** Files a bundled package reaches by relative import are resolved by rollup's own resolver and read via `fs`, which fires no hook. A same-version in-place edit (patch-package, a linked or workspace package) is not observed, so the stale bundle is served. This is the §2.8 depth limitation, here for the task's data inputs rather than its tool. `@ui5/webcomponents` mostly dodges it by exposing every file as its own subpath export, so most imported files are resolved entries, not relative-only.
+
+In v5 `ui5 serve` runs the build and serves the built output, so this governs the serve dev loop, not only `ui5 build`. Developing a linked or workspace package that the task bundles is where the same-version deep-edit gap would surface as a stale bundle; closing it needs the task to surface its read-file list (rollup's `watchFiles`) through an input API (§3).
+
 ---
 
 
@@ -212,6 +224,7 @@ Two further hazards are latent: no shipped task reaches them, and an invariant o
 | Cross-project sharing in a `ui5 build --all` run | **Settled** | a process-global memo keyed by stage id carries a captured set to the same stage in a later project |
 | Worker-based custom-task tool coverage | **Deferred** | a custom task that loads its tool only inside its own worker is not auto-tracked; the convention is to resolve the tool on the main thread (§2.6) |
 | Worker tool + jsdoc coverage depth | **Deferred** | the worker tools (terser, less-openui5) and jsdoc are tracked at version/entry level only (incidental main-thread resolve, §2.3); a change in a transitive dep with no tool release is not caught |
+| External data-input tracking (bundled file contents) | **Deferred** | a task that reads data files via `fs` (e.g. `ui5-tooling-modules` bundling npm packages, §2.9) tracks them only at version/entry level; a same-version deep edit (patch-package, a linked/workspace package) is not caught. Would need the task to surface its read-file list (rollup's `watchFiles`) through an input API |
 | In-process plan-time tool loads (standard + custom) | **Settled** | captured by bracketing the task module's load |
 | Shared in-process tool on a cold build | **Settled** | latent, unreachable with the shipped task set; convention-guarded |
 
