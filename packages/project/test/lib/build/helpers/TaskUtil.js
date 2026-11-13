@@ -295,6 +295,22 @@ test("getBuildTime returns the build run's raw timestamp", (t) => {
 	t.is(taskUtil.getBuildTime(), buildTime, "returns the build context's Date instance");
 });
 
+test("getResolvedFrameworkInfo delegates to projectBuildContext", (t) => {
+	const expected = {name: "OpenUI5", version: "1.138.0"};
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {getResolvedFrameworkInfo: () => expected}
+	});
+	t.deepEqual(taskUtil.getResolvedFrameworkInfo(), expected);
+});
+
+test("getResolvedFrameworkInfo propagates normalized unknown metadata", (t) => {
+	const expected = {name: "", version: ""};
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {getResolvedFrameworkInfo: () => expected}
+	});
+	t.deepEqual(taskUtil.getResolvedFrameworkInfo(), expected);
+});
+
 test("registerCleanupTask", (t) => {
 	const registerCleanupTaskStub = sinon.stub();
 	const taskUtil = new TaskUtil({
@@ -490,6 +506,8 @@ test("getInterface: specVersion 3.0", (t) => {
 	t.is(interfacedTaskUtil.getEnv, undefined, "getEnv is not provided below specVersion 5.0");
 	t.is(interfacedTaskUtil.getTime, undefined, "getTime is not provided below specVersion 5.0");
 	t.is(interfacedTaskUtil.getBuildTime, undefined, "getBuildTime is not provided below specVersion 5.0");
+	t.is(interfacedTaskUtil.getResolvedFrameworkInfo, undefined,
+		"getResolvedFrameworkInfo is not provided below specVersion 5.0");
 
 	// getProject
 	const interfacedProject = interfacedTaskUtil.getProject("pony");
@@ -548,7 +566,7 @@ test("getInterface: specVersion 3.0", (t) => {
 		"resourceFactory function createFlatReader is available");
 });
 
-test("getInterface: specVersion 5.0 exposes getBuildTime", (t) => {
+test("getInterface: specVersion 5.0 exposes getBuildTime and getResolvedFrameworkInfo", (t) => {
 	const buildTime = new Date(2026, 8, 25, 14, 7, 3);
 	const taskUtil = new TaskUtil({
 		projectBuildContext: {
@@ -557,6 +575,7 @@ test("getInterface: specVersion 5.0 exposes getBuildTime", (t) => {
 			}),
 			getDependencies: sinon.stub().returns([]),
 			getBuildTime: () => buildTime,
+			getResolvedFrameworkInfo: () => ({name: "OpenUI5", version: "1.138.0"}),
 		}
 	});
 
@@ -575,15 +594,18 @@ test("getInterface: specVersion 5.0 exposes getBuildTime", (t) => {
 		"getEnv",
 		"getTime",
 		"getBuildTime",
+		"getResolvedFrameworkInfo",
 	], "getBuildTime is added at specVersion 5.0");
 
 	t.is(typeof interfacedTaskUtil.getEnv, "function", "function getEnv is provided");
 	t.is(typeof interfacedTaskUtil.getTime, "function", "function getTime is provided");
 	t.is(typeof interfacedTaskUtil.getBuildTime, "function", "function getBuildTime is provided");
 	t.is(interfacedTaskUtil.getBuildTime(), buildTime, "getBuildTime returns the build run's Date");
+	t.is(typeof interfacedTaskUtil.getResolvedFrameworkInfo, "function");
+	t.deepEqual(interfacedTaskUtil.getResolvedFrameworkInfo(), {name: "OpenUI5", version: "1.138.0"});
 });
 
-test("getReadOnlyInterface: specVersion 5.0 exposes getBuildTime", (t) => {
+test("getReadOnlyInterface: specVersion 5.0 exposes getBuildTime and getResolvedFrameworkInfo", (t) => {
 	const buildTime = new Date(2026, 8, 25, 14, 7, 3);
 	const taskUtil = new TaskUtil({
 		projectBuildContext: {
@@ -592,6 +614,7 @@ test("getReadOnlyInterface: specVersion 5.0 exposes getBuildTime", (t) => {
 			}),
 			getDependencies: sinon.stub().returns([]),
 			getBuildTime: () => buildTime,
+			getResolvedFrameworkInfo: () => ({name: "OpenUI5", version: "1.138.0"}),
 		}
 	});
 
@@ -601,9 +624,13 @@ test("getReadOnlyInterface: specVersion 5.0 exposes getBuildTime", (t) => {
 	t.is(typeof interfacedTaskUtil.getTime, "function", "function getTime is provided");
 	t.is(typeof interfacedTaskUtil.getBuildTime, "function", "function getBuildTime is provided");
 	t.is(interfacedTaskUtil.getBuildTime(), buildTime, "getBuildTime returns the build run's Date");
+	t.is(typeof interfacedTaskUtil.getResolvedFrameworkInfo, "function");
+	t.deepEqual(interfacedTaskUtil.getResolvedFrameworkInfo(), {name: "OpenUI5", version: "1.138.0"});
 
 	const readOnlyBelow5 = taskUtil.getReadOnlyInterface(getSpecificationVersion("3.0"));
 	t.is(readOnlyBelow5.getEnv, undefined, "getEnv is not provided below specVersion 5.0");
 	t.is(readOnlyBelow5.getTime, undefined, "getTime is not provided below specVersion 5.0");
 	t.is(readOnlyBelow5.getBuildTime, undefined, "getBuildTime is not provided below specVersion 5.0");
+	t.is(readOnlyBelow5.getResolvedFrameworkInfo, undefined,
+		"getResolvedFrameworkInfo is not provided below specVersion 5.0");
 });

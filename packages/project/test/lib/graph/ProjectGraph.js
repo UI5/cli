@@ -1934,3 +1934,86 @@ test("Seal/isSealed", async (t) => {
 	const extension = graph.getExtension("extension.b");
 	t.is(extension, undefined, "extension.b should not be added");
 });
+
+test("getResolvedFrameworkInfo: returns the distribution resolution", async (t) => {
+	const {ProjectGraph} = t.context;
+	const rootProject = await createProject("root");
+	const graph = new ProjectGraph({rootProjectName: "root"});
+	await graph.addProject(rootProject);
+
+	graph.setFrameworkResolution({name: "SAPUI5", version: "1.138.0"});
+	t.deepEqual(graph.getResolvedFrameworkInfo(), {name: "SAPUI5", version: "1.138.0"});
+});
+
+test("getResolvedFrameworkInfo: falls back to root framework configuration when unset", async (t) => {
+	const {ProjectGraph} = t.context;
+	const rootProject = await createProject("root");
+	// Supply a complete, recognized framework configuration on the project instance.
+	rootProject.getFrameworkName = () => "SAPUI5";
+	rootProject.getFrameworkVersion = () => "1.136.0";
+	const graph = new ProjectGraph({rootProjectName: "root"});
+	await graph.addProject(rootProject);
+
+	t.deepEqual(graph.getResolvedFrameworkInfo(), {name: "SAPUI5", version: "1.136.0"},
+		"Should fall back to the root project's configured framework metadata");
+});
+
+test("getResolvedFrameworkInfo: distribution resolution overrides configured root version", async (t) => {
+	const {ProjectGraph} = t.context;
+	const rootProject = await createProject("root");
+	rootProject.getFrameworkVersion = () => "1.136.0";
+	const graph = new ProjectGraph({rootProjectName: "root"});
+	await graph.addProject(rootProject);
+
+	graph.setFrameworkResolution({name: "SAPUI5", version: "1.138.0"});
+	t.deepEqual(graph.getResolvedFrameworkInfo(), {name: "SAPUI5", version: "1.138.0"},
+		"Resolved metadata must take precedence over configured root version");
+});
+
+test(
+	"getResolvedFrameworkInfo: " +
+		"pre-seal calls re-derive from the live graph; post-seal derivation is memoized but detached",
+	async (t) => {
+		const {ProjectGraph} = t.context;
+		const rootProject = await createProject("root");
+		const graph = new ProjectGraph({rootProjectName: "root"});
+		await graph.addProject(rootProject);
+
+		graph.setFrameworkResolution({name: "OpenUI5", version: "1.130.0"});
+
+		// Pre-seal: result reflects the live graph on every call; no cache yet.
+		const preSeal = graph.getResolvedFrameworkInfo();
+		t.deepEqual(
+			preSeal,
+			{name: "OpenUI5", version: "1.130.0"},
+			"pre-seal call returns correct result",
+		);
+
+		graph.seal();
+
+		// Spy on the traversal that drives the derivation to prove it runs only once post-seal.
+		const traverseSpy = t.context.sinon.spy(graph, "traverseDependenciesDepthFirst");
+
+		const first = graph.getResolvedFrameworkInfo();
+		// Mutating a returned result must not corrupt the memo for later callers.
+		first.name = "SAPUI5";
+		first.version = "broken";
+		const second = graph.getResolvedFrameworkInfo();
+
+		t.deepEqual(
+			second,
+			{name: "OpenUI5", version: "1.130.0"},
+			"post-seal value is correct and unaffected by a prior caller's mutation",
+		);
+		t.not(
+			first,
+			second,
+			"each post-seal call returns a detached copy, not the shared memo reference",
+		);
+		t.is(
+			traverseSpy.callCount,
+			1,
+			"the derivation (graph traversal) runs only once on a sealed graph",
+		);
+	},
+);

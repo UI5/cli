@@ -380,6 +380,50 @@ test("getInterface: specVersion 3.0", (t) => {
 		"resourceFactory function createFlatReader is available");
 });
 
+test("getInterface: specVersion 5.0", (t) => {
+	const expected = {name: "OpenUI5", version: "1.138.0"};
+	const mockGraph = {
+		getProject: sinon.stub().returns({getName: () => "name"}),
+		getDependencies: sinon.stub().returns([]),
+		getResolvedFrameworkInfo: sinon.stub().returns(expected)
+	};
+
+	const middlewareUtil = new MiddlewareUtil({graph: mockGraph, project: "project"});
+
+	const interfacedMiddlewareUtil = middlewareUtil.getInterface(getSpecificationVersion("5.0"));
+
+	t.deepEqual(Object.keys(interfacedMiddlewareUtil), [
+		"getPathname",
+		"getMimeInfo",
+		"getProject",
+		"getDependencies",
+		"resourceFactory",
+		"getResolvedFrameworkInfo",
+	], "framework accessors are added at specVersion 5.0");
+
+	t.is(typeof interfacedMiddlewareUtil.getResolvedFrameworkInfo, "function");
+	t.deepEqual(interfacedMiddlewareUtil.getResolvedFrameworkInfo(), expected);
+
+	// Not provided below specVersion 5.0
+	const interfacedBelow5 = middlewareUtil.getInterface(getSpecificationVersion("3.0"));
+	t.is(interfacedBelow5.getResolvedFrameworkInfo, undefined,
+		"getResolvedFrameworkInfo is not provided below specVersion 5.0");
+});
+
+test("getResolvedFrameworkInfo delegates to the graph and is gated at specVersion 5.0", (t) => {
+	const expected = {name: "SAPUI5", version: ""};
+	const graph = {getResolvedFrameworkInfo: sinon.stub().returns(expected)};
+	const middlewareUtil = new MiddlewareUtil({graph, project: {getName: () => "root"}});
+	t.deepEqual(middlewareUtil.getResolvedFrameworkInfo(), expected);
+	const current = middlewareUtil.getInterface(getSpecificationVersion("5.0"));
+	t.deepEqual(current.getResolvedFrameworkInfo(), expected);
+	t.deepEqual(Object.keys(current).filter((name) => name.startsWith("getResolvedFramework")),
+		["getResolvedFrameworkInfo"]);
+	t.is(graph.getResolvedFrameworkInfo.callCount, 2);
+	const previous = middlewareUtil.getInterface(getSpecificationVersion("3.0"));
+	t.is(previous.getResolvedFrameworkInfo, undefined);
+});
+
 test("getInterface: specVersion unknown", (t) => {
 	const middlewareUtil = new MiddlewareUtil({graph: "graph", project: "project"});
 	const err = t.throws(() => {

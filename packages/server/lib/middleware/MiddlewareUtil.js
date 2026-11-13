@@ -164,6 +164,22 @@ class MiddlewareUtil {
 	}
 
 	/**
+	 * Returns the effective framework identity and version for the serve graph, including workspace
+	 * resolution and detection from the full reachable framework graph. Unknown fields are empty strings.
+	 * The returned object is detached from the graph's state.
+	 *
+	 * </br></br>
+	 * This method is only available to custom middleware extensions defining
+	 * <b>Specification Version 5.0 and above</b>.
+	 *
+	 * @public
+	 * @returns {{name: string, version: string}} Effective framework metadata
+	 */
+	getResolvedFrameworkInfo() {
+		return this._graph.getResolvedFrameworkInfo();
+	}
+
+	/**
 	 * Specification Version-dependent set of [@ui5/fs/resourceFactory]{@link @ui5/fs/resourceFactory}
 	 * functions provided to middleware.
 	 * For details on individual functions, see [@ui5/fs/resourceFactory]{@link @ui5/fs/resourceFactory}
@@ -258,6 +274,10 @@ class MiddlewareUtil {
 			].forEach((factoryFunction) => {
 				baseInterface.resourceFactory[factoryFunction] = this.resourceFactory[factoryFunction];
 			});
+		}
+
+		if (specVersion.gte("5.0")) {
+			bindFunctions(this, baseInterface, ["getResolvedFrameworkInfo"]);
 		}
 		return baseInterface;
 	}

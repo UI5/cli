@@ -165,6 +165,8 @@ class ProjectBuildContext {
 				return undefined;
 			}
 			rawValue = quantizeTime(name, this.getBuildTime());
+		} else if (type === "resolvedFrameworkInfo") {
+			rawValue = this.getResolvedFrameworkInfo();
 		} else if (type.startsWith("project.")) {
 			const method = type.slice("project.".length);
 			const project = this.getProject(name);
@@ -204,6 +206,15 @@ class ProjectBuildContext {
 			return this._buildContext.getGraph().getProject(projectName);
 		}
 		return this._project;
+	}
+
+	/**
+	 * Returns the effective framework identity and version from the graph.
+	 *
+	 * @returns {{name: string, version: string}} Effective metadata with unknown fields normalized to empty strings
+	 */
+	getResolvedFrameworkInfo() {
+		return this._buildContext.getGraph().getResolvedFrameworkInfo();
 	}
 
 	/**

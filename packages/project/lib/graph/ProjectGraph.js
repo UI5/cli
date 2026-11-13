@@ -2,6 +2,7 @@ import OutputStyleEnum from "../build/helpers/ProjectBuilderOutputStyle.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:ProjectGraph");
 import Cache from "../../../project/lib/build/cache/Cache.js";
+import resolveFrameworkInfo from "./helpers/resolveFrameworkInfo.js";
 
 
 /**
@@ -34,6 +35,8 @@ class ProjectGraph {
 		this._sealed = false;
 		this._hasUnresolvedOptionalDependencies = false; // Performance optimization flag
 		this._taskRepository = null;
+		this._frameworkResolution = null;
+		this._frameworkResolutionInfo = undefined; // memoized after seal
 	}
 
 	/**
@@ -673,6 +676,55 @@ class ProjectGraph {
 	// Only to be used by @ui5/builder tests to inject its version of the taskRepository
 	setTaskRepository(taskRepository) {
 		this._taskRepository = taskRepository;
+	}
+
+	/**
+	 * Capture the distribution and offered workspace projects after successful enrichment.
+	 * Consumption is derived from the live reachable graph, not from availability alone.
+	 *
+	 * @private
+	 * @param {object} resolution Resolution context
+	 * @param {string} resolution.name Selected distribution name, "OpenUI5" or "SAPUI5"
+	 * @param {string} [resolution.version] Resolved distribution version
+	 * @param {string[]} [resolution.workspaceProjectNames=[]] Names of framework projects the
+	 *   workspace <em>offered</em> (made available), not necessarily consumed. Actual consumption is
+	 *   determined later by intersecting these with the reachable graph in {@link resolveFrameworkInfo}.
+	 */
+	setFrameworkResolution({name, version, workspaceProjectNames = []}) {
+		this._checkSealed();
+		if (name !== "OpenUI5" && name !== "SAPUI5") {
+			throw new TypeError(`Unknown framework name "${name}"`);
+		}
+		if (version !== undefined && typeof version !== "string") {
+			throw new TypeError("Framework version must be a string or undefined");
+		}
+		this._frameworkResolution = {name, version, workspaceProjectNames: new Set(workspaceProjectNames)};
+		this._frameworkResolutionInfo = undefined; // invalidate any pre-seal cache
+	}
+
+	/**
+	 * Get the effective framework identity and version for this graph.
+	 *
+	 * A governing distribution takes precedence. When workspace libraries are consumed, SAPUI5
+	 * has no reliable distribution version; OpenUI5 uses the reachable sap.ui.core version.
+	 * Without enrichment, configuration and the full reachable framework graph provide the fallback,
+	 * including theme libraries and framework projects built as the root. Unknown fields are empty
+	 * strings. Every call returns a fresh, detached object that callers may mutate freely. The
+	 * derivation is memoized internally once the graph is sealed; pre-seal calls (e.g. during
+	 * enrichment) always re-derive from the live graph.
+	 *
+	 * @public
+	 * @returns {{name: string, version: string}} Effective framework metadata
+	 */
+	getResolvedFrameworkInfo() {
+		if (this.isSealed()) {
+			if (this._frameworkResolutionInfo === undefined) {
+				this._frameworkResolutionInfo = resolveFrameworkInfo(this, this._frameworkResolution);
+			}
+			// Return a detached copy so a caller mutating the result cannot corrupt the memo.
+			return {...this._frameworkResolutionInfo};
+		}
+		return resolveFrameworkInfo(this, this._frameworkResolution);
 	}
 
 	async _getTaskRepository() {

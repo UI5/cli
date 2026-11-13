@@ -7,6 +7,30 @@ import Configuration from "../../config/Configuration.js";
 import path from "node:path";
 import parseJSON from "../../utils/json.js";
 
+function emitFrameworkInfo(projectGraph) {
+	const framework = projectGraph.getResolvedFrameworkInfo();
+	if (framework.name) {
+		process.emit("ui5.project-framework-resolved", {framework});
+	}
+}
+
+// Early returns may still have framework projects supplied by the original dependency graph.
+// Do not announce framework usage merely because an otherwise unused configuration is present.
+function completeWithoutResolution(projectGraph) {
+	// Graph construction permits cycles until a consumer traverses the graph. Avoid a new traversal
+	// for framework-free graphs (including cyclic graphs), where there is no event to announce.
+	if (!Array.from(projectGraph.getProjects()).some((project) => project.isFrameworkProject())) {
+		return projectGraph;
+	}
+	const hasFrameworkProject = Array.from(projectGraph.traverseDependenciesDepthFirst(true))
+		.some(({project}) => project.isFrameworkProject());
+	if (hasFrameworkProject) {
+		emitFrameworkInfo(projectGraph);
+	}
+	return projectGraph;
+}
+
+
 class ProjectProcessor {
 	constructor({libraryMetadata, graph, workspace}) {
 		this._libraryMetadata = libraryMetadata;
@@ -316,14 +340,14 @@ export default {
 			// In case of a workspace setup, the resolver will be created below without a version and
 			// will succeed in case no library needs to be actually installed.
 			if (!someDependencyMissing) {
-				return projectGraph;
+				return completeWithoutResolution(projectGraph);
 			}
 		}
 
 
 		if (!frameworkName && !frameworkVersion) {
 			log.verbose(`Root project ${rootProject.getName()} has no framework configuration. Nothing to do here`);
-			return projectGraph;
+			return completeWithoutResolution(projectGraph);
 		}
 
 		if (frameworkName !== "SAPUI5" && frameworkName !== "OpenUI5") {
@@ -338,7 +362,7 @@ export default {
 			log.verbose(
 				`No ${frameworkName} libraries referenced in project ${rootProject.getName()} ` +
 				`or in any of its dependencies`);
-			return projectGraph;
+			return completeWithoutResolution(projectGraph);
 		}
 
 		let Resolver;
@@ -399,15 +423,6 @@ export default {
 
 		const {libraryMetadata} = await resolver.install(referencedLibraries);
 
-		if (version) {
-			process.emit("ui5.project-framework-resolved", {
-				framework: {
-					name: frameworkName,
-					version,
-				},
-			});
-		}
-
 		if (log.isLevelEnabled("verbose")) {
 			const timeDiff = process.hrtime(startTime);
 			const {default: prettyHrtime} = await import("pretty-hrtime");
@@ -435,6 +450,16 @@ export default {
 		log.verbose("Joining framework graph into project graph...");
 		projectGraph.join(frameworkGraph);
 		await utils.declareFrameworkDependenciesInGraph(projectGraph);
+
+		// Store provenance, not a version inferred from workspace availability. The canonical graph
+		// resolver intersects offered names with reachable projects and resolves the effective pair.
+		projectGraph.setFrameworkResolution({
+			name: frameworkName,
+			version,
+			workspaceProjectNames: workspace ? Object.keys(providedLibraryMetadata) : [],
+		});
+		emitFrameworkInfo(projectGraph);
+
 		return projectGraph;
 	},
 
