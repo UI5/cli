@@ -10,8 +10,8 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // A real, non-@ui5 node_modules package (the integration fixture's stub tool). Requiring it through a
 // require anchored at the package resolves its index.js. This file runs in its own AVA process, so the
-// package is loaded fresh here — the resolve hook only fires on a module's FIRST resolution in a process
-// (a cached require does not re-fire it), which is why this is a dedicated file rather than another case
+// package is loaded fresh here, because the resolve hook only fires on a module's FIRST resolution in a
+// process (a cached require does not re-fire it), which is why this is a dedicated file rather than another case
 // in the integration test.
 const stubToolDir = path.join(dirname, "../../../fixtures/application.a/node_modules/stub-tool");
 const requireFromStubTool = createRequire(path.join(stubToolDir, "index.js"));

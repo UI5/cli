@@ -26,7 +26,7 @@ const GRAPH_CONFIG = {rootConfigPath: "ui5-customTask-toolContent.yaml"};
 
 // Per-task build status of one project from the recorded project-build-status events, so a test can
 // assert a single task re-ran (task-start) rather than being served from cache (task-skip). Mirrors the
-// helper in ProjectBuilder.caching.integration.js (local there, not exported — duplicated intentionally).
+// helper in ProjectBuilder.caching.integration.js (local there, not exported, duplicated intentionally).
 function taskStatusOf(t, projectName) {
 	const started = new Set();
 	const skipped = new Set();
@@ -86,7 +86,7 @@ test.serial(
 		// Scoping: a stage that did not load the tool stays cached (only the tool-loading
 		// stage re-runs, nothing else).
 		t.true(status.skipped.has("replaceVersion"),
-			"An unrelated stage is still served from cache — the tool change did not invalidate everything");
+			"An unrelated stage is still served from cache: the tool change did not invalidate everything");
 	});
 
 test.serial(

@@ -1959,7 +1959,7 @@ test("Step-based task: a factory returning a non-array throws a named error at d
 });
 
 // A duplicate step name would create two stages with the same stage id (setTasks derives one id per step
-// name), so discovery must reject it before setTasks runs — not later when the step runs and the corrupt
+// name), so discovery must reject it before setTasks runs, not later when the step runs and the corrupt
 // stage already exists. The spied setTasks proves validation precedes stage creation.
 test("Step-based task: a duplicate step name throws at discovery, before setTasks", async (t) => {
 	const {sinon, taskUtil, buildCache} = t.context;
@@ -2057,7 +2057,7 @@ test("Step-based task: the factory is called once, so discovery and execution ca
 // stale array. Options are fixed for a TaskRunner's lifetime (a changed ui5.yaml rebuilds the whole stack),
 // The step array in the descriptor is frozen at discovery time so a custom task cannot mutate the shared
 // value. Because the descriptor is memoized by TaskDefinitions (shared with the build-signature phase), the
-// same frozen array is reused across builds — a standard task factory is never called more than once.
+// same frozen array is reused across builds: a standard task factory is never called more than once.
 test("Step-based task: the kept step array is frozen and reused across builds", async (t) => {
 	const {sinon, taskUtil} = t.context;
 

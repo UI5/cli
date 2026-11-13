@@ -123,7 +123,7 @@ export function startCapture() {
  * The resolver reads a package's `package.json` as metadata, but the tool never `import`s it, so it is
  * absent from the observed resolutions. Folding it into the tracked set anyway makes "content subsumes
  * version" literally true (a version-only bump whose shipped files are byte-identical still moves the
- * digest) and captures declared-surface changes — `dependencies` ranges, `exports`/`main` — that alter
+ * digest) and captures declared-surface changes (`dependencies` ranges, `exports`/`main`) that alter
  * resolution without changing a currently-loaded file.
  *
  * Keyed on the owning package (the LAST `/node_modules/` segment, via {@link packageNameOf}), so a nested

@@ -816,7 +816,7 @@ class TaskRunner {
 	 *   <li><code>createStageContext()</code> builds fresh monitored workspace/dependencies readers and a
 	 *     MonitoredTaskUtil bound to the stage <code>prepareStage</code> just switched to.</li>
 	 *   <li><code>recordStage(stepName, outcome)</code> records the step's stage from its own monitored
-	 *     requests, inputs and stale outputs — no cross-step fold.</li>
+	 *     requests, inputs and stale outputs, with no cross-step fold.</li>
 	 * </ul>
 	 *
 	 * @param {string} taskName Task name

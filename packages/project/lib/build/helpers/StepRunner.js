@@ -615,8 +615,8 @@ export default class StepRunner {
 				this.#computeStepReturnSignature(invocationData, entries, isScalar));
 
 			// Record this step's stage. There is no cross-step fold, but the stage still folds its
-			// own keys' reads and inputs — including keys restored from cache on a delta build, whose reads
-			// and inputs the stage-level monitor never saw — so the stage re-keys on its complete input set.
+			// own keys' reads and inputs (including keys restored from cache on a delta build, whose reads
+			// and inputs the stage-level monitor never saw), so the stage re-keys on its complete input set.
 			if (this.#recordStage) {
 				const staleOutputs = this.#computeStaleOutputs(
 					previous, invocationData, entries, freshInvocationData);
