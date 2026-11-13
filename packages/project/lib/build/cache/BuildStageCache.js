@@ -407,15 +407,29 @@ export default class BuildStageCache {
 			return;
 		}
 		const merged = [...new Set([...this.#toolPaths, ...captured])].sort();
-		if (merged.join("\0") !== this.#toolPaths.join("\0")) {
-			this.#toolSetModified = true;
-		}
+		const grew = merged.join("\0") !== this.#toolPaths.join("\0");
 		this.#toolPaths = merged;
-		// Content-hash the set and capture the stat baseline in one pass. The warm stat tier
-		// (refreshToolContentSignature) is for later builds that did not re-record.
+		if (grew) {
+			// New files entered the set, so the digest and baseline must be recomputed over the whole set.
+			this.#toolSetModified = true;
+			const {signature, stats} = await computeToolContent(this.#toolPaths);
+			this.#toolContentSignature = signature;
+			this.#toolStats = stats;
+			return;
+		}
+		// Set unchanged (a re-executing stage re-recording the same tools). Reuse the warm stat tier so an
+		// unchanged tool tree is not re-read on the hot build path: if every file's [mtimeMs, size, inode]
+		// still matches the baseline, the content cannot have changed, so keep the digest and the files are
+		// not read. Mirrors refreshToolContentSignature.
+		if (toolStatsUnchanged(await statToolFiles(this.#toolPaths), this.#toolStats)) {
+			return;
+		}
+		// A stat moved (or no baseline yet), so re-read and refresh both the digest and the baseline; mark
+		// for persistence so the refreshed baseline reaches disk (see refreshToolContentSignature).
 		const {signature, stats} = await computeToolContent(this.#toolPaths);
 		this.#toolContentSignature = signature;
 		this.#toolStats = stats;
+		this.#toolSetModified = true;
 	}
 
 	/**
