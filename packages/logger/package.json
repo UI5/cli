@@ -53,13 +53,13 @@
 		"figures": "^6.1.0",
 		"log-update": "^8.0.0",
 		"pretty-hrtime": "^1.0.3",
-		"slice-ansi": "^10.0.0"
+		"slice-ansi": "^10.0.1"
 	},
 	"devDependencies": {
 		"@istanbuljs/esm-loader-hook": "^0.3.0",
 		"ava": "^8.4.0",
 		"cross-env": "^10.1.0",
-		"eslint": "^10.14.0",
+		"eslint": "^10.15.0",
 		"nyc": "^18.0.0",
 		"rimraf": "^6.1.4",
 		"sinon": "^22.1.0",
