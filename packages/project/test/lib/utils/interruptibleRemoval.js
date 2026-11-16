@@ -57,15 +57,30 @@ test.serial("markForRemoval: rethrows non-ENOENT errors", async (t) => {
 });
 
 test.serial("markForRemoval: generates a unique suffix each call", async (t) => {
+	// Stub getRandomValues to deterministic distinct bytes so this test never
+	// collides (the real 16-bit space gives 1/65536 probability per run).
+	let call = 0;
+	const deterministicValues = [new Uint8Array([0xaa, 0xbb]), new Uint8Array([0xcc, 0xdd])];
+	const {markForRemoval: mockMark} = await esmock("../../../lib/utils/interruptibleRemoval.js", {
+		"node:crypto": {
+			getRandomValues: (arr) => {
+				arr.set(deterministicValues[call++]);
+				return arr;
+			},
+		},
+	});
+
 	const src1 = path.join(TMP, "uniq-src-1");
 	const src2 = path.join(TMP, "uniq-src-2");
 	await fs.mkdir(src1, {recursive: true});
 	await fs.mkdir(src2, {recursive: true});
 
-	const p1 = markForRemoval(src1, PREFIX);
-	const p2 = markForRemoval(src2, PREFIX);
+	const p1 = mockMark(src1, PREFIX);
+	const p2 = mockMark(src2, PREFIX);
 
-	t.not(p1, p2, "two calls produce different pending paths");
+	t.not(p1, p2, "two calls with distinct bytes produce different pending paths");
+	t.true(p1.endsWith("aabb"), "first suffix matches first stubbed byte pair");
+	t.true(p2.endsWith("ccdd"), "second suffix matches second stubbed byte pair");
 
 	await fs.rm(p1, {recursive: true, force: true});
 	await fs.rm(p2, {recursive: true, force: true});
