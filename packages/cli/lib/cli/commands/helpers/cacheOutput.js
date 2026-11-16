@@ -127,7 +127,7 @@ function createSections({
 	}
 	const activeBuildItems = activeBuildEntries.map((entry) => ({
 		absPath: entry.absPath,
-		detail: entry.size > 0 ? formatSize(entry.size) : "",
+		detail: entry.size > 0 ? `${formatSize(entry.size)} (main db)` : "",
 		qualifier: entry.qualifier,
 	}));
 	if (activeBuildItems.length > 0) {
@@ -199,7 +199,7 @@ export function displayCacheInfo({
 		activeBuildEntries,
 		staleFrameworkEntries: staleInfo,
 		staleBuildEntries: buildAdditionalInfo,
-		staleBuildDetailFormatter: (size) => size > 0 ? formatSize(size) : "",
+		staleBuildDetailFormatter: (size) => size > 0 ? `${formatSize(size)} (main db)` : "",
 	});
 
 	process.stderr.write(`\n${chalk.bold("The following cached data will be removed:")}\n`);
@@ -249,7 +249,7 @@ export function displayCleanupResult({
 		activeBuildEntries,
 		staleFrameworkEntries: staleInfoWithAbsPaths,
 		staleBuildEntries: buildAdditionalResult,
-		staleBuildDetailFormatter: (size) => size > 0 ? `freed ${formatSize(size)}` : "",
+		staleBuildDetailFormatter: (size) => size > 0 ? `freed ${formatSize(size)} (main db)` : "",
 	});
 
 	if (sections.length === 0) {

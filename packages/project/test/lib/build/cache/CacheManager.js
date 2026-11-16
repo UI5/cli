@@ -505,16 +505,16 @@ test.serial("getPendingRemovalsInfo: reports each remnant with cache.db size", a
 	t.is(sorted[1].size, 0, "size falls back to 0 when cache.db is absent");
 });
 
-test.serial("removePendingVersions: deletes all remnants, returns only non-excluded ones", async (t) => {
+test.serial("removePendingVersions: returns outcomes for all pending dirs, marks fromThisRun correctly", async (t) => {
 	const testDir = getUniqueTestDir();
 	const {default: CacheManager, CACHE_VERSION} = await import("../../../../lib/build/cache/CacheManager.js");
 
 	const buildCacheDir = path.join(testDir, "buildCache");
-	// A remnant left behind by a prior interrupted run (not excluded)
+	// A remnant left behind by a prior interrupted run — NOT this run's
 	const leftoverPending = path.join(buildCacheDir, "_buildcache_to_delete_abcd");
 	await fs.mkdir(leftoverPending, {recursive: true});
 	await fs.writeFile(path.join(leftoverPending, "cache.db"), Buffer.alloc(512));
-	// An older dir in KNOWN (v0_9) — will be marked in this run (its pending path is excluded from report)
+	// An older dir in KNOWN (v0_9) — will be marked in this run
 	await fs.mkdir(path.join(buildCacheDir, "v0_9"), {recursive: true});
 	await fs.mkdir(path.join(buildCacheDir, CACHE_VERSION), {recursive: true});
 
@@ -522,14 +522,22 @@ test.serial("removePendingVersions: deletes all remnants, returns only non-exclu
 	const markedPendingPaths = marked.map((entry) => entry.pendingPath);
 	t.is(markedPendingPaths.length, 1, "v0_9 was marked with a pending path");
 
-	const removed = await CacheManager.removePendingVersions(testDir, markedPendingPaths);
+	const outcomes = await CacheManager.removePendingVersions(testDir, markedPendingPaths);
 
-	// Only the pre-existing (non-excluded) remnant is reported
-	t.is(removed.length, 1, "only the pre-existing remnant is reported");
-	t.is(removed[0].path, "buildCache/_buildcache_to_delete_abcd");
-	t.is(removed[0].size, 512);
+	// Both dirs (stale + this-run) are returned
+	t.is(outcomes.length, 2, "outcomes include both the pre-existing stale and this-run dir");
 
-	// But ALL pending removal dirs are physically gone (including the excluded, just-marked one)
+	const staleOutcome = outcomes.find((o) => !o.fromThisRun);
+	const thisRunOutcome = outcomes.find((o) => o.fromThisRun);
+	t.truthy(staleOutcome, "pre-existing stale dir has an outcome");
+	t.is(staleOutcome.path, "buildCache/_buildcache_to_delete_abcd");
+	t.is(staleOutcome.size, 512);
+	t.is(staleOutcome.removed, true, "stale dir was removed");
+	t.truthy(thisRunOutcome, "this-run dir has an outcome");
+	t.is(thisRunOutcome.removed, true, "this-run dir was removed");
+	t.is(thisRunOutcome.size, 0, "no cache.db in this-run dir — size is 0");
+
+	// ALL pending removal dirs are physically gone
 	const entries = await fs.readdir(buildCacheDir);
 	const pending = entries.filter((name) => name.startsWith("_buildcache_to_delete_"));
 	t.is(pending.length, 0, "no pending removal dirs remain on disk");
@@ -547,6 +555,50 @@ test.serial("mark/removePendingVersions: no-op when buildCache dir does not exis
 	const marked = await CacheManager.markOlderVersionsForRemoval(testDir);
 	t.deepEqual(marked, []);
 	await t.notThrowsAsync(CacheManager.removePendingVersions(testDir));
+});
+
+test.serial("removePendingVersions: removed:false on rm failure; sibling still cleaned", async (t) => {
+	const testDir = getUniqueTestDir();
+	const buildCacheDir = path.join(testDir, "buildCache");
+
+	// Two pending dirs: one whose rm will be rejected, one that succeeds
+	const blockedDir = path.join(buildCacheDir, "_buildcache_to_delete_blocked");
+	const siblingDir = path.join(buildCacheDir, "_buildcache_to_delete_sibling");
+	await fs.mkdir(blockedDir, {recursive: true});
+	await fs.mkdir(siblingDir, {recursive: true});
+
+	// Stub removePendingDir: reject EACCES for blockedDir, actually delete sibling
+	const removePendingDirStub = sinon.stub();
+	removePendingDirStub.withArgs(blockedDir).rejects(
+		Object.assign(new Error("EACCES: permission denied"), {code: "EACCES"})
+	);
+	removePendingDirStub.callsFake(async (p) => {
+		await fs.rm(p, {recursive: true, force: true});
+	});
+
+	const {default: CacheManager} = await esmock("../../../../lib/build/cache/CacheManager.js", {
+		"../../../../lib/utils/interruptibleRemoval.js": {
+			markForRemoval: (await import("../../../../lib/utils/interruptibleRemoval.js")).markForRemoval,
+			scanPendingRemovals: (await import("../../../../lib/utils/interruptibleRemoval.js")).scanPendingRemovals,
+			removePendingDir: removePendingDirStub,
+		},
+	});
+
+	const outcomes = await CacheManager.removePendingVersions(testDir);
+
+	const blockedOutcome = outcomes.find((o) => o.path.includes("blocked"));
+	const siblingOutcome = outcomes.find((o) => o.path.includes("sibling"));
+	t.truthy(blockedOutcome, "blocked dir has an outcome");
+	t.is(blockedOutcome.removed, false, "blocked dir must NOT be reported as removed");
+	t.truthy(siblingOutcome, "sibling dir has an outcome");
+	t.is(siblingOutcome.removed, true, "sibling dir is removed despite blocked dir failing");
+
+	// Sibling is gone; blocked dir is still present (the stub prevented its deletion)
+	await t.throwsAsync(fs.access(siblingDir), {code: "ENOENT"}, "sibling was actually deleted");
+	await t.notThrowsAsync(fs.access(blockedDir), "blocked dir still exists");
+
+	// cleanup: blocked dir was never removed by the stub, clean it up
+	await fs.rm(blockedDir, {recursive: true, force: true});
 });
 
 test.serial("markOlderVersionsForRemoval: accepts pre-computed removable list, skips re-scan", async (t) => {

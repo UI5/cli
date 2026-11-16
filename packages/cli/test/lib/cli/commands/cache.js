@@ -915,8 +915,10 @@ test.serial("ui5 cache clean: pending-removal remnants are detected as stale and
 		{path: "buildCache/_buildcache_to_delete_aa0c", size: 3 * 1024 * 1024},
 	]);
 	buildCacheRemovePendingVersions.resolves([
-		{path: "buildCache/_buildcache_to_delete_3819", size: 2 * 1024 * 1024},
-		{path: "buildCache/_buildcache_to_delete_aa0c", size: 3 * 1024 * 1024},
+		{path: "buildCache/_buildcache_to_delete_3819", size: 2 * 1024 * 1024, removed: true,
+			pendingPath: "/mock/.ui5/buildCache/_buildcache_to_delete_3819", fromThisRun: false},
+		{path: "buildCache/_buildcache_to_delete_aa0c", size: 3 * 1024 * 1024, removed: true,
+			pendingPath: "/mock/.ui5/buildCache/_buildcache_to_delete_aa0c", fromThisRun: false},
 	]);
 	yesnoStub.resolves(true);
 
@@ -969,6 +971,9 @@ test.serial("ui5 cache clean: older version dirs cleaned and shown in post-clean
 		buildCacheGetOlderVersionsInfo, buildCacheMarkOlderVersionsForRemoval,
 		buildCacheRemovePendingVersions} = t.context;
 
+	// Mock pending path for the test's older version dir
+	const mockPendingPath = path.join(TEST_UI5_DATA_DIR, "buildCache", "_buildcache_to_delete_test01");
+
 	frameworkCacheGetCacheInfo.resolves(null);
 	buildCacheGetCacheInfo.resolves(null);
 	buildCacheGetOlderVersionsInfo.resolves({
@@ -978,7 +983,12 @@ test.serial("ui5 cache clean: older version dirs cleaned and shown in post-clean
 	frameworkCacheCleanCache.resolves(null);
 	buildCacheCleanCache.resolves(null);
 	buildCacheMarkOlderVersionsForRemoval.resolves([
-		{name: "v0_8", path: "buildCache/v0_8", size: 20 * 1024 * 1024},
+		{name: "v0_8", path: "buildCache/v0_8", size: 20 * 1024 * 1024, pendingPath: mockPendingPath},
+	]);
+	// Simulate successful removal of the just-marked older version dir
+	buildCacheRemovePendingVersions.resolves([
+		{path: "buildCache/_buildcache_to_delete_test01", size: 20 * 1024 * 1024,
+			removed: true, pendingPath: mockPendingPath, fromThisRun: true},
 	]);
 
 	argv["_"] = ["cache", "clean"];
@@ -1001,6 +1011,7 @@ test.serial("ui5 cache clean: older version dirs cleaned and shown in post-clean
 	t.true(allOutput.includes("(outdated)"), "Cleaned older version is qualified as outdated");
 	t.true(allOutput.includes("Cleaned Active Cache (Build)"),
 		"Success summary lists cleaned older version under the active build group");
+	t.false(allOutput.includes("Warning:"), "No warning when removal succeeded");
 });
 
 test.serial("ui5 cache clean: current and older build versions coexist under Active Cache", async (t) => {
@@ -1062,4 +1073,36 @@ test.serial("ui5 cache clean: older-version mark and remove run alongside regula
 		"Marks before the slow recursive delete runs");
 	t.is(frameworkCacheCleanCache.callCount, 1, "Framework cleanup still runs");
 	t.is(buildCacheCleanCache.callCount, 1, "Build cache cleanup still runs");
+});
+
+test.serial("ui5 cache clean: warns unconditionally when a removal fails; exit code stays 0", async (t) => {
+	const {cache, argv, stderrWriteStub, frameworkCacheGetCacheInfo, buildCacheGetCacheInfo,
+		buildCacheGetOlderVersionsInfo, buildCacheMarkOlderVersionsForRemoval,
+		buildCacheRemovePendingVersions} = t.context;
+
+	const mockPendingPath = path.join(TEST_UI5_DATA_DIR, "buildCache", "_buildcache_to_delete_fail01");
+
+	frameworkCacheGetCacheInfo.resolves(null);
+	buildCacheGetCacheInfo.resolves(null);
+	buildCacheGetOlderVersionsInfo.resolves({
+		removable: [{name: "v0_9", path: "buildCache/v0_9", size: 5 * 1024 * 1024}],
+		unknown: [],
+	});
+	buildCacheMarkOlderVersionsForRemoval.resolves([
+		{name: "v0_9", path: "buildCache/v0_9", size: 5 * 1024 * 1024, pendingPath: mockPendingPath},
+	]);
+	// Simulate a failed recursive delete (e.g., EACCES after the rename succeeded)
+	buildCacheRemovePendingVersions.resolves([
+		{path: "buildCache/_buildcache_to_delete_fail01", size: 5 * 1024 * 1024,
+			removed: false, pendingPath: mockPendingPath, fromThisRun: true},
+	]);
+
+	argv["_"] = ["cache", "clean"];
+	argv["force"] = true;
+	await cache.handler(argv);
+
+	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
+	t.true(allOutput.includes("Warning:"), "Warning emitted when removal fails");
+	t.true(allOutput.includes("_buildcache_to_delete_fail01"), "Warning names the failed dir");
+	t.is(process.exitCode, undefined, "exit code stays 0 (not set)");
 });

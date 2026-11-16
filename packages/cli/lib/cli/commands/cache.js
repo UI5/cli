@@ -159,8 +159,6 @@ async function handleCache(argv) {
 	// rather than stranded under its live version name.
 	// Pass the already-computed removable list to avoid a second readdir scan (TOCTOU + redundant I/O).
 	const markedOlderVersions = await CacheManager.markOlderVersionsForRemoval(ui5DataDir, olderVersionsInfo.removable);
-	// Keep this run's just-marked dirs out of the "stale remnant" removal report — they are
-	// already reported as active "outdated" caches below.
 	const markedPendingPaths = markedOlderVersions.map((entry) => entry.pendingPath);
 
 	const [frameworkCleanupResult, buildCleanupResult] = await Promise.all([
@@ -168,19 +166,39 @@ async function handleCache(argv) {
 		CacheManager.cleanCache(ui5DataDir),
 	]);
 
-	const [additionalFrameworkCleanupResult, buildStaleCleanupResult, removedPendingVersions] =
+	const [additionalFrameworkCleanupResult, buildStaleCleanupResult, pendingOutcomes] =
 		await Promise.all([
 			FrameworkCache.cleanAdditional(ui5DataDir),
 			CacheManager.cleanAdditional(ui5DataDir),
 			CacheManager.removePendingVersions(ui5DataDir, markedPendingPaths),
 		]);
 
+	// Warn unconditionally about directories that could not be removed — always a safety signal.
+	for (const outcome of pendingOutcomes) {
+		if (!outcome.removed) {
+			process.stderr.write(
+				`${chalk.bold.yellow("Warning:")} Could not remove build cache directory ` +
+				`${chalk.bold(outcome.path)}\n`
+			);
+		}
+	}
+
 	if (isVerbose) {
 		const staleBuildCleanupResult = buildStaleInfo?.length > 0 ?
 			buildStaleCleanupResult : [];
+
+		// Build the set of this-run pending paths that were actually deleted
+		const successfulThisRunPaths = new Set(
+			pendingOutcomes.filter((o) => o.fromThisRun && o.removed).map((o) => o.pendingPath)
+		);
+		// Only display older versions that were truly removed (not just renamed)
+		const removedOlderVersions = markedOlderVersions.filter((e) => successfulThisRunPaths.has(e.pendingPath));
+		// Pre-existing stale remnants that were successfully deleted
+		const removedStalePending = pendingOutcomes.filter((o) => !o.fromThisRun && o.removed);
+
 		const cleanedStaleFramework = withAbsPath(additionalFrameworkCleanupResult, ui5DataDir);
 		const cleanedStaleBuild = withAbsPath(
-			[...staleBuildCleanupResult, ...removedPendingVersions], ui5DataDir);
+			[...staleBuildCleanupResult, ...removedStalePending], ui5DataDir);
 		const frameworkResultAbsPath = getAbsPath(ui5DataDir, frameworkCleanupResult);
 		const buildResultAbsPath = getAbsPath(ui5DataDir, buildCleanupResult);
 		await displayCleanupResult({
@@ -191,7 +209,7 @@ async function handleCache(argv) {
 			buildSize: buildCleanupResult?.size ?? 0,
 			staleInfoWithAbsPaths: cleanedStaleFramework,
 			buildAdditionalResult: cleanedStaleBuild,
-			olderVersions: withAbsPath(markedOlderVersions, ui5DataDir),
+			olderVersions: withAbsPath(removedOlderVersions, ui5DataDir),
 		});
 	}
 }

@@ -594,39 +594,44 @@ export default class CacheManager {
 	 * remnants left behind by a previously interrupted run. This is the slow, deferred half of
 	 * the interruptible-removal contract.
 	 *
-	 * Errors for individual directories are swallowed — one stuck directory does not prevent the
-	 * others from being removed.
+	 * One stuck directory does not prevent the others from being removed. The caller is
+	 * responsible for warning about entries where <code>removed</code> is false.
 	 *
 	 * @public
 	 * @static
 	 * @param {string} ui5DataDir Resolved absolute path to UI5 data directory
-	 * @param {string[]} [excludePaths] Absolute pending paths to omit from the returned list (the
-	 *   directories are still deleted). Used to keep this run's just-marked older versions — already
-	 *   reported as active "outdated" caches — out of the "stale remnant" removal report.
-	 * @returns {Promise<Array<{path: string, size: number}>>} Removed remnants not in
-	 *   <code>excludePaths</code> (i.e. the pre-existing interrupted-run remnants).
+	 * @param {string[]} [thisRunPaths] Absolute pending paths that were marked in this run.
+	 *   Used to set <code>fromThisRun: true</code> on the corresponding outcomes so the caller
+	 *   can distinguish them from pre-existing stale remnants. Directories are deleted regardless.
+	 * @returns {Promise<Array<{path: string, size: number, removed: boolean, pendingPath: string,
+	 *   fromThisRun: boolean}>>} Outcome for every pending directory found.
+	 *   <code>removed</code> is <code>true</code> only when the recursive delete succeeded.
+	 *   <code>fromThisRun</code> is <code>true</code> for paths listed in <code>thisRunPaths</code>.
 	 */
-	static async removePendingVersions(ui5DataDir, excludePaths = []) {
+	static async removePendingVersions(ui5DataDir, thisRunPaths = []) {
 		const buildCacheDir = path.join(ui5DataDir, "buildCache");
-		const exclude = new Set(excludePaths);
+		const thisRun = new Set(thisRunPaths);
 		const pendingDirs = await scanPendingRemovals(buildCacheDir, BUILD_PENDING_PREFIX);
-		const removed = [];
+		const outcomes = [];
 		for (const pendingDir of pendingDirs) {
-			const reported = !exclude.has(pendingDir);
-			// Only measure size for dirs we will report — and before deleting them.
+			// Measure size before deletion so it is available regardless of outcome.
 			let size = 0;
-			if (reported) {
-				try {
-					size = (await stat(path.join(pendingDir, "cache.db"))).size;
-				} catch {/* no cache.db — size stays 0 */}
-			}
+			try {
+				size = (await stat(path.join(pendingDir, "cache.db"))).size;
+			} catch {/* no cache.db — size stays 0 */}
+			let removed = false;
 			try {
 				await removePendingDir(pendingDir);
-				if (reported) {
-					removed.push({path: `buildCache/${path.basename(pendingDir)}`, size});
-				}
-			} catch {/* swallow per-dir errors */}
+				removed = true;
+			} catch {/* one stuck dir must not block the rest */}
+			outcomes.push({
+				path: `buildCache/${path.basename(pendingDir)}`,
+				size,
+				removed,
+				pendingPath: pendingDir,
+				fromThisRun: thisRun.has(pendingDir),
+			});
 		}
-		return removed;
+		return outcomes;
 	}
 }
