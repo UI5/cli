@@ -100,6 +100,10 @@ class Module {
 		return this._modulePath;
 	}
 
+	getConfigPath() {
+		return this._configPath;
+	}
+
 	/**
 	 * Specifications found in the module
 	 *
@@ -309,8 +313,9 @@ class Module {
 			}
 			if (!configResource) {
 				if (configPath !== DEFAULT_CONFIG_PATH) {
-					throw new Error("Failed to read configuration for module " +
-							`${this.getId()}: Could not find configuration file in module at path '${configPath}'`);
+					throw new Error(`Failed to read configuration for module ` +
+							`${this.getId()}: Could not find configuration file in module at path `+
+							`'${this._configPath}'`);
 				}
 				return null;
 			}

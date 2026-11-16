@@ -2,6 +2,7 @@ specVersion: "2.3"
 type: library
 metadata:
   name: library.d
+  copyright: FANCY COPYRIGHT (used for workspace overwrite tests)
 resources:
   configuration:
     paths:

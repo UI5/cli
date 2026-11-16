@@ -41,7 +41,7 @@ const log = getLogger("graph:Workspace");
  * @alias @ui5/project/graph/Workspace
  */
 class Workspace {
-	#visitedNodePaths = new Set();
+	#resolvedModules = new Map();
 	#configValidated = false;
 	#configuration;
 	#cwd;
@@ -139,27 +139,62 @@ class Workspace {
 			};
 		}
 
-		let resolvedModules = await Promise.all(resolutions.map(async (resolutionConfig) => {
+		// Detect duplicate resolutions targeting the same path
+		// (same exact absolute paths should throw):
+		const seenAbsolutePaths = [];
+		for (const {path: resolutionPath} of resolutions) {
+			if (!resolutionPath) {
+				continue;
+			}
+			const absolutePath = path.resolve(this.#cwd, resolutionPath);
+			if (seenAbsolutePaths.includes(absolutePath)) {
+				throw new Error(
+					`Two or more resolutions for '${path.basename(absolutePath)}' ` +
+					`point to the same folder '${absolutePath}' in workspace '${this.getName()}'.`);
+			}
+			seenAbsolutePaths.push(absolutePath);
+		}
+
+		for (const resolutionConfig of resolutions) {
 			if (!resolutionConfig.path) {
 				throw new Error(
 					`Missing property 'path' in dependency resolution configuration of workspace ${this.getName()}`);
 			}
-			return await this._getModulesFromPath(
-				this.#cwd, resolutionConfig.path);
-		}));
+			if (path.isAbsolute(resolutionConfig.path)) {
+				throw new Error(
+					`Absolute paths are not allowed in workspace configurations of dependencies. ` +
+					`Found '${resolutionConfig.path}' in workspace '${this.getName()}'`);
+			}
+			if (resolutionConfig.configPath && path.isAbsolute(resolutionConfig.configPath)) {
+				throw new Error(
+					`Absolute config paths are not allowed in workspace configurations of dependencies. ` +
+					`Found '${resolutionConfig.configPath}' in workspace '${this.getName()}'`);
+			}
 
-		// Flatten array since package-workspaces might have resolved to multiple modules for a single resolution
-		resolvedModules = Array.prototype.concat.apply([], resolvedModules);
+			// Specificity = number of path segments in the absolute path:
+			const absolutePath = path.resolve(this.#cwd, resolutionConfig.path);
+			const segments = absolutePath.split(path.sep);
+			const specificity = segments.length;
+
+			await this._getModulesFromPath(
+				this.#cwd,
+				resolutionConfig.path,
+				resolutionConfig.configPath,
+				specificity);
+		}
 
 		const projectNameMap = new Map();
 		const moduleIdMap = new Map();
-		await Promise.all(resolvedModules.map(async (module) => {
+
+		await Promise.all(Array.from(this.#resolvedModules.values(), async ({id, version, modulePath, configPath}) => {
+			const module = new Module({id, version, modulePath, configPath});
+
 			const {project, extensions} = await module.getSpecifications();
 			if (project || extensions.length) {
 				moduleIdMap.set(module.getId(), module);
 			} else {
-				log.warn(
-					`Failed to create a project or extensions from module ${module.getId()} at ${module.getPath()}`);
+				log.warn(`Failed to create a project or extensions from module ${module.getId()} `+
+				`at ${module.getPath()}`);
 			}
 			if (project) {
 				projectNameMap.set(project.getName(), module);
@@ -176,13 +211,20 @@ class Workspace {
 		};
 	}
 
-	async _getModulesFromPath(cwd, relPath, failOnMissingFiles = true) {
-		const nodePath = path.join(cwd, relPath);
-		if (this.#visitedNodePaths.has(nodePath)) {
-			log.verbose(`Module located at ${nodePath} has already been visited`);
-			return [];
+	async _getModulesFromPath(
+		cwd,
+		relPath,
+		configPath,
+		specificity,
+		failOnMissingFiles = true,
+		visitedNodesPerResolution = new Set()) {
+		const nodePath = path.resolve(cwd, relPath);
+		// Skip this node when already visited in the current resolution context
+		// (e.g. in recursive workspace scenarios)
+		if (visitedNodesPerResolution.has(nodePath)) {
+			return;
 		}
-		this.#visitedNodePaths.add(nodePath);
+		visitedNodesPerResolution.add(nodePath);
 		let pkg;
 		try {
 			pkg = await this._readPackageJson(nodePath);
@@ -195,7 +237,7 @@ class Workspace {
 				// When resolving a dynamic workspace pattern (not a static path), ignore modules that
 				// are missing a package.json (this might simply indicate an empty directory)
 				log.verbose(`Ignoring module at path ${nodePath}: Directory does not contain a package.json`);
-				return [];
+				return;
 			}
 			throw new Error(
 				`Failed to resolve workspace dependency resolution path ${relPath} to ${nodePath}: ${err.message}`);
@@ -234,23 +276,23 @@ class Workspace {
 			}
 			searchPaths.push(...staticPatterns);
 
-			const resolvedModules = new Map();
 			await Promise.all(searchPaths.map(async (pkgPath) => {
-				const modules = await this._getModulesFromPath(nodePath, pkgPath, staticPatterns.includes(pkgPath));
-				modules.forEach((module) => {
-					const id = module.getId();
-					if (!resolvedModules.get(id)) {
-						resolvedModules.set(id, module);
-					}
-				});
+				await this._getModulesFromPath(nodePath, pkgPath, configPath, specificity,
+					staticPatterns.includes(pkgPath), visitedNodesPerResolution);
 			}));
-			return Array.from(resolvedModules.values());
 		} else {
-			return [new Module({
+			if (this.#resolvedModules.get(nodePath) &&
+				this.#resolvedModules.get(nodePath).specificity >= specificity) {
+				log.verbose(`Skipping module ${pkg.name} at ${nodePath} due to lower specificity`);
+				return;
+			}
+			this.#resolvedModules.set(nodePath, {
 				id: pkg.name,
 				version: pkg.version,
-				modulePath: nodePath
-			})];
+				modulePath: nodePath,
+				configPath: configPath ? path.resolve(nodePath, configPath) : undefined,
+				specificity
+			});
 		}
 	}
 

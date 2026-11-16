@@ -71,8 +71,8 @@ class NodePackageDependencies {
 			return [];
 		}
 		return Promise.all(node._dependencies.map(async ({name, optional}) => {
-			const modulePath = await this._resolveModulePath(node.path, name, workspace);
-			return this._getNode(modulePath, optional, name);
+			const {modulePath, configPath} = await this._resolveModulePath(node.path, name, workspace);
+			return this._getNode(modulePath, configPath, optional, name);
 		}));
 	}
 
@@ -87,7 +87,10 @@ class NodePackageDependencies {
 				log.info(`Resolved module ${moduleName} via ${workspace.getName()} workspace ` +
 					`to version ${workspaceNode.getVersion()}`);
 				log.verbose(`  Resolved module ${moduleName} to path ${workspaceNode.getPath()}`);
-				return workspaceNode.getPath();
+				return {
+					modulePath: workspaceNode.getPath(),
+					configPath: workspaceNode.getConfigPath()
+				};
 			}
 		}
 
@@ -100,7 +103,10 @@ class NodePackageDependencies {
 
 			const modulePath = path.dirname(packageJsonPath);
 			log.verbose(`Resolved module ${moduleName} to path ${modulePath}`);
-			return modulePath;
+			return {
+				modulePath,
+				configPath: undefined
+			};
 		} catch (err) {
 			throw new Error(
 				`Unable to locate module ${moduleName} via resolve logic: ${err.message}`);
@@ -111,13 +117,14 @@ class NodePackageDependencies {
 	 * Resolves a Node module by reading its package.json
 	 *
 	 * @param {string} modulePath Path to the module.
+	 * @param {string} configPath Path to the module's configuration file.
 	 * @param {boolean} optional Whether this dependency is optional.
 	 * @param {string} [nameAlias] The name of the module. It's usually the same as the name definfed
 	 * 	in package.json and could easily be skipped. Useful when defining dependency as an alias:
 	 * 	{@link https://github.com/npm/rfcs/blob/main/implemented/0001-package-aliases.md}
 	 * @returns {Promise<object>}
 	 */
-	async _getNode(modulePath, optional, nameAlias) {
+	async _getNode(modulePath, configPath, optional, nameAlias) {
 		log.verbose(`Reading package.json in directory ${modulePath}...`);
 		const packageJson = await readPackage({
 			cwd: modulePath,
@@ -128,6 +135,7 @@ class NodePackageDependencies {
 			id: nameAlias || packageJson.name,
 			version: packageJson.version,
 			path: modulePath,
+			configPath,
 			optional,
 			_dependencies: await this._getDependencies(modulePath, packageJson)
 		};
