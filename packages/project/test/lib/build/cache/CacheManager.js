@@ -356,7 +356,7 @@ test.serial("getOlderVersionsInfo: returns empty when buildCache dir does not ex
 	const {default: CacheManager} = await import("../../../../lib/build/cache/CacheManager.js");
 
 	const result = await CacheManager.getOlderVersionsInfo(testDir);
-	t.deepEqual(result, {removable: [], newer: []});
+	t.deepEqual(result, {removable: [], unknown: []});
 });
 
 test.serial("getOlderVersionsInfo: returns empty when buildCache has no versioned dirs", async (t) => {
@@ -369,41 +369,41 @@ test.serial("getOlderVersionsInfo: returns empty when buildCache has no versione
 	await fs.writeFile(path.join(buildCacheDir, "file.txt"), "data");
 
 	const result = await CacheManager.getOlderVersionsInfo(testDir);
-	t.deepEqual(result, {removable: [], newer: []});
+	t.deepEqual(result, {removable: [], unknown: []});
 });
 
-test.serial("getOlderVersionsInfo: partitions older, current, and newer versions correctly", async (t) => {
+test.serial("getOlderVersionsInfo: partitions known-older, unshipped, current, and unknown correctly", async (t) => {
 	const testDir = getUniqueTestDir();
 	const {default: CacheManager, CACHE_VERSION} = await import("../../../../lib/build/cache/CacheManager.js");
 
 	const buildCacheDir = path.join(testDir, "buildCache");
-	// Older: v0_8, v0_9
-	await fs.mkdir(path.join(buildCacheDir, "v0_8"), {recursive: true});
-	await fs.writeFile(path.join(buildCacheDir, "v0_8", "cache.db"), Buffer.alloc(1024));
+	// Known-older (in KNOWN_DELETABLE_VERSIONS): v0_9
 	await fs.mkdir(path.join(buildCacheDir, "v0_9"), {recursive: true});
 	await fs.writeFile(path.join(buildCacheDir, "v0_9", "cache.db"), Buffer.alloc(2048));
+	// Unshipped-older (NOT in KNOWN_DELETABLE_VERSIONS): v0_8 → must go to unknown, not removable
+	await fs.mkdir(path.join(buildCacheDir, "v0_8"), {recursive: true});
+	await fs.writeFile(path.join(buildCacheDir, "v0_8", "cache.db"), Buffer.alloc(1024));
 	// Current: should be ignored
 	await fs.mkdir(path.join(buildCacheDir, CACHE_VERSION), {recursive: true});
-	// Newer: v0_11
+	// Unknown (genuinely newer or unrecognized): v0_11
 	await fs.mkdir(path.join(buildCacheDir, "v0_11"), {recursive: true});
-	// Malformed and file: should be ignored
+	// Malformed and file: should be ignored (foreign bucket)
 	await fs.mkdir(path.join(buildCacheDir, "not-a-version"), {recursive: true});
 	await fs.writeFile(path.join(buildCacheDir, "file.txt"), "data");
 
 	const result = await CacheManager.getOlderVersionsInfo(testDir);
 
-	const sortedRemovable = [...result.removable].sort((a, b) => a.path.localeCompare(b.path));
-	t.is(sortedRemovable.length, 2, "v0_8 and v0_9 are removable");
-	t.is(sortedRemovable[0].name, "v0_8");
-	t.is(sortedRemovable[0].path, "buildCache/v0_8");
-	t.is(sortedRemovable[0].size, 1024);
-	t.is(sortedRemovable[1].name, "v0_9");
-	t.is(sortedRemovable[1].path, "buildCache/v0_9");
-	t.is(sortedRemovable[1].size, 2048);
+	t.is(result.removable.length, 1, "only v0_9 (in KNOWN) is removable");
+	t.is(result.removable[0].name, "v0_9");
+	t.is(result.removable[0].path, "buildCache/v0_9");
+	t.is(result.removable[0].size, 2048);
 
-	t.is(result.newer.length, 1, "v0_11 is newer");
-	t.is(result.newer[0].path, "buildCache/v0_11");
-	t.is(result.newer[0].version, "v0_11");
+	t.is(result.unknown.length, 2, "v0_8 (unshipped) and v0_11 (newer) are unknown");
+	const sortedUnknown = [...result.unknown].sort((a, b) => a.version.localeCompare(b.version));
+	t.is(sortedUnknown[0].version, "v0_11");
+	t.is(sortedUnknown[0].path, "buildCache/v0_11");
+	t.is(sortedUnknown[1].version, "v0_8");
+	t.is(sortedUnknown[1].path, "buildCache/v0_8");
 });
 
 test.serial("getOlderVersionsInfo: size falls back to 0 when cache.db is missing", async (t) => {
@@ -411,10 +411,11 @@ test.serial("getOlderVersionsInfo: size falls back to 0 when cache.db is missing
 	const {default: CacheManager} = await import("../../../../lib/build/cache/CacheManager.js");
 
 	const buildCacheDir = path.join(testDir, "buildCache");
-	await fs.mkdir(path.join(buildCacheDir, "v0_8"), {recursive: true}); // no cache.db
+	await fs.mkdir(path.join(buildCacheDir, "v0_9"), {recursive: true}); // no cache.db — v0_9 is in KNOWN
 
 	const result = await CacheManager.getOlderVersionsInfo(testDir);
 	t.is(result.removable.length, 1);
+	t.is(result.removable[0].name, "v0_9");
 	t.is(result.removable[0].size, 0, "size is 0 when cache.db is absent");
 });
 
@@ -435,36 +436,40 @@ test.serial("markOlderVersionsForRemoval: marks nothing when no older dirs exist
 	await t.notThrowsAsync(fs.access(path.join(buildCacheDir, "v0_11")));
 });
 
-test.serial("markOlderVersionsForRemoval: renames older dirs to pending, leaves current and newer", async (t) => {
+test.serial("markOlderVersionsForRemoval: renames known-older dirs, leaves current, newer, unshipped", async (t) => {
 	const testDir = getUniqueTestDir();
 	const {default: CacheManager, CACHE_VERSION} = await import("../../../../lib/build/cache/CacheManager.js");
 
 	const buildCacheDir = path.join(testDir, "buildCache");
-	await fs.mkdir(path.join(buildCacheDir, "v0_8"), {recursive: true});
-	await fs.writeFile(path.join(buildCacheDir, "v0_8", "cache.db"), Buffer.alloc(1024));
+	// Both known-older (in KNOWN_DELETABLE_VERSIONS) — should be marked
+	await fs.mkdir(path.join(buildCacheDir, "v0_7"), {recursive: true});
+	await fs.writeFile(path.join(buildCacheDir, "v0_7", "cache.db"), Buffer.alloc(512));
 	await fs.mkdir(path.join(buildCacheDir, "v0_9"), {recursive: true});
+	// Unshipped-older (NOT in KNOWN) — must NOT be marked
+	await fs.mkdir(path.join(buildCacheDir, "v0_8"), {recursive: true});
 	await fs.mkdir(path.join(buildCacheDir, CACHE_VERSION), {recursive: true});
 	await fs.mkdir(path.join(buildCacheDir, "v0_11"), {recursive: true});
 
 	const marked = await CacheManager.markOlderVersionsForRemoval(testDir);
 
-	// Both older dirs marked and reported with their pre-rename identity
+	// Only v0_7 and v0_9 (both in KNOWN) should be marked
 	const sortedMarked = [...marked].sort((a, b) => a.path.localeCompare(b.path));
 	t.is(sortedMarked.length, 2);
-	t.is(sortedMarked[0].path, "buildCache/v0_8");
-	t.is(sortedMarked[0].size, 1024);
+	t.is(sortedMarked[0].path, "buildCache/v0_7");
+	t.is(sortedMarked[0].size, 512);
 	t.is(sortedMarked[1].path, "buildCache/v0_9");
 
-	// Older dirs no longer exist under their version name
-	await t.throwsAsync(fs.access(path.join(buildCacheDir, "v0_8")), {code: "ENOENT"});
+	// Known-older dirs no longer exist under their version name
+	await t.throwsAsync(fs.access(path.join(buildCacheDir, "v0_7")), {code: "ENOENT"});
 	await t.throwsAsync(fs.access(path.join(buildCacheDir, "v0_9")), {code: "ENOENT"});
 
 	// They were renamed, not deleted — two pending removal dirs exist
 	const entries = await fs.readdir(buildCacheDir);
 	const pending = entries.filter((name) => name.startsWith("_buildcache_to_delete_"));
-	t.is(pending.length, 2, "both older dirs renamed to pending removal dirs");
+	t.is(pending.length, 2, "both known-older dirs renamed to pending removal dirs");
 
-	// Current and newer are untouched
+	// Unshipped-older, current, and newer are untouched
+	await t.notThrowsAsync(fs.access(path.join(buildCacheDir, "v0_8")));
 	await t.notThrowsAsync(fs.access(path.join(buildCacheDir, CACHE_VERSION)));
 	await t.notThrowsAsync(fs.access(path.join(buildCacheDir, "v0_11")));
 });
@@ -509,13 +514,13 @@ test.serial("removePendingVersions: deletes all remnants, returns only non-exclu
 	const leftoverPending = path.join(buildCacheDir, "_buildcache_to_delete_abcd");
 	await fs.mkdir(leftoverPending, {recursive: true});
 	await fs.writeFile(path.join(leftoverPending, "cache.db"), Buffer.alloc(512));
-	// An older dir marked in this run (its pending path is excluded from the report)
-	await fs.mkdir(path.join(buildCacheDir, "v0_8"), {recursive: true});
+	// An older dir in KNOWN (v0_9) — will be marked in this run (its pending path is excluded from report)
+	await fs.mkdir(path.join(buildCacheDir, "v0_9"), {recursive: true});
 	await fs.mkdir(path.join(buildCacheDir, CACHE_VERSION), {recursive: true});
 
 	const marked = await CacheManager.markOlderVersionsForRemoval(testDir);
 	const markedPendingPaths = marked.map((entry) => entry.pendingPath);
-	t.is(markedPendingPaths.length, 1, "v0_8 was marked with a pending path");
+	t.is(markedPendingPaths.length, 1, "v0_9 was marked with a pending path");
 
 	const removed = await CacheManager.removePendingVersions(testDir, markedPendingPaths);
 
@@ -544,3 +549,38 @@ test.serial("mark/removePendingVersions: no-op when buildCache dir does not exis
 	await t.notThrowsAsync(CacheManager.removePendingVersions(testDir));
 });
 
+test.serial("markOlderVersionsForRemoval: accepts pre-computed removable list, skips re-scan", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager, CACHE_VERSION} = await import("../../../../lib/build/cache/CacheManager.js");
+
+	const buildCacheDir = path.join(testDir, "buildCache");
+	await fs.mkdir(path.join(buildCacheDir, "v0_9"), {recursive: true});
+	await fs.writeFile(path.join(buildCacheDir, "v0_9", "cache.db"), Buffer.alloc(256));
+	await fs.mkdir(path.join(buildCacheDir, CACHE_VERSION), {recursive: true});
+
+	const {removable} = await CacheManager.getOlderVersionsInfo(testDir);
+	t.is(removable.length, 1);
+
+	// Pass removable directly — markOlderVersionsForRemoval must not re-scan
+	const marked = await CacheManager.markOlderVersionsForRemoval(testDir, removable);
+	t.is(marked.length, 1);
+	t.is(marked[0].path, "buildCache/v0_9");
+	t.truthy(marked[0].pendingPath, "pendingPath is populated");
+
+	// v0_9 is no longer accessible under its version name
+	await t.throwsAsync(fs.access(path.join(buildCacheDir, "v0_9")), {code: "ENOENT"});
+});
+
+test.serial("getOlderVersionsInfo: current version dir is never in removable (sanity check)", async (t) => {
+	const testDir = getUniqueTestDir();
+	const {default: CacheManager, CACHE_VERSION} = await import("../../../../lib/build/cache/CacheManager.js");
+
+	const buildCacheDir = path.join(testDir, "buildCache");
+	// Only the current version dir exists
+	await fs.mkdir(path.join(buildCacheDir, CACHE_VERSION), {recursive: true});
+
+	const result = await CacheManager.getOlderVersionsInfo(testDir);
+	const removableNames = result.removable.map((e) => e.name);
+	t.false(removableNames.includes(CACHE_VERSION), "current version must never appear in removable");
+	t.deepEqual(result.unknown, []);
+});

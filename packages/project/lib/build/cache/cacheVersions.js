@@ -1,44 +1,56 @@
-// Anchored pattern; rejects leading zeros (v0_01 is invalid — only canonical forms accepted).
-const VERSION_REGEX = /^v(0|[1-9]\d*)_(0|[1-9]\d*)$/;
+// Anchored pattern for a build-cache version directory name (e.g. "v0_10").
+// Rejects leading zeros — only canonical forms are accepted (v0_01 does not match).
+const VERSION_DIR_REGEX = /^v(0|[1-9]\d*)_(0|[1-9]\d*)$/;
 
 /**
- * Parses a cache version directory name into its numeric components.
+ * Tests whether a directory name is a canonical build-cache version directory.
  *
- * @param {string} name Directory name to parse (e.g. "v0_10")
- * @returns {{major: number, minor: number}|null} Parsed version, or null if name does not match
- *   the pattern `^v(0|[1-9]\d*)_(0|[1-9]\d*)$`. Leading zeros are not accepted (e.g. "v0_01"
- *   returns null). The authoritative current version is {@link CACHE_VERSION} in CacheManager.js.
+ * This is a pure pattern check — the numeric components are never extracted, since the allowlist
+ * model in {@link classifyVersionDirs} decides deletion by set membership, not by comparison.
+ *
+ * @param {string} name Directory name to test (e.g. "v0_10")
+ * @returns {boolean} True if `name` matches `^v(0|[1-9]\d*)_(0|[1-9]\d*)$`. The authoritative
+ *   current version is {@link CACHE_VERSION} in CacheManager.js.
  */
-export function parseCacheVersion(name) {
-	const match = VERSION_REGEX.exec(name);
-	if (!match) {
-		return null;
-	}
-	return {major: parseInt(match[1], 10), minor: parseInt(match[2], 10)};
+export function isCacheVersionDir(name) {
+	return VERSION_DIR_REGEX.test(name);
 }
 
 /**
- * Compares two cache version strings numerically (major then minor).
+ * Classifies a list of directory names into three mutually exclusive buckets.
  *
- * Both strings must be valid version names; call {@link parseCacheVersion} first if
- * there is any chance they are malformed — this function throws on invalid input.
+ * The current version is always skipped (handled separately by the caller). As a defense-in-depth
+ * measure, `current` is never placed in `deletable` even if it appears in `known`.
  *
- * @param {string} a First version string (e.g. "v0_9")
- * @param {string} b Second version string (e.g. "v0_10")
- * @returns {number} -1 if a < b, 0 if equal, 1 if a > b
- * @throws {Error} If either argument does not match the version pattern
+ * @param {string[]} names Directory names to classify
+ * @param {object} opts
+ * @param {string[]} opts.known Allowlist of version names that are safe to delete
+ * @param {string} opts.current Current active version — always skipped, never deletable
+ * @returns {{deletable: string[], unknown: string[], foreign: string[]}}
+ *   - `deletable`: matches version pattern and is in the allowlist (not current) → safe to remove
+ *   - `unknown`: matches version pattern, not in allowlist, and not current → warn, never delete
+ *   - `foreign`: does not match version pattern → silently ignored
  */
-export function compareCacheVersion(a, b) {
-	const va = parseCacheVersion(a);
-	const vb = parseCacheVersion(b);
-	if (!va) throw new Error(`Invalid cache version: "${a}"`);
-	if (!vb) throw new Error(`Invalid cache version: "${b}"`);
+export function classifyVersionDirs(names, {known, current}) {
+	const knownSet = new Set(known);
+	const deletable = [];
+	const unknown = [];
+	const foreign = [];
 
-	if (va.major !== vb.major) {
-		return va.major < vb.major ? -1 : 1;
+	for (const name of names) {
+		if (name === current) {
+			continue;
+		}
+		if (!isCacheVersionDir(name)) {
+			foreign.push(name);
+			continue;
+		}
+		if (knownSet.has(name)) {
+			deletable.push(name);
+		} else {
+			unknown.push(name);
+		}
 	}
-	if (va.minor !== vb.minor) {
-		return va.minor < vb.minor ? -1 : 1;
-	}
-	return 0;
+
+	return {deletable, unknown, foreign};
 }

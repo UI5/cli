@@ -95,12 +95,12 @@ async function handleCache(argv) {
 		CacheManager.getPendingRemovalsInfo(ui5DataDir),
 	]);
 
-	// Warn unconditionally about newer-version dirs — always a safety signal, never gated by verbose.
-	if (olderVersionsInfo.newer.length > 0) {
-		const newerVersions = olderVersionsInfo.newer.map((e) => e.version).join(", ");
+	// Warn unconditionally about unrecognized version dirs — always a safety signal, never gated by verbose.
+	if (olderVersionsInfo.unknown.length > 0) {
+		const unknownVersions = olderVersionsInfo.unknown.map((e) => e.version).join(", ");
 		process.stderr.write(
-			`${chalk.bold.yellow("Warning:")} Found newer build cache version(s): ` +
-			`${chalk.bold(newerVersions)} — skipping (created by a newer UI5 CLI).\n`
+			`${chalk.bold.yellow("Warning:")} Found unrecognized build cache version(s): ` +
+			`${chalk.bold(unknownVersions)} — skipping (not in the set of known-removable versions).\n`
 		);
 	}
 
@@ -157,7 +157,8 @@ async function handleCache(argv) {
 	// renames before the current-version db is opened/dropped or any slow recursive delete
 	// runs. This guarantees that an interrupt mid-cleanup leaves every older dir resumable
 	// rather than stranded under its live version name.
-	const markedOlderVersions = await CacheManager.markOlderVersionsForRemoval(ui5DataDir);
+	// Pass the already-computed removable list to avoid a second readdir scan (TOCTOU + redundant I/O).
+	const markedOlderVersions = await CacheManager.markOlderVersionsForRemoval(ui5DataDir, olderVersionsInfo.removable);
 	// Keep this run's just-marked dirs out of the "stale remnant" removal report — they are
 	// already reported as active "outdated" caches below.
 	const markedPendingPaths = markedOlderVersions.map((entry) => entry.pendingPath);

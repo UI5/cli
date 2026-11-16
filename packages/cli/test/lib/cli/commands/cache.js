@@ -57,7 +57,7 @@ test.beforeEach(async (t) => {
 	t.context.buildCacheCleanCache = sinon.stub();
 	t.context.buildCacheCleanAdditional = sinon.stub().resolves([]);
 	t.context.buildCacheGetAdditionalCacheInfo = sinon.stub().resolves([]);
-	t.context.buildCacheGetOlderVersionsInfo = sinon.stub().resolves({removable: [], newer: []});
+	t.context.buildCacheGetOlderVersionsInfo = sinon.stub().resolves({removable: [], unknown: []});
 	t.context.buildCacheGetPendingRemovalsInfo = sinon.stub().resolves([]);
 	t.context.buildCacheMarkOlderVersionsForRemoval = sinon.stub().resolves([]);
 	t.context.buildCacheRemovePendingVersions = sinon.stub().resolves([]);
@@ -880,7 +880,7 @@ test.serial("ui5 cache clean: pre-clean summary shows both groups when active an
 
 // ─── Older build-cache versions ─────────────────────────────────────────────
 
-test.serial("ui5 cache clean: newer-version warning prints unconditionally in non-verbose mode", async (t) => {
+test.serial("ui5 cache clean: unrecognized-version warning prints unconditionally in non-verbose mode", async (t) => {
 	const {cache, argv, stderrWriteStub, frameworkCacheGetCacheInfo, buildCacheGetCacheInfo,
 		buildCacheGetOlderVersionsInfo, buildCacheMarkOlderVersionsForRemoval, yesnoStub} = t.context;
 
@@ -888,17 +888,17 @@ test.serial("ui5 cache clean: newer-version warning prints unconditionally in no
 	buildCacheGetCacheInfo.resolves(null);
 	buildCacheGetOlderVersionsInfo.resolves({
 		removable: [],
-		newer: [{path: "buildCache/v0_11", version: "v0_11"}],
+		unknown: [{path: "buildCache/v0_11", version: "v0_11"}],
 	});
 
 	argv["_"] = ["cache", "clean"];
 	await cache.handler(argv);
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
-	t.true(allOutput.includes("Found newer build cache version(s)"),
-		"Newer-version warning written to stderr without --verbose");
-	t.true(allOutput.includes("v0_11"), "Warning names the newer version");
-	t.true(allOutput.includes("skipping"), "Warning indicates the newer version is skipped");
+	t.true(allOutput.includes("Found unrecognized build cache version(s)"),
+		"Unrecognized-version warning written to stderr without --verbose");
+	t.true(allOutput.includes("v0_11"), "Warning names the unrecognized version");
+	t.true(allOutput.includes("skipping"), "Warning indicates the version is skipped");
 	t.is(yesnoStub.callCount, 0, "Does not prompt when nothing removable");
 	t.is(buildCacheMarkOlderVersionsForRemoval.callCount, 0, "Does not mark anything when nothing removable");
 });
@@ -944,7 +944,7 @@ test.serial("ui5 cache clean: older version dirs appear under Active Cache with 
 	buildCacheGetCacheInfo.resolves(null);
 	buildCacheGetOlderVersionsInfo.resolves({
 		removable: [{name: "v0_8", path: "buildCache/v0_8", size: 15 * 1024 * 1024}],
-		newer: [],
+		unknown: [],
 	});
 	yesnoStub.resolves(false);
 
@@ -973,7 +973,7 @@ test.serial("ui5 cache clean: older version dirs cleaned and shown in post-clean
 	buildCacheGetCacheInfo.resolves(null);
 	buildCacheGetOlderVersionsInfo.resolves({
 		removable: [{name: "v0_8", path: "buildCache/v0_8", size: 20 * 1024 * 1024}],
-		newer: [],
+		unknown: [],
 	});
 	frameworkCacheCleanCache.resolves(null);
 	buildCacheCleanCache.resolves(null);
@@ -989,6 +989,9 @@ test.serial("ui5 cache clean: older version dirs cleaned and shown in post-clean
 	t.is(buildCacheMarkOlderVersionsForRemoval.callCount, 1, "markOlderVersionsForRemoval called exactly once");
 	t.is(buildCacheMarkOlderVersionsForRemoval.firstCall.args[0], TEST_UI5_DATA_DIR,
 		"markOlderVersionsForRemoval receives the resolved ui5DataDir");
+	t.deepEqual(buildCacheMarkOlderVersionsForRemoval.firstCall.args[1],
+		[{name: "v0_8", path: "buildCache/v0_8", size: 20 * 1024 * 1024}],
+		"markOlderVersionsForRemoval receives the pre-computed removable list (no second scan)");
 	t.is(buildCacheRemovePendingVersions.callCount, 1, "removePendingVersions called to finish the deletion");
 
 	const allOutput = stderrWriteStub.args.map((a) => a[0]).join("");
@@ -1011,7 +1014,7 @@ test.serial("ui5 cache clean: current and older build versions coexist under Act
 			{name: "v0_7", path: "buildCache/v0_7", size: 387 * 1024 * 1024},
 			{name: "v0_9", path: "buildCache/v0_9", size: 404 * 1024 * 1024},
 		],
-		newer: [],
+		unknown: [],
 	});
 	yesnoStub.resolves(false);
 
@@ -1039,7 +1042,7 @@ test.serial("ui5 cache clean: older-version mark and remove run alongside regula
 	buildCacheGetCacheInfo.resolves({path: BUILD_CACHE_PATH, size: 5 * 1024 * 1024});
 	buildCacheGetOlderVersionsInfo.resolves({
 		removable: [{name: "v0_9", path: "buildCache/v0_9", size: 3 * 1024 * 1024}],
-		newer: [],
+		unknown: [],
 	});
 	frameworkCacheCleanCache.resolves(FRAMEWORK_STUB);
 	buildCacheCleanCache.resolves({path: BUILD_CACHE_PATH, size: 5 * 1024 * 1024});

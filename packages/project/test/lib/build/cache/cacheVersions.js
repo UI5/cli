@@ -1,90 +1,112 @@
 import test from "ava";
-import {parseCacheVersion, compareCacheVersion} from "../../../../lib/build/cache/cacheVersions.js";
+import {isCacheVersionDir, classifyVersionDirs} from "../../../../lib/build/cache/cacheVersions.js";
 
-// ─── parseCacheVersion ────────────────────────────────────────────────────────
+// ─── isCacheVersionDir ────────────────────────────────────────────────────────
 
-test("parseCacheVersion: parses a standard version", (t) => {
-	t.deepEqual(parseCacheVersion("v0_10"), {major: 0, minor: 10});
+test("isCacheVersionDir: matches a standard version", (t) => {
+	t.true(isCacheVersionDir("v0_10"));
 });
 
-test("parseCacheVersion: parses v0_0", (t) => {
-	t.deepEqual(parseCacheVersion("v0_0"), {major: 0, minor: 0});
+test("isCacheVersionDir: matches v0_0", (t) => {
+	t.true(isCacheVersionDir("v0_0"));
 });
 
-test("parseCacheVersion: parses large minor version", (t) => {
-	t.deepEqual(parseCacheVersion("v2_15"), {major: 2, minor: 15});
+test("isCacheVersionDir: matches a higher major/minor", (t) => {
+	t.true(isCacheVersionDir("v2_15"));
 });
 
-test("parseCacheVersion: returns null for bare vX (no underscore)", (t) => {
-	t.is(parseCacheVersion("v1"), null);
+test("isCacheVersionDir: false for bare vX (no underscore)", (t) => {
+	t.false(isCacheVersionDir("v1"));
 });
 
-test("parseCacheVersion: returns null for trailing underscore", (t) => {
-	t.is(parseCacheVersion("v0_"), null);
+test("isCacheVersionDir: false for trailing underscore", (t) => {
+	t.false(isCacheVersionDir("v0_"));
 });
 
-test("parseCacheVersion: returns null for non-numeric major", (t) => {
-	t.is(parseCacheVersion("va_b"), null);
+test("isCacheVersionDir: false for non-numeric major", (t) => {
+	t.false(isCacheVersionDir("va_b"));
 });
 
-test("parseCacheVersion: returns null for trailing non-numeric suffix", (t) => {
-	t.is(parseCacheVersion("v0_10x"), null);
+test("isCacheVersionDir: false for trailing non-numeric suffix", (t) => {
+	t.false(isCacheVersionDir("v0_10x"));
 });
 
-test("parseCacheVersion: returns null for arbitrary string", (t) => {
-	t.is(parseCacheVersion("foo"), null);
+test("isCacheVersionDir: false for arbitrary string", (t) => {
+	t.false(isCacheVersionDir("foo"));
 });
 
-test("parseCacheVersion: returns null for leading-zero minor", (t) => {
-	t.is(parseCacheVersion("v0_01"), null);
+test("isCacheVersionDir: false for leading-zero minor", (t) => {
+	t.false(isCacheVersionDir("v0_01"));
 });
 
-test("parseCacheVersion: returns null for leading-zero major", (t) => {
-	t.is(parseCacheVersion("v01_0"), null);
+test("isCacheVersionDir: false for leading-zero major", (t) => {
+	t.false(isCacheVersionDir("v01_0"));
 });
 
-test("parseCacheVersion: returns null for empty string", (t) => {
-	t.is(parseCacheVersion(""), null);
+test("isCacheVersionDir: false for empty string", (t) => {
+	t.false(isCacheVersionDir(""));
 });
 
-// ─── compareCacheVersion ──────────────────────────────────────────────────────
+// ─── classifyVersionDirs ──────────────────────────────────────────────────────
 
-test("compareCacheVersion: equal versions return 0", (t) => {
-	t.is(compareCacheVersion("v0_10", "v0_10"), 0);
+const KNOWN = ["v0_7", "v0_9"];
+const CURRENT = "v0_10";
+
+test("classifyVersionDirs: allowlisted version is deletable", (t) => {
+	const result = classifyVersionDirs(["v0_9"], {known: KNOWN, current: CURRENT});
+	t.deepEqual(result.deletable, ["v0_9"]);
+	t.deepEqual(result.unknown, []);
+	t.deepEqual(result.foreign, []);
 });
 
-test("compareCacheVersion: older major returns -1", (t) => {
-	t.is(compareCacheVersion("v0_10", "v1_0"), -1);
+test("classifyVersionDirs: unshipped older version (not in KNOWN) goes to unknown", (t) => {
+	const result = classifyVersionDirs(["v0_8"], {known: KNOWN, current: CURRENT});
+	t.deepEqual(result.deletable, []);
+	t.deepEqual(result.unknown, ["v0_8"]);
+	t.deepEqual(result.foreign, []);
 });
 
-test("compareCacheVersion: newer major returns 1", (t) => {
-	t.is(compareCacheVersion("v1_0", "v0_10"), 1);
+test("classifyVersionDirs: genuinely newer version goes to unknown, not deletable", (t) => {
+	const result = classifyVersionDirs(["v1_0"], {known: KNOWN, current: CURRENT});
+	t.deepEqual(result.deletable, []);
+	t.deepEqual(result.unknown, ["v1_0"]);
+	t.deepEqual(result.foreign, []);
 });
 
-test("compareCacheVersion: older minor returns -1", (t) => {
-	t.is(compareCacheVersion("v0_9", "v0_10"), -1);
+test("classifyVersionDirs: current version is skipped (not in any bucket)", (t) => {
+	const result = classifyVersionDirs([CURRENT], {known: KNOWN, current: CURRENT});
+	t.deepEqual(result.deletable, []);
+	t.deepEqual(result.unknown, []);
+	t.deepEqual(result.foreign, []);
 });
 
-test("compareCacheVersion: newer minor returns 1", (t) => {
-	t.is(compareCacheVersion("v0_10", "v0_9"), 1);
+test("classifyVersionDirs: defense in depth — current in KNOWN is still not deletable", (t) => {
+	const knownWithCurrent = [...KNOWN, CURRENT];
+	const result = classifyVersionDirs([CURRENT], {known: knownWithCurrent, current: CURRENT});
+	t.deepEqual(result.deletable, [], "current must never appear in deletable");
+	t.deepEqual(result.unknown, []);
+	t.deepEqual(result.foreign, []);
 });
 
-test("compareCacheVersion: numeric minor tie-break — v2_5 < v2_15", (t) => {
-	t.is(compareCacheVersion("v2_5", "v2_15"), -1);
+test("classifyVersionDirs: non-version dirname goes to foreign", (t) => {
+	const result = classifyVersionDirs(["not-a-version"], {known: KNOWN, current: CURRENT});
+	t.deepEqual(result.deletable, []);
+	t.deepEqual(result.unknown, []);
+	t.deepEqual(result.foreign, ["not-a-version"]);
 });
 
-test("compareCacheVersion: numeric minor tie-break — v2_15 > v2_5", (t) => {
-	t.is(compareCacheVersion("v2_15", "v2_5"), 1);
+test("classifyVersionDirs: leading-zero version goes to foreign (invalid format)", (t) => {
+	const result = classifyVersionDirs(["v0_08"], {known: KNOWN, current: CURRENT});
+	t.deepEqual(result.deletable, []);
+	t.deepEqual(result.unknown, []);
+	t.deepEqual(result.foreign, ["v0_08"]);
 });
 
-test("compareCacheVersion: throws on invalid first argument", (t) => {
-	t.throws(() => compareCacheVersion("foo", "v0_10"), {message: /Invalid cache version/});
+test("classifyVersionDirs: mixed input produces correct three-way partition", (t) => {
+	const names = ["v0_7", "v0_9", "v0_8", "v1_0", CURRENT, "other-dir", "v0_08"];
+	const result = classifyVersionDirs(names, {known: KNOWN, current: CURRENT});
+	t.deepEqual([...result.deletable].sort(), ["v0_7", "v0_9"], "only known versions are deletable");
+	t.deepEqual([...result.unknown].sort(), ["v0_8", "v1_0"], "unshipped older + newer go to unknown");
+	t.deepEqual([...result.foreign].sort(), ["other-dir", "v0_08"], "malformed/non-version go to foreign");
 });
 
-test("compareCacheVersion: throws on invalid second argument", (t) => {
-	t.throws(() => compareCacheVersion("v0_10", "bar"), {message: /Invalid cache version/});
-});
-
-test("compareCacheVersion: throws on first argument when both are invalid", (t) => {
-	t.throws(() => compareCacheVersion("foo", "bar"), {message: /Invalid cache version: "foo"/});
-});
