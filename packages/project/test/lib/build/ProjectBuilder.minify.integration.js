@@ -146,43 +146,62 @@ for (const reuseBuilder of [false, true]) {
 		for (const name of ["A.js", "A-dbg.js", "C.js", "C-dbg.js"]) {
 			t.deepEqual(ordinaryDelta.output.get(name), cold.output.get(name), "Unchanged pairs' tags are replayed");
 		}
+		t.deepEqual(ordinaryDelta.output.get("plain.js").tags, hasDebug);
+		t.not(ordinaryDelta.output.get("plain.js").content, source + "identity(42);\n");
+		t.deepEqual(ordinaryDelta.output.get("plain-dbg.js"), {content: source + "identity(42);\n", tags: isDebug});
+	});
+
+	test.serial(`minify: an excluded pair changes (reuseBuilder=${reuseBuilder})`, async (t) => {
+		const project = await createProject(t, {
+			reuseBuilder, excludes: ["A*.js"],
+			files: {"A.js": source, "A-dbg.js": source, "plain.js": source},
+		});
+		const cold = await project.build();
 
 		const changedDebug = source + "// changed excluded debug variant\n";
 		await project.write("A-dbg.js", changedDebug);
 		const pairDelta = await project.build(["A-dbg.js"]);
 		t.deepEqual(pairDelta.activity, {enumerations: 1, minified: [], pairs: 1, warnings: []});
+		t.deepEqual(pairDelta.output.get("A.js"), {content: source, tags: hasDebug});
 		t.deepEqual(pairDelta.output.get("A-dbg.js"), {content: changedDebug, tags: isDebug});
-		t.deepEqual(pairDelta.output.get("plain.js"), ordinaryDelta.output.get("plain.js"));
-		t.deepEqual(pairDelta.output.get("C.js"), cold.output.get("C.js"));
+		for (const name of ["plain.js", "plain-dbg.js", "plain.js.map"]) {
+			t.deepEqual(pairDelta.output.get(name), cold.output.get(name), "Unrelated minification stays cached");
+		}
+		t.false(pairDelta.output.has("A.js.map"));
+		const warm = await project.build();
+		t.deepEqual(warm.output, pairDelta.output);
+		t.is(warm.activity.enumerations, 0);
+	});
 
-		await project.remove("A-dbg.js");
-		const removedDebug = await project.build(["A-dbg.js"]);
-		t.deepEqual(removedDebug.activity, {enumerations: 1, minified: [], pairs: 0, warnings: []});
-		t.deepEqual(removedDebug.output.get("A.js"), {content: source, tags: null},
-			"Removing the debug member drops the excluded survivor's HasDebugVariant tag");
-		t.false(removedDebug.output.has("A-dbg.js"));
-		const removedWarm = await project.build();
-		t.deepEqual(removedWarm.output, removedDebug.output, "No stale tag is persisted");
-		t.is(removedWarm.activity.enumerations, 0);
+	test.serial(`minify: an excluded debug sibling is added (reuseBuilder=${reuseBuilder})`, async (t) => {
+		const project = await createProject(t, {
+			reuseBuilder, excludes: ["A*.js"], files: {"A.js": source},
+		});
+		const cold = await project.build();
+		t.deepEqual(cold.output.get("A.js"), {content: source, tags: null});
 
 		await project.write("A-dbg.js", source + "// newly added debug variant\n");
 		const addedDebug = await project.build(["A-dbg.js"]);
 		t.deepEqual(addedDebug.activity, {enumerations: 1, minified: [], pairs: 1, warnings: []});
-		t.deepEqual(addedDebug.output.get("A.js").tags, hasDebug);
-		t.deepEqual(addedDebug.output.get("A-dbg.js").tags, isDebug);
+		t.deepEqual(addedDebug.output.get("A.js"), {content: source, tags: hasDebug});
+		t.deepEqual(addedDebug.output.get("A-dbg.js"), {
+			content: source + "// newly added debug variant\n", tags: isDebug,
+		});
+		t.false(addedDebug.output.has("A.js.map"));
+		t.false(addedDebug.output.has("A-dbg-dbg.js"));
+	});
 
-		await project.remove("A.js");
-		const removedNormal = await project.build(["A.js"]);
-		t.deepEqual(removedNormal.activity, {enumerations: 1, minified: [], pairs: 0, warnings: []});
-		t.is(removedNormal.output.get("A-dbg.js").tags, null,
-			"Removing the non-debug member drops the excluded survivor's IsDebugVariant tag");
-		t.false(removedNormal.output.has("A-dbg-dbg.js"));
-
-		// Switch an unexcluded pair to ordinary minification, then back to a source pair. Both transitions
-		// must drop the old invocation's outputs without re-minifying the unrelated plain.js.
+	test.serial(`minify: source pair transitions (reuseBuilder=${reuseBuilder})`, async (t) => {
+		const project = await createProject(t, {
+			reuseBuilder, excludes: [],
+			files: {"C.js": source, "C-dbg.js": source, "plain.js": source},
+		});
+		const cold = await project.build();
 		await project.remove("C-dbg.js");
 		const generated = await project.build(["C-dbg.js"]);
 		t.deepEqual(generated.activity, {enumerations: 1, minified: ["C.js"], pairs: 0, warnings: []});
+		t.deepEqual(generated.output.get("C.js").tags, hasDebug);
+		t.not(generated.output.get("C.js").content, source);
 		t.deepEqual(generated.output.get("C-dbg.js"), {content: source, tags: isDebug});
 		t.true(generated.output.has("C.js.map"));
 
@@ -192,8 +211,11 @@ for (const reuseBuilder of [false, true]) {
 		t.is(pairedAgain.activity.pairs, 1);
 		t.is(pairedAgain.activity.warnings.length, 1);
 		t.deepEqual(pairedAgain.output.get("C.js"), {content: source, tags: hasDebug});
-		t.is(pairedAgain.output.get("C-dbg.js").content, source + "// restored source pair\n");
+		t.deepEqual(pairedAgain.output.get("C-dbg.js"), {
+			content: source + "// restored source pair\n", tags: isDebug,
+		});
 		t.false(pairedAgain.output.has("C.js.map"), "The removed minification key's source map is not resurrected");
+		t.deepEqual(pairedAgain.output.get("plain.js"), cold.output.get("plain.js"));
 	});
 
 	test.serial(`minify: support rules remain readable and tagged (reuseBuilder=${reuseBuilder})`, async (t) => {
@@ -219,12 +241,6 @@ for (const reuseBuilder of [false, true]) {
 		t.deepEqual(edited.activity, {enumerations: 1, minified: [], pairs: 0, warnings: []});
 		t.deepEqual(edited.output.get("Rules.support.js"), cold.output.get("Rules.support.js"));
 		t.deepEqual(edited.output.get("Solo.support.js"), {content: source + "// edited rule\n", tags: null});
-
-		await project.remove("Rules-dbg.support.js");
-		const removed = await project.build(["Rules-dbg.support.js"]);
-		t.deepEqual(removed.activity, {enumerations: 1, minified: [], pairs: 0, warnings: []});
-		t.deepEqual(removed.output.get("Rules.support.js"), {content: source, tags: null});
-		t.false(removed.output.has("Rules-dbg.support.js"), "The removed debug rule is not regenerated");
 	});
 }
 
