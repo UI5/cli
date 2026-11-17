@@ -50,7 +50,7 @@
 		"eslint": "^10.15.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^18.0.0",
-		"eslint-plugin-jsdoc": "^65.4.7",
+		"eslint-plugin-jsdoc": "^65.4.10",
 		"globals": "^17.14.0",
 		"husky": "^9.1.7",
 		"knip": "^6.45.1",
