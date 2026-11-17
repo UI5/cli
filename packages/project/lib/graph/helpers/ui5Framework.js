@@ -17,11 +17,13 @@ function emitFrameworkInfo(projectGraph) {
 // Early returns may still have framework projects supplied by the original dependency graph.
 // Do not announce framework usage merely because an otherwise unused configuration is present.
 function completeWithoutResolution(projectGraph) {
-	// Graph construction permits cycles until a consumer traverses the graph. Avoid a new traversal
-	// for framework-free graphs (including cyclic graphs), where there is no event to announce.
+	// Skip entirely when the graph contains no framework projects at all: a flat scan, no traversal.
 	if (!Array.from(projectGraph.getProjects()).some((project) => project.isFrameworkProject())) {
 		return projectGraph;
 	}
+	// traverseDependenciesDepthFirst walks the reachable graph and throws on cycles. We only reach it
+	// once a framework project is known to exist, so framework-free graphs (including cyclic ones)
+	// return above without a traversal and without risking a cycle error.
 	const hasFrameworkProject = Array.from(projectGraph.traverseDependenciesDepthFirst(true))
 		.some(({project}) => project.isFrameworkProject());
 	if (hasFrameworkProject) {

@@ -36,13 +36,14 @@ export default function resolveFrameworkInfo(graph, resolution) {
 
 	// The configured/resolved version (enrichment already applied --framework-version and config).
 	const configuredVersion = resolution?.version ?? root.getFrameworkVersion();
-	// A workspace only governs the version when one of its offered framework projects is actually
-	// reachable; mere availability does not count. Offered names live inside the resolution context,
-	// so an absent resolution yields an empty set and no contribution.
-	const workspaceProjectNames = resolution?.workspaceProjectNames ?? new Set();
-	const workspaceContributed = frameworkProjects.some((project) => workspaceProjectNames.has(project.getName()));
 
 	if (name === "SAPUI5") {
+		// A workspace only governs the version when one of its offered framework projects is actually
+		// reachable; mere availability does not count. Offered names live inside the resolution context,
+		// so an absent resolution yields an empty set and no contribution.
+		const workspaceProjectNames = resolution?.workspaceProjectNames ?? new Set();
+		const workspaceContributed =
+			frameworkProjects.some((project) => workspaceProjectNames.has(project.getName()));
 		// A workspace contribution leaves no reliable SAPUI5 distribution version, and an OpenUI5
 		// core version must never be reported as a SAPUI5 distribution version.
 		return {name, version: workspaceContributed ? "" : (configuredVersion ?? "")};
