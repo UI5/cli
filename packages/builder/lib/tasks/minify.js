@@ -40,22 +40,28 @@ const log = getLogger("builder:tasks:minify");
 export default function defineTask({
 	pattern, excludes = [], omitSourceMapResources = false, useInputSourceMaps = true,
 }) {
-	// Compile once per task, not once per resource or delta build. Match backwards so the last
-	// matching exclusion/re-inclusion wins.
-	const filters = excludes.map((exclude) => {
-		const include = exclude.startsWith("!");
-		const pattern = include ? exclude.slice(1) : exclude;
+	// We loop through all the exclusions of the ui5 config and prepare them once to efficiently
+	// use them later in calls of shouldBeMinified():
+	const preProcessedExclusions = excludes.map((exclude) => {
+		// Entries marked with "!" should be re-included:
+		const isReInclusion = exclude.startsWith("!");
+		// Return clean glob (remove leading "!" incase of re-inclusion):
+		const normalizedGlob = isReInclusion ? exclude.slice(1) : exclude;
 		return {
-			include,
-			matches: micromatch.matcher(pattern, {dot: true}),
+			exclusionGlobMatcher: micromatch.matcher(normalizedGlob, {dot: true}),
+			isReInclusion,
 		};
-	}).reverse();
-	const shouldMinify = (resourcePath) => {
-		for (const {include, matches} of filters) {
-			if (matches(resourcePath)) {
-				return include;
+	}).reverse(); // Reverse the order so that the last exclusion in the list takes precedence ("last one wins")
+
+	// Determines whether a resource should be minified based on the exclusion patterns:
+	const shouldBeMinified = (resourcePath) => {
+		// Handle excluded paths:
+		for (const {exclusionGlobMatcher, isReInclusion} of preProcessedExclusions) {
+			if (exclusionGlobMatcher(resourcePath)) {
+				return isReInclusion;
 			}
 		}
+		// Handle remaining regular paths:
 		return true;
 	};
 	const minifierOptions = {
@@ -102,7 +108,7 @@ export default function defineTask({
 			// minification keys; they are task options and therefore already part of the build signature.
 			const resources = await workspace.byGlob(pattern);
 			const paths = new Set(resources.map((resource) => resource.getPath()));
-			const minificationPaths = new Set([...paths].filter(shouldMinify));
+			const minificationPaths = new Set([...paths].filter(shouldBeMinified));
 			const keys = [];
 			for (const resource of resources) {
 				const resourcePath = resource.getPath();
