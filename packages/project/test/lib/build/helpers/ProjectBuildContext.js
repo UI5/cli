@@ -255,6 +255,17 @@ test("getProject: No name provided", (t) => {
 	t.is(getProjectStub.callCount, 0, "ProjectGraph#getProject has not been called");
 });
 
+test("getResolvedFrameworkInfo delegates to graph", (t) => {
+	const expected = {name: "OpenUI5", version: "1.138.0"};
+	const buildContext = createBuildContextStub({
+		getGraph: () => ({getResolvedFrameworkInfo: () => expected})
+	});
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	t.deepEqual(projectBuildContext.getResolvedFrameworkInfo(), expected);
+});
+
 test("getDependencies", (t) => {
 	const project = {
 		getName: () => "project",
@@ -464,6 +475,28 @@ test("resolveInputValue: isRootProject normalizes the boolean", (t) => {
 	const projectBuildContext = new ProjectBuildContext(buildContext, rootProject);
 
 	t.is(projectBuildContext.resolveInputValue("isRootProject", ""), "true");
+});
+
+test("resolveInputValue: resolvedFrameworkInfo normalizes the full pair", (t) => {
+	const buildContext = createBuildContextStub({
+		getGraph: () => ({getResolvedFrameworkInfo: () => ({name: "OpenUI5", version: "1.138.0"})})
+	});
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	t.is(projectBuildContext.resolveInputValue("resolvedFrameworkInfo", ""),
+		JSON.stringify({name: "OpenUI5", version: "1.138.0"}));
+});
+
+test("resolveInputValue: resolvedFrameworkInfo preserves unknown SAPUI5 distribution version", (t) => {
+	const buildContext = createBuildContextStub({
+		getGraph: () => ({getResolvedFrameworkInfo: () => ({name: "SAPUI5", version: ""})})
+	});
+	const project = {getName: () => "project", getType: () => "type"};
+	const projectBuildContext = new ProjectBuildContext(buildContext, project);
+
+	t.is(projectBuildContext.resolveInputValue("resolvedFrameworkInfo", ""),
+		JSON.stringify({name: "SAPUI5", version: ""}));
 });
 
 test("resolveInputValue: getDependencies normalizes the array via the graph", (t) => {

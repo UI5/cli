@@ -224,6 +224,22 @@ class TaskUtil {
 	}
 
 	/**
+	 * Returns the effective framework identity and version for the build graph, including workspace
+	 * resolution and full-graph fallback detection. Reads are tracked together as a build-cache input.
+	 * Unknown fields are empty strings. The returned object is detached from the graph's state.
+	 *
+	 * </br></br>
+	 * This method is only available to custom task extensions defining
+	 * <b>Specification Version 5.0 and above</b>.
+	 *
+	 * @public
+	 * @returns {{name: string, version: string}} Effective framework metadata
+	 */
+	getResolvedFrameworkInfo() {
+		return this._projectBuildContext.getResolvedFrameworkInfo();
+	}
+
+	/**
 	 * Check whether the project currently being built is the root project.
 	 *
 	 * </br></br>
@@ -434,7 +450,9 @@ class TaskUtil {
 		}
 
 		if (specVersion.gte("5.0")) {
-			bindFunctions(this, baseInterface, ["getEnv", "getTime", "getBuildTime"]);
+			bindFunctions(this, baseInterface, [
+				"getEnv", "getTime", "getBuildTime", "getResolvedFrameworkInfo"
+			]);
 		}
 		return baseInterface;
 	}
@@ -482,7 +500,9 @@ class TaskUtil {
 		}
 
 		if (specVersion.gte("5.0")) {
-			bindFunctions(this, baseInterface, ["getEnv", "getTime", "getBuildTime"]);
+			bindFunctions(this, baseInterface, [
+				"getEnv", "getTime", "getBuildTime", "getResolvedFrameworkInfo"
+			]);
 		}
 		return baseInterface;
 	}
