@@ -28,10 +28,7 @@ const createProjectMetadata = (names, version, type) => {
 		getName: () => key,
 		getNamespace: () => names.join("/"),
 		getVersion: () => version || "3.0.0-" + key,
-		getType: () => type || "library",
-		getId: () => key,
-		getFrameworkName: () => undefined,
-		getFrameworkVersion: () => undefined
+		getType: () => type || "library"
 	};
 };
 
@@ -70,6 +67,12 @@ async function createOptions(t, options) {
 
 async function assertCreatedVersionInfo(t, oExpectedVersionInfo, oOptions) {
 	const {generateVersionInfo} = t.context;
+
+	// The task resolves the framework via taskUtil.getResolvedFrameworkInfo(). Default to an empty
+	// result so tests that don't care about the framework need not provide a taskUtil stub.
+	if (!oOptions.taskUtil) {
+		oOptions.taskUtil = {getResolvedFrameworkInfo: () => ({name: "", version: ""})};
+	}
 
 	await generateVersionInfo().task(oOptions);
 
@@ -1196,45 +1199,15 @@ test.serial("integration: Library of type 'module'", async (t) => {
 	t.is(infoLogStub.callCount, 0);
 });
 
-test.serial("task: explicit OpenUI5 framework config is forwarded", async (t) => {
+test.serial("task: forwards the resolved framework info from taskUtil", async (t) => {
 	const workspace = createWorkspace();
-	const rootProject = {
-		getName: () => "myname",
-		getVersion: () => "1.33.7",
-		getFrameworkName: () => "OpenUI5",
-		getFrameworkVersion: () => "1.136.0"
-	};
 	const oOptions = {
 		workspace,
 		dependencies: resourceFactory.createAdapter({virBasePath: "/resources/"}),
+		taskUtil: {getResolvedFrameworkInfo: () => ({name: "SAPUI5", version: "1.136.0"})},
 		options: {
 			pattern: "/resources/**/.library",
-			rootProject
-		}
-	};
-	await assertCreatedVersionInfo(t, {
-		"name": "myname",
-		"scmRevision": "",
-		"version": "1.33.7",
-		"framework": {"name": "OpenUI5", "version": "1.136.0"},
-		"libraries": []
-	}, oOptions);
-});
-
-test.serial("task: explicit SAPUI5 framework config is forwarded", async (t) => {
-	const workspace = createWorkspace();
-	const rootProject = {
-		getName: () => "myname",
-		getVersion: () => "1.33.7",
-		getFrameworkName: () => "SAPUI5",
-		getFrameworkVersion: () => "1.136.0"
-	};
-	const oOptions = {
-		workspace,
-		dependencies: resourceFactory.createAdapter({virBasePath: "/resources/"}),
-		options: {
-			pattern: "/resources/**/.library",
-			rootProject
+			rootProject: {getName: () => "myname", getVersion: () => "1.33.7"}
 		}
 	};
 	await assertCreatedVersionInfo(t, {
@@ -1246,20 +1219,15 @@ test.serial("task: explicit SAPUI5 framework config is forwarded", async (t) => 
 	}, oOptions);
 });
 
-test.serial("task: unrecognized framework name yields empty framework", async (t) => {
+test.serial("task: forwards an empty framework info from taskUtil", async (t) => {
 	const workspace = createWorkspace();
-	const rootProject = {
-		getName: () => "myname",
-		getVersion: () => "1.33.7",
-		getFrameworkName: () => "CustomFramework",
-		getFrameworkVersion: () => "1.0.0"
-	};
 	const oOptions = {
 		workspace,
 		dependencies: resourceFactory.createAdapter({virBasePath: "/resources/"}),
+		taskUtil: {getResolvedFrameworkInfo: () => ({name: "", version: ""})},
 		options: {
 			pattern: "/resources/**/.library",
-			rootProject
+			rootProject: {getName: () => "myname", getVersion: () => "1.33.7"}
 		}
 	};
 	// framework not in expected → assertCreatedVersionInfo verifies it defaults to {name:"",version:""}
@@ -1268,102 +1236,5 @@ test.serial("task: unrecognized framework name yields empty framework", async (t
 		"scmRevision": "",
 		"version": "1.33.7",
 		"libraries": []
-	}, oOptions);
-});
-
-function createScopedDepProject(names, {id, version = "1.136.0"} = {}) {
-	const key = names.join(".");
-	return {
-		getName: () => key,
-		getNamespace: () => names.join("/"),
-		getVersion: () => version,
-		getType: () => "library",
-		getId: () => id ?? key,
-		getFrameworkName: () => undefined,
-		getFrameworkVersion: () => undefined
-	};
-}
-
-test.serial("task: scans @openui5/sap.ui.core dep and resolves OpenUI5 with core version", async (t) => {
-	const workspace = createWorkspace();
-	const dep = resourceFactory.createAdapter({
-		virBasePath: "/",
-		project: createScopedDepProject(["sap", "ui", "core"], {id: "@openui5/sap.ui.core", version: "1.136.0"})
-	});
-	await dep.write(resourceFactory.createResource({
-		path: "/resources/sap/ui/core/.library",
-		string: `<library><name>sap.ui.core</name></library>`
-	}));
-	const rootProject = {
-		getName: () => "myapp", getVersion: () => "1.0.0",
-		getFrameworkName: () => undefined, getFrameworkVersion: () => undefined
-	};
-	const oOptions = {
-		workspace,
-		dependencies: dep,
-		options: {pattern: "/resources/**/.library", rootProject}
-	};
-	await assertCreatedVersionInfo(t, {
-		"name": "myapp",
-		"scmRevision": "",
-		"version": "1.0.0",
-		"framework": {"name": "OpenUI5", "version": "1.136.0"},
-		"libraries": [{"name": "sap.ui.core", "scmRevision": "", "version": "1.136.0"}]
-	}, oOptions);
-});
-
-test.serial("task: scans @sapui5/ dep and resolves SAPUI5 with empty version", async (t) => {
-	const workspace = createWorkspace();
-	const dep = resourceFactory.createAdapter({
-		virBasePath: "/",
-		project: createScopedDepProject(["sap", "m"], {id: "@sapui5/sap.m", version: "1.136.0"})
-	});
-	await dep.write(resourceFactory.createResource({
-		path: "/resources/sap/m/.library",
-		string: `<library><name>sap.m</name></library>`
-	}));
-	const rootProject = {
-		getName: () => "myapp", getVersion: () => "1.0.0",
-		getFrameworkName: () => undefined, getFrameworkVersion: () => undefined
-	};
-	const oOptions = {
-		workspace,
-		dependencies: dep,
-		options: {pattern: "/resources/**/.library", rootProject}
-	};
-	await assertCreatedVersionInfo(t, {
-		"name": "myapp",
-		"scmRevision": "",
-		"version": "1.0.0",
-		"framework": {"name": "SAPUI5", "version": ""},
-		"libraries": [{"name": "sap.m", "scmRevision": "", "version": "1.136.0"}]
-	}, oOptions);
-});
-
-test.serial("task: explicit ui5.yaml config wins over @sapui5/ scan result", async (t) => {
-	const workspace = createWorkspace();
-	const dep = resourceFactory.createAdapter({
-		virBasePath: "/",
-		project: createScopedDepProject(["sap", "m"], {id: "@sapui5/sap.m", version: "1.136.0"})
-	});
-	await dep.write(resourceFactory.createResource({
-		path: "/resources/sap/m/.library",
-		string: `<library><name>sap.m</name></library>`
-	}));
-	const rootProject = {
-		getName: () => "myapp", getVersion: () => "1.0.0",
-		getFrameworkName: () => "OpenUI5", getFrameworkVersion: () => "1.138.0"
-	};
-	const oOptions = {
-		workspace,
-		dependencies: dep,
-		options: {pattern: "/resources/**/.library", rootProject}
-	};
-	await assertCreatedVersionInfo(t, {
-		"name": "myapp",
-		"scmRevision": "",
-		"version": "1.0.0",
-		"framework": {"name": "OpenUI5", "version": "1.138.0"},
-		"libraries": [{"name": "sap.m", "scmRevision": "", "version": "1.136.0"}]
 	}, oOptions);
 });

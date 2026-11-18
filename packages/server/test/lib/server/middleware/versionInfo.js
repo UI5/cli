@@ -32,9 +32,7 @@ const createProjectMetadata = (names, version, type) => {
 		getName: () => key,
 		getNamespace: () => names.join("/"),
 		getVersion: () => version || "3.0.0-" + key,
-		getType: () => type || "library",
-		getFrameworkName: () => undefined,
-		getFrameworkVersion: () => undefined
+		getType: () => type || "library"
 	};
 };
 
@@ -227,7 +225,8 @@ test.serial("test all inner API calls within middleware", async (t) => {
 				};
 			}
 			return null;
-		}
+		},
+		getResolvedFrameworkInfo: () => ({name: "", version: ""})
 	};
 	const middleware = versionInfoMiddleware({resources, middlewareUtil});
 
@@ -274,10 +273,8 @@ test.serial("test all inner API calls within middleware", async (t) => {
 	const versionInfoGeneratorOptions = versionInfoGeneratorStub.getCall(0).args[0].options;
 	t.is(versionInfoGeneratorOptions.rootProjectName, "myname");
 	t.is(versionInfoGeneratorOptions.rootProjectVersion, "1.33.7");
-	t.is(versionInfoGeneratorOptions.frameworkName, undefined,
-		"frameworkName forwarded from root project (undefined when not configured)");
-	t.is(versionInfoGeneratorOptions.frameworkVersion, undefined,
-		"frameworkVersion forwarded from root project (undefined when not configured)");
+	t.deepEqual(versionInfoGeneratorOptions.framework, {name: "", version: ""},
+		"framework forwarded from middlewareUtil.getResolvedFrameworkInfo()");
 	t.is(versionInfoGeneratorOptions.libraryInfos.length, 3);
 	t.is(versionInfoGeneratorOptions.libraryInfos[0].name, "lib.a");
 	t.is(await versionInfoGeneratorOptions.libraryInfos[0].libraryManifest.getString(), "mocked manifest.json 1");
@@ -345,7 +342,8 @@ test.serial("integration: Library with dependencies and subcomponent complex sce
 	};
 
 	const middlewareUtil = {
-		getProject: () => createProjectMetadata(["myname"], "1.33.7")
+		getProject: () => createProjectMetadata(["myname"], "1.33.7"),
+		getResolvedFrameworkInfo: () => ({name: "", version: ""})
 	};
 
 	const versionInfoMiddleware = await t.context.createVersionInfoMiddleware();
@@ -451,7 +449,7 @@ test.serial("integration: Library with dependencies and subcomponent complex sce
 	await middleware(undefined, res, next);
 });
 
-test.serial("integration: middleware resolves framework for configured OpenUI5 project", async (t) => {
+test.serial("integration: middleware forwards resolved OpenUI5 framework from getResolvedFrameworkInfo", async (t) => {
 	const workspace = createWorkspace();
 	await createDotLibrary(workspace, resourceFactory, ["test", "lib"]);
 
@@ -459,10 +457,7 @@ test.serial("integration: middleware resolves framework for configured OpenUI5 p
 		getName: () => "sap.ui.core",
 		getNamespace: () => "sap/ui/core",
 		getVersion: () => "1.136.0",
-		getType: () => "library",
-		getFrameworkName: () => undefined,
-		getFrameworkVersion: () => undefined,
-		getId: () => "@openui5/sap.ui.core"
+		getType: () => "library"
 	};
 	const dep = resourceFactory.createAdapter({virBasePath: "/", project: coreProject});
 	coreProject.getSourceReader = () => dep;
@@ -479,10 +474,9 @@ test.serial("integration: middleware resolves framework for configured OpenUI5 p
 	const middlewareUtil = {
 		getProject: () => ({
 			getName: () => "myapp",
-			getVersion: () => "1.0.0",
-			getFrameworkName: () => "OpenUI5",
-			getFrameworkVersion: () => "1.136.0"
-		})
+			getVersion: () => "1.0.0"
+		}),
+		getResolvedFrameworkInfo: () => ({name: "OpenUI5", version: "1.136.0"})
 	};
 
 	const versionInfoMiddleware = await t.context.createVersionInfoMiddleware();
@@ -507,7 +501,7 @@ test.serial("integration: middleware resolves framework for configured OpenUI5 p
 	});
 });
 
-test.serial("integration: middleware emits empty string version for name-only framework config", async (t) => {
+test.serial("integration: middleware forwards an empty-version SAPUI5 framework", async (t) => {
 	const workspace = createWorkspace();
 	await createDotLibrary(workspace, resourceFactory, ["test", "lib"]);
 
@@ -518,10 +512,9 @@ test.serial("integration: middleware emits empty string version for name-only fr
 	const middlewareUtil = {
 		getProject: () => ({
 			getName: () => "myapp",
-			getVersion: () => "1.0.0",
-			getFrameworkName: () => "SAPUI5",
-			getFrameworkVersion: () => undefined
-		})
+			getVersion: () => "1.0.0"
+		}),
+		getResolvedFrameworkInfo: () => ({name: "SAPUI5", version: ""})
 	};
 
 	const versionInfoMiddleware = await t.context.createVersionInfoMiddleware();

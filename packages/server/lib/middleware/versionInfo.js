@@ -40,19 +40,16 @@ function createMiddleware({resources, middlewareUtil}) {
 					libraryManifest,
 					embeddedManifests,
 					name: dotLibResource.getProject().getName(),
-					version: dotLibResource.getProject().getVersion(),
-					id: dotLibResource.getProject().getId?.()
+					version: dotLibResource.getProject().getVersion()
 				};
 			});
 			const rootProject = middlewareUtil.getProject();
-			const resolvedFrameworkVersion = middlewareUtil.getResolvedFrameworkVersion();
 			const libraryInfos = await Promise.all(libraryInfosPromises);
 			const [versionInfoResource] = await createVersionInfoProcessor({
 				options: {
 					rootProjectName: rootProject.getName(),
 					rootProjectVersion: rootProject.getVersion(),
-					frameworkName: rootProject.getFrameworkName?.(),
-					frameworkVersion: resolvedFrameworkVersion,
+					framework: middlewareUtil.getResolvedFrameworkInfo(),
 					libraryInfos
 				}
 			});
