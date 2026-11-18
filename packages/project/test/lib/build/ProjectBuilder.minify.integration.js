@@ -270,7 +270,7 @@ test.serial("minify: changing configured support-rule exclusions invalidates cac
 	const included = await project.build();
 	t.deepEqual(included.activity.minified, ["Solo.support.js"]);
 	t.is(included.activity.pairs, 1);
-	t.is(included.activity.warnings.length, 1, "Partially re-including an existing pair restores its warning");
+	t.is(included.activity.warnings.length, 1, "Re-including the non-debug member restores its warning");
 	t.deepEqual(included.output.get("Rules.support.js"), cold.output.get("Rules.support.js"));
 	t.not(included.output.get("Solo.support.js").content, source, "An explicitly re-included rule is minified");
 	t.deepEqual(included.output.get("Solo.support.js").tags, hasDebug);
@@ -281,7 +281,7 @@ test.serial("minify: changing configured support-rule exclusions invalidates cac
 	t.deepEqual(warm.output, included.output);
 	t.is(warm.activity.enumerations, 0);
 
-	await project.configure(["!Solo.support.js", "Solo.support.js"]);
+	await project.configure(["!Solo.support.js", "Solo.support.js", "!Rules-dbg.support.js"]);
 	const excludedAgain = await project.build();
 	t.deepEqual(excludedAgain.activity, {enumerations: 1, minified: [], pairs: 1, warnings: []});
 	t.deepEqual(excludedAgain.output, cold.output,

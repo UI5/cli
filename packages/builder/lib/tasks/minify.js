@@ -18,7 +18,7 @@ const log = getLogger("builder:tasks:minify");
  * thus recorded as an input of that step, so changing only the <code>.js.map</code> re-runs its owning
  * <code>.js</code> and regenerates a correct <code>-dbg.js.map</code>.
  * Existing debug/non-debug pairs are left unchanged and tagged, even when excluded from minification.
- * Each pair has a separate tagging key, so its tags can be restored without re-running the callback.
+ * A warning is logged for the non-debug resource if it's not excluded from minification.
  *
  * @public
  * @function default
@@ -101,24 +101,26 @@ export default function defineTask({
 
 	return {steps: [{
 		name: "minify",
-		// Ordinary resource keys retain their content-based identity and source-map dependency tracking.
-		// Existing pairs use string keys and do not load/hash their content during key enumeration.
 		keys: async ({workspace}) => {
-			// The single discovery query records every input needed for pairing. Exclusions only select
-			// minification keys; they are task options and therefore already part of the build signature.
 			const resources = await workspace.byGlob(pattern);
 			const paths = new Set(resources.map((resource) => resource.getPath()));
-			const minificationPaths = new Set([...paths].filter(shouldBeMinified));
+			// Filter resources by the exclusions:
+			const shouldBeMinifiedPaths = new Set([...paths].filter(shouldBeMinified));
 			const keys = [];
 			for (const resource of resources) {
 				const resourcePath = resource.getPath();
 				const dbgPath = getDebugName(resourcePath);
 				if (dbgPath && paths.has(dbgPath)) {
-					// Neither member may be minified: their generated outputs would collide. Give the pair
-					// its own invocation so tags are replayed on a delta, and dropped when the pair disappears.
+					// Special dbg/non-dbg pair handling: if a debug variant ("-dbg.js"),
+					// and a non-debug resource (".js") exist together, both should not be minified.
+					// In case such a scenario (& no exclusion), log a warning for the non-debug resource:
 					keys.push(JSON.stringify({resourcePath, dbgPath,
-						warn: minificationPaths.has(resourcePath) || minificationPaths.has(dbgPath)}));
-				} else if (!paths.has(getNonDebugName(resourcePath)) && minificationPaths.has(resourcePath)) {
+						warn: shouldBeMinifiedPaths.has(resourcePath)}));
+					// We use JSON.stringify & parse to pass multiple values through the build framework
+					// to be picked up later in the 'each' step.
+				} else if (!paths.has(getNonDebugName(resourcePath)) && shouldBeMinifiedPaths.has(resourcePath)) {
+					// Standard case: resources without a debug variant
+					// (+ cases where the resource is simply called "-dbg.js")
 					keys.push(resource);
 				}
 			}
@@ -126,6 +128,7 @@ export default function defineTask({
 		},
 		each: async (inputResource, {workspace, taskUtil}) => {
 			if (typeof inputResource === "string") {
+				// Special dbg/non-dbg pair handling:
 				const {resourcePath, dbgPath, warn} = JSON.parse(inputResource);
 				if (warn) {
 					log.warn(
@@ -137,8 +140,7 @@ export default function defineTask({
 						`project's ui5.yaml.`);
 				}
 				if (taskUtil) {
-					// Attribute these reads and tag operations to the pair, not the enumerator. Unrelated
-					// minification keys stay cached when a member changes; excluded pairs are never written.
+					// Tag both resources (even if not minified)
 					const [resource, dbgResource] = await Promise.all([
 						workspace.byPath(resourcePath), workspace.byPath(dbgPath),
 					]);
