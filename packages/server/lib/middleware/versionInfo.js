@@ -49,6 +49,7 @@ function createMiddleware({resources, middlewareUtil}) {
 				options: {
 					rootProjectName: rootProject.getName(),
 					rootProjectVersion: rootProject.getVersion(),
+					framework: middlewareUtil.getResolvedFrameworkInfo(),
 					libraryInfos
 				}
 			});

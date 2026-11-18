@@ -68,6 +68,12 @@ async function createOptions(t, options) {
 async function assertCreatedVersionInfo(t, oExpectedVersionInfo, oOptions) {
 	const {generateVersionInfo} = t.context;
 
+	// The task resolves the framework via taskUtil.getResolvedFrameworkInfo(). Default to an empty
+	// result so tests that don't care about the framework need not provide a taskUtil stub.
+	if (!oOptions.taskUtil) {
+		oOptions.taskUtil = {getResolvedFrameworkInfo: () => ({name: "", version: ""})};
+	}
+
 	await generateVersionInfo().task(oOptions);
 
 	const resource = await oOptions.workspace.byPath("/resources/sap-ui-version.json");
@@ -90,6 +96,14 @@ async function assertCreatedVersionInfo(t, oExpectedVersionInfo, oOptions) {
 	currentVersionInfo.libraries.sort((libraryA, libraryB) => {
 		return libraryA.name.localeCompare(libraryB.name);
 	});
+
+	// The "framework" object is always emitted. When the expectation does not assert it
+	// explicitly, verify it defaults to empty strings and remove it to allow deep comparison.
+	if (!("framework" in oExpectedVersionInfo)) {
+		t.deepEqual(currentVersionInfo.framework, {name: "", version: ""},
+			"framework defaults to empty strings when no framework is resolved");
+		delete currentVersionInfo.framework;
+	}
 
 	t.deepEqual(currentVersionInfo, oExpectedVersionInfo, "Correct content");
 }
@@ -1183,4 +1197,44 @@ test.serial("integration: Library of type 'module'", async (t) => {
 	}, oOptions);
 
 	t.is(infoLogStub.callCount, 0);
+});
+
+test.serial("task: forwards the resolved framework info from taskUtil", async (t) => {
+	const workspace = createWorkspace();
+	const oOptions = {
+		workspace,
+		dependencies: resourceFactory.createAdapter({virBasePath: "/resources/"}),
+		taskUtil: {getResolvedFrameworkInfo: () => ({name: "SAPUI5", version: "1.136.0"})},
+		options: {
+			pattern: "/resources/**/.library",
+			rootProject: {getName: () => "myname", getVersion: () => "1.33.7"}
+		}
+	};
+	await assertCreatedVersionInfo(t, {
+		"name": "myname",
+		"scmRevision": "",
+		"version": "1.33.7",
+		"framework": {"name": "SAPUI5", "version": "1.136.0"},
+		"libraries": []
+	}, oOptions);
+});
+
+test.serial("task: forwards an empty framework info from taskUtil", async (t) => {
+	const workspace = createWorkspace();
+	const oOptions = {
+		workspace,
+		dependencies: resourceFactory.createAdapter({virBasePath: "/resources/"}),
+		taskUtil: {getResolvedFrameworkInfo: () => ({name: "", version: ""})},
+		options: {
+			pattern: "/resources/**/.library",
+			rootProject: {getName: () => "myname", getVersion: () => "1.33.7"}
+		}
+	};
+	// framework not in expected → assertCreatedVersionInfo verifies it defaults to {name:"",version:""}
+	await assertCreatedVersionInfo(t, {
+		"name": "myname",
+		"scmRevision": "",
+		"version": "1.33.7",
+		"libraries": []
+	}, oOptions);
 });

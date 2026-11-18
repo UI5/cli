@@ -379,6 +379,10 @@ const processLibraryInfo = async (libraryInfo) => {
  *   }
  *   ```
  *
+ * @param {string} [parameters.options.framework] Resolved framework identity and version,
+ *				e.g. <code>{name: "SAPUI5", version: "1.136.0"}</code>. Supplied by the caller
+ *				(from <code>getResolvedFrameworkInfo()</code>); embedded verbatim. Defaults to
+ *				<code>{name: "", version: ""}</code> when omitted.
  * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with an array containing the versionInfo resource
  */
 
@@ -463,6 +467,7 @@ export default async function({options}) {
 		buildTimestamp: buildTimestamp,
 		scmRevision: "", // TODO: insert current application scm revision here
 		// gav: "", // TODO: insert current application id + version here
+		framework: options.framework ?? {name: "", version: ""},
 		libraries,
 		components
 	};

@@ -30,12 +30,14 @@ export default function defineTask(options) {
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
+ * @param {@ui5/project/build/helpers/TaskUtil} parameters.taskUtil TaskUtil, used to resolve the
+ *   effective framework identity and version via <code>getResolvedFrameworkInfo()</code>
  * @param {object} parameters.options Options
  * @param {string} parameters.options.pattern Glob pattern for .library resources
  * @param {object} parameters.options.rootProject Root project (used for its name and version)
  * @returns {Promise<undefined>} Promise resolving once sap-ui-version.json has been written
  */
-async function task({workspace, dependencies, options: {rootProject, pattern}}) {
+async function task({workspace, dependencies, taskUtil, options: {rootProject, pattern}}) {
 	let resources = await dependencies.byGlob(pattern);
 
 	resources = resources.filter((res) => res.getProject()?.getType() === "library");
@@ -64,6 +66,7 @@ async function task({workspace, dependencies, options: {rootProject, pattern}}) 
 		options: {
 			rootProjectName: rootProject.getName(),
 			rootProjectVersion: rootProject.getVersion(),
+			framework: taskUtil.getResolvedFrameworkInfo(),
 			libraryInfos
 		}
 	});
