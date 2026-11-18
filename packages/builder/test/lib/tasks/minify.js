@@ -5,12 +5,8 @@ import runTask from "../../../lib/tasks/runTask.js";
 
 test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
-	// Input resources returned by the glob. The minify step reads getPath() on each to detect an existing
-	// -dbg.js sibling; these plain paths have none, so every input is processed.
-	const inputA = t.context.inputA = {getPath: () => "/resources/a.js"};
-	const inputB = t.context.inputB = {getPath: () => "/resources/b.js"};
 	t.context.workspace = {
-		byGlob: sinon.stub().resolves([inputA, inputB]),
+		byGlob: sinon.stub().resolves([]),
 		byPath: sinon.stub().resolves(null),
 		write: sinon.stub().resolves()
 	};
@@ -25,12 +21,9 @@ test.beforeEach(async (t) => {
 		},
 		registerCleanupTask: sinon.stub()
 	};
-
 	t.context.fsInterfaceStub = sinon.stub().returns("fs interface");
 	t.context.minifierStub = sinon.stub();
-	t.context.log = {
-		warn: sinon.stub()
-	};
+	t.context.log = {warn: sinon.stub()};
 	t.context.minify = await esmock.p("../../../lib/tasks/minify.js", {
 		"@ui5/fs/fsInterface": t.context.fsInterfaceStub,
 		"../../../lib/processors/minifier.js": t.context.minifierStub,
@@ -39,412 +32,229 @@ test.beforeEach(async (t) => {
 		}
 	});
 });
+
 test.afterEach.always(async (t) => {
-	const {registerCleanupTask} = t.context.taskUtil;
-
-	if (registerCleanupTask.callCount === 1) {
-		// Ensure to call cleanup task so that workerpool is terminated - otherwise the test will time out!
-		const cleanupTask = registerCleanupTask.getCall(0).args[0];
-		await cleanupTask();
+	for (const call of t.context.taskUtil.registerCleanupTask.getCalls()) {
+		await call.firstArg();
 	}
-
 	esmock.purge(t.context.minify);
 	t.context.sinon.restore();
 });
 
-test("minify: Default params", async (t) => {
-	const {minify, workspace, taskUtil, minifierStub, inputA, inputB} = t.context;
-	// One step per resource: the processor is called once per input resource.
-	const processedByInput = new Map([
-		[inputA, {
-			resource: "resource A",
-			dbgResource: "dbgResource A",
-			sourceMapResource: "sourceMapResource A",
-			dbgSourceMapResource: "dbgSourceMapResource A" // optional
-		}],
-		[inputB, {
-			resource: "resource B",
-			dbgResource: "dbgResource B",
-			sourceMapResource: "sourceMapResource B",
-		}]
-	]);
-	minifierStub.callsFake(({resources}) => Promise.resolve([processedByInput.get(resources[0])]));
-	await runTask(minify, {
-		workspace,
-		taskUtil,
-		options: {
-			pattern: "**"
-		}
-	});
+// Shared setup for test categories 1-3 below:
+function setup(t, paths, debugSourceMaps = []) {
+	const {workspace, minifierStub} = t.context;
+	const resources = new Map(paths.map((resourcePath) => [resourcePath, {getPath: () => resourcePath}]));
+	const processed = new Map(paths.map((resourcePath) => [resourcePath, {
+		resource: `resource ${resourcePath}`,
+		dbgResource: `dbgResource ${resourcePath}`,
+		sourceMapResource: `sourceMapResource ${resourcePath}`,
+		dbgSourceMapResource: debugSourceMaps.includes(resourcePath) ?
+			`dbgSourceMapResource ${resourcePath}` : undefined
+	}]));
+	workspace.byGlob.resolves([...resources.values()]);
+	workspace.byPath.callsFake((resourcePath) => Promise.resolve(resources.get(resourcePath) ?? null));
+	minifierStub.callsFake(({resources: [input]}) => Promise.resolve([processed.get(input.getPath())]));
+	return {resources, processed};
+}
 
-	t.true(workspace.byGlob.calledOnceWithExactly("**"), "Resources are discovered with one glob");
-	t.false(workspace.byPath.called, "Ordinary resources need no per-file sibling lookup");
-	t.is(minifierStub.callCount, 2, "minifier got called once per resource");
-	const minifierCallArgs = minifierStub.firstCall.firstArg;
-	t.deepEqual(minifierCallArgs.resources, [inputA], "First step processes the first resource");
-	t.deepEqual(minifierStub.secondCall.firstArg.resources, [inputB], "Second step: second resource");
-	t.is(minifierCallArgs.fs, "fs interface", "Correct fs interface provided to processor");
-	t.is(minifierCallArgs.taskUtil, taskUtil, "Correct taskUtil provided to processor");
-	t.deepEqual(minifierCallArgs.options, {
-		addSourceMappingUrl: true,
-		readSourceMappingUrl: true,
-		useWorkers: true
-	}, "minifier got called with expected options");
+const defaultTags = [
+	["resource", "HasDebugVariant"],
+	["dbgResource", "IsDebugVariant"],
+	["sourceMapResource", "HasDebugVariant"],
+	["dbgSourceMapResource", "IsDebugVariant"]
+];
 
-	t.is(taskUtil.setTag.callCount, 7, "taskUtil#setTag got called 12 times");
-	t.is(taskUtil.setTag.getCall(0).args[0], "resource A", "taskUtil#setTag got called with the correct resource");
-	t.is(taskUtil.setTag.getCall(0).args[1], "has debug variant", "taskUtil#setTag got called with the correct tag");
-	t.is(taskUtil.setTag.getCall(1).args[0], "dbgResource A", "taskUtil#setTag got called with the correct resource");
-	t.is(taskUtil.setTag.getCall(1).args[1], "is debug variant", "taskUtil#setTag got called with the correct tag");
-	t.is(taskUtil.setTag.getCall(2).args[0], "sourceMapResource A",
-		"taskUtil#setTag got called with the correct resource");
-	t.is(taskUtil.setTag.getCall(2).args[1], "has debug variant", "taskUtil#setTag got called with the correct tag");
-	t.is(taskUtil.setTag.getCall(3).args[0], "dbgSourceMapResource A",
-		"taskUtil#setTag got called with the correct resource");
-	t.is(taskUtil.setTag.getCall(3).args[1], "is debug variant", "taskUtil#setTag got called with the correct tag");
+// 1. General minify task tests:
+// Checks that minify gives the minifier the correct options and writes/tags the resources.
+// Covered with/without source-map settings and with/without taskUtil usage.
+const optionCases = [{
+	name: "Default params",
+	options: {},
+	useTaskUtil: true,
+	processorOptions: {addSourceMappingUrl: true, readSourceMappingUrl: true, useWorkers: true},
+	tags: defaultTags
+}, {
+	name: "omitSourceMapResources: true, useInputSourceMaps: false",
+	options: {omitSourceMapResources: true, useInputSourceMaps: false},
+	useTaskUtil: true,
+	processorOptions: {addSourceMappingUrl: false, readSourceMappingUrl: false, useWorkers: true},
+	tags: [
+		["resource", "HasDebugVariant"],
+		["dbgResource", "IsDebugVariant"],
+		["sourceMapResource", "HasDebugVariant"],
+		["sourceMapResource", "OmitFromBuildResult"],
+		["dbgSourceMapResource", "IsDebugVariant"],
+		["dbgSourceMapResource", "OmitFromBuildResult"]
+	]
+}, {
+	name: "No taskUtil",
+	options: {},
+	useTaskUtil: false,
+	processorOptions: {addSourceMappingUrl: true, readSourceMappingUrl: true, useWorkers: false},
+	tags: []
+}];
 
-	t.is(taskUtil.setTag.getCall(4).args[0], "resource B", "taskUtil#setTag got called with the correct resource");
-	t.is(taskUtil.setTag.getCall(4).args[1], "has debug variant", "taskUtil#setTag got called with the correct tag");
-	t.is(taskUtil.setTag.getCall(5).args[0], "dbgResource B", "taskUtil#setTag got called with the correct resource");
-	t.is(taskUtil.setTag.getCall(5).args[1], "is debug variant", "taskUtil#setTag got called with the correct tag");
-	t.is(taskUtil.setTag.getCall(6).args[0], "sourceMapResource B",
-		"taskUtil#setTag got called with the correct resource");
-	t.is(taskUtil.setTag.getCall(6).args[1], "has debug variant", "taskUtil#setTag got called with the correct tag");
+for (const scenario of optionCases) {
+	test(`minify: ${scenario.name}`, async (t) => {
+		const {minify, workspace, taskUtil, minifierStub} = t.context;
+		const paths = ["/resources/a.js", "/resources/b.js"];
+		const {resources, processed} = setup(t, paths, [paths[0]]);
+		const passedTaskUtil = scenario.useTaskUtil ? taskUtil : undefined;
+		await runTask(minify, {
+			workspace, taskUtil: passedTaskUtil, options: {pattern: "**", ...scenario.options}
+		});
 
-	t.is(workspace.write.callCount, 7, "workspace#write got called seven times");
-	[
-		"resource A", "dbgResource A", "sourceMapResource A", "dbgSourceMapResource A",
-		"resource B", "dbgResource B", "sourceMapResource B"
-	].forEach((resName, idx) => {
-		t.is(workspace.write.getCall(idx).firstArg, resName, "workspace#write got called for expected resource");
-	});
-});
-
-test("minify: omitSourceMapResources: true, useInputSourceMaps: false", async (t) => {
-	const {minify, workspace, taskUtil, minifierStub, inputA, inputB} = t.context;
-	// One step per resource: the processor is called once per input resource.
-	const processedByInput = new Map([
-		[inputA, {
-			resource: "resource A",
-			dbgResource: "dbgResource A",
-			sourceMapResource: "sourceMapResource A",
-			dbgSourceMapResource: "dbgSourceMapResource A" // optional
-		}],
-		[inputB, {
-			resource: "resource B",
-			dbgResource: "dbgResource B",
-			sourceMapResource: "sourceMapResource B",
-		}]
-	]);
-	minifierStub.callsFake(({resources}) => Promise.resolve([processedByInput.get(resources[0])]));
-	await runTask(minify, {
-		workspace,
-		taskUtil,
-		options: {
-			pattern: "**",
-			omitSourceMapResources: true,
-			useInputSourceMaps: false
-		}
-	});
-
-	t.is(minifierStub.callCount, 2, "minifier got called once per resource");
-	const minifierCallArgs = minifierStub.firstCall.firstArg;
-	t.deepEqual(minifierCallArgs.resources, [inputA], "First step processes the first resource");
-	t.deepEqual(minifierStub.secondCall.firstArg.resources, [inputB], "Second step: second resource");
-	t.is(minifierCallArgs.fs, "fs interface", "Correct fs interface provided to processor");
-	t.is(minifierCallArgs.taskUtil, taskUtil, "Correct taskUtil provided to processor");
-	t.deepEqual(minifierCallArgs.options, {
-		addSourceMappingUrl: false,
-		readSourceMappingUrl: false,
-		useWorkers: true
-	}, "minifier got called with expected options");
-
-	t.is(taskUtil.setTag.callCount, 10, "taskUtil#setTag got called 12 times");
-	t.is(taskUtil.setTag.getCall(0).args[0], "resource A", "taskUtil#setTag got called with the correct resource");
-	t.is(taskUtil.setTag.getCall(0).args[1], "has debug variant", "taskUtil#setTag got called with the correct tag");
-	t.is(taskUtil.setTag.getCall(1).args[0], "dbgResource A", "taskUtil#setTag got called with the correct resource");
-	t.is(taskUtil.setTag.getCall(1).args[1], "is debug variant", "taskUtil#setTag got called with the correct tag");
-	t.is(taskUtil.setTag.getCall(2).args[0], "sourceMapResource A",
-		"taskUtil#setTag got called with the correct resource");
-	t.is(taskUtil.setTag.getCall(2).args[1], "has debug variant", "taskUtil#setTag got called with the correct tag");
-	t.is(taskUtil.setTag.getCall(3).args[0], "sourceMapResource A",
-		"taskUtil#setTag got called with the correct resource");
-	t.is(taskUtil.setTag.getCall(3).args[1], "omit from build result",
-		"taskUtil#setTag got called with the correct tag");
-	t.is(taskUtil.setTag.getCall(4).args[0], "dbgSourceMapResource A",
-		"taskUtil#setTag got called with the correct resource");
-	t.is(taskUtil.setTag.getCall(4).args[1], "is debug variant", "taskUtil#setTag got called with the correct tag");
-	t.is(taskUtil.setTag.getCall(5).args[0], "dbgSourceMapResource A",
-		"taskUtil#setTag got called with the correct resource");
-	t.is(taskUtil.setTag.getCall(5).args[1], "omit from build result",
-		"taskUtil#setTag got called with the correct tag");
-
-	t.is(taskUtil.setTag.getCall(6).args[0], "resource B", "taskUtil#setTag got called with the correct resource");
-	t.is(taskUtil.setTag.getCall(6).args[1], "has debug variant", "taskUtil#setTag got called with the correct tag");
-	t.is(taskUtil.setTag.getCall(7).args[0], "dbgResource B", "taskUtil#setTag got called with the correct resource");
-	t.is(taskUtil.setTag.getCall(7).args[1], "is debug variant", "taskUtil#setTag got called with the correct tag");
-	t.is(taskUtil.setTag.getCall(8).args[0], "sourceMapResource B",
-		"taskUtil#setTag got called with the correct resource");
-	t.is(taskUtil.setTag.getCall(8).args[1], "has debug variant", "taskUtil#setTag got called with the correct tag");
-	t.is(taskUtil.setTag.getCall(9).args[0], "sourceMapResource B",
-		"taskUtil#setTag got called with the correct resource");
-	t.is(taskUtil.setTag.getCall(9).args[1], "omit from build result",
-		"taskUtil#setTag got called with the correct tag");
-
-	t.is(workspace.write.callCount, 7, "workspace#write got called seven times");
-	[
-		"resource A", "dbgResource A", "sourceMapResource A", "dbgSourceMapResource A",
-		"resource B", "dbgResource B", "sourceMapResource B"
-	].forEach((resName, idx) => {
-		t.is(workspace.write.getCall(idx).firstArg, resName, "workspace#write got called for expected resource");
-	});
-});
-
-test("minify: No taskUtil", async (t) => {
-	const {minify, workspace, minifierStub, inputA, inputB} = t.context;
-	// One step per resource: the processor is called once per input resource.
-	const processedByInput = new Map([
-		[inputA, {
-			resource: "resource A",
-			dbgResource: "dbgResource A",
-			sourceMapResource: "sourceMapResource A",
-			dbgSourceMapResource: "dbgSourceMapResource A" // optional
-		}],
-		[inputB, {
-			resource: "resource B",
-			dbgResource: "dbgResource B",
-			sourceMapResource: "sourceMapResource B",
-		}]
-	]);
-	minifierStub.callsFake(({resources}) => Promise.resolve([processedByInput.get(resources[0])]));
-	await runTask(minify, {
-		workspace,
-		options: {
-			pattern: "**"
-		}
-	});
-
-	t.is(minifierStub.callCount, 2, "minifier got called once per resource");
-	const minifierCallArgs = minifierStub.firstCall.firstArg;
-	t.deepEqual(minifierCallArgs.resources, [inputA], "First step processes the first resource");
-	t.deepEqual(minifierStub.secondCall.firstArg.resources, [inputB], "Second step: second resource");
-	t.is(minifierCallArgs.fs, "fs interface", "Correct fs interface provided to processor");
-	t.is(minifierCallArgs.taskUtil, undefined, "No taskUtil provided to processor");
-	t.deepEqual(minifierCallArgs.options, {
-		addSourceMappingUrl: true,
-		readSourceMappingUrl: true,
-		useWorkers: false
-	}, "minifier got called with expected options");
-
-	t.is(workspace.write.callCount, 7, "workspace#write got called seven times");
-	[
-		"resource A", "dbgResource A", "sourceMapResource A", "dbgSourceMapResource A",
-		"resource B", "dbgResource B", "sourceMapResource B"
-	].forEach((resName, idx) => {
-		t.is(workspace.write.getCall(idx).firstArg, resName, "workspace#write got called for expected resource");
-	});
-});
-
-test("minify: Skips, tags and warns for an existing -dbg.js next to its .js", async (t) => {
-	const {minify, workspace, taskUtil, minifierStub, log} = t.context;
-	// A .js with an existing -dbg.js sibling (broken input state), plus a plain .js without a sibling.
-	const normal = {getPath: () => "/resources/normal.js"};
-	const withDbg = {getPath: () => "/resources/withDbg.js"};
-	const existingDbg = {getPath: () => "/resources/withDbg-dbg.js"};
-	workspace.byGlob.resolves([normal, withDbg, existingDbg]);
-	workspace.byPath.withArgs(withDbg.getPath()).resolves(withDbg);
-	workspace.byPath.withArgs(existingDbg.getPath()).resolves(existingDbg);
-
-	const processedByInput = new Map([
-		[normal, {
-			resource: "resource normal",
-			dbgResource: "dbgResource normal",
-			sourceMapResource: "sourceMapResource normal",
-		}]
-	]);
-	minifierStub.callsFake(({resources}) => Promise.resolve([processedByInput.get(resources[0])]));
-
-	await runTask(minify, {
-		workspace,
-		taskUtil,
-		options: {
-			pattern: "**"
-		}
-	});
-
-	// Only the plain .js is minified; the .js with a sibling and that -dbg.js are both skipped.
-	t.is(minifierStub.callCount, 1, "minifier got called once - only for the plain .js");
-	t.deepEqual(minifierStub.firstCall.firstArg.resources, [normal], "minifier processed the plain .js only");
-
-	t.is(log.warn.callCount, 1, "One warning got logged for the existing -dbg.js");
-	t.true(log.warn.firstCall.firstArg.includes("/resources/withDbg.js") &&
-		log.warn.firstCall.firstArg.includes("/resources/withDbg-dbg.js"),
-	"Warning names the .js and its existing debug variant");
-	t.true(log.warn.firstCall.firstArg.includes("builder.minification.excludes"),
-		"Warning hints at the minification excludes configuration");
-
-	t.true(taskUtil.setTag.calledWithExactly(withDbg, taskUtil.STANDARD_TAGS.HasDebugVariant),
-		"Skipped .js is tagged as having a debug variant");
-	t.true(taskUtil.setTag.calledWithExactly(existingDbg, taskUtil.STANDARD_TAGS.IsDebugVariant),
-		"Existing -dbg.js is tagged as a debug variant");
-
-	// Neither the skipped .js nor its -dbg.js got written back.
-	t.is(workspace.write.callCount, 3, "workspace#write got called only for the plain .js and its derived resources");
-	["resource normal", "dbgResource normal", "sourceMapResource normal"].forEach((resName, idx) => {
-		t.is(workspace.write.getCall(idx).firstArg, resName, "workspace#write got called for expected resource");
-	});
-});
-
-test("minify: Processes a standalone -dbg.js without a .js sibling", async (t) => {
-	// This test covers a scenario where a -dbg.js file exists WITHOUT a corresponding normal .js sibling.
-	// This could happen e.g. if (for whatever reason) the resource was simply named "..-dbg.js"
-	// (-> valid case)
-	const {minify, workspace, taskUtil, minifierStub, log} = t.context;
-	const standalone = {getPath: () => "/resources/standalone-dbg.js"};
-	workspace.byGlob.resolves([standalone]);
-
-	const processedByInput = new Map([
-		[standalone, {
-			resource: "resource standalone",
-			dbgResource: "dbgResource standalone",
-			sourceMapResource: "sourceMapResource standalone",
-		}]
-	]);
-	minifierStub.callsFake(({resources}) => Promise.resolve([processedByInput.get(resources[0])]));
-
-	await runTask(minify, {
-		workspace,
-		taskUtil,
-		options: {
-			pattern: "**"
-		}
-	});
-
-	t.is(minifierStub.callCount, 1, "minifier got called once - for the standalone -dbg.js");
-	t.deepEqual(minifierStub.firstCall.firstArg.resources, [standalone],
-		"minifier processed the standalone -dbg.js");
-
-	t.is(log.warn.callCount, 0, "No warning got logged for the standalone -dbg.js");
-
-	t.true(taskUtil.setTag.calledWithExactly("resource standalone", taskUtil.STANDARD_TAGS.HasDebugVariant),
-		"The standalone file is tagged as having a generated debug variant");
-	t.false(taskUtil.setTag.calledWith(standalone, taskUtil.STANDARD_TAGS.IsDebugVariant),
-		"The standalone file is not tagged as a debug variant based on its name");
-	t.true(taskUtil.setTag.calledWithExactly("dbgResource standalone", taskUtil.STANDARD_TAGS.IsDebugVariant),
-		"The generated debug variant receives its debug tag");
-
-	t.is(workspace.write.callCount, 3, "workspace#write got called for the standalone file and its derived resources");
-	["resource standalone", "dbgResource standalone", "sourceMapResource standalone"].forEach((resName, idx) => {
-		t.is(workspace.write.getCall(idx).firstArg, resName, "workspace#write got called for expected resource");
-	});
-});
-
-for (const included of [[], ["A.js"], ["A-dbg.js"], ["A.js", "A-dbg.js"]]) {
-	test(`minify: Tags existing pairs (included: ${included.join(", ") || "none"})`, async (t) => {
-		const {minify, workspace, taskUtil, minifierStub, log} = t.context;
-		const resource = {getPath: () => "/resources/A.js"};
-		const debug = {getPath: () => "/resources/A-dbg.js"};
-		const all = [debug, resource]; // Debug first: enumeration must not depend on glob order
-		const excludes = ["/resources/A*.js", ...included.map((name) => `!/resources/${name}`)];
-		workspace.byGlob.resolves(all);
-		workspace.byPath.withArgs(resource.getPath()).resolves(resource);
-		workspace.byPath.withArgs(debug.getPath()).resolves(debug);
-
-		const [step] = minify({pattern: "/resources/**/*.js", excludes}).steps;
-		const keys = await step.keys({workspace, taskUtil});
-		t.true(workspace.byGlob.calledOnceWithExactly("/resources/**/*.js"),
-			"Exclusions are evaluated in memory, not by a second glob");
-		t.is(keys.length, 1, "One key represents the pair");
-		t.is(typeof keys[0], "string", "A pair key does not require hashing either resource");
-		t.false(taskUtil.setTag.called, "Key enumeration has no tag side effects");
-		t.false(log.warn.called, "Warnings belong to the pair invocation too");
-		t.false(workspace.byPath.called, "No per-resource sibling lookups during enumeration");
-
-		await step.each(keys[0], {workspace, taskUtil});
-		t.true(taskUtil.setTag.calledWithExactly(resource, taskUtil.STANDARD_TAGS.HasDebugVariant));
-		t.true(taskUtil.setTag.calledWithExactly(debug, taskUtil.STANDARD_TAGS.IsDebugVariant));
-		t.is(taskUtil.setTag.callCount, 2);
-		t.is(log.warn.callCount, included.includes("A.js") ? 1 : 0,
-			"Warn only when the non-debug member is eligible for minification");
-		t.false(minifierStub.called, "An existing pair is never minified");
-		t.false(workspace.write.called, "An existing pair is never written");
+		t.true(workspace.byGlob.calledOnceWithExactly("**"), "Resources are discovered with one glob");
+		t.deepEqual(minifierStub.getCalls().map((call) => call.firstArg), paths.map((resourcePath) => ({
+			resources: [resources.get(resourcePath)],
+			fs: "fs interface",
+			taskUtil: passedTaskUtil,
+			options: scenario.processorOptions
+		})), "Each input is processed once with the expected interface and options");
+		t.deepEqual(taskUtil.setTag.getCalls().map((call) => call.args), paths.flatMap((resourcePath) => {
+			const output = processed.get(resourcePath);
+			return scenario.tags.filter(([field]) => output[field]).map(([field, tag]) =>
+				[output[field], taskUtil.STANDARD_TAGS[tag]]);
+		}), "Correct tags, including optional debug source maps");
+		t.deepEqual(workspace.write.getCalls().map((call) => call.firstArg), paths.flatMap((resourcePath) =>
+			Object.values(processed.get(resourcePath)).filter(Boolean)), "All processor outputs are written in order");
 	});
 }
 
-test("minify: Existing pair without taskUtil", async (t) => {
-	const {minify, workspace, minifierStub, log} = t.context;
-	workspace.byGlob.resolves([
-		{getPath: () => "/resources/A.js"},
-		{getPath: () => "/resources/A-dbg.js"},
-	]);
-	await runTask(minify, {workspace, options: {pattern: "/resources/**/*.js"}});
-	t.true(log.warn.calledOnce);
-	t.false(minifierStub.called);
-	t.false(workspace.write.called);
-	t.false(workspace.byPath.called, "Without taskUtil the pair needs no resource lookups");
-});
 
-test("minify: Does not tag or minify excluded standalone files", async (t) => {
-	const {minify, workspace, taskUtil, minifierStub, log} = t.context;
-	workspace.byGlob.resolves([
-		{getPath: () => "/resources/A.js"},
-		{getPath: () => "/resources/B-dbg.js"},
-	]);
-	await runTask(minify, {workspace, taskUtil, options: {
-		pattern: "/resources/**/*.js", excludes: ["**"],
-	}});
-	t.false(taskUtil.setTag.called);
-	t.false(log.warn.called);
-	t.false(minifierStub.called);
-	t.false(workspace.write.called);
-});
+// 2. Exclusion handling:
+// Covers various exclusion patterns and checks whether their returned keys are selected for minification.
+const matchingPaths = {
+	a: "/resources/a.js",
+	b: "/resources/b.js",
+	nested: "/resources/sub/a.js",
+	hidden: "/resources/.hidden.js",
+	support: "/resources/Rules.support.js",
+	nestedSupport: "/resources/sub/Rules.support.js",
+	test: "/test-resources/a.js"
+};
+const {a, b, nested, hidden, support, nestedSupport, test: testResource} = matchingPaths;
+const exclusionCases = [{
+	name: "No implicit support-file exclusions",
+	excludes: [], expected: Object.values(matchingPaths)
+}, {
+	name: "Exclusions match absolute virtual paths",
+	excludes: [a], expected: [b, nested, hidden, support, nestedSupport, testResource]
+}, {
+	name: "Exclusions can target paths outside /resources/",
+	excludes: ["/test-resources/**/*.js"], expected: [a, b, nested, hidden, support, nestedSupport]
+}, {
+	name: "Global exclusions have no implicit prefix",
+	excludes: ["**/*.js"], expected: []
+}, {
+	name: "Exclusions match dotfiles and preserve test-resources",
+	excludes: ["/resources/**/*.js"], expected: [testResource]
+}, {
+	name: "Brace patterns and re-inclusions",
+	excludes: ["/resources/{a,b}.js", "!/resources/a.js"],
+	expected: [a, nested, hidden, support, nestedSupport, testResource]
+}, {
+	name: "Extglob exclusions",
+	excludes: ["/resources/**/+(a|b).js"], expected: [hidden, support, nestedSupport, testResource]
+}, {
+	name: "Later exclusions override earlier re-inclusions",
+	excludes: ["/resources/**/*.js", "!/resources/a.js", "/resources/a.js"], expected: [testResource]
+}, {
+	name: "A re-inclusion overrides an explicit support exclusion",
+	excludes: ["**/*.support.js", "!/resources/Rules.support.js"],
+	expected: [a, b, nested, hidden, support, testResource]
+}];
 
-const exclusionMatching = test.macro(async (t, excludes, expectedPaths) => {
-	// Takes an array of exclusion patterns (the excludes in a ui5 config),
-	// runs the keys() step,
-	// and tests which paths are actually considered for minification.
+for (const scenario of exclusionCases) {
+	test(`minify: ${scenario.name}`, async (t) => {
+		const {minify, workspace} = t.context;
+		setup(t, Object.values(matchingPaths));
+		const originalExcludes = [...scenario.excludes];
+		const [step] = minify({pattern: "/**/*.js", excludes: scenario.excludes}).steps;
+		const keys = await step.keys({workspace});
 
-	const {minify, workspace} = t.context;
-	const paths = [
-		"/resources/a.js", "/resources/b.js", "/resources/sub/a.js", "/resources/.hidden.js",
-		"/resources/Rules.support.js", "/resources/sub/Rules.support.js", "/test-resources/a.js",
-	];
-	workspace.byGlob.resolves(paths.map((resourcePath) => ({getPath: () => resourcePath})));
-	const originalExcludes = [...excludes];
-	const [step] = minify({pattern: "/**/*.js", excludes}).steps;
-	const keys = await step.keys({workspace});
-	t.true(workspace.byGlob.calledOnceWithExactly("/**/*.js"));
-	t.deepEqual(excludes, originalExcludes, "Compiling filters does not mutate the configured excludes");
-	t.deepEqual(keys.map((res) => res.getPath()), expectedPaths);
-});
+		t.true(workspace.byGlob.calledOnceWithExactly("/**/*.js"));
+		t.deepEqual(scenario.excludes, originalExcludes, "`excludes` array is not mutated");
+		t.deepEqual(keys.map((resource) => resource.getPath()), scenario.expected, "Correct exclusions are applied");
+	});
+}
 
-test("minify: No implicit support-file exclusions", exclusionMatching, [], [
-	"/resources/a.js", "/resources/b.js", "/resources/sub/a.js", "/resources/.hidden.js",
-	"/resources/Rules.support.js", "/resources/sub/Rules.support.js", "/test-resources/a.js",
-]);
-test("minify: Exclusions match absolute virtual paths", exclusionMatching, ["/resources/a.js"], [
-	"/resources/b.js", "/resources/sub/a.js", "/resources/.hidden.js",
-	"/resources/Rules.support.js", "/resources/sub/Rules.support.js", "/test-resources/a.js",
-]);
-test("minify: Exclusions can target paths outside /resources/", exclusionMatching, ["/test-resources/**/*.js"], [
-	"/resources/a.js", "/resources/b.js", "/resources/sub/a.js", "/resources/.hidden.js",
-	"/resources/Rules.support.js", "/resources/sub/Rules.support.js",
-]);
-test("minify: Global exclusions have no implicit prefix", exclusionMatching, ["**/*.js"], []);
-test("minify: Exclusions match dotfiles and preserve test-resources", exclusionMatching, ["/resources/**/*.js"], [
-	"/test-resources/a.js",
-]);
-test("minify: Brace patterns and re-inclusions", exclusionMatching, ["/resources/{a,b}.js", "!/resources/a.js"], [
-	"/resources/a.js", "/resources/sub/a.js", "/resources/.hidden.js",
-	"/resources/Rules.support.js", "/resources/sub/Rules.support.js", "/test-resources/a.js",
-]);
-test("minify: Extglob exclusions", exclusionMatching, ["/resources/**/+(a|b).js"], [
-	"/resources/.hidden.js", "/resources/Rules.support.js", "/resources/sub/Rules.support.js", "/test-resources/a.js",
-]);
-test("minify: Later exclusions override earlier re-inclusions", exclusionMatching,
-	["/resources/**/*.js", "!/resources/a.js", "/resources/a.js"], ["/test-resources/a.js"]);
-test("minify: A re-inclusion overrides an explicit support exclusion", exclusionMatching,
-	["**/*.support.js", "!/resources/Rules.support.js"], [
-		"/resources/a.js", "/resources/b.js", "/resources/sub/a.js", "/resources/.hidden.js",
-		"/resources/Rules.support.js", "/test-resources/a.js",
-	]);
+
+// 3. Resource handling:
+// Checks if resources are processed or skipped/tagged/warned about properly.
+// This amounts to ordinary files, debug file pairs, and combined with various exclusion scenarios.
+const nonDebug = "/resources/A.js";
+const debug = "/resources/A-dbg.js";
+const ordinary = "/resources/normal.js";
+const pairedInputs = [debug, nonDebug, ordinary]; // Even setting debug first: to not depend on order
+const pair = [[nonDebug, debug]];
+const resourceCases = [{
+	name: "Pair with both members eligible",
+	paths: pairedInputs, excludes: [], pairs: pair, processed: [ordinary], warnings: 1
+}, {
+	name: "Pair with only the non-debug member excluded",
+	paths: pairedInputs, excludes: [nonDebug], pairs: pair, processed: [ordinary], warnings: 0
+}, {
+	name: "Pair with only the debug member excluded",
+	paths: pairedInputs, excludes: [debug], pairs: pair, processed: [ordinary], warnings: 1
+}, {
+	name: "Pair with both members excluded",
+	paths: pairedInputs, excludes: [nonDebug, debug], pairs: pair, processed: [ordinary], warnings: 0
+}, {
+	name: "Pair without taskUtil",
+	paths: pairedInputs, excludes: [], pairs: pair, processed: [ordinary], warnings: 1, useTaskUtil: false
+}, {
+	name: "Standalone -dbg.js without a .js sibling",
+	paths: ["/resources/standalone-dbg.js"], excludes: [], pairs: [],
+	processed: ["/resources/standalone-dbg.js"], warnings: 0
+}, {
+	name: "Excluded standalone files",
+	paths: [nonDebug, "/resources/B-dbg.js"], excludes: ["**"], pairs: [], processed: [], warnings: 0
+}];
+
+for (const scenario of resourceCases) {
+	test(`minify: ${scenario.name}`, async (t) => {
+		const {minify, workspace, taskUtil, minifierStub, log} = t.context;
+		const {resources, processed} = setup(t, scenario.paths);
+		const useTaskUtil = scenario.useTaskUtil ?? true;
+		const context = {workspace, taskUtil: useTaskUtil ? taskUtil : undefined};
+		const [step] = minify({pattern: "/resources/**/*.js", excludes: scenario.excludes}).steps;
+		const keys = await step.keys(context);
+
+		t.true(workspace.byGlob.calledOnceWithExactly("/resources/**/*.js"));
+		t.is(keys.filter((key) => typeof key === "string").length, scenario.pairs.length,
+			"Pair scenario: each pair should get a string generated for");
+		t.deepEqual(keys.filter((key) => typeof key !== "string"), scenario.processed.map((p) => resources.get(p)),
+			"Standalone scenario: non-excluded standalone resources should get processed");
+		t.false(taskUtil.setTag.called, "Key enumeration has no tag side effects");
+		t.false(workspace.write.called);
+		t.false(minifierStub.called);
+
+		for (const key of keys) {
+			await step.each(key, context);
+		}
+
+		t.deepEqual(minifierStub.getCalls().map((call) => call.firstArg.resources),
+			scenario.processed.map((p) => [resources.get(p)]), "Only standalone resources are minified");
+		const expectedTags = scenario.pairs.flatMap(([resourcePath, dbgPath]) => [
+			[resources.get(resourcePath), taskUtil.STANDARD_TAGS.HasDebugVariant],
+			[resources.get(dbgPath), taskUtil.STANDARD_TAGS.IsDebugVariant]
+		]).concat(scenario.processed.flatMap((resourcePath) => {
+			const output = processed.get(resourcePath);
+			return defaultTags.filter(([field]) => output[field]).map(([field, tag]) =>
+				[output[field], taskUtil.STANDARD_TAGS[tag]]);
+		}));
+		t.deepEqual(taskUtil.setTag.getCalls().map((call) => call.args), useTaskUtil ? expectedTags : [],
+			"Pairs are tagged even when excluded; standalone files get tags only when processed");
+		t.deepEqual(workspace.write.getCalls().map((call) => call.firstArg), scenario.processed.flatMap((p) =>
+			Object.values(processed.get(p)).filter(Boolean)), "Correct processed resources are written");
+		t.is(log.warn.callCount, scenario.warnings,
+			"Warn only for the dbg/non-dbg pairs (but only for the non-dbg one)");
+		for (const call of log.warn.getCalls()) {
+			const [resourcePath, dbgPath] = scenario.pairs[0];
+			t.true(call.firstArg.startsWith(`Skipping minification of ${resourcePath}: `+
+				`a debug variant ${dbgPath} already exists next to it.`), "Correct warning is logged");
+		}
+	});
+}
