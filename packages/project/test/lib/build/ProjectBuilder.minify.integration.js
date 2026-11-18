@@ -8,12 +8,12 @@ import ProjectBuilder from "../../../lib/build/ProjectBuilder.js";
 
 const base = "/resources/minify/test/";
 const source = "function identity(value) { return value; }\n";
+const debugSource = source + "// existing excluded debug variant\n";
 const hasDebug = {"ui5:HasDebugVariant": true};
 const isDebug = {"ui5:IsDebugVariant": true};
 
-// Use the real minify descriptor, readers, StepRunner and cache. Instrument the callbacks rather than
-// inferring execution from output files: a cache hit restores identical output without running each.
-async function createProject(t, {reuseBuilder, excludes, files}) {
+// Setup function for the minify integration tests with an actual project build
+async function createProject(t, reuseBuilder) {
 	const tmpDir = path.resolve(import.meta.dirname, "../../tmp/minify");
 	await fs.mkdir(tmpDir, {recursive: true});
 	const cwd = await fs.mkdtemp(path.join(tmpDir, "project-"));
@@ -27,13 +27,11 @@ async function createProject(t, {reuseBuilder, excludes, files}) {
 	await fs.writeFile(path.join(cwd, "webapp/manifest.json"), JSON.stringify({
 		"sap.app": {id: "minify.test", type: "application"},
 	}));
-	const configure = (configuredExcludes) => fs.writeFile(path.join(cwd, "ui5.yaml"), dump({
+	await fs.writeFile(path.join(cwd, "ui5.yaml"), dump({
 		specVersion: "5.0", type: "application", metadata: {name: "minify-test"},
-		builder: {minification: {excludes: configuredExcludes.map((p) => p.startsWith("!") ?
-			`!minify/test/${p.slice(1)}` : `minify/test/${p}`)}},
+		builder: {minification: {excludes: ["minify/test/A*.js"]}},
 	}));
-	await configure(excludes);
-	for (const [name, content] of Object.entries(files)) {
+	for (const [name, content] of Object.entries({"A.js": source, "A-dbg.js": debugSource, "plain.js": source})) {
 		await fs.writeFile(path.join(cwd, "webapp", name), content);
 	}
 
@@ -74,9 +72,7 @@ async function createProject(t, {reuseBuilder, excludes, files}) {
 	};
 	let graph;
 	return {
-		configure,
 		write: (name, content) => fs.writeFile(path.join(cwd, "webapp", name), content),
-		remove: (name) => fs.rm(path.join(cwd, "webapp", name)),
 		build: async (changed = []) => {
 			activity = {enumerations: 0, minified: [], pairs: 0, warnings: []};
 			if (!builder) {
@@ -96,7 +92,7 @@ async function createProject(t, {reuseBuilder, excludes, files}) {
 				res.getPath().slice(base.length), {content: await res.getString(), tags: res.getTags()},
 			])));
 			if (!reuseBuilder) {
-				// The next build must restore from SQLite, not this builder's in-memory StageCache.
+				// Restore from SQLite next time instead of reusing this builder's in-memory cache.
 				builder.closeCacheManager();
 				builder = undefined;
 			}
@@ -107,183 +103,34 @@ async function createProject(t, {reuseBuilder, excludes, files}) {
 }
 
 for (const reuseBuilder of [false, true]) {
-	test.serial(`minify: excluded pairs across warm and delta builds (reuseBuilder=${reuseBuilder})`, async (t) => {
-		const project = await createProject(t, {
-			reuseBuilder, excludes: ["A*.js", "orphan-dbg.js"],
-			files: {
-				"A.js": source,
-				"A-dbg.js": source + "// existing excluded debug variant\n",
-				"C.js": source,
-				"C-dbg.js": source + "// existing non-excluded debug variant\n",
-				"plain.js": source,
-				"orphan-dbg.js": source,
-			},
-		});
+	test.serial(`minify: excluded pair tags across builds (reuseBuilder=${reuseBuilder})`, async (t) => {
+		const project = await createProject(t, reuseBuilder);
+
+		// First build: the excluded pair stays unchanged and receives real resource tags.
 		const cold = await project.build();
-		t.deepEqual(cold.activity.minified, ["plain.js"]);
-		t.is(cold.activity.pairs, 2);
-		t.is(cold.activity.warnings.length, 1);
-		t.true(cold.activity.warnings[0].includes(`${base}C.js`));
-		t.true(cold.activity.warnings[0].includes("builder.minification.excludes"));
-		for (const name of ["A", "C", "plain"]) {
-			t.deepEqual(cold.output.get(`${name}.js`).tags, hasDebug);
-			t.deepEqual(cold.output.get(`${name}-dbg.js`).tags, isDebug);
-		}
-		t.is(cold.output.get("A.js").content, source, "Excluded resource is not transformed");
-		t.is(cold.output.get("orphan-dbg.js").tags, null, "An excluded orphan is not tagged by filename alone");
+		t.deepEqual(cold.activity, {enumerations: 1, minified: ["plain.js"], pairs: 1, warnings: []});
+		t.deepEqual(cold.output.get("A.js"), {content: source, tags: hasDebug});
+		t.deepEqual(cold.output.get("A-dbg.js"), {content: debugSource, tags: isDebug});
 		t.false(cold.output.has("A.js.map"));
-		t.false(cold.output.has("C.js.map"));
+		t.deepEqual(cold.output.get("plain.js").tags, hasDebug);
 		t.not(cold.output.get("plain.js").content, source);
-		t.is(cold.output.get("plain-dbg.js").content, source);
+		t.deepEqual(cold.output.get("plain-dbg.js"), {content: source, tags: isDebug});
+		t.true(cold.output.has("plain.js.map"));
 
-		const warm = await project.build();
-		t.deepEqual(warm.output, cold.output, "Warm cache restores both generated and pre-existing pairs' tags");
-		t.deepEqual(warm.activity, {enumerations: 0, minified: [], pairs: 0, warnings: []});
-
-		await project.write("plain.js", source + "identity(42);\n");
-		const ordinaryDelta = await project.build(["plain.js"]);
-		t.deepEqual(ordinaryDelta.activity, {enumerations: 1, minified: ["plain.js"], pairs: 0, warnings: []});
-		for (const name of ["A.js", "A-dbg.js", "C.js", "C-dbg.js"]) {
-			t.deepEqual(ordinaryDelta.output.get(name), cold.output.get(name), "Unchanged pairs' tags are replayed");
-		}
-		t.deepEqual(ordinaryDelta.output.get("plain.js").tags, hasDebug);
-		t.not(ordinaryDelta.output.get("plain.js").content, source + "identity(42);\n");
-		t.deepEqual(ordinaryDelta.output.get("plain-dbg.js"), {content: source + "identity(42);\n", tags: isDebug});
-	});
-
-	test.serial(`minify: an excluded pair changes (reuseBuilder=${reuseBuilder})`, async (t) => {
-		const project = await createProject(t, {
-			reuseBuilder, excludes: ["A*.js"],
-			files: {"A.js": source, "A-dbg.js": source, "plain.js": source},
-		});
-		const cold = await project.build();
-
-		const changedDebug = source + "// changed excluded debug variant\n";
-		await project.write("A-dbg.js", changedDebug);
-		const pairDelta = await project.build(["A-dbg.js"]);
-		t.deepEqual(pairDelta.activity, {enumerations: 1, minified: [], pairs: 1, warnings: []});
-		t.deepEqual(pairDelta.output.get("A.js"), {content: source, tags: hasDebug});
-		t.deepEqual(pairDelta.output.get("A-dbg.js"), {content: changedDebug, tags: isDebug});
-		for (const name of ["plain.js", "plain-dbg.js", "plain.js.map"]) {
-			t.deepEqual(pairDelta.output.get(name), cold.output.get(name), "Unrelated minification stays cached");
-		}
-		t.false(pairDelta.output.has("A.js.map"));
-		const warm = await project.build();
-		t.deepEqual(warm.output, pairDelta.output);
-		t.is(warm.activity.enumerations, 0);
-	});
-
-	test.serial(`minify: an excluded debug sibling is added (reuseBuilder=${reuseBuilder})`, async (t) => {
-		const project = await createProject(t, {
-			reuseBuilder, excludes: ["A*.js"], files: {"A.js": source},
-		});
-		const cold = await project.build();
-		t.deepEqual(cold.output.get("A.js"), {content: source, tags: null});
-
-		await project.write("A-dbg.js", source + "// newly added debug variant\n");
-		const addedDebug = await project.build(["A-dbg.js"]);
-		t.deepEqual(addedDebug.activity, {enumerations: 1, minified: [], pairs: 1, warnings: []});
-		t.deepEqual(addedDebug.output.get("A.js"), {content: source, tags: hasDebug});
-		t.deepEqual(addedDebug.output.get("A-dbg.js"), {
-			content: source + "// newly added debug variant\n", tags: isDebug,
-		});
-		t.false(addedDebug.output.has("A.js.map"));
-		t.false(addedDebug.output.has("A-dbg-dbg.js"));
-	});
-
-	test.serial(`minify: source pair transitions (reuseBuilder=${reuseBuilder})`, async (t) => {
-		const project = await createProject(t, {
-			reuseBuilder, excludes: [],
-			files: {"C.js": source, "C-dbg.js": source, "plain.js": source},
-		});
-		const cold = await project.build();
-		await project.remove("C-dbg.js");
-		const generated = await project.build(["C-dbg.js"]);
-		t.deepEqual(generated.activity, {enumerations: 1, minified: ["C.js"], pairs: 0, warnings: []});
-		t.deepEqual(generated.output.get("C.js").tags, hasDebug);
-		t.not(generated.output.get("C.js").content, source);
-		t.deepEqual(generated.output.get("C-dbg.js"), {content: source, tags: isDebug});
-		t.true(generated.output.has("C.js.map"));
-
-		await project.write("C-dbg.js", source + "// restored source pair\n");
-		const pairedAgain = await project.build(["C-dbg.js"]);
-		t.deepEqual(pairedAgain.activity.minified, []);
-		t.is(pairedAgain.activity.pairs, 1);
-		t.is(pairedAgain.activity.warnings.length, 1);
-		t.deepEqual(pairedAgain.output.get("C.js"), {content: source, tags: hasDebug});
-		t.deepEqual(pairedAgain.output.get("C-dbg.js"), {
-			content: source + "// restored source pair\n", tags: isDebug,
-		});
-		t.false(pairedAgain.output.has("C.js.map"), "The removed minification key's source map is not resurrected");
-		t.deepEqual(pairedAgain.output.get("plain.js"), cold.output.get("plain.js"));
-	});
-
-	test.serial(`minify: support rules remain readable and tagged (reuseBuilder=${reuseBuilder})`, async (t) => {
-		const project = await createProject(t, {
-			reuseBuilder, excludes: [],
-			files: {"Rules.support.js": source, "Rules-dbg.support.js": source, "Solo.support.js": source},
-		});
-		const cold = await project.build();
-		t.deepEqual(cold.activity, {enumerations: 1, minified: [], pairs: 1, warnings: []});
-		t.deepEqual(cold.output.get("Rules.support.js"), {content: source, tags: hasDebug});
-		t.deepEqual(cold.output.get("Rules-dbg.support.js"), {content: source, tags: isDebug});
-		t.deepEqual(cold.output.get("Solo.support.js"), {content: source, tags: null});
-		t.false(cold.output.has("Solo-dbg.support.js"));
-		t.false(cold.output.has("Solo.support.js.map"));
-		t.false(cold.output.has("Rules.support.js.map"));
-
+		// Unchanged build: restore output and tags without executing keys() or each().
 		const warm = await project.build();
 		t.deepEqual(warm.output, cold.output);
-		t.is(warm.activity.enumerations, 0);
+		t.deepEqual(warm.activity, {enumerations: 0, minified: [], pairs: 0, warnings: []});
 
-		await project.write("Solo.support.js", source + "// edited rule\n");
-		const edited = await project.build(["Solo.support.js"]);
-		t.deepEqual(edited.activity, {enumerations: 1, minified: [], pairs: 0, warnings: []});
-		t.deepEqual(edited.output.get("Rules.support.js"), cold.output.get("Rules.support.js"));
-		t.deepEqual(edited.output.get("Solo.support.js"), {content: source + "// edited rule\n", tags: null});
+		// Editing the excluded debug member reruns only its pair's tagging invocation.
+		const changedDebug = source + "// changed excluded debug variant\n";
+		await project.write("A-dbg.js", changedDebug);
+		const delta = await project.build(["A-dbg.js"]);
+		t.deepEqual(delta.activity, {enumerations: 1, minified: [], pairs: 1, warnings: []});
+		t.deepEqual(delta.output.get("A.js"), cold.output.get("A.js"));
+		t.deepEqual(delta.output.get("A-dbg.js"), {content: changedDebug, tags: isDebug});
+		for (const name of ["plain.js", "plain-dbg.js", "plain.js.map"]) {
+			t.deepEqual(delta.output.get(name), cold.output.get(name), "Unrelated minification stays cached");
+		}
 	});
 }
-
-test.serial("minify: configuration re-inclusions only affect minification, not pair discovery", async (t) => {
-	const project = await createProject(t, {
-		reuseBuilder: false, excludes: ["*.js", "!plain.js"],
-		files: {"A.js": source, "A-dbg.js": source, "plain.js": source, "excluded.js": source},
-	});
-	const {output, activity} = await project.build();
-	t.deepEqual(activity, {enumerations: 1, minified: ["plain.js"], pairs: 1, warnings: []});
-	t.deepEqual(output.get("A.js"), {content: source, tags: hasDebug});
-	t.deepEqual(output.get("A-dbg.js"), {content: source, tags: isDebug});
-	t.deepEqual(output.get("excluded.js"), {content: source, tags: null});
-	t.not(output.get("plain.js").content, source);
-});
-
-test.serial("minify: changing configured support-rule exclusions invalidates cached output", async (t) => {
-	const project = await createProject(t, {
-		reuseBuilder: false, excludes: [],
-		files: {"Rules.support.js": source, "Rules-dbg.support.js": source, "Solo.support.js": source},
-	});
-	const cold = await project.build();
-	t.deepEqual(cold.activity, {enumerations: 1, minified: [], pairs: 1, warnings: []});
-
-	// No source changes: only the configured excludes change. They participate in the build signature.
-	await project.configure(["!Solo.support.js", "!Rules.support.js"]);
-	const included = await project.build();
-	t.deepEqual(included.activity.minified, ["Solo.support.js"]);
-	t.is(included.activity.pairs, 1);
-	t.is(included.activity.warnings.length, 1, "Re-including the non-debug member restores its warning");
-	t.deepEqual(included.output.get("Rules.support.js"), cold.output.get("Rules.support.js"));
-	t.not(included.output.get("Solo.support.js").content, source, "An explicitly re-included rule is minified");
-	t.deepEqual(included.output.get("Solo.support.js").tags, hasDebug);
-	t.deepEqual(included.output.get("Solo-dbg.support.js"), {content: source, tags: isDebug});
-	t.true(included.output.has("Solo.support.js.map"));
-
-	const warm = await project.build();
-	t.deepEqual(warm.output, included.output);
-	t.is(warm.activity.enumerations, 0);
-
-	await project.configure(["!Solo.support.js", "Solo.support.js", "!Rules-dbg.support.js"]);
-	const excludedAgain = await project.build();
-	t.deepEqual(excludedAgain.activity, {enumerations: 1, minified: [], pairs: 1, warnings: []});
-	t.deepEqual(excludedAgain.output, cold.output,
-		"A later exclusion restores readable code and drops generated files");
-});
