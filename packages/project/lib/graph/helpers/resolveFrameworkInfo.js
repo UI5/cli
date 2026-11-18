@@ -13,10 +13,13 @@
  * @param {string} resolution.name Selected distribution name
  * @param {string} [resolution.version] Resolved distribution version
  * @param {Set<string>} [resolution.workspaceProjectNames] Available workspace framework projects
+ * @param {@ui5/project/specifications/Project[]} [frameworkProjects] Reachable framework projects in
+ *   depth-first order. Supplied by callers that already traversed the graph to avoid a second
+ *   traversal; derived live from the reachable graph when omitted.
  * @returns {{name: string, version: string}} Effective metadata with unknown fields normalized to empty strings
  */
-export default function resolveFrameworkInfo(graph, resolution) {
-	const frameworkProjects = Array.from(graph.traverseDependenciesDepthFirst(true), ({project}) => project)
+export default function resolveFrameworkInfo(graph, resolution, frameworkProjects) {
+	frameworkProjects ??= Array.from(graph.traverseDependenciesDepthFirst(true), ({project}) => project)
 		.filter((project) => project.isFrameworkProject());
 	const root = graph.getRoot();
 

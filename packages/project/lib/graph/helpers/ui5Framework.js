@@ -6,9 +6,9 @@ const log = getLogger("graph:helpers:ui5Framework");
 import Configuration from "../../config/Configuration.js";
 import path from "node:path";
 import parseJSON from "../../utils/json.js";
+import resolveFrameworkInfo from "./resolveFrameworkInfo.js";
 
-function emitFrameworkInfo(projectGraph) {
-	const framework = projectGraph.getResolvedFrameworkInfo();
+function emitFrameworkInfo(projectGraph, framework = projectGraph.getResolvedFrameworkInfo()) {
 	if (framework.name) {
 		process.emit("ui5.project-framework-resolved", {framework});
 	}
@@ -24,10 +24,13 @@ function completeWithoutResolution(projectGraph) {
 	// traverseDependenciesDepthFirst walks the reachable graph and throws on cycles. We only reach it
 	// once a framework project is known to exist, so framework-free graphs (including cyclic ones)
 	// return above without a traversal and without risking a cycle error.
-	const hasFrameworkProject = Array.from(projectGraph.traverseDependenciesDepthFirst(true))
-		.some(({project}) => project.isFrameworkProject());
-	if (hasFrameworkProject) {
-		emitFrameworkInfo(projectGraph);
+	const frameworkProjects = Array.from(projectGraph.traverseDependenciesDepthFirst(true),
+		({project}) => project).filter((project) => project.isFrameworkProject());
+	if (frameworkProjects.length) {
+		// This path is only reached before setFrameworkResolution, so the resolution context is
+		// always null. Reuse the set we just traversed instead of letting resolveFrameworkInfo
+		// traverse the graph a second time.
+		emitFrameworkInfo(projectGraph, resolveFrameworkInfo(projectGraph, null, frameworkProjects));
 	}
 	return projectGraph;
 }
