@@ -14,8 +14,11 @@ const log = getLogger("build:helpers:ToolDependencyRecorder");
  *
  * The hook is installed once per thread and is a no-op unless a capture is active. {@link startCapture}
  * opens a window around a task's execution; {@link stopCapture} returns the resolved tool files observed
- * in that window. `resolve` fires on every resolution (ESM import and CommonJS require alike, and even
- * for already-cached modules), so the observation does not depend on module-cache state.
+ * in that window. `resolve` fires on every ESM `import` (including a dynamic `import()` of an
+ * already-cached module) and on the first `require` of a CJS module. It does NOT fire on a `require` of an
+ * already-cached CJS module: Node's CJS loader returns the cached export before consulting the hook. So a
+ * tool a capture window must observe has to be loaded for the first time inside that window, or reached via
+ * `import()` which re-fires regardless of cache state.
  *
  * One capture is active at a time: {@link startCapture} assumes captures nest (no concurrent-task
  * attribution), which holds because task and project execution are serialized. A package-name filter
