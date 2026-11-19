@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import sinon from "sinon";
 import esmock from "esmock";
 import FrameworkCache from "../../../lib/ui5Framework/cache.js";
+import {scanPendingRemovals as realScanPendingRemovals} from "../../../lib/utils/interruptibleRemoval.js";
 
 const TEST_DIR = path.join(import.meta.dirname, "..", "..", "tmp", "ui5framework-cache");
 
@@ -232,16 +233,21 @@ test("cleanAdditional: stale removal dir deletion failure is non-fatal", async (
 	const staleDir = path.join(t.context.testDir, "_framework_to_delete_fail");
 	await mkPackageIn(staleDir, "@openui5", "sap.m", "1.80.0");
 
-	const rmStub = sinon.stub().callsFake(async (p, opts) => {
+	const removePendingDirStub = sinon.stub().callsFake(async (p) => {
 		if (p === staleDir) {
 			throw new Error("simulated deletion failure");
 		}
-		return fs.rm(p, opts);
 	});
 
 	const FrameworkCacheMocked = await esmock.p(
 		"../../../lib/ui5Framework/cache.js",
-		{"node:fs/promises": {...fs, rm: rmStub}}
+		{
+			"../../../lib/utils/interruptibleRemoval.js": {
+				markForRemoval: sinon.stub(),
+				removePendingDir: removePendingDirStub,
+				scanPendingRemovals: realScanPendingRemovals,
+			},
+		}
 	);
 
 	try {
@@ -260,16 +266,22 @@ test("cleanAdditional: returns only successfully removed stale removal dirs", as
 	await mkPackageIn(staleOk, "@openui5", "sap.m", "1.80.0");
 	await mkPackageIn(staleFail, "@openui5", "sap.ui.core", "1.81.0");
 
-	const rmStub = sinon.stub().callsFake(async (p, opts) => {
+	const removePendingDirStub = sinon.stub().callsFake(async (p) => {
 		if (p === staleFail) {
 			throw new Error("simulated deletion failure");
 		}
-		return fs.rm(p, opts);
+		return fs.rm(p, {recursive: true, force: true});
 	});
 
 	const FrameworkCacheMocked = await esmock.p(
 		"../../../lib/ui5Framework/cache.js",
-		{"node:fs/promises": {...fs, rm: rmStub}}
+		{
+			"../../../lib/utils/interruptibleRemoval.js": {
+				markForRemoval: sinon.stub(),
+				removePendingDir: removePendingDirStub,
+				scanPendingRemovals: realScanPendingRemovals,
+			},
+		}
 	);
 
 	try {
@@ -289,43 +301,45 @@ test("cleanCache: returns null if framework dir removed between check and rename
 	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.m", "1.120.0");
 
 	const frameworkDir = path.join(t.context.testDir, "framework");
-	const renameStub = sinon.stub().callsFake(async (oldPath, newPath) => {
-		if (oldPath === frameworkDir) {
-			const err = Object.assign(new Error("ENOENT: no such file or directory, rename"), {code: "ENOENT"});
-			throw err;
-		}
-		return fs.rename(oldPath, newPath);
-	});
+	const markForRemovalStub = sinon.stub().returns(null);
 
 	const FrameworkCacheMocked = await esmock.p(
 		"../../../lib/ui5Framework/cache.js",
-		{"node:fs/promises": {...fs, rename: renameStub}}
+		{
+			"../../../lib/utils/interruptibleRemoval.js": {
+				markForRemoval: markForRemovalStub,
+				removePendingDir: sinon.stub().resolves(),
+				scanPendingRemovals: sinon.stub().resolves([]),
+			},
+		}
 	);
 
 	try {
 		const result = await FrameworkCacheMocked.cleanCache(t.context.testDir);
 		t.is(result, null, "returns null when directory is concurrently removed");
+		t.true(markForRemovalStub.calledOnceWith(frameworkDir, "_framework_to_delete_"),
+			"markForRemoval called with framework dir and correct prefix");
 	} finally {
 		esmock.purge(FrameworkCacheMocked);
 		await fs.rm(frameworkDir, {recursive: true, force: true}).catch(() => {});
 	}
 });
 
-test("cleanCache: re-throws non-ENOENT errors from fs.rename", async (t) => {
+test("cleanCache: re-throws non-ENOENT errors from markForRemoval", async (t) => {
 	await mkPackageIn(path.join(t.context.testDir, "framework"), "@openui5", "sap.m", "1.120.0");
 
 	const frameworkDir = path.join(t.context.testDir, "framework");
-	const renameStub = sinon.stub().callsFake(async (oldPath, newPath) => {
-		if (oldPath === frameworkDir) {
-			const err = Object.assign(new Error("EACCES: permission denied, rename"), {code: "EACCES"});
-			throw err;
-		}
-		return fs.rename(oldPath, newPath);
-	});
-
 	const FrameworkCacheMocked = await esmock.p(
 		"../../../lib/ui5Framework/cache.js",
-		{"node:fs/promises": {...fs, rename: renameStub}}
+		{
+			"../../../lib/utils/interruptibleRemoval.js": {
+				markForRemoval: sinon.stub().throws(
+					Object.assign(new Error("EACCES: permission denied, rename"), {code: "EACCES"})
+				),
+				removePendingDir: sinon.stub().resolves(),
+				scanPendingRemovals: sinon.stub().resolves([]),
+			},
+		}
 	);
 
 	try {
