@@ -4,7 +4,7 @@ import {getLogger} from "@ui5/logger";
 const log = getLogger("build:helpers:ToolDependencyRecorder");
 
 /**
- * POC recorder for a task's external tool dependencies.
+ * Records a task's external tool dependencies.
  *
  * A build task may load an external tool to transform content (e.g. buildThemes -> less-openui5,
  * minify -> terser). The tool's version is an input to the build, but the cache never observes it, so a
@@ -17,11 +17,11 @@ const log = getLogger("build:helpers:ToolDependencyRecorder");
  * in that window. `resolve` fires on every resolution (ESM import and CommonJS require alike, and even
  * for already-cached modules), so the observation does not depend on module-cache state.
  *
- * POC scope: single active capture (no concurrent-task attribution) and a package-name filter that
- * excludes the UI5 tooling packages ({@link isToolFile}).
- * The hook is per-realm, so a tool loaded in a worker thread is not observed here; the worker dispatch
- * resolves such a tool's entry on the main thread, within the capture window, so it is recorded at version
- * level (entry + `package.json`).
+ * One capture is active at a time: {@link startCapture} assumes captures nest (no concurrent-task
+ * attribution), which holds because task and project execution are serialized. A package-name filter
+ * ({@link isToolFile}) excludes the UI5 tooling packages. The hook is per-realm, so a tool loaded in a
+ * worker thread is not observed here; the worker dispatch resolves such a tool's entry on the main thread,
+ * within the capture window, so it is recorded at version level (entry + `package.json`).
  *
  * @module @ui5/project/build/helpers/ToolDependencyRecorder
  */
