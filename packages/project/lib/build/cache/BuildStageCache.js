@@ -16,6 +16,10 @@ const EMPTY_ROOT_SIGNATURE = crypto.createHash("sha256").update("").digest("hex"
 // case) folds the same value and existing cache behavior is unperturbed.
 const EMPTY_TOOLCONTENT_SIGNATURE = crypto.createHash("sha256").update("").digest("hex");
 
+// Fan-out width for the warm stat tier (statToolFiles). Bounded so a large tool tree does not open an
+// unbounded number of concurrent stat calls; stat holds no descriptor open, so a modest width is safe.
+const STAT_CONCURRENCY = 32;
+
 // Content-hashes a set of tool files into one digest and captures each file's [mtimeMs, size, inode] for
 // the warm-lookup stat tier. Full-refresh, like root: the whole set is hashed (no per-file delta), so any
 // change re-runs the stage. Reads asynchronously so a large tool set (a whole package tree, e.g. jsdoc's
@@ -58,11 +62,21 @@ async function statToolFile(filePath) {
 }
 
 // Stats a set of tool files into a path -> [mtimeMs, size, inode] | null map, without reading their bytes.
+// Runs with bounded concurrency: stat holds no file descriptor open, so a fixed-width fan-out stays well
+// under the open-file limit while removing the per-file serialization the warm stat tier would otherwise pay
+// over a large tool tree (jsdoc's hundreds of files are statted on every build that reaches this tier).
 async function statToolFiles(paths) {
 	const stats = Object.create(null);
-	for (const filePath of [...paths].sort()) {
-		stats[filePath] = await statToolFile(filePath);
+	const sorted = [...paths].sort();
+	const width = Math.min(STAT_CONCURRENCY, sorted.length);
+	let next = 0;
+	async function worker() {
+		while (next < sorted.length) {
+			const filePath = sorted[next++];
+			stats[filePath] = await statToolFile(filePath);
+		}
 	}
+	await Promise.all(Array.from({length: width}, worker));
 	return stats;
 }
 
