@@ -42,6 +42,10 @@ test("Does not truncate a bare foreign username that shares the home prefix", as
 	t.is(redactPaths("other /Users/johnny"), "other /Users/johnny");
 	t.is(redactPaths("/Users/john: failed"), "~: failed");
 	t.is(redactPaths("a /Users/john\nb /Users/johnny"), "a ~\nb /Users/johnny");
+	// A foreign username whose extra characters start with a non-alphanumeric but still valid username
+	// character ("+", "-", "@") must not be truncated into the home.
+	t.is(redactPaths("other /Users/john+smith"), "other /Users/john+smith");
+	t.is(redactPaths("other /Users/john-doe"), "other /Users/john-doe");
 });
 
 test("Handles an empty home directory without changing unrelated text", async (t) => {

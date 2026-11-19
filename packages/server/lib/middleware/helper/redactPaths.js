@@ -20,14 +20,17 @@ export default function redactPaths(text) {
 			.replace(/\/(?:Users|home)\/[^/\r\n]+\/|\/root\//g, "~/")
 			.replace(/[A-Za-z]:\\Users\\[^\\\r\n]+\\/gi, "~\\");
 		// Replace the bare home last, only where it is a complete path and not the prefix of a longer
-		// username that shares it (home "/Users/john" must not turn "/Users/johnny" into "~ny"). The
-		// negative lookahead rejects a following username character; the prefix passes above already
+		// username that shares it (home "/Users/john" must not turn "/Users/johnny" into "~ny", nor
+		// "/Users/john+smith" into "~+smith" since "+" is a valid username character). The negative
+		// lookahead rejects a following path-continuation character: anything that could extend a
+		// filesystem name. Message punctuation that cannot appear in a path name (",", ":", ")", end of
+		// text, whitespace) is treated as a boundary and still redacts. The prefix pass above already
 		// reduced every "<home><sep>..." form.
 		if (!home) {
 			return redacted;
 		}
 		const escapedHome = home.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-		return redacted.replace(new RegExp(`${escapedHome}(?![A-Za-z0-9._-])`, "g"), "~");
+		return redacted.replace(new RegExp(`${escapedHome}(?![\\w.+~=@%-])`, "g"), "~");
 	} catch {
 		return "Error details unavailable";
 	}
