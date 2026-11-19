@@ -732,8 +732,10 @@ class TaskRunner {
 
 			this._log.startTask(taskName, !!cacheInfo);
 			// Observe which external tool files the custom task loads: at runtime (the execution window
-			// below), the tools its own worker reported (the store), and the ones it resolved at
-			// module-load time (its top-level imports, captured when the extension module was loaded).
+			// below) and the ones it resolved at module-load time (its top-level imports, captured when the
+			// extension module was loaded). A tool that only runs in a worker thread is resolved on the main
+			// thread via import.meta.resolve inside the execution window, so the main-thread hook records it
+			// without the worker reporting back.
 			const toolCapture = toolDependencyRecorder.startCapture();
 			let toolFiles;
 			try {

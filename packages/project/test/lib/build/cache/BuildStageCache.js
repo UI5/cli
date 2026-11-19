@@ -837,9 +837,9 @@ test("toCacheObjects: can restore from serialized data", async (t) => {
 	t.is(cache2.getStageId(), "testTask", "Stage id preserved");
 });
 
-test("toCacheObjects/fromCache: round-trips recorded tool files", (t) => {
+test("toCacheObjects/fromCache: round-trips recorded tool files", async (t) => {
 	const cache1 = new BuildStageCache("test.project", "testTask", false);
-	cache1.recordToolFiles(["/node_modules/toolA/index.js", "/node_modules/toolA/package.json"]);
+	await cache1.recordToolFiles(["/node_modules/toolA/index.js", "/node_modules/toolA/package.json"]);
 	const sig1 = cache1.getToolContentSignature();
 
 	const cacheObjects = cache1.toCacheObjects();

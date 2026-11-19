@@ -587,8 +587,10 @@ export default class StepRunner {
 			// Observe which external tool files the step's invocations load, so
 			// their content folds into the stage signature. Brackets the whole group: a step-based task's
 			// processor (terser for minify, less-openui5 for buildThemes) loads inside the invocation
-			// bodies. In-process tools (UI5_CLI_NO_WORKERS) are seen by the main-thread hook; worker-thread
-			// tools are observed inside the worker and drained from the builder-side store below.
+			// bodies. In-process tools (UI5_CLI_NO_WORKERS) are seen by the main-thread hook directly. A tool
+			// that only runs in a worker thread is resolved on the main thread via import.meta.resolve inside
+			// this same window (see minifier.js, buildThemes.js), so the main-thread hook records it without
+			// the worker reporting back.
 			const toolCapture = toolDependencyRecorder.startCapture();
 			let runGroupResult;
 			let toolFiles;
