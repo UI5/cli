@@ -1,7 +1,7 @@
 import test from "ava";
 import {createRequire} from "node:module";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
+import {fileURLToPath, pathToFileURL} from "node:url";
 import {
 	startCapture, stopCapture, shareToolFiles, isToolFile,
 } from "../../../../lib/build/helpers/ToolDependencyRecorder.js";
@@ -15,6 +15,16 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 // in the integration test.
 const stubToolDir = path.join(dirname, "../../../fixtures/application.a/node_modules/stub-tool");
 const requireFromStubTool = createRequire(path.join(stubToolDir, "index.js"));
+
+// Fixtures for the capture re-fire test: a CJS and an ESM tool package under node_modules. The CJS one
+// exercises the require path (fires only on the first resolution in the process); the ESM one exercises
+// the import() path (re-fires on every call even when the module is cached).
+const nmDir = path.join(dirname, "../../../fixtures/application.a/node_modules");
+const requireRefireTool = createRequire(path.join(nmDir, "cjs-refire-tool", "index.js"));
+const esmRefireToolUrl = pathToFileURL(path.join(nmDir, "esm-refire-tool", "index.js")).href;
+// A CJS tool required cold only by the nested-capture test, so its resolution fires the hook there (other
+// tests do not touch it, so it is not already cached by the time that test runs).
+const requireNestedInner = createRequire(path.join(nmDir, "nested-inner-tool", "index.js"));
 
 test.serial("stopCapture folds each tracked package's package.json into the set", (t) => {
 	const handle = startCapture();
@@ -118,3 +128,74 @@ test("isToolFile keys the barrier on the owning package, so a tool nested under 
 	t.true(isToolFile("file:///app/node_modules/@ui5/project/node_modules/@ui5/webcomponents/dist/a.js"),
 		"@ui5/webcomponents nested under @ui5/project is attributed to @ui5/webcomponents and tracked");
 });
+
+test.serial("a cold require is captured, a warm require of the same module is not, import() always re-fires",
+	async (t) => {
+		// The capture window observes a module only when a resolution fires the hook. Node's CJS loader
+		// returns an already-cached module before consulting the hook, so a second require() of the same
+		// module adds nothing; a dynamic import() re-fires on every call even when cached. A tool a capture
+		// window must observe therefore has to be loaded for the first time inside that window, or reached via
+		// import(). This precondition is why the recorder is sound for the shipped tasks (see NOTES.md 2.8);
+		// pinning it here makes a regression (e.g. a loader change, or relying on a warm require) fail loudly.
+
+		// Cold require inside a window: the first resolution in this process fires the hook.
+		const cold = startCapture();
+		requireRefireTool("cjs-refire-tool");
+		const coldFiles = stopCapture(cold);
+		t.true(coldFiles.some((f) => f.endsWith(path.join("cjs-refire-tool", "index.js"))),
+			"a cold require is captured");
+
+		// Warm require of the now-cached module inside a fresh window: the CJS loader short-circuits before
+		// the hook, so nothing is added.
+		const warm = startCapture();
+		requireRefireTool("cjs-refire-tool");
+		const warmFiles = stopCapture(warm);
+		t.false(warmFiles.some((f) => f.endsWith(path.join("cjs-refire-tool", "index.js"))),
+			"a warm require of an already-cached CJS module is not captured");
+
+		// Dynamic import() re-fires even when the module is cached: capture it twice, both windows see it.
+		const esm1 = startCapture();
+		await import(esmRefireToolUrl);
+		const esm1Files = stopCapture(esm1);
+		t.true(esm1Files.some((f) => f.endsWith(path.join("esm-refire-tool", "index.js"))),
+			"a cold import() is captured");
+
+		const esm2 = startCapture();
+		await import(esmRefireToolUrl);
+		const esm2Files = stopCapture(esm2);
+		t.true(esm2Files.some((f) => f.endsWith(path.join("esm-refire-tool", "index.js"))),
+			"a second import() of the cached module still re-fires the hook and is captured");
+	});
+
+test.serial("nested (LIFO) captures attribute resolutions to the window that was open when each fired",
+	async (t) => {
+		// Only one capture is active at a time, tracked by a previous-pointer stack (startCapture saves the
+		// prior active capture, stopCapture restores it). This is correct as long as captures nest strictly:
+		// an inner window opens and closes entirely within an outer one. TaskRunner and ProjectBuilder run
+		// tasks and projects serially, so the shipped executor only ever nests, never overlaps. This test
+		// pins the nesting contract; the serial-execution assumption it rests on is documented as a latent
+		// hazard in NOTES.md 2.8 (parallelizing execution would overlap windows and misattribute, and would
+		// need AsyncLocalStorage). A resolution fired inside the inner window must land in the inner set, and
+		// one fired after the inner closes must land back in the outer set.
+
+		const outer = startCapture();
+		// Resolution #1 fires while only the outer window is open -> belongs to outer.
+		await import(esmRefireToolUrl);
+
+		const inner = startCapture();
+		// Resolution #2 fires while the inner window is open -> belongs to inner, not outer. A dedicated cold
+		// CJS module, so its require fires the hook here (a warm require would capture nothing).
+		requireNestedInner("nested-inner-tool");
+		const innerFiles = stopCapture(inner);
+
+		const outerFiles = stopCapture(outer);
+
+		t.true(innerFiles.some((f) => f.endsWith(path.join("nested-inner-tool", "index.js"))),
+			"the inner window captures the resolution fired while it was open");
+		t.false(innerFiles.some((f) => f.endsWith(path.join("esm-refire-tool", "index.js"))),
+			"the inner window does not capture a resolution fired before it opened");
+		t.true(outerFiles.some((f) => f.endsWith(path.join("esm-refire-tool", "index.js"))),
+			"the outer window captures its own resolution, restored after the inner window closed");
+		t.false(outerFiles.some((f) => f.endsWith(path.join("nested-inner-tool", "index.js"))),
+			"the outer window does not absorb the inner window's resolution");
+	});
