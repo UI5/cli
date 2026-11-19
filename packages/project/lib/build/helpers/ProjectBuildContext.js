@@ -83,9 +83,21 @@ class ProjectBuildContext {
 		ctx._buildSignature = await getProjectSignature(
 			baseSignature, taskSignatures, project, buildContext.getGraph(), buildContext.getTaskRepository());
 
-		const cacheMode = buildContext.getBuildConfig().cache;
+		const buildConfig = buildContext.getBuildConfig();
+		const cacheMode = buildConfig.cache;
 		ctx._buildCache = new ProjectBuildCache(project, ctx._buildSignature, cacheManager, cacheMode,
 			(type, name) => ctx.resolveInputValue(type, name));
+
+		// A selected custom task exempt from the build cache (below Specification Version 5.0, or opted out via its
+		// descriptor) must execute on every build. The per-stage exemption (set later via TaskRunner.setTasks)
+		// forces that task's stages to re-run, but the project-level result cache can skip the whole task loop
+		// before any stage runs, so it must be disabled here, before validateCache runs. The TaskRunner emits
+		// the user-facing warning when such a task runs. Detection shares the memoized descriptors
+		// with the build-signature phase, so it adds no task-module evaluation.
+		const cacheExemptions = await ctx._taskDefinitions.getCustomTaskCacheExemptions(buildConfig);
+		if (cacheExemptions.size) {
+			ctx._buildCache.disableResultCache();
+		}
 		return ctx;
 	}
 
