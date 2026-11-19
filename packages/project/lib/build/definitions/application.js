@@ -1,4 +1,4 @@
-import {enhancePatternWithExcludes} from "./_utils.js";
+import {prefixGlobPattern} from "@ui5/fs/resourceFactory";
 import {enhanceBundlesWithDefaults} from "../../validation/validator.js";
 
 /**
@@ -33,17 +33,16 @@ export default function({project, taskUtil, getTask}) {
 		}
 	});
 
-	// Support rules should not be minified to have readable code in the Support Assistant
-	const minificationPattern = ["/**/*.js", "!**/*.support.js"];
-	if (project.getSpecVersion().gte("2.6")) {
-		const minificationExcludes = project.getMinificationExcludes();
-		if (minificationExcludes.length) {
-			enhancePatternWithExcludes(minificationPattern, minificationExcludes, "/resources/");
-		}
-	}
+	const minificationExcludes = project.getSpecVersion().gte("2.6") ? project.getMinificationExcludes() : [];
 	tasks.set("minify", {
 		options: {
-			pattern: minificationPattern
+			pattern: "/**/*.js",
+			excludes: [
+				// Support rules must stay readable in the Support Assistant. Keep them in the discovery
+				// scope for pair tagging, and allow configured re-inclusions to override this default.
+				"**/*.support.js",
+				...minificationExcludes.flatMap((pattern) => prefixGlobPattern(pattern, "/resources/"))
+			]
 		}
 	});
 

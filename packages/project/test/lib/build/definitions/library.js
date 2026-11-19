@@ -90,10 +90,8 @@ test("Standard build", (t) => {
 		},
 		minify: {
 			options: {
-				pattern: [
-					"/resources/**/*.js",
-					"!**/*.support.js",
-				]
+				pattern: "/resources/**/*.js",
+				excludes: ["**/*.support.js"]
 			},
 		},
 		generateLibraryManifest: {},
@@ -184,10 +182,8 @@ test("Standard build with legacy spec version", (t) => {
 		},
 		minify: {
 			options: {
-				pattern: [
-					"/resources/**/*.js",
-					"!**/*.support.js",
-				]
+				pattern: "/resources/**/*.js",
+				excludes: ["**/*.support.js"]
 			},
 		},
 		generateLibraryManifest: {},
@@ -302,10 +298,8 @@ test("Custom bundles", async (t) => {
 		},
 		minify: {
 			options: {
-				pattern: [
-					"/resources/**/*.js",
-					"!**/*.support.js",
-				]
+				pattern: "/resources/**/*.js",
+				excludes: ["**/*.support.js"]
 			},
 		},
 		generateLibraryManifest: {},
@@ -413,7 +407,7 @@ test("Custom bundles", async (t) => {
 
 test("Minification excludes", (t) => {
 	const {project, taskUtil, getTask} = t.context;
-	project.getMinificationExcludes = () => ["**.html"];
+	project.getMinificationExcludes = () => Object.freeze(["**.html", "!some/{Rules,Other}.support.js"]);
 
 	const tasks = library({
 		project, taskUtil, getTask
@@ -422,10 +416,10 @@ test("Minification excludes", (t) => {
 	const taskDefinition = tasks.get("minify");
 	t.deepEqual(taskDefinition, {
 		options: {
-			pattern: [
-				"/resources/**/*.js",
-				"!**/*.support.js",
-				"!/resources/**.html",
+			pattern: "/resources/**/*.js",
+			excludes: [
+				"**/*.support.js", "/resources/**.html",
+				"!/resources/some/Rules.support.js", "!/resources/some/Other.support.js"
 			]
 		},
 	}, "Correct minify task definition");
@@ -449,10 +443,8 @@ test("Minification excludes not applied for legacy specVersion", (t) => {
 	const taskDefinition = tasks.get("minify");
 	t.deepEqual(taskDefinition, {
 		options: {
-			pattern: [
-				"/resources/**/*.js",
-				"!**/*.support.js",
-			]
+			pattern: "/resources/**/*.js",
+			excludes: ["**/*.support.js"]
 		},
 	}, "Correct minify task definition");
 });
