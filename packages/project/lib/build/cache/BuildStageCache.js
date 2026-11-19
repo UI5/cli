@@ -16,19 +16,20 @@ const EMPTY_ROOT_SIGNATURE = crypto.createHash("sha256").update("").digest("hex"
 // case) folds the same value and existing cache behavior is unperturbed.
 const EMPTY_TOOLCONTENT_SIGNATURE = crypto.createHash("sha256").update("").digest("hex");
 
-// Fan-out width for the warm stat tier (statToolFiles). Bounded so a large tool tree does not open an
-// unbounded number of concurrent stat calls; stat holds no descriptor open, so a modest width is safe.
+// Fan-out width for statToolFiles (the record-path reuse check in recordToolFiles). Bounded so a large tool
+// tree does not open an unbounded number of concurrent stat calls; stat holds no descriptor open, so a
+// modest width is safe.
 const STAT_CONCURRENCY = 32;
 
 // Content-hashes a set of tool files into one digest and captures each file's [mtimeMs, size, inode] for
-// the warm-lookup stat tier. Full-refresh, like root: the whole set is hashed (no per-file delta), so any
-// change re-runs the stage. Reads asynchronously so a large tool set (a whole package tree, e.g. jsdoc's
-// hundreds of files) does not block the event loop; the reads are sequential rather than a Promise.all
-// fan-out, to stay well under the open-file-descriptor limit on a big tree. The hash update sequence
-// (path, NUL, content-or-marker, NUL) is byte-identical to the previous implementation, so the digest, and
-// existing cache entries keyed on it, are unchanged. A missing file folds a marker into the digest and a
-// null stat (which never equals a real tuple), so a deleted tool file still moves the digest and always
-// counts as changed in the stat tier.
+// the record-path reuse check (recordToolFiles). Full-refresh, like root: the whole set is hashed (no
+// per-file delta), so any change re-runs the stage. Reads asynchronously so a large tool set (a whole
+// package tree, e.g. jsdoc's hundreds of files) does not block the event loop; the reads are sequential
+// rather than a Promise.all fan-out, to stay well under the open-file-descriptor limit on a big tree. The
+// hash update sequence (path, NUL, content-or-marker, NUL) is byte-identical to the previous implementation,
+// so the digest, and existing cache entries keyed on it, are unchanged. A missing file folds a marker into
+// the digest and a null stat (which never equals a real tuple), so a deleted tool file still moves the
+// digest and always counts as changed by the record-path reuse check.
 async function computeToolContent(paths) {
 	if (paths.length === 0) {
 		return {signature: EMPTY_TOOLCONTENT_SIGNATURE, stats: Object.create(null)};
@@ -49,9 +50,9 @@ async function computeToolContent(paths) {
 	return {signature: hash.digest("hex"), stats};
 }
 
-// Stats one tool file for the warm-lookup tier, returning [mtimeMs, size, inode], or null if it cannot be
-// statted (e.g. a deleted tool file). A null never equals a real tuple, so a missing file always counts as
-// changed and falls to the content tier.
+// Stats one tool file for the record-path reuse check, returning [mtimeMs, size, inode], or null if it
+// cannot be statted (e.g. a deleted tool file). A null never equals a real tuple, so a missing file always
+// counts as changed and forces a recompute.
 async function statToolFile(filePath) {
 	try {
 		const {mtimeMs, size, ino} = await fs.promises.stat(filePath);
@@ -62,9 +63,10 @@ async function statToolFile(filePath) {
 }
 
 // Stats a set of tool files into a path -> [mtimeMs, size, inode] | null map, without reading their bytes.
-// Runs with bounded concurrency: stat holds no file descriptor open, so a fixed-width fan-out stays well
-// under the open-file limit while removing the per-file serialization the warm stat tier would otherwise pay
-// over a large tool tree (jsdoc's hundreds of files are statted on every build that reaches this tier).
+// Used by the record-path reuse check (recordToolFiles) to skip a recompute when a re-executing stage's
+// tool set is unchanged. Runs with bounded concurrency: stat holds no file descriptor open, so a fixed-width
+// fan-out stays well under the open-file limit while removing the per-file serialization a large tool tree
+// (jsdoc's hundreds of files) would otherwise pay.
 async function statToolFiles(paths) {
 	const stats = Object.create(null);
 	const sorted = [...paths].sort();
@@ -165,8 +167,10 @@ export default class BuildStageCache {
 	#toolPaths;
 	#toolContentSignature;
 	// Per-file [mtimeMs, size, inode] (or null for a missing file) captured when the digest was last
-	// computed, keyed by path. The warm-lookup stat tier compares a fresh stat against this to decide
-	// whether the files can be skipped without re-reading their bytes.
+	// computed, keyed by path. The record-path reuse check (recordToolFiles) compares a fresh stat against
+	// this to skip a recompute when a re-executing stage's tool set is unchanged. The warm lookup
+	// (refreshToolContentSignature) does not use it: it always re-reads, because a matching tuple is not
+	// proof the bytes are unchanged.
 	#toolStats;
 	// Whether the recorded tool path list changed since it was restored/recorded, so toCacheObjects/
 	// hasNewOrModifiedCacheEntries know it must be persisted.
@@ -262,9 +266,9 @@ export default class BuildStageCache {
 				rootNoGitignoreRequests ?? emptyRequestManagerCache()),
 		};
 		// Tool-content metadata is optional: absent for stages that loaded no tracked tool, and absent in
-		// caches written before tool tracking existed. The stat baseline and digest are also absent in
-		// caches written before the stat tier; a missing baseline forces the first warm build through the
-		// content tier, which repopulates both.
+		// caches written before tool tracking existed. The stat baseline and digest are also absent in older
+		// caches; a missing baseline just means the record-path reuse check recomputes once, and a missing
+		// digest is recomputed by the first warm build anyway.
 		const toolPaths = toolContentRequests?.paths;
 		const toolStats = toolContentRequests?.stats;
 		const toolContentSignature = toolContentRequests?.signature;
@@ -392,7 +396,7 @@ export default class BuildStageCache {
 	 * Records the external tool files this stage loaded during execution by **unioning** them into the
 	 * recorded set, then recomputes the tool-content digest from the set's current on-disk content. Marks
 	 * the stage for persistence if the recorded path list grew (the path list, the digest, and the stat
-	 * baseline are what is persisted; the digest is re-validated on the next build via the stat tier).
+	 * baseline are what is persisted; the digest is re-validated on the next build by refreshToolContentSignature).
 	 *
 	 * The set only grows, never shrinks. Two shapes of capture undercount the real tool set, and neither is
 	 * evidence a tool was dropped:
@@ -453,15 +457,15 @@ export default class BuildStageCache {
 	 * version bump, a patch, a relinked file:) in a long-running build server, where this stage cache
 	 * persists across builds and would otherwise keep the digest it was restored with.
 	 *
-	 * Two tiers. The stat tier compares a fresh stat of every recorded file against the baseline the digest
-	 * was last computed against ([mtimeMs, size, inode]); if nothing moved, the content cannot have changed,
-	 * so the digest is kept and the files are not read. Otherwise the content tier re-reads the bytes,
-	 * refreshes both the digest and the baseline, and marks the stage for persistence so the refreshed
-	 * baseline reaches disk on the next cache write. Without that mark, a same-version reinstall (inode and
-	 * mtime move, bytes identical) would re-run the content tier on every fresh process, never
-	 * re-establishing the durable stat-tier skip. The mark is sticky until a write happens; a full
-	 * result-cache hit writes nothing, so that case still re-reads once per process, bounded by the
-	 * recorded file set.
+	 * Re-reads the recorded files every build and recomputes the digest. A stat-only short-circuit was
+	 * removed here: a [mtimeMs, size, inode] match is not proof the bytes are unchanged (a timestamp-
+	 * preserving writer, e.g. tar -x, rsync -t, cp -p, git checkout of a committed mtime, or a coarse-mtime
+	 * filesystem, keeps the tuple identical across an in-place same-size edit), and a stale tool served from
+	 * cache is silent. This matches {@link isResourceUnchanged}, which also treats the content hash as the
+	 * authority and never trusts the stat tuple on its own. The recorded tool set is small for every shipped
+	 * task (the large trees, terser/less-openui5/jsdoc, are tracked at version level: entry + package.json),
+	 * so the re-read is a few milliseconds per stage. The stage is flagged for persistence only when the
+	 * digest actually moved, so an unchanged tool does not churn the cache.
 	 *
 	 * @public
 	 * @returns {Promise<void>}
@@ -472,20 +476,15 @@ export default class BuildStageCache {
 			this.#toolStats = Object.create(null);
 			return;
 		}
-		// Stat tier: if every recorded file's mtime, size, and inode match the baseline, keep the digest and
-		// skip reading the files. Mirrors the mtime/size short-circuit the root HashTree uses
-		// (utils.isResourceUnchanged) before re-hashing a resource.
-		if (toolStatsUnchanged(await statToolFiles(this.#toolPaths), this.#toolStats)) {
-			return;
-		}
-		// Content tier: a stat moved (or the stored baseline is absent, e.g. a cache from before the stat
-		// tier), so re-read the bytes and refresh both the digest and the baseline. Mark the stage for
-		// persistence so the refreshed baseline is written on the next cache write (persisted whenever any
-		// stage in the project misses), re-establishing the stat-tier skip after a same-version reinstall.
+		const previousSignature = this.#toolContentSignature;
 		const {signature, stats} = await computeToolContent(this.#toolPaths);
 		this.#toolContentSignature = signature;
 		this.#toolStats = stats;
-		this.#toolSetModified = true;
+		// Persist only on a real change: an unchanged tool recomputes to the same digest, so flagging it
+		// every build would re-write the cache for every tool-tracking stage on every build.
+		if (signature !== previousSignature) {
+			this.#toolSetModified = true;
+		}
 	}
 
 	/**
@@ -777,8 +776,9 @@ export default class BuildStageCache {
 			gitignore.hasRequests() || gitignore.wasCleared() ? gitignore.toCacheObject() : undefined,
 			noGitignore.hasRequests() || noGitignore.wasCleared() ? noGitignore.toCacheObject() : undefined,
 			// Persist the tool path list, the digest, and the per-file stat baseline for a stage that loaded
-			// a tracked tool. The baseline lets the next build's stat tier skip re-reading unchanged files
-			// (see refreshToolContentSignature). A stage with no tool content writes no tool-content row.
+			// a tracked tool. The baseline lets the record-path reuse check (recordToolFiles) skip a recompute
+			// when a re-executing stage's tool set is unchanged. A stage with no tool content writes no
+			// tool-content row.
 			this.#toolPaths.length ?
 				{paths: this.#toolPaths, signature: this.#toolContentSignature, stats: this.#toolStats} :
 				undefined,

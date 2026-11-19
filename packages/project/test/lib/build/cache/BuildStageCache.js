@@ -588,27 +588,64 @@ test("refreshToolContentSignature: a stage with no recorded tool files stays at 
 			"refreshing a tool-free stage keeps the stable empty-tool digest");
 	});
 
-test.serial("refreshToolContentSignature: the stat tier skips re-reading files whose stat is unchanged",
+test.serial("refreshToolContentSignature: an unchanged tool keeps its digest and does not flag the stage",
 	async (t) => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "ui5-toolcontent-"));
 		t.teardown(() => fs.rm(dir, {recursive: true, force: true}));
 		const toolFile = path.join(dir, "index.js");
 		await fs.writeFile(toolFile, "v1");
 
-		const cache = new BuildStageCache("test.project", "testTask", false);
-		await cache.recordToolFiles([toolFile]);
+		const base = new BuildStageCache("test.project", "testTask", false);
+		await base.recordToolFiles([toolFile]);
+		// Round-trip so the restored stage starts clean (modified=false).
+		const cache = BuildStageCache.fromCache({
+			projectName: "test.project", stageId: "testTask", stepBased: false,
+			projectRequests: base.toCacheObjects()[0], dependencyRequests: base.toCacheObjects()[1],
+			toolContentRequests: base.toCacheObjects()[5],
+		});
 		const sig = cache.getToolContentSignature();
 
-		// Nothing on disk changes, so a fresh stat matches the recorded baseline: refresh must not read bytes.
-		const readSpy = sinon.spy(nodeFs.promises, "readFile");
-		t.teardown(() => readSpy.restore());
+		// Nothing on disk changes. The warm lookup re-reads the bytes (the stat tuple is not trusted as
+		// proof), recomputes the same digest, and must not flag the stage for persistence or every build
+		// would re-write the cache for an unchanged tool.
 		await cache.refreshToolContentSignature();
 
-		t.is(readSpy.callCount, 0, "an unchanged stat baseline skips the content read");
-		t.is(cache.getToolContentSignature(), sig, "the digest is kept");
+		t.is(cache.getToolContentSignature(), sig, "an unchanged tool keeps its digest");
+		t.false(cache.hasNewOrModifiedCacheEntries(), "an unchanged tool does not flag the stage for persistence");
 	});
 
-test.serial("refreshToolContentSignature: a moved mtime re-reads but keeps the digest when bytes are identical",
+test.serial("refreshToolContentSignature: an in-place same-size edit with a preserved mtime is still caught",
+	async (t) => {
+		// A [mtimeMs, size, inode] tuple match is not proof the bytes are unchanged. A tool edited in place
+		// to the same byte length, with its mtime restored and its inode reused, preserves all three.
+		// isResourceUnchanged (the root/input path this cites) never trusts that tuple as proof on its own:
+		// the content hash is the authority. The warm lookup must do the same, or a timestamp-preserving
+		// writer (tar -x, rsync -t, cp -p, git checkout of a committed mtime, a coarse-mtime filesystem)
+		// serves a stale tool from cache.
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "ui5-toolcontent-"));
+		t.teardown(() => fs.rm(dir, {recursive: true, force: true}));
+		const toolFile = path.join(dir, "index.js");
+		await fs.writeFile(toolFile, "AAAA");
+		// Pin the mtime to a fixed whole-millisecond value so the baseline records exactly it.
+		const pinned = new Date(1700000000000);
+		await fs.utimes(toolFile, pinned, pinned);
+
+		const cache = new BuildStageCache("test.project", "testTask", false);
+		await cache.recordToolFiles([toolFile]);
+		const sig = cache.getToolContentSignature();
+
+		// Same-length content change, then restore the exact mtime. The inode is reused by an in-place
+		// overwrite, so [mtimeMs, size, inode] is byte-identical to the baseline.
+		await fs.writeFile(toolFile, "BBBB");
+		await fs.utimes(toolFile, pinned, pinned);
+
+		await cache.refreshToolContentSignature();
+
+		t.not(cache.getToolContentSignature(), sig,
+			"a same-size, mtime-preserving in-place edit must still move the digest");
+	});
+
+test.serial("refreshToolContentSignature: an mtime-only change keeps the digest when bytes are identical",
 	async (t) => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "ui5-toolcontent-"));
 		t.teardown(() => fs.rm(dir, {recursive: true, force: true}));
@@ -619,25 +656,21 @@ test.serial("refreshToolContentSignature: a moved mtime re-reads but keeps the d
 		await cache.recordToolFiles([toolFile]);
 		const sig = cache.getToolContentSignature();
 
-		// Touch the file: new mtime, identical bytes (as a same-version npm ci would). The stat tier sees the
-		// moved mtime and falls to the content tier, which re-confirms the same digest, so no false miss.
+		// Touch the file: new mtime, identical bytes (as a same-version npm ci would). The warm lookup
+		// re-reads and re-confirms the same digest, so an mtime-only change does not false-fire.
 		const future = new Date(Date.now() + 2000);
 		await fs.utimes(toolFile, future, future);
 
-		const readSpy = sinon.spy(nodeFs.promises, "readFile");
-		t.teardown(() => readSpy.restore());
 		await cache.refreshToolContentSignature();
 
-		t.true(readSpy.callCount >= 1, "a moved mtime falls through to the content tier");
 		t.is(cache.getToolContentSignature(), sig,
 			"identical bytes keep the digest, so an mtime-only change does not invalidate");
 	});
 
-test.serial("refreshToolContentSignature: the content tier marks the stage for persistence (durable baseline)",
+test.serial("refreshToolContentSignature: a real content change flags the stage for persistence",
 	async (t) => {
-		// A same-version reinstall moves inode/mtime but not bytes. The content tier re-confirms the digest
-		// and refreshes the baseline in memory; it must also flag the stage so the refreshed baseline reaches
-		// disk on the next write, or every fresh process would re-read the content tier forever.
+		// An in-session tool change must both move the digest and flag the stage so the new digest reaches
+		// disk on the next cache write.
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "ui5-toolcontent-"));
 		t.teardown(() => fs.rm(dir, {recursive: true, force: true}));
 		const toolFile = path.join(dir, "index.js");
@@ -653,17 +686,15 @@ test.serial("refreshToolContentSignature: the content tier marks the stage for p
 		});
 		t.false(restored.hasNewOrModifiedCacheEntries(), "a freshly restored stage is clean");
 
-		// Touch the file: moved mtime, identical bytes (a same-version reinstall). Stat tier misses, content
-		// tier re-confirms the digest but must mark the stage so the new baseline persists.
-		const future = new Date(Date.now() + 2000);
-		await fs.utimes(toolFile, future, future);
+		// Change the tool's content. The warm lookup re-reads, the digest moves, and the stage is flagged.
+		await fs.writeFile(toolFile, "v2-different-bytes");
 		await restored.refreshToolContentSignature();
 
 		t.true(restored.hasNewOrModifiedCacheEntries(),
-			"the content tier flags the stage so the refreshed stat baseline is persisted on the next write");
+			"a moved digest flags the stage so the new tool-content digest is persisted on the next write");
 	});
 
-test.serial("refreshToolContentSignature: a restored cache without a stat baseline re-reads once, then skips",
+test.serial("refreshToolContentSignature: a restored cache without a baseline computes a stable digest",
 	async (t) => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), "ui5-toolcontent-"));
 		t.teardown(() => fs.rm(dir, {recursive: true, force: true}));
@@ -683,22 +714,20 @@ test.serial("refreshToolContentSignature: a restored cache without a stat baseli
 
 		const firstSpy = sinon.spy(nodeFs.promises, "readFile");
 		await legacy.refreshToolContentSignature();
-		t.true(firstSpy.callCount >= 1, "a missing baseline forces the content tier");
+		t.true(firstSpy.callCount >= 1, "a cache without a baseline reads and computes the digest");
 		const sig = legacy.getToolContentSignature();
 		firstSpy.restore();
 
-		// Persisting now carries the baseline; a restore from it skips the read on the next build.
+		// A second refresh of the unchanged file re-reads (the warm lookup always does) and recomputes the
+		// same digest, so a legacy cache converges on the correct value.
 		const restored = BuildStageCache.fromCache({
 			projectName: "test.project", stageId: "testTask", stepBased: false,
 			projectRequests: objs[0], dependencyRequests: objs[1],
 			toolContentRequests: legacy.toCacheObjects()[5],
 		});
-		const secondSpy = sinon.spy(nodeFs.promises, "readFile");
-		t.teardown(() => secondSpy.restore());
 		await restored.refreshToolContentSignature();
 
-		t.is(secondSpy.callCount, 0, "the persisted baseline lets the next build skip the read");
-		t.is(restored.getToolContentSignature(), sig, "the skipped refresh keeps the restored digest");
+		t.is(restored.getToolContentSignature(), sig, "a re-refresh of unchanged content keeps the digest");
 	});
 
 test("toCacheObjects/fromCache: persists the digest and per-file stat baseline", async (t) => {
