@@ -4,6 +4,7 @@ import {promisify} from "node:util";
 import ComponentProject from "../ComponentProject.js";
 import * as resourceFactory from "@ui5/fs/resourceFactory";
 import parseJSON from "../../utils/json.js";
+import {getManifestMaxBytes, readResourceString} from "../../utils/limits.js";
 
 /**
  * Library
@@ -392,6 +393,9 @@ class Library extends ComponentProject {
 					`at ${filePath}`);
 			}
 		} catch (err) {
+			if (err.code?.startsWith("ERR_CONFIG_")) {
+				throw err;
+			}
 			// For Specification Version 5.0+, non-framework libraries must provide a manifest.json
 			if (this.getSpecVersion().gte("5.0") && !this.isFrameworkProject()) {
 				throw new Error(
@@ -510,15 +514,19 @@ class Library extends ComponentProject {
 				const resource = manifestResources[0];
 				try {
 					return {
-						content: parseJSON(await resource.getString(), resource.getPath()),
+						content: parseJSON(await readResourceString(resource, {
+							input: resource.getPath(), limit: getManifestMaxBytes()
+						}), resource.getPath()),
 						filePath: resource.getPath()
 					};
 				} catch (err) {
 					if (err.code === "ENOENT") {
 						throw err;
 					}
-					throw new Error(
+					const error = new Error(
 						`Failed to read ${resource.getPath()} for project ${this.getName()}: ${err.message}`);
+					error.code = err.code;
+					throw error;
 				}
 			});
 	}

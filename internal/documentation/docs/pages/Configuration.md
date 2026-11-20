@@ -15,6 +15,26 @@ The current version of the schema can be found here: https://ui5.github.io/cli/s
 The schema is also part of the [JSON Schema Store Catalog](http://schemastore.org/json/) which is used by the [YAML Language Server](https://github.com/redhat-developer/yaml-language-server).  
 See the list of [clients](https://github.com/redhat-developer/yaml-language-server/blob/main/README.md#clients) to find extensions for various IDEs and editors.
 
+## Input Limits
+
+Project loading limits the size and nesting of configuration files before parsing or validation can consume excessive resources. Set the following environment variables before starting UI5 CLI to override the defaults. Values must contain decimal digits and represent positive safe integers. Invalid values produce `ERR_CONFIG_INVALID_LIMIT`.
+
+| Environment Variable | Default | Scope |
+| --- | --- | --- |
+| `UI5_CONFIG_MAX_BYTES` | 1048576 bytes (1 MiB) | One `ui5.yaml` file, including all YAML documents in that file |
+| `UI5_MANIFEST_MAX_BYTES` | 4194304 bytes (4 MiB) | Each `manifest.json`, `manifest.appdescr_variant`, or `.ui5/build-manifest.json` read during project loading |
+| `UI5_CONFIG_MAX_DEPTH` | 100 | YAML parser nesting depth |
+| `UI5_JSON_MAX_DEPTH` | 100 | Nested objects and arrays in JSON read through the project JSON parser |
+| `UI5_CONFIG_MAX_COLLECTION` | 10000 | Entries in any one array or properties in any one object in each YAML document or the `project` configuration from a build manifest |
+
+Byte limits use file size metadata before content is read. The JSON depth check runs before `JSON.parse`, counts the root object or array as depth 1, and ignores brackets inside strings. `UI5_CONFIG_MAX_DEPTH` sets the `js-yaml` parser's `maxDepth` option, whose parser default is also 100. When a YAML document exceeds it, the parser reports `nesting exceeded maxDepth (<N>)`. YAML and JSON apply their own nesting rules, so the same numeric limit need not accept identical structures.
+
+Collection checks run after parsing and before configuration validation, defaults processing, or cloning. They include free-form configuration. File size and collection limits accept values equal to the limit. Failures identify the input and the exceeded limit, with error codes `ERR_CONFIG_TOO_LARGE`, `ERR_CONFIG_TOO_DEEP`, or `ERR_CONFIG_COLLECTION_TOO_LARGE`.
+
+The JSON depth limit also applies to `package.json` and bundled schema files read through the same parser. Very small values can therefore reject a bundled schema before project loading completes. These files have no byte limit from this mechanism. Configuration objects supplied directly through the API are outside these file-read checks.
+
+These limits apply to individual inputs. They do not bound a project graph assembled from many dependency documents, or the total work of a build. CI jobs and containers that build untrusted projects must also set process or container limits for memory, CPU, and file count.
+
 ## Example
 
 ```yaml
