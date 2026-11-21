@@ -469,10 +469,16 @@ test("getStageSignatures: composes the [project, dependency, input, root] tuple"
 		dependencyReader,
 	});
 
-	const stageSignatures = cache.getStageSignatures();
+	const {stageSignatures, inputSignature, rootSignature, projectSignatures, dependencySignatures} =
+		cache.getStageSignatures();
 
 	t.deepEqual(stageSignatures, [`${projectSig}-${dependencySig}-${inputSig}-${rootSig}`],
 		"The single exact-match signature is the four components joined in tuple order");
+	t.is(inputSignature, inputSig, "Returns the input component used to compose the signatures");
+	t.is(rootSignature, rootSig, "Returns the root component used to compose the signatures");
+	t.deepEqual(projectSignatures, [projectSig], "Returns the project signatures used in the product");
+	t.deepEqual(dependencySignatures, [dependencySig],
+		"Returns the dependency signatures used in the product");
 });
 
 test("getStageSignatures: empty-input and empty-root components are the stable empty-set digests",
@@ -491,7 +497,7 @@ test("getStageSignatures: empty-input and empty-root components are the stable e
 			dependencyReader,
 		});
 
-		const [signature] = cache.getStageSignatures();
+		const {stageSignatures: [signature]} = cache.getStageSignatures();
 		const [, , inputComponent, rootComponent] = signature.split("-");
 
 		t.is(inputComponent, cache.getInputSignature(), "Input slot is the empty-input digest");
@@ -513,7 +519,7 @@ test("getStageSignatures: one signature per project x dependency index-signature
 			dependencyReader,
 		});
 
-		t.is(cache.getStageSignatures().length, 1,
+		t.is(cache.getStageSignatures().stageSignatures.length, 1,
 			"One project signature times one dependency signature yields one stage signature");
 	});
 

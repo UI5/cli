@@ -670,8 +670,18 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Aggregates the current root signatures across all stage caches into one signature, used to detect
-	 * whether any recorded root file changed since the cache was last validated.
+	 * Aggregates the current root signatures across all stage caches into one signature. Order-independent:
+	 * the per-stage signatures are sorted before hashing.
+	 *
+	 * Two callers compute the same value in one validateCache pass by design:
+	 *   - The change-detection gate in validateCache (conditional on #anyStageHasRootRequests()) compares it
+	 *     against #cachedRootAggregateSignature and forces result-cache revalidation when a root file moved.
+	 *   - {@link #getPossibleResultStageSignatures} / {@link #getResultStageSignature} use it (unconditionally)
+	 *     as one slot of the result stage signature, a sibling of the input slot
+	 *     ({@link #getAggregatedInputSignature}), so a changed root file invalidates the result cache.
+	 *
+	 * Nothing changes the root indices or stage caches between the two calls, so recomputing rather than
+	 * memoizing keeps the conditional gate and the unconditional slot decoupled for one small hash.
 	 *
 	 * @returns {string} Aggregated root signature
 	 */
@@ -747,10 +757,10 @@ export default class ProjectBuildCache {
 		// with the current input and root signatures (BuildStageCache.getStageSignatures). The input and
 		// root signatures are re-evaluated against the current environment, graph, and project root, so a
 		// changed input or root file misses the cached stage. Root indices were refreshed in validateCache
-		// before this build's stages run.
-		const inputSignature = stageCache.getInputSignature(this.#resolveInputValue);
-		const rootSignature = stageCache.getRootSignature();
-		const stageSignatures = stageCache.getStageSignatures(this.#resolveInputValue);
+		// before this build's stages run. getStageSignatures returns the four components alongside the
+		// candidates, so the delta path below reuses them instead of recomputing.
+		const {stageSignatures, inputSignature, rootSignature, projectSignatures, dependencySignatures} =
+			stageCache.getStageSignatures(this.#resolveInputValue);
 
 		const cachedStage = this.#findStageCache(stageId, stageSignatures);
 		const oldStageTuple = this.#currentStageSignatures.get(stageId);
@@ -781,8 +791,6 @@ export default class ProjectBuildCache {
 				`Attempting to find delta cached stage...`);
 			const projectDeltas = stageCache.getProjectIndexDeltas();
 			const depDeltas = stageCache.getDependencyIndexDeltas();
-			const projectSignatures = stageCache.getProjectIndexSignatures();
-			const dependencySignatures = stageCache.getDependencyIndexSignatures();
 
 			// Build the delta candidates and carry each one's provenance alongside it: the resolved new
 			// project and dependency components and the changed-path lists. The winner is looked up by its
