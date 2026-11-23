@@ -1,16 +1,44 @@
-import {createServer} from "node:http";
+import {createServer} from "node:https";
 import {once} from "node:events";
 import {deflateRawSync, crc32} from "node:zlib";
+import {execFileSync} from "node:child_process";
+import {mkdtempSync, readFileSync, rmSync} from "node:fs";
+import {tmpdir} from "node:os";
+import path from "node:path";
+
+// The Maven Registry requires HTTPS and keeps TLS verification on, so the test server needs a
+// certificate the client trusts. Mint a short-lived self-signed certificate for 127.0.0.1 once
+// per process with openssl (an available toolchain binary) rather than committing key material.
+// `ca` is the certificate to hand the fetch as a trusted CA via fetch.defaults({ca}); see maven_dos.js.
+function createCertificate() {
+	const dir = mkdtempSync(path.join(tmpdir(), "ui5-maven-cert-"));
+	const keyPath = path.join(dir, "key.pem");
+	const certPath = path.join(dir, "cert.pem");
+	execFileSync("openssl", [
+		"req", "-x509", "-newkey", "rsa:2048", "-nodes",
+		"-keyout", keyPath, "-out", certPath,
+		"-days", "1", "-subj", "/CN=127.0.0.1",
+		"-addext", "subjectAltName=IP:127.0.0.1"
+	], {stdio: "ignore"});
+	const certificate = {key: readFileSync(keyPath), cert: readFileSync(certPath)};
+	rmSync(dir, {force: true, recursive: true});
+	return certificate;
+}
+
+const certificate = createCertificate();
+
+// The certificate to configure as a trusted CA on the fetch that talks to serve()'s endpoints.
+export const ca = certificate.cert;
 
 export async function serve(t, handler) {
-	const server = createServer(handler);
+	const server = createServer({key: certificate.key, cert: certificate.cert}, handler);
 	server.listen(0, "127.0.0.1");
 	await once(server, "listening");
 	t.teardown(async () => {
 		server.closeAllConnections();
 		await new Promise((resolve) => server.close(resolve));
 	});
-	return `http://127.0.0.1:${server.address().port}/`;
+	return `https://127.0.0.1:${server.address().port}/`;
 }
 
 // Build DEFLATE archives without a ZIP writer dependency. An override can understate declared output sizes.

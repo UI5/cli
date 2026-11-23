@@ -4,8 +4,6 @@ import {tmpdir} from "node:os";
 import path from "node:path";
 import {once} from "node:events";
 import {gzipSync} from "node:zlib";
-import Registry from "../../../lib/ui5Framework/maven/Registry.js";
-import Installer from "../../../lib/ui5Framework/maven/Installer.js";
 import {getMavenLimits} from "../../../lib/ui5Framework/maven/limits.js";
 import sinon from "sinon";
 import fs from "graceful-fs";
@@ -13,7 +11,18 @@ import {Readable, Writable} from "node:stream";
 import StreamZip from "node-stream-zip";
 import fetch from "make-fetch-happen";
 import esmock from "esmock";
-import {serve, archive} from "./__helper__/maven.js";
+import {serve, archive, ca} from "./__helper__/maven.js";
+
+// serve() issues HTTPS with a self-signed certificate (the Registry requires HTTPS and keeps TLS
+// verification on). Load Registry and Installer with a fetch that trusts that certificate as a CA.
+// Installer imports Registry, so the same mock reaches the fetch on both download paths.
+const trustingFetch = fetch.defaults({ca});
+const Registry = await esmock("../../../lib/ui5Framework/maven/Registry.js", {
+	"make-fetch-happen": trustingFetch
+});
+const Installer = await esmock("../../../lib/ui5Framework/maven/Installer.js", {}, {
+	"make-fetch-happen": trustingFetch
+});
 
 const coordinates = {groupId: "test.ui5", artifactId: "library", version: "1-SNAPSHOT",
 	revision: "1-20261030", classifier: "npm", extension: "zip"};
@@ -139,7 +148,7 @@ for (const kind of ["metadata", "artifact"]) {
 		});
 		// Maven currently uses fetch's default of zero retries. Exercise its retry path with the same signal.
 		const RetryingRegistry = await esmock("../../../lib/ui5Framework/maven/Registry.js", {
-			"make-fetch-happen": fetch.defaults({retry: {retries: 1, minTimeout: 100, maxTimeout: 100}})
+			"make-fetch-happen": fetch.defaults({ca, retry: {retries: 1, minTimeout: 100, maxTimeout: 100}})
 		});
 		const reg = new RetryingRegistry({endpointUrl});
 		const result = kind === "metadata" ? reg.requestMavenMetadata(coordinates) :
