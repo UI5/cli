@@ -2,6 +2,10 @@ import test from "ava";
 import sinonGlobal from "sinon";
 import esmock from "esmock";
 import crypto from "node:crypto";
+import path from "node:path";
+import {fileURLToPath, pathToFileURL} from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function noop() {}
 function emptyarray() {
@@ -647,33 +651,47 @@ test("getBuildSignatures: Empty project hashes the empty string", async (t) => {
 test.serial("Standard descriptor resolution captures the task module's load-time tool dependencies", async (t) => {
 	const {TaskDefinitions, graph, taskUtil} = t.context;
 	const project = getMockProject("library");
-	// The real task repository, so getTask performs the actual dynamic import of the task module and the
-	// recorder observes its top-level imports (generateLibraryManifest -> manifestCreator -> xml2js/semver).
-	const taskRepository = await import("@ui5/builder/internal/taskRepository");
+	// A fixture task module whose only top-level tool import is a dedicated package (standard-task-tool)
+	// that no other test in this file loads. getStandardDescriptor brackets the task module's load, so the
+	// require("standard-task-tool") inside the fixture resolves cold within this capture and the recorder
+	// observes it. Using a fixture rather than a real builder task avoids depending on that task's module
+	// graph being loaded cold, which the full suite cannot guarantee (a module already warmed earlier in
+	// the process fires no resolve hook).
+	const taskModulePath = pathToFileURL(
+		path.join(__dirname, "../../fixtures/application.a/task.standard-descriptor-tool.js")).href;
+	const taskRepository = {
+		getTask: async () => ({task: (await import(taskModulePath)).default}),
+	};
 	const taskDefinitions = new TaskDefinitions(graph, project, taskUtil, taskRepository);
 
 	const taskDef = {options: {}};
-	const descriptor = await taskDefinitions.getStandardDescriptor("generateLibraryManifest", taskDef);
+	const descriptor = await taskDefinitions.getStandardDescriptor("standard-descriptor-tool-task", taskDef);
 
 	t.truthy(descriptor, "A descriptor was resolved");
 	t.true(Array.isArray(taskDef.loadTimeToolFiles) && taskDef.loadTimeToolFiles.length > 0,
 		"The task's load-time tool files were captured");
-	t.true(taskDef.loadTimeToolFiles.some((file) => file.includes("/node_modules/xml2js/")),
-		"xml2js (a transitive tool of manifestCreator) is tracked");
-	t.true(taskDef.loadTimeToolFiles.some((file) => file.endsWith("/package.json")),
+	// Captured paths use OS-native separators (fileURLToPath), so match with path.join, not a "/..." literal.
+	t.true(taskDef.loadTimeToolFiles.some((file) => file.includes(path.join("node_modules", "standard-task-tool"))),
+		"the task module's top-level-imported tool is tracked");
+	t.true(taskDef.loadTimeToolFiles.some((file) => file.endsWith(`${path.sep}package.json`)),
 		"A tracked package's package.json is included, so a version-only bump moves the hash");
-	t.true(taskDef.loadTimeToolFiles.every((file) => !file.includes("/node_modules/@ui5/")),
+	t.true(taskDef.loadTimeToolFiles.every((file) => !file.includes(path.join("node_modules", "@ui5"))),
 		"@ui5/* packages are excluded from the tool set");
 });
 
 test.serial("A skipped standard task captures no load-time tool files", async (t) => {
 	const {TaskDefinitions, graph, taskUtil} = t.context;
 	const project = getMockProject("library");
-	const taskRepository = await import("@ui5/builder/internal/taskRepository");
+	// A skipped task never calls getTask, so the repository is never consulted; a throwing stub proves it.
+	const taskRepository = {
+		getTask: async () => {
+			throw new Error("getTask must not be called for a skipped task");
+		},
+	};
 	const taskDefinitions = new TaskDefinitions(graph, project, taskUtil, taskRepository);
 
 	const taskDef = {skip: true, options: {}};
-	const descriptor = await taskDefinitions.getStandardDescriptor("generateLibraryManifest", taskDef);
+	const descriptor = await taskDefinitions.getStandardDescriptor("standard-descriptor-tool-task", taskDef);
 
 	t.is(descriptor, undefined, "A skipped task has no descriptor");
 	t.is(taskDef.loadTimeToolFiles, undefined, "A skipped task resolves no module and captures nothing");
@@ -682,17 +700,24 @@ test.serial("A skipped standard task captures no load-time tool files", async (t
 test.serial("Standard descriptor resolution shares its load-time tools across projects", async (t) => {
 	const {TaskDefinitions, graph, taskUtil} = t.context;
 	const project = getMockProject("library");
-	const taskRepository = await import("@ui5/builder/internal/taskRepository");
+	// The fixture task module (top-level-imports standard-task-tool) loads cold on the first resolve in this
+	// process; a second resolve finds the module cached, so its own capture is blind and must recall the
+	// shared set. Using the fixture keeps this deterministic regardless of suite order.
+	const taskModulePath = pathToFileURL(
+		path.join(__dirname, "../../fixtures/application.a/task.standard-descriptor-tool.js")).href;
+	const taskRepository = {
+		getTask: async () => ({task: (await import(taskModulePath)).default}),
+	};
 
 	// Two projects of one build run resolve the same standard task. Whichever resolves first captures the
 	// module's load-time tools; a later project resolves with the module already cached, so its own capture
 	// is blind and must recall the shared set keyed by task identity.
 	const taskDefA = {options: {}};
 	await new TaskDefinitions(graph, project, taskUtil, taskRepository)
-		.getStandardDescriptor("generateLibraryManifest", taskDefA);
+		.getStandardDescriptor("standard-descriptor-tool-task", taskDefA);
 	const taskDefB = {options: {}};
 	await new TaskDefinitions(graph, project, taskUtil, taskRepository)
-		.getStandardDescriptor("generateLibraryManifest", taskDefB);
+		.getStandardDescriptor("standard-descriptor-tool-task", taskDefB);
 
 	t.true(taskDefA.loadTimeToolFiles.length > 0, "the first project captured the load-time tools");
 	t.deepEqual(taskDefB.loadTimeToolFiles, taskDefA.loadTimeToolFiles,
