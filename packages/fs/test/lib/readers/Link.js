@@ -1,7 +1,170 @@
 import test from "ava";
 import sinon from "sinon";
+import path from "node:path";
+import os from "node:os";
+import {mkdtemp, rm} from "node:fs/promises";
+import FileSystem from "../../../lib/adapters/FileSystem.js";
+import Memory from "../../../lib/adapters/Memory.js";
 import Link from "../../../lib/readers/Link.js";
+import Resource from "../../../lib/Resource.js";
 import ResourceFacade from "../../../lib/ResourceFacade.js";
+import {createFlatReader} from "../../../lib/resourceFactory.js";
+
+for (const requestPath of [
+	"/app/../other/secret.js",
+	"/app/dir/../../other/secret.js",
+	"/app/../../resources/other/secret.js",
+	"/app/../application/secret.js",
+	"/app/..",
+	"/application/secret.js"
+]) {
+	test(`byPath: Reject ${requestPath} before calling the backing reader`, async (t) => {
+		const reader = {_byPath: sinon.stub().resolves(null)};
+		const link = new Link({
+			reader,
+			pathMapping: {linkPath: "/app/", targetPath: "/resources/app/"}
+		});
+
+		t.is(await link.byPath(requestPath), null);
+		t.true(reader._byPath.notCalled);
+	});
+}
+
+test("byPath: Normalize the path before calling the backing reader", async (t) => {
+	const resource = new Resource({path: "/resources/app/File.js"});
+	const reader = {_byPath: sinon.stub().resolves(resource)};
+	const link = new Link({
+		reader,
+		pathMapping: {linkPath: "/app/", targetPath: "/resources/app/"}
+	});
+	const facade = await link.byPath("/app/dir/.././File.js");
+
+	t.is(reader._byPath.firstCall.args[0], "/resources/app/File.js");
+	t.is(facade.getPath(), "/app/File.js");
+	t.is(facade.getConcealedResource(), resource);
+});
+
+for (const {title, targetPath, requestPath, resourcePath, facadePath} of [{
+	title: "Target directory",
+	targetPath: "/resources/app/",
+	requestPath: "/app/dir/..",
+	resourcePath: "/resources/app",
+	facadePath: "/app/"
+}, {
+	title: "Root target",
+	targetPath: "/",
+	requestPath: "/app/File.js",
+	resourcePath: "/File.js",
+	facadePath: "/app/File.js"
+}, {
+	title: "Normalized target path",
+	targetPath: "/resources/other/../app/",
+	requestPath: "/app/File.js",
+	resourcePath: "/resources/app/File.js",
+	facadePath: "/app/File.js"
+}, {
+	title: "Normalized resource path",
+	targetPath: "/resources/app/",
+	requestPath: "/app/File.js",
+	resourcePath: "/resources/app/dir/../File.js",
+	facadePath: "/app/File.js"
+}]) {
+	test(`byPath and byGlob: ${title}`, async (t) => {
+		const resource = {getPath: () => resourcePath};
+		const reader = {
+			_byPath: sinon.stub().resolves(resource),
+			_byGlob: sinon.stub().resolves([resource])
+		};
+		const link = new Link({reader, pathMapping: {linkPath: "/app/", targetPath}});
+
+		const facade = await link.byPath(requestPath, {nodir: false});
+		t.is(facade.getPath(), facadePath);
+		t.is(facade.getConcealedResource(), resource);
+		const resources = await link.byGlob(requestPath, {nodir: false});
+		t.deepEqual(resources.map((resource) => resource.getPath()), [facadePath]);
+		t.is(resources[0].getConcealedResource(), resource);
+	});
+}
+
+for (const resourcePath of [
+	"/resources/other/secret.js",
+	"/resources/application/secret.js",
+	"/resources/app/../other/secret.js",
+	"/resources/app/.."
+]) {
+	test(`Reject a backing reader resource at ${resourcePath}`, async (t) => {
+		const outsideResource = {getPath: () => resourcePath};
+		const insideResource = new Resource({path: "/resources/app/File.js"});
+		const reader = {
+			_byPath: sinon.stub().resolves(outsideResource),
+			_byGlob: sinon.stub().resolves([outsideResource, insideResource])
+		};
+		const link = new Link({
+			reader,
+			pathMapping: {linkPath: "/app/", targetPath: "/resources/app/"}
+		});
+
+		t.is(await link.byPath("/app/File.js"), null);
+		const resources = await link.byGlob("/app/**");
+		t.is(resources.length, 1);
+		t.is(resources[0].getPath(), "/app/File.js");
+		t.is(resources[0].getConcealedResource(), insideResource);
+	});
+}
+
+for (const adapter of ["Memory", "FileSystem"]) {
+	for (const linkPath of ["/app/", "/"]) {
+		const readerType = linkPath === "/" ? "createFlatReader" : "Link";
+		test(`${readerType}: Contain ${adapter} reads within the target subtree`, async (t) => {
+			let reader;
+			if (adapter === "FileSystem") {
+				const fsBasePath = await mkdtemp(path.join(os.tmpdir(), "ui5-fs-link-"));
+				t.teardown(() => rm(fsBasePath, {recursive: true, force: true}));
+				reader = new FileSystem({virBasePath: "/", fsBasePath});
+			} else {
+				reader = new Memory({virBasePath: "/"});
+			}
+			for (const resourcePath of [
+				"/resources/app/File.js",
+				"/resources/app/dir/Nested.js",
+				"/resources/other/secret.js",
+				"/resources/application/secret.js"
+			]) {
+				await reader.write(new Resource({path: resourcePath, string: resourcePath}));
+			}
+			const link = linkPath === "/" ? createFlatReader({reader, namespace: "app"}) : new Link({
+				reader,
+				pathMapping: {linkPath, targetPath: "/resources/app/"}
+			});
+
+			for (const requestPath of [
+				"../other/secret.js",
+				"dir/../../other/secret.js",
+				"../../resources/other/secret.js",
+				"../application/secret.js"
+			]) {
+				t.is(await link.byPath(linkPath + requestPath), null, requestPath);
+				t.deepEqual(await link.byGlob(linkPath + requestPath), [], requestPath);
+			}
+
+			for (const requestPath of ["File.js", "./File.js", "dir/../File.js", "dir//../File.js"]) {
+				const resource = await link.byPath(linkPath + requestPath);
+				t.true(resource instanceof ResourceFacade);
+				t.is(resource.getPath(), linkPath + "File.js");
+				t.is(resource.getConcealedResource().getPath(), "/resources/app/File.js");
+				t.is(await resource.getString(), "/resources/app/File.js");
+				const resources = await link.byGlob(linkPath + requestPath);
+				t.deepEqual(resources.map((resource) => resource.getPath()), [linkPath + "File.js"]);
+			}
+
+			t.is(await link.byPath(linkPath + "missing.js"), null);
+			const resources = await link.byGlob(linkPath + "**/*.js");
+			t.deepEqual(resources.map((resource) => resource.getPath()).sort(), [
+				linkPath + "File.js", linkPath + "dir/Nested.js"
+			]);
+		});
+	}
+}
 
 test("_byGlob: Basic Link", async (t) => {
 	const dummyResourceA = {
