@@ -5,8 +5,8 @@ import {createFixtureTesterFactory, registerBuildHooks} from "./__helper__/Proje
 
 // A custom task that loads its tool ONLY inside a worker it spawns itself (task.tool-content-worker.js ->
 // tool-content-worker.js requires stub-tool). The worker realm is invisible to the main-thread recorder, so
-// the tool is not tracked and a bump of it is served from a stale cache. This pins the documented known
-// limitation (NOTES.md 2.6): a custom task must resolve its tool on the main thread to have it tracked.
+// the tool is not tracked and a bump of it is served from a stale cache. This pins the known
+// limitation: a custom task must resolve its tool on the main thread to have it tracked.
 // This is a boundary test of current behavior, not a bug to fix: the gap fails safe (a stale hit a new
 // @ui5/builder release clears), and the convention steers authors away from it.
 

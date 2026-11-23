@@ -135,7 +135,7 @@ test.serial("a cold require is captured, a warm require of the same module is no
 		// returns an already-cached module before consulting the hook, so a second require() of the same
 		// module adds nothing; a dynamic import() re-fires on every call even when cached. A tool a capture
 		// window must observe therefore has to be loaded for the first time inside that window, or reached via
-		// import(). This precondition is why the recorder is sound for the shipped tasks (see NOTES.md 2.8);
+		// import(). This precondition is why the recorder is sound for the shipped tasks;
 		// pinning it here makes a regression (e.g. a loader change, or relying on a warm require) fail loudly.
 
 		// Cold require inside a window: the first resolution in this process fires the hook.
@@ -173,8 +173,8 @@ test.serial("nested (LIFO) captures attribute resolutions to the window that was
 		// prior active capture, stopCapture restores it). This is correct as long as captures nest strictly:
 		// an inner window opens and closes entirely within an outer one. TaskRunner and ProjectBuilder run
 		// tasks and projects serially, so the shipped executor only ever nests, never overlaps. This test
-		// pins the nesting contract; the serial-execution assumption it rests on is documented as a latent
-		// hazard in NOTES.md 2.8 (parallelizing execution would overlap windows and misattribute, and would
+		// pins the nesting contract; the serial-execution assumption it rests on is a latent
+		// hazard (parallelizing execution would overlap windows and misattribute, and would
 		// need AsyncLocalStorage). A resolution fired inside the inner window must land in the inner set, and
 		// one fired after the inner closes must land back in the outer set.
 

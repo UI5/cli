@@ -5,7 +5,7 @@ const log = Logger.getLogger("builder:tasks:toolContentWorkerTask");
 
 // A custom task that loads its tool ONLY inside a worker it spawns itself, with no main-thread resolve of
 // the tool. The worker realm is invisible to the main-thread recorder, so the tool is not tracked and a
-// bump of it is served from a stale cache. This is the documented known limitation (NOTES.md 2.6): the
+// bump of it is served from a stale cache. This is a known limitation: the
 // convention authors must follow is to resolve the tool on the main thread. This fixture deliberately
 // violates that convention so a test can pin the boundary.
 
