@@ -37,6 +37,13 @@ const assertVersionInfoContent = (t, oExpectedVersionInfo, sActualContent) => {
 		delete lib.buildTimestamp; // removing to allow deep comparison
 	});
 
+	// The "framework" object is always emitted. When the expectation does not assert it
+	// explicitly, verify it defaults to empty strings and remove it to allow deep comparison.
+	if (!("framework" in oExpectedVersionInfo)) {
+		t.deepEqual(currentVersionInfo.framework, {name: "", version: ""},
+			"framework defaults to empty strings when no framework option is passed");
+		delete currentVersionInfo.framework;
+	}
 
 	t.deepEqual(currentVersionInfo, oExpectedVersionInfo, "Correct content");
 };
@@ -56,6 +63,27 @@ test.serial("versionInfoGenerator empty libraryInfos parameter", async (t) => {
 		"libraries": []
 	};
 	assertVersionInfoContent(t, oExpected, result);
+});
+
+
+test.serial("versionInfoGenerator embeds the provided framework object verbatim", async (t) => {
+	const {versionInfoGenerator} = t.context;
+	const versionInfos = await versionInfoGenerator({options: {
+		rootProjectName: "myname", rootProjectVersion: "1.33.7", libraryInfos: [],
+		framework: {name: "OpenUI5", version: "1.136.0"}}});
+
+	const result = JSON.parse(await versionInfos[0].getString());
+	t.deepEqual(result.framework, {name: "OpenUI5", version: "1.136.0"},
+		"framework option is embedded without modification");
+});
+
+test.serial("versionInfoGenerator defaults framework to empty strings when the option is omitted", async (t) => {
+	const {versionInfoGenerator} = t.context;
+	const versionInfos = await versionInfoGenerator({options: {
+		rootProjectName: "myname", rootProjectVersion: "1.33.7", libraryInfos: []}});
+
+	const result = JSON.parse(await versionInfos[0].getString());
+	t.deepEqual(result.framework, {name: "", version: ""});
 });
 
 

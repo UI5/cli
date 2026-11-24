@@ -3,5 +3,9 @@
 	"version": "1.0.0",
 	"buildTimestamp": "WILL_BE_IGNORED_BY_TESTS",
 	"scmRevision": "",
+	"framework": {
+		"name": "",
+		"version": ""
+	},
 	"libraries": []
 }
