@@ -3,7 +3,7 @@ import {minify} from "terser";
 
 /**
  * @private
- * @module @ui5/builder/tasks/minifyWorker
+ * @module @ui5/builder/processors/minifierWorker
  */
 
 /**
@@ -32,7 +32,7 @@ const copyrightCommentsAndBundleCommentPattern = /copyright|\(c\)(?:[0-9]+|\s+[0
  * @param {string} parameters.code
  * @param {string} parameters.resourcePath
  * @param {object} parameters.sourceMapOptions
- * @returns {Promise<undefined>} Promise resolving once minification of the resource has finished
+ * @returns {Promise<object>} Resolves with the terser minify result
  */
 export default async function execMinification({
 	filename,
@@ -74,7 +74,6 @@ export default async function execMinification({
 /* istanbul ignore else */
 if (!workerpool.isMainThread) {
 	// Script got loaded through workerpool
-	// => Create a worker and register public functions
 	workerpool.worker({
 		execMinification
 	});

@@ -176,9 +176,15 @@ export default async function({
 			// TaskUtil is required for worker support
 			throw new Error(`Minifier: Option 'useWorkers' requires a taskUtil instance to be provided`);
 		}
+		// terser runs only in the worker thread, a realm the main-thread tool-dependency recorder cannot
+		// observe. Resolve it here on the main thread, within the task's capture window, so the recorder
+		// records terser's entry (and folds in its package.json), moving the stage signature on a terser
+		// version bump. The resolve does not load terser; the heavy work stays in the worker.
+		import.meta.resolve("terser");
 		minify = minifyInWorker;
 	} else {
-		// Do not use workerpool
+		// Do not use workerpool. The processor runs in this (main) thread, so the dynamic import below loads
+		// terser on the main thread, within the task's capture window, and the recorder observes it directly.
 		minify = (await import("./minifierWorker.js")).default;
 	}
 
