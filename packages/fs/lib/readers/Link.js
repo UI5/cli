@@ -1,3 +1,4 @@
+import posixPath from "node:path/posix";
 import AbstractReader from "../AbstractReader.js";
 import ResourceFacade from "../ResourceFacade.js";
 import {prefixGlobPattern} from "../resourceFactory.js";
@@ -57,6 +58,10 @@ class Link extends AbstractReader {
 		this._reader = reader;
 		this._pathMapping = pathMapping;
 		Link._validatePathMapping(pathMapping);
+		// targetPath ends with a slash (enforced by _validatePathMapping), and normalize preserves it.
+		// Containment checks rely on that trailing slash to stay segment-aware, so a sibling such as
+		// "/resources/application/" is not accepted for "/resources/app/".
+		this._normalizedTargetPath = posixPath.normalize(pathMapping.targetPath);
 	}
 
 	resolvePattern(patterns) {
@@ -78,7 +83,11 @@ class Link extends AbstractReader {
 		if (!virPath.startsWith(this._pathMapping.linkPath)) {
 			return null;
 		}
-		const targetPath = this._pathMapping.targetPath + virPath.substr(this._pathMapping.linkPath.length);
+		const targetPath = posixPath.normalize(
+			this._pathMapping.targetPath + virPath.substr(this._pathMapping.linkPath.length));
+		if (this._getRelativePath(targetPath) === null) {
+			return null;
+		}
 		return targetPath;
 	}
 
@@ -95,18 +104,18 @@ class Link extends AbstractReader {
 	async _byGlob(patterns, options, trace) {
 		patterns = this.resolvePattern(patterns);
 
-		// Keep resource's internal path unchanged for now
 		const resources = await this._reader._byGlob(patterns, options, trace);
-		return resources.map((resource) => {
-			const resourcePath = resource.getPath();
-			if (resourcePath.startsWith(this._pathMapping.targetPath)) {
-				return new ResourceFacade({
+		return resources.flatMap((resource) => {
+			const relativePath = this._getRelativePath(resource.getPath());
+			if (relativePath !== null) {
+				return [new ResourceFacade({
 					resource,
-					path: this._pathMapping.linkPath + resourcePath.substr(this._pathMapping.targetPath.length)
-				});
+					path: this._pathMapping.linkPath + relativePath
+				})];
 			}
-			// Drop resources outside the mapped target path instead of leaking an undefined entry
-		}).filter(Boolean);
+			// Drop resources outside the mapped target path
+			return [];
+		});
 	}
 
 	/**
@@ -127,10 +136,31 @@ class Link extends AbstractReader {
 
 		const resource = await this._reader._byPath(targetPath, options, trace);
 		if (resource) {
-			return new ResourceFacade({
-				resource,
-				path: this._pathMapping.linkPath + resource.getPath().substr(this._pathMapping.targetPath.length)
-			});
+			const relativePath = this._getRelativePath(resource.getPath());
+			if (relativePath !== null) {
+				return new ResourceFacade({
+					resource,
+					path: this._pathMapping.linkPath + relativePath
+				});
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Resolves a path from the backing reader to its path relative to the mapped target subtree.
+	 *
+	 * @private
+	 * @param {string} resourcePath Path in the backing reader's namespace
+	 * @returns {string|null} Path relative to targetPath, or null if the path is outside the subtree
+	 */
+	_getRelativePath(resourcePath) {
+		const normalizedPath = posixPath.normalize(resourcePath);
+		// startsWith matches resources inside the subtree, since targetPath ends with a slash.
+		// The second check matches the target directory itself, without its trailing slash.
+		if (normalizedPath.startsWith(this._normalizedTargetPath) ||
+			normalizedPath === this._normalizedTargetPath.slice(0, -1)) {
+			return normalizedPath.substr(this._normalizedTargetPath.length);
 		}
 		return null;
 	}
