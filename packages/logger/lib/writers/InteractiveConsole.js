@@ -18,11 +18,19 @@ import {
 	SPINNING_STATES, enableBuildPlaceholders, setDegraded, clearDegraded,
 } from "./interactiveConsole/state/build.js";
 import {
-	renderHeaderRegion, renderProjectRegion, renderServerRegion, renderBuildRegion,
+	createInspectState, setInspectNow, recordRequestStart, recordRequestEnd,
+	recordBuildStart, recordBuildProject, recordBuildDone, needsInspectTick,
+} from "./interactiveConsole/state/inspect.js";
+import {
+	renderHeaderRegion, renderProjectRegion, renderServerRegion, renderBuildRegion, renderInspectRegion,
 } from "./interactiveConsole/render.js";
 
 // Spinner tick interval while in `building` or `validating` state.
 const BUILDING_TICK_MS = 120;
+
+// Slower tick that animates the inspect waterfall while requests are in flight but no build spinner
+// is already driving renders. In-flight bars grow at this cadence.
+const INSPECT_TICK_MS = 250;
 
 // Module names whose info-level logs duplicate state the banner already renders
 // via named build events (ui5.build-metadata / ui5.build-status). Their info
@@ -78,6 +86,10 @@ class InteractiveConsole {
 	#projectState;
 	#serverState;
 	#buildState;
+	#inspectState;
+	// Opt-in debug waterfall. Read once from UI5_CLI_INSPECT; when false the region never renders
+	// and the `ui5.serve-request` listener is never attached. See state/inspect.js.
+	#inspectEnabled = !!process.env.UI5_CLI_INSPECT;
 
 	#tickTimer = null;
 	#columns;
@@ -114,6 +126,7 @@ class InteractiveConsole {
 	#onServerListening;
 	#onStopConsole;
 	#onResize;
+	#onServeRequest;
 
 	// Termination-signal handlers (plus an `exit` catch-all), keyed by event
 	// name, so disable() detaches exactly what enable() registered.
@@ -125,6 +138,7 @@ class InteractiveConsole {
 		this.#projectState = createProjectState();
 		this.#serverState = createServerState();
 		this.#buildState = createBuildState();
+		this.#inspectState = createInspectState();
 		this.#columns = stderr.columns;
 	}
 
@@ -231,14 +245,27 @@ class InteractiveConsole {
 			...renderServerRegion(this.#serverState),
 			...renderBuildRegion(this.#buildState),
 		];
+		let inspectLines = [];
+		if (this.#inspectEnabled) {
+			// Stamp the render clock on the shared process.hrtime() scale so the selector and renderer
+			// stay pure, then append the waterfall below the other regions.
+			setInspectNow(this.#inspectState, process.hrtime());
+			// Cap the reader rows to the space left below the banner so the banner is never clipped by
+			// log-update. The inspect region spends two lines on its blank separator and header before
+			// any reader row. A non-TTY stderr has no `rows`; leave it uncapped there.
+			const rows = this.#stderr.rows;
+			const maxDataRows = rows ? Math.max(0, rows - lines.length - 2) : Infinity;
+			inspectLines = renderInspectRegion(this.#inspectState, this.#columns, maxDataRows);
+			lines.push(...inspectLines);
+		}
 		if (lines.length === 0) {
 			return "";
 		}
-		// `log-update` wraps long lines onto additional rows; the last line is
-		// designed to fit on a single row when it's a status line, so clip it
-		// to the terminal width. `this.#columns` is undefined when stderr isn't
-		// a TTY — sliceAnsi treats that as "no limit" and returns unchanged.
-		if (this.#buildState.state !== STATES.INITIAL) {
+		// `log-update` wraps long lines onto additional rows; the last line is designed to fit on a
+		// single row (the status line, or an inspect bar line), so clip it to the terminal width.
+		// `this.#columns` is undefined when stderr isn't a TTY. sliceAnsi treats that as "no limit"
+		// and returns unchanged.
+		if (this.#buildState.state !== STATES.INITIAL || inspectLines.length > 0) {
 			lines[lines.length - 1] = sliceAnsi(lines[lines.length - 1], 0, this.#columns);
 		}
 		return lines.join("\n");
@@ -306,6 +333,7 @@ class InteractiveConsole {
 		this.#onServerListening = (evt) => this.#handleServerListening(evt);
 		this.#onStopConsole = () => this.disable();
 		this.#onResize = () => this.#handleResize();
+		this.#onServeRequest = (evt) => this.#handleServeRequest(evt);
 
 		process.on("ui5.log", this.#onLog);
 		process.on("ui5.build-metadata", this.#onBuildMetadata);
@@ -320,6 +348,11 @@ class InteractiveConsole {
 		process.on("ui5.project-resolve-failed", this.#onProjectResolveFailed);
 		process.on("ui5.server-listening", this.#onServerListening);
 		process.on("ui5.log.stop-console", this.#onStopConsole);
+		// The request feed is high-frequency on the serve hot path, so subscribe only when inspect
+		// mode is on. Its producer (BuildReader) is likewise gated, so nothing is emitted when off.
+		if (this.#inspectEnabled) {
+			process.on("ui5.serve-request", this.#onServeRequest);
+		}
 		if (typeof this.#stderr.on === "function") {
 			this.#stderr.on("resize", this.#onResize);
 		}
@@ -339,6 +372,9 @@ class InteractiveConsole {
 		process.off("ui5.project-resolve-failed", this.#onProjectResolveFailed);
 		process.off("ui5.server-listening", this.#onServerListening);
 		process.off("ui5.log.stop-console", this.#onStopConsole);
+		if (this.#inspectEnabled) {
+			process.off("ui5.serve-request", this.#onServeRequest);
+		}
 		if (typeof this.#stderr.off === "function") {
 			this.#stderr.off("resize", this.#onResize);
 		}
@@ -430,8 +466,11 @@ class InteractiveConsole {
 		}
 	}
 
-	#handleProjectBuildStatus({taskName, status}) {
+	#handleProjectBuildStatus({projectName, taskName, status}) {
 		if (status === "task-start") {
+			if (this.#inspectEnabled) {
+				recordBuildProject(this.#inspectState, projectName);
+			}
 			setTask(this.#buildState, taskName);
 			this.#render();
 		}
@@ -467,6 +506,11 @@ class InteractiveConsole {
 			break;
 		case "serve-building":
 			beginBuild(this.#buildState, this.#buildState.projectOrder);
+			if (this.#inspectEnabled) {
+				// Stamp the cycle start on the shared process.hrtime() clock so the inspect selector
+				// can overlap it against in-flight request intervals.
+				recordBuildStart(this.#inspectState, process.hrtime());
+			}
 			this.#transitionTo(STATES.BUILDING);
 			break;
 		case "serve-validating":
@@ -475,6 +519,10 @@ class InteractiveConsole {
 			break;
 		case "serve-build-done":
 			this.#buildState.lastBuildHrtime = Array.isArray(evt.hrtime) ? evt.hrtime : null;
+			if (this.#inspectEnabled) {
+				recordBuildDone(
+					this.#inspectState, process.hrtime(), this.#buildState.lastBuildHrtime);
+			}
 			this.#transitionTo(STATES.READY);
 			break;
 		case "serve-error":
@@ -495,6 +543,19 @@ class InteractiveConsole {
 		this.#render();
 	}
 
+	// Feeds the `ui5.serve-request` lifecycle into the inspect waterfall. A `start` arriving while the
+	// banner is otherwise idle has no spinner driving renders, so #scheduleTick is nudged to animate
+	// the in-flight bars until they resolve.
+	#handleServeRequest(evt) {
+		if (evt.phase === "start") {
+			recordRequestStart(this.#inspectState, evt);
+		} else if (evt.phase === "end") {
+			recordRequestEnd(this.#inspectState, evt);
+		}
+		this.#render();
+		this.#scheduleTick();
+	}
+
 	#transitionTo(newState) {
 		if (this.#buildState.state === newState) {
 			this.#render();
@@ -506,20 +567,38 @@ class InteractiveConsole {
 		this.#render();
 	}
 
+	// Whether a tick is warranted right now: a spinning build state, growing inspect bars, or a
+	// completed inspect wave that has not reached its quiet-gap marker.
+	#needsTick() {
+		if (SPINNING_STATES.has(this.#buildState.state)) {
+			return true;
+		}
+		return this.#inspectEnabled && needsInspectTick(this.#inspectState);
+	}
+
 	#scheduleTick() {
 		/* istanbul ignore if — defensive: #scheduleTick is only reached from
 		   event handlers (detached on disable), so #stopped is always false
 		   here in practice. */
-		if (this.#stopped) {
+		if (this.#stopped || this.#tickTimer) {
 			return;
 		}
-		if (!SPINNING_STATES.has(this.#buildState.state)) {
+		if (!this.#needsTick()) {
 			return;
 		}
+		// A spinning build drives the fast spinner cadence. Inspect-only animation ticks slower.
+		const interval = SPINNING_STATES.has(this.#buildState.state) ? BUILDING_TICK_MS : INSPECT_TICK_MS;
 		this.#tickTimer = setInterval(() => {
+			if (!this.#needsTick()) {
+				// Nothing left to animate (requests resolved, build settled): stop and paint the
+				// final frame once, so an in-flight bar lands on its resolved width.
+				this.#clearTick();
+				this.#render();
+				return;
+			}
 			this.#buildState.spinFrame++;
 			this.#render();
-		}, BUILDING_TICK_MS);
+		}, interval);
 		// Don't keep the event loop alive purely for the banner spinner.
 		if (typeof this.#tickTimer.unref === "function") {
 			this.#tickTimer.unref();
@@ -629,6 +708,7 @@ class InteractiveConsole {
 			project: this.#projectState,
 			server: this.#serverState,
 			build: this.#buildState,
+			inspect: this.#inspectState,
 		};
 	}
 }

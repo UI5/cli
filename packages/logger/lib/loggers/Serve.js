@@ -70,12 +70,15 @@ class Serve extends Logger {
 		this.#emitStatus("serve-building", {}, `Building...`);
 	}
 
-	buildDone(hrtime) {
+	buildDone(hrtime, builtProjects = []) {
 		if (!Array.isArray(hrtime) || hrtime.length !== 2 ||
 				typeof hrtime[0] !== "number" || typeof hrtime[1] !== "number") {
 			throw new Error("loggers/Serve#buildDone: Missing or incorrect hrtime parameter");
 		}
-		this.#emitStatus("serve-build-done", {hrtime},
+		if (!Array.isArray(builtProjects)) {
+			throw new Error("loggers/Serve#buildDone: Missing or incorrect builtProjects parameter");
+		}
+		this.#emitStatus("serve-build-done", {hrtime, builtProjects},
 			`Build finished in ${prettyHrtime(hrtime)}`);
 	}
 

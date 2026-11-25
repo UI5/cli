@@ -270,3 +270,165 @@ test("byPath: routes non-colliding theme-library resource without building unrel
 	t.false(builtProjects.has("sap.m"), "Unrelated library sap.m is not built");
 	t.false(builtProjects.has("app.a"), "Unrelated application is not built");
 });
+
+// ---- inspect mode (UI5_CLI_INSPECT) -------------------------------------------
+// BuildReader reads UI5_CLI_INSPECT in its constructor, so these tests toggle the env var before
+// constructing. They collect the `ui5.serve-request` events the reader emits on the process bus.
+
+function collectServeRequests() {
+	const events = [];
+	const listener = (evt) => events.push(evt);
+	process.on("ui5.serve-request", listener);
+	return {
+		events,
+		stop: () => process.off("ui5.serve-request", listener),
+	};
+}
+
+function withInspect(enabled, fn) {
+	const previous = process.env.UI5_CLI_INSPECT;
+	if (enabled) {
+		process.env.UI5_CLI_INSPECT = "true";
+	} else {
+		delete process.env.UI5_CLI_INSPECT;
+	}
+	try {
+		return fn();
+	} finally {
+		if (previous === undefined) {
+			delete process.env.UI5_CLI_INSPECT;
+		} else {
+			process.env.UI5_CLI_INSPECT = previous;
+		}
+	}
+}
+
+test.serial("byPath: emits ui5.serve-request start/end when inspect is enabled", async (t) => {
+	const sink = collectServeRequests();
+	try {
+		const resource = {getProject: () => ({getName: () => "sap.m"})};
+		const mockReader = {byPath: sinon.stub().resolves(resource)};
+		const buildServerInterface = {
+			getReaderForProject: sinon.stub().resolves(mockReader),
+			getReaderForProjects: sinon.stub().resolves(mockReader),
+			getCachedReadersForProjects: sinon.stub().returns(null),
+			getProjectState: sinon.stub().returns("building"),
+		};
+		const projects = [
+			createMockProject("sap.m", "sap/m"),
+			createMockProject("sap.ui.core", "sap/ui/core"),
+		];
+		const reader = withInspect(true, () => new BuildReader("test", projects, buildServerInterface));
+
+		const res = await reader.byPath("/resources/sap/m/Button.js");
+		t.is(res, resource);
+
+		t.is(sink.events.length, 2, "one start and one end event");
+		const [start, end] = sink.events;
+		t.is(start.phase, "start");
+		t.is(start.path, "/resources/sap/m/Button.js");
+		t.deepEqual(start.projects, [{name: "sap.m", state: "building"}],
+			"the resolved candidate carries its current build-server state");
+		t.true(Array.isArray(start.hrtime));
+		t.is(end.phase, "end");
+		t.is(end.id, start.id, "start and end share one correlation id");
+		t.is(end.resolvedProject, "sap.m");
+		t.is(end.found, true);
+		t.is(end.error, false);
+		t.is(end.erroredProject, null);
+	} finally {
+		sink.stop();
+	}
+});
+
+test.serial("byPath: emits an end event with found=false on a miss", async (t) => {
+	const sink = collectServeRequests();
+	try {
+		const mockReader = {byPath: sinon.stub().resolves(null)};
+		const buildServerInterface = {
+			getReaderForProject: sinon.stub().resolves(mockReader),
+			getReaderForProjects: sinon.stub().resolves(mockReader),
+			getCachedReadersForProjects: sinon.stub().returns(null),
+			getProjectState: sinon.stub().returns("fresh"),
+		};
+		const projects = [
+			createMockProject("sap.m", "sap/m"),
+			createMockProject("sap.ui.core", "sap/ui/core"),
+		];
+		const reader = withInspect(true, () => new BuildReader("test", projects, buildServerInterface));
+
+		const res = await reader.byPath("/resources/unknown/path.js");
+		t.is(res, null);
+		const end = sink.events.at(-1);
+		t.is(end.phase, "end");
+		t.is(end.resolvedProject, null);
+		t.is(end.found, false);
+		t.is(end.error, false);
+	} finally {
+		sink.stop();
+	}
+});
+
+test.serial("byPath: identifies the project whose reader request failed", async (t) => {
+	const sink = collectServeRequests();
+	try {
+		const error = new Error("Build failed");
+		const getProjectState = sinon.stub();
+		getProjectState.onFirstCall().returns("building");
+		getProjectState.onSecondCall().returns("errored");
+		const buildServerInterface = {
+			getReaderForProject: sinon.stub().rejects(error),
+			getReaderForProjects: sinon.stub(),
+			getCachedReadersForProjects: sinon.stub().returns(null),
+			getProjectState,
+		};
+		const projects = [createMockProject("sap.m", "sap/m")];
+		const reader = withInspect(true, () => new BuildReader("test", projects, buildServerInterface));
+
+		const thrown = await t.throwsAsync(() => reader.byPath("/resources/sap/m/Button.js"));
+		t.is(thrown, error);
+		const end = sink.events.at(-1);
+		t.is(end.phase, "end");
+		t.is(end.error, true);
+		t.is(end.erroredProject, "sap.m");
+	} finally {
+		sink.stop();
+	}
+});
+
+test.serial("byPath: emits nothing when inspect is disabled", async (t) => {
+	const sink = collectServeRequests();
+	try {
+		const resource = {getProject: () => ({getName: () => "sap.m"})};
+		const mockReader = {byPath: sinon.stub().resolves(resource)};
+		const buildServerInterface = {
+			getReaderForProject: sinon.stub().resolves(mockReader),
+			getReaderForProjects: sinon.stub().resolves(mockReader),
+			getCachedReadersForProjects: sinon.stub().returns(null),
+			getProjectState: sinon.stub().returns("building"),
+		};
+		const projects = [createMockProject("sap.m", "sap/m"), createMockProject("sap.ui.core", "sap/ui/core")];
+		const reader = withInspect(false, () => new BuildReader("test", projects, buildServerInterface));
+
+		await reader.byPath("/resources/sap/m/Button.js");
+		t.is(sink.events.length, 0, "no events and no getProjectState calls when disabled");
+		t.is(buildServerInterface.getProjectState.callCount, 0);
+	} finally {
+		sink.stop();
+	}
+});
+
+test("_getInspectProjectNames: namespace, theme-library, and application candidates", (t) => {
+	const projects = [
+		createMockProject("app.a", "app/a", "application"),
+		createMockProject("sap.m", "sap/m", "library"),
+		createMockProject("theme.lib", null, "theme-library"),
+	];
+	const reader = new BuildReader("test", projects, {});
+
+	t.deepEqual(reader._getInspectProjectNames("/resources/sap/m/Button.js"), ["sap.m"]);
+	t.deepEqual(reader._getInspectProjectNames("/index.html"), ["app.a"],
+		"a non-/resources path falls back to the application project");
+	t.true(reader._getInspectProjectNames("/resources/sap/ui/core/themes/x/library.css").includes("theme.lib"),
+		"a theme resource path offers the theme library");
+});
