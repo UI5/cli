@@ -4,6 +4,24 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v4.0.6...HEAD).
 
+## [5.0.0-alpha.17](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.16...project-v5.0.0-alpha.17) (2026-11-25)
+
+
+### Features
+
+* Add framework object to sap-ui-version.json ([#1681](https://github.com/UI5/cli/issues/1681)) ([2e9c8b4](https://github.com/UI5/cli/commit/2e9c8b4021b2b852595ba966b746e445b05bbffb))
+
+
+### Dependencies
+
+* Bump @npmcli/config from 11.2.0 to 11.2.1 in the npm group ([#1704](https://github.com/UI5/cli/issues/1704)) ([2d2df87](https://github.com/UI5/cli/commit/2d2df8717d03c61932279c5147664338c2ea4300))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/fs bumped from ^5.0.0-alpha.16 to ^5.0.0-alpha.17
+    * @ui5/logger bumped from ^5.0.0-alpha.16 to ^5.0.0-alpha.17
+  * peerDependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.16 to ^5.0.0-alpha.17
+
 ## [5.0.0-alpha.16](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.15...project-v5.0.0-alpha.16) (2026-11-16)
 
 
