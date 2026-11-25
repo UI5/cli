@@ -2,12 +2,12 @@
 - RFC PR: -
 - Issue: -
 - Affected components <!-- Check affected components by writing an "X" into the brackets -->
-    + [ ] [ui5-builder](./packages/builder)
-    + [ ] [ui5-server](./packages/server)
-    + [ ] [ui5-cli](./packages/cli)
-    + [ ] [ui5-fs](./packages/fs)
-    + [ ] [ui5-project](./packages/project)
-    + [ ] [ui5-logger](./packages/logger)
+    + [ ] [builder](./packages/builder)
+    + [ ] [server](./packages/server)
+    + [ ] [cli](./packages/cli)
+    + [ ] [fs](./packages/fs)
+    + [ ] [project](./packages/project)
+    + [ ] [logger](./packages/logger)
 
 
 # RFC 0000 Fancy Title
